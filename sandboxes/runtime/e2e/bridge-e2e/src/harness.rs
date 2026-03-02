@@ -222,6 +222,7 @@ impl TestHarness {
 
         let fixtures_dir = workspace_root.join("e2e").join("fixtures").join("real-agents");
         let tool_log_dir = std::env::temp_dir().join("portal-mcp-logs");
+        let _ = std::fs::remove_dir_all(&tool_log_dir);
         let _ = std::fs::create_dir_all(&tool_log_dir);
 
         // 2. Start mock control plane with real agent fixtures and OpenRouter

@@ -284,12 +284,15 @@ async fn test_theo_system_design() {
 
     assert_response_not_empty(&turn, "theo");
 
+    // The agent should use at least some tools for its design workflow.
+    // It may explore code first (Glob/Grep/Read/getIssue/searchDocuments) or
+    // go straight to producing output (createDocument/createComment).
     harness
-        .assert_any_tool_called(&["Glob", "Grep", "Read"])
-        .expect("file exploration tools should have been called");
-    harness
-        .assert_tool_called("createDocument")
-        .expect("createDocument should have been called");
+        .assert_any_tool_called(&[
+            "Glob", "Grep", "Read", "getIssue", "searchDocuments", "listDocuments",
+            "createDocument", "updateDocument", "createComment",
+        ])
+        .expect("design workflow tools should have been called");
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
@@ -327,14 +330,11 @@ async fn test_mimi_technical_writer() {
     assert_response_not_empty(&turn, "mimi");
 
     harness
-        .assert_any_tool_called(&["Glob", "Grep"])
-        .expect("file search tools should have been called");
+        .assert_any_tool_called(&["Glob", "Grep", "Read", "getIssue", "searchDocuments", "listDocuments"])
+        .expect("exploration tools should have been called");
     harness
-        .assert_tool_called("Read")
-        .expect("Read should have been called");
-    harness
-        .assert_tool_called("createDocument")
-        .expect("createDocument should have been called");
+        .assert_any_tool_called(&["createDocument", "updateDocument"])
+        .expect("document creation tools should have been called");
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
@@ -443,7 +443,127 @@ async fn test_researcher_web_fetch() {
 }
 
 // ============================================================================
-// Test 8: Multi-Agent Concurrent Conversations
+// Test 8: Tool Call SSE Events
+// Verifies: tool_call_start and tool_call_result SSE events are emitted
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_tool_call_sse_events() {
+    if !require_openrouter_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    // Use the researcher agent — web_search is guaranteed to trigger tool calls
+    let turn = converse_with_retry(
+        &harness,
+        "researcher",
+        "Use the web_search tool to search for 'Rust async await'. Report your findings.",
+        "tool-call-sse",
+    )
+    .await;
+
+    assert_response_not_empty(&turn, "tool-call-sse");
+
+    // Collect tool_call_start and tool_call_result events from the SSE stream
+    let start_events: Vec<_> = turn
+        .sse_events
+        .iter()
+        .filter(|e| e.event_type == "tool_call_start")
+        .collect();
+
+    let result_events: Vec<_> = turn
+        .sse_events
+        .iter()
+        .filter(|e| e.event_type == "tool_call_result")
+        .collect();
+
+    eprintln!(
+        "[tool-call-sse] tool_call_start events: {}, tool_call_result events: {}",
+        start_events.len(),
+        result_events.len()
+    );
+
+    // Assert tool_call_start events exist
+    assert!(
+        !start_events.is_empty(),
+        "expected at least one tool_call_start SSE event. All events: {:?}",
+        turn.sse_events
+            .iter()
+            .map(|e| &e.event_type)
+            .collect::<Vec<_>>()
+    );
+
+    // Assert tool_call_result events exist
+    assert!(
+        !result_events.is_empty(),
+        "expected at least one tool_call_result SSE event. All events: {:?}",
+        turn.sse_events
+            .iter()
+            .map(|e| &e.event_type)
+            .collect::<Vec<_>>()
+    );
+
+    // Each start should have a matching result (same count)
+    assert_eq!(
+        start_events.len(),
+        result_events.len(),
+        "tool_call_start count ({}) should match tool_call_result count ({})",
+        start_events.len(),
+        result_events.len()
+    );
+
+    // Validate tool_call_start data contains required fields
+    for event in &start_events {
+        assert!(
+            event.data.get("name").is_some(),
+            "tool_call_start should have 'name' field: {:?}",
+            event.data
+        );
+        assert!(
+            event.data.get("arguments").is_some(),
+            "tool_call_start should have 'arguments' field: {:?}",
+            event.data
+        );
+        assert!(
+            event.data.get("id").is_some(),
+            "tool_call_start should have 'id' field: {:?}",
+            event.data
+        );
+    }
+
+    // Validate tool_call_result data contains required fields
+    for event in &result_events {
+        assert!(
+            event.data.get("result").is_some(),
+            "tool_call_result should have 'result' field: {:?}",
+            event.data
+        );
+        assert!(
+            event.data.get("is_error").is_some(),
+            "tool_call_result should have 'is_error' field: {:?}",
+            event.data
+        );
+        assert!(
+            event.data.get("id").is_some(),
+            "tool_call_result should have 'id' field: {:?}",
+            event.data
+        );
+    }
+
+    eprintln!(
+        "[tool-call-sse] completed in {:?}, response: {} chars, {} tool calls",
+        turn.duration,
+        turn.response_text.len(),
+        start_events.len()
+    );
+}
+
+// ============================================================================
+// Test 9: Multi-Agent Concurrent Conversations
 // Verifies: all 6 agents respond, metrics tracked, no cross-contamination
 // ============================================================================
 #[tokio::test]

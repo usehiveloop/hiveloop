@@ -1,7 +1,7 @@
 use bridge_core::conversation::Message;
 use bridge_core::AgentMetrics;
 use llm::{SseEvent, TokenUsage};
-use rig::completion::Chat;
+use rig::completion::Prompt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -112,16 +112,21 @@ pub async fn run_conversation(params: ConversationParams) {
 
         let start = std::time::Instant::now();
 
-        // Spawn agent.chat() in a separate task so that tokio::time::timeout
-        // is guaranteed to fire even if the chat future blocks a worker thread.
+        // Spawn the agent prompt in a separate task so that tokio::time::timeout
+        // is guaranteed to fire even if the future blocks a worker thread.
+        // Using prompt().with_hook() instead of chat() so tool calls emit SSE events.
         let agent_clone = agent.clone();
         let user_text_clone = user_text.clone();
-        let history_clone = history.clone();
+        let mut history_clone = history.clone();
+        let sse_tx_clone = sse_tx.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
+            let emitter = llm::ToolCallEmitter { sse_tx: sse_tx_clone };
             let result = agent_clone
-                .chat(&user_text_clone, history_clone)
+                .prompt(&user_text_clone)
+                .with_history(&mut history_clone)
+                .with_hook(emitter)
                 .await;
             let _ = result_tx.send(result);
         });
