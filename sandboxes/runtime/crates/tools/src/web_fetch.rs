@@ -443,4 +443,521 @@ mod tests {
         let md = fallback_convert("");
         assert!(md.is_empty() || md.trim().is_empty());
     }
+
+    // -----------------------------------------------------------------------
+    // Redirect tests
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_follow_single_redirect() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/old"))
+            .respond_with(
+                ResponseTemplate::new(301)
+                    .insert_header("Location", &*format!("{}/new", server.uri())),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/new"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw("<html><body><p>Final destination</p></body></html>", "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/old", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed after redirect");
+
+        assert_eq!(result.url, format!("{}/new", server.uri()));
+        assert!(!result.content.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_follow_redirect_chain() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/hop1"))
+            .respond_with(
+                ResponseTemplate::new(302)
+                    .insert_header("Location", &*format!("{}/hop2", server.uri())),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/hop2"))
+            .respond_with(
+                ResponseTemplate::new(302)
+                    .insert_header("Location", &*format!("{}/hop3", server.uri())),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/hop3"))
+            .respond_with(
+                ResponseTemplate::new(302)
+                    .insert_header("Location", &*format!("{}/final", server.uri())),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/final"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw("<html><body><p>End of chain</p></body></html>", "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/hop1", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should follow redirect chain");
+
+        assert_eq!(result.url, format!("{}/final", server.uri()));
+    }
+
+    #[tokio::test]
+    async fn test_redirect_preserves_content() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html>
+        <head><title>Redirected Article</title></head>
+        <body>
+            <article>
+                <h1>Redirected Article</h1>
+                <p>This content was reached via redirect.</p>
+                <p>It should be fully extracted despite the redirect hop.</p>
+                <p>The article discusses important topics about software engineering.</p>
+                <p>Including best practices for building robust systems.</p>
+                <p>And patterns for handling distributed architectures.</p>
+                <p>Performance optimization is also covered in detail.</p>
+            </article>
+        </body>
+        </html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/redirect-me"))
+            .respond_with(
+                ResponseTemplate::new(301)
+                    .insert_header("Location", &*format!("{}/article", server.uri())),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/article"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/redirect-me", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed after redirect");
+
+        assert!(
+            result.content.contains("redirect") || result.content.contains("Redirect"),
+            "content should be extracted from redirected page"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // HTTP status code tests
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_http_500_returns_error() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/error"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/error", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .unwrap_err();
+
+        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
+        assert!(err.contains("500"), "error should contain status code 500: {err}");
+    }
+
+    #[tokio::test]
+    async fn test_http_403_returns_error() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/forbidden"))
+            .respond_with(ResponseTemplate::new(403).set_body_string("Forbidden"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/forbidden", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .unwrap_err();
+
+        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
+        assert!(err.contains("403"), "error should contain status code 403: {err}");
+    }
+
+    #[tokio::test]
+    async fn test_http_503_returns_error() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/unavailable"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("Service Unavailable"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/unavailable", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .unwrap_err();
+
+        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
+        assert!(err.contains("503"), "error should contain status code 503: {err}");
+    }
+
+    // -----------------------------------------------------------------------
+    // Content-type edge cases
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_accept_missing_content_type() {
+        let server = MockServer::start().await;
+
+        // Use set_body_bytes to avoid wiremock auto-adding Content-Type: text/plain
+        Mock::given(method("GET"))
+            .and(path("/no-ct"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_bytes("<html><body><p>No content type header</p></body></html>"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/no-ct", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed when Content-Type is missing");
+
+        assert!(!result.content.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_accept_xhtml_content_type() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/xhtml"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(
+                    "<html><body><p>XHTML content</p></body></html>",
+                    "application/xhtml+xml; charset=utf-8",
+                ),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/xhtml", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should accept application/xhtml+xml");
+
+        assert!(!result.content.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_reject_pdf_content_type() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/doc.pdf"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(b"fake pdf bytes" as &[u8], "application/pdf"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/doc.pdf", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .unwrap_err();
+
+        assert!(
+            err.contains("Non-HTML content type"),
+            "should reject PDF content type: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_reject_image_content_type() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/image.png"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(b"fake png bytes" as &[u8], "image/png"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/image.png", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .unwrap_err();
+
+        assert!(
+            err.contains("Non-HTML content type"),
+            "should reject image content type: {err}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Script/style stripping
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_scripts_and_styles_not_in_output() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html>
+        <head>
+            <style>.secret { display: none; } body { color: red; }</style>
+            <script>var secret = "do_not_leak"; alert("hi");</script>
+        </head>
+        <body>
+            <p>Visible paragraph for the reader.</p>
+            <script>console.log("another script block");</script>
+            <style>.more-styles { font-size: 12px; }</style>
+        </body>
+        </html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/scripted"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/scripted", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed");
+
+        let content = &result.content;
+        assert!(
+            !content.contains("do_not_leak"),
+            "script content should be stripped from output"
+        );
+        assert!(
+            !content.contains("alert("),
+            "script tags should be stripped from output"
+        );
+        assert!(
+            !content.contains("console.log"),
+            "inline scripts should be stripped from output"
+        );
+        assert!(
+            !content.contains("display: none"),
+            "style content should be stripped from output"
+        );
+        assert!(
+            !content.contains("font-size"),
+            "style blocks should be stripped from output"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Title extraction
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_article_title_extracted() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html>
+        <head><title>My Great Article</title></head>
+        <body>
+            <article>
+                <h1>My Great Article</h1>
+                <p>This is the first paragraph of a substantial article about testing.</p>
+                <p>The article continues with more details about software quality.</p>
+                <p>We discuss various testing strategies and their trade-offs.</p>
+                <p>Unit tests are the foundation of a good test suite.</p>
+                <p>Integration tests verify that components work together correctly.</p>
+                <p>End-to-end tests simulate real user workflows.</p>
+            </article>
+        </body>
+        </html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/titled"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/titled", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed");
+
+        assert!(
+            result.title.is_some(),
+            "article with <title> and <h1> should have extracted title"
+        );
+        let title = result.title.unwrap();
+        assert!(
+            title.contains("Great Article") || title.contains("My Great"),
+            "title should match page title, got: {title}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_no_title_for_empty_page() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/blank"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw("<html><body></body></html>", "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/blank", server.uri()), DEFAULT_MAX_LENGTH)
+            .await
+            .expect("fetch should succeed");
+
+        assert!(
+            result.title.is_none(),
+            "empty page should not have a title, got: {:?}",
+            result.title
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Execute via ToolExecutor
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_execute_with_custom_max_length() {
+        let server = MockServer::start().await;
+
+        let long_paragraph = "word ".repeat(200);
+        let html = format!(
+            r#"<html><body><p>{long_paragraph}</p></body></html>"#
+        );
+
+        Mock::given(method("GET"))
+            .and(path("/truncate-exec"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let args = serde_json::json!({
+            "url": format!("{}/truncate-exec", server.uri()),
+            "max_length": 50
+        });
+
+        let output = tool.execute(args).await.expect("execute should succeed");
+        let parsed: FetchResult =
+            serde_json::from_str(&output).expect("output should be valid FetchResult JSON");
+
+        assert!(
+            parsed.content.contains("[Content truncated...]"),
+            "content should be truncated with max_length=50"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_default_max_length() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/default-exec"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let args = serde_json::json!({
+            "url": format!("{}/default-exec", server.uri())
+        });
+
+        let output = tool.execute(args).await.expect("execute should succeed");
+        let parsed: FetchResult =
+            serde_json::from_str(&output).expect("output should be valid FetchResult JSON");
+
+        assert!(
+            !parsed.content.is_empty(),
+            "content should not be empty"
+        );
+        assert!(
+            !parsed.content.contains("[Content truncated...]"),
+            "short content should not be truncated with default max_length"
+        );
+    }
 }

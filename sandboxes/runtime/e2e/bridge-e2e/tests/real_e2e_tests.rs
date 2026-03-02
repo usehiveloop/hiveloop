@@ -347,8 +347,104 @@ async fn test_mimi_technical_writer() {
 }
 
 // ============================================================================
-// Test 6: Multi-Agent Concurrent Conversations
-// Verifies: all 5 agents respond, metrics tracked, no cross-contamination
+// Test 6: Researcher — Web Search
+// Verifies: web_search built-in tool, mock search endpoint, result synthesis
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_researcher_web_search() {
+    if !require_openrouter_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    let turn = converse_with_retry(
+        &harness,
+        "researcher",
+        "Research how async/await works in Rust. Use the web_search tool to find information.",
+        "researcher-search",
+    )
+    .await;
+
+    assert_response_not_empty(&turn, "researcher search");
+
+    let response = turn.response_text.to_lowercase();
+
+    // The mock search endpoint returns results with unique markers and
+    // content about Tokio, async/await, Futures. The agent MUST use the
+    // web_search tool to know these — it can't fabricate the markers.
+    let has_search_content = response.contains("tokio")
+        || response.contains("async")
+        || response.contains("await")
+        || response.contains("bridge_e2e_search_marker");
+
+    assert!(
+        has_search_content,
+        "response should contain content from search results. Got: {}",
+        &turn.response_text[..turn.response_text.len().min(500)]
+    );
+
+    eprintln!(
+        "[researcher] completed in {:?}, response: {} chars",
+        turn.duration,
+        turn.response_text.len()
+    );
+}
+
+// ============================================================================
+// Test 7: Researcher — Web Fetch (Real URL)
+// Verifies: web_fetch tool with real HTTP fetch, HTML parsing, content extraction
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_researcher_web_fetch() {
+    if !require_openrouter_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    let turn = converse_with_retry(
+        &harness,
+        "researcher",
+        "Use the web_fetch tool to fetch the page at https://www.rust-lang.org/ and give me a detailed summary of what the page contains. Report specific text and details you find on the page.",
+        "researcher-fetch",
+    )
+    .await;
+
+    assert_response_not_empty(&turn, "researcher fetch");
+
+    let response = turn.response_text.to_lowercase();
+
+    // The agent must have actually fetched rust-lang.org to know this content
+    let has_fetch_content = response.contains("rust")
+        && (response.contains("performance")
+            || response.contains("reliable")
+            || response.contains("memory")
+            || response.contains("safety")
+            || response.contains("concurrency"));
+
+    assert!(
+        has_fetch_content,
+        "response should contain content from rust-lang.org. Got: {}",
+        &turn.response_text[..turn.response_text.len().min(500)]
+    );
+
+    eprintln!(
+        "[researcher-fetch] completed in {:?}, response: {} chars",
+        turn.duration,
+        turn.response_text.len()
+    );
+}
+
+// ============================================================================
+// Test 8: Multi-Agent Concurrent Conversations
+// Verifies: all 6 agents respond, metrics tracked, no cross-contamination
 // ============================================================================
 #[tokio::test]
 #[ignore]
@@ -361,7 +457,7 @@ async fn test_multi_agent_concurrent_conversations() {
         .await
         .expect("failed to start real harness");
 
-    // Verify all 5 agents are loaded
+    // Verify all 6 agents are loaded
     let agents = harness.get_agents().await.expect("failed to get agents");
     let agent_ids: Vec<String> = agents
         .iter()
@@ -374,6 +470,7 @@ async fn test_multi_agent_concurrent_conversations() {
         "security-audit",
         "system-design",
         "technical-writer",
+        "researcher",
     ] {
         assert!(
             agent_ids.contains(&expected_id.to_string()),
@@ -383,13 +480,14 @@ async fn test_multi_agent_concurrent_conversations() {
         );
     }
 
-    // Create 5 conversations simultaneously with simple non-tool messages
+    // Create 6 conversations simultaneously with simple non-tool messages
     let messages = vec![
         ("code-review", "What is the most important thing in a code review? Answer in 2-3 sentences."),
         ("portal-control", "Briefly describe your role as Portal in this workspace. 2-3 sentences."),
         ("security-audit", "What are the top 3 OWASP vulnerabilities? Answer briefly."),
         ("system-design", "What makes a good system design document? Answer in 2-3 sentences."),
         ("technical-writer", "What makes good API documentation? Answer in 2-3 sentences."),
+        ("researcher", "What is Rust known for? Answer in 2-3 sentences."),
     ];
 
     let mut handles = Vec::new();
@@ -543,14 +641,14 @@ async fn test_multi_agent_concurrent_conversations() {
         }));
     }
 
-    // Wait for all 5 conversations
+    // Wait for all 6 conversations
     let mut results = Vec::new();
     for handle in handles {
         let result = handle.await.expect("task panicked");
         results.push(result);
     }
 
-    assert_eq!(results.len(), 5, "all 5 agents should have responded");
+    assert_eq!(results.len(), 6, "all 6 agents should have responded");
 
     // Verify metrics show conversations tracked
     let metrics = harness
@@ -564,13 +662,13 @@ async fn test_multi_agent_concurrent_conversations() {
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
         assert!(
-            total_agents >= 5,
-            "should have at least 5 agents in metrics, got {}",
+            total_agents >= 6,
+            "should have at least 6 agents in metrics, got {}",
             total_agents
         );
     }
 
-    eprintln!("All 5 agents responded successfully");
+    eprintln!("All 6 agents responded successfully");
     for (agent_id, conv_id) in &results {
         eprintln!("  {} -> conversation {}", agent_id, conv_id);
     }

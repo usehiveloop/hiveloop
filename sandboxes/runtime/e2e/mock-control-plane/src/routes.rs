@@ -143,3 +143,44 @@ pub async fn clear_webhook_log(State(store): State<Arc<MockStore>>) -> impl Into
         Json(serde_json::json!({"status": "cleared"})),
     )
 }
+
+/// POST /search — mock search endpoint returning deterministic Serper-format results.
+pub async fn mock_search(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+    let query = body.get("q").and_then(|v| v.as_str()).unwrap_or("");
+    Json(serde_json::json!({
+        "searchParameters": { "q": query, "type": "search", "engine": "google" },
+        "knowledgeGraph": {
+            "title": "Rust Programming Language",
+            "description": "Rust is a multi-paradigm, general-purpose programming language that emphasizes performance, type safety, and concurrency. It enforces memory safety without a garbage collector."
+        },
+        "organic": [
+            {
+                "title": "Understanding Async Await in Rust with Tokio",
+                "link": "https://tokio.rs/tokio/tutorial",
+                "snippet": "The Tokio runtime powers async Rust applications. Use select! for multiplexing, spawn for concurrent tasks, and channels for inter-task communication. BRIDGE_E2E_SEARCH_MARKER_001",
+                "position": 1
+            },
+            {
+                "title": "Rust by Example - Async/Await",
+                "link": "https://doc.rust-lang.org/rust-by-example/async/await.html",
+                "snippet": "Async functions in Rust return a Future. The await keyword suspends execution until the Future resolves. BRIDGE_E2E_SEARCH_MARKER_002",
+                "position": 2
+            },
+            {
+                "title": "The Rust Programming Language - Fearless Concurrency",
+                "link": "https://doc.rust-lang.org/book/ch16-00-concurrency.html",
+                "snippet": "Rust's ownership system enables fearless concurrency, preventing data races at compile time. BRIDGE_E2E_SEARCH_MARKER_003",
+                "position": 3
+            }
+        ],
+        "peopleAlsoAsk": [
+            {
+                "question": "Is Rust good for async programming?",
+                "snippet": "Yes, Rust has first-class async/await support since version 1.39, with the Tokio and async-std runtimes.",
+                "title": "Rust Async FAQ",
+                "link": "https://rust-lang.github.io/async-book/"
+            }
+        ],
+        "credits": 1
+    }))
+}

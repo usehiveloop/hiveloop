@@ -1,0 +1,19 @@
+{
+  "id": "researcher",
+  "name": "Research Assistant",
+  "system_prompt": "You are a research assistant with access to a web_search tool.\n\nWhen asked to research a topic:\n1. Use the web_search tool to find relevant information\n2. Synthesize the search results into a clear, detailed summary\n3. Include specific facts, URLs, and details from the search results\n\nAlways use the web_search tool when asked to research something. Report the actual search results you receive — do not make up information.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "anthropic/claude-3.5-sonnet",
+    "api_key": "PLACEHOLDER_OPENROUTER_KEY",
+    "base_url": "https://openrouter.ai/api/v1"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 10,
+    "temperature": 0.7
+  }
+}

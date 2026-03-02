@@ -66,6 +66,9 @@ impl AgentSupervisor {
             }
         }
 
+        // Register built-in tools (filesystem, web fetch, web search)
+        tools::builtin::register_builtin_tools(&mut tool_registry);
+
         // Collect all tool executors for the LLM agent
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()
@@ -276,6 +279,9 @@ impl AgentSupervisor {
                 tool_registry.register(tool);
             }
         }
+
+        // Register built-in tools (filesystem, web fetch, web search)
+        tools::builtin::register_builtin_tools(&mut tool_registry);
 
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()

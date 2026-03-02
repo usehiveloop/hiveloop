@@ -128,6 +128,8 @@ async fn main() {
         .route("/webhooks/receive", post(routes::receive_webhook))
         .route("/webhooks/log", get(routes::get_webhook_log))
         .route("/webhooks/log", delete(routes::clear_webhook_log))
+        // Mock search
+        .route("/search", post(routes::mock_search))
         // Mock LLM
         .route("/v1/chat/completions", post(mock_llm::chat_completions))
         .with_state(mock_store);

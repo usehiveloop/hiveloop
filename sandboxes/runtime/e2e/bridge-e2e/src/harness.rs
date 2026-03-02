@@ -277,6 +277,7 @@ impl TestHarness {
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
             .env("BRIDGE_SYNC_INTERVAL_SECS", "300") // avoid sync during tests
             .env("BRIDGE_LOG_LEVEL", "info")
+            .env("SEARCH_ENDPOINT", format!("{}/search", &cp_base_url))
             .stdout(Stdio::from(bridge_stdout_log))
             .stderr(Stdio::from(bridge_stderr_log))
             .spawn()
@@ -308,7 +309,7 @@ impl TestHarness {
             .await?;
 
         // 5. Wait for agents to be synced and MCP connections established
-        harness.wait_for_agents_loaded(5).await?;
+        harness.wait_for_agents_loaded(6).await?;
 
         Ok(harness)
     }
