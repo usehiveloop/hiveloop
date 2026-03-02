@@ -71,7 +71,7 @@ impl ToolExecutor for LsTool {
     }
 
     fn description(&self) -> &str {
-        "Lists the contents of a directory. Directories are listed first, then files, sorted alphabetically within each group."
+        include_str!("instructions/ls.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -177,6 +177,16 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+
+    #[test]
+    fn test_ls_description_is_rich() {
+        let tool = LsTool::new();
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(desc.contains("absolute path"), "should mention absolute path requirement");
+        assert!(desc.contains("Directories are listed first"), "should mention sort order");
+        assert!(desc.contains("Glob"), "should mention cross-tool guidance");
+    }
 
     #[tokio::test]
     async fn test_ls_basic_listing() {

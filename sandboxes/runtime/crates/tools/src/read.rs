@@ -53,7 +53,7 @@ impl ToolExecutor for ReadTool {
     }
 
     fn description(&self) -> &str {
-        "Reads a file from the local filesystem. The file_path must be an absolute path."
+        include_str!("instructions/read.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -182,6 +182,17 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_read_description_is_rich() {
+        let tool = ReadTool::new();
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(desc.contains("absolute path"), "should mention absolute path requirement");
+        assert!(desc.contains("2000"), "should mention default line limit");
+        assert!(desc.contains("Binary"), "should mention binary detection");
+        assert!(desc.contains("Grep"), "should mention cross-tool guidance");
+    }
 
     #[tokio::test]
     async fn test_read_simple_file() {

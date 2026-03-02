@@ -52,6 +52,12 @@ impl ToolRegistry {
             self.builtin_tools.entry(name).or_insert(tool);
         }
     }
+
+    /// Return a snapshot of all currently registered tools as a HashMap.
+    /// Used by the batch tool to get access to other tools.
+    pub fn snapshot(&self) -> HashMap<String, Arc<dyn ToolExecutor>> {
+        self.builtin_tools.clone()
+    }
 }
 
 impl Default for ToolRegistry {

@@ -56,7 +56,7 @@ impl ToolExecutor for GlobTool {
     }
 
     fn description(&self) -> &str {
-        "Fast file pattern matching tool that supports glob patterns. Returns matching file paths sorted by modification time (newest first)."
+        include_str!("instructions/glob.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -168,6 +168,16 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+
+    #[test]
+    fn test_glob_description_is_rich() {
+        let tool = GlobTool::new();
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(desc.contains("glob pattern"), "should mention glob patterns");
+        assert!(desc.contains("modification time"), "should mention sort order");
+        assert!(desc.contains("Grep"), "should mention cross-tool guidance");
+    }
 
     #[tokio::test]
     async fn test_glob_matches_files() {

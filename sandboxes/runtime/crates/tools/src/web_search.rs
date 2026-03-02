@@ -27,17 +27,22 @@ pub struct WebSearchArgs {
 pub struct WebSearchTool {
     client: reqwest::Client,
     endpoint: String,
+    description: String,
 }
 
 impl WebSearchTool {
     /// Create a new `WebSearchTool` with the given endpoint URL.
     pub fn new(endpoint: String) -> Self {
+        let year = chrono::Utc::now().format("%Y").to_string();
+        let description =
+            include_str!("instructions/web_search.txt").replace("{{year}}", &year);
         Self {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
                 .build()
                 .expect("failed to build HTTP client"),
             endpoint,
+            description,
         }
     }
 
@@ -176,7 +181,7 @@ impl ToolExecutor for WebSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Search the web for information. Returns structured results with title, URL, and snippet."
+        &self.description
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -203,6 +208,17 @@ mod tests {
     use super::*;
     use wiremock::matchers::{body_json, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[test]
+    fn test_web_search_description_is_rich() {
+        let tool = WebSearchTool::new("http://unused".to_string());
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(!desc.contains("{{year}}"), "template variable should be replaced");
+        let current_year = chrono::Utc::now().format("%Y").to_string();
+        assert!(desc.contains(&current_year), "should contain current year");
+        assert!(desc.contains("web_fetch"), "should mention cross-tool guidance");
+    }
 
     fn serper_response() -> serde_json::Value {
         serde_json::json!({

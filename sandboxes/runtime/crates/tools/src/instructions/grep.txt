@@ -1,0 +1,21 @@
+A powerful content search tool built on ripgrep. Searches file contents using regular expressions.
+
+- Supports full regex syntax (e.g., "log.*Error", "function\s+\w+", "impl\s+ToolExecutor")
+- Filter files by glob pattern (e.g., "*.rs", "*.{ts,tsx}") or by file type (e.g., "rust", "js", "py")
+- Respects .gitignore rules automatically
+
+Output modes:
+  - "files_with_matches" (default): returns only file paths containing matches
+  - "content": returns matching lines with line numbers and optional context
+  - "count": returns match counts per file
+
+Context lines:
+  - Use context_before / context_after to include surrounding lines in "content" mode
+  - Use context to set both before and after at once
+
+Usage notes:
+  - Use Grep to search file contents, Glob to find files by name
+  - Prefer Grep over Read for locating specific content in large files or across many files
+  - Results are truncated at max_results (default 1000)
+  - For open-ended multi-round searches, describe the intent rather than issuing many small queries
+  - Binary files are silently skipped

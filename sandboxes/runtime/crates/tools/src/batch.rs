@@ -1,0 +1,278 @@
+use async_trait::async_trait;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use crate::ToolExecutor;
+
+/// A single tool call within a batch.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct BatchToolCall {
+    /// The name of the tool to call.
+    pub tool: String,
+    /// The parameters to pass to the tool.
+    pub parameters: serde_json::Value,
+}
+
+/// Arguments for the Batch tool.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct BatchArgs {
+    /// The list of tool calls to execute concurrently.
+    pub tool_calls: Vec<BatchToolCall>,
+}
+
+/// Result of a single tool call within a batch.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchCallResult {
+    pub success: bool,
+    pub tool: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// Result returned by the Batch tool.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchResult {
+    pub results: Vec<BatchCallResult>,
+    pub total: usize,
+    pub succeeded: usize,
+    pub failed: usize,
+}
+
+/// Maximum number of tool calls per batch.
+const MAX_BATCH_SIZE: usize = 25;
+
+pub struct BatchTool {
+    tools: HashMap<String, Arc<dyn ToolExecutor>>,
+}
+
+impl BatchTool {
+    /// Create a new BatchTool with a snapshot of available tools.
+    pub fn new(tools: HashMap<String, Arc<dyn ToolExecutor>>) -> Self {
+        Self { tools }
+    }
+}
+
+#[async_trait]
+impl ToolExecutor for BatchTool {
+    fn name(&self) -> &str {
+        "batch"
+    }
+
+    fn description(&self) -> &str {
+        include_str!("instructions/batch.txt")
+    }
+
+    fn parameters_schema(&self) -> serde_json::Value {
+        serde_json::to_value(schemars::schema_for!(BatchArgs))
+            .unwrap_or_else(|_| serde_json::json!({}))
+    }
+
+    async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
+        let args: BatchArgs =
+            serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
+
+        if args.tool_calls.is_empty() {
+            return Err("No tool calls provided".to_string());
+        }
+
+        // Cap at MAX_BATCH_SIZE
+        let calls: Vec<_> = args.tool_calls.into_iter().take(MAX_BATCH_SIZE).collect();
+
+        // Disallow recursive batch calls
+        for call in &calls {
+            if call.tool == "batch" {
+                return Err("Recursive batch calls are not allowed".to_string());
+            }
+        }
+
+        // Execute all calls concurrently
+        let futures: Vec<_> = calls
+            .into_iter()
+            .map(|call| {
+                let tool_name = call.tool.clone();
+                let params = call.parameters.clone();
+                let tools = &self.tools;
+
+                async move {
+                    let tool = match tools.get(&tool_name) {
+                        Some(t) => t,
+                        None => {
+                            return BatchCallResult {
+                                success: false,
+                                tool: tool_name,
+                                result: None,
+                                error: Some("Tool not found".to_string()),
+                            };
+                        }
+                    };
+
+                    match tool.execute(params).await {
+                        Ok(output) => {
+                            // Try to parse the output as JSON for structured results
+                            let value = serde_json::from_str::<serde_json::Value>(&output)
+                                .unwrap_or(serde_json::Value::String(output));
+                            BatchCallResult {
+                                success: true,
+                                tool: tool_name,
+                                result: Some(value),
+                                error: None,
+                            }
+                        }
+                        Err(e) => BatchCallResult {
+                            success: false,
+                            tool: tool_name,
+                            result: None,
+                            error: Some(e),
+                        },
+                    }
+                }
+            })
+            .collect();
+
+        let results = futures::future::join_all(futures).await;
+
+        let total = results.len();
+        let succeeded = results.iter().filter(|r| r.success).count();
+        let failed = total - succeeded;
+
+        let batch_result = BatchResult {
+            results,
+            total,
+            succeeded,
+            failed,
+        };
+
+        serde_json::to_string(&batch_result)
+            .map_err(|e| format!("Failed to serialize result: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A simple test tool that echoes its input.
+    struct EchoTool;
+
+    #[async_trait]
+    impl ToolExecutor for EchoTool {
+        fn name(&self) -> &str {
+            "echo"
+        }
+        fn description(&self) -> &str {
+            "Echo tool for testing"
+        }
+        fn parameters_schema(&self) -> serde_json::Value {
+            serde_json::json!({})
+        }
+        async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
+            Ok(serde_json::to_string(&args).unwrap())
+        }
+    }
+
+    /// A tool that always fails.
+    struct FailTool;
+
+    #[async_trait]
+    impl ToolExecutor for FailTool {
+        fn name(&self) -> &str {
+            "fail"
+        }
+        fn description(&self) -> &str {
+            "Fail tool for testing"
+        }
+        fn parameters_schema(&self) -> serde_json::Value {
+            serde_json::json!({})
+        }
+        async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
+            Err("intentional failure".to_string())
+        }
+    }
+
+    fn make_batch_tool() -> BatchTool {
+        let mut tools: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
+        tools.insert("echo".to_string(), Arc::new(EchoTool));
+        tools.insert("fail".to_string(), Arc::new(FailTool));
+        BatchTool::new(tools)
+    }
+
+    #[tokio::test]
+    async fn test_batch_basic() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "echo", "parameters": { "msg": "hello" } },
+                { "tool": "echo", "parameters": { "msg": "world" } }
+            ]
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: BatchResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.total, 2);
+        assert_eq!(parsed.succeeded, 2);
+        assert_eq!(parsed.failed, 0);
+    }
+
+    #[tokio::test]
+    async fn test_batch_partial_failure() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "echo", "parameters": {} },
+                { "tool": "fail", "parameters": {} }
+            ]
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: BatchResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.total, 2);
+        assert_eq!(parsed.succeeded, 1);
+        assert_eq!(parsed.failed, 1);
+    }
+
+    #[tokio::test]
+    async fn test_batch_tool_not_found() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "nonexistent", "parameters": {} }
+            ]
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: BatchResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.failed, 1);
+        assert!(parsed.results[0].error.as_ref().unwrap().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_batch_recursive_disallowed() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "batch", "parameters": {} }
+            ]
+        });
+
+        let err = tool.execute(args).await.unwrap_err();
+        assert!(err.contains("Recursive"));
+    }
+
+    #[tokio::test]
+    async fn test_batch_empty() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": []
+        });
+
+        let err = tool.execute(args).await.unwrap_err();
+        assert!(err.contains("No tool calls"));
+    }
+}

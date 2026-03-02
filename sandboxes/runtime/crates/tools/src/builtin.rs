@@ -12,6 +12,13 @@ pub fn register_builtin_tools(registry: &mut ToolRegistry) {
     registry.register(Arc::new(crate::glob::GlobTool::new()));
     registry.register(Arc::new(crate::ls::LsTool::new()));
 
+    // Write-side tools
+    registry.register(Arc::new(crate::bash::BashTool::new()));
+    registry.register(Arc::new(crate::edit::EditTool::new()));
+    registry.register(Arc::new(crate::write::WriteTool::new()));
+    registry.register(Arc::new(crate::apply_patch::ApplyPatchTool::new()));
+    registry.register(Arc::new(crate::multiedit::MultiEditTool::new()));
+
     // Web fetch (no config needed)
     registry.register(Arc::new(crate::web_fetch::WebFetchTool::with_defaults()));
 
@@ -19,4 +26,8 @@ pub fn register_builtin_tools(registry: &mut ToolRegistry) {
     if let Ok(endpoint) = std::env::var("SEARCH_ENDPOINT") {
         registry.register(Arc::new(crate::web_search::WebSearchTool::new(endpoint)));
     }
+
+    // Batch tool — registered last with a snapshot of all other tools
+    let tool_snapshot = registry.snapshot();
+    registry.register(Arc::new(crate::batch::BatchTool::new(tool_snapshot)));
 }

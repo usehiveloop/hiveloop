@@ -98,7 +98,7 @@ impl ToolExecutor for GrepTool {
     }
 
     fn description(&self) -> &str {
-        "A powerful search tool built on ripgrep. Supports regex patterns, file type filtering, and multiple output modes."
+        include_str!("instructions/grep.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -346,6 +346,16 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+
+    #[test]
+    fn test_grep_description_is_rich() {
+        let tool = GrepTool::new();
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(desc.contains("regex"), "should mention regex support");
+        assert!(desc.contains("files_with_matches"), "should mention output modes");
+        assert!(desc.contains("Glob"), "should mention cross-tool guidance");
+    }
 
     #[tokio::test]
     async fn test_grep_files_with_matches() {

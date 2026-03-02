@@ -173,7 +173,7 @@ impl ToolExecutor for WebFetchTool {
     }
 
     fn description(&self) -> &str {
-        "Fetch a URL and extract its content as Markdown. Uses article extraction when possible, with a fallback to full HTML-to-Markdown conversion."
+        include_str!("instructions/web_fetch.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -206,6 +206,17 @@ mod tests {
     // -----------------------------------------------------------------------
     // Article extraction from fixture HTML
     // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_web_fetch_description_is_rich() {
+        let tool = WebFetchTool::with_defaults();
+        let desc = tool.description();
+        assert!(!desc.is_empty());
+        assert!(desc.contains("Markdown"), "should mention Markdown extraction");
+        assert!(desc.contains("authenticated"), "should warn about authenticated URLs");
+        assert!(desc.contains("redirect"), "should mention redirect handling");
+        assert!(desc.contains("web_search"), "should mention cross-tool guidance");
+    }
 
     #[test]
     fn test_extract_article_from_fixture() {

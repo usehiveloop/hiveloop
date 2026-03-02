@@ -3377,6 +3377,7 @@ dependencies = [
  "chrono",
  "core",
  "dom_smoothie",
+ "futures",
  "globset",
  "grep-matcher",
  "grep-regex",

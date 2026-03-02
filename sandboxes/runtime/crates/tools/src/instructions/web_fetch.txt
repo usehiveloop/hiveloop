@@ -1,0 +1,13 @@
+Fetch a URL and extract its readable content as Markdown.
+
+- Uses article extraction (Mozilla Readability algorithm) when possible, with a fallback to full HTML-to-Markdown conversion
+- Only supports HTML and XHTML content types; rejects binary formats (PDF, images, etc.)
+- Follows redirects automatically (up to 10 hops)
+- Content is truncated at max_length characters (default 50,000)
+- Requests time out after 30 seconds
+
+Usage notes:
+  - WARNING: This tool will fail for authenticated or private URLs (e.g., pages behind login walls)
+  - Use web_search first to find relevant URLs, then web_fetch to retrieve their content
+  - Use the max_length parameter to limit content size when you only need a summary
+  - The tool returns the final URL after redirects, the extracted title (if available), and the content in Markdown format

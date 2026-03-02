@@ -1,0 +1,17 @@
+Reads a file from the local filesystem.
+
+- The file_path parameter must be an absolute path
+- By default reads up to 2000 lines starting from the beginning of the file
+- Use the offset parameter (1-indexed) to start reading from a specific line
+- Use the limit parameter to control how many lines to read
+- Lines longer than 2000 characters are truncated with "..."
+- Contents are returned with each line prefixed by its line number (right-aligned) and a tab
+- Binary files are detected and rejected (returns an error)
+- Directories are rejected (returns an error)
+
+Usage notes:
+  - Use Grep to find specific content in large files instead of reading the entire file
+  - Use Glob to find files by name if you are unsure of the exact path
+  - Call Read in parallel when you need to read multiple files
+  - Avoid tiny repeated slices (e.g., 30-line chunks); if you need more context, read a larger window
+  - For files larger than 2000 lines, use offset and limit to navigate through sections
