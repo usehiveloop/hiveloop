@@ -1,0 +1,64 @@
+{
+  "id": "agent_full",
+  "name": "Full Agent",
+  "system_prompt": "You are a coding assistant.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "gpt-4o",
+    "api_key": "test-key-full",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "tools": [
+    {
+      "name": "calculator",
+      "description": "Performs basic arithmetic operations.",
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["add", "subtract", "multiply", "divide"],
+            "description": "The arithmetic operation to perform."
+          },
+          "a": {
+            "type": "number",
+            "description": "The first operand."
+          },
+          "b": {
+            "type": "number",
+            "description": "The second operand."
+          }
+        },
+        "required": ["operation", "a", "b"]
+      }
+    }
+  ],
+  "mcp_servers": [
+    {
+      "name": "filesystem",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/workspace"],
+        "env": {
+          "NODE_ENV": "test"
+        }
+      }
+    }
+  ],
+  "skills": [
+    {
+      "id": "skill_code_review",
+      "title": "Code Review",
+      "description": "Reviews code for quality, bugs, and best practices."
+    }
+  ],
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 10,
+    "temperature": 0.7
+  },
+  "subagents": [],
+  "webhook_url": "https://example.com/webhooks/agent",
+  "webhook_secret": "<webhook-secret>"
+}

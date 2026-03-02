@@ -1,0 +1,24 @@
+# Build artifacts
+/target/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+
+# Test artifacts
+/e2e/bridge-e2e/tests/*.log
+portal-mcp-logs/

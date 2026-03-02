@@ -1,0 +1,10 @@
+{
+  "id": "agent_simple",
+  "name": "Simple Agent",
+  "system_prompt": "You are a helpful assistant.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "gpt-4o",
+    "api_key": "test-key"
+  }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "bridge"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bridge"
+path = "src/main.rs"
+
+[dependencies]
+bridge_core = { workspace = true }
+runtime = { workspace = true }
+api = { workspace = true }
+sync = { workspace = true }
+webhooks = { workspace = true }
+mcp = { workspace = true }
+reqwest = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+figment = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }

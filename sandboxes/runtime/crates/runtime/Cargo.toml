@@ -1,0 +1,29 @@
+[package]
+name = "runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bridge_core = { workspace = true }
+llm = { workspace = true }
+mcp = { workspace = true }
+rig-core = { workspace = true }
+tools = { workspace = true }
+webhooks = { workspace = true }
+dashmap = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+governor = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }
+tempfile = { workspace = true }

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Project Manager</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <script src="/js/chart.js"></script>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="logo">
+            <img src="/images/logo.svg" alt="Project Manager">
+            <span>Project Manager</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-notification">
+                <span class="badge">3</span>
+                Notifications
+            </button>
+            <div class="user-menu">
+                <img src="/images/avatar.png" alt="User Avatar">
+                <span>John Doe</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <aside class="sidebar-nav">
+            <ul>
+                <li class="active"><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/projects">Projects</a></li>
+                <li><a href="/tasks">Tasks</a></li>
+                <li><a href="/team">Team</a></li>
+                <li><a href="/reports">Reports</a></li>
+                <li><a href="/settings">Settings</a></li>
+            </ul>
+        </aside>
+
+        <main class="dashboard-content">
+            <h1>Dashboard Overview</h1>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Active Projects</h3>
+                    <span class="stat-value">12</span>
+                    <span class="stat-change positive">+2 this week</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Open Tasks</h3>
+                    <span class="stat-value">47</span>
+                    <span class="stat-change negative">-5 this week</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Team Members</h3>
+                    <span class="stat-value">8</span>
+                    <span class="stat-change neutral">No change</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Completion Rate</h3>
+                    <span class="stat-value">78%</span>
+                    <span class="stat-change positive">+3%</span>
+                </div>
+            </div>
+
+            <div class="dashboard-panels">
+                <section class="panel">
+                    <h2>Recent Activity</h2>
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>User</th>
+                                <th>Project</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Completed task</td>
+                                <td>Alice</td>
+                                <td>Backend API</td>
+                                <td>2 hours ago</td>
+                            </tr>
+                            <tr>
+                                <td>Created project</td>
+                                <td>Bob</td>
+                                <td>Mobile App v2</td>
+                                <td>5 hours ago</td>
+                            </tr>
+                            <tr>
+                                <td>Updated status</td>
+                                <td>Charlie</td>
+                                <td>Data Pipeline</td>
+                                <td>1 day ago</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section class="panel">
+                    <h2>Quick Actions</h2>
+                    <form class="quick-task-form">
+                        <div class="form-group">
+                            <label for="task-name">New Task</label>
+                            <input type="text" id="task-name" placeholder="Enter task name">
+                        </div>
+                        <div class="form-group">
+                            <label for="project-select">Project</label>
+                            <select id="project-select">
+                                <option value="">Select project...</option>
+                                <option value="1">Backend API</option>
+                                <option value="2">Mobile App v2</option>
+                                <option value="3">Data Pipeline</option>
+                                <option value="4">Design System</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="priority">Priority</label>
+                            <select id="priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignee">Assign To</label>
+                            <select id="assignee">
+                                <option value="">Unassigned</option>
+                                <option value="alice">Alice</option>
+                                <option value="bob">Bob</option>
+                                <option value="charlie">Charlie</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Create Task</button>
+                    </form>
+                </section>
+            </div>
+
+            <section class="panel chart-panel">
+                <h2>Project Progress</h2>
+                <div id="chart-container">
+                    <canvas id="progress-chart" width="800" height="400"></canvas>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer class="app-footer">
+        <span>Project Manager v2.4.1</span>
+        <span>Copyright 2025 Acme Corp</span>
+    </footer>
+
+    <script>
+        // Initialize dashboard charts
+        const ctx = document.getElementById('progress-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Backend API', 'Mobile App', 'Data Pipeline', 'Design System'],
+                datasets: [{
+                    label: 'Progress %',
+                    data: [85, 60, 45, 90]
+                }]
+            }
+        });
+    </script>
+</body>
+</html>

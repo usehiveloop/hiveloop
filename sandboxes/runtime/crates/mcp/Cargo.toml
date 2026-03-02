@@ -1,0 +1,21 @@
+[package]
+name = "mcp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bridge_core = { workspace = true }
+tools = { workspace = true }
+rmcp = { workspace = true }
+dashmap = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+http = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }

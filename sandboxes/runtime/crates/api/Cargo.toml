@@ -1,0 +1,30 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bridge_core = { workspace = true }
+runtime = { workspace = true }
+llm = { workspace = true }
+dashmap = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+http = { workspace = true }
+mcp = { workspace = true }
+tokio-util = { workspace = true }
+serde_json = { workspace = true }

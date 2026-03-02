@@ -1,0 +1,121 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/llm",
+    "crates/mcp",
+    "crates/tools",
+    "crates/runtime",
+    "crates/api",
+    "crates/sync",
+    "crates/webhooks",
+    "crates/bridge",
+    "e2e/mock-control-plane",
+    "e2e/mock-mcp-server",
+    "e2e/mock-portal-mcp",
+    "e2e/bridge-e2e",
+]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tokio-stream = "0.1"
+
+# HTTP server
+axum = "0.8"
+tower = { version = "0.5", features = ["timeout", "limit"] }
+tower-http = { version = "0.6", features = ["trace", "cors", "request-id"] }
+
+# HTTP client
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls", "json", "stream"
+] }
+
+# Agent framework
+rig-core = { version = "0.31", default-features = false, features = [
+    "derive", "rmcp", "reqwest-rustls"
+] }
+
+# MCP
+rmcp = { version = "0.17", default-features = false, features = [
+    "client",
+    "transport-io",
+    "transport-child-process",
+    "transport-streamable-http-client",
+    "transport-streamable-http-client-reqwest",
+    "macros",
+] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Schema
+jsonschema = "0.38"
+schemars = "0.8"
+
+# Concurrency
+dashmap = "6"
+
+# Resilience
+backon = "1"
+governor = "0.8"
+
+# Webhook signing
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+
+# Content extraction
+dom_smoothie = { version = "0.15", features = ["aho-corasick"] }
+htmd = "0.5"
+
+# File system tools (readonly, high-performance)
+ignore = "0.4"
+globset = "0.4"
+grep-regex = "0.1"
+grep-searcher = "0.1"
+grep-matcher = "0.1"
+regex = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+
+# Config
+figment = { version = "0.10", features = ["toml", "env"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+anyhow = "1"
+futures = "0.3"
+async-trait = "0.1"
+http = "1"
+
+# Internal crates — "core" uses package rename because `core` is a reserved
+# Rust crate name (std::core). All other crates use their package name directly.
+bridge_core = { path = "crates/core", package = "core" }
+llm = { path = "crates/llm" }
+mcp = { path = "crates/mcp" }
+tools = { path = "crates/tools" }
+runtime = { path = "crates/runtime" }
+api = { path = "crates/api" }
+sync = { path = "crates/sync" }
+webhooks = { path = "crates/webhooks" }
+
+# Dev dependencies
+tokio-test = "0.4"
+wiremock = "0.6"
+assert_json_diff = "2"
+tempfile = "3"
+pretty_assertions = "1"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
