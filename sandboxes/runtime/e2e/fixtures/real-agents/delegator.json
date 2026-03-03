@@ -4,7 +4,7 @@
   "system_prompt": "You are a senior engineering lead that coordinates work across specialized subagents.\n\n# Tool usage policy\n\nYou have access to specialized subagents via the `agent` tool. Each subagent has fresh context and its own set of tools.\n\nAvailable subagents and their specializations:\n- **explorer**: A codebase exploration specialist. Use this subagent for ANY task that involves finding files, searching code, reading source files, or understanding project structure. This subagent has access to Glob, Grep, and Read tools.\n- **coder**: A coding specialist. Use this subagent for tasks involving writing, modifying, or analyzing code.\n\n## When to use subagents\n\nVERY IMPORTANT: When you receive a task that involves exploring or understanding a codebase, you MUST delegate to the appropriate subagent using the `agent` tool. Do NOT attempt file operations yourself — you do not have direct access to file tools. Your role is to coordinate and summarize.\n\nExamples of tasks to delegate:\n- \"What files are in this project?\" → delegate to explorer\n- \"Find where errors are handled\" → delegate to explorer\n- \"Write a function that...\" → delegate to coder\n- \"What is the project structure?\" → delegate to explorer\n\n## How to delegate\n\n1. Use the `agent` tool with the appropriate subagent name\n2. Provide a clear, detailed prompt describing what you need\n3. When the subagent returns, summarize the results for the user\n4. Launch multiple subagents concurrently when tasks are independent\n\n## When NOT to delegate\n\n- Simple questions you can answer from your own knowledge (no file access needed)\n- Clarifying questions back to the user\n- Summarizing results you already have",
   "provider": {
     "provider_type": "open_ai",
-    "model": "google/gemini-2.0-flash-001",
+    "model": "moonshotai/kimi-k2.5",
     "api_key": "PLACEHOLDER_OPENROUTER_KEY",
     "base_url": "https://openrouter.ai/api/v1"
   },
@@ -13,7 +13,7 @@
   "skills": [],
   "config": {
     "max_tokens": 4096,
-    "max_turns": 10,
+    "max_turns": 25,
     "temperature": 0.3
   },
   "subagents": [
@@ -24,7 +24,7 @@
       "system_prompt": "You are a codebase exploration specialist. Your job is to explore codebases and report findings.\n\nWhen given a task:\n1. Use Glob to find files matching patterns\n2. Use Grep to search for code patterns\n3. Use Read to read file contents\n4. Report your findings clearly and concisely\n\nBe thorough — explore multiple files and patterns to give a complete picture.",
       "provider": {
         "provider_type": "open_ai",
-        "model": "google/gemini-2.0-flash-001",
+        "model": "moonshotai/kimi-k2.5",
         "api_key": "PLACEHOLDER_OPENROUTER_KEY",
         "base_url": "https://openrouter.ai/api/v1"
       },
@@ -33,7 +33,7 @@
       "skills": [],
       "config": {
         "max_tokens": 4096,
-        "max_turns": 5,
+        "max_turns": 25,
         "temperature": 0.3
       }
     },
@@ -44,7 +44,7 @@
       "system_prompt": "You are a coding specialist. When given a task, write clean, well-tested code.\n\nUse the available file tools to:\n1. Read existing code to understand patterns\n2. Write new code following the existing style\n3. Verify your work by reading back the files\n\nBe precise and follow existing conventions.",
       "provider": {
         "provider_type": "open_ai",
-        "model": "google/gemini-2.0-flash-001",
+        "model": "moonshotai/kimi-k2.5",
         "api_key": "PLACEHOLDER_OPENROUTER_KEY",
         "base_url": "https://openrouter.ai/api/v1"
       },
@@ -53,7 +53,7 @@
       "skills": [],
       "config": {
         "max_tokens": 4096,
-        "max_turns": 5,
+        "max_turns": 25,
         "temperature": 0.3
       }
     }

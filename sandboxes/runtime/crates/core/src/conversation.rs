@@ -72,3 +72,29 @@ pub struct ToolResult {
     #[serde(default)]
     pub is_error: bool,
 }
+
+/// A conversation with its full message history, as returned by the control plane.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConversationRecord {
+    /// Unique conversation identifier.
+    pub id: ConversationId,
+    /// Agent that owns this conversation.
+    pub agent_id: String,
+    /// Optional human-readable title.
+    pub title: Option<String>,
+    /// When the conversation was created.
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// When the conversation was last updated.
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// Full message history.
+    pub messages: Vec<Message>,
+}
+
+/// Paginated response from the control plane's conversations endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaginatedConversations {
+    /// Conversations in this page.
+    pub conversations: Vec<ConversationRecord>,
+    /// Cursor for the next page, or `None` if this is the last page.
+    pub next_cursor: Option<String>,
+}

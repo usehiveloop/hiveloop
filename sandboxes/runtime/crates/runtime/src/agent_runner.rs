@@ -140,6 +140,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             sse_tx: self.sse_tx.clone(),
             cancel: cancel.clone(),
             tool_names: std::collections::HashSet::new(),
+            tool_executors: std::collections::HashMap::new(),
         };
 
         let prompt_owned = prompt.to_string();
@@ -225,6 +226,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 sse_tx,
                 cancel: cancel.clone(),
                 tool_names: std::collections::HashSet::new(),
+                tool_executors: std::collections::HashMap::new(),
             };
 
             let result = AGENT_CONTEXT

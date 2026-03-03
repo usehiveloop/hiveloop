@@ -14,8 +14,15 @@ pub fn build_agent(
 ) -> Result<BridgeAgent, BridgeError> {
     let builder = create_agent_builder(&definition.provider)?;
 
-    // Set system prompt and configuration
-    let builder = builder.preamble(&definition.system_prompt);
+    // Set system prompt and configuration.
+    // Append a tool-use instruction to nudge models into producing a final text
+    // response after tool calls (mitigates the empty-response-after-tools issue
+    // seen across many OpenAI-compatible providers).
+    let preamble = format!(
+        "{}\n\n[After using tools, always provide a final text response summarizing the results. Never end your turn with only tool calls and no text output.]",
+        definition.system_prompt
+    );
+    let builder = builder.preamble(&preamble);
 
     let builder = if let Some(temp) = definition.config.temperature {
         builder.temperature(temp)

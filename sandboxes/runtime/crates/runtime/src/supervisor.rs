@@ -1,4 +1,4 @@
-use bridge_core::conversation::{ContentBlock, Message, Role};
+use bridge_core::conversation::{ContentBlock, ConversationRecord, Message, Role};
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
 use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, SseEvent};
@@ -179,6 +179,13 @@ impl AgentSupervisor {
             .tool_names()
             .into_iter()
             .collect::<std::collections::HashSet<String>>();
+        let tool_executors = state.tool_registry.snapshot();
+
+        // Build a no-tools retry agent for recovering from empty responses
+        let retry_agent = Arc::new(
+            build_agent(&state.definition, vec![])
+                .expect("no-tools agent build should not fail"),
+        );
 
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
@@ -194,6 +201,9 @@ impl AgentSupervisor {
                 notification_rx: Some(notification_rx),
                 session_store: Some(session_store),
                 tool_names,
+                tool_executors,
+                initial_history: None,
+                retry_agent,
             })
             .await;
         });
@@ -367,6 +377,139 @@ impl AgentSupervisor {
             tool_registry,
             subagent_map,
         )))
+    }
+
+    /// Hydrate pre-fetched conversations for a specific agent.
+    ///
+    /// Spawns each conversation as a fully active loop with pre-seeded history.
+    /// Returns a list of `(conversation_id, sse_rx)` pairs for storing in
+    /// the application's SSE stream map.
+    pub fn hydrate_conversations(
+        &self,
+        agent_id: &str,
+        records: Vec<ConversationRecord>,
+    ) -> Vec<(String, mpsc::Receiver<SseEvent>)> {
+        let mut sse_receivers = Vec::new();
+
+        info!(
+            agent_id = agent_id,
+            count = records.len(),
+            "hydrating conversations"
+        );
+
+        for record in records {
+            match self.spawn_hydrated_conversation(agent_id, record) {
+                Ok((conv_id, sse_rx)) => {
+                    sse_receivers.push((conv_id, sse_rx));
+                }
+                Err(e) => {
+                    error!(
+                        agent_id = agent_id,
+                        error = %e,
+                        "failed to hydrate conversation"
+                    );
+                }
+            }
+        }
+
+        sse_receivers
+    }
+
+    /// Spawn a single hydrated conversation with pre-seeded history.
+    fn spawn_hydrated_conversation(
+        &self,
+        agent_id: &str,
+        record: ConversationRecord,
+    ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
+        let state = self
+            .agent_map
+            .get(agent_id)
+            .ok_or_else(|| BridgeError::AgentNotFound(agent_id.to_string()))?;
+
+        let conv_id = record.id;
+        let (message_tx, message_rx) = mpsc::channel::<Message>(32);
+        let (sse_tx, sse_rx) = mpsc::channel::<SseEvent>(256);
+
+        let handle = ConversationHandle {
+            id: conv_id.clone(),
+            message_tx,
+            created_at: record.created_at,
+        };
+
+        state.conversations.insert(conv_id.clone(), handle);
+
+        // Convert stored messages to rig history
+        let initial_history = crate::conversation::convert_messages(&record.messages);
+
+        // Spawn the conversation task (same setup as create_conversation)
+        let agent = Arc::new(state.rig_agent.clone());
+        let metrics = state.metrics.clone();
+        let cancel = state.cancel.clone();
+        let max_turns = state.definition.config.max_turns;
+        let agent_id_owned = agent_id.to_string();
+        let conv_id_clone = conv_id.clone();
+
+        let (notification_tx, notification_rx) =
+            mpsc::channel::<AgentTaskNotification>(64);
+        let runner = Arc::new(ConversationSubAgentRunner::new(
+            state.subagents.clone(),
+            state.session_store.clone(),
+            notification_tx.clone(),
+            cancel.clone(),
+            sse_tx.clone(),
+            conv_id_clone.clone(),
+            0,
+            3,
+        ));
+        let agent_context = AgentContext {
+            runner,
+            notification_tx,
+            depth: 0,
+            max_depth: 3,
+        };
+        let session_store = state.session_store.clone();
+
+        let tool_names = state
+            .tool_registry
+            .tool_names()
+            .into_iter()
+            .collect::<std::collections::HashSet<String>>();
+        let tool_executors = state.tool_registry.snapshot();
+
+        // Build a no-tools retry agent for recovering from empty responses
+        let retry_agent = Arc::new(
+            build_agent(&state.definition, vec![])
+                .expect("no-tools agent build should not fail"),
+        );
+
+        state.tracker.spawn(async move {
+            run_conversation(ConversationParams {
+                agent_id: agent_id_owned,
+                conversation_id: conv_id_clone,
+                agent,
+                message_rx,
+                sse_tx,
+                metrics,
+                cancel,
+                max_turns: max_turns.map(|t| t as usize),
+                agent_context: Some(agent_context),
+                notification_rx: Some(notification_rx),
+                session_store: Some(session_store),
+                tool_names,
+                tool_executors,
+                initial_history: Some(initial_history),
+                retry_agent,
+            })
+            .await;
+        });
+
+        info!(
+            agent_id = agent_id,
+            conversation_id = conv_id,
+            "conversation hydrated"
+        );
+
+        Ok((conv_id, sse_rx))
     }
 
     /// Gracefully shut down all agents.

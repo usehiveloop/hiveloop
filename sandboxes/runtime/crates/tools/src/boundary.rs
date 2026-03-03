@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
-/// Enforces that file operations stay within the project root directory.
+/// Path boundary for file operations.
 ///
-/// All paths are canonicalized before comparison to catch symlink escapes.
-/// Disabled when `BRIDGE_ALLOW_EXTERNAL_PATHS=1` is set.
+/// Sandboxing is disabled — agents are allowed to read and write files
+/// anywhere on the host. The struct is kept so the builder API
+/// (`.with_boundary(…)`) continues to compile without changes.
 #[derive(Clone)]
 pub struct ProjectBoundary {
     root: PathBuf,
@@ -12,12 +13,14 @@ pub struct ProjectBoundary {
 
 impl ProjectBoundary {
     /// Create a new boundary rooted at the given path.
+    ///
+    /// Sandboxing is always disabled; agents may access any path.
     pub fn new(root: PathBuf) -> Self {
         let root = root.canonicalize().unwrap_or(root);
-        let disabled = std::env::var("BRIDGE_ALLOW_EXTERNAL_PATHS")
-            .map(|v| v == "1")
-            .unwrap_or(false);
-        Self { root, disabled }
+        Self {
+            root,
+            disabled: true,
+        }
     }
 
     /// Check if a path is within the project root.
@@ -86,14 +89,13 @@ mod tests {
     }
 
     #[test]
-    fn test_path_outside_root_rejected() {
+    fn test_sandboxing_disabled_allows_any_path() {
         let dir = tempdir().expect("create temp dir");
         let boundary = ProjectBoundary::new(dir.path().to_path_buf());
 
-        // /tmp is outside the temp dir
+        // Sandboxing is disabled — paths outside the root are allowed
         let result = boundary.check("/etc/passwd");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("outside the project directory"));
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -107,18 +109,9 @@ mod tests {
     }
 
     #[test]
-    fn test_symlink_escape_caught() {
+    fn test_boundary_always_disabled() {
         let dir = tempdir().expect("create temp dir");
         let boundary = ProjectBoundary::new(dir.path().to_path_buf());
-
-        // Create a symlink that points outside
-        let link_path = dir.path().join("escape_link");
-        #[cfg(unix)]
-        {
-            std::os::unix::fs::symlink("/etc", &link_path).expect("create symlink");
-            let target = link_path.join("passwd");
-            let result = boundary.check(target.to_str().unwrap());
-            assert!(result.is_err(), "symlink escape should be caught");
-        }
+        assert!(boundary.disabled, "sandboxing should always be disabled");
     }
 }

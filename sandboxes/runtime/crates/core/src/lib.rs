@@ -15,7 +15,10 @@ mod tests;
 // Re-exports for convenience
 pub use agent::{AgentConfig, AgentDefinition, AgentId, AgentSummary};
 pub use config::{LogFormat, RuntimeConfig};
-pub use conversation::{ContentBlock, ConversationId, Message, Role, ToolCall, ToolResult};
+pub use conversation::{
+    ContentBlock, ConversationId, ConversationRecord, Message, PaginatedConversations, Role,
+    ToolCall, ToolResult,
+};
 pub use error::{BridgeError, Result};
 pub use mcp::{McpServerDefinition, McpTransport};
 pub use metrics::{AgentMetrics, GlobalMetrics, MetricsResponse, MetricsSnapshot};

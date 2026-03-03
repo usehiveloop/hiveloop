@@ -1,11 +1,13 @@
 use crate::SseEvent;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentTaskNotification, AgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
+use tools::ToolExecutor;
 use tracing::debug;
 
 /// A [`PromptHook`] that emits [`SseEvent::ToolCallStart`] and
@@ -29,6 +31,10 @@ pub struct ToolCallEmitter {
     /// are intercepted and a helpful suggestion is returned instead of letting
     /// rig-core return a generic error.
     pub tool_names: HashSet<String>,
+    /// Tool executors keyed by canonical name. Used to execute tools directly
+    /// when the LLM-provided name was auto-repaired (trimmed, case-fixed, etc.)
+    /// and rig-core would not find the tool under the original name.
+    pub tool_executors: HashMap<String, Arc<dyn ToolExecutor>>,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -55,25 +61,40 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             })
             .await;
 
-        // Intercept unknown tool names and return helpful suggestions.
-        if !self.tool_names.is_empty() && !self.tool_names.contains(tool_name) {
-            let error = self.unknown_tool_error(tool_name);
-            let _ = self
-                .sse_tx
-                .send(SseEvent::ToolCallResult {
-                    id: id_for_bg.clone(),
-                    result: error.clone(),
-                    is_error: true,
-                })
-                .await;
-            return ToolCallHookAction::Skip { reason: error };
-        }
+        // Resolve the effective tool name: normalize, case-insensitive, fuzzy.
+        let (effective_name, name_was_repaired) = if !self.tool_names.is_empty() {
+            match self.resolve_tool_name(tool_name) {
+                Some(resolved) => {
+                    let repaired = resolved != tool_name;
+                    if repaired {
+                        debug!(
+                            original = tool_name,
+                            resolved = %resolved,
+                            "auto-repaired tool name"
+                        );
+                    }
+                    (resolved, repaired)
+                }
+                None => {
+                    // Unresolvable — return error with suggestion.
+                    let error = self.unknown_tool_error(tool_name);
+                    let _ = self
+                        .sse_tx
+                        .send(SseEvent::ToolCallResult {
+                            id: id_for_bg.clone(),
+                            result: error.clone(),
+                            is_error: true,
+                        })
+                        .await;
+                    return ToolCallHookAction::Skip { reason: error };
+                }
+            }
+        } else {
+            (tool_name.to_string(), false)
+        };
 
         // Intercept bash calls with background: true.
-        // We handle these here because AGENT_CONTEXT is available in the hook
-        // (which runs in the conversation task) but NOT in the tool server's
-        // spawned tasks where tool.execute() runs.
-        if tool_name == "bash" {
+        if effective_name == "bash" {
             if let Ok(bash_args) = serde_json::from_str::<BashArgs>(args) {
                 if bash_args.background {
                     return self.handle_background_bash(bash_args, id_for_bg).await;
@@ -81,14 +102,19 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             }
         }
 
-        // Intercept ALL agent tool calls. Same reason as bash background above:
-        // rig-core dispatches tool calls in separate tokio::spawn tasks, which
-        // lose the AGENT_CONTEXT task_local. The agent tool always needs
-        // AGENT_CONTEXT, so we intercept all agent calls here.
-        if tool_name == "agent" {
+        // Intercept ALL agent tool calls (AGENT_CONTEXT is only available here).
+        if effective_name == "agent" {
             if let Ok(agent_params) = serde_json::from_str::<AgentToolParams>(args) {
                 return self.handle_agent_tool(agent_params, id_for_bg).await;
             }
+        }
+
+        // If the name was repaired, rig-core won't find the tool under the
+        // original name. Execute the tool ourselves and return Skip.
+        if name_was_repaired {
+            return self
+                .execute_repaired_tool(&effective_name, args, id_for_bg)
+                .await;
         }
 
         ToolCallHookAction::Continue
@@ -119,22 +145,81 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
     }
 }
 
+/// Normalize a tool name by stripping common LLM artifacts.
+fn normalize_tool_name(name: &str) -> String {
+    let mut s = name.trim().to_string();
+
+    // Strip wrapping double quotes: "bash" → bash
+    if s.len() >= 2 && s.starts_with('"') && s.ends_with('"') {
+        s = s[1..s.len() - 1].to_string();
+    }
+    // Strip wrapping single quotes: 'bash' → bash
+    if s.len() >= 2 && s.starts_with('\'') && s.ends_with('\'') {
+        s = s[1..s.len() - 1].to_string();
+    }
+    // Strip wrapping backticks: `bash` → bash
+    if s.len() >= 2 && s.starts_with('`') && s.ends_with('`') {
+        s = s[1..s.len() - 1].to_string();
+    }
+
+    // Trim again in case of nested whitespace
+    s.trim().to_string()
+}
+
 impl ToolCallEmitter {
-    /// Build an error message for an unknown tool name.
+    /// Try to resolve a raw tool name to a known canonical tool name.
     ///
-    /// Tries case-insensitive matching first, then Levenshtein distance
-    /// to suggest the closest tool name.
-    fn unknown_tool_error(&self, name: &str) -> String {
-        // Case-insensitive match
-        let lower = name.to_lowercase();
+    /// Resolution order:
+    /// 1. Exact match (fast path)
+    /// 2. Exact match after normalization (trim, strip quotes/backticks)
+    /// 3. Case-insensitive match
+    /// 4. High-confidence Levenshtein match (score > 0.8)
+    ///
+    /// Returns `None` if the name cannot be confidently resolved.
+    fn resolve_tool_name(&self, raw_name: &str) -> Option<String> {
+        // 1. Exact match (most common case)
+        if self.tool_names.contains(raw_name) {
+            return Some(raw_name.to_string());
+        }
+
+        // 2. Normalize and try exact match
+        let normalized = normalize_tool_name(raw_name);
+        if normalized != raw_name && self.tool_names.contains(&normalized) {
+            return Some(normalized);
+        }
+
+        // 3. Case-insensitive match on the normalized name
+        let lower = normalized.to_lowercase();
         for known in &self.tool_names {
             if known.to_lowercase() == lower {
-                return format!(
-                    "Unknown tool '{}'. Did you mean '{}'? (case mismatch)",
-                    name, known
-                );
+                return Some(known.clone());
             }
         }
+
+        // 4. High-confidence Levenshtein match (>0.8)
+        let mut best: Option<(String, f64)> = None;
+        for known in &self.tool_names {
+            let score = strsim::normalized_levenshtein(&lower, &known.to_lowercase());
+            if score > best.as_ref().map_or(0.0, |(_, d)| *d) {
+                best = Some((known.clone(), score));
+            }
+        }
+        if let Some((name, score)) = best {
+            if score > 0.8 {
+                return Some(name);
+            }
+        }
+
+        None
+    }
+
+    /// Build an error message for a tool name that could not be resolved.
+    ///
+    /// Includes a lower-confidence Levenshtein suggestion (>0.4) to help the
+    /// model self-correct on the next attempt.
+    fn unknown_tool_error(&self, name: &str) -> String {
+        let normalized = normalize_tool_name(name);
+        let lower = normalized.to_lowercase();
 
         // Levenshtein distance suggestion
         let mut best: Option<(&str, f64)> = None;
@@ -162,6 +247,58 @@ impl ToolCallEmitter {
             name,
             names.join(", ")
         )
+    }
+
+    /// Execute a tool directly after its name was auto-repaired.
+    ///
+    /// Because rig-core dispatches tools by exact name match, a repaired name
+    /// (e.g. `" bash"` → `"bash"`) would not be found by rig-core. We execute
+    /// the tool ourselves and return `Skip` with the result.
+    async fn execute_repaired_tool(
+        &self,
+        tool_name: &str,
+        args: &str,
+        sse_id: String,
+    ) -> ToolCallHookAction {
+        let executor = match self.tool_executors.get(tool_name) {
+            Some(executor) => executor.clone(),
+            None => {
+                let error = format!(
+                    "Tool '{}' resolved but executor not found (internal error)",
+                    tool_name
+                );
+                let _ = self
+                    .sse_tx
+                    .send(SseEvent::ToolCallResult {
+                        id: sse_id,
+                        result: error.clone(),
+                        is_error: true,
+                    })
+                    .await;
+                return ToolCallHookAction::Skip { reason: error };
+            }
+        };
+
+        let args_value: serde_json::Value = serde_json::from_str(args)
+            .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+
+        let (result_str, is_error) = match executor.execute(args_value).await {
+            Ok(output) => (output, false),
+            Err(e) => (format!("Toolset error: {}", e), true),
+        };
+
+        let _ = self
+            .sse_tx
+            .send(SseEvent::ToolCallResult {
+                id: sse_id,
+                result: result_str.clone(),
+                is_error,
+            })
+            .await;
+
+        ToolCallHookAction::Skip {
+            reason: result_str,
+        }
     }
 
     /// Handle a bash tool call with `background: true`.
@@ -386,7 +523,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -417,7 +554,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_result() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
             &emitter,
@@ -449,7 +586,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_returns_continue() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -476,7 +613,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_uses_internal_call_id_when_no_tool_call_id() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -499,7 +636,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_handles_invalid_json_args() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -568,6 +705,7 @@ mod tests {
             sse_tx,
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
         };
 
         let action = AGENT_CONTEXT
@@ -628,7 +766,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_does_not_intercept_foreground_bash() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
 
         // bash without background: true should Continue normally
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -694,6 +832,7 @@ mod tests {
             sse_tx,
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
         };
 
         let action = AGENT_CONTEXT
@@ -751,6 +890,7 @@ mod tests {
             sse_tx: tx,
             cancel: CancellationToken::new(),
             tool_names,
+            tool_executors: HashMap::new(),
         };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -794,6 +934,7 @@ mod tests {
             sse_tx: tx,
             cancel: CancellationToken::new(),
             tool_names,
+            tool_executors: HashMap::new(),
         };
 
         // Known tool should pass through
@@ -816,6 +957,7 @@ mod tests {
             sse_tx: tx,
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -832,18 +974,35 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_emitter_suggests_case_mismatch() {
-        let (tx, _rx) = mpsc::channel(16);
-        let tool_names: HashSet<String> = ["bash", "read", "edit"]
+    async fn test_emitter_auto_repairs_case_mismatch() {
+        let (tx, mut rx) = mpsc::channel(16);
+        let tool_names: HashSet<String> = ["bash", "Read", "edit"]
             .iter()
             .map(|s| s.to_string())
             .collect();
+
+        // Create a stub executor for "bash" so auto-repair can execute it
+        struct StubBash;
+        #[async_trait::async_trait]
+        impl ToolExecutor for StubBash {
+            fn name(&self) -> &str { "bash" }
+            fn description(&self) -> &str { "stub" }
+            fn parameters_schema(&self) -> serde_json::Value { serde_json::json!({}) }
+            async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
+                Ok("repaired_bash_output".to_string())
+            }
+        }
+        let mut executors: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
+        executors.insert("bash".to_string(), Arc::new(StubBash));
+
         let emitter = ToolCallEmitter {
             sse_tx: tx,
             cancel: CancellationToken::new(),
             tool_names,
+            tool_executors: executors,
         };
 
+        // "Bash" should auto-repair to "bash" and execute directly
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
             "Bash",
@@ -855,10 +1014,75 @@ mod tests {
 
         match &action {
             ToolCallHookAction::Skip { reason } => {
-                assert!(reason.contains("case mismatch"), "should mention case mismatch: {}", reason);
-                assert!(reason.contains("bash"), "should suggest 'bash': {}", reason);
+                assert!(reason.contains("repaired_bash_output"), "should contain the tool output: {}", reason);
             }
-            other => panic!("expected Skip, got {:?}", other),
+            other => panic!("expected Skip with repaired output, got {:?}", other),
+        }
+
+        // Should emit ToolCallStart + ToolCallResult
+        let _start = rx.try_recv().expect("should have tool_call_start");
+        let result_event = rx.try_recv().expect("should have tool_call_result");
+        match &result_event {
+            SseEvent::ToolCallResult { is_error, result, .. } => {
+                assert!(!is_error, "should not be an error");
+                assert!(result.contains("repaired_bash_output"));
+            }
+            other => panic!("expected ToolCallResult, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_emitter_auto_repairs_whitespace() {
+        let (tx, mut rx) = mpsc::channel(16);
+        let tool_names: HashSet<String> = ["bash", "Read", "edit"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        struct StubBash;
+        #[async_trait::async_trait]
+        impl ToolExecutor for StubBash {
+            fn name(&self) -> &str { "bash" }
+            fn description(&self) -> &str { "stub" }
+            fn parameters_schema(&self) -> serde_json::Value { serde_json::json!({}) }
+            async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
+                Ok("trimmed_output".to_string())
+            }
+        }
+        let mut executors: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
+        executors.insert("bash".to_string(), Arc::new(StubBash));
+
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names,
+            tool_executors: executors,
+        };
+
+        // " bash" (leading space) should auto-repair to "bash"
+        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+            &emitter,
+            " bash",
+            Some("call_ws".to_string()),
+            "int_ws",
+            r#"{"command":"echo hello"}"#,
+        )
+        .await;
+
+        match &action {
+            ToolCallHookAction::Skip { reason } => {
+                assert!(reason.contains("trimmed_output"), "should contain the tool output: {}", reason);
+            }
+            other => panic!("expected Skip with repaired output, got {:?}", other),
+        }
+
+        let _start = rx.try_recv().expect("should have tool_call_start");
+        let result_event = rx.try_recv().expect("should have tool_call_result");
+        match &result_event {
+            SseEvent::ToolCallResult { is_error, .. } => {
+                assert!(!is_error, "should not be an error");
+            }
+            other => panic!("expected ToolCallResult, got {:?}", other),
         }
     }
 }

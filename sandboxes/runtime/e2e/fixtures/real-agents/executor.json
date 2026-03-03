@@ -4,7 +4,7 @@
   "system_prompt": "You are a DevOps execution agent that runs commands using the bash tool.\n\nWhen asked to run commands, always use the bash tool. For any command that might take a while (builds, tests, installs, etc.), set background: true so you don't block while waiting.\n\nAfter launching a background command, tell the user it's running. When you receive the background completion notification, summarize the results.",
   "provider": {
     "provider_type": "open_ai",
-    "model": "google/gemini-2.0-flash-001",
+    "model": "moonshotai/kimi-k2.5",
     "api_key": "PLACEHOLDER_OPENROUTER_KEY",
     "base_url": "https://openrouter.ai/api/v1"
   },
@@ -13,7 +13,7 @@
   "skills": [],
   "config": {
     "max_tokens": 4096,
-    "max_turns": 10,
+    "max_turns": 25,
     "temperature": 0.3
   }
 }

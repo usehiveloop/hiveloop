@@ -1,19 +1,20 @@
-use bridge_core::conversation::Message;
+use bridge_core::conversation::{Message, Role};
 use bridge_core::AgentMetrics;
 use llm::{SseEvent, TokenUsage};
 use rig::completion::Prompt;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification, AGENT_CONTEXT};
-use tracing::{debug, error, info};
+use tools::ToolExecutor;
+use tracing::{debug, error, info, warn};
 
 use crate::agent_runner::AgentSessionStore;
 
 /// Timeout for a single agent.chat() call (includes internal tool loops).
-const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(120);
+const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(180);
 
 use crate::token_tracker;
 
@@ -50,6 +51,13 @@ pub struct ConversationParams {
     pub session_store: Option<Arc<AgentSessionStore>>,
     /// Known tool names for tool repair (unknown tool name suggestion).
     pub tool_names: HashSet<String>,
+    /// Tool executors for auto-repair dispatch (keyed by canonical name).
+    pub tool_executors: HashMap<String, Arc<dyn ToolExecutor>>,
+    /// Pre-seeded conversation history (used when hydrating from the control plane).
+    pub initial_history: Option<Vec<rig::message::Message>>,
+    /// No-tools agent used to retry when the primary agent returns an empty response.
+    /// Because it has no tools registered the model is forced to produce text.
+    pub retry_agent: Arc<llm::BridgeAgent>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -75,6 +83,9 @@ pub async fn run_conversation(params: ConversationParams) {
         mut notification_rx,
         session_store,
         tool_names,
+        tool_executors,
+        initial_history,
+        retry_agent,
     } = params;
 
     info!(
@@ -86,7 +97,7 @@ pub async fn run_conversation(params: ConversationParams) {
     token_tracker::increment_active_conversations(&metrics);
     token_tracker::increment_total_conversations(&metrics);
 
-    let mut history: Vec<rig::message::Message> = Vec::new();
+    let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
     let mut turn_count: usize = 0;
     let msg_id = uuid::Uuid::new_v4().to_string();
 
@@ -169,6 +180,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let agent_context_clone = agent_context.clone();
         let cancel_clone = cancel.clone();
         let tool_names_clone = tool_names.clone();
+        let tool_executors_clone = tool_executors.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
@@ -176,6 +188,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 sse_tx: sse_tx_clone,
                 cancel: cancel_clone,
                 tool_names: tool_names_clone,
+                tool_executors: tool_executors_clone,
             };
             let fut = async {
                 agent_clone
@@ -238,6 +251,59 @@ pub async fn run_conversation(params: ConversationParams) {
                 Ok(response) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
 
+                    info!(
+                        agent_id = agent_id,
+                        conversation_id = conversation_id,
+                        response_len = response.len(),
+                        response_preview = %response.chars().take(500).collect::<String>(),
+                        latency_ms = latency_ms,
+                        "agent chat response received"
+                    );
+
+                    let response = if response.is_empty() {
+                        warn!(
+                            agent_id = agent_id,
+                            conversation_id = conversation_id,
+                            latency_ms = latency_ms,
+                            "agent returned empty response string, retrying with no-tools agent"
+                        );
+
+                        // Retry with the no-tools agent to force a text response
+                        match retry_agent
+                            .prompt("Please provide a text response summarizing what you found or did.")
+                            .await
+                        {
+                            Ok(retry_resp) if !retry_resp.is_empty() => {
+                                info!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    retry_len = retry_resp.len(),
+                                    "retrying empty response with no-tools agent succeeded"
+                                );
+                                retry_resp
+                            }
+                            Ok(_) => {
+                                warn!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    "no-tools retry also returned empty, accepting empty response"
+                                );
+                                response
+                            }
+                            Err(e) => {
+                                warn!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    error = %e,
+                                    "no-tools retry failed, accepting empty response"
+                                );
+                                response
+                            }
+                        }
+                    } else {
+                        response
+                    };
+
                     // Send the response as content delta
                     let _ = sse_tx
                         .send(SseEvent::ContentDelta {
@@ -266,8 +332,10 @@ pub async fn run_conversation(params: ConversationParams) {
                 }
                 Err(e) => {
                     error!(
+                        agent_id = agent_id,
                         conversation_id = conversation_id,
                         error = %e,
+                        error_debug = ?e,
                         "agent chat error"
                     );
                     token_tracker::record_error(&metrics);
@@ -298,6 +366,36 @@ pub async fn run_conversation(params: ConversationParams) {
         turns = turn_count,
         "conversation ended"
     );
+}
+
+/// Convert a bridge_core Message into a rig message.
+///
+/// Returns `None` for roles that don't map directly (e.g. System, Tool).
+fn convert_to_rig_message(msg: &Message) -> Option<rig::message::Message> {
+    let text = msg
+        .content
+        .iter()
+        .filter_map(|block| match block {
+            bridge_core::conversation::ContentBlock::Text { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if text.is_empty() {
+        return None;
+    }
+
+    match msg.role {
+        Role::User => Some(rig::message::Message::user(&text)),
+        Role::Assistant => Some(rig::message::Message::assistant(&text)),
+        _ => None,
+    }
+}
+
+/// Convert a slice of bridge_core Messages into rig messages for history seeding.
+pub fn convert_messages(messages: &[Message]) -> Vec<rig::message::Message> {
+    messages.iter().filter_map(convert_to_rig_message).collect()
 }
 
 /// Extract text content from a Message for sending to the LLM.

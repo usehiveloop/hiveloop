@@ -1,4 +1,5 @@
-use bridge_core::{AgentDefinition, BridgeError, RuntimeConfig};
+use bridge_core::conversation::ConversationRecord;
+use bridge_core::{AgentDefinition, BridgeError, PaginatedConversations, RuntimeConfig};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
@@ -38,6 +39,65 @@ pub async fn fetch_agents(
         .map_err(|e| BridgeError::Internal(format!("failed to parse agents response: {e}")))?;
 
     Ok(agents)
+}
+
+/// Fetch all conversations (with full message history) for an agent.
+///
+/// Auto-paginates through the control plane's cursor-based pagination,
+/// collecting all pages into a single `Vec<ConversationRecord>`.
+pub async fn fetch_conversations(
+    client: &reqwest::Client,
+    config: &RuntimeConfig,
+    agent_id: &str,
+) -> Result<Vec<ConversationRecord>, BridgeError> {
+    let base_url = config.control_plane_url.trim_end_matches('/');
+    let mut all_conversations = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    loop {
+        let mut url = format!("{}/agents/{}/conversations", base_url, agent_id);
+
+        let mut query_parts = Vec::new();
+        if let Some(ref c) = cursor {
+            query_parts.push(format!("cursor={}", c));
+        }
+        query_parts.push("limit=100".to_string());
+        if !query_parts.is_empty() {
+            url = format!("{}?{}", url, query_parts.join("&"));
+        }
+
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!("Bearer {}", config.control_plane_api_key),
+            )
+            .send()
+            .await
+            .map_err(|e| {
+                BridgeError::Internal(format!("failed to fetch conversations: {e}"))
+            })?;
+
+        if !response.status().is_success() {
+            return Err(BridgeError::Internal(format!(
+                "control plane returned status {} for conversations",
+                response.status()
+            )));
+        }
+
+        let page: PaginatedConversations = response.json().await.map_err(|e| {
+            BridgeError::Internal(format!("failed to parse conversations response: {e}"))
+        })?;
+
+        all_conversations.extend(page.conversations);
+
+        match page.next_cursor {
+            Some(next) => cursor = Some(next),
+            None => break,
+        }
+    }
+
+    Ok(all_conversations)
 }
 
 /// Run the continuous sync loop.

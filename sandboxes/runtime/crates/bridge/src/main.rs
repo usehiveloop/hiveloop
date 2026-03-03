@@ -47,6 +47,27 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Hydrate conversations from the control plane (non-fatal on failure)
+    let app_state = api::AppState::new(supervisor.clone());
+    for summary in supervisor.list_agents() {
+        match sync::poller::fetch_conversations(&client, &config, &summary.id).await {
+            Ok(records) => {
+                let sse_receivers =
+                    supervisor.hydrate_conversations(&summary.id, records);
+                for (conv_id, sse_rx) in sse_receivers {
+                    app_state.sse_streams.insert(conv_id, sse_rx);
+                }
+            }
+            Err(e) => {
+                error!(
+                    agent_id = summary.id,
+                    error = %e,
+                    "failed to fetch conversations for agent"
+                );
+            }
+        }
+    }
+
     // Spawn sync poller
     {
         let supervisor = supervisor.clone();
@@ -59,7 +80,6 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Build HTTP router
-    let app_state = api::AppState::new(supervisor.clone());
     let app = api::build_router(app_state);
 
     // Bind and serve
