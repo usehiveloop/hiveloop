@@ -5,6 +5,19 @@ use std::time::Duration;
 
 use crate::ToolExecutor;
 
+/// Output format for web fetch results.
+#[derive(Debug, Deserialize, JsonSchema, Clone, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FetchFormat {
+    /// Default — convert HTML to Markdown using readability extraction.
+    #[default]
+    Markdown,
+    /// Strip all HTML tags, return plain text.
+    Text,
+    /// Return raw HTML as-is.
+    Html,
+}
+
 /// Default maximum content length in characters.
 const DEFAULT_MAX_LENGTH: usize = 50_000;
 
@@ -22,10 +35,16 @@ pub struct FetchResult {
 /// Arguments for the WebFetch tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct WebFetchArgs {
-    /// The URL to fetch content from.
+    /// The URL to fetch content from. Must be a fully-formed valid URL.
+    #[schemars(description = "The URL to fetch content from. Must be a fully-formed valid URL. HTTP is upgraded to HTTPS")]
     pub url: String,
     /// Maximum content length in characters. Defaults to 50000.
+    #[schemars(description = "Maximum content length in characters. Default: 50000")]
     pub max_length: Option<usize>,
+    /// Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text), or 'html' (raw HTML).
+    #[schemars(description = "Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text, tags stripped), or 'html' (raw HTML)")]
+    #[serde(default)]
+    pub format: FetchFormat,
 }
 
 /// Web fetch tool that retrieves a URL and extracts readable content as Markdown.
@@ -53,8 +72,13 @@ impl WebFetchTool {
         Self { client }
     }
 
-    /// Fetch a URL and extract its content as Markdown.
-    pub async fn fetch(&self, url: &str, max_length: usize) -> Result<FetchResult, String> {
+    /// Fetch a URL and extract its content in the specified format.
+    pub async fn fetch(
+        &self,
+        url: &str,
+        max_length: usize,
+        format: &FetchFormat,
+    ) -> Result<FetchResult, String> {
         // 1. HTTP GET with timeout and redirect following
         let response = self
             .client
@@ -81,20 +105,28 @@ impl WebFetchTool {
         }
 
         // Check content type - only process HTML
-        let content_type = response
+        let content_type_str = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_lowercase();
+            .unwrap_or("");
 
-        if !content_type.is_empty()
-            && !content_type.contains("text/html")
-            && !content_type.contains("application/xhtml")
-        {
-            return Err(format!(
-                "Non-HTML content type: {content_type}. Only HTML pages are supported."
-            ));
+        if !content_type_str.is_empty() {
+            let is_html = content_type_str
+                .parse::<mime::Mime>()
+                .map(|m| {
+                    (m.type_() == mime::TEXT && m.subtype() == mime::HTML)
+                        || (m.type_() == mime::APPLICATION
+                            && m.subtype().as_str().starts_with("xhtml"))
+                })
+                .unwrap_or(false);
+
+            if !is_html {
+                return Err(format!(
+                    "Non-HTML content type: {}. Only HTML pages are supported.",
+                    content_type_str
+                ));
+            }
         }
 
         let html = response
@@ -110,30 +142,52 @@ impl WebFetchTool {
             });
         }
 
-        // 2. Try dom_smoothie readability extraction first
-        if let Some(article) = extract_article(&html, &final_url) {
-            let title = if article.title.is_empty() {
-                None
-            } else {
-                Some(article.title)
-            };
-            let content = truncate_to_char_limit(&article.text_content, max_length);
-            return Ok(FetchResult {
-                title,
-                content,
-                url: final_url,
-            });
+        // Handle different output formats
+        match format {
+            FetchFormat::Html => {
+                let content = truncate_to_char_limit(&html, max_length);
+                Ok(FetchResult {
+                    title: None,
+                    content,
+                    url: final_url,
+                })
+            }
+            FetchFormat::Text => {
+                let text = strip_html_tags(&html);
+                let content = truncate_to_char_limit(&text, max_length);
+                Ok(FetchResult {
+                    title: None,
+                    content,
+                    url: final_url,
+                })
+            }
+            FetchFormat::Markdown => {
+                // 2. Try dom_smoothie readability extraction first
+                if let Some(article) = extract_article(&html, &final_url) {
+                    let title = if article.title.is_empty() {
+                        None
+                    } else {
+                        Some(article.title)
+                    };
+                    let content = truncate_to_char_limit(&article.text_content, max_length);
+                    return Ok(FetchResult {
+                        title,
+                        content,
+                        url: final_url,
+                    });
+                }
+
+                // 3. Fallback: convert full HTML to markdown with htmd
+                let markdown = fallback_convert(&html);
+                let content = truncate_to_char_limit(&markdown, max_length);
+
+                Ok(FetchResult {
+                    title: None,
+                    content,
+                    url: final_url,
+                })
+            }
         }
-
-        // 3. Fallback: convert full HTML to markdown with htmd
-        let markdown = fallback_convert(&html);
-        let content = truncate_to_char_limit(&markdown, max_length);
-
-        Ok(FetchResult {
-            title: None,
-            content,
-            url: final_url,
-        })
     }
 }
 
@@ -147,6 +201,31 @@ fn extract_article(html: &str, url: &str) -> Option<dom_smoothie::Article> {
 
     let mut readability = dom_smoothie::Readability::new(html, Some(url), Some(config)).ok()?;
     readability.parse().ok()
+}
+
+/// Strip all HTML tags and return plain text.
+/// Also removes script and style blocks and collapses whitespace.
+fn strip_html_tags(html: &str) -> String {
+    // Use htmd to convert to markdown, then strip remaining markdown formatting
+    // This is simpler and more robust than regex-based tag stripping
+    let md = htmd::convert(html).unwrap_or_default();
+    // The markdown output is already a reasonable plain-text representation
+    // Just collapse excessive blank lines
+    let mut result = String::with_capacity(md.len());
+    let mut blank_count = 0;
+    for line in md.lines() {
+        if line.trim().is_empty() {
+            blank_count += 1;
+            if blank_count <= 2 {
+                result.push('\n');
+            }
+        } else {
+            blank_count = 0;
+            result.push_str(line);
+            result.push('\n');
+        }
+    }
+    result.trim().to_string()
 }
 
 /// Fallback conversion: convert raw HTML to Markdown using htmd.
@@ -191,7 +270,7 @@ impl ToolExecutor for WebFetchTool {
 
         let max_length = args.max_length.unwrap_or(DEFAULT_MAX_LENGTH);
 
-        let result = self.fetch(&args.url, max_length).await?;
+        let result = self.fetch(&args.url, max_length, &args.format).await?;
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
     }
@@ -212,10 +291,9 @@ mod tests {
         let tool = WebFetchTool::with_defaults();
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(desc.contains("Markdown"), "should mention Markdown extraction");
-        assert!(desc.contains("authenticated"), "should warn about authenticated URLs");
-        assert!(desc.contains("redirect"), "should mention redirect handling");
-        assert!(desc.contains("web_search"), "should mention cross-tool guidance");
+        assert!(desc.contains("markdown"), "should mention markdown format");
+        assert!(desc.contains("URL"), "should mention URL input");
+        assert!(desc.contains("Format options"), "should mention format options");
     }
 
     #[test]
@@ -325,7 +403,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/page", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/page", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -348,7 +426,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/data.json", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/data.json", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -368,7 +446,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/missing", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/missing", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -389,7 +467,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/empty", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/empty", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -428,7 +506,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/long", server.uri()), 100)
+            .fetch(&format!("{}/long", server.uri()), 100, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -485,7 +563,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/old", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/old", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed after redirect");
 
@@ -539,7 +617,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/hop1", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/hop1", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should follow redirect chain");
 
@@ -586,7 +664,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/redirect-me", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/redirect-me", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed after redirect");
 
@@ -613,7 +691,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/error", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/error", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -634,7 +712,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/forbidden", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/forbidden", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -655,7 +733,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/unavailable", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/unavailable", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -684,7 +762,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/no-ct", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/no-ct", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed when Content-Type is missing");
 
@@ -709,7 +787,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/xhtml", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/xhtml", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should accept application/xhtml+xml");
 
@@ -731,7 +809,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/doc.pdf", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/doc.pdf", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -756,7 +834,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/image.png", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/image.png", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
@@ -797,7 +875,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/scripted", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/scripted", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -858,7 +936,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/titled", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/titled", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -889,7 +967,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/blank", server.uri()), DEFAULT_MAX_LENGTH)
+            .fetch(&format!("{}/blank", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .expect("fetch should succeed");
 
@@ -970,5 +1048,88 @@ mod tests {
             !parsed.content.contains("[Content truncated...]"),
             "short content should not be truncated with default max_length"
         );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_text_format() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html><body><h1>Title</h1><p>Hello <b>bold</b> world.</p></body></html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/text"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/text", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Text)
+            .await
+            .expect("fetch should succeed");
+
+        // Text format should not contain HTML tags
+        assert!(!result.content.contains("<h1>"));
+        assert!(!result.content.contains("<p>"));
+        assert!(!result.content.contains("<b>"));
+        // But should contain the text content
+        assert!(result.content.contains("Hello"));
+        assert!(result.content.contains("world"));
+    }
+
+    #[tokio::test]
+    async fn test_fetch_html_format() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html><body><h1>Raw Title</h1><p>Raw paragraph.</p></body></html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/raw"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/raw", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Html)
+            .await
+            .expect("fetch should succeed");
+
+        // HTML format should preserve the raw HTML
+        assert!(result.content.contains("<h1>Raw Title</h1>"));
+        assert!(result.content.contains("<p>Raw paragraph.</p>"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_format_parameter() {
+        let server = MockServer::start().await;
+
+        let html = r#"<html><body><p>Format test content</p></body></html>"#;
+
+        Mock::given(method("GET"))
+            .and(path("/fmt"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let args = serde_json::json!({
+            "url": format!("{}/fmt", server.uri()),
+            "format": "html"
+        });
+
+        let output = tool.execute(args).await.expect("execute should succeed");
+        let parsed: FetchResult = serde_json::from_str(&output).expect("parse");
+
+        assert!(parsed.content.contains("<p>Format test content</p>"));
     }
 }

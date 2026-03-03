@@ -3,15 +3,19 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+use crate::boundary::ProjectBoundary;
+use crate::file_tracker::FileTracker;
 use crate::ToolExecutor;
 
 /// Arguments for the Write tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteArgs {
-    /// The absolute path to the file to write.
+    /// Absolute path to the file to write. Parent directories are created automatically.
+    #[schemars(description = "Absolute path to the file to write. Parent directories are created automatically")]
     pub file_path: String,
-    /// The content to write to the file.
+    /// The full content to write to the file. Overwrites existing content.
+    #[schemars(description = "The full content to write to the file. Overwrites existing content")]
     pub content: String,
 }
 
@@ -23,11 +27,27 @@ pub struct WriteResult {
     pub created: bool,
 }
 
-pub struct WriteTool;
+pub struct WriteTool {
+    file_tracker: Option<FileTracker>,
+    boundary: Option<ProjectBoundary>,
+}
 
 impl WriteTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            file_tracker: None,
+            boundary: None,
+        }
+    }
+
+    pub fn with_file_tracker(mut self, tracker: FileTracker) -> Self {
+        self.file_tracker = Some(tracker);
+        self
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -59,8 +79,20 @@ impl ToolExecutor for WriteTool {
         let file_path = &args.file_path;
         let path = Path::new(file_path);
 
+        // Check project boundary
+        if let Some(ref boundary) = self.boundary {
+            boundary.check(file_path)?;
+        }
+
         // Check if file already exists
         let created = !path.exists();
+
+        // Enforce read-before-write for existing files
+        if !created {
+            if let Some(ref tracker) = self.file_tracker {
+                tracker.require_read(file_path)?;
+            }
+        }
 
         // Create parent directories if needed
         if let Some(parent) = path.parent() {

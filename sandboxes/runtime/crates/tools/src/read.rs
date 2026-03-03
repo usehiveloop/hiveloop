@@ -4,16 +4,40 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
+use crate::boundary::ProjectBoundary;
+use crate::file_tracker::FileTracker;
 use crate::ToolExecutor;
+
+/// Recognized image file extensions.
+const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"];
+
+/// Check if a file extension is a recognized image type (not SVG — that's text).
+fn is_image_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| IMAGE_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+/// Check if a file extension is SVG (text/XML, should be read normally).
+fn is_svg(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("svg"))
+        .unwrap_or(false)
+}
 
 /// Arguments for the Read tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReadArgs {
-    /// The absolute path to the file to read.
+    /// Absolute path to the file to read. Example: '/home/user/project/src/main.rs'
+    #[schemars(description = "Absolute path to the file to read. Example: '/home/user/project/src/main.rs'")]
     pub file_path: String,
-    /// The line number to start reading from (1-indexed). Defaults to 1.
+    /// Line number to start reading from (1-based). Use with limit for large files.
+    #[schemars(description = "Line number to start reading from (1-based). Use with limit for large files")]
     pub offset: Option<usize>,
-    /// The number of lines to read. Defaults to 2000.
+    /// Maximum number of lines to read. Default: 2000. Use with offset for pagination.
+    #[schemars(description = "Maximum number of lines to read. Default: 2000. Use with offset for pagination")]
     pub limit: Option<usize>,
 }
 
@@ -32,11 +56,27 @@ const MAX_LINE_LENGTH: usize = 2000;
 /// Number of bytes to check for binary content.
 const BINARY_CHECK_SIZE: usize = 8192;
 
-pub struct ReadTool;
+pub struct ReadTool {
+    file_tracker: Option<FileTracker>,
+    boundary: Option<ProjectBoundary>,
+}
 
 impl ReadTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            file_tracker: None,
+            boundary: None,
+        }
+    }
+
+    pub fn with_file_tracker(mut self, tracker: FileTracker) -> Self {
+        self.file_tracker = Some(tracker);
+        self
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -76,6 +116,11 @@ impl ToolExecutor for ReadTool {
             ));
         }
 
+        // Check project boundary
+        if let Some(ref boundary) = self.boundary {
+            boundary.check(file_path)?;
+        }
+
         // Check if path is a directory
         let metadata = tokio::fs::metadata(file_path)
             .await
@@ -92,6 +137,7 @@ impl ToolExecutor for ReadTool {
         }
 
         // Binary detection: read first 8192 bytes and check for null bytes
+        let path_obj = Path::new(file_path);
         {
             let mut file = tokio::fs::File::open(file_path)
                 .await
@@ -107,7 +153,43 @@ impl ToolExecutor for ReadTool {
                 .await
                 .map_err(|e| format!("Failed to read file: {e}"))?;
             if buf[..bytes_read].contains(&0) {
-                return Err(format!("Binary file detected: {file_path}"));
+                // Binary file detected — check if it's a recognized image
+                if is_image_extension(path_obj) {
+                    // Read the full file and return as base64
+                    let all_bytes = tokio::fs::read(file_path)
+                        .await
+                        .map_err(|e| format!("Failed to read image file: {e}"))?;
+
+                    use base64::Engine;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&all_bytes);
+                    let ext = path_obj
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("bin")
+                        .to_lowercase();
+
+                    // Mark image file as read
+                    if let Some(ref tracker) = self.file_tracker {
+                        tracker.mark_read(file_path);
+                    }
+
+                    let result = serde_json::json!({
+                        "type": "image",
+                        "format": ext,
+                        "data": b64,
+                        "size_bytes": all_bytes.len()
+                    });
+                    return serde_json::to_string(&result)
+                        .map_err(|e| format!("Failed to serialize result: {e}"));
+                }
+
+                // SVG files are text/XML and should be handled by the normal read path below
+                if !is_svg(path_obj) {
+                    let file_size = metadata.len();
+                    return Err(format!(
+                        "Binary file detected ({file_size} bytes). Use the bash tool to inspect binary files."
+                    ));
+                }
             }
         }
 
@@ -141,15 +223,7 @@ impl ToolExecutor for ReadTool {
         let lines_read = selected_lines.len();
         let truncated = end < total_lines;
 
-        // Compute width needed for line numbers
-        let max_line_num = if lines_read > 0 {
-            start + lines_read
-        } else {
-            1
-        };
-        let num_width = max_line_num.to_string().len();
-
-        // Format lines as "  {line_number}\t{content}" with right-aligned line numbers
+        // Format lines as "{line_number}: {content}" (e.g., "1: foo")
         let mut content = String::new();
         for (i, line) in selected_lines.iter().enumerate() {
             let line_num = start + i + 1;
@@ -158,12 +232,12 @@ impl ToolExecutor for ReadTool {
             } else {
                 line.to_string()
             };
-            content.push_str(&format!(
-                "{:>width$}\t{}\n",
-                line_num,
-                display_line,
-                width = num_width
-            ));
+            content.push_str(&format!("{}: {}\n", line_num, display_line));
+        }
+
+        // Mark file as read for edit/write tracking
+        if let Some(ref tracker) = self.file_tracker {
+            tracker.mark_read(file_path);
         }
 
         let result = ReadResult {
@@ -190,8 +264,8 @@ mod tests {
         assert!(!desc.is_empty());
         assert!(desc.contains("absolute path"), "should mention absolute path requirement");
         assert!(desc.contains("2000"), "should mention default line limit");
-        assert!(desc.contains("Binary"), "should mention binary detection");
-        assert!(desc.contains("Grep"), "should mention cross-tool guidance");
+        assert!(desc.contains("image"), "should mention image support");
+        assert!(desc.contains("grep"), "should mention cross-tool guidance");
     }
 
     #[tokio::test]
@@ -279,16 +353,60 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_binary_file_error() {
-        let mut tmp = NamedTempFile::new().expect("create temp file");
-        tmp.write_all(&[0x00, 0x01, 0x02]).expect("write");
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let file_path = dir.path().join("data.bin");
+        std::fs::write(&file_path, &[0x00, 0x01, 0x02]).expect("write");
 
         let tool = ReadTool::new();
         let args = serde_json::json!({
-            "file_path": tmp.path().to_str().unwrap()
+            "file_path": file_path.to_str().unwrap()
         });
 
         let err = tool.execute(args).await.unwrap_err();
         assert!(err.contains("Binary file detected"));
+        assert!(err.contains("bytes"), "should mention file size");
+        assert!(err.contains("bash tool"), "should suggest bash tool");
+    }
+
+    #[tokio::test]
+    async fn test_read_image_file_returns_base64() {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let file_path = dir.path().join("test.png");
+        // Write some binary data with a null byte to trigger binary detection
+        std::fs::write(&file_path, &[0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D, 0x0A])
+            .expect("write");
+
+        let tool = ReadTool::new();
+        let args = serde_json::json!({
+            "file_path": file_path.to_str().unwrap()
+        });
+
+        let result = tool.execute(args).await.expect("should succeed for image");
+        let parsed: serde_json::Value = serde_json::from_str(&result).expect("parse");
+        assert_eq!(parsed["type"], "image");
+        assert_eq!(parsed["format"], "png");
+        assert!(parsed["data"].is_string());
+        assert!(parsed["size_bytes"].as_u64().unwrap() > 0);
+    }
+
+    #[tokio::test]
+    async fn test_read_svg_as_text() {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let file_path = dir.path().join("icon.svg");
+        std::fs::write(
+            &file_path,
+            r#"<svg xmlns="http://www.w3.org/2000/svg"><circle r="50"/></svg>"#,
+        )
+        .expect("write");
+
+        let tool = ReadTool::new();
+        let args = serde_json::json!({
+            "file_path": file_path.to_str().unwrap()
+        });
+
+        let result = tool.execute(args).await.expect("should succeed for SVG");
+        let parsed: ReadResult = serde_json::from_str(&result).expect("parse");
+        assert!(parsed.content.contains("<svg"));
     }
 
     #[tokio::test]
@@ -324,8 +442,8 @@ mod tests {
         let result = tool.execute(args).await.expect("execute");
         let parsed: ReadResult = serde_json::from_str(&result).expect("parse");
 
-        // Lines should be formatted with right-aligned numbers and tab
-        assert!(parsed.content.contains("1\tfirst"));
-        assert!(parsed.content.contains("2\tsecond"));
+        // Lines should be formatted as "N: content"
+        assert!(parsed.content.contains("1: first"));
+        assert!(parsed.content.contains("2: second"));
     }
 }

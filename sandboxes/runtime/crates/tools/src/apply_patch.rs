@@ -212,16 +212,8 @@ fn parse_patch(patch_text: &str) -> Result<Vec<Hunk>, String> {
 // ---------------------------------------------------------------------------
 
 fn normalize_unicode(s: &str) -> String {
-    s.replace(['\u{2018}', '\u{2019}', '\u{201A}', '\u{201B}'], "'")
-        .replace(['\u{201C}', '\u{201D}', '\u{201E}', '\u{201F}'], "\"")
-        .replace(
-            [
-                '\u{2010}', '\u{2011}', '\u{2012}', '\u{2013}', '\u{2014}', '\u{2015}',
-            ],
-            "-",
-        )
-        .replace('\u{2026}', "...")
-        .replace('\u{00A0}', " ")
+    use unicode_normalization::UnicodeNormalization;
+    s.nfkc().collect()
 }
 
 fn try_match<F>(

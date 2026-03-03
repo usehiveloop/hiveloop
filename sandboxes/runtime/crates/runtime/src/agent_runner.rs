@@ -139,6 +139,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let emitter = ToolCallEmitter {
             sse_tx: self.sse_tx.clone(),
             cancel: cancel.clone(),
+            tool_names: std::collections::HashSet::new(),
         };
 
         let prompt_owned = prompt.to_string();
@@ -223,6 +224,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             let emitter = ToolCallEmitter {
                 sse_tx,
                 cancel: cancel.clone(),
+                tool_names: std::collections::HashSet::new(),
             };
 
             let result = AGENT_CONTEXT

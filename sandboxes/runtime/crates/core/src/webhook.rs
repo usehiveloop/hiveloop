@@ -45,3 +45,25 @@ pub struct WebhookPayload {
     /// Secret for HMAC signing
     pub webhook_secret: String,
 }
+
+impl WebhookPayload {
+    /// Create a new webhook payload with the current timestamp.
+    pub fn new(
+        event_type: WebhookEventType,
+        agent_id: impl Into<AgentId>,
+        conversation_id: impl Into<ConversationId>,
+        data: serde_json::Value,
+        webhook_url: impl Into<String>,
+        webhook_secret: impl Into<String>,
+    ) -> Self {
+        Self {
+            event_type,
+            agent_id: agent_id.into(),
+            conversation_id: conversation_id.into(),
+            timestamp: chrono::Utc::now(),
+            data,
+            webhook_url: webhook_url.into(),
+            webhook_secret: webhook_secret.into(),
+        }
+    }
+}

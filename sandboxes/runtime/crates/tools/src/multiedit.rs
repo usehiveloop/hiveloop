@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::boundary::ProjectBoundary;
 use crate::edit::apply_edit;
+use crate::file_tracker::FileTracker;
 use crate::ToolExecutor;
 
 /// A single edit operation within a multiedit.
@@ -35,11 +37,27 @@ pub struct MultiEditResult {
     pub total_replacements: usize,
 }
 
-pub struct MultiEditTool;
+pub struct MultiEditTool {
+    file_tracker: Option<FileTracker>,
+    boundary: Option<ProjectBoundary>,
+}
 
 impl MultiEditTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            file_tracker: None,
+            boundary: None,
+        }
+    }
+
+    pub fn with_file_tracker(mut self, tracker: FileTracker) -> Self {
+        self.file_tracker = Some(tracker);
+        self
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -72,6 +90,16 @@ impl ToolExecutor for MultiEditTool {
 
         if args.edits.is_empty() {
             return Err("No edits provided".to_string());
+        }
+
+        // Check project boundary
+        if let Some(ref boundary) = self.boundary {
+            boundary.check(file_path)?;
+        }
+
+        // Enforce read-before-edit
+        if let Some(ref tracker) = self.file_tracker {
+            tracker.require_read(file_path)?;
         }
 
         let content = tokio::fs::read_to_string(file_path)

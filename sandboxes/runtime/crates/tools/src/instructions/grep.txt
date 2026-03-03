@@ -1,21 +1,22 @@
-A powerful content search tool built on ripgrep. Searches file contents using regular expressions.
-
-- Supports full regex syntax (e.g., "log.*Error", "function\s+\w+", "impl\s+ToolExecutor")
-- Filter files by glob pattern (e.g., "*.rs", "*.{ts,tsx}") or by file type (e.g., "rust", "js", "py")
-- Respects .gitignore rules automatically
+- Fast content search tool that works with any codebase size
+- Searches file contents using regular expressions
+- Supports full regex syntax (eg. "log.*Error", "function\s+\w+", etc.)
+- Filter files by glob pattern (eg. "*.rs", "*.{ts,tsx}") or by file type (eg. "rust", "js", "py")
+- Returns file paths and line numbers with at least one match sorted by modification time
+- Use this tool when you need to find files containing specific patterns
+- If you need to identify/count the number of matches within files, use the Bash tool with `rg` (ripgrep) directly. Do NOT use `grep`.
+- When you are doing an open-ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead
 
 Output modes:
   - "files_with_matches" (default): returns only file paths containing matches
   - "content": returns matching lines with line numbers and optional context
   - "count": returns match counts per file
 
-Context lines:
-  - Use context_before / context_after to include surrounding lines in "content" mode
+Context lines (content mode only):
+  - Use context_before / context_after to include surrounding lines
   - Use context to set both before and after at once
 
-Usage notes:
-  - Use Grep to search file contents, Glob to find files by name
-  - Prefer Grep over Read for locating specific content in large files or across many files
+Additional notes:
   - Results are truncated at max_results (default 1000)
-  - For open-ended multi-round searches, describe the intent rather than issuing many small queries
+  - Respects .gitignore rules automatically
   - Binary files are silently skipped

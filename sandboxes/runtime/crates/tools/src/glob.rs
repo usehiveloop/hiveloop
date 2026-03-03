@@ -6,14 +6,17 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use crate::boundary::ProjectBoundary;
 use crate::ToolExecutor;
 
 /// Arguments for the Glob tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GlobArgs {
-    /// The glob pattern to match files against (e.g., "**/*.rs").
+    /// Glob pattern to match files. Example: '**/*.rs', 'src/**/*.ts'
+    #[schemars(description = "Glob pattern to match files. Example: '**/*.rs', 'src/**/*.ts'")]
     pub pattern: String,
     /// The directory to search in. Defaults to the current working directory.
+    #[schemars(description = "Directory to search in. Defaults to the current working directory")]
     pub path: Option<String>,
 }
 
@@ -35,11 +38,18 @@ pub struct GlobResult {
 /// Maximum number of results to return.
 const MAX_RESULTS: usize = 1000;
 
-pub struct GlobTool;
+pub struct GlobTool {
+    boundary: Option<ProjectBoundary>,
+}
 
 impl GlobTool {
     pub fn new() -> Self {
-        Self
+        Self { boundary: None }
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -70,6 +80,13 @@ impl ToolExecutor for GlobTool {
 
         let pattern = args.pattern.clone();
         let search_path = args.path.clone().unwrap_or_else(|| ".".to_string());
+
+        // Check project boundary for the search path
+        if let Some(ref boundary) = self.boundary {
+            if search_path != "." {
+                boundary.check(&search_path)?;
+            }
+        }
 
         let result = tokio::task::spawn_blocking(move || execute_glob(&pattern, &search_path))
             .await
@@ -176,7 +193,7 @@ mod tests {
         assert!(!desc.is_empty());
         assert!(desc.contains("glob pattern"), "should mention glob patterns");
         assert!(desc.contains("modification time"), "should mention sort order");
-        assert!(desc.contains("Grep"), "should mention cross-tool guidance");
+        assert!(desc.contains("Agent"), "should mention cross-tool guidance");
     }
 
     #[tokio::test]

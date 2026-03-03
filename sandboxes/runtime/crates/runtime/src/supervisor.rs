@@ -69,8 +69,20 @@ impl AgentSupervisor {
             }
         }
 
-        // Register built-in tools (filesystem, web fetch, web search)
-        tools::builtin::register_builtin_tools(&mut tool_registry);
+        // Register built-in tools — filtered by the agent's tool list if non-empty
+        let builtin_tool_names: Vec<String> = definition
+            .tools
+            .iter()
+            .map(|t| t.name.clone())
+            .collect();
+        if builtin_tool_names.is_empty() {
+            tools::builtin::register_builtin_tools(&mut tool_registry);
+        } else {
+            tools::builtin::register_filtered_builtin_tools(
+                &mut tool_registry,
+                &builtin_tool_names,
+            );
+        }
 
         // Collect all tool executors for the LLM agent
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
@@ -162,6 +174,12 @@ impl AgentSupervisor {
         };
         let session_store = state.session_store.clone();
 
+        let tool_names = state
+            .tool_registry
+            .tool_names()
+            .into_iter()
+            .collect::<std::collections::HashSet<String>>();
+
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -175,6 +193,7 @@ impl AgentSupervisor {
                 agent_context: Some(agent_context),
                 notification_rx: Some(notification_rx),
                 session_store: Some(session_store),
+                tool_names,
             })
             .await;
         });
@@ -315,8 +334,20 @@ impl AgentSupervisor {
             }
         }
 
-        // Register built-in tools (filesystem, web fetch, web search)
-        tools::builtin::register_builtin_tools(&mut tool_registry);
+        // Register built-in tools — filtered by the agent's tool list if non-empty
+        let builtin_tool_names: Vec<String> = definition
+            .tools
+            .iter()
+            .map(|t| t.name.clone())
+            .collect();
+        if builtin_tool_names.is_empty() {
+            tools::builtin::register_builtin_tools(&mut tool_registry);
+        } else {
+            tools::builtin::register_filtered_builtin_tools(
+                &mut tool_registry,
+                &builtin_tool_names,
+            );
+        }
 
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()

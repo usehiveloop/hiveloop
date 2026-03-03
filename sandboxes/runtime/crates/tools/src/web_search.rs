@@ -217,7 +217,7 @@ mod tests {
         assert!(!desc.contains("{{year}}"), "template variable should be replaced");
         let current_year = chrono::Utc::now().format("%Y").to_string();
         assert!(desc.contains(&current_year), "should contain current year");
-        assert!(desc.contains("web_fetch"), "should mention cross-tool guidance");
+        assert!(desc.contains("knowledge cutoff"), "should mention knowledge cutoff");
     }
 
     fn serper_response() -> serde_json::Value {

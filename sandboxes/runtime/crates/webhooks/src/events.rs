@@ -1,5 +1,4 @@
 use bridge_core::webhook::{WebhookEventType, WebhookPayload};
-use chrono::Utc;
 use serde_json::json;
 
 /// Create a webhook payload for a conversation_created event.
@@ -9,15 +8,7 @@ pub fn conversation_created(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ConversationCreated,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data: json!({}),
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ConversationCreated, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a message_received event.
@@ -28,15 +19,7 @@ pub fn message_received(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::MessageReceived,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::MessageReceived, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a response_started event.
@@ -46,15 +29,7 @@ pub fn response_started(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ResponseStarted,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data: json!({}),
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ResponseStarted, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a response_chunk event.
@@ -65,15 +40,7 @@ pub fn response_chunk(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ResponseChunk,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ResponseChunk, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a response_completed event.
@@ -84,15 +51,7 @@ pub fn response_completed(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ResponseCompleted,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ResponseCompleted, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a tool_call_started event.
@@ -103,15 +62,7 @@ pub fn tool_call_started(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ToolCallStarted,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ToolCallStarted, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a tool_call_completed event.
@@ -122,15 +73,7 @@ pub fn tool_call_completed(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ToolCallCompleted,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ToolCallCompleted, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for a conversation_ended event.
@@ -140,15 +83,7 @@ pub fn conversation_ended(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::ConversationEnded,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data: json!({}),
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::ConversationEnded, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
 }
 
 /// Create a webhook payload for an agent_error event.
@@ -159,15 +94,7 @@ pub fn agent_error(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload {
-        event_type: WebhookEventType::AgentError,
-        agent_id: agent_id.to_string(),
-        conversation_id: conv_id.to_string(),
-        timestamp: Utc::now(),
-        data,
-        webhook_url: webhook_url.to_string(),
-        webhook_secret: webhook_secret.to_string(),
-    }
+    WebhookPayload::new(WebhookEventType::AgentError, agent_id, conv_id, data, webhook_url, webhook_secret)
 }
 
 #[cfg(test)]

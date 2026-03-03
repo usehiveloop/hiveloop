@@ -2,6 +2,7 @@ use bridge_core::conversation::Message;
 use bridge_core::AgentMetrics;
 use llm::{SseEvent, TokenUsage};
 use rig::completion::Prompt;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -47,6 +48,8 @@ pub struct ConversationParams {
     pub notification_rx: Option<mpsc::Receiver<AgentTaskNotification>>,
     /// Session store reference for cleanup on conversation end.
     pub session_store: Option<Arc<AgentSessionStore>>,
+    /// Known tool names for tool repair (unknown tool name suggestion).
+    pub tool_names: HashSet<String>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -71,6 +74,7 @@ pub async fn run_conversation(params: ConversationParams) {
         agent_context,
         mut notification_rx,
         session_store,
+        tool_names,
     } = params;
 
     info!(
@@ -164,12 +168,14 @@ pub async fn run_conversation(params: ConversationParams) {
         let sse_tx_clone = sse_tx.clone();
         let agent_context_clone = agent_context.clone();
         let cancel_clone = cancel.clone();
+        let tool_names_clone = tool_names.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
             let emitter = llm::ToolCallEmitter {
                 sse_tx: sse_tx_clone,
                 cancel: cancel_clone,
+                tool_names: tool_names_clone,
             };
             let fut = async {
                 agent_clone

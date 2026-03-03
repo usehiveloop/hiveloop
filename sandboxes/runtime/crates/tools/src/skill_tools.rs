@@ -1,5 +1,7 @@
 use async_trait::async_trait;
 use bridge_core::SkillDefinition;
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -46,27 +48,28 @@ impl ToolExecutor for FetchSkillsTool {
         let args: FetchSkillsArgs =
             serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
 
-        let query_lower = args.query.to_lowercase();
+        let matcher = SkimMatcherV2::default();
 
-        // Score each skill: 2 for title match, 1 for description match, 0 for no match.
-        let mut scored: Vec<(u8, &SkillDefinition)> = self
+        // Score each skill using fuzzy matching. Title matches are weighted 2x.
+        let mut scored: Vec<(i64, &SkillDefinition)> = self
             .skills
             .iter()
             .filter_map(|skill| {
-                let title_match = skill.title.to_lowercase().contains(&query_lower);
-                let desc_match = skill.description.to_lowercase().contains(&query_lower);
+                let title_score = matcher.fuzzy_match(&skill.title, &args.query).unwrap_or(0) * 2;
+                let desc_score = matcher
+                    .fuzzy_match(&skill.description, &args.query)
+                    .unwrap_or(0);
+                let score = title_score.max(desc_score);
 
-                if title_match {
-                    Some((2, skill))
-                } else if desc_match {
-                    Some((1, skill))
+                if score > 0 {
+                    Some((score, skill))
                 } else {
                     None
                 }
             })
             .collect();
 
-        // Sort by score descending (title matches first).
+        // Sort by score descending (best matches first).
         scored.sort_by(|a, b| b.0.cmp(&a.0));
 
         let results: Vec<&SkillDefinition> = scored.into_iter().map(|(_, skill)| skill).collect();

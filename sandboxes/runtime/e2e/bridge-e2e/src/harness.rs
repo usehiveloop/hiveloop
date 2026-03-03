@@ -1,8 +1,10 @@
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 /// A single turn in a multi-turn conversation.
@@ -54,6 +56,72 @@ pub struct TestHarness {
     /// Keeps the mock-control-plane stdout pipe alive so the process doesn't
     /// get EPIPE (broken pipe) when it writes after we've read the PORT= line.
     _cp_stdout_drain: Option<std::thread::JoinHandle<()>>,
+    /// Directory for conversation log files (one per agent).
+    log_dir: PathBuf,
+    /// Maps conversation_id → agent_id for log file routing.
+    conversation_agents: Mutex<HashMap<String, String>>,
+}
+
+/// Returns a UTC timestamp string for log entries.
+fn now_str() -> String {
+    let d = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .unwrap_or_default();
+    let total_secs = d.as_secs();
+    let hours = (total_secs / 3600) % 24;
+    let mins = (total_secs / 60) % 60;
+    let secs = total_secs % 60;
+    let millis = d.subsec_millis();
+    format!("{:02}:{:02}:{:02}.{:03}", hours, mins, secs, millis)
+}
+
+/// Format an SSE event for human-readable logging.
+fn format_sse_for_log(event_type: &str, data: &serde_json::Value) -> String {
+    match event_type {
+        "tool_call_start" => {
+            let name = data.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            let id = data.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+            let args = data
+                .get("arguments")
+                .map(|a| {
+                    serde_json::to_string_pretty(a).unwrap_or_else(|_| a.to_string())
+                })
+                .unwrap_or_default();
+            format!("Tool: {} (id: {})\nArguments:\n{}", name, id, args)
+        }
+        "tool_call_result" => {
+            let id = data.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+            let is_error = data
+                .get("is_error")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let result_str = data
+                .get("result")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let formatted = serde_json::from_str::<serde_json::Value>(result_str)
+                .map(|v| {
+                    serde_json::to_string_pretty(&v).unwrap_or_else(|_| result_str.to_string())
+                })
+                .unwrap_or_else(|_| result_str.to_string());
+            // Truncate very long results for readability
+            let truncated = if formatted.len() > 4000 {
+                format!(
+                    "{}...\n[truncated, {} total chars]",
+                    &formatted[..4000],
+                    formatted.len()
+                )
+            } else {
+                formatted
+            };
+            format!("id: {}, is_error: {}\nResult:\n{}", id, is_error, truncated)
+        }
+        "content_delta" => {
+            let delta = data.get("delta").and_then(|v| v.as_str()).unwrap_or("");
+            format!("\"{}\"", delta)
+        }
+        _ => serde_json::to_string_pretty(data).unwrap_or_else(|_| data.to_string()),
+    }
 }
 
 impl TestHarness {
@@ -151,6 +219,11 @@ impl TestHarness {
             .build()
             .context("failed to build reqwest client")?;
 
+        let log_dir = std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
+        let _ = std::fs::remove_dir_all(&log_dir);
+        let _ = std::fs::create_dir_all(&log_dir);
+        eprintln!("[harness] Conversation logs: {}", log_dir.display());
+
         let mut harness = Self {
             mock_cp_port,
             bridge_port,
@@ -162,6 +235,8 @@ impl TestHarness {
             workspace_root,
             tool_log_dir: None,
             _cp_stdout_drain: Some(cp_drain),
+            log_dir,
+            conversation_agents: Mutex::new(HashMap::new()),
         };
 
         // 4. Poll /health until 200 (max 30s)
@@ -291,6 +366,11 @@ impl TestHarness {
             .build()
             .context("failed to build reqwest client")?;
 
+        let log_dir = std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
+        let _ = std::fs::remove_dir_all(&log_dir);
+        let _ = std::fs::create_dir_all(&log_dir);
+        eprintln!("[harness] Conversation logs: {}", log_dir.display());
+
         let mut harness = Self {
             mock_cp_port,
             bridge_port,
@@ -302,6 +382,8 @@ impl TestHarness {
             workspace_root,
             tool_log_dir: Some(tool_log_dir),
             _cp_stdout_drain: Some(cp_drain),
+            log_dir,
+            conversation_agents: Mutex::new(HashMap::new()),
         };
 
         // 4. Poll /health until 200 (max 60s for real agents — MCP connections take longer)
@@ -351,7 +433,11 @@ impl TestHarness {
             .ok_or_else(|| anyhow!("no conversation_id in response: {}", body))?
             .to_string();
 
-        // Send message
+        // Register conversation and log header + system prompt
+        self.register_conversation(&conversation_id, agent_id)
+            .await;
+
+        // Send message (logging happens inside send_message)
         let msg_resp = self.send_message(&conversation_id, message).await?;
         if !msg_resp.status().is_success() && msg_resp.status().as_u16() != 202 {
             let status = msg_resp.status();
@@ -363,10 +449,31 @@ impl TestHarness {
             ));
         }
 
-        // Connect to SSE stream and collect events
+        // Connect to SSE stream and collect events (logging happens inside)
         let (events, response_text) = self
             .stream_sse_until_done(&conversation_id, timeout)
             .await?;
+
+        // Log the assembled assistant response
+        let label = self.log_label(&conversation_id);
+        self.append_log(
+            &label,
+            &format!(
+                "\n================================================================================\n\
+                 ASSISTANT RESPONSE (complete)\n\
+                 ================================================================================\n\
+                 {}\n\n\
+                 ================================================================================\n\
+                 TURN COMPLETED ({:.1}s)\n\
+                 ================================================================================\n\n",
+                if response_text.is_empty() {
+                    "[empty response]"
+                } else {
+                    &response_text
+                },
+                start.elapsed().as_secs_f64()
+            ),
+        );
 
         Ok(ConversationTurn {
             conversation_id,
@@ -486,6 +593,10 @@ impl TestHarness {
                         data,
                     };
                     events.push(event);
+
+                    // Log the SSE event
+                    let last = events.last().unwrap();
+                    self.log_sse_event(conv_id, &last.event_type, &last.data);
 
                     // Stop when we get a Done event
                     if event_type == "done" {
@@ -629,6 +740,10 @@ impl TestHarness {
                     };
                     events.push(event);
 
+                    // Log the SSE event
+                    let last = events.last().unwrap();
+                    self.log_sse_event(conv_id, &last.event_type, &last.data);
+
                     if event_type == "done" {
                         done_seen += 1;
                         if done_seen >= done_count {
@@ -738,6 +853,120 @@ impl TestHarness {
                 matching.len()
             ))
         }
+    }
+
+    // ---- Conversation logging ----
+
+    /// Returns the log directory path.
+    pub fn log_dir(&self) -> &Path {
+        &self.log_dir
+    }
+
+    /// Register a conversation_id → agent_id mapping and log the conversation
+    /// header (agent info, system prompt, tools).
+    pub async fn register_conversation(&self, conv_id: &str, agent_id: &str) {
+        self.conversation_agents
+            .lock()
+            .unwrap()
+            .insert(conv_id.to_string(), agent_id.to_string());
+
+        let mut log = format!(
+            "================================================================================\n\
+             CONVERSATION STARTED\n\
+             ================================================================================\n\
+             Timestamp:       {}\n\
+             Agent ID:        {}\n\
+             Conversation ID: {}\n\n",
+            now_str(),
+            agent_id,
+            conv_id
+        );
+
+        // Fetch agent info to log system prompt and tools
+        if let Ok(resp) = self.get_agent(agent_id).await {
+            if resp.status().is_success() {
+                if let Ok(body) = resp.json::<serde_json::Value>().await {
+                    if let Some(prompt) = body.get("system_prompt").and_then(|v| v.as_str()) {
+                        log.push_str(&format!(
+                            "================================================================================\n\
+                             SYSTEM PROMPT\n\
+                             ================================================================================\n\
+                             {}\n\n",
+                            prompt
+                        ));
+                    }
+                    if let Some(tools) = body.get("tools").and_then(|v| v.as_array()) {
+                        let tool_names: Vec<&str> = tools
+                            .iter()
+                            .filter_map(|t| t.get("name").and_then(|n| n.as_str()))
+                            .collect();
+                        if !tool_names.is_empty() {
+                            log.push_str(&format!("Built-in Tools: {}\n\n", tool_names.join(", ")));
+                        }
+                    }
+                    if let Some(mcp) = body.get("mcp_servers").and_then(|v| v.as_array()) {
+                        let server_names: Vec<&str> = mcp
+                            .iter()
+                            .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
+                            .collect();
+                        if !server_names.is_empty() {
+                            log.push_str(&format!(
+                                "MCP Servers: {}\n\n",
+                                server_names.join(", ")
+                            ));
+                        }
+                    }
+                    if let Some(subagents) = body.get("subagents").and_then(|v| v.as_array()) {
+                        if !subagents.is_empty() {
+                            let sub_ids: Vec<&str> = subagents
+                                .iter()
+                                .filter_map(|s| s.get("id").and_then(|n| n.as_str()))
+                                .collect();
+                            log.push_str(&format!("Subagents: {}\n\n", sub_ids.join(", ")));
+                        }
+                    }
+                }
+            }
+        }
+
+        self.append_log(agent_id, &log);
+    }
+
+    /// Get the log label (agent_id) for a conversation, or fall back to conv_id.
+    fn log_label(&self, conv_id: &str) -> String {
+        self.conversation_agents
+            .lock()
+            .unwrap()
+            .get(conv_id)
+            .cloned()
+            .unwrap_or_else(|| conv_id.to_string())
+    }
+
+    /// Append content to the log file for the given label (agent_id).
+    fn append_log(&self, label: &str, content: &str) {
+        let path = self.log_dir.join(format!("{}.log", label));
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            let _ = file.write_all(content.as_bytes());
+        }
+    }
+
+    /// Log a single SSE event to the appropriate log file.
+    fn log_sse_event(&self, conv_id: &str, event_type: &str, data: &serde_json::Value) {
+        let label = self.log_label(conv_id);
+        let formatted = format_sse_for_log(event_type, data);
+        self.append_log(
+            &label,
+            &format!(
+                "[{}] --- SSE: {} ---\n{}\n\n",
+                now_str(),
+                event_type,
+                formatted
+            ),
+        );
     }
 
     /// Read the PORT={port} line from the mock control plane stdout.
@@ -961,6 +1190,19 @@ impl TestHarness {
 
     /// POST /conversations/{conv_id}/messages — send a message.
     pub async fn send_message(&self, conv_id: &str, content: &str) -> Result<reqwest::Response> {
+        let label = self.log_label(conv_id);
+        self.append_log(
+            &label,
+            &format!(
+                "[{}] ================================================================================\n\
+                 USER MESSAGE\n\
+                 ================================================================================\n\
+                 {}\n\n",
+                now_str(),
+                content
+            ),
+        );
+
         let resp = self
             .client
             .post(format!(
@@ -977,6 +1219,17 @@ impl TestHarness {
 
     /// DELETE /conversations/{conv_id} — end a conversation.
     pub async fn end_conversation(&self, conv_id: &str) -> Result<reqwest::Response> {
+        let label = self.log_label(conv_id);
+        self.append_log(
+            &label,
+            &format!(
+                "[{}] ================================================================================\n\
+                 CONVERSATION ENDED\n\
+                 ================================================================================\n\n",
+                now_str()
+            ),
+        );
+
         let resp = self
             .client
             .delete(format!(

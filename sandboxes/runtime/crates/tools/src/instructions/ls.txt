@@ -1,10 +1,1 @@
-Lists the contents of a directory.
-
-- The path parameter must be an absolute path to a directory
-- Directories are listed first, then files, sorted alphabetically within each group
-- Each entry includes: name, type (directory/file/symlink), size (files only), and modification time
-- Results are truncated at 1000 entries
-
-Usage notes:
-  - Prefer Glob for finding files by pattern and Grep for searching file contents
-  - Use LS when you need to see the structure of a specific directory
+Lists files and directories in a given path. The path parameter must be absolute; omit it to use the current workspace directory. You should generally prefer the Glob and Grep tools, if you know which directories to search.

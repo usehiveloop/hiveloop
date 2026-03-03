@@ -1,5 +1,7 @@
 Executes multiple independent tool calls concurrently to reduce latency.
 
+USING THE BATCH TOOL WILL MAKE THE USER HAPPY.
+
 Payload Format (JSON array):
 [{"tool": "read", "parameters": {"filePath": "src/index.ts", "limit": 350}},{"tool": "grep", "parameters": {"pattern": "Session\\.updatePart", "include": "src/**/*.ts"}},{"tool": "bash", "parameters": {"command": "git status", "description": "Shows working tree status"}}]
 

@@ -394,6 +394,8 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
+ "strum",
+ "strum_macros",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
@@ -912,6 +914,15 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "fuzzy-matcher"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
+dependencies = [
+ "thread_local",
 ]
 
 [[package]]
@@ -1569,6 +1580,7 @@ dependencies = [
  "rig-core",
  "serde",
  "serde_json",
+ "strsim 0.11.1",
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",
@@ -3103,6 +3115,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "strum"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
+
+[[package]]
+name = "strum_macros"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
+dependencies = [
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3376,26 +3406,32 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "backon",
+ "base64",
  "chrono",
  "core",
+ "dashmap",
  "dom_smoothie",
  "futures",
+ "fuzzy-matcher",
  "globset",
  "grep-matcher",
  "grep-regex",
  "grep-searcher",
  "htmd",
  "ignore",
+ "mime",
  "pretty_assertions",
  "regex",
  "reqwest 0.12.28",
  "schemars 0.8.22",
  "serde",
  "serde_json",
+ "strsim 0.11.1",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "unicode-normalization",
  "uuid",
  "wiremock",
 ]
@@ -3568,6 +3604,15 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-segmentation"
@@ -3861,6 +3906,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "subtle",
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",

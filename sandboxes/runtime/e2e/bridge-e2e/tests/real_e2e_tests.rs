@@ -967,6 +967,11 @@ async fn test_executor_background_bash() {
     let body: serde_json::Value = resp.json().await.expect("parse create response");
     let conversation_id = body["conversation_id"].as_str().expect("conversation_id").to_string();
 
+    // Register for conversation logging
+    harness
+        .register_conversation(&conversation_id, "executor")
+        .await;
+
     let msg_resp = harness
         .send_message(
             &conversation_id,

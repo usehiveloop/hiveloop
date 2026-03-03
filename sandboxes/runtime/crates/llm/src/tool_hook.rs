@@ -1,9 +1,10 @@
 use crate::SseEvent;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
+use std::collections::HashSet;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-use tools::agent::{AgentTaskNotification, AGENT_CONTEXT};
+use tools::agent::{AgentTaskNotification, AgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
 use tracing::debug;
 
@@ -17,10 +18,17 @@ use tracing::debug;
 /// tool server dispatches tool calls in separate `tokio::spawn` tasks, which
 /// lose the `AGENT_CONTEXT` task_local. The hook runs in the original task
 /// scope where `AGENT_CONTEXT` is available.
+///
+/// Additionally intercepts unknown tool names and returns helpful error
+/// messages with suggestions (case-insensitive match or Levenshtein distance).
 #[derive(Clone)]
 pub struct ToolCallEmitter {
     pub sse_tx: mpsc::Sender<SseEvent>,
     pub cancel: CancellationToken,
+    /// Known tool names for tool repair. When populated, unknown tool names
+    /// are intercepted and a helpful suggestion is returned instead of letting
+    /// rig-core return a generic error.
+    pub tool_names: HashSet<String>,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -47,6 +55,20 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             })
             .await;
 
+        // Intercept unknown tool names and return helpful suggestions.
+        if !self.tool_names.is_empty() && !self.tool_names.contains(tool_name) {
+            let error = self.unknown_tool_error(tool_name);
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: id_for_bg.clone(),
+                    result: error.clone(),
+                    is_error: true,
+                })
+                .await;
+            return ToolCallHookAction::Skip { reason: error };
+        }
+
         // Intercept bash calls with background: true.
         // We handle these here because AGENT_CONTEXT is available in the hook
         // (which runs in the conversation task) but NOT in the tool server's
@@ -56,6 +78,16 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 if bash_args.background {
                     return self.handle_background_bash(bash_args, id_for_bg).await;
                 }
+            }
+        }
+
+        // Intercept ALL agent tool calls. Same reason as bash background above:
+        // rig-core dispatches tool calls in separate tokio::spawn tasks, which
+        // lose the AGENT_CONTEXT task_local. The agent tool always needs
+        // AGENT_CONTEXT, so we intercept all agent calls here.
+        if tool_name == "agent" {
+            if let Ok(agent_params) = serde_json::from_str::<AgentToolParams>(args) {
+                return self.handle_agent_tool(agent_params, id_for_bg).await;
             }
         }
 
@@ -88,6 +120,50 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
 }
 
 impl ToolCallEmitter {
+    /// Build an error message for an unknown tool name.
+    ///
+    /// Tries case-insensitive matching first, then Levenshtein distance
+    /// to suggest the closest tool name.
+    fn unknown_tool_error(&self, name: &str) -> String {
+        // Case-insensitive match
+        let lower = name.to_lowercase();
+        for known in &self.tool_names {
+            if known.to_lowercase() == lower {
+                return format!(
+                    "Unknown tool '{}'. Did you mean '{}'? (case mismatch)",
+                    name, known
+                );
+            }
+        }
+
+        // Levenshtein distance suggestion
+        let mut best: Option<(&str, f64)> = None;
+        for known in &self.tool_names {
+            let score = strsim::normalized_levenshtein(&lower, &known.to_lowercase());
+            if score > best.as_ref().map_or(0.0, |(_, d)| *d) {
+                best = Some((known, score));
+            }
+        }
+
+        let names: Vec<&str> = self.tool_names.iter().map(|s| s.as_str()).collect();
+        if let Some((suggestion, score)) = best {
+            if score > 0.4 {
+                return format!(
+                    "Unknown tool '{}'. Did you mean '{}'? Available tools: [{}]",
+                    name,
+                    suggestion,
+                    names.join(", ")
+                );
+            }
+        }
+
+        format!(
+            "Unknown tool '{}'. Available tools: [{}]",
+            name,
+            names.join(", ")
+        )
+    }
+
     /// Handle a bash tool call with `background: true`.
     ///
     /// Spawns the command asynchronously and sends a notification via the
@@ -170,6 +246,136 @@ impl ToolCallEmitter {
             reason: result_json,
         }
     }
+
+    /// Handle an agent tool call by executing it here where AGENT_CONTEXT is
+    /// available, then returning `Skip` so rig-core does not dispatch to a
+    /// spawned task (where the task_local would be lost).
+    async fn handle_agent_tool(
+        &self,
+        params: AgentToolParams,
+        sse_id: String,
+    ) -> ToolCallHookAction {
+        let ctx = match AGENT_CONTEXT.try_with(|c| c.clone()) {
+            Ok(ctx) => ctx,
+            Err(_) => {
+                let error = "Agent tool requires a conversation context".to_string();
+                let _ = self
+                    .sse_tx
+                    .send(SseEvent::ToolCallResult {
+                        id: sse_id,
+                        result: error.clone(),
+                        is_error: true,
+                    })
+                    .await;
+                return ToolCallHookAction::Skip { reason: error };
+            }
+        };
+
+        // Check depth limit
+        if ctx.depth >= ctx.max_depth {
+            let error = format!("Maximum subagent depth ({}) reached", ctx.max_depth);
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: error.clone(),
+                    is_error: true,
+                })
+                .await;
+            return ToolCallHookAction::Skip { reason: error };
+        }
+
+        // Validate subagent exists
+        let available = ctx.runner.available_subagents();
+        let subagent_exists = available.iter().any(|(name, _)| name == &params.subagent);
+        if !subagent_exists {
+            let error = if available.is_empty() {
+                "No subagents available. This agent has no subagents configured.".to_string()
+            } else {
+                let names: Vec<&str> = available.iter().map(|(n, _)| n.as_str()).collect();
+                format!(
+                    "Unknown subagent '{}'. Available: [{}]",
+                    params.subagent,
+                    names.join(", ")
+                )
+            };
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: error.clone(),
+                    is_error: true,
+                })
+                .await;
+            return ToolCallHookAction::Skip { reason: error };
+        }
+
+        if params.background {
+            // Background execution
+            let result = ctx
+                .runner
+                .run_background(&params.subagent, &params.prompt, &params.description)
+                .await;
+
+            let (result_str, is_error) = match result {
+                Ok(handle) => {
+                    let json = serde_json::json!({
+                        "task_id": handle.task_id,
+                        "status": "running",
+                        "message": "Background task started. You will be notified when it completes."
+                    })
+                    .to_string();
+                    (json, false)
+                }
+                Err(e) => (e, true),
+            };
+
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: result_str.clone(),
+                    is_error,
+                })
+                .await;
+            ToolCallHookAction::Skip {
+                reason: result_str,
+            }
+        } else {
+            // Foreground execution
+            let result = ctx
+                .runner
+                .run_foreground(
+                    &params.subagent,
+                    &params.prompt,
+                    params.task_id.as_deref(),
+                )
+                .await;
+
+            let (result_str, is_error) = match result {
+                Ok(task_result) => {
+                    let output = format!(
+                        "task_id: {} (for resuming)\n\n<task_result>\n{}\n</task_result>",
+                        task_result.task_id, task_result.output
+                    );
+                    (output, false)
+                }
+                Err(e) => (e, true),
+            };
+
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: result_str.clone(),
+                    is_error,
+                })
+                .await;
+            ToolCallHookAction::Skip {
+                reason: result_str,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -180,7 +386,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -211,7 +417,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_result() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
             &emitter,
@@ -243,7 +449,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_returns_continue() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -270,7 +476,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_uses_internal_call_id_when_no_tool_call_id() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -293,7 +499,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_handles_invalid_json_args() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -361,6 +567,7 @@ mod tests {
         let emitter = ToolCallEmitter {
             sse_tx,
             cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
         };
 
         let action = AGENT_CONTEXT
@@ -421,7 +628,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_does_not_intercept_foreground_bash() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new() };
 
         // bash without background: true should Continue normally
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -434,5 +641,224 @@ mod tests {
         .await;
 
         assert_eq!(action, ToolCallHookAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_emitter_intercepts_agent_tool() {
+        use std::sync::Arc;
+        use tools::agent::{
+            AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, AGENT_CONTEXT,
+        };
+
+        struct MockRunner;
+
+        #[async_trait::async_trait]
+        impl SubAgentRunner for MockRunner {
+            fn available_subagents(&self) -> Vec<(String, String)> {
+                vec![("coder".to_string(), "A coding agent".to_string())]
+            }
+            async fn run_foreground(
+                &self,
+                subagent: &str,
+                prompt: &str,
+                _task_id: Option<&str>,
+            ) -> Result<AgentTaskResult, String> {
+                Ok(AgentTaskResult {
+                    task_id: "agent-task-789".to_string(),
+                    output: format!("Result from {} for: {}", subagent, prompt),
+                })
+            }
+            async fn run_background(
+                &self,
+                _: &str,
+                _: &str,
+                _: &str,
+            ) -> Result<AgentTaskHandle, String> {
+                Ok(AgentTaskHandle {
+                    task_id: "bg-agent-456".to_string(),
+                })
+            }
+        }
+
+        let (notif_tx, _notif_rx) =
+            tokio::sync::mpsc::channel::<AgentTaskNotification>(16);
+        let ctx = AgentContext {
+            runner: Arc::new(MockRunner),
+            notification_tx: notif_tx,
+            depth: 0,
+            max_depth: 3,
+        };
+
+        let (sse_tx, mut sse_rx) = mpsc::channel(16);
+        let emitter = ToolCallEmitter {
+            sse_tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+        };
+
+        let action = AGENT_CONTEXT
+            .scope(ctx, async {
+                PromptHook::<BridgeCompletionModel>::on_tool_call(
+                    &emitter,
+                    "agent",
+                    Some("call_agent".to_string()),
+                    "int_agent",
+                    r#"{"description":"test task","prompt":"write hello world","subagent":"coder"}"#,
+                )
+                .await
+            })
+            .await;
+
+        // Should return Skip with the foreground result
+        match &action {
+            ToolCallHookAction::Skip { reason } => {
+                assert!(reason.contains("agent-task-789"), "should contain task_id");
+                assert!(reason.contains("Result from coder"), "should contain subagent output");
+                assert!(reason.contains("<task_result>"), "should contain task_result tags");
+            }
+            other => panic!("expected Skip, got {:?}", other),
+        }
+
+        // Verify SSE events: tool_call_start + tool_call_result
+        let start_event = sse_rx.try_recv().expect("should have tool_call_start");
+        match &start_event {
+            SseEvent::ToolCallStart { id, name, .. } => {
+                assert_eq!(id, "call_agent");
+                assert_eq!(name, "agent");
+            }
+            other => panic!("expected ToolCallStart, got {:?}", other),
+        }
+
+        let result_event = sse_rx.try_recv().expect("should have tool_call_result");
+        match &result_event {
+            SseEvent::ToolCallResult { id, is_error, result } => {
+                assert_eq!(id, "call_agent");
+                assert!(!is_error, "should not be an error");
+                assert!(result.contains("Result from coder"));
+            }
+            other => panic!("expected ToolCallResult, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_emitter_intercepts_unknown_tool() {
+        let (tx, mut rx) = mpsc::channel(16);
+        let tool_names: HashSet<String> = ["bash", "read", "edit", "grep"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names,
+        };
+
+        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+            &emitter,
+            "bassh",
+            Some("call_typo".to_string()),
+            "int_typo",
+            r#"{"command":"echo hello"}"#,
+        )
+        .await;
+
+        // Should return Skip with an error suggesting "bash"
+        match &action {
+            ToolCallHookAction::Skip { reason } => {
+                assert!(reason.contains("Unknown tool 'bassh'"));
+                assert!(reason.contains("bash"));
+            }
+            other => panic!("expected Skip, got {:?}", other),
+        }
+
+        // Should emit ToolCallStart and ToolCallResult (error)
+        let _start = rx.try_recv().expect("should have tool_call_start");
+        let result_event = rx.try_recv().expect("should have tool_call_result");
+        match &result_event {
+            SseEvent::ToolCallResult { is_error, result, .. } => {
+                assert!(is_error);
+                assert!(result.contains("Unknown tool"));
+            }
+            other => panic!("expected ToolCallResult, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_emitter_allows_known_tools() {
+        let (tx, _rx) = mpsc::channel(16);
+        let tool_names: HashSet<String> = ["bash", "read", "edit"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names,
+        };
+
+        // Known tool should pass through
+        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+            &emitter,
+            "bash",
+            Some("call_ok".to_string()),
+            "int_ok",
+            r#"{"command":"echo hello"}"#,
+        )
+        .await;
+
+        assert_eq!(action, ToolCallHookAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_emitter_empty_tool_names_skips_check() {
+        let (tx, _rx) = mpsc::channel(16);
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+        };
+
+        // With empty tool_names, all tools should pass through (backward compat)
+        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+            &emitter,
+            "anything_goes",
+            Some("call_any".to_string()),
+            "int_any",
+            "{}",
+        )
+        .await;
+
+        assert_eq!(action, ToolCallHookAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_emitter_suggests_case_mismatch() {
+        let (tx, _rx) = mpsc::channel(16);
+        let tool_names: HashSet<String> = ["bash", "read", "edit"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names,
+        };
+
+        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+            &emitter,
+            "Bash",
+            Some("call_case".to_string()),
+            "int_case",
+            r#"{"command":"echo hello"}"#,
+        )
+        .await;
+
+        match &action {
+            ToolCallHookAction::Skip { reason } => {
+                assert!(reason.contains("case mismatch"), "should mention case mismatch: {}", reason);
+                assert!(reason.contains("bash"), "should suggest 'bash': {}", reason);
+            }
+            other => panic!("expected Skip, got {:?}", other),
+        }
     }
 }

@@ -10,16 +10,21 @@ use crate::ToolExecutor;
 /// Arguments for the Bash tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct BashArgs {
-    /// The bash command to execute.
+    /// The shell command to execute. Example: 'ls -la /tmp'
+    #[schemars(description = "The shell command to execute. Example: 'ls -la /tmp'")]
     pub command: String,
-    /// Timeout in milliseconds. Defaults to 120000 (2 minutes).
+    /// Timeout in milliseconds. Default: 120000 (2 minutes). Maximum: 600000 (10 minutes).
+    #[schemars(description = "Timeout in milliseconds. Default: 120000 (2 minutes). Maximum: 600000 (10 minutes)")]
     pub timeout: Option<u64>,
-    /// Working directory for the command. Defaults to current directory.
+    /// Working directory for the command. Defaults to current directory. Use this instead of 'cd <dir> && <cmd>'.
+    #[schemars(description = "Working directory for the command. Defaults to current directory. Use this instead of 'cd <dir> && <cmd>'")]
     pub workdir: Option<String>,
-    /// A short description of what this command does.
+    /// A short description of what this command does in 5-10 words.
+    #[schemars(description = "A short description of what this command does in 5-10 words")]
     pub description: Option<String>,
     /// Run this command in the background. Returns immediately with a task_id.
     /// The agent will be notified when the command completes.
+    #[schemars(description = "Set to true to run in the background. Returns immediately with a task_id; you will be notified on completion")]
     #[serde(default)]
     pub background: bool,
 }
@@ -198,13 +203,31 @@ impl ToolExecutor for BashTool {
     }
 }
 
+/// Head/tail sizes for the spill summary.
+const SPILL_HEAD_BYTES: usize = 1_000;
+const SPILL_TAIL_BYTES: usize = 1_000;
+
 fn truncate_output(bytes: &[u8]) -> String {
     let s = String::from_utf8_lossy(bytes);
-    if s.len() > MAX_OUTPUT_BYTES {
+    if s.len() <= MAX_OUTPUT_BYTES {
+        return s.into_owned();
+    }
+
+    // Spill full output to a temp file so the LLM can read it later
+    let spill_path = std::env::temp_dir().join(format!("bridge_bash_{}.txt", uuid::Uuid::new_v4()));
+    if let Ok(()) = std::fs::write(&spill_path, bytes) {
+        let head = &s[..s.len().min(SPILL_HEAD_BYTES)];
+        let tail_start = s.len().saturating_sub(SPILL_TAIL_BYTES);
+        let tail = &s[tail_start..];
+        format!(
+            "{head}\n\n... [Output truncated. Full output ({} bytes) saved to: {}] ...\n\n{tail}",
+            bytes.len(),
+            spill_path.display()
+        )
+    } else {
+        // Fallback if we can't write the temp file
         let truncated = &s[..MAX_OUTPUT_BYTES];
         format!("{truncated}\n[output truncated]")
-    } else {
-        s.into_owned()
     }
 }
 
@@ -333,13 +356,31 @@ mod tests {
     }
 
     #[test]
-    fn test_truncate_output() {
+    fn test_truncate_output_short() {
         let short = b"hello";
         assert_eq!(truncate_output(short), "hello");
+    }
 
+    #[test]
+    fn test_truncate_output_spills_to_disk() {
         let long = vec![b'x'; MAX_OUTPUT_BYTES + 100];
         let result = truncate_output(&long);
-        assert!(result.ends_with("[output truncated]"));
+        // Should contain head, tail, and a spill path
+        assert!(result.contains("Output truncated"), "should mention truncation");
+        assert!(result.contains("saved to:"), "should include file path");
+        assert!(
+            result.contains("bridge_bash_"),
+            "should reference a temp file"
+        );
+
+        // Extract the path and verify the file exists
+        let path_start = result.find("saved to: ").unwrap() + "saved to: ".len();
+        let path_end = result[path_start..].find(']').unwrap() + path_start;
+        let spill_path = &result[path_start..path_end];
+        let content = std::fs::read(spill_path).expect("spill file should be readable");
+        assert_eq!(content.len(), MAX_OUTPUT_BYTES + 100);
+        // Clean up
+        let _ = std::fs::remove_file(spill_path);
     }
 
     #[tokio::test]

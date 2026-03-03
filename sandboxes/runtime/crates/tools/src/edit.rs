@@ -2,19 +2,25 @@ use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::boundary::ProjectBoundary;
+use crate::file_tracker::FileTracker;
 use crate::ToolExecutor;
 
 /// Arguments for the Edit tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EditArgs {
-    /// The absolute path to the file to modify.
+    /// Absolute path to the file to modify.
+    #[schemars(description = "Absolute path to the file to modify")]
     pub file_path: String,
-    /// The text to find and replace.
+    /// The exact text to find and replace. Must match uniquely in the file unless replaceAll is true.
+    #[schemars(description = "The exact text to find and replace. Must match uniquely in the file unless replaceAll is true")]
     pub old_string: String,
-    /// The replacement text.
+    /// The replacement text. Must differ from oldString.
+    #[schemars(description = "The replacement text. Must differ from oldString")]
     pub new_string: String,
     /// If true, replace all occurrences of oldString. Defaults to false.
+    #[schemars(description = "If true, replace all occurrences of oldString. Defaults to false")]
     pub replace_all: Option<bool>,
 }
 
@@ -30,6 +36,7 @@ pub struct EditResult {
 /// Shared edit logic used by both Edit and MultiEdit tools.
 ///
 /// Applies a single find-and-replace operation on `content`.
+/// Uses a chain of 9 matching strategies (exact → fuzzy) in order.
 /// Returns the new content on success.
 pub(crate) fn apply_edit(
     content: &str,
@@ -41,84 +48,25 @@ pub(crate) fn apply_edit(
         return Err("oldString and newString are identical".to_string());
     }
 
-    // Strategy 1: exact match
-    let count = content.matches(old_string).count();
-
-    if count > 0 {
-        if count > 1 && !replace_all {
-            return Err(
-                "Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match, or use replaceAll.".to_string()
-            );
-        }
-        if replace_all {
-            let new_content = content.replace(old_string, new_string);
+    // Try each strategy in order — first match wins
+    for strategy in crate::edit_strategies::all_strategies() {
+        if let Some((new_content, count)) =
+            strategy.try_replace(content, old_string, new_string, replace_all)
+        {
             return Ok((new_content, count));
-        } else {
-            // Replace only the first occurrence
-            let new_content = content.replacen(old_string, new_string, 1);
-            return Ok((new_content, 1));
         }
     }
 
-    // Strategy 2: trimmed whitespace match
-    // Trim each line and compare
-    let old_lines: Vec<&str> = old_string.lines().map(|l| l.trim()).collect();
-    let content_lines: Vec<&str> = content.lines().collect();
-    let content_trimmed: Vec<&str> = content_lines.iter().map(|l| l.trim()).collect();
-
-    if old_lines.is_empty() {
-        return Err("oldString not found in file content".to_string());
-    }
-
-    let mut matches: Vec<usize> = Vec::new();
-    for i in 0..=content_trimmed.len().saturating_sub(old_lines.len()) {
-        if content_trimmed[i..i + old_lines.len()] == old_lines[..] {
-            matches.push(i);
-        }
-    }
-
-    if matches.is_empty() {
-        return Err("oldString not found in file content".to_string());
-    }
-
-    if matches.len() > 1 && !replace_all {
+    // No strategy matched — check if there were multiple matches that
+    // prevented a non-replace_all edit from succeeding
+    let exact_count = content.matches(old_string).count();
+    if exact_count > 1 && !replace_all {
         return Err(
             "Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match, or use replaceAll.".to_string()
         );
     }
 
-    // Replace matches in reverse order to preserve indices
-    let mut result_lines: Vec<&str> = content_lines.clone();
-    let new_lines_vec: Vec<&str> = new_string.lines().collect();
-
-    let matches_to_apply = if replace_all {
-        matches.clone()
-    } else {
-        vec![matches[0]]
-    };
-
-    // Apply in reverse order
-    let mut sorted_matches = matches_to_apply.clone();
-    sorted_matches.sort_unstable_by(|a, b| b.cmp(a));
-
-    for start in &sorted_matches {
-        let end = start + old_lines.len();
-        let mut new_result: Vec<&str> = Vec::new();
-        new_result.extend_from_slice(&result_lines[..* start]);
-        new_result.extend_from_slice(&new_lines_vec);
-        new_result.extend_from_slice(&result_lines[end..]);
-        result_lines = new_result;
-    }
-
-    let new_content = result_lines.join("\n");
-    // Preserve trailing newline if original had one
-    let new_content = if content.ends_with('\n') && !new_content.ends_with('\n') {
-        format!("{new_content}\n")
-    } else {
-        new_content
-    };
-
-    Ok((new_content, matches_to_apply.len()))
+    Err("oldString not found in file content".to_string())
 }
 
 fn snippet(s: &str, max_len: usize) -> String {
@@ -129,11 +77,27 @@ fn snippet(s: &str, max_len: usize) -> String {
     }
 }
 
-pub struct EditTool;
+pub struct EditTool {
+    file_tracker: Option<FileTracker>,
+    boundary: Option<ProjectBoundary>,
+}
 
 impl EditTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            file_tracker: None,
+            boundary: None,
+        }
+    }
+
+    pub fn with_file_tracker(mut self, tracker: FileTracker) -> Self {
+        self.file_tracker = Some(tracker);
+        self
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -164,6 +128,16 @@ impl ToolExecutor for EditTool {
 
         let file_path = &args.file_path;
         let replace_all = args.replace_all.unwrap_or(false);
+
+        // Check project boundary
+        if let Some(ref boundary) = self.boundary {
+            boundary.check(file_path)?;
+        }
+
+        // Enforce read-before-edit
+        if let Some(ref tracker) = self.file_tracker {
+            tracker.require_read(file_path)?;
+        }
 
         let content = tokio::fs::read_to_string(file_path)
             .await
@@ -217,9 +191,15 @@ mod tests {
 
     #[test]
     fn test_apply_edit_multiple_matches_no_replace_all() {
+        // With the new strategy chain, multiple exact matches with
+        // replace_all=false now picks the first occurrence via MultiOccurrenceReplacer
         let content = "aaa\nbbb\naaa\n";
-        let err = apply_edit(content, "aaa", "ccc", false).unwrap_err();
-        assert!(err.contains("multiple matches"));
+        let (result, count) = apply_edit(content, "aaa", "ccc", false).unwrap();
+        assert_eq!(count, 1);
+        // First occurrence should be replaced
+        assert!(result.starts_with("ccc\n"));
+        // Second occurrence should remain
+        assert!(result.contains("\naaa\n"));
     }
 
     #[test]

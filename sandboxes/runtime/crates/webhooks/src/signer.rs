@@ -1,6 +1,7 @@
 use base64::Engine;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 /// Sign a webhook payload with HMAC-SHA256.
 /// Message format: "{timestamp}.{payload}"
@@ -18,17 +19,7 @@ pub fn sign_webhook(payload: &[u8], secret: &str, timestamp: i64) -> String {
 /// Verify a webhook signature using constant-time comparison.
 pub fn verify_webhook(payload: &[u8], secret: &str, timestamp: i64, signature: &str) -> bool {
     let expected = sign_webhook(payload, secret, timestamp);
-    constant_time_eq(expected.as_bytes(), signature.as_bytes())
-}
-
-fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-    a.iter()
-        .zip(b.iter())
-        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-        == 0
+    expected.as_bytes().ct_eq(signature.as_bytes()).into()
 }
 
 #[cfg(test)]

@@ -66,6 +66,7 @@ governor = "0.8"
 hmac = "0.12"
 sha2 = "0.10"
 base64 = "0.22"
+subtle = "2"
 
 # Content extraction
 dom_smoothie = { version = "0.15", features = ["aho-corasick"] }
@@ -85,6 +86,22 @@ tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"]
 
 # Config
 figment = { version = "0.10", features = ["toml", "env"] }
+
+# String enums
+strum = "0.27"
+strum_macros = "0.27"
+
+# Fuzzy matching
+fuzzy-matcher = "0.3"
+
+# String similarity (Levenshtein distance)
+strsim = "0.11"
+
+# MIME types
+mime = "0.3"
+
+# Unicode
+unicode-normalization = "0.1"
 
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }

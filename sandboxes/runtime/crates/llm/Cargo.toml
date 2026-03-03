@@ -16,6 +16,7 @@ uuid = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+strsim = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

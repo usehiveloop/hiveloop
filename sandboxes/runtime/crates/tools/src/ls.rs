@@ -183,9 +183,9 @@ mod tests {
         let tool = LsTool::new();
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(desc.contains("absolute path"), "should mention absolute path requirement");
-        assert!(desc.contains("Directories are listed first"), "should mention sort order");
+        assert!(desc.contains("absolute"), "should mention absolute path requirement");
         assert!(desc.contains("Glob"), "should mention cross-tool guidance");
+        assert!(desc.contains("Grep"), "should mention cross-tool guidance");
     }
 
     #[tokio::test]

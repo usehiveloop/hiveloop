@@ -61,19 +61,24 @@ pub struct AgentTaskNotification {
 /// Parameters for the agent tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-struct AgentToolParams {
+pub struct AgentToolParams {
     /// Short (3-5 word) description of the task.
-    description: String,
-    /// The task for the subagent to perform.
-    prompt: String,
+    #[schemars(description = "Short (3-5 word) description of the task. Example: 'Fix login bug'")]
+    pub description: String,
+    /// The detailed task for the subagent to perform.
+    #[schemars(description = "The detailed task for the subagent to perform. Be specific and include all necessary context")]
+    pub prompt: String,
     /// Which subagent to invoke (must match a defined subagent name).
-    subagent: String,
+    #[schemars(description = "Which subagent to invoke. Must match an available subagent name")]
+    pub subagent: String,
     /// Set to true to run in background (returns immediately, notifies on completion).
+    #[schemars(description = "Set to true to run in background. Returns immediately with task_id; notifies on completion")]
     #[serde(default)]
-    background: bool,
+    pub background: bool,
     /// Resume a previous subagent session by task_id.
+    #[schemars(description = "Resume a previous subagent session by providing its task_id")]
     #[serde(default)]
-    task_id: Option<String>,
+    pub task_id: Option<String>,
 }
 
 /// Tool that invokes subagents for autonomous task execution.

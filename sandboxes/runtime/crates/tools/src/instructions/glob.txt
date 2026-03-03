@@ -1,13 +1,8 @@
-Fast file pattern matching tool that works with any codebase size.
-
-- Supports glob patterns like "**/*.rs", "src/**/*.ts", "*.{js,jsx}"
-- Returns matching file paths sorted by modification time (newest first)
-- Results are truncated at 1000 matches
+- Fast file pattern matching tool that works with any codebase size
+- Supports glob patterns like "**/*.js" or "src/**/*.ts"
+- Returns matching file paths sorted by modification time
+- Use this tool when you need to find files by name patterns
+- When you are doing an open-ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead
+- You have the capability to call multiple tools in a single response. It is always better to speculatively perform multiple searches as a batch that are potentially useful.
 - Respects .gitignore rules automatically
-
-Usage notes:
-  - Use this tool when you need to find files by name or extension
-  - The path parameter defaults to the current working directory if omitted
-  - Use Glob to find files by name, Grep to search file contents, LS to list a directory
-  - Call multiple Glob searches in parallel when you need to find different file types simultaneously
-  - For open-ended searches that may require multiple rounds of globbing and grepping, describe the intent rather than issuing many small queries
+- Results are truncated at 1000 matches

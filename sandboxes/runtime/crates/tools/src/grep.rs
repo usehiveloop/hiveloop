@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use crate::boundary::ProjectBoundary;
 use crate::ToolExecutor;
 
 /// Output mode for grep results.
@@ -27,25 +28,35 @@ pub enum OutputMode {
 /// Arguments for the Grep tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GrepArgs {
-    /// The regular expression pattern to search for.
+    /// Regular expression pattern to search for. Example: 'fn\\s+main'
+    #[schemars(description = "Regular expression pattern to search for. Example: 'fn\\s+main'")]
     pub pattern: String,
-    /// File or directory path to search in. Defaults to current directory.
+    /// File or directory to search in. Defaults to current working directory.
+    #[schemars(description = "File or directory to search in. Defaults to current working directory")]
     pub path: Option<String>,
     /// Glob pattern to filter files (e.g., "*.js", "*.{ts,tsx}").
+    #[schemars(description = "Glob pattern to filter files. Example: '*.rs', '*.{ts,tsx}'")]
     pub glob: Option<String>,
-    /// File type to search (e.g., "js", "py", "rust").
+    /// File type to search (e.g., "js", "py", "rust"). More efficient than glob for standard types.
+    #[schemars(description = "File type to search. Example: 'js', 'py', 'rust'. More efficient than glob for standard types")]
     pub file_type: Option<String>,
     /// Case insensitive search.
+    #[schemars(description = "Set to true for case-insensitive matching")]
     pub case_insensitive: Option<bool>,
     /// Number of lines to show before each match.
+    #[schemars(description = "Number of context lines to show before each match")]
     pub context_before: Option<usize>,
     /// Number of lines to show after each match.
+    #[schemars(description = "Number of context lines to show after each match")]
     pub context_after: Option<usize>,
     /// Number of lines to show before and after each match (overrides context_before/after).
+    #[schemars(description = "Number of context lines before and after each match. Overrides context_before/context_after")]
     pub context: Option<usize>,
     /// Output mode: "content", "files_with_matches", or "count".
+    #[schemars(description = "Output mode: 'content' shows matching lines, 'files_with_matches' shows file paths (default), 'count' shows match counts")]
     pub output_mode: Option<OutputMode>,
-    /// Maximum number of results to return.
+    /// Maximum number of results to return. Default: 100. Use a higher value when you need comprehensive search results, or lower for quick lookups.
+    #[schemars(description = "Maximum number of results to return. Default: 100. Use a higher value for comprehensive results, lower for quick lookups")]
     pub max_results: Option<usize>,
 }
 
@@ -77,11 +88,18 @@ pub struct GrepResult {
 /// Default max results.
 const DEFAULT_MAX_RESULTS: usize = 1000;
 
-pub struct GrepTool;
+pub struct GrepTool {
+    boundary: Option<ProjectBoundary>,
+}
 
 impl GrepTool {
     pub fn new() -> Self {
-        Self
+        Self { boundary: None }
+    }
+
+    pub fn with_boundary(mut self, boundary: ProjectBoundary) -> Self {
+        self.boundary = Some(boundary);
+        self
     }
 }
 
@@ -109,6 +127,15 @@ impl ToolExecutor for GrepTool {
     async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
         let args: GrepArgs =
             serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
+
+        // Check project boundary for the search path
+        if let Some(ref boundary) = self.boundary {
+            if let Some(ref path) = args.path {
+                if path != "." {
+                    boundary.check(path)?;
+                }
+            }
+        }
 
         let result = tokio::task::spawn_blocking(move || execute_grep(args))
             .await
@@ -353,8 +380,8 @@ mod tests {
         let desc = tool.description();
         assert!(!desc.is_empty());
         assert!(desc.contains("regex"), "should mention regex support");
-        assert!(desc.contains("files_with_matches"), "should mention output modes");
-        assert!(desc.contains("Glob"), "should mention cross-tool guidance");
+        assert!(desc.contains("modification time"), "should mention sort order");
+        assert!(desc.contains("Agent"), "should mention cross-tool guidance");
     }
 
     #[tokio::test]
