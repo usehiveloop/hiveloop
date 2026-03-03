@@ -135,12 +135,13 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             .unwrap_or_else(|| self.generate_task_id());
 
         let mut history = self.session_store.get_or_create(&task_id);
+        let cancel = self.cancel.clone();
         let emitter = ToolCallEmitter {
             sse_tx: self.sse_tx.clone(),
+            cancel: cancel.clone(),
         };
 
         let prompt_owned = prompt.to_string();
-        let cancel = self.cancel.clone();
 
         let result = tokio::select! {
             _ = cancel.cancelled() => {
@@ -219,7 +220,10 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             };
 
             let mut history = history;
-            let emitter = ToolCallEmitter { sse_tx };
+            let emitter = ToolCallEmitter {
+                sse_tx,
+                cancel: cancel.clone(),
+            };
 
             let result = AGENT_CONTEXT
                 .scope(nested_ctx, async {

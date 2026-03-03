@@ -720,7 +720,7 @@ async fn test_multi_agent_concurrent_conversations() {
         .await
         .expect("failed to start real harness");
 
-    // Verify all 6 agents are loaded
+    // Verify all agents are loaded
     let agents = harness.get_agents().await.expect("failed to get agents");
     let agent_ids: Vec<String> = agents
         .iter()
@@ -735,6 +735,7 @@ async fn test_multi_agent_concurrent_conversations() {
         "technical-writer",
         "researcher",
         "delegator",
+        "executor",
     ] {
         assert!(
             agent_ids.contains(&expected_id.to_string()),
@@ -744,7 +745,7 @@ async fn test_multi_agent_concurrent_conversations() {
         );
     }
 
-    // Create 7 conversations simultaneously with simple non-tool messages
+    // Create 8 conversations simultaneously with simple non-tool messages
     let messages = vec![
         ("code-review", "What is the most important thing in a code review? Answer in 2-3 sentences."),
         ("portal-control", "Briefly describe your role as Portal in this workspace. 2-3 sentences."),
@@ -753,6 +754,7 @@ async fn test_multi_agent_concurrent_conversations() {
         ("technical-writer", "What makes good API documentation? Answer in 2-3 sentences."),
         ("researcher", "What is Rust known for? Answer in 2-3 sentences."),
         ("delegator", "What makes a good engineering lead? Answer in 2-3 sentences."),
+        ("executor", "What is the most important DevOps principle? Answer in 2-3 sentences."),
     ];
 
     let mut handles = Vec::new();
@@ -906,14 +908,14 @@ async fn test_multi_agent_concurrent_conversations() {
         }));
     }
 
-    // Wait for all 6 conversations
+    // Wait for all 8 conversations
     let mut results = Vec::new();
     for handle in handles {
         let result = handle.await.expect("task panicked");
         results.push(result);
     }
 
-    assert_eq!(results.len(), 7, "all 7 agents should have responded");
+    assert_eq!(results.len(), 8, "all 8 agents should have responded");
 
     // Verify metrics show conversations tracked
     let metrics = harness
@@ -927,14 +929,112 @@ async fn test_multi_agent_concurrent_conversations() {
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
         assert!(
-            total_agents >= 7,
-            "should have at least 7 agents in metrics, got {}",
+            total_agents >= 8,
+            "should have at least 8 agents in metrics, got {}",
             total_agents
         );
     }
 
-    eprintln!("All 7 agents responded successfully");
+    eprintln!("All 8 agents responded successfully");
     for (agent_id, conv_id) in &results {
         eprintln!("  {} -> conversation {}", agent_id, conv_id);
     }
+}
+
+// ============================================================================
+// Test: Executor — Background Bash
+// Verifies: bash tool called with background: true, notification round-trip
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_executor_background_bash() {
+    if !require_openrouter_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    // Create conversation and send message manually so we can read multiple turns.
+    // Background bash produces two turns:
+    //   Turn 1: LLM calls bash(background:true) → gets immediate "running" → responds
+    //   Turn 2: Background command completes → notification → LLM reports output
+    let resp = harness
+        .create_conversation("executor")
+        .await
+        .expect("create conversation");
+    let body: serde_json::Value = resp.json().await.expect("parse create response");
+    let conversation_id = body["conversation_id"].as_str().expect("conversation_id").to_string();
+
+    let msg_resp = harness
+        .send_message(
+            &conversation_id,
+            "Run `echo 'background_task_complete_marker_12345'` in the background using the bash tool with background set to true. After it completes, report the output.",
+        )
+        .await
+        .expect("send message");
+    assert!(
+        msg_resp.status().is_success() || msg_resp.status().as_u16() == 202,
+        "message send failed: {}",
+        msg_resp.status()
+    );
+
+    // Read SSE events across 2 turns (2 "done" events).
+    // Turn 1: agent acknowledges background launch.
+    // Turn 2: agent processes the background completion notification and reports output.
+    let (events, response_text) = harness
+        .stream_sse_until_done_count(&conversation_id, 2, LLM_TIMEOUT)
+        .await
+        .expect("stream SSE events");
+
+    eprintln!(
+        "[executor-bg] collected {} events, response: {} chars",
+        events.len(),
+        response_text.len()
+    );
+
+    assert!(
+        !response_text.is_empty(),
+        "[executor-bg] response should not be empty"
+    );
+
+    // Verify the bash tool was called with background: true in SSE events
+    let bash_starts: Vec<_> = events
+        .iter()
+        .filter(|e| {
+            e.event_type == "tool_call_start"
+                && e.data.get("name").and_then(|n| n.as_str()) == Some("bash")
+        })
+        .collect();
+
+    assert!(!bash_starts.is_empty(), "bash tool should have been called");
+
+    // Check that at least one bash call had background: true
+    let used_background = bash_starts.iter().any(|e| {
+        let args = e.data.get("arguments");
+        // Handle both object and string-encoded arguments
+        match args {
+            Some(serde_json::Value::Object(obj)) => {
+                obj.get("background") == Some(&serde_json::json!(true))
+            }
+            Some(serde_json::Value::String(s)) => {
+                s.contains("background") && s.contains("true")
+            }
+            _ => false,
+        }
+    });
+
+    assert!(
+        used_background,
+        "bash should have been called with background: true"
+    );
+
+    // Verify the response contains the marker from the background command output.
+    // This proves the full round-trip: command ran → notification sent → agent received it.
+    assert!(
+        response_text.contains("background_task_complete_marker_12345"),
+        "response should contain the background command output marker, got: {}",
+        &response_text[..response_text.len().min(500)]
+    );
 }

@@ -19,6 +19,12 @@ Usage notes:
   - It is very helpful if you write a clear, concise description of what this command does in 5-10 words.
   - If the output exceeds 50000 bytes, it will be truncated.
 
+## Background execution
+Set `background: true` to run a command in the background. The tool returns immediately
+with a task_id. You will be automatically notified when the command completes with its
+full output and exit code. Use this for long-running commands like builds, test suites,
+or deployments where you don't need to block waiting for the result.
+
   - Avoid using Bash with the `find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo` commands, unless explicitly instructed or when these commands are truly necessary for the task. Instead, always prefer using the dedicated tools for these commands:
     - File search: Use Glob (NOT find or ls)
     - Content search: Use Grep (NOT grep or rg)

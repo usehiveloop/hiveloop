@@ -310,7 +310,7 @@ impl TestHarness {
             .await?;
 
         // 5. Wait for agents to be synced and MCP connections established
-        harness.wait_for_agents_loaded(7).await?;
+        harness.wait_for_agents_loaded(8).await?;
 
         Ok(harness)
     }
@@ -506,6 +506,139 @@ impl TestHarness {
                     .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(100)]))
                     .collect::<Vec<_>>()
             );
+        }
+
+        Ok((events, response_text))
+    }
+
+    /// Connect to SSE stream and collect events across multiple turns.
+    /// Keeps reading past "done" events until `done_count` "done" events
+    /// have been received, or the timeout expires.
+    pub async fn stream_sse_until_done_count(
+        &self,
+        conv_id: &str,
+        done_count: usize,
+        timeout: Duration,
+    ) -> Result<(Vec<SseEvent>, String)> {
+        use futures::StreamExt;
+
+        let stream_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .context("failed to build stream client")?;
+
+        let resp = stream_client
+            .get(format!(
+                "{}/conversations/{}/stream",
+                self.bridge_base_url, conv_id
+            ))
+            .send()
+            .await
+            .context("GET stream request failed")?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "stream endpoint returned {}: {}",
+                status,
+                body
+            ));
+        }
+
+        let mut events = Vec::new();
+        let mut response_text = String::new();
+        let mut current_event_type = String::new();
+        let mut done_seen = 0usize;
+
+        let deadline = Instant::now() + timeout;
+
+        let mut stream = resp.bytes_stream();
+        let mut buffer = String::new();
+
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                eprintln!(
+                    "[harness] SSE stream timed out after {:?} (done_seen={}/{})",
+                    timeout, done_seen, done_count
+                );
+                break;
+            }
+
+            match tokio::time::timeout(remaining, stream.next()).await {
+                Ok(Some(Ok(chunk))) => {
+                    buffer.push_str(&String::from_utf8_lossy(&chunk));
+                }
+                Ok(Some(Err(e))) => {
+                    eprintln!("[harness] SSE stream chunk error: {}", e);
+                    break;
+                }
+                Ok(None) => {
+                    // Stream ended
+                    break;
+                }
+                Err(_) => {
+                    eprintln!(
+                        "[harness] SSE stream timed out after {:?} (done_seen={}/{})",
+                        timeout, done_seen, done_count
+                    );
+                    break;
+                }
+            }
+
+            // Process complete lines
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].trim_end().to_string();
+                buffer = buffer[newline_pos + 1..].to_string();
+
+                if line.is_empty() {
+                    continue;
+                }
+
+                if let Some(event_name) = line.strip_prefix("event:") {
+                    current_event_type = event_name.trim().to_string();
+                } else if let Some(data_str) = line.strip_prefix("data:") {
+                    let data_str = data_str.trim();
+                    if data_str.is_empty() {
+                        continue;
+                    }
+
+                    let data: serde_json::Value =
+                        serde_json::from_str(data_str).unwrap_or_else(|_| {
+                            serde_json::Value::String(data_str.to_string())
+                        });
+
+                    let event_type = if !current_event_type.is_empty() {
+                        current_event_type.clone()
+                    } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
+                        t.to_string()
+                    } else {
+                        "message".to_string()
+                    };
+
+                    if event_type == "content_delta" {
+                        if let Some(delta) = data.get("delta").and_then(|d| d.as_str()) {
+                            response_text.push_str(delta);
+                        }
+                    }
+
+                    let event = SseEvent {
+                        event_type: event_type.clone(),
+                        data,
+                    };
+                    events.push(event);
+
+                    if event_type == "done" {
+                        done_seen += 1;
+                        if done_seen >= done_count {
+                            return Ok((events, response_text));
+                        }
+                    }
+
+                    current_event_type.clear();
+                }
+            }
         }
 
         Ok((events, response_text))

@@ -163,10 +163,14 @@ pub async fn run_conversation(params: ConversationParams) {
         let mut history_clone = history.clone();
         let sse_tx_clone = sse_tx.clone();
         let agent_context_clone = agent_context.clone();
+        let cancel_clone = cancel.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
-            let emitter = llm::ToolCallEmitter { sse_tx: sse_tx_clone };
+            let emitter = llm::ToolCallEmitter {
+                sse_tx: sse_tx_clone,
+                cancel: cancel_clone,
+            };
             let fut = async {
                 agent_clone
                     .prompt(&user_text_clone)

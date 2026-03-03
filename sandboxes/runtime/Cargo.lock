@@ -1571,8 +1571,10 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-util",
  "tools",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -3394,6 +3396,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "uuid",
  "wiremock",
 ]
 

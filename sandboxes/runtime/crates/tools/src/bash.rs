@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::io::AsyncReadExt;
 
+use crate::agent::{AgentTaskNotification, AGENT_CONTEXT};
 use crate::ToolExecutor;
 
 /// Arguments for the Bash tool.
@@ -17,6 +18,10 @@ pub struct BashArgs {
     pub workdir: Option<String>,
     /// A short description of what this command does.
     pub description: Option<String>,
+    /// Run this command in the background. Returns immediately with a task_id.
+    /// The agent will be notified when the command completes.
+    #[serde(default)]
+    pub background: bool,
 }
 
 /// Result returned by the Bash tool.
@@ -44,6 +49,79 @@ impl Default for BashTool {
     }
 }
 
+/// Execute a bash command and return the result.
+/// Public so it can be called from the hook layer for background execution.
+pub async fn run_command(command: &str, workdir: &str, timeout_ms: u64) -> Result<BashResult, String> {
+    let mut cmd = tokio::process::Command::new("sh");
+    cmd.arg("-c").arg(command);
+    cmd.current_dir(workdir);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn command: {e}"))?;
+
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+
+    // Read stdout and stderr concurrently
+    let read_output = async {
+        let mut combined = Vec::new();
+
+        let mut stdout_buf = Vec::new();
+        let mut stderr_buf = Vec::new();
+
+        if let Some(mut stdout) = stdout {
+            let _ = stdout.read_to_end(&mut stdout_buf).await;
+        }
+        if let Some(mut stderr) = stderr {
+            let _ = stderr.read_to_end(&mut stderr_buf).await;
+        }
+
+        combined.extend_from_slice(&stdout_buf);
+        if !stderr_buf.is_empty() {
+            if !combined.is_empty() && !combined.ends_with(b"\n") {
+                combined.push(b'\n');
+            }
+            combined.extend_from_slice(&stderr_buf);
+        }
+
+        combined
+    };
+
+    let timeout_duration = Duration::from_millis(timeout_ms);
+
+    match tokio::time::timeout(timeout_duration, async {
+        let output = read_output.await;
+        let status = child.wait().await;
+        (output, status)
+    })
+    .await
+    {
+        Ok((output, status)) => {
+            let exit_code = status.ok().and_then(|s| s.code());
+            let output_str = truncate_output(&output);
+
+            Ok(BashResult {
+                output: output_str,
+                exit_code,
+                timed_out: false,
+            })
+        }
+        Err(_) => {
+            // Timeout — kill the process
+            let _ = child.kill().await;
+
+            Ok(BashResult {
+                output: "[timed out]".to_string(),
+                exit_code: None,
+                timed_out: true,
+            })
+        }
+    }
+}
+
 #[async_trait]
 impl ToolExecutor for BashTool {
     fn name(&self) -> &str {
@@ -64,79 +142,58 @@ impl ToolExecutor for BashTool {
             serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
 
         let timeout_ms = args.timeout.unwrap_or(120_000);
-        let workdir = args.workdir.as_deref().unwrap_or(".");
+        let workdir = args.workdir.as_deref().unwrap_or(".").to_string();
+        let command = args.command.clone();
+        let description = args
+            .description
+            .clone()
+            .unwrap_or_else(|| command.chars().take(80).collect());
 
-        let mut cmd = tokio::process::Command::new("sh");
-        cmd.arg("-c").arg(&args.command);
-        cmd.current_dir(workdir);
-        cmd.stdout(std::process::Stdio::piped());
-        cmd.stderr(std::process::Stdio::piped());
+        if args.background {
+            // Background execution: return immediately, notify on completion
+            let ctx = AGENT_CONTEXT
+                .try_with(|c| c.clone())
+                .map_err(|_| "Background bash requires a conversation context".to_string())?;
 
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn command: {e}"))?;
+            let task_id = uuid::Uuid::new_v4().to_string();
+            let task_id_clone = task_id.clone();
+            let notification_tx = ctx.notification_tx.clone();
 
-        let stdout = child.stdout.take();
-        let stderr = child.stderr.take();
+            tokio::spawn(async move {
+                let result = run_command(&command, &workdir, timeout_ms).await;
 
-        // Read stdout and stderr concurrently
-        let read_output = async {
-            let mut combined = Vec::new();
-
-            let mut stdout_buf = Vec::new();
-            let mut stderr_buf = Vec::new();
-
-            if let Some(mut stdout) = stdout {
-                let _ = stdout.read_to_end(&mut stdout_buf).await;
-            }
-            if let Some(mut stderr) = stderr {
-                let _ = stderr.read_to_end(&mut stderr_buf).await;
-            }
-
-            combined.extend_from_slice(&stdout_buf);
-            if !stderr_buf.is_empty() {
-                if !combined.is_empty() && !combined.ends_with(b"\n") {
-                    combined.push(b'\n');
-                }
-                combined.extend_from_slice(&stderr_buf);
-            }
-
-            combined
-        };
-
-        let timeout_duration = Duration::from_millis(timeout_ms);
-
-        match tokio::time::timeout(timeout_duration, async {
-            let output = read_output.await;
-            let status = child.wait().await;
-            (output, status)
-        })
-        .await
-        {
-            Ok((output, status)) => {
-                let exit_code = status.ok().and_then(|s| s.code());
-                let output_str = truncate_output(&output);
-
-                let result = BashResult {
-                    output: output_str,
-                    exit_code,
-                    timed_out: false,
+                let output = match result {
+                    Ok(bash_result) => {
+                        match serde_json::to_string(&bash_result) {
+                            Ok(json) => Ok(json),
+                            Err(e) => Err(format!("Failed to serialize result: {e}")),
+                        }
+                    }
+                    Err(e) => Err(e),
                 };
 
-                serde_json::to_string(&result)
-                    .map_err(|e| format!("Failed to serialize result: {e}"))
-            }
-            Err(_) => {
-                // Timeout — kill the process
-                let _ = child.kill().await;
-
-                let result = BashResult {
-                    output: "[timed out]".to_string(),
-                    exit_code: None,
-                    timed_out: true,
+                let notification = AgentTaskNotification {
+                    task_id: task_id_clone,
+                    description,
+                    output,
                 };
 
-                serde_json::to_string(&result)
-                    .map_err(|e| format!("Failed to serialize result: {e}"))
-            }
+                // If the receiver is dropped (conversation ended), silently discard
+                let _ = notification_tx.send(notification).await;
+            });
+
+            serde_json::to_string(&serde_json::json!({
+                "task_id": task_id,
+                "status": "running",
+                "message": "Background command started. You will be notified when it completes."
+            }))
+            .map_err(|e| format!("Failed to serialize result: {e}"))
+        } else {
+            // Foreground execution: block until complete
+            let result = run_command(&command, &workdir, timeout_ms).await?;
+
+            serde_json::to_string(&result)
+                .map_err(|e| format!("Failed to serialize result: {e}"))
         }
     }
 }
@@ -154,6 +211,51 @@ fn truncate_output(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::{
+        AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
+        AGENT_CONTEXT,
+    };
+    use std::sync::Arc;
+    use tokio::sync::mpsc;
+
+    /// Mock SubAgentRunner needed to construct an AgentContext for background tests.
+    struct MockRunner;
+
+    #[async_trait]
+    impl SubAgentRunner for MockRunner {
+        fn available_subagents(&self) -> Vec<(String, String)> {
+            vec![]
+        }
+
+        async fn run_foreground(
+            &self,
+            _subagent: &str,
+            _prompt: &str,
+            _task_id: Option<&str>,
+        ) -> Result<AgentTaskResult, String> {
+            Err("not implemented".to_string())
+        }
+
+        async fn run_background(
+            &self,
+            _subagent: &str,
+            _prompt: &str,
+            _description: &str,
+        ) -> Result<AgentTaskHandle, String> {
+            Err("not implemented".to_string())
+        }
+    }
+
+    fn make_context() -> (AgentContext, mpsc::Receiver<AgentTaskNotification>) {
+        let (tx, rx) = mpsc::channel(16);
+        let ctx = AgentContext {
+            runner: Arc::new(MockRunner),
+            notification_tx: tx,
+            depth: 0,
+            max_depth: 3,
+        };
+        (ctx, rx)
+    }
 
     #[tokio::test]
     async fn test_bash_echo() {
@@ -238,5 +340,69 @@ mod tests {
         let long = vec![b'x'; MAX_OUTPUT_BYTES + 100];
         let result = truncate_output(&long);
         assert!(result.ends_with("[output truncated]"));
+    }
+
+    #[tokio::test]
+    async fn test_bash_background_returns_immediately() {
+        let (ctx, mut rx) = make_context();
+        let tool = BashTool::new();
+        let args = serde_json::json!({
+            "command": "echo bg_test_output",
+            "background": true,
+            "description": "background echo test"
+        });
+
+        // Execute within AGENT_CONTEXT — should return immediately
+        let result = AGENT_CONTEXT
+            .scope(ctx, async { tool.execute(args).await })
+            .await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse JSON");
+
+        // Should have task_id and status: "running"
+        assert!(parsed.get("task_id").is_some(), "should have task_id");
+        assert_eq!(parsed["status"], "running");
+        assert!(parsed["message"]
+            .as_str()
+            .unwrap()
+            .contains("Background command started"));
+
+        // Wait for the notification to arrive
+        let notification = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .expect("notification should arrive within 5s")
+            .expect("channel should not be closed");
+
+        assert_eq!(
+            notification.task_id,
+            parsed["task_id"].as_str().unwrap()
+        );
+        assert_eq!(notification.description, "background echo test");
+
+        // The output should contain the command's result
+        let cmd_output = notification.output.expect("should be Ok");
+        let bash_result: BashResult =
+            serde_json::from_str(&cmd_output).expect("parse BashResult");
+        assert!(bash_result.output.contains("bg_test_output"));
+        assert_eq!(bash_result.exit_code, Some(0));
+        assert!(!bash_result.timed_out);
+    }
+
+    #[tokio::test]
+    async fn test_bash_background_without_context_errors() {
+        let tool = BashTool::new();
+        let args = serde_json::json!({
+            "command": "echo hello",
+            "background": true
+        });
+
+        // No AGENT_CONTEXT set — should error
+        let result = tool.execute(args).await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .contains("Background bash requires a conversation context"));
     }
 }
