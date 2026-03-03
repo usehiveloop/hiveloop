@@ -8,6 +8,8 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tools::ToolRegistry;
 
+use crate::agent_runner::{AgentSessionStore, SubAgentEntry};
+
 /// Handle for an active conversation, used by the supervisor to send messages.
 pub struct ConversationHandle {
     /// Unique conversation identifier.
@@ -37,6 +39,10 @@ pub struct AgentState {
     pub tracker: TaskTracker,
     /// Metrics counters for this agent.
     pub metrics: Arc<AgentMetrics>,
+    /// Pre-built subagent entries, keyed by subagent name.
+    pub subagents: Arc<DashMap<String, SubAgentEntry>>,
+    /// Session store for subagent history persistence.
+    pub session_store: Arc<AgentSessionStore>,
 }
 
 impl AgentState {
@@ -45,6 +51,7 @@ impl AgentState {
         definition: AgentDefinition,
         rig_agent: BridgeAgent,
         tool_registry: ToolRegistry,
+        subagents: Arc<DashMap<String, SubAgentEntry>>,
     ) -> Self {
         Self {
             definition,
@@ -54,6 +61,8 @@ impl AgentState {
             cancel: CancellationToken::new(),
             tracker: TaskTracker::new(),
             metrics: Arc::new(AgentMetrics::new()),
+            subagents,
+            session_store: Arc::new(AgentSessionStore::new()),
         }
     }
 

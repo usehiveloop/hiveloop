@@ -84,6 +84,7 @@ mod tests {
         let definition = AgentDefinition {
             id: id.to_string(),
             name: name.to_string(),
+            description: None,
             system_prompt: "test".to_string(),
             provider: ProviderConfig {
                 provider_type: ProviderType::OpenAI,
@@ -102,7 +103,7 @@ mod tests {
             updated_at: None,
         };
         let agent = build_agent(&definition, vec![]).expect("build agent");
-        Arc::new(AgentState::new(definition, agent, ToolRegistry::new()))
+        Arc::new(AgentState::new(definition, agent, ToolRegistry::new(), Arc::new(dashmap::DashMap::new())))
     }
 
     #[test]

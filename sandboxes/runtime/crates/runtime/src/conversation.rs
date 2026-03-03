@@ -6,12 +6,22 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use tools::agent::{AgentContext, AgentTaskNotification, AGENT_CONTEXT};
 use tracing::{debug, error, info};
+
+use crate::agent_runner::AgentSessionStore;
 
 /// Timeout for a single agent.chat() call (includes internal tool loops).
 const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(120);
 
 use crate::token_tracker;
+
+/// Incoming message for the conversation loop — either a user message or
+/// a background subagent completion notification.
+enum IncomingMessage {
+    User(Message),
+    BackgroundComplete(AgentTaskNotification),
+}
 
 /// Parameters for running a conversation loop.
 pub struct ConversationParams {
@@ -31,6 +41,12 @@ pub struct ConversationParams {
     pub cancel: CancellationToken,
     /// Maximum number of turns before ending the conversation.
     pub max_turns: Option<usize>,
+    /// Optional agent context for subagent spawning.
+    pub agent_context: Option<AgentContext>,
+    /// Receiver for background task completion notifications.
+    pub notification_rx: Option<mpsc::Receiver<AgentTaskNotification>>,
+    /// Session store reference for cleanup on conversation end.
+    pub session_store: Option<Arc<AgentSessionStore>>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -52,6 +68,9 @@ pub async fn run_conversation(params: ConversationParams) {
         metrics,
         cancel,
         max_turns,
+        agent_context,
+        mut notification_rx,
+        session_store,
     } = params;
 
     info!(
@@ -68,19 +87,28 @@ pub async fn run_conversation(params: ConversationParams) {
     let msg_id = uuid::Uuid::new_v4().to_string();
 
     loop {
-        let message = tokio::select! {
+        // Wait for either a user message, a background task notification, or cancellation
+        let incoming = tokio::select! {
             _ = cancel.cancelled() => {
                 debug!(conversation_id = conversation_id, "conversation cancelled");
                 break;
             }
             msg = message_rx.recv() => {
                 match msg {
-                    Some(m) => m,
+                    Some(m) => IncomingMessage::User(m),
                     None => {
                         debug!(conversation_id = conversation_id, "message channel closed");
                         break;
                     }
                 }
+            }
+            Some(notif) = async {
+                match notification_rx.as_mut() {
+                    Some(rx) => rx.recv().await,
+                    None => std::future::pending().await,
+                }
+            } => {
+                IncomingMessage::BackgroundComplete(notif)
             }
         };
 
@@ -98,8 +126,23 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         }
 
-        // Convert our Message to a rig user message and add to history
-        let user_text = extract_text_content(&message);
+        // Build the user text from the incoming message
+        let user_text = match incoming {
+            IncomingMessage::User(ref msg) => extract_text_content(msg),
+            IncomingMessage::BackgroundComplete(notif) => {
+                let output_text = match notif.output {
+                    Ok(output) => output,
+                    Err(error) => format!("[ERROR] {}", error),
+                };
+                format!(
+                    "[Background Agent Task Completed]\ntask_id: {}\ndescription: {}\n\n<task_result>\n{}\n</task_result>",
+                    notif.task_id,
+                    notif.description,
+                    output_text,
+                )
+            }
+        };
+
         history.push(rig::message::Message::user(&user_text));
 
         // Signal response starting
@@ -119,15 +162,24 @@ pub async fn run_conversation(params: ConversationParams) {
         let user_text_clone = user_text.clone();
         let mut history_clone = history.clone();
         let sse_tx_clone = sse_tx.clone();
+        let agent_context_clone = agent_context.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
             let emitter = llm::ToolCallEmitter { sse_tx: sse_tx_clone };
-            let result = agent_clone
-                .prompt(&user_text_clone)
-                .with_history(&mut history_clone)
-                .with_hook(emitter)
-                .await;
+            let fut = async {
+                agent_clone
+                    .prompt(&user_text_clone)
+                    .with_history(&mut history_clone)
+                    .with_hook(emitter)
+                    .await
+            };
+
+            // Wrap in AGENT_CONTEXT scope if available
+            let result = match agent_context_clone {
+                Some(ctx) => AGENT_CONTEXT.scope(ctx, fut).await,
+                None => fut.await,
+            };
             let _ = result_tx.send(result);
         });
 
@@ -221,6 +273,11 @@ pub async fn run_conversation(params: ConversationParams) {
         }
 
         turn_count += 1;
+    }
+
+    // Cleanup session store entries for this conversation
+    if let Some(store) = session_store {
+        store.remove_by_prefix(&conversation_id);
     }
 
     token_tracker::decrement_active_conversations(&metrics);

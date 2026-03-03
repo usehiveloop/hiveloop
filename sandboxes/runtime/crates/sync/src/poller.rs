@@ -106,6 +106,7 @@ mod tests {
         AgentDefinition {
             id: id.to_string(),
             name: format!("Agent {id}"),
+            description: None,
             system_prompt: "test".to_string(),
             provider: ProviderConfig {
                 provider_type: ProviderType::OpenAI,

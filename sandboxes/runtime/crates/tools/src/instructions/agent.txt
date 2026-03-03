@@ -1,0 +1,19 @@
+Launch a subagent to handle a task autonomously.
+
+Available subagents:
+{agents}
+
+When using the Agent tool, you must specify a subagent parameter to select which subagent to use.
+
+Usage notes:
+1. Launch multiple agents concurrently whenever possible by using multiple tool calls in a single message.
+2. The subagent returns a single message. The result is not visible to the user — summarize it for them.
+3. The output includes a task_id you can reuse later to continue the same subagent session.
+4. Each invocation starts fresh unless you provide task_id to resume a previous session.
+5. Clearly tell the subagent whether you expect it to write code or just research.
+6. Set background: true for long-running tasks. You will be automatically notified when they complete.
+
+When NOT to use:
+- Reading specific files (use Read/Glob instead)
+- Searching for code in 2-3 files (use Read/Grep instead)
+- Simple tasks you can do directly

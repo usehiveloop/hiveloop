@@ -1,14 +1,17 @@
 use bridge_core::conversation::{ContentBlock, Message, Role};
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
+use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, SseEvent};
 use mcp::McpManager;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use tools::agent::{AgentContext, AgentTaskNotification};
 use tools::ToolRegistry;
 use tracing::{error, info};
 
 use crate::agent_map::AgentMap;
+use crate::agent_runner::{ConversationSubAgentRunner, SubAgentEntry};
 use crate::agent_state::{AgentState, ConversationHandle};
 use crate::conversation::{run_conversation, ConversationParams};
 use crate::drain::drain_and_replace;
@@ -81,7 +84,15 @@ impl AgentSupervisor {
         // Build the rig agent
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
-        let state = Arc::new(AgentState::new(definition, rig_agent, tool_registry));
+        // Build subagents from definition.subagents
+        let subagent_map = build_subagents(&definition)?;
+
+        let state = Arc::new(AgentState::new(
+            definition,
+            rig_agent,
+            tool_registry,
+            subagent_map,
+        ));
         self.agent_map.insert(agent_id.clone(), state);
 
         info!(agent_id = agent_id, "agent loaded");
@@ -130,6 +141,27 @@ impl AgentSupervisor {
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
 
+        // Build agent context for subagent tool
+        let (notification_tx, notification_rx) =
+            mpsc::channel::<AgentTaskNotification>(64);
+        let runner = Arc::new(ConversationSubAgentRunner::new(
+            state.subagents.clone(),
+            state.session_store.clone(),
+            notification_tx.clone(),
+            cancel.clone(),
+            sse_tx.clone(),
+            conv_id_clone.clone(),
+            0, // depth
+            3, // max_depth
+        ));
+        let agent_context = AgentContext {
+            runner,
+            notification_tx,
+            depth: 0,
+            max_depth: 3,
+        };
+        let session_store = state.session_store.clone();
+
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -140,6 +172,9 @@ impl AgentSupervisor {
                 metrics,
                 cancel,
                 max_turns: max_turns.map(|t| t as usize),
+                agent_context: Some(agent_context),
+                notification_rx: Some(notification_rx),
+                session_store: Some(session_store),
             })
             .await;
         });
@@ -292,10 +327,14 @@ impl AgentSupervisor {
         let dynamic_tools: Vec<DynamicTool> = adapt_tools(all_executors)?;
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
+        // Build subagents from definition.subagents
+        let subagent_map = build_subagents(&definition)?;
+
         Ok(Arc::new(AgentState::new(
             definition,
             rig_agent,
             tool_registry,
+            subagent_map,
         )))
     }
 
@@ -332,4 +371,44 @@ impl AgentSupervisor {
     pub fn agent_count(&self) -> usize {
         self.agent_map.len()
     }
+}
+
+/// Build subagent entries from an agent definition's subagents list.
+///
+/// Each subagent gets built-in tools only (no MCP, no agent tool to prevent
+/// unbounded recursion at the configuration level).
+fn build_subagents(
+    definition: &AgentDefinition,
+) -> Result<Arc<DashMap<String, SubAgentEntry>>, BridgeError> {
+    let subagent_map = Arc::new(DashMap::new());
+
+    for subagent_def in &definition.subagents {
+        let mut sub_registry = ToolRegistry::new();
+        tools::builtin::register_builtin_tools_for_subagent(&mut sub_registry);
+
+        let sub_executors: Vec<Arc<dyn tools::ToolExecutor>> = sub_registry
+            .list()
+            .iter()
+            .filter_map(|(name, _)| sub_registry.get(name))
+            .collect();
+
+        let sub_dynamic = adapt_tools(sub_executors)?;
+        let sub_agent = build_agent(subagent_def, sub_dynamic)?;
+
+        let description = subagent_def
+            .description
+            .clone()
+            .unwrap_or_else(|| subagent_def.name.clone());
+
+        subagent_map.insert(
+            subagent_def.name.clone(),
+            SubAgentEntry {
+                name: subagent_def.name.clone(),
+                description,
+                agent: Arc::new(sub_agent),
+            },
+        );
+    }
+
+    Ok(subagent_map)
 }

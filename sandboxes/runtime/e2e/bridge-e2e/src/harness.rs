@@ -310,7 +310,7 @@ impl TestHarness {
             .await?;
 
         // 5. Wait for agents to be synced and MCP connections established
-        harness.wait_for_agents_loaded(6).await?;
+        harness.wait_for_agents_loaded(7).await?;
 
         Ok(harness)
     }

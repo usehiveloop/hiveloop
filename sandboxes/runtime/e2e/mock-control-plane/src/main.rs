@@ -79,12 +79,7 @@ async fn main() {
                         };
 
                         match serde_json::from_str::<bridge_core::AgentDefinition>(&contents) {
-                            Ok(mut agent) => {
-                                // Only override base_url to mock LLM if NOT using OpenRouter
-                                if openrouter_key.is_none() {
-                                    agent.provider.base_url =
-                                        Some(format!("http://127.0.0.1:{}/v1", port));
-                                }
+                            Ok(agent) => {
                                 mock_store.create_agent(agent.clone());
                                 tracing::info!(
                                     agent_id = %agent.id,

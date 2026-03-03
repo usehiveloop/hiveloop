@@ -1,3 +1,4 @@
+pub mod agent;
 pub mod apply_patch;
 pub mod bash;
 pub mod batch;
@@ -14,4 +15,5 @@ pub mod web_fetch;
 pub mod web_search;
 pub mod write;
 
+pub use agent::{AgentContext, AgentTaskNotification, SubAgentRunner, AGENT_CONTEXT};
 pub use registry::{ToolExecutor, ToolRegistry};

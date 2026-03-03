@@ -75,6 +75,29 @@ pub struct Usage {
     pub total_tokens: u32,
 }
 
+/// Extract an agent tool trigger from the user message.
+/// Pattern: "use_agent:SUBAGENT_NAME" in the message text.
+/// Returns Some((subagent_name, cleaned_prompt)) if found.
+fn extract_agent_trigger(message: &str) -> Option<(String, String)> {
+    // Look for use_agent:NAME pattern
+    let prefix = "use_agent:";
+    if let Some(start) = message.find(prefix) {
+        let after = &message[start + prefix.len()..];
+        // Name is the next word (alphanumeric + underscore + hyphen)
+        let name: String = after
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+            .collect();
+        if !name.is_empty() {
+            // Build prompt from the message with the trigger removed
+            let trigger = format!("{}{}", prefix, name);
+            let prompt = message.replace(&trigger, "").trim().to_string();
+            return Some((name, prompt));
+        }
+    }
+    None
+}
+
 /// POST /v1/chat/completions — mock LLM endpoint.
 pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl IntoResponse {
     let last_user_message = req
@@ -84,6 +107,38 @@ pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl In
         .find(|m| m.role == "user")
         .and_then(|m| m.content.as_deref())
         .unwrap_or("(no message)");
+
+    // Check if there's already a tool result in the conversation.
+    // If so, always return a text response (prevents infinite tool-call loops).
+    let has_tool_result = req.messages.iter().any(|m| m.role == "tool");
+
+    if has_tool_result {
+        if req.stream {
+            return stream_response(last_user_message, false, &req.tools).into_response();
+        }
+        return (StatusCode::OK, Json(build_text_response(last_user_message))).into_response();
+    }
+
+    // Check for agent tool trigger: use_agent:SUBAGENT_NAME
+    if let Some((subagent_name, prompt)) = extract_agent_trigger(last_user_message) {
+        let has_agent_tool = req.tools.iter().any(|t| {
+            t.get("function")
+                .and_then(|f| f.get("name"))
+                .and_then(|n| n.as_str())
+                == Some("agent")
+        });
+
+        if has_agent_tool {
+            if req.stream {
+                return stream_agent_tool_call(&subagent_name, &prompt).into_response();
+            }
+            return (
+                StatusCode::OK,
+                Json(build_agent_tool_call_response(&subagent_name, &prompt)),
+            )
+                .into_response();
+        }
+    }
 
     // If tools are provided and the user message contains "use_tool", return a tool call
     let should_call_tool =
@@ -283,6 +338,110 @@ fn stream_response(
         }
 
         // Signal end of stream
+        yield Ok(Event::default().data("[DONE]"));
+    };
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+/// Build a non-streaming response that calls the "agent" tool with proper arguments.
+fn build_agent_tool_call_response(
+    subagent_name: &str,
+    prompt: &str,
+) -> ChatCompletionResponse {
+    let args = serde_json::json!({
+        "subagent": subagent_name,
+        "prompt": prompt,
+        "description": format!("delegating to {}", subagent_name)
+    });
+
+    ChatCompletionResponse {
+        id: format!("chatcmpl-{}", uuid::Uuid::new_v4()),
+        object: "chat.completion".to_string(),
+        created: chrono::Utc::now().timestamp(),
+        model: "mock-model".to_string(),
+        choices: vec![Choice {
+            index: 0,
+            message: ResponseMessage {
+                role: "assistant".to_string(),
+                content: None,
+                tool_calls: Some(vec![ToolCallResponse {
+                    id: format!("call_{}", uuid::Uuid::new_v4()),
+                    call_type: "function".to_string(),
+                    function: FunctionCall {
+                        name: "agent".to_string(),
+                        arguments: serde_json::to_string(&args).unwrap(),
+                    },
+                }]),
+            },
+            finish_reason: "tool_calls".to_string(),
+        }],
+        usage: Usage {
+            prompt_tokens: 10,
+            completion_tokens: 15,
+            total_tokens: 25,
+        },
+    }
+}
+
+/// Build a streaming response that calls the "agent" tool with proper arguments.
+fn stream_agent_tool_call(
+    subagent_name: &str,
+    prompt: &str,
+) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
+    let args = serde_json::json!({
+        "subagent": subagent_name,
+        "prompt": prompt,
+        "description": format!("delegating to {}", subagent_name)
+    });
+    let args_str = serde_json::to_string(&args).unwrap();
+
+    let stream = async_stream::stream! {
+        let id = format!("chatcmpl-{}", uuid::Uuid::new_v4());
+        let call_id = format!("call_{}", uuid::Uuid::new_v4());
+
+        let chunk = serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": chrono::Utc::now().timestamp(),
+            "model": "mock-model",
+            "choices": [{
+                "index": 0,
+                "delta": {
+                    "role": "assistant",
+                    "tool_calls": [{
+                        "index": 0,
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": "agent",
+                            "arguments": args_str
+                        }
+                    }]
+                },
+                "finish_reason": null
+            }]
+        });
+        yield Ok(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+
+        let final_chunk = serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": chrono::Utc::now().timestamp(),
+            "model": "mock-model",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": "tool_calls"
+            }],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 15,
+                "total_tokens": 25
+            }
+        });
+        yield Ok(Event::default().data(serde_json::to_string(&final_chunk).unwrap()));
+
         yield Ok(Event::default().data("[DONE]"));
     };
 

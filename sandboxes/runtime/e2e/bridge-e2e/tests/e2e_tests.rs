@@ -361,3 +361,56 @@ async fn test_unknown_conversation_returns_error() {
         status
     );
 }
+
+// ============================================================================
+// Subagent / Agent tool tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_agent_with_subagents_loads() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let agents = harness.get_agents().await.expect("get_agents failed");
+
+    let agent_ids: Vec<&str> = agents
+        .iter()
+        .filter_map(|a| a.get("id").and_then(|v| v.as_str()))
+        .collect();
+
+    assert!(
+        agent_ids.contains(&"agent_delegator"),
+        "should contain agent_delegator; got {:?}",
+        agent_ids
+    );
+}
+
+#[tokio::test]
+async fn test_agent_with_subagents_creates_conversation() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let resp = harness
+        .create_conversation("agent_delegator")
+        .await
+        .expect("create_conversation request failed");
+
+    assert_eq!(
+        resp.status().as_u16(),
+        201,
+        "POST /agents/agent_delegator/conversations should return 201"
+    );
+
+    let body: serde_json::Value = resp
+        .json()
+        .await
+        .expect("failed to parse conversation body");
+
+    assert!(
+        body.get("conversation_id").is_some(),
+        "response should contain conversation_id"
+    );
+}
+

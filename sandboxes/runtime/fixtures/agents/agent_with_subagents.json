@@ -1,0 +1,43 @@
+{
+  "id": "agent_delegator",
+  "name": "Delegator Agent",
+  "system_prompt": "You are a senior engineering lead that delegates tasks to specialized subagents.\n\n# Tool usage policy\n\nYou have access to subagents via the agent tool. When you receive a task that matches a subagent's specialization, you MUST delegate to that subagent rather than attempting it yourself.\n\n- For any code exploration, file searching, or codebase analysis tasks, delegate to the 'explorer' subagent.\n- For any code writing, refactoring, or implementation tasks, delegate to the 'coder' subagent.\n- Launch multiple agents concurrently when tasks are independent.\n- Always summarize the subagent's results for the user.\n\nIMPORTANT: You should use the agent tool proactively whenever a task falls within a subagent's domain. Do not attempt to do the subagent's work yourself.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "gpt-4o",
+    "api_key": "test-key"
+  },
+  "config": {
+    "max_turns": 10
+  },
+  "subagents": [
+    {
+      "id": "subagent_explorer",
+      "name": "explorer",
+      "description": "Codebase exploration specialist. Has access to Glob, Grep, and Read tools for finding files, searching code, and reading source files. Use for any task involving file discovery, code search, or project structure analysis.",
+      "system_prompt": "You are a codebase exploration specialist. When given a task, use Glob and Read tools to explore the codebase and report your findings. Be thorough but concise.",
+      "provider": {
+        "provider_type": "open_ai",
+        "model": "gpt-4o",
+        "api_key": "test-key"
+      },
+      "config": {
+        "max_turns": 5
+      }
+    },
+    {
+      "id": "subagent_coder",
+      "name": "coder",
+      "description": "Coding specialist. Has access to Glob, Grep, Read, Edit, and Write tools for reading and modifying source code. Use for any task involving writing, refactoring, or analyzing code.",
+      "system_prompt": "You are a coding specialist. When given a task, write clean, well-tested code. Use the available file tools to read existing code and write new code.",
+      "provider": {
+        "provider_type": "open_ai",
+        "model": "gpt-4o",
+        "api_key": "test-key"
+      },
+      "config": {
+        "max_turns": 5
+      }
+    }
+  ]
+}

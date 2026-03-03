@@ -69,6 +69,7 @@ mod tests {
         AgentDefinition {
             id: id.to_string(),
             name: format!("Agent {}", id),
+            description: None,
             system_prompt: "test".to_string(),
             provider: ProviderConfig {
                 provider_type: ProviderType::OpenAI,
@@ -92,7 +93,7 @@ mod tests {
         let mut def = make_test_definition(id);
         def.version = Some(version.to_string());
         let agent = build_agent(&def, vec![]).expect("build agent");
-        Arc::new(AgentState::new(def, agent, ToolRegistry::new()))
+        Arc::new(AgentState::new(def, agent, ToolRegistry::new(), Arc::new(dashmap::DashMap::new())))
     }
 
     #[tokio::test]

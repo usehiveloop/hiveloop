@@ -563,8 +563,151 @@ async fn test_tool_call_sse_events() {
 }
 
 // ============================================================================
-// Test 9: Multi-Agent Concurrent Conversations
-// Verifies: all 6 agents respond, metrics tracked, no cross-contamination
+// Test 9: Delegator — Subagent Invocation (Natural Delegation)
+// Verifies: the LLM naturally delegates to subagents based on system prompt
+// and agent tool documentation, WITHOUT being explicitly told to use a subagent.
+//
+// The system prompt follows OpenCode's pattern:
+// - Tool usage policy section that teaches subagent delegation
+// - Subagent descriptions that signal when each should be used
+// - IMPORTANT emphasis on delegation for file-related tasks
+//
+// The user message is a natural task request with NO mention of subagents.
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_delegator_subagent_natural_invocation() {
+    if !require_openrouter_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    // Verify the delegator agent is loaded
+    let agents = harness.get_agents().await.expect("failed to get agents");
+    let agent_ids: Vec<String> = agents
+        .iter()
+        .filter_map(|a| a.get("id").and_then(|v| v.as_str()).map(String::from))
+        .collect();
+
+    assert!(
+        agent_ids.contains(&"delegator".to_string()),
+        "delegator agent should be loaded. Loaded agents: {:?}",
+        agent_ids
+    );
+
+    // Send a natural user message that requires codebase exploration.
+    // The system prompt tells the agent to delegate to the 'explorer' subagent
+    // for file-related tasks, but the user message does NOT mention subagents.
+    let turn = converse_with_retry(
+        &harness,
+        "delegator",
+        "What is the structure of this project? List the main source directories and describe what each crate does based on the files you find.",
+        "delegator-natural",
+    )
+    .await;
+
+    assert_response_not_empty(&turn, "delegator-natural");
+
+    // Verify the agent tool was invoked by checking SSE events.
+    // The LLM should have decided to use the agent tool based on the system prompt.
+    let agent_tool_starts: Vec<_> = turn
+        .sse_events
+        .iter()
+        .filter(|e| {
+            e.event_type == "tool_call_start"
+                && e.data.get("name").and_then(|n| n.as_str()) == Some("agent")
+        })
+        .collect();
+
+    assert!(
+        !agent_tool_starts.is_empty(),
+        "[delegator-natural] expected the LLM to naturally invoke the 'agent' tool based on \
+         system prompt guidance. The system prompt instructs delegation for file-related tasks, \
+         but the LLM did not call the agent tool.\n\
+         All tool_call_start events: {:?}\n\
+         All event types: {:?}",
+        turn.sse_events
+            .iter()
+            .filter(|e| e.event_type == "tool_call_start")
+            .map(|e| format!("{}: {}", e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"), &e.data.to_string()[..e.data.to_string().len().min(200)]))
+            .collect::<Vec<_>>(),
+        turn.sse_events
+            .iter()
+            .map(|e| &e.event_type)
+            .collect::<Vec<_>>()
+    );
+
+    // Verify the subagent was 'explorer' (the system prompt directs file exploration there)
+    let used_explorer = agent_tool_starts.iter().any(|e| {
+        e.data
+            .get("arguments")
+            .and_then(|a| a.get("subagent"))
+            .and_then(|s| s.as_str())
+            == Some("explorer")
+    });
+
+    // Also accept string-encoded arguments (some providers send args as a JSON string)
+    let used_explorer = used_explorer
+        || agent_tool_starts.iter().any(|e| {
+            e.data
+                .get("arguments")
+                .and_then(|a| a.as_str())
+                .map(|s| s.contains("explorer"))
+                .unwrap_or(false)
+        });
+
+    assert!(
+        used_explorer,
+        "[delegator-natural] expected 'explorer' subagent to be invoked for a codebase \
+         exploration task. Agent tool calls: {:?}",
+        agent_tool_starts
+            .iter()
+            .map(|e| e.data.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    // Verify there's a corresponding tool_call_result
+    let agent_tool_results: Vec<_> = turn
+        .sse_events
+        .iter()
+        .filter(|e| e.event_type == "tool_call_result")
+        .collect();
+
+    assert!(
+        !agent_tool_results.is_empty(),
+        "[delegator-natural] expected tool_call_result events after agent invocation"
+    );
+
+    // The response should contain information about the project structure
+    // (since the explorer subagent has file tools and should have found files)
+    let response_lower = turn.response_text.to_lowercase();
+    let has_structure_info = response_lower.contains("crate")
+        || response_lower.contains("src")
+        || response_lower.contains("directory")
+        || response_lower.contains("module")
+        || response_lower.contains("file")
+        || response_lower.contains("project");
+
+    assert!(
+        has_structure_info,
+        "[delegator-natural] response should contain project structure information. Got: {}",
+        &turn.response_text[..turn.response_text.len().min(500)]
+    );
+
+    eprintln!(
+        "[delegator-natural] completed in {:?}, response: {} chars, agent tool calls: {}",
+        turn.duration,
+        turn.response_text.len(),
+        agent_tool_starts.len()
+    );
+}
+
+// ============================================================================
+// Test 10: Multi-Agent Concurrent Conversations
+// Verifies: all agents respond, metrics tracked, no cross-contamination
 // ============================================================================
 #[tokio::test]
 #[ignore]
@@ -591,6 +734,7 @@ async fn test_multi_agent_concurrent_conversations() {
         "system-design",
         "technical-writer",
         "researcher",
+        "delegator",
     ] {
         assert!(
             agent_ids.contains(&expected_id.to_string()),
@@ -600,7 +744,7 @@ async fn test_multi_agent_concurrent_conversations() {
         );
     }
 
-    // Create 6 conversations simultaneously with simple non-tool messages
+    // Create 7 conversations simultaneously with simple non-tool messages
     let messages = vec![
         ("code-review", "What is the most important thing in a code review? Answer in 2-3 sentences."),
         ("portal-control", "Briefly describe your role as Portal in this workspace. 2-3 sentences."),
@@ -608,6 +752,7 @@ async fn test_multi_agent_concurrent_conversations() {
         ("system-design", "What makes a good system design document? Answer in 2-3 sentences."),
         ("technical-writer", "What makes good API documentation? Answer in 2-3 sentences."),
         ("researcher", "What is Rust known for? Answer in 2-3 sentences."),
+        ("delegator", "What makes a good engineering lead? Answer in 2-3 sentences."),
     ];
 
     let mut handles = Vec::new();
@@ -768,7 +913,7 @@ async fn test_multi_agent_concurrent_conversations() {
         results.push(result);
     }
 
-    assert_eq!(results.len(), 6, "all 6 agents should have responded");
+    assert_eq!(results.len(), 7, "all 7 agents should have responded");
 
     // Verify metrics show conversations tracked
     let metrics = harness
@@ -782,13 +927,13 @@ async fn test_multi_agent_concurrent_conversations() {
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
         assert!(
-            total_agents >= 6,
-            "should have at least 6 agents in metrics, got {}",
+            total_agents >= 7,
+            "should have at least 7 agents in metrics, got {}",
             total_agents
         );
     }
 
-    eprintln!("All 6 agents responded successfully");
+    eprintln!("All 7 agents responded successfully");
     for (agent_id, conv_id) in &results {
         eprintln!("  {} -> conversation {}", agent_id, conv_id);
     }

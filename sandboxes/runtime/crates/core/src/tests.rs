@@ -23,6 +23,7 @@ mod serde_roundtrip_tests {
         let agent = AgentDefinition {
             id: "agent-001".to_string(),
             name: "Test Agent".to_string(),
+            description: Some("A test agent for roundtrip testing".to_string()),
             system_prompt: "You are a helpful assistant.".to_string(),
             provider: ProviderConfig {
                 provider_type: ProviderType::Anthropic,
@@ -63,6 +64,7 @@ mod serde_roundtrip_tests {
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
                 name: "Sub Agent".to_string(),
+                description: Some("A sub agent for testing".to_string()),
                 system_prompt: "Sub agent prompt".to_string(),
                 provider: ProviderConfig {
                     provider_type: ProviderType::OpenAI,
@@ -130,6 +132,7 @@ mod serde_roundtrip_tests {
         let agent = AgentDefinition {
             id: "agent-003".to_string(),
             name: "No Optionals".to_string(),
+            description: None,
             system_prompt: "Prompt".to_string(),
             provider: ProviderConfig {
                 provider_type: ProviderType::Google,
@@ -150,6 +153,7 @@ mod serde_roundtrip_tests {
 
         let json = serde_json::to_string(&agent).expect("serialize");
         // None fields should be skipped
+        assert!(!json.contains("description"));
         assert!(!json.contains("webhook_url"));
         assert!(!json.contains("webhook_secret"));
         assert!(!json.contains("version"));

@@ -15,6 +15,10 @@ pub struct AgentDefinition {
     pub id: AgentId,
     /// Human-readable agent name
     pub name: String,
+    /// Human-readable description of the agent's purpose and capabilities.
+    /// Used in tool documentation when this agent is a subagent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// System prompt for the agent
     pub system_prompt: String,
     /// LLM provider configuration
