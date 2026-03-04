@@ -12,4 +12,6 @@ pub struct SkillDefinition {
     pub title: String,
     /// Description of what the skill does
     pub description: String,
+    /// Full skill prompt/instructions content
+    pub content: String,
 }

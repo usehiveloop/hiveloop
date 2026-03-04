@@ -84,6 +84,13 @@ impl AgentSupervisor {
             );
         }
 
+        // Register skill tool if the agent has skills
+        if !definition.skills.is_empty() {
+            tool_registry.register(Arc::new(
+                tools::skill_tools::SkillTool::new(definition.skills.clone()),
+            ));
+        }
+
         // Collect all tool executors for the LLM agent
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()
@@ -357,6 +364,13 @@ impl AgentSupervisor {
                 &mut tool_registry,
                 &builtin_tool_names,
             );
+        }
+
+        // Register skill tool if the agent has skills
+        if !definition.skills.is_empty() {
+            tool_registry.register(Arc::new(
+                tools::skill_tools::SkillTool::new(definition.skills.clone()),
+            ));
         }
 
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry

@@ -13,7 +13,6 @@ grep-matcher = { workspace = true }
 regex = { workspace = true }
 dom_smoothie = { workspace = true }
 htmd = { workspace = true }
-fuzzy-matcher = { workspace = true }
 mime = { workspace = true }
 reqwest = { workspace = true }
 schemars = { workspace = true }

@@ -53,6 +53,7 @@ mod serde_roundtrip_tests {
                 id: "skill-1".to_string(),
                 title: "Code Review".to_string(),
                 description: "Reviews code for quality".to_string(),
+                content: "You are a code review expert.".to_string(),
             }],
             config: AgentConfig {
                 max_tokens: Some(4096),
@@ -479,6 +480,7 @@ mod serde_roundtrip_tests {
             id: "skill-42".to_string(),
             title: "Data Analysis".to_string(),
             description: "Analyzes datasets and produces insights.".to_string(),
+            content: "You are a data analysis expert. Analyze datasets and produce insights.".to_string(),
         };
 
         let json = serde_json::to_string_pretty(&skill).expect("serialize");
@@ -1326,7 +1328,8 @@ mod serde_roundtrip_tests {
                 {
                     "id": "code-review",
                     "title": "Code Review",
-                    "description": "Reviews pull requests"
+                    "description": "Reviews pull requests",
+                    "content": "You are a code review expert."
                 }
             ],
             "config": {

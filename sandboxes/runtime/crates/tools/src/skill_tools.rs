@@ -1,155 +1,87 @@
 use async_trait::async_trait;
 use bridge_core::SkillDefinition;
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
 use crate::ToolExecutor;
 
-// ---------------------------------------------------------------------------
-// FetchSkillsTool
-// ---------------------------------------------------------------------------
-
-/// Arguments for the FetchSkills tool.
+/// Arguments for the skill tool.
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct FetchSkillsArgs {
-    /// A search query to filter available skills by title or description.
-    pub query: String,
+pub struct SkillToolArgs {
+    /// The name of the skill to load (matches skill id or title, case-insensitive).
+    pub name: String,
 }
 
-/// A tool that searches the agent's available skills using fuzzy matching.
-pub struct FetchSkillsTool {
+/// A tool that loads domain-specific skill instructions by name.
+///
+/// The description lists available skills (name + short description).
+/// When invoked, returns the full skill content from memory.
+pub struct SkillTool {
     skills: Vec<SkillDefinition>,
+    description: String,
 }
 
-impl FetchSkillsTool {
+impl SkillTool {
     pub fn new(skills: Vec<SkillDefinition>) -> Self {
-        Self { skills }
-    }
-}
-
-#[async_trait]
-impl ToolExecutor for FetchSkillsTool {
-    fn name(&self) -> &str {
-        "fetch_skills"
-    }
-
-    fn description(&self) -> &str {
-        "Search available skills by query. Returns matching skills ranked by relevance."
-    }
-
-    fn parameters_schema(&self) -> serde_json::Value {
-        serde_json::to_value(schemars::schema_for!(FetchSkillsArgs))
-            .unwrap_or_else(|_| serde_json::json!({}))
-    }
-
-    async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
-        let args: FetchSkillsArgs =
-            serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
-
-        let matcher = SkimMatcherV2::default();
-
-        // Score each skill using fuzzy matching. Title matches are weighted 2x.
-        let mut scored: Vec<(i64, &SkillDefinition)> = self
-            .skills
+        let skill_listing = skills
             .iter()
-            .filter_map(|skill| {
-                let title_score = matcher.fuzzy_match(&skill.title, &args.query).unwrap_or(0) * 2;
-                let desc_score = matcher
-                    .fuzzy_match(&skill.description, &args.query)
-                    .unwrap_or(0);
-                let score = title_score.max(desc_score);
+            .map(|s| format!("<skill name=\"{}\" description=\"{}\" />", s.title, s.description))
+            .collect::<Vec<_>>()
+            .join("\n");
 
-                if score > 0 {
-                    Some((score, skill))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Sort by score descending (best matches first).
-        scored.sort_by(|a, b| b.0.cmp(&a.0));
-
-        let results: Vec<&SkillDefinition> = scored.into_iter().map(|(_, skill)| skill).collect();
-
-        serde_json::to_string(&results).map_err(|e| format!("Failed to serialize results: {e}"))
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ActivateSkillTool
-// ---------------------------------------------------------------------------
-
-/// Arguments for the ActivateSkill tool.
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct ActivateSkillArgs {
-    /// The unique identifier of the skill to activate.
-    pub skill_id: String,
-}
-
-/// A tool that activates a skill by fetching its definition from the control plane.
-pub struct ActivateSkillTool {
-    client: reqwest::Client,
-    control_plane_url: String,
-    agent_id: String,
-}
-
-impl ActivateSkillTool {
-    pub fn new(client: reqwest::Client, control_plane_url: String, agent_id: String) -> Self {
-        Self {
-            client,
-            control_plane_url,
-            agent_id,
-        }
-    }
-}
-
-#[async_trait]
-impl ToolExecutor for ActivateSkillTool {
-    fn name(&self) -> &str {
-        "activate_skill"
-    }
-
-    fn description(&self) -> &str {
-        "Activate a skill by its ID. Fetches the full skill definition from the control plane."
-    }
-
-    fn parameters_schema(&self) -> serde_json::Value {
-        serde_json::to_value(schemars::schema_for!(ActivateSkillArgs))
-            .unwrap_or_else(|_| serde_json::json!({}))
-    }
-
-    async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
-        let args: ActivateSkillArgs =
-            serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
-
-        let url = format!(
-            "{}/agents/{}/skills/{}",
-            self.control_plane_url.trim_end_matches('/'),
-            self.agent_id,
-            args.skill_id
+        let description = format!(
+            "Load a skill by name to get domain-specific instructions for a particular task. \
+             Use this when you need specialized guidance.\n\n\
+             <available_skills>\n{}\n</available_skills>",
+            skill_listing
         );
 
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("Failed to fetch skill: {e}"))?;
-
-        let status = response.status();
-        let body = response
-            .text()
-            .await
-            .map_err(|e| format!("Failed to read response body: {e}"))?;
-
-        if !status.is_success() {
-            return Err(format!("Control plane returned status {status}: {body}"));
+        Self {
+            skills,
+            description,
         }
+    }
+}
 
-        Ok(body)
+#[async_trait]
+impl ToolExecutor for SkillTool {
+    fn name(&self) -> &str {
+        "skill"
+    }
+
+    fn description(&self) -> &str {
+        &self.description
+    }
+
+    fn parameters_schema(&self) -> serde_json::Value {
+        serde_json::to_value(schemars::schema_for!(SkillToolArgs))
+            .unwrap_or_else(|_| serde_json::json!({}))
+    }
+
+    async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
+        let args: SkillToolArgs =
+            serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
+
+        let query = args.name.to_lowercase();
+
+        let skill = self.skills.iter().find(|s| {
+            s.id.to_lowercase() == query || s.title.to_lowercase() == query
+        });
+
+        match skill {
+            Some(s) => Ok(format!(
+                "<skill_content name=\"{}\" title=\"{}\">\n{}\n</skill_content>",
+                s.id, s.title, s.content
+            )),
+            None => {
+                let available: Vec<&str> = self.skills.iter().map(|s| s.title.as_str()).collect();
+                Err(format!(
+                    "Skill '{}' not found. Available skills: [{}]",
+                    args.name,
+                    available.join(", ")
+                ))
+            }
+        }
     }
 }
 
@@ -160,141 +92,85 @@ impl ToolExecutor for ActivateSkillTool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn make_skills() -> Vec<SkillDefinition> {
         vec![
             SkillDefinition {
-                id: "skill-1".to_string(),
+                id: "code-review".to_string(),
                 title: "Code Review".to_string(),
-                description: "Analyzes pull requests and provides feedback".to_string(),
+                description: "Reviews code for quality and best practices".to_string(),
+                content: "You are a code review expert.\n\n## Guidelines\n- Check for bugs\n- Suggest improvements".to_string(),
             },
             SkillDefinition {
-                id: "skill-2".to_string(),
-                title: "Summarizer".to_string(),
-                description: "Summarizes long documents into concise text".to_string(),
-            },
-            SkillDefinition {
-                id: "skill-3".to_string(),
-                title: "Translator".to_string(),
-                description: "Translates text between languages using code mappings".to_string(),
+                id: "pr-summary".to_string(),
+                title: "PR Summary".to_string(),
+                description: "Summarizes pull requests concisely".to_string(),
+                content: "You are a PR summarizer.\n\nCreate a concise summary of the changes.".to_string(),
             },
         ]
     }
 
-    // --- FetchSkillsTool tests ---
+    #[test]
+    fn description_includes_skill_names_but_not_content() {
+        let tool = SkillTool::new(make_skills());
+        let desc = tool.description();
 
-    #[tokio::test]
-    async fn test_fetch_skills_matches_by_title_substring() {
-        let tool = FetchSkillsTool::new(make_skills());
-        let args = serde_json::json!({ "query": "Review" });
-        let result = tool.execute(args).await.expect("execute");
-        let skills: Vec<SkillDefinition> = serde_json::from_str(&result).expect("parse");
-
-        assert_eq!(skills.len(), 1);
-        assert_eq!(skills[0].id, "skill-1");
-        assert_eq!(skills[0].title, "Code Review");
+        assert!(desc.contains("Code Review"));
+        assert!(desc.contains("PR Summary"));
+        assert!(desc.contains("<available_skills>"));
+        // Content should NOT be in the description
+        assert!(!desc.contains("You are a code review expert"));
+        assert!(!desc.contains("You are a PR summarizer"));
     }
 
     #[tokio::test]
-    async fn test_fetch_skills_matches_by_description_substring() {
-        let tool = FetchSkillsTool::new(make_skills());
-        let args = serde_json::json!({ "query": "pull requests" });
+    async fn execute_returns_full_content_for_valid_skill() {
+        let tool = SkillTool::new(make_skills());
+        let args = serde_json::json!({ "name": "Code Review" });
         let result = tool.execute(args).await.expect("execute");
-        let skills: Vec<SkillDefinition> = serde_json::from_str(&result).expect("parse");
 
-        assert_eq!(skills.len(), 1);
-        assert_eq!(skills[0].id, "skill-1");
+        assert!(result.contains("<skill_content"));
+        assert!(result.contains("You are a code review expert"));
+        assert!(result.contains("Check for bugs"));
     }
 
     #[tokio::test]
-    async fn test_fetch_skills_case_insensitive_matching() {
-        let tool = FetchSkillsTool::new(make_skills());
-        let args = serde_json::json!({ "query": "code review" });
-        let result = tool.execute(args).await.expect("execute");
-        let skills: Vec<SkillDefinition> = serde_json::from_str(&result).expect("parse");
+    async fn execute_returns_error_for_unknown_skill() {
+        let tool = SkillTool::new(make_skills());
+        let args = serde_json::json!({ "name": "nonexistent" });
+        let result = tool.execute(args).await;
 
-        assert_eq!(skills.len(), 1);
-        assert_eq!(skills[0].id, "skill-1");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("not found"));
+        assert!(err.contains("Code Review"));
+        assert!(err.contains("PR Summary"));
     }
 
     #[tokio::test]
-    async fn test_fetch_skills_no_matches_returns_empty_array() {
-        let tool = FetchSkillsTool::new(make_skills());
-        let args = serde_json::json!({ "query": "nonexistent" });
+    async fn execute_case_insensitive_matching_by_title() {
+        let tool = SkillTool::new(make_skills());
+        let args = serde_json::json!({ "name": "code review" });
         let result = tool.execute(args).await.expect("execute");
-        let skills: Vec<SkillDefinition> = serde_json::from_str(&result).expect("parse");
 
-        assert!(skills.is_empty());
+        assert!(result.contains("You are a code review expert"));
     }
 
     #[tokio::test]
-    async fn test_fetch_skills_title_match_ranked_above_description_match() {
-        let tool = FetchSkillsTool::new(make_skills());
-        // "code" appears in skill-1 title ("Code Review") and skill-3 description ("code mappings")
-        let args = serde_json::json!({ "query": "code" });
+    async fn execute_matches_by_id() {
+        let tool = SkillTool::new(make_skills());
+        let args = serde_json::json!({ "name": "pr-summary" });
         let result = tool.execute(args).await.expect("execute");
-        let skills: Vec<SkillDefinition> = serde_json::from_str(&result).expect("parse");
 
-        assert_eq!(skills.len(), 2);
-        // Title match should come first
-        assert_eq!(skills[0].id, "skill-1");
-        assert_eq!(skills[1].id, "skill-3");
-    }
-
-    // --- ActivateSkillTool tests ---
-
-    #[tokio::test]
-    async fn test_activate_skill_constructs_correct_url() {
-        let server = MockServer::start().await;
-        let agent_id = "agent-42";
-        let skill_id = "skill-99";
-        let response_body = serde_json::json!({
-            "id": skill_id,
-            "title": "Test Skill",
-            "prompt": "You are a test skill."
-        });
-
-        Mock::given(method("GET"))
-            .and(path(format!("/agents/{agent_id}/skills/{skill_id}")))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        let tool =
-            ActivateSkillTool::new(reqwest::Client::new(), server.uri(), agent_id.to_string());
-
-        let args = serde_json::json!({ "skill_id": skill_id });
-        let result = tool.execute(args).await.expect("execute");
-        let parsed: serde_json::Value = serde_json::from_str(&result).expect("parse");
-
-        assert_eq!(parsed["id"], skill_id);
-        assert_eq!(parsed["title"], "Test Skill");
-        assert_eq!(parsed["prompt"], "You are a test skill.");
+        assert!(result.contains("You are a PR summarizer"));
     }
 
     #[tokio::test]
-    async fn test_activate_skill_returns_error_on_non_success_status() {
-        let server = MockServer::start().await;
-        let agent_id = "agent-1";
-        let skill_id = "missing-skill";
+    async fn execute_case_insensitive_matching_by_id() {
+        let tool = SkillTool::new(make_skills());
+        let args = serde_json::json!({ "name": "PR-SUMMARY" });
+        let result = tool.execute(args).await.expect("execute");
 
-        Mock::given(method("GET"))
-            .and(path(format!("/agents/{agent_id}/skills/{skill_id}")))
-            .respond_with(ResponseTemplate::new(404).set_body_string("Not Found"))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        let tool =
-            ActivateSkillTool::new(reqwest::Client::new(), server.uri(), agent_id.to_string());
-
-        let args = serde_json::json!({ "skill_id": skill_id });
-        let err = tool.execute(args).await.unwrap_err();
-
-        assert!(err.contains("404"));
-        assert!(err.contains("Not Found"));
+        assert!(result.contains("You are a PR summarizer"));
     }
 }
