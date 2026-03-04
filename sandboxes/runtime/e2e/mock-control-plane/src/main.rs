@@ -26,9 +26,9 @@ async fn main() {
         .and_then(|i| args.get(i + 1).cloned())
         .unwrap_or_else(|| "fixtures/agents".to_string());
 
-    let openrouter_key = args
+    let fireworks_key = args
         .iter()
-        .position(|a| a == "--openrouter-key")
+        .position(|a| a == "--fireworks-key")
         .and_then(|i| args.get(i + 1).cloned());
 
     let mock_portal_mcp_path = args
@@ -50,11 +50,11 @@ async fn main() {
             if path.extension().is_some_and(|e| e == "json") {
                 match std::fs::read_to_string(&path) {
                     Ok(contents) => {
-                        // If OpenRouter key is provided, replace placeholders in raw JSON
+                        // If Fireworks key is provided, replace placeholders in raw JSON
                         // before deserializing
-                        let contents = if let Some(ref key) = openrouter_key {
+                        let contents = if let Some(ref key) = fireworks_key {
                             let mut c = contents;
-                            c = c.replace("PLACEHOLDER_OPENROUTER_KEY", key);
+                            c = c.replace("PLACEHOLDER_FIREWORKS_KEY", key);
                             if let Some(ref mcp_path) = mock_portal_mcp_path {
                                 c = c.replace("PLACEHOLDER_MOCK_PORTAL_MCP_PATH", mcp_path);
                             }

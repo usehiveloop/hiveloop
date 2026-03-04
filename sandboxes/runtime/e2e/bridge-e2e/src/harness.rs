@@ -245,12 +245,12 @@ impl TestHarness {
         Ok(harness)
     }
 
-    /// Start with real agents and OpenRouter. Requires OPENROUTER_API_KEY env.
+    /// Start with real agents and Fireworks. Requires FIREWORKS_API_KEY env.
     /// Builds: bridge, mock-control-plane, mock-portal-mcp.
     /// Loads real agent fixtures from e2e/fixtures/real-agents/.
     pub async fn start_real() -> Result<Self> {
-        let openrouter_key = std::env::var("OPENROUTER_API_KEY")
-            .context("OPENROUTER_API_KEY environment variable not set")?;
+        let fireworks_key = std::env::var("FIREWORKS_API_KEY")
+            .context("FIREWORKS_API_KEY environment variable not set")?;
 
         let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -300,15 +300,15 @@ impl TestHarness {
         let _ = std::fs::remove_dir_all(&tool_log_dir);
         let _ = std::fs::create_dir_all(&tool_log_dir);
 
-        // 2. Start mock control plane with real agent fixtures and OpenRouter
+        // 2. Start mock control plane with real agent fixtures and Fireworks
         let mut cp_process = Command::new(&cp_binary)
             .args([
                 "--port",
                 "0",
                 "--fixtures-dir",
                 fixtures_dir.to_str().unwrap(),
-                "--openrouter-key",
-                &openrouter_key,
+                "--fireworks-key",
+                &fireworks_key,
                 "--mock-portal-mcp-path",
                 mcp_binary.to_str().unwrap(),
                 "--workspace-dir",

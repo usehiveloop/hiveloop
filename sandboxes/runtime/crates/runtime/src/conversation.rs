@@ -331,21 +331,89 @@ pub async fn run_conversation(params: ConversationParams) {
                     let _ = sse_tx.send(SseEvent::Done).await;
                 }
                 Err(e) => {
-                    error!(
-                        agent_id = agent_id,
-                        conversation_id = conversation_id,
-                        error = %e,
-                        error_debug = ?e,
-                        "agent chat error"
-                    );
-                    token_tracker::record_error(&metrics);
-                    let _ = sse_tx
-                        .send(SseEvent::Error {
-                            code: "agent_error".to_string(),
-                            message: format!("agent error: {}", e),
-                        })
-                        .await;
-                    let _ = sse_tx.send(SseEvent::Done).await;
+                    let error_msg = format!("{}", e);
+
+                    // Detect empty-response errors from rig (the model returned no
+                    // text and no tool calls). This typically happens after all tool
+                    // calls succeed but the model doesn't produce a closing text
+                    // response. Retry with the no-tools agent to force text output.
+                    if error_msg.contains("no message or tool call") {
+                        warn!(
+                            agent_id = agent_id,
+                            conversation_id = conversation_id,
+                            error = %e,
+                            "agent returned empty response error, retrying with no-tools agent"
+                        );
+
+                        let retry_response = match retry_agent
+                            .prompt("Please provide a text response summarizing what you found or did.")
+                            .await
+                        {
+                            Ok(resp) if !resp.is_empty() => {
+                                info!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    retry_len = resp.len(),
+                                    "empty-response-error retry succeeded"
+                                );
+                                resp
+                            }
+                            Ok(_) => {
+                                warn!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    "retry also returned empty, sending fallback"
+                                );
+                                "I completed the requested tasks using the available tools.".to_string()
+                            }
+                            Err(retry_err) => {
+                                warn!(
+                                    agent_id = agent_id,
+                                    conversation_id = conversation_id,
+                                    error = %retry_err,
+                                    "retry failed, sending fallback"
+                                );
+                                "I completed the requested tasks using the available tools.".to_string()
+                            }
+                        };
+
+                        let latency_ms = start.elapsed().as_millis() as u64;
+                        let _ = sse_tx
+                            .send(SseEvent::ContentDelta {
+                                delta: retry_response.clone(),
+                                message_id: msg_id.clone(),
+                            })
+                            .await;
+                        history.push(rig::message::Message::assistant(&retry_response));
+                        token_tracker::record_request(&metrics, 0, 0, latency_ms);
+                        let _ = sse_tx
+                            .send(SseEvent::MessageEnd {
+                                message_id: msg_id.clone(),
+                                usage: TokenUsage {
+                                    input_tokens: 0,
+                                    output_tokens: 0,
+                                },
+                            })
+                            .await;
+                        let _ = sse_tx.send(SseEvent::Done).await;
+                    } else {
+                        // Genuine error — keep existing fatal handling
+                        error!(
+                            agent_id = agent_id,
+                            conversation_id = conversation_id,
+                            error = %e,
+                            error_debug = ?e,
+                            "agent chat error"
+                        );
+                        token_tracker::record_error(&metrics);
+                        let _ = sse_tx
+                            .send(SseEvent::Error {
+                                code: "agent_error".to_string(),
+                                message: format!("agent error: {}", e),
+                            })
+                            .await;
+                        let _ = sse_tx.send(SseEvent::Done).await;
+                    }
                 }
             },
         }

@@ -1,18 +1,18 @@
-//! Real E2E tests that use actual LLM calls via OpenRouter.
+//! Real E2E tests that use actual LLM calls via Fireworks.
 //!
 //! These tests are `#[ignore]` by default — run them with:
 //!
 //! ```sh
-//! OPENROUTER_API_KEY=<key> cargo test -p bridge-e2e --test real_e2e_tests -- --ignored
+//! FIREWORKS_API_KEY=<key> cargo test -p bridge-e2e --test real_e2e_tests -- --ignored
 //! ```
 //!
-//! Tests run serially to avoid OpenRouter rate limits.
+//! Tests run serially to avoid Fireworks rate limits.
 
 use bridge_e2e::{ConversationTurn, TestHarness};
 use std::time::Duration;
 
 /// Default timeout for LLM responses (real model with tool loops).
-/// With max_turns=5, each OpenRouter round trip can be 15-40s (depending on
+/// With max_turns=5, each Fireworks round trip can be 15-40s (depending on
 /// context size and tool count), so worst case ~240s for a full 5-turn loop.
 const LLM_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -20,10 +20,10 @@ const LLM_TIMEOUT: Duration = Duration::from_secs(300);
 /// Real LLM APIs can have transient failures (rate limits, empty responses).
 const MAX_RETRIES: usize = 2;
 
-/// Skip test if OPENROUTER_API_KEY is not set.
-fn require_openrouter_key() -> bool {
-    if std::env::var("OPENROUTER_API_KEY").is_err() {
-        eprintln!("OPENROUTER_API_KEY not set — skipping real E2E test");
+/// Skip test if FIREWORKS_API_KEY is not set.
+fn require_fireworks_key() -> bool {
+    if std::env::var("FIREWORKS_API_KEY").is_err() {
+        eprintln!("FIREWORKS_API_KEY not set — skipping real E2E test");
         return false;
     }
     true
@@ -74,6 +74,31 @@ async fn converse_with_retry(
     last_turn.unwrap()
 }
 
+/// Assert that at least one of the given tools was called, checking SSE events.
+/// Unlike `harness.assert_any_tool_called`, this catches built-in tools (Glob,
+/// Grep, Read, etc.) that are handled by the bridge runtime and don't appear in
+/// the MCP tool call log.
+fn assert_any_tool_called_in_sse(turn: &ConversationTurn, tool_names: &[&str], label: &str) {
+    let called_tools: Vec<String> = turn
+        .sse_events
+        .iter()
+        .filter(|e| e.event_type == "tool_call_start")
+        .filter_map(|e| {
+            e.data
+                .get("name")
+                .and_then(|n| n.as_str())
+                .map(String::from)
+        })
+        .collect();
+
+    let found = called_tools.iter().any(|t| tool_names.contains(&t.as_str()));
+    assert!(
+        found,
+        "[{}] none of {:?} were called. Tools called (from SSE): {:?}",
+        label, tool_names, called_tools
+    );
+}
+
 /// Assert response is non-empty with diagnostic output on failure.
 fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
     assert!(
@@ -94,7 +119,7 @@ fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
 #[tokio::test]
 #[ignore]
 async fn test_hana_code_review() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -136,7 +161,7 @@ async fn test_hana_code_review() {
 #[tokio::test]
 #[ignore]
 async fn test_nova_portal_control() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -224,7 +249,7 @@ async fn test_nova_portal_control() {
 #[tokio::test]
 #[ignore]
 async fn test_skai_security_audit() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -266,7 +291,7 @@ async fn test_skai_security_audit() {
 #[tokio::test]
 #[ignore]
 async fn test_theo_system_design() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -285,14 +310,15 @@ async fn test_theo_system_design() {
     assert_response_not_empty(&turn, "theo");
 
     // The agent should use at least some tools for its design workflow.
-    // It may explore code first (Glob/Grep/Read/getIssue/searchDocuments) or
-    // go straight to producing output (createDocument/createComment).
-    harness
-        .assert_any_tool_called(&[
-            "Glob", "Grep", "Read", "getIssue", "searchDocuments", "listDocuments",
+    // Built-in tools (Glob/Grep/Read) don't appear in the MCP log, so check SSE.
+    assert_any_tool_called_in_sse(
+        &turn,
+        &[
+            "Glob", "Grep", "Read", "LS", "getIssue", "searchDocuments", "listDocuments",
             "createDocument", "updateDocument", "createComment",
-        ])
-        .expect("design workflow tools should have been called");
+        ],
+        "theo design workflow",
+    );
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
@@ -311,7 +337,7 @@ async fn test_theo_system_design() {
 #[tokio::test]
 #[ignore]
 async fn test_mimi_technical_writer() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -329,9 +355,13 @@ async fn test_mimi_technical_writer() {
 
     assert_response_not_empty(&turn, "mimi");
 
-    harness
-        .assert_any_tool_called(&["Glob", "Grep", "Read", "getIssue", "searchDocuments", "listDocuments"])
-        .expect("exploration tools should have been called");
+    // Built-in tools (Glob/Grep/Read) are handled by the bridge runtime and
+    // don't appear in the MCP tool call log — check SSE events instead.
+    assert_any_tool_called_in_sse(
+        &turn,
+        &["Glob", "Grep", "Read", "LS", "getIssue", "searchDocuments", "listDocuments"],
+        "mimi exploration",
+    );
     harness
         .assert_any_tool_called(&["createDocument", "updateDocument"])
         .expect("document creation tools should have been called");
@@ -353,7 +383,7 @@ async fn test_mimi_technical_writer() {
 #[tokio::test]
 #[ignore]
 async fn test_researcher_web_search() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -401,7 +431,7 @@ async fn test_researcher_web_search() {
 #[tokio::test]
 #[ignore]
 async fn test_researcher_web_fetch() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -449,7 +479,7 @@ async fn test_researcher_web_fetch() {
 #[tokio::test]
 #[ignore]
 async fn test_tool_call_sse_events() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -577,7 +607,7 @@ async fn test_tool_call_sse_events() {
 #[tokio::test]
 #[ignore]
 async fn test_delegator_subagent_natural_invocation() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -712,7 +742,7 @@ async fn test_delegator_subagent_natural_invocation() {
 #[tokio::test]
 #[ignore]
 async fn test_multi_agent_concurrent_conversations() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
@@ -948,7 +978,7 @@ async fn test_multi_agent_concurrent_conversations() {
 #[tokio::test]
 #[ignore]
 async fn test_executor_background_bash() {
-    if !require_openrouter_key() {
+    if !require_fireworks_key() {
         return;
     }
 
