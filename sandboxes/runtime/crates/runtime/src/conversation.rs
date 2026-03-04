@@ -16,6 +16,11 @@ use crate::agent_runner::AgentSessionStore;
 /// Timeout for a single agent.chat() call (includes internal tool loops).
 const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(180);
 
+/// Maximum number of automatic continuation attempts when the agent returns an
+/// empty response. After this many continuations, fall back to the no-tools
+/// retry agent.
+const MAX_CONTINUATIONS: usize = 1;
+
 use crate::token_tracker;
 
 /// Incoming message for the conversation loop — either a user message or
@@ -193,6 +198,7 @@ pub async fn run_conversation(params: ConversationParams) {
             let fut = async {
                 agent_clone
                     .prompt(&user_text_clone)
+                    .extended_details()
                     .with_history(&mut history_clone)
                     .with_hook(emitter)
                     .await
@@ -203,7 +209,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 Some(ctx) => AGENT_CONTEXT.scope(ctx, fut).await,
                 None => fut.await,
             };
-            let _ = result_tx.send(result);
+            let _ = result_tx.send((result, history_clone));
         });
 
         // Wait for the result with a timeout
@@ -247,106 +253,139 @@ pub async fn run_conversation(params: ConversationParams) {
                 let _ = sse_tx.send(SseEvent::Done).await;
             }
             // Got result from agent
-            Ok(Ok(result)) => match result {
-                Ok(response) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
+            Ok(Ok((result, mut enriched_history))) => {
+                let latency_ms = start.elapsed().as_millis() as u64;
 
-                    info!(
+                // Classify the result into: usable response, needs recovery, or genuine error.
+                let (response_text, initial_input_tokens, initial_output_tokens) = match result {
+                    Ok(prompt_response) => {
+                        let it = prompt_response.total_usage.input_tokens;
+                        let ot = prompt_response.total_usage.output_tokens;
+                        (Some(prompt_response.output), it, ot)
+                    }
+                    Err(e) => {
+                        let error_msg = format!("{}", e);
+                        if error_msg.contains("no message or tool call") {
+                            warn!(
+                                agent_id = agent_id,
+                                conversation_id = conversation_id,
+                                error = %e,
+                                "agent returned no message or tool call, attempting recovery"
+                            );
+                            (None, 0u64, 0u64)
+                        } else {
+                            // Genuine error — keep existing fatal handling
+                            error!(
+                                agent_id = agent_id,
+                                conversation_id = conversation_id,
+                                error = %e,
+                                error_debug = ?e,
+                                "agent chat error"
+                            );
+                            token_tracker::record_error(&metrics);
+                            let _ = sse_tx
+                                .send(SseEvent::Error {
+                                    code: "agent_error".to_string(),
+                                    message: format!("agent error: {}", e),
+                                })
+                                .await;
+                            let _ = sse_tx.send(SseEvent::Done).await;
+                            turn_count += 1;
+                            continue;
+                        }
+                    }
+                };
+
+                let needs_recovery = match &response_text {
+                    Some(text) if !text.is_empty() => false,
+                    _ => true,
+                };
+
+                let response = if needs_recovery {
+                    warn!(
                         agent_id = agent_id,
                         conversation_id = conversation_id,
-                        response_len = response.len(),
-                        response_preview = %response.chars().take(500).collect::<String>(),
-                        latency_ms = latency_ms,
-                        "agent chat response received"
+                        "agent returned empty response, attempting continuation with tools"
                     );
 
-                    let response = if response.is_empty() {
-                        warn!(
-                            agent_id = agent_id,
-                            conversation_id = conversation_id,
-                            latency_ms = latency_ms,
-                            "agent returned empty response string, retrying with no-tools agent"
-                        );
+                    // Step 1: Try continuation with the main agent (has tools).
+                    // This gives the agent a chance to keep working if it wasn't done.
+                    let mut continuation_response: Option<String> = None;
+                    for _attempt in 0..MAX_CONTINUATIONS {
+                        let agent_clone = agent.clone();
+                        let sse_tx_clone = sse_tx.clone();
+                        let cancel_clone = cancel.clone();
+                        let tool_names_clone = tool_names.clone();
+                        let tool_executors_clone = tool_executors.clone();
+                        let agent_context_clone = agent_context.clone();
+                        let mut history_for_continuation = enriched_history.clone();
+                        let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
+                        let cont_prompt = "Continue working on the task. If you have completed all the work, provide a final text summary of what you did and what you found.".to_string();
 
-                        // Retry with the no-tools agent to force a text response
-                        match retry_agent
-                            .prompt("Please provide a text response summarizing what you found or did.")
-                            .await
-                        {
-                            Ok(retry_resp) if !retry_resp.is_empty() => {
+                        tokio::spawn(async move {
+                            let emitter = llm::ToolCallEmitter {
+                                sse_tx: sse_tx_clone,
+                                cancel: cancel_clone,
+                                tool_names: tool_names_clone,
+                                tool_executors: tool_executors_clone,
+                            };
+                            let fut = async {
+                                agent_clone
+                                    .prompt(&cont_prompt)
+                                    .extended_details()
+                                    .with_history(&mut history_for_continuation)
+                                    .with_hook(emitter)
+                                    .await
+                            };
+                            let result = match agent_context_clone {
+                                Some(ctx) => AGENT_CONTEXT.scope(ctx, fut).await,
+                                None => fut.await,
+                            };
+                            let _ = cont_tx.send((result, history_for_continuation));
+                        });
+
+                        match tokio::time::timeout(AGENT_CHAT_TIMEOUT, cont_rx).await {
+                            Ok(Ok((Ok(pr), cont_history))) if !pr.output.is_empty() => {
                                 info!(
                                     agent_id = agent_id,
                                     conversation_id = conversation_id,
-                                    retry_len = retry_resp.len(),
-                                    "retrying empty response with no-tools agent succeeded"
+                                    response_len = pr.output.len(),
+                                    "continuation with tools produced non-empty response"
                                 );
-                                retry_resp
+                                enriched_history = cont_history;
+                                continuation_response = Some(pr.output);
+                                break;
                             }
-                            Ok(_) => {
+                            Ok(Ok((_, cont_history))) => {
+                                // Continuation produced empty or error — update history
+                                // (preserves any new tool calls) and fall through to retry.
+                                enriched_history = cont_history;
+                            }
+                            _ => {
                                 warn!(
                                     agent_id = agent_id,
                                     conversation_id = conversation_id,
-                                    "no-tools retry also returned empty, accepting empty response"
+                                    "continuation attempt timed out or was cancelled"
                                 );
-                                response
-                            }
-                            Err(e) => {
-                                warn!(
-                                    agent_id = agent_id,
-                                    conversation_id = conversation_id,
-                                    error = %e,
-                                    "no-tools retry failed, accepting empty response"
-                                );
-                                response
                             }
                         }
+                    }
+
+                    if let Some(text) = continuation_response {
+                        text
                     } else {
-                        response
-                    };
-
-                    // Send the response as content delta
-                    let _ = sse_tx
-                        .send(SseEvent::ContentDelta {
-                            delta: response.clone(),
-                            message_id: msg_id.clone(),
-                        })
-                        .await;
-
-                    // Add assistant response to history
-                    history.push(rig::message::Message::assistant(&response));
-
-                    // Record metrics
-                    token_tracker::record_request(&metrics, 0, 0, latency_ms);
-
-                    // Signal completion
-                    let _ = sse_tx
-                        .send(SseEvent::MessageEnd {
-                            message_id: msg_id.clone(),
-                            usage: TokenUsage {
-                                input_tokens: 0,
-                                output_tokens: 0,
-                            },
-                        })
-                        .await;
-                    let _ = sse_tx.send(SseEvent::Done).await;
-                }
-                Err(e) => {
-                    let error_msg = format!("{}", e);
-
-                    // Detect empty-response errors from rig (the model returned no
-                    // text and no tool calls). This typically happens after all tool
-                    // calls succeed but the model doesn't produce a closing text
-                    // response. Retry with the no-tools agent to force text output.
-                    if error_msg.contains("no message or tool call") {
+                        // Step 2: Retry with no-tools agent WITH enriched history.
+                        // The retry agent sees the full conversation (user request +
+                        // all tool calls + results) so it can write an accurate summary
+                        // instead of hallucinating.
                         warn!(
                             agent_id = agent_id,
                             conversation_id = conversation_id,
-                            error = %e,
-                            "agent returned empty response error, retrying with no-tools agent"
+                            "continuation did not produce text, retrying with no-tools agent with enriched history"
                         );
-
-                        let retry_response = match retry_agent
+                        match retry_agent
                             .prompt("Please provide a text response summarizing what you found or did.")
+                            .with_history(&mut enriched_history)
                             .await
                         {
                             Ok(resp) if !resp.is_empty() => {
@@ -354,7 +393,7 @@ pub async fn run_conversation(params: ConversationParams) {
                                     agent_id = agent_id,
                                     conversation_id = conversation_id,
                                     retry_len = resp.len(),
-                                    "empty-response-error retry succeeded"
+                                    "no-tools retry with enriched history succeeded"
                                 );
                                 resp
                             }
@@ -362,60 +401,67 @@ pub async fn run_conversation(params: ConversationParams) {
                                 warn!(
                                     agent_id = agent_id,
                                     conversation_id = conversation_id,
-                                    "retry also returned empty, sending fallback"
+                                    "no-tools retry also returned empty, using fallback"
                                 );
-                                "I completed the requested tasks using the available tools.".to_string()
+                                let fallback = "I completed the requested tasks using the available tools.".to_string();
+                                enriched_history.push(rig::message::Message::assistant(&fallback));
+                                fallback
                             }
-                            Err(retry_err) => {
+                            Err(e) => {
                                 warn!(
                                     agent_id = agent_id,
                                     conversation_id = conversation_id,
-                                    error = %retry_err,
-                                    "retry failed, sending fallback"
+                                    error = %e,
+                                    "no-tools retry failed, using fallback"
                                 );
-                                "I completed the requested tasks using the available tools.".to_string()
+                                let fallback = "I completed the requested tasks using the available tools.".to_string();
+                                enriched_history.push(rig::message::Message::assistant(&fallback));
+                                fallback
                             }
-                        };
-
-                        let latency_ms = start.elapsed().as_millis() as u64;
-                        let _ = sse_tx
-                            .send(SseEvent::ContentDelta {
-                                delta: retry_response.clone(),
-                                message_id: msg_id.clone(),
-                            })
-                            .await;
-                        history.push(rig::message::Message::assistant(&retry_response));
-                        token_tracker::record_request(&metrics, 0, 0, latency_ms);
-                        let _ = sse_tx
-                            .send(SseEvent::MessageEnd {
-                                message_id: msg_id.clone(),
-                                usage: TokenUsage {
-                                    input_tokens: 0,
-                                    output_tokens: 0,
-                                },
-                            })
-                            .await;
-                        let _ = sse_tx.send(SseEvent::Done).await;
-                    } else {
-                        // Genuine error — keep existing fatal handling
-                        error!(
-                            agent_id = agent_id,
-                            conversation_id = conversation_id,
-                            error = %e,
-                            error_debug = ?e,
-                            "agent chat error"
-                        );
-                        token_tracker::record_error(&metrics);
-                        let _ = sse_tx
-                            .send(SseEvent::Error {
-                                code: "agent_error".to_string(),
-                                message: format!("agent error: {}", e),
-                            })
-                            .await;
-                        let _ = sse_tx.send(SseEvent::Done).await;
+                        }
                     }
-                }
-            },
+                } else {
+                    response_text.unwrap()
+                };
+
+                info!(
+                    agent_id = agent_id,
+                    conversation_id = conversation_id,
+                    response_len = response.len(),
+                    response_preview = %response.chars().take(500).collect::<String>(),
+                    latency_ms = latency_ms,
+                    input_tokens = initial_input_tokens,
+                    output_tokens = initial_output_tokens,
+                    "agent response finalized"
+                );
+
+                // Send the response as content delta
+                let _ = sse_tx
+                    .send(SseEvent::ContentDelta {
+                        delta: response.clone(),
+                        message_id: msg_id.clone(),
+                    })
+                    .await;
+
+                // Replace main history with the enriched version so that
+                // subsequent turns preserve full tool-call context.
+                history = enriched_history;
+
+                // Record metrics
+                token_tracker::record_request(&metrics, initial_input_tokens, initial_output_tokens, latency_ms);
+
+                // Signal completion
+                let _ = sse_tx
+                    .send(SseEvent::MessageEnd {
+                        message_id: msg_id.clone(),
+                        usage: TokenUsage {
+                            input_tokens: initial_input_tokens,
+                            output_tokens: initial_output_tokens,
+                        },
+                    })
+                    .await;
+                let _ = sse_tx.send(SseEvent::Done).await;
+            }
         }
 
         turn_count += 1;

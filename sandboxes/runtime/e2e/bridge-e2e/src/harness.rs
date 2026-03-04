@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
@@ -942,15 +942,11 @@ impl TestHarness {
             .unwrap_or_else(|| conv_id.to_string())
     }
 
-    /// Append content to the log file for the given label (agent_id).
+    /// Stream log content for the given label (agent_id) to stderr so it
+    /// appears in real-time during test runs.
     fn append_log(&self, label: &str, content: &str) {
-        let path = self.log_dir.join(format!("{}.log", label));
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)
-        {
-            let _ = file.write_all(content.as_bytes());
+        for line in content.lines() {
+            eprintln!("[{}] {}", label, line);
         }
     }
 

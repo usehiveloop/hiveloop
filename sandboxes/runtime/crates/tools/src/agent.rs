@@ -94,6 +94,7 @@ impl AgentTool {
     }
 
     /// Build the description by replacing the {agents} placeholder with available subagents.
+    #[cfg(test)]
     fn build_description(agents: &[(String, String)]) -> String {
         let template = include_str!("instructions/agent.txt");
         let agent_list = if agents.is_empty() {
