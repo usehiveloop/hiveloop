@@ -1029,6 +1029,7 @@ mod serde_roundtrip_tests {
             log_level: "debug".to_string(),
             log_format: LogFormat::Json,
             lsp: None,
+            webhook_url: None,
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize RuntimeConfig");

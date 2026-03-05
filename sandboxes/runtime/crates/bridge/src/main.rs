@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use webhooks::{WebhookContext, WebhookDispatcher};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -26,6 +27,22 @@ async fn main() -> anyhow::Result<()> {
 
     // Create global lifecycle primitives
     let cancel = CancellationToken::new();
+
+    // Create webhook dispatcher if BRIDGE_WEBHOOK_URL is set
+    let webhook_ctx: Option<WebhookContext> = if let Some(ref url) = config.webhook_url {
+        let (dispatcher, rx) = WebhookDispatcher::new();
+        let client = dispatcher.client();
+        let dispatcher = Arc::new(dispatcher);
+        tokio::spawn(WebhookDispatcher::run(rx, client, cancel.clone()));
+        info!(url = %url, "webhook dispatcher started");
+        Some(WebhookContext {
+            dispatcher,
+            url: url.clone(),
+            secret: config.control_plane_api_key.clone(),
+        })
+    } else {
+        None
+    };
 
     // Create shared services
     let mcp_manager = Arc::new(McpManager::new());
@@ -58,14 +75,17 @@ async fn main() -> anyhow::Result<()> {
     });
     let lsp_manager = Arc::new(LspManager::new(project_root, lsp_config));
 
-    let supervisor = Arc::new(AgentSupervisor::with_lsp(
-        mcp_manager.clone(),
-        lsp_manager,
-        cancel.clone(),
-    ));
+    let supervisor = Arc::new(
+        AgentSupervisor::with_lsp(mcp_manager.clone(), lsp_manager, cancel.clone())
+            .with_webhooks(webhook_ctx.clone()),
+    );
 
     // Create app state — bridge starts with zero agents, waits for pushes
-    let app_state = api::AppState::new(supervisor.clone(), config.control_plane_api_key.clone());
+    let app_state = api::AppState::new(
+        supervisor.clone(),
+        config.control_plane_api_key.clone(),
+        webhook_ctx,
+    );
 
     // Build HTTP router
     let app = api::build_router(app_state);

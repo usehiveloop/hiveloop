@@ -10,6 +10,7 @@ openapi = ["dep:utoipa", "bridge_core/openapi"]
 bridge_core = { workspace = true }
 runtime = { workspace = true }
 llm = { workspace = true }
+webhooks = { workspace = true }
 dashmap = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }

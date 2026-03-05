@@ -86,6 +86,27 @@ pub fn conversation_ended(
     WebhookPayload::new(WebhookEventType::ConversationEnded, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
 }
 
+/// Create a webhook payload for a todo_updated event.
+pub fn todo_updated(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(WebhookEventType::TodoUpdated, agent_id, conv_id, data, webhook_url, webhook_secret)
+}
+
+/// Create a webhook payload for a turn_completed event.
+pub fn turn_completed(
+    agent_id: &str,
+    conv_id: &str,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(WebhookEventType::TurnCompleted, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
+}
+
 /// Create a webhook payload for an agent_error event.
 pub fn agent_error(
     agent_id: &str,
@@ -182,5 +203,20 @@ mod tests {
         let payload = agent_error(AGENT, CONV, data.clone(), URL, SECRET);
         assert_eq!(payload.event_type, WebhookEventType::AgentError);
         assert_eq!(payload.data, data);
+    }
+
+    #[test]
+    fn test_todo_updated() {
+        let data = json!({"todos": [{"content": "task 1", "status": "in_progress"}]});
+        let payload = todo_updated(AGENT, CONV, data.clone(), URL, SECRET);
+        assert_eq!(payload.event_type, WebhookEventType::TodoUpdated);
+        assert_eq!(payload.data, data);
+    }
+
+    #[test]
+    fn test_turn_completed() {
+        let payload = turn_completed(AGENT, CONV, URL, SECRET);
+        assert_eq!(payload.event_type, WebhookEventType::TurnCompleted);
+        assert_eq!(payload.data, json!({}));
     }
 }

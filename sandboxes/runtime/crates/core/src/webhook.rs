@@ -25,6 +25,10 @@ pub enum WebhookEventType {
     ConversationEnded,
     /// An error occurred during agent execution
     AgentError,
+    /// The task/todo list was updated
+    TodoUpdated,
+    /// A turn completed (stream done signal)
+    TurnCompleted,
 }
 
 /// Payload for a webhook delivery.

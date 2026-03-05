@@ -7,6 +7,13 @@ use serde_json::json;
 
 use crate::state::AppState;
 
+/// Fire a webhook if the context is configured. Non-blocking, fire-and-forget.
+fn emit_webhook(state: &AppState, payload: bridge_core::webhook::WebhookPayload) {
+    if let Some(ref wh) = state.webhook_ctx {
+        wh.dispatcher.dispatch(payload);
+    }
+}
+
 /// Request body for creating a message.
 #[derive(Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -33,6 +40,10 @@ pub async fn create_conversation(
 
     // Store the SSE receiver for the stream handler to pick up
     state.sse_streams.insert(conv_id.clone(), sse_rx);
+
+    if let Some(ref wh) = state.webhook_ctx {
+        emit_webhook(&state, webhooks::events::conversation_created(&agent_id, &conv_id, &wh.url, &wh.secret));
+    }
 
     Ok((
         StatusCode::CREATED,
@@ -62,6 +73,12 @@ pub async fn send_message(
     // Find which agent owns this conversation
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
 
+    if let Some(ref wh) = state.webhook_ctx {
+        emit_webhook(&state, webhooks::events::message_received(
+            &agent_id, &conv_id, json!({"content": &body.content}), &wh.url, &wh.secret,
+        ));
+    }
+
     state
         .supervisor
         .send_message(&agent_id, &conv_id, body.content)
@@ -90,6 +107,10 @@ pub async fn end_conversation(
 
     // Clean up SSE stream
     state.sse_streams.remove(&conv_id);
+
+    if let Some(ref wh) = state.webhook_ctx {
+        emit_webhook(&state, webhooks::events::conversation_ended(&agent_id, &conv_id, &wh.url, &wh.secret));
+    }
 
     Ok(Json(json!({"status": "ended"})))
 }

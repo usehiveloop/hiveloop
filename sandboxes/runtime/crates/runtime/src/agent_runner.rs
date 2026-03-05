@@ -141,6 +141,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             cancel: cancel.clone(),
             tool_names: std::collections::HashSet::new(),
             tool_executors: std::collections::HashMap::new(),
+            webhook_ctx: None,
+            agent_id: String::new(),
+            conversation_id: self.conversation_id.clone(),
         };
 
         let prompt_owned = prompt.to_string();
@@ -203,6 +206,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let max_depth = self.max_depth;
 
         tokio::spawn(async move {
+            let emitter_conv_id = conversation_id.clone();
             // Build nested AgentContext for the background task
             let nested_runner = Arc::new(ConversationSubAgentRunner::new(
                 subagents,
@@ -227,6 +231,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 cancel: cancel.clone(),
                 tool_names: std::collections::HashSet::new(),
                 tool_executors: std::collections::HashMap::new(),
+                webhook_ctx: None,
+                agent_id: String::new(),
+                conversation_id: emitter_conv_id,
             };
 
             let result = AGENT_CONTEXT

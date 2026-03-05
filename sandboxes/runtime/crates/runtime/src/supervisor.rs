@@ -10,6 +10,7 @@ use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
 use tools::ToolRegistry;
 use tracing::{error, info};
+use webhooks::WebhookContext;
 
 use crate::agent_map::AgentMap;
 use crate::agent_runner::{ConversationSubAgentRunner, SubAgentEntry};
@@ -30,6 +31,8 @@ pub struct AgentSupervisor {
     lsp_manager: Option<Arc<LspManager>>,
     /// Global cancellation token.
     cancel: CancellationToken,
+    /// Optional webhook context for dispatching webhook events.
+    webhook_ctx: Option<WebhookContext>,
 }
 
 impl AgentSupervisor {
@@ -40,6 +43,7 @@ impl AgentSupervisor {
             mcp_manager,
             lsp_manager: None,
             cancel,
+            webhook_ctx: None,
         }
     }
 
@@ -54,7 +58,14 @@ impl AgentSupervisor {
             mcp_manager,
             lsp_manager: Some(lsp_manager),
             cancel,
+            webhook_ctx: None,
         }
+    }
+
+    /// Set the webhook context for dispatching webhook events.
+    pub fn with_webhooks(mut self, ctx: Option<WebhookContext>) -> Self {
+        self.webhook_ctx = ctx;
+        self
     }
 
     /// Load a set of agent definitions, building their runtime state.
@@ -219,6 +230,7 @@ impl AgentSupervisor {
                 .expect("no-tools agent build should not fail"),
         );
 
+        let webhook_ctx = self.webhook_ctx.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -237,6 +249,7 @@ impl AgentSupervisor {
                 initial_history: None,
                 retry_agent,
                 abort_token,
+                webhook_ctx,
             })
             .await;
         });
@@ -560,6 +573,7 @@ impl AgentSupervisor {
                 .expect("no-tools agent build should not fail"),
         );
 
+        let webhook_ctx = self.webhook_ctx.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -578,6 +592,7 @@ impl AgentSupervisor {
                 initial_history: Some(initial_history),
                 retry_agent,
                 abort_token,
+                webhook_ctx,
             })
             .await;
         });

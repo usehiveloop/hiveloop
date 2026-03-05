@@ -2,6 +2,7 @@ use crate::streaming::TodoItem;
 use crate::SseEvent;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -11,6 +12,7 @@ use tools::bash::{run_command, BashArgs};
 use tools::todo::TodoWriteResult;
 use tools::ToolExecutor;
 use tracing::debug;
+use webhooks::WebhookContext;
 
 /// A [`PromptHook`] that emits [`SseEvent::ToolCallStart`] and
 /// [`SseEvent::ToolCallResult`] events through an SSE channel whenever the
@@ -37,6 +39,12 @@ pub struct ToolCallEmitter {
     /// when the LLM-provided name was auto-repaired (trimmed, case-fixed, etc.)
     /// and rig-core would not find the tool under the original name.
     pub tool_executors: HashMap<String, Arc<dyn ToolExecutor>>,
+    /// Optional webhook context for dispatching webhook events alongside SSE.
+    pub webhook_ctx: Option<WebhookContext>,
+    /// Agent ID for webhook payloads.
+    pub agent_id: String,
+    /// Conversation ID for webhook payloads.
+    pub conversation_id: String,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -62,6 +70,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 arguments: arguments.clone(),
             })
             .await;
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::tool_call_started(
+                &self.agent_id, &self.conversation_id,
+                json!({"tool_name": tool_name, "arguments": &arguments}),
+                &wh.url, &wh.secret,
+            ));
+        }
 
         // Resolve the effective tool name: normalize, case-insensitive, fuzzy.
         let (effective_name, name_was_repaired) = if !self.tool_names.is_empty() {
@@ -88,6 +103,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                             is_error: true,
                         })
                         .await;
+                    if let Some(ref wh) = self.webhook_ctx {
+                        wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                            &self.agent_id, &self.conversation_id,
+                            json!({"tool_name": tool_name, "result": &error, "is_error": true}),
+                            &wh.url, &wh.secret,
+                        ));
+                    }
                     return ToolCallHookAction::Skip { reason: error };
                 }
             }
@@ -142,6 +164,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 is_error: false,
             })
             .await;
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                &self.agent_id, &self.conversation_id,
+                json!({"tool_name": tool_name, "result": result, "is_error": false}),
+                &wh.url, &wh.secret,
+            ));
+        }
 
         // Emit a structured TodoUpdated event when the todowrite tool completes.
         if tool_name == "todowrite" {
@@ -155,6 +184,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         priority: t.priority,
                     })
                     .collect();
+                if let Some(ref wh) = self.webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::todo_updated(
+                        &self.agent_id, &self.conversation_id,
+                        json!({"todos": &todos}),
+                        &wh.url, &wh.secret,
+                    ));
+                }
                 let _ = self.sse_tx.send(SseEvent::TodoUpdated { todos }).await;
             }
         }
@@ -293,6 +329,13 @@ impl ToolCallEmitter {
                         is_error: true,
                     })
                     .await;
+                if let Some(ref wh) = self.webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id, &self.conversation_id,
+                        json!({"tool_name": tool_name, "result": &error, "is_error": true}),
+                        &wh.url, &wh.secret,
+                    ));
+                }
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -313,6 +356,13 @@ impl ToolCallEmitter {
                 is_error,
             })
             .await;
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                &self.agent_id, &self.conversation_id,
+                json!({"tool_name": tool_name, "result": &result_str, "is_error": is_error}),
+                &wh.url, &wh.secret,
+            ));
+        }
 
         ToolCallHookAction::Skip {
             reason: result_str,
@@ -392,10 +442,17 @@ impl ToolCallEmitter {
             .sse_tx
             .send(SseEvent::ToolCallResult {
                 id: sse_id,
-                result: result_json_clone,
+                result: result_json_clone.clone(),
                 is_error: false,
             })
             .await;
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                &self.agent_id, &self.conversation_id,
+                json!({"tool_name": "bash", "result": &result_json_clone, "is_error": false}),
+                &wh.url, &wh.secret,
+            ));
+        }
 
         ToolCallHookAction::Skip {
             reason: result_json,
@@ -422,6 +479,13 @@ impl ToolCallEmitter {
                         is_error: true,
                     })
                     .await;
+                if let Some(ref wh) = self.webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id, &self.conversation_id,
+                        json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                        &wh.url, &wh.secret,
+                    ));
+                }
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -437,6 +501,13 @@ impl ToolCallEmitter {
                     is_error: true,
                 })
                 .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                    &wh.url, &wh.secret,
+                ));
+            }
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -462,6 +533,13 @@ impl ToolCallEmitter {
                     is_error: true,
                 })
                 .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                    &wh.url, &wh.secret,
+                ));
+            }
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -493,6 +571,13 @@ impl ToolCallEmitter {
                     is_error,
                 })
                 .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
+                    &wh.url, &wh.secret,
+                ));
+            }
             ToolCallHookAction::Skip {
                 reason: result_str,
             }
@@ -526,6 +611,13 @@ impl ToolCallEmitter {
                     is_error,
                 })
                 .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
+                    &wh.url, &wh.secret,
+                ));
+            }
             ToolCallHookAction::Skip {
                 reason: result_str,
             }
@@ -541,7 +633,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -572,7 +664,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_result() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
             &emitter,
@@ -604,7 +696,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_returns_continue() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -631,7 +723,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_uses_internal_call_id_when_no_tool_call_id() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -654,7 +746,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_handles_invalid_json_args() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -724,6 +816,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
             tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         let action = AGENT_CONTEXT
@@ -784,7 +879,7 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_does_not_intercept_foreground_bash() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new() };
+        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
 
         // bash without background: true should Continue normally
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -851,6 +946,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
             tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         let action = AGENT_CONTEXT
@@ -909,6 +1007,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names,
             tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -953,6 +1054,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names,
             tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         // Known tool should pass through
@@ -976,6 +1080,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names: HashSet::new(),
             tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -1018,6 +1125,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names,
             tool_executors: executors,
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
@@ -1075,6 +1185,9 @@ mod tests {
             cancel: CancellationToken::new(),
             tool_names,
             tool_executors: executors,
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
         };
 
         // " bash" (leading space) should auto-repair to "bash"

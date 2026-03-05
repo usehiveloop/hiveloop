@@ -23,6 +23,10 @@ pub struct RuntimeConfig {
     /// Can be `false` to disable all LSP, or a map of server configs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lsp: Option<LspConfig>,
+    /// Optional webhook URL. When set, all SSE events are also dispatched as
+    /// webhooks to this URL, signed with the control plane API key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_url: Option<String>,
 }
 
 /// LSP configuration: either disabled entirely or per-server config map.
@@ -91,6 +95,7 @@ impl Default for RuntimeConfig {
             log_level: "info".to_string(),
             log_format: LogFormat::Text,
             lsp: None,
+            webhook_url: None,
         }
     }
 }

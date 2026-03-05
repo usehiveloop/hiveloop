@@ -32,6 +32,156 @@ pub struct ToolCallLogEntry {
     pub result: serde_json::Value,
 }
 
+/// A received webhook entry from the mock control plane.
+///
+/// Provides typed access to the webhook payload fields so tests can assert
+/// on event types, agent/conversation IDs, data, and HMAC headers without
+/// manually navigating raw JSON.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebhookEntry {
+    /// Server-assigned timestamp when the webhook was received.
+    pub timestamp: String,
+    /// HTTP headers from the webhook request.
+    pub headers: HashMap<String, String>,
+    /// Parsed JSON body of the webhook payload.
+    pub body: serde_json::Value,
+}
+
+impl WebhookEntry {
+    /// The webhook event type (e.g. "conversation_created", "response_started").
+    pub fn event_type(&self) -> Option<&str> {
+        self.body.get("event_type").and_then(|v| v.as_str())
+    }
+
+    /// The agent ID from the webhook payload.
+    pub fn agent_id(&self) -> Option<&str> {
+        self.body.get("agent_id").and_then(|v| v.as_str())
+    }
+
+    /// The conversation ID from the webhook payload.
+    pub fn conversation_id(&self) -> Option<&str> {
+        self.body.get("conversation_id").and_then(|v| v.as_str())
+    }
+
+    /// The event-specific data payload.
+    pub fn data(&self) -> Option<&serde_json::Value> {
+        self.body.get("data")
+    }
+
+    /// Whether the `X-Webhook-Signature` header is present.
+    pub fn has_signature(&self) -> bool {
+        self.headers.contains_key("x-webhook-signature")
+    }
+
+    /// Whether the `X-Webhook-Timestamp` header is present.
+    pub fn has_timestamp_header(&self) -> bool {
+        self.headers.contains_key("x-webhook-timestamp")
+    }
+}
+
+/// A collected set of webhook entries with query/assertion helpers.
+#[derive(Debug, Clone)]
+pub struct WebhookLog {
+    pub entries: Vec<WebhookEntry>,
+}
+
+impl WebhookLog {
+    /// All distinct event types present in the log.
+    pub fn event_types(&self) -> Vec<String> {
+        self.entries
+            .iter()
+            .filter_map(|e| e.event_type().map(|s| s.to_string()))
+            .collect()
+    }
+
+    /// All distinct event types, deduplicated.
+    pub fn unique_event_types(&self) -> Vec<String> {
+        let mut types = self.event_types();
+        types.sort();
+        types.dedup();
+        types
+    }
+
+    /// Filter entries by event type.
+    pub fn by_type(&self, event_type: &str) -> Vec<&WebhookEntry> {
+        self.entries
+            .iter()
+            .filter(|e| e.event_type() == Some(event_type))
+            .collect()
+    }
+
+    /// Whether any entry has the given event type.
+    pub fn has_type(&self, event_type: &str) -> bool {
+        self.entries.iter().any(|e| e.event_type() == Some(event_type))
+    }
+
+    /// Filter entries by conversation ID.
+    pub fn by_conversation(&self, conv_id: &str) -> Vec<&WebhookEntry> {
+        self.entries
+            .iter()
+            .filter(|e| e.conversation_id() == Some(conv_id))
+            .collect()
+    }
+
+    /// Assert that a given event type is present, with a descriptive panic message.
+    pub fn assert_has_type(&self, event_type: &str) {
+        assert!(
+            self.has_type(event_type),
+            "expected webhook event type '{}' not found in log; got: {:?}",
+            event_type,
+            self.unique_event_types()
+        );
+    }
+
+    /// Assert that every entry has a valid `agent_id` field.
+    pub fn assert_all_have_agent_id(&self) {
+        for entry in &self.entries {
+            assert!(
+                entry.agent_id().is_some(),
+                "webhook body should have agent_id: {:?}",
+                entry.body
+            );
+        }
+    }
+
+    /// Assert that every entry has a valid `conversation_id` field.
+    pub fn assert_all_have_conversation_id(&self) {
+        for entry in &self.entries {
+            assert!(
+                entry.conversation_id().is_some(),
+                "webhook body should have conversation_id: {:?}",
+                entry.body
+            );
+        }
+    }
+
+    /// Assert that at least one entry has the `X-Webhook-Signature` header.
+    pub fn assert_has_signature_header(&self) {
+        assert!(
+            self.entries.iter().any(|e| e.has_signature()),
+            "at least one webhook should have x-webhook-signature header"
+        );
+    }
+
+    /// Assert that at least one entry has the `X-Webhook-Timestamp` header.
+    pub fn assert_has_timestamp_header(&self) {
+        assert!(
+            self.entries.iter().any(|e| e.has_timestamp_header()),
+            "at least one webhook should have x-webhook-timestamp header"
+        );
+    }
+
+    /// Number of entries in the log.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Whether the log is empty.
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
 /// End-to-end test harness that manages the mock control plane and bridge
 /// processes. Each test should create its own harness to ensure isolation.
 pub struct TestHarness {
@@ -206,6 +356,7 @@ impl TestHarness {
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
             .env("BRIDGE_LOG_LEVEL", "debug")
+            .env("BRIDGE_WEBHOOK_URL", format!("{}/webhooks/receive", cp_base_url))
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -355,6 +506,7 @@ impl TestHarness {
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
             .env("BRIDGE_LOG_LEVEL", "info")
             .env("SEARCH_ENDPOINT", format!("{}/search", &cp_base_url))
+            .env("BRIDGE_WEBHOOK_URL", format!("{}/webhooks/receive", cp_base_url))
             .stdout(Stdio::from(bridge_stdout_log))
             .stderr(Stdio::from(bridge_stderr_log))
             .spawn()
@@ -1486,8 +1638,9 @@ impl TestHarness {
         Ok(())
     }
 
-    /// GET /webhooks/log on the mock control plane — retrieve received webhooks.
-    pub async fn get_webhook_log(&self) -> Result<Vec<serde_json::Value>> {
+    /// GET /webhooks/log on the mock control plane — retrieve received webhooks
+    /// as raw JSON values (kept for backwards compatibility).
+    pub async fn get_webhook_log_raw(&self) -> Result<Vec<serde_json::Value>> {
         let resp = self
             .client
             .get(format!("{}/webhooks/log", self.cp_base_url))
@@ -1500,6 +1653,60 @@ impl TestHarness {
             .await
             .context("failed to parse webhook log body")?;
         Ok(body)
+    }
+
+    /// GET /webhooks/log on the mock control plane — retrieve received webhooks
+    /// as typed [`WebhookLog`] with query helpers.
+    pub async fn get_webhook_log(&self) -> Result<WebhookLog> {
+        let raw = self.get_webhook_log_raw().await?;
+        let entries: Vec<WebhookEntry> = raw
+            .into_iter()
+            .map(|v| serde_json::from_value(v).expect("failed to deserialize WebhookEntry"))
+            .collect();
+        Ok(WebhookLog { entries })
+    }
+
+    /// Poll the webhook log until at least `min_count` entries are present, or
+    /// until `timeout` elapses. Returns the final [`WebhookLog`].
+    ///
+    /// Useful because webhook dispatch is fire-and-forget with retries, so
+    /// there is a brief delivery delay.
+    pub async fn wait_for_webhooks(
+        &self,
+        min_count: usize,
+        timeout: Duration,
+    ) -> Result<WebhookLog> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let log = self.get_webhook_log().await?;
+            if log.len() >= min_count {
+                return Ok(log);
+            }
+            if Instant::now() >= deadline {
+                return Ok(log);
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+    }
+
+    /// Poll the webhook log until a specific event type is present, or until
+    /// `timeout` elapses.
+    pub async fn wait_for_webhook_type(
+        &self,
+        event_type: &str,
+        timeout: Duration,
+    ) -> Result<WebhookLog> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let log = self.get_webhook_log().await?;
+            if log.has_type(event_type) {
+                return Ok(log);
+            }
+            if Instant::now() >= deadline {
+                return Ok(log);
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
     }
 
     /// DELETE /webhooks/log on the mock control plane — clear the webhook log.

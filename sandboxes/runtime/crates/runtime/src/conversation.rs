@@ -2,6 +2,7 @@ use bridge_core::conversation::{Message, Role};
 use bridge_core::AgentMetrics;
 use llm::{SseEvent, TokenUsage};
 use rig::completion::Prompt;
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -10,6 +11,7 @@ use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification, AGENT_CONTEXT};
 use tools::ToolExecutor;
 use tracing::{debug, error, info, warn};
+use webhooks::WebhookContext;
 
 use crate::agent_runner::AgentSessionStore;
 
@@ -65,6 +67,8 @@ pub struct ConversationParams {
     pub retry_agent: Arc<llm::BridgeAgent>,
     /// Shared abort token — holds the current turn's CancellationToken.
     pub abort_token: Arc<Mutex<CancellationToken>>,
+    /// Optional webhook context for dispatching webhook events alongside SSE.
+    pub webhook_ctx: Option<WebhookContext>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -94,6 +98,7 @@ pub async fn run_conversation(params: ConversationParams) {
         initial_history,
         retry_agent,
         abort_token,
+        webhook_ctx,
     } = params;
 
     info!(
@@ -144,7 +149,13 @@ pub async fn run_conversation(params: ConversationParams) {
                         message: format!("max turns ({}) exceeded", max),
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "max_turns_exceeded", "message": format!("max turns ({}) exceeded", max)}), &wh.url, &wh.secret));
+                }
                 let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                }
                 break;
             }
         }
@@ -175,6 +186,9 @@ pub async fn run_conversation(params: ConversationParams) {
                 message_id: msg_id.clone(),
             })
             .await;
+        if let Some(ref wh) = webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::response_started(&agent_id, &conversation_id, &wh.url, &wh.secret));
+        }
 
         let start = std::time::Instant::now();
 
@@ -196,6 +210,9 @@ pub async fn run_conversation(params: ConversationParams) {
         let turn_cancel_clone = turn_cancel.clone();
         let tool_names_clone = tool_names.clone();
         let tool_executors_clone = tool_executors.clone();
+        let webhook_ctx_clone = webhook_ctx.clone();
+        let agent_id_clone = agent_id.clone();
+        let conversation_id_clone = conversation_id.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
@@ -204,6 +221,9 @@ pub async fn run_conversation(params: ConversationParams) {
                 cancel: turn_cancel_clone,
                 tool_names: tool_names_clone,
                 tool_executors: tool_executors_clone,
+                webhook_ctx: webhook_ctx_clone,
+                agent_id: agent_id_clone,
+                conversation_id: conversation_id_clone,
             };
             let fut = async {
                 agent_clone
@@ -232,13 +252,23 @@ pub async fn run_conversation(params: ConversationParams) {
             // Turn-level abort (user requested abort)
             _ = turn_cancel.cancelled() => {
                 info!(conversation_id = conversation_id, "turn aborted by user");
+                // Remove the user message we pushed before the agent call —
+                // no assistant response was generated, so leaving it would
+                // create consecutive user messages in history.
+                history.pop();
                 let _ = sse_tx
                     .send(SseEvent::Error {
                         code: "aborted".to_string(),
                         message: "Turn aborted by user".to_string(),
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "aborted", "message": "Turn aborted by user"}), &wh.url, &wh.secret));
+                }
                 let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                }
                 turn_count += 1;
                 continue;
             }
@@ -268,7 +298,13 @@ pub async fn run_conversation(params: ConversationParams) {
                         ),
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_timeout", "message": format!("agent chat timed out after {}s", AGENT_CHAT_TIMEOUT.as_secs())}), &wh.url, &wh.secret));
+                }
                 let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                }
             }
             // Task was cancelled (oneshot sender dropped)
             Ok(Err(_)) => {
@@ -283,7 +319,13 @@ pub async fn run_conversation(params: ConversationParams) {
                         message: "agent chat task cancelled".to_string(),
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_error", "message": "agent chat task cancelled"}), &wh.url, &wh.secret));
+                }
                 let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                }
             }
             // Got result from agent
             Ok(Ok((result, mut enriched_history))) => {
@@ -322,7 +364,13 @@ pub async fn run_conversation(params: ConversationParams) {
                                     message: format!("agent error: {}", e),
                                 })
                                 .await;
+                            if let Some(ref wh) = webhook_ctx {
+                                wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_error", "message": format!("agent error: {}", e)}), &wh.url, &wh.secret));
+                            }
                             let _ = sse_tx.send(SseEvent::Done).await;
+                            if let Some(ref wh) = webhook_ctx {
+                                wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                            }
                             turn_count += 1;
                             continue;
                         }
@@ -351,6 +399,9 @@ pub async fn run_conversation(params: ConversationParams) {
                         let tool_names_clone = tool_names.clone();
                         let tool_executors_clone = tool_executors.clone();
                         let agent_context_clone = agent_context.clone();
+                        let webhook_ctx_clone = webhook_ctx.clone();
+                        let agent_id_clone = agent_id.clone();
+                        let conversation_id_clone = conversation_id.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
                         let cont_prompt = "Continue working on the task. If you have completed all the work, provide a final text summary of what you did and what you found.".to_string();
@@ -361,6 +412,9 @@ pub async fn run_conversation(params: ConversationParams) {
                                 cancel: turn_cancel_clone,
                                 tool_names: tool_names_clone,
                                 tool_executors: tool_executors_clone,
+                                webhook_ctx: webhook_ctx_clone,
+                                agent_id: agent_id_clone,
+                                conversation_id: conversation_id_clone,
                             };
                             let fut = async {
                                 agent_clone
@@ -475,6 +529,9 @@ pub async fn run_conversation(params: ConversationParams) {
                         message_id: msg_id.clone(),
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::response_chunk(&agent_id, &conversation_id, json!({"delta": &response}), &wh.url, &wh.secret));
+                }
 
                 // Replace main history with the enriched version so that
                 // subsequent turns preserve full tool-call context.
@@ -493,7 +550,13 @@ pub async fn run_conversation(params: ConversationParams) {
                         },
                     })
                     .await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::response_completed(&agent_id, &conversation_id, json!({"input_tokens": initial_input_tokens, "output_tokens": initial_output_tokens}), &wh.url, &wh.secret));
+                }
                 let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                }
             }
         }
 

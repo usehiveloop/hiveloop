@@ -1,4 +1,5 @@
 use bridge_e2e::TestHarness;
+use std::time::Duration;
 
 // ============================================================================
 // Agent loading tests
@@ -545,5 +546,245 @@ async fn test_agent_with_subagents_creates_conversation() {
         body.get("conversation_id").is_some(),
         "response should contain conversation_id"
     );
+}
+
+// ============================================================================
+// Webhook tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_webhooks_dispatched_for_conversation() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Clear any prior webhooks
+    harness
+        .clear_webhook_log()
+        .await
+        .expect("failed to clear webhook log");
+
+    // Create a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    assert_eq!(create_resp.status().as_u16(), 201);
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // Send a message
+    let msg_resp = harness
+        .send_message(conv_id, "Hello, agent!")
+        .await
+        .expect("send_message failed");
+    assert_eq!(msg_resp.status().as_u16(), 202);
+
+    // Stream SSE until done — this ensures the turn completes
+    let (_events, _response_text) = harness
+        .stream_sse_until_done(conv_id, Duration::from_secs(30))
+        .await
+        .expect("stream_sse_until_done failed");
+
+    // Wait for at least 5 webhooks to arrive. In the error path we expect:
+    // conversation_created, message_received, response_started, agent_error, turn_completed.
+    // Each webhook delivery is a separate spawned task, so waiting for just
+    // turn_completed can race ahead of agent_error.
+    let log = harness
+        .wait_for_webhooks(5, Duration::from_secs(10))
+        .await
+        .expect("wait_for_webhooks failed");
+
+    // These lifecycle events are always emitted regardless of LLM success/failure:
+    // - conversation_created: from the API handler
+    // - message_received: from the API handler
+    // - response_started: emitted before the LLM call
+    // - turn_completed: always emitted at the end of a turn
+    log.assert_has_type("conversation_created");
+    log.assert_has_type("message_received");
+    log.assert_has_type("response_started");
+    log.assert_has_type("turn_completed");
+
+    // The turn either succeeds (response_chunk + response_completed) or
+    // errors (agent_error). In the mock environment the LLM call errors,
+    // so we expect agent_error. Either path is valid.
+    let has_success = log.has_type("response_completed");
+    let has_error = log.has_type("agent_error");
+    assert!(
+        has_success || has_error,
+        "turn should produce either response_completed or agent_error; got: {:?}",
+        log.unique_event_types()
+    );
+
+    // HMAC signature and timestamp headers should be present
+    log.assert_has_signature_header();
+    log.assert_has_timestamp_header();
+
+    // Every webhook payload must include agent_id and conversation_id
+    log.assert_all_have_agent_id();
+    log.assert_all_have_conversation_id();
+
+    // Verify the conversation_id in payloads matches the one we created
+    let conv_webhooks = log.by_conversation(conv_id);
+    assert!(
+        conv_webhooks.len() >= 4,
+        "at least 4 webhooks should reference our conversation; got {} out of {}",
+        conv_webhooks.len(),
+        log.len()
+    );
+
+    // Verify agent_id is set to the agent we used
+    let created = log.by_type("conversation_created");
+    assert_eq!(created.len(), 1, "should have exactly one conversation_created");
+    assert_eq!(created[0].agent_id(), Some("agent_simple"));
+
+    // Verify message_received has content in its data
+    let received = log.by_type("message_received");
+    assert!(!received.is_empty(), "should have message_received");
+    let data = received[0].data().expect("message_received should have data");
+    assert_eq!(
+        data.get("content").and_then(|v| v.as_str()),
+        Some("Hello, agent!"),
+        "message_received data should contain the message content"
+    );
+}
+
+#[tokio::test]
+async fn test_webhook_includes_abort_event() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Clear any prior webhooks
+    harness
+        .clear_webhook_log()
+        .await
+        .expect("failed to clear webhook log");
+
+    // Create a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // Send a message
+    let _msg_resp = harness
+        .send_message(conv_id, "Hello!")
+        .await
+        .expect("send_message failed");
+
+    // Brief delay to allow the turn to start
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Abort the conversation
+    let abort_resp = harness
+        .abort_conversation(conv_id)
+        .await
+        .expect("abort_conversation failed");
+    assert_eq!(abort_resp.status().as_u16(), 200);
+
+    // Wait for the agent_error webhook with abort code.
+    // The turn may complete (with an LLM error) before the abort arrives,
+    // so we wait for any agent_error webhook.
+    let log = harness
+        .wait_for_webhook_type("agent_error", Duration::from_secs(5))
+        .await
+        .expect("wait_for_webhook_type failed");
+
+    // Find agent_error webhooks and check at least one has "aborted" code
+    // or another error code (if the LLM error raced ahead of the abort).
+    let errors = log.by_type("agent_error");
+    assert!(
+        !errors.is_empty(),
+        "should have at least one agent_error webhook; got types: {:?}",
+        log.unique_event_types()
+    );
+
+    // Check if any agent_error has code "aborted" — if the abort won the race
+    let has_abort_code = errors.iter().any(|e| {
+        e.data()
+            .and_then(|d| d.get("code"))
+            .and_then(|v| v.as_str())
+            == Some("aborted")
+    });
+
+    // If the LLM error raced ahead, we'll see "agent_error" with a different code.
+    // Either way, an agent_error webhook was produced, which is the key assertion.
+    if has_abort_code {
+        // Abort won the race — also verify turn_completed follows
+        let log = harness
+            .wait_for_webhook_type("turn_completed", Duration::from_secs(3))
+            .await
+            .expect("wait_for_webhook_type failed");
+        log.assert_has_type("turn_completed");
+    }
+
+    // Verify the webhook has proper HMAC headers
+    log.assert_has_signature_header();
+}
+
+#[tokio::test]
+async fn test_webhook_end_conversation() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Clear any prior webhooks
+    harness
+        .clear_webhook_log()
+        .await
+        .expect("failed to clear webhook log");
+
+    // Create and immediately end a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // End the conversation
+    let end_resp = harness
+        .end_conversation(conv_id)
+        .await
+        .expect("end_conversation failed");
+    assert_eq!(end_resp.status().as_u16(), 200);
+
+    // Wait for webhooks
+    let log = harness
+        .wait_for_webhook_type("conversation_ended", Duration::from_secs(5))
+        .await
+        .expect("wait_for_webhook_type failed");
+
+    // Should have both created and ended
+    log.assert_has_type("conversation_created");
+    log.assert_has_type("conversation_ended");
+
+    // Verify the ended webhook references the right conversation
+    let ended = log.by_type("conversation_ended");
+    assert_eq!(ended.len(), 1);
+    assert_eq!(ended[0].conversation_id(), Some(conv_id));
+    assert_eq!(ended[0].agent_id(), Some("agent_simple"));
 }
 

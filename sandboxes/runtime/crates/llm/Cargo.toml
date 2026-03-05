@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bridge_core = { workspace = true }
 tools = { workspace = true }
+webhooks = { workspace = true }
 rig-core = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }

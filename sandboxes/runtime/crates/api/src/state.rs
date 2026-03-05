@@ -4,6 +4,7 @@ use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
+use webhooks::WebhookContext;
 
 /// Shared application state for all request handlers.
 #[derive(Clone)]
@@ -18,16 +19,23 @@ pub struct AppState {
     pub sse_streams: Arc<DashMap<String, mpsc::Receiver<SseEvent>>>,
     /// API key for authenticating control plane push requests.
     pub control_plane_api_key: String,
+    /// Optional webhook context for dispatching webhook events.
+    pub webhook_ctx: Option<WebhookContext>,
 }
 
 impl AppState {
     /// Create a new application state.
-    pub fn new(supervisor: Arc<AgentSupervisor>, control_plane_api_key: String) -> Self {
+    pub fn new(
+        supervisor: Arc<AgentSupervisor>,
+        control_plane_api_key: String,
+        webhook_ctx: Option<WebhookContext>,
+    ) -> Self {
         Self {
             supervisor,
             startup_time: Instant::now(),
             sse_streams: Arc::new(DashMap::new()),
             control_plane_api_key,
+            webhook_ctx,
         }
     }
 }

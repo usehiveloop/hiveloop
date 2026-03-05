@@ -108,9 +108,9 @@ pub fn tool_definitions() -> Vec<Value> {
             "properties": {
                 "issueId": {"type": "string"},
                 "relatedIssueId": {"type": "string"},
-                "type": {"type": "string", "description": "blocks or is_blocked_by"}
+                "dependencyType": {"type": "string", "description": "blocks or is_blocked_by"}
             },
-            "required": ["issueId", "relatedIssueId", "type"]
+            "required": ["issueId", "relatedIssueId", "dependencyType"]
         })),
         tool("removeIssueDependency", "Remove a dependency", json!({
             "type": "object",

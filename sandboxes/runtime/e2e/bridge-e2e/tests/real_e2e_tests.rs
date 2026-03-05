@@ -1017,10 +1017,12 @@ async fn test_abort_conversation() {
         msg_resp.status()
     );
 
-    // Start reading the SSE stream in a background task, while we send the abort.
-    // This ensures we don't miss any events.
+    // Start a single SSE connection that reads across BOTH turns (abort + second turn).
+    // The SSE stream endpoint removes the receiver on first connect, so we must keep
+    // this single connection alive for the entire test.
     let bridge_url = harness.bridge_url().to_string();
     let conv_id_clone = conv_id.clone();
+    let (abort_events_tx, abort_events_rx) = tokio::sync::oneshot::channel();
     let sse_reader = tokio::spawn(async move {
         use futures::StreamExt;
 
@@ -1040,9 +1042,11 @@ async fn test_abort_conversation() {
 
         let mut stream = resp.bytes_stream();
         let mut buffer = String::new();
-        let mut events: Vec<(String, serde_json::Value)> = Vec::new();
+        let mut all_events: Vec<(String, serde_json::Value)> = Vec::new();
         let mut current_event_type = String::new();
-        let deadline = std::time::Instant::now() + Duration::from_secs(60);
+        let deadline = std::time::Instant::now() + Duration::from_secs(180);
+        let mut done_count = 0usize;
+        let mut abort_events_tx = Some(abort_events_tx);
 
         loop {
             let remaining = deadline.saturating_duration_since(std::time::Instant::now());
@@ -1057,7 +1061,6 @@ async fn test_abort_conversation() {
                 Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
             }
 
-            let mut got_done = false;
             while let Some(newline_pos) = buffer.find('\n') {
                 let line = buffer[..newline_pos].trim_end().to_string();
                 buffer = buffer[newline_pos + 1..].to_string();
@@ -1084,21 +1087,31 @@ async fn test_abort_conversation() {
                         "message".to_string()
                     };
 
+                    all_events.push((event_type.clone(), data));
+
                     if event_type == "done" {
-                        events.push((event_type, data));
-                        got_done = true;
-                        break;
+                        done_count += 1;
+                        if done_count == 1 {
+                            // First done = abort turn finished. Send abort events back.
+                            if let Some(tx) = abort_events_tx.take() {
+                                let _ = tx.send(all_events.clone());
+                            }
+                        }
+                        if done_count >= 2 {
+                            // Second done = second turn finished. We're done.
+                            return all_events;
+                        }
                     }
-                    events.push((event_type, data));
                     current_event_type.clear();
                 }
             }
-            if got_done {
-                break;
-            }
         }
 
-        events
+        // If we exit the loop without 2 dones, send abort events if not yet sent
+        if let Some(tx) = abort_events_tx.take() {
+            let _ = tx.send(all_events.clone());
+        }
+        all_events
     });
 
     // Wait for the LLM call to begin processing, then abort.
@@ -1124,36 +1137,36 @@ async fn test_abort_conversation() {
         "abort response should have status: aborted"
     );
 
-    // Collect SSE events from the background reader
-    let events = sse_reader.await.expect("SSE reader task panicked");
+    // Wait for abort events from the SSE reader
+    let abort_events = abort_events_rx.await.expect("abort events channel closed");
     let abort_latency = abort_start.elapsed();
 
     eprintln!(
         "[abort] abort latency: {:?}, collected {} events: {:?}",
         abort_latency,
-        events.len(),
-        events
+        abort_events.len(),
+        abort_events
             .iter()
             .map(|(t, d)| format!("{}:{}", t, &d.to_string()[..d.to_string().len().min(120)]))
             .collect::<Vec<_>>()
     );
 
     // Verify we got an error event with code "aborted"
-    let abort_event = events.iter().find(|(t, d)| {
+    let abort_event = abort_events.iter().find(|(t, d)| {
         t == "error"
             && d.get("code").and_then(|c| c.as_str()) == Some("aborted")
     });
     assert!(
         abort_event.is_some(),
         "expected an error event with code 'aborted'. Events: {:?}",
-        events
+        abort_events
             .iter()
             .map(|(t, d)| format!("{}:{}", t, d))
             .collect::<Vec<_>>()
     );
 
     // Verify we got a done event
-    let done_event = events.iter().find(|(t, _)| t == "done");
+    let done_event = abort_events.iter().find(|(t, _)| t == "done");
     assert!(
         done_event.is_some(),
         "expected a 'done' event after abort"
@@ -1169,7 +1182,8 @@ async fn test_abort_conversation() {
     );
 
     // Now verify the conversation is still usable — send another message
-    // and expect a normal response.
+    // and expect a normal response. The SSE reader is still connected and
+    // will collect events for the second turn.
     let msg2_resp = harness
         .send_message(&conv_id, "What is Rust known for? Answer in one sentence.")
         .await
@@ -1181,25 +1195,45 @@ async fn test_abort_conversation() {
         msg2_resp.status()
     );
 
-    // Read the second turn's SSE events — use stream_sse_until_done_count with 1
-    // since the SSE connection was consumed by the first reader
-    let (events2, response2) = harness
-        .stream_sse_until_done(&conv_id, LLM_TIMEOUT)
-        .await
-        .expect("stream SSE events for second turn");
+    // Wait for the SSE reader to collect the second turn's events (until 2nd done)
+    let all_events = sse_reader.await.expect("SSE reader task panicked");
 
+    // Find events after the first done (second turn's events)
+    let first_done_idx = all_events
+        .iter()
+        .position(|(t, _)| t == "done")
+        .expect("should have at least one done event");
+    let turn2_events: Vec<_> = all_events[first_done_idx + 1..].to_vec();
+
+    // Extract response text from second turn's content_delta events
+    let response2: String = turn2_events
+        .iter()
+        .filter(|(t, _)| t == "content_delta")
+        .filter_map(|(_, d)| d.get("delta").and_then(|d| d.as_str()))
+        .collect();
+
+    // Log the second turn's response in the same format as other conversation tests
+    let turn2_elapsed = abort_start.elapsed();
     eprintln!(
-        "[abort turn2] response: {} chars, events: {}",
-        response2.len(),
-        events2.len()
+        "[researcher] \n\
+         [researcher] ================================================================================\n\
+         [researcher] ASSISTANT RESPONSE (complete)\n\
+         [researcher] ================================================================================\n\
+         [researcher] {}\n\
+         [researcher] \n\
+         [researcher] ================================================================================\n\
+         [researcher] TURN COMPLETED ({:.1}s)\n\
+         [researcher] ================================================================================\n",
+        if response2.is_empty() { "[empty response]" } else { &response2 },
+        turn2_elapsed.as_secs_f64()
     );
 
     assert!(
         !response2.is_empty(),
         "conversation should still work after abort — second turn returned empty response. Events: {:?}",
-        events2
+        turn2_events
             .iter()
-            .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(200)]))
+            .map(|(t, d)| format!("{}:{}", t, &d.to_string()[..d.to_string().len().min(200)]))
             .collect::<Vec<_>>()
     );
 
