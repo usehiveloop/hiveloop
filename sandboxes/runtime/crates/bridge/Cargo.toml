@@ -3,18 +3,25 @@ name = "bridge"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+openapi = ["api/openapi", "dep:utoipa"]
+
 [[bin]]
 name = "bridge"
 path = "src/main.rs"
 
+[[bin]]
+name = "gen-openapi"
+path = "src/bin/gen_openapi.rs"
+required-features = ["openapi"]
+
 [dependencies]
 bridge_core = { workspace = true }
+lsp = { workspace = true }
 runtime = { workspace = true }
 api = { workspace = true }
-sync = { workspace = true }
 webhooks = { workspace = true }
 mcp = { workspace = true }
-reqwest = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
@@ -23,3 +30,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
+utoipa = { workspace = true, optional = true }

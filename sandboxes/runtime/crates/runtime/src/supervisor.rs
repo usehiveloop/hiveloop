@@ -2,6 +2,7 @@ use bridge_core::conversation::{ContentBlock, ConversationRecord, Message, Role}
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
 use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, SseEvent};
+use lsp::LspManager;
 use mcp::McpManager;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -25,6 +26,8 @@ pub struct AgentSupervisor {
     agent_map: AgentMap,
     /// MCP connection manager shared across agents.
     mcp_manager: Arc<McpManager>,
+    /// LSP manager shared across agents (optional).
+    lsp_manager: Option<Arc<LspManager>>,
     /// Global cancellation token.
     cancel: CancellationToken,
 }
@@ -35,6 +38,21 @@ impl AgentSupervisor {
         Self {
             agent_map: AgentMap::new(),
             mcp_manager,
+            lsp_manager: None,
+            cancel,
+        }
+    }
+
+    /// Create a new supervisor with LSP support.
+    pub fn with_lsp(
+        mcp_manager: Arc<McpManager>,
+        lsp_manager: Arc<LspManager>,
+        cancel: CancellationToken,
+    ) -> Self {
+        Self {
+            agent_map: AgentMap::new(),
+            mcp_manager,
+            lsp_manager: Some(lsp_manager),
             cancel,
         }
     }
@@ -76,11 +94,15 @@ impl AgentSupervisor {
             .map(|t| t.name.clone())
             .collect();
         if builtin_tool_names.is_empty() {
-            tools::builtin::register_builtin_tools(&mut tool_registry);
+            tools::builtin::register_builtin_tools_with_lsp(
+                &mut tool_registry,
+                self.lsp_manager.clone(),
+            );
         } else {
-            tools::builtin::register_filtered_builtin_tools(
+            tools::builtin::register_filtered_builtin_tools_with_lsp(
                 &mut tool_registry,
                 &builtin_tool_names,
+                self.lsp_manager.clone(),
             );
         }
 
@@ -358,11 +380,15 @@ impl AgentSupervisor {
             .map(|t| t.name.clone())
             .collect();
         if builtin_tool_names.is_empty() {
-            tools::builtin::register_builtin_tools(&mut tool_registry);
+            tools::builtin::register_builtin_tools_with_lsp(
+                &mut tool_registry,
+                self.lsp_manager.clone(),
+            );
         } else {
-            tools::builtin::register_filtered_builtin_tools(
+            tools::builtin::register_filtered_builtin_tools_with_lsp(
                 &mut tool_registry,
                 &builtin_tool_names,
+                self.lsp_manager.clone(),
             );
         }
 
@@ -537,6 +563,11 @@ impl AgentSupervisor {
                 state.tracker.wait().await;
             }
             self.mcp_manager.disconnect_agent(&agent_id).await;
+        }
+
+        // Shut down LSP servers
+        if let Some(ref lsp) = self.lsp_manager {
+            lsp.shutdown().await;
         }
 
         info!("all agents shut down");

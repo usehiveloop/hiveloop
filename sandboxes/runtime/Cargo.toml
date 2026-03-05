@@ -3,11 +3,11 @@ resolver = "2"
 members = [
     "crates/core",
     "crates/llm",
+    "crates/lsp",
     "crates/mcp",
     "crates/tools",
     "crates/runtime",
     "crates/api",
-    "crates/sync",
     "crates/webhooks",
     "crates/bridge",
     "e2e/mock-control-plane",
@@ -97,11 +97,20 @@ fuzzy-matcher = "0.3"
 # String similarity (Levenshtein distance)
 strsim = "0.11"
 
+# Unified diff generation
+similar = "2"
+
+# Unix process management
+libc = "0.2"
+
 # MIME types
 mime = "0.3"
 
 # Unicode
 unicode-normalization = "0.1"
+
+# OpenAPI
+utoipa = { version = "5", features = ["chrono"] }
 
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
@@ -116,11 +125,11 @@ http = "1"
 # Rust crate name (std::core). All other crates use their package name directly.
 bridge_core = { path = "crates/core", package = "core" }
 llm = { path = "crates/llm" }
+lsp = { path = "crates/lsp" }
 mcp = { path = "crates/mcp" }
 tools = { path = "crates/tools" }
 runtime = { path = "crates/runtime" }
 api = { path = "crates/api" }
-sync = { path = "crates/sync" }
 webhooks = { path = "crates/webhooks" }
 
 # Dev dependencies

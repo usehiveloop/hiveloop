@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::ToolExecutor;
 
 /// A single tool call within a batch.
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct BatchToolCall {
     /// The name of the tool to call.
     pub tool: String,
@@ -79,8 +79,20 @@ impl ToolExecutor for BatchTool {
             return Err("No tool calls provided".to_string());
         }
 
-        // Cap at MAX_BATCH_SIZE
-        let calls: Vec<_> = args.tool_calls.into_iter().take(MAX_BATCH_SIZE).collect();
+        // Separate calls within limit and discarded calls beyond limit
+        let all_calls = args.tool_calls;
+        let (calls, discarded): (Vec<_>, Vec<_>) = {
+            let mut within = Vec::new();
+            let mut beyond = Vec::new();
+            for (i, call) in all_calls.into_iter().enumerate() {
+                if i < MAX_BATCH_SIZE {
+                    within.push(call);
+                } else {
+                    beyond.push(call);
+                }
+            }
+            (within, beyond)
+        };
 
         // Disallow recursive batch calls
         for call in &calls {
@@ -101,11 +113,23 @@ impl ToolExecutor for BatchTool {
                     let tool = match tools.get(&tool_name) {
                         Some(t) => t,
                         None => {
+                            const FILTERED_FROM_SUGGESTIONS: &[&str] =
+                                &["invalid", "patch", "batch", "apply_patch"];
+                            let available: Vec<&str> = tools
+                                .keys()
+                                .map(|k| k.as_str())
+                                .filter(|k| !FILTERED_FROM_SUGGESTIONS.contains(k))
+                                .collect();
+                            let msg = format!(
+                                "Tool '{}' not in registry. External tools (MCP, environment) cannot be batched \u{2014} call them directly. Available tools: {}",
+                                tool_name,
+                                available.join(", ")
+                            );
                             return BatchCallResult {
                                 success: false,
                                 tool: tool_name,
                                 result: None,
-                                error: Some("Tool not found".to_string()),
+                                error: Some(msg),
                             };
                         }
                     };
@@ -133,7 +157,17 @@ impl ToolExecutor for BatchTool {
             })
             .collect();
 
-        let results = futures::future::join_all(futures).await;
+        let mut results = futures::future::join_all(futures).await;
+
+        // Add error results for discarded calls beyond MAX_BATCH_SIZE
+        for discarded_call in &discarded {
+            results.push(BatchCallResult {
+                success: false,
+                tool: discarded_call.tool.clone(),
+                result: None,
+                error: Some(format!("Maximum of {} tools allowed in batch", MAX_BATCH_SIZE)),
+            });
+        }
 
         let total = results.len();
         let succeeded = results.iter().filter(|r| r.success).count();
@@ -146,8 +180,31 @@ impl ToolExecutor for BatchTool {
             failed,
         };
 
-        serde_json::to_string(&batch_result)
-            .map_err(|e| format!("Failed to serialize result: {e}"))
+        let serialized = if failed == 0 {
+            let msg = format!(
+                "All {} tools executed successfully.\n\nKeep using the batch tool for optimal performance!",
+                succeeded
+            );
+            serde_json::json!({
+                "results": batch_result.results,
+                "total": batch_result.total,
+                "succeeded": batch_result.succeeded,
+                "failed": batch_result.failed,
+                "message": msg,
+            })
+            .to_string()
+        } else {
+            serde_json::to_string(&batch_result)
+                .map_err(|e| format!("Failed to serialize result: {e}"))?
+        };
+
+        // Apply shared truncation for large aggregated results
+        let truncated = crate::truncation::truncate_output(
+            &serialized,
+            crate::truncation::MAX_LINES,
+            crate::truncation::MAX_BYTES,
+        );
+        Ok(truncated.content)
     }
 }
 
@@ -249,7 +306,9 @@ mod tests {
         let parsed: BatchResult = serde_json::from_str(&result).expect("parse");
 
         assert_eq!(parsed.failed, 1);
-        assert!(parsed.results[0].error.as_ref().unwrap().contains("not found"));
+        let err_msg = parsed.results[0].error.as_ref().unwrap();
+        assert!(err_msg.contains("not in registry"), "error should mention 'not in registry': {err_msg}");
+        assert!(err_msg.contains("Available tools:"), "error should list available tools: {err_msg}");
     }
 
     #[tokio::test]
@@ -263,6 +322,35 @@ mod tests {
 
         let err = tool.execute(args).await.unwrap_err();
         assert!(err.contains("Recursive"));
+    }
+
+    #[tokio::test]
+    async fn test_batch_encouragement_on_success() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "echo", "parameters": { "msg": "a" } },
+                { "tool": "echo", "parameters": { "msg": "b" } }
+            ]
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        assert!(result.contains("successfully"), "should have encouragement message: {result}");
+        assert!(result.contains("batch tool"), "should encourage batch usage: {result}");
+    }
+
+    #[tokio::test]
+    async fn test_batch_no_encouragement_on_failure() {
+        let tool = make_batch_tool();
+        let args = serde_json::json!({
+            "tool_calls": [
+                { "tool": "echo", "parameters": {} },
+                { "tool": "fail", "parameters": {} }
+            ]
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        assert!(!result.contains("successfully"), "should NOT have encouragement on failure");
     }
 
     #[tokio::test]

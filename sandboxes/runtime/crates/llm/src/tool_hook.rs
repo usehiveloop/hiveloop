@@ -1,3 +1,4 @@
+use crate::streaming::TodoItem;
 use crate::SseEvent;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
@@ -7,6 +8,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentTaskNotification, AgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
+use tools::todo::TodoWriteResult;
 use tools::ToolExecutor;
 use tracing::debug;
 
@@ -140,6 +142,22 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 is_error: false,
             })
             .await;
+
+        // Emit a structured TodoUpdated event when the todowrite tool completes.
+        if tool_name == "todowrite" {
+            if let Ok(parsed) = serde_json::from_str::<TodoWriteResult>(result) {
+                let todos: Vec<TodoItem> = parsed
+                    .todos
+                    .into_iter()
+                    .map(|t| TodoItem {
+                        content: t.content,
+                        status: t.status,
+                        priority: t.priority,
+                    })
+                    .collect();
+                let _ = self.sse_tx.send(SseEvent::TodoUpdated { todos }).await;
+            }
+        }
 
         HookAction::cont()
     }

@@ -1,8 +1,8 @@
 use async_trait::async_trait;
+use ignore::WalkBuilder;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::time::SystemTime;
 
 use crate::ToolExecutor;
 
@@ -13,33 +13,43 @@ pub struct LsArgs {
     pub path: String,
 }
 
-/// The type of a directory entry.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum EntryType {
-    Directory,
-    File,
-    Symlink,
-}
-
-/// A single directory entry.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LsEntry {
-    pub name: String,
-    pub entry_type: EntryType,
-    pub size: Option<u64>,
-    pub modified: Option<String>,
-}
-
 /// Result returned by the LS tool.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LsResult {
-    pub entries: Vec<LsEntry>,
+    pub output: String,
     pub total_entries: usize,
+    pub truncated: bool,
 }
 
 /// Maximum number of entries to return.
-const MAX_ENTRIES: usize = 1000;
+const MAX_ENTRIES: usize = 100;
+
+/// Default directories/files to ignore.
+const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
+    "node_modules",
+    "__pycache__",
+    ".git",
+    "dist",
+    "build",
+    "target",
+    "vendor",
+    "bin",
+    "obj",
+    ".idea",
+    ".vscode",
+    ".zig-cache",
+    "zig-out",
+    ".coverage",
+    "coverage",
+    "tmp",
+    "temp",
+    ".cache",
+    "cache",
+    "logs",
+    ".venv",
+    "venv",
+    "env",
+];
 
 pub struct LsTool;
 
@@ -55,13 +65,67 @@ impl Default for LsTool {
     }
 }
 
-fn format_system_time(time: SystemTime) -> Option<String> {
-    time.duration_since(SystemTime::UNIX_EPOCH)
-        .ok()
-        .and_then(|d| {
-            chrono::DateTime::from_timestamp(d.as_secs() as i64, d.subsec_nanos())
-                .map(|dt| dt.to_rfc3339())
-        })
+/// Render directory tree using ignore::WalkBuilder (respects .gitignore).
+fn render_tree(
+    root: &Path,
+    ignore_patterns: &[&str],
+    limit: usize,
+) -> Result<(String, usize, bool), String> {
+    let walker = WalkBuilder::new(root)
+        .hidden(false)
+        .git_ignore(true)
+        .build();
+
+    let mut files: Vec<String> = Vec::new();
+    for entry in walker {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
+        let relative = path.strip_prefix(root).unwrap_or(path);
+        let name = relative.to_string_lossy().to_string();
+        if name.is_empty() {
+            continue;
+        }
+
+        // Check ignore patterns on any path component
+        let should_ignore = relative.components().any(|c| {
+            let s = c.as_os_str().to_string_lossy();
+            ignore_patterns.contains(&s.as_ref())
+        });
+        if should_ignore {
+            continue;
+        }
+
+        if path.is_dir() {
+            files.push(format!("{}/", name));
+        } else {
+            files.push(name);
+        }
+
+        if files.len() >= limit {
+            break;
+        }
+    }
+
+    let truncated = files.len() >= limit;
+    let total = files.len();
+
+    // Build tree-like output with 2-space indentation
+    let mut output = String::new();
+    for f in &files {
+        let depth = f
+            .matches('/')
+            .count()
+            .saturating_sub(if f.ends_with('/') { 1 } else { 0 });
+        let indent = "  ".repeat(depth);
+        let basename = f.rsplit('/').find(|s| !s.is_empty()).unwrap_or(f);
+        let suffix = if f.ends_with('/') { "/" } else { "" };
+        output.push_str(&format!("{}{}{}\n", indent, basename, suffix));
+    }
+
+    Ok((output, total, truncated))
 }
 
 #[async_trait]
@@ -94,78 +158,18 @@ impl ToolExecutor for LsTool {
             return Err(format!("Not a directory: {dir_path}"));
         }
 
-        let mut read_dir = tokio::fs::read_dir(dir_path)
+        let root = path.to_path_buf();
+        let (output, total_entries, truncated) =
+            tokio::task::spawn_blocking(move || {
+                render_tree(&root, DEFAULT_IGNORE_PATTERNS, MAX_ENTRIES)
+            })
             .await
-            .map_err(|e| match e.kind() {
-                std::io::ErrorKind::PermissionDenied => {
-                    format!("Permission denied: {dir_path}")
-                }
-                _ => format!("Failed to read directory: {e}"),
-            })?;
-
-        let mut entries: Vec<LsEntry> = Vec::new();
-
-        while let Some(entry) = read_dir
-            .next_entry()
-            .await
-            .map_err(|e| format!("Failed to read directory entry: {e}"))?
-        {
-            let name = entry.file_name().to_string_lossy().to_string();
-
-            let metadata = match entry.metadata().await {
-                Ok(m) => m,
-                Err(_) => continue,
-            };
-
-            let file_type = entry.file_type().await.ok();
-
-            let entry_type = if file_type.as_ref().is_some_and(|ft| ft.is_symlink()) {
-                EntryType::Symlink
-            } else if metadata.is_dir() {
-                EntryType::Directory
-            } else {
-                EntryType::File
-            };
-
-            let size = if entry_type == EntryType::File {
-                Some(metadata.len())
-            } else {
-                None
-            };
-
-            let modified = metadata.modified().ok().and_then(format_system_time);
-
-            entries.push(LsEntry {
-                name,
-                entry_type,
-                size,
-                modified,
-            });
-        }
-
-        // Sort: directories first, then files, alphabetically within each group.
-        // Symlinks sort alongside files.
-        entries.sort_by(|a, b| {
-            let type_order = |t: &EntryType| -> u8 {
-                match t {
-                    EntryType::Directory => 0,
-                    EntryType::File | EntryType::Symlink => 1,
-                }
-            };
-            let ord = type_order(&a.entry_type).cmp(&type_order(&b.entry_type));
-            if ord == std::cmp::Ordering::Equal {
-                a.name.to_lowercase().cmp(&b.name.to_lowercase())
-            } else {
-                ord
-            }
-        });
-
-        let total_entries = entries.len();
-        entries.truncate(MAX_ENTRIES);
+            .map_err(|e| format!("Task join error: {e}"))??;
 
         let result = LsResult {
-            entries,
+            output,
             total_entries,
+            truncated,
         };
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
@@ -183,7 +187,10 @@ mod tests {
         let tool = LsTool::new();
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(desc.contains("absolute"), "should mention absolute path requirement");
+        assert!(
+            desc.contains("absolute"),
+            "should mention absolute path requirement"
+        );
         assert!(desc.contains("Glob"), "should mention cross-tool guidance");
         assert!(desc.contains("Grep"), "should mention cross-tool guidance");
     }
@@ -205,41 +212,10 @@ mod tests {
         let result = tool.execute(args).await.expect("execute");
         let parsed: LsResult = serde_json::from_str(&result).expect("parse");
 
-        assert_eq!(parsed.total_entries, 3);
-        // Directory should come first
-        assert_eq!(parsed.entries[0].name, "subdir");
-        assert_eq!(parsed.entries[0].entry_type, EntryType::Directory);
-        // Then files alphabetically
-        assert_eq!(parsed.entries[1].name, "file_a.txt");
-        assert_eq!(parsed.entries[2].name, "file_b.txt");
-    }
-
-    #[tokio::test]
-    async fn test_ls_directories_first() {
-        let dir = tempdir().expect("create temp dir");
-        let dir_path = dir.path();
-
-        fs::write(dir_path.join("aaa.txt"), "a").expect("write");
-        fs::create_dir(dir_path.join("zzz_dir")).expect("mkdir");
-        fs::create_dir(dir_path.join("aaa_dir")).expect("mkdir");
-
-        let tool = LsTool::new();
-        let args = serde_json::json!({
-            "path": dir_path.to_str().unwrap()
-        });
-
-        let result = tool.execute(args).await.expect("execute");
-        let parsed: LsResult = serde_json::from_str(&result).expect("parse");
-
-        assert_eq!(parsed.total_entries, 3);
-        // Directories come first, alphabetically
-        assert_eq!(parsed.entries[0].name, "aaa_dir");
-        assert_eq!(parsed.entries[0].entry_type, EntryType::Directory);
-        assert_eq!(parsed.entries[1].name, "zzz_dir");
-        assert_eq!(parsed.entries[1].entry_type, EntryType::Directory);
-        // Then files
-        assert_eq!(parsed.entries[2].name, "aaa.txt");
-        assert_eq!(parsed.entries[2].entry_type, EntryType::File);
+        assert!(parsed.total_entries >= 3);
+        assert!(parsed.output.contains("file_a.txt"));
+        assert!(parsed.output.contains("file_b.txt"));
+        assert!(parsed.output.contains("subdir/"));
     }
 
     #[tokio::test]
@@ -256,7 +232,7 @@ mod tests {
         let parsed: LsResult = serde_json::from_str(&result).expect("parse");
 
         assert_eq!(parsed.total_entries, 0);
-        assert!(parsed.entries.is_empty());
+        assert!(parsed.output.is_empty());
     }
 
     #[tokio::test]
@@ -286,11 +262,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_ls_file_has_size() {
+    async fn test_ls_ignores_node_modules() {
         let dir = tempdir().expect("create temp dir");
         let dir_path = dir.path();
 
-        fs::write(dir_path.join("test.txt"), "hello world").expect("write");
+        fs::write(dir_path.join("index.js"), "x").expect("write");
+        fs::create_dir(dir_path.join("node_modules")).expect("mkdir");
+        fs::write(dir_path.join("node_modules/dep.js"), "x").expect("write");
 
         let tool = LsTool::new();
         let args = serde_json::json!({
@@ -300,17 +278,21 @@ mod tests {
         let result = tool.execute(args).await.expect("execute");
         let parsed: LsResult = serde_json::from_str(&result).expect("parse");
 
-        assert_eq!(parsed.entries.len(), 1);
-        assert_eq!(parsed.entries[0].name, "test.txt");
-        assert_eq!(parsed.entries[0].size, Some(11)); // "hello world" = 11 bytes
+        assert!(parsed.output.contains("index.js"));
+        assert!(
+            !parsed.output.contains("node_modules"),
+            "node_modules should be excluded"
+        );
     }
 
     #[tokio::test]
-    async fn test_ls_directory_has_no_size() {
+    async fn test_ls_ignores_git_dir() {
         let dir = tempdir().expect("create temp dir");
         let dir_path = dir.path();
 
-        fs::create_dir(dir_path.join("subdir")).expect("mkdir");
+        fs::write(dir_path.join("readme.txt"), "x").expect("write");
+        fs::create_dir(dir_path.join(".git")).expect("mkdir");
+        fs::write(dir_path.join(".git/config"), "x").expect("write");
 
         let tool = LsTool::new();
         let args = serde_json::json!({
@@ -320,8 +302,54 @@ mod tests {
         let result = tool.execute(args).await.expect("execute");
         let parsed: LsResult = serde_json::from_str(&result).expect("parse");
 
-        assert_eq!(parsed.entries.len(), 1);
-        assert_eq!(parsed.entries[0].name, "subdir");
-        assert!(parsed.entries[0].size.is_none());
+        assert!(parsed.output.contains("readme.txt"));
+        assert!(
+            !parsed.output.contains(".git"),
+            ".git should be excluded"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ls_tree_format() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        fs::create_dir(dir_path.join("src")).expect("mkdir");
+        fs::write(dir_path.join("src/main.rs"), "fn main() {}").expect("write");
+        fs::write(dir_path.join("Cargo.toml"), "[package]").expect("write");
+
+        let tool = LsTool::new();
+        let args = serde_json::json!({
+            "path": dir_path.to_str().unwrap()
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: LsResult = serde_json::from_str(&result).expect("parse");
+
+        // Tree format should have indented entries
+        assert!(parsed.output.contains("src/"), "should show src directory");
+        assert!(parsed.output.contains("main.rs"), "should show nested file");
+    }
+
+    #[tokio::test]
+    async fn test_ls_limit_100() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        // Create 110 files
+        for i in 0..110 {
+            fs::write(dir_path.join(format!("f{i:03}.txt")), "x").expect("write");
+        }
+
+        let tool = LsTool::new();
+        let args = serde_json::json!({
+            "path": dir_path.to_str().unwrap()
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: LsResult = serde_json::from_str(&result).expect("parse");
+
+        assert!(parsed.truncated, "should be truncated at 100");
+        assert!(parsed.total_entries <= MAX_ENTRIES);
     }
 }

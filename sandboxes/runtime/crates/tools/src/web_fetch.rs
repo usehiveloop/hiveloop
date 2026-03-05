@@ -21,6 +21,9 @@ pub enum FetchFormat {
 /// Default maximum content length in characters.
 const DEFAULT_MAX_LENGTH: usize = 50_000;
 
+/// Maximum response body size (5MB).
+const MAX_RESPONSE_SIZE: usize = 5 * 1024 * 1024;
+
 /// Result returned by the WebFetch tool.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FetchResult {
@@ -67,6 +70,7 @@ impl WebFetchTool {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .redirect(reqwest::redirect::Policy::limited(10))
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
             .build()
             .expect("Failed to build reqwest client");
         Self { client }
@@ -79,10 +83,18 @@ impl WebFetchTool {
         max_length: usize,
         format: &FetchFormat,
     ) -> Result<FetchResult, String> {
+        // Build Accept header based on format
+        let accept_header = match format {
+            FetchFormat::Markdown => "text/markdown;q=1.0, text/x-markdown;q=0.9, text/plain;q=0.8, text/html;q=0.7, */*;q=0.1",
+            FetchFormat::Text => "text/plain;q=1.0, text/markdown;q=0.9, text/html;q=0.8, */*;q=0.1",
+            FetchFormat::Html => "text/html;q=1.0, application/xhtml+xml;q=0.9, text/plain;q=0.8, */*;q=0.1",
+        };
+
         // 1. HTTP GET with timeout and redirect following
         let response = self
             .client
             .get(url)
+            .header("Accept", accept_header)
             .timeout(Duration::from_secs(30))
             .send()
             .await
@@ -99,17 +111,85 @@ impl WebFetchTool {
         let status = response.status();
         let final_url = response.url().to_string();
 
-        // Check for HTTP errors
-        if !status.is_success() {
+        // Check for Cloudflare challenge on 403
+        let response = if status == reqwest::StatusCode::FORBIDDEN {
+            let cf_mitigated = response
+                .headers()
+                .get("cf-mitigated")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string());
+
+            if cf_mitigated.as_deref() == Some("challenge") {
+                // Retry with simpler User-Agent
+                let retry = self
+                    .client
+                    .get(url)
+                    .header("User-Agent", "bridge")
+                    .timeout(Duration::from_secs(30))
+                    .send()
+                    .await
+                    .map_err(|e| format!("Cloudflare retry failed: {e}"))?;
+
+                if retry.status().is_success() {
+                    retry
+                } else {
+                    return Err(format!("HTTP error {} for URL: {}", retry.status(), final_url));
+                }
+            } else {
+                return Err(format!("HTTP error {status} for URL: {final_url}"));
+            }
+        } else if !status.is_success() {
             return Err(format!("HTTP error {status} for URL: {final_url}"));
+        } else {
+            response
+        };
+
+        let final_url = response.url().to_string();
+
+        // Check Content-Length header before reading body
+        if let Some(content_length) = response
+            .headers()
+            .get(reqwest::header::CONTENT_LENGTH)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<usize>().ok())
+        {
+            if content_length > MAX_RESPONSE_SIZE {
+                return Err("Response too large (exceeds 5MB limit)".to_string());
+            }
         }
 
-        // Check content type - only process HTML
+        // Check content type
         let content_type_str = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
+            .unwrap_or("")
+            .to_string();
+
+        // Handle image content types (return as base64) — except SVG
+        if content_type_str.starts_with("image/")
+            && content_type_str != "image/svg+xml"
+            && !content_type_str.contains("vnd.fastbidsheet")
+        {
+            let bytes = response
+                .bytes()
+                .await
+                .map_err(|e| format!("Failed to read image: {e}"))?;
+
+            if bytes.len() > MAX_RESPONSE_SIZE {
+                return Err("Response too large (exceeds 5MB limit)".to_string());
+            }
+
+            use base64::Engine;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+
+            let content = format!("data:{};base64,{}", content_type_str, b64);
+            return Ok(FetchResult {
+                title: Some(format!("Image ({})", content_type_str)),
+                content,
+                url: final_url,
+            });
+        }
 
         if !content_type_str.is_empty() {
             let is_html = content_type_str
@@ -118,6 +198,7 @@ impl WebFetchTool {
                     (m.type_() == mime::TEXT && m.subtype() == mime::HTML)
                         || (m.type_() == mime::APPLICATION
                             && m.subtype().as_str().starts_with("xhtml"))
+                        || content_type_str.starts_with("image/svg+xml")
                 })
                 .unwrap_or(false);
 
@@ -129,10 +210,17 @@ impl WebFetchTool {
             }
         }
 
-        let html = response
-            .text()
+        // Read body as bytes to check size
+        let body_bytes = response
+            .bytes()
             .await
             .map_err(|e| format!("Failed to read response body: {e}"))?;
+
+        if body_bytes.len() > MAX_RESPONSE_SIZE {
+            return Err("Response too large (exceeds 5MB limit)".to_string());
+        }
+
+        let html = String::from_utf8_lossy(&body_bytes).to_string();
 
         if html.trim().is_empty() {
             return Ok(FetchResult {
@@ -820,7 +908,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_reject_image_content_type() {
+    async fn test_fetch_image_returns_base64() {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
@@ -833,15 +921,138 @@ mod tests {
             .await;
 
         let tool = WebFetchTool::with_defaults();
-        let err = tool
+        let result = tool
             .fetch(&format!("{}/image.png", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .await
+            .expect("should return image as base64");
+
+        assert!(
+            result.content.contains("data:image/png;base64,"),
+            "should contain base64 image data"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_svg_treated_as_html() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/icon.svg"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(
+                    r#"<svg xmlns="http://www.w3.org/2000/svg"><circle r="50"/></svg>"#,
+                    "image/svg+xml",
+                ),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/icon.svg", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Html)
+            .await
+            .expect("SVG should be processed as HTML/text");
+
+        // SVG should be returned as content, not base64
+        assert!(
+            !result.content.starts_with("data:image"),
+            "SVG should not be returned as base64"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_response_too_large() {
+        let server = MockServer::start().await;
+
+        // Create a response with Content-Length > 5MB
+        let large_body = "x".repeat(6 * 1024 * 1024);
+        Mock::given(method("GET"))
+            .and(path("/huge"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_raw(large_body, "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/huge", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
             .await
             .unwrap_err();
 
         assert!(
-            err.contains("Non-HTML content type"),
-            "should reject image content type: {err}"
+            err.contains("5MB") || err.contains("too large"),
+            "should reject response >5MB: {err}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_content_length_too_large() {
+        let server = MockServer::start().await;
+
+        // Create actual large body matching Content-Length to avoid reqwest errors
+        let large_body = "x".repeat(6 * 1024 * 1024);
+        Mock::given(method("GET"))
+            .and(path("/cl-huge"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw(large_body.as_bytes().to_vec(), "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let err = tool
+            .fetch(&format!("{}/cl-huge", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .await
+            .unwrap_err();
+
+        assert!(
+            err.contains("5MB") || err.contains("too large"),
+            "should reject when Content-Length > 5MB: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_cloudflare_retry() {
+        let server = MockServer::start().await;
+
+        // First request returns 403 with cf-mitigated: challenge
+        // wiremock will match both requests to /cf-page
+        // We need two mocks: first returns 403, second returns 200
+        // But wiremock matches all requests to a path. We use expect to control.
+        Mock::given(method("GET"))
+            .and(path("/cf-page"))
+            .respond_with(
+                ResponseTemplate::new(403)
+                    .insert_header("cf-mitigated", "challenge")
+                    .set_body_string("Blocked"),
+            )
+            .expect(1)
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/cf-page"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw("<html><body><p>Success after retry</p></body></html>", "text/html"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let tool = WebFetchTool::with_defaults();
+        let result = tool
+            .fetch(&format!("{}/cf-page", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .await
+            .expect("should succeed after CF retry");
+
+        assert!(!result.content.is_empty());
     }
 
     // -----------------------------------------------------------------------

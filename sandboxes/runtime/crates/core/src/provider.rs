@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Supported LLM provider types.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum_macros::Display, strum_macros::EnumString)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderType {
     /// OpenAI (GPT-4o, etc.)
@@ -45,6 +46,7 @@ pub enum ProviderType {
 
 /// Configuration for an LLM provider.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProviderConfig {
     /// The provider type (openai, anthropic, etc.)
     pub provider_type: ProviderType,

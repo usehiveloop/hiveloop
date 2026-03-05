@@ -1,13 +1,27 @@
-use axum::routing::{delete, get, post};
+use axum::middleware as axum_mw;
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::handlers::{agents, conversations, health, metrics, stream};
+use crate::handlers::{agents, conversations, health, metrics, push, stream};
+use crate::middleware::bearer_auth;
 use crate::state::AppState;
 
 /// Build the axum router with all routes and middleware.
 pub fn build_router(state: AppState) -> Router {
+    // Push routes — authenticated via bearer token
+    let push_routes = Router::new()
+        .route("/push/agents", post(push::push_agents))
+        .route("/push/agents/{agent_id}", put(push::upsert_agent))
+        .route("/push/agents/{agent_id}", delete(push::remove_agent))
+        .route(
+            "/push/agents/{agent_id}/conversations",
+            post(push::hydrate_conversations),
+        )
+        .route("/push/diff", post(push::push_diff))
+        .layer(axum_mw::from_fn_with_state(state.clone(), bearer_auth));
+
     Router::new()
         // Health
         .route("/health", get(health::health))
@@ -34,6 +48,8 @@ pub fn build_router(state: AppState) -> Router {
         )
         // Metrics
         .route("/metrics", get(metrics::get_metrics))
+        // Push (authenticated)
+        .merge(push_routes)
         // Middleware
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())

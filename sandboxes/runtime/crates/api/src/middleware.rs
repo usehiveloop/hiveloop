@@ -1,6 +1,35 @@
-use axum::extract::Request;
+use axum::extract::{Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
+use bridge_core::BridgeError;
+
+use crate::state::AppState;
+
+/// Middleware that validates Bearer token authentication for push endpoints.
+pub async fn bearer_auth(
+    State(state): State<AppState>,
+    request: Request,
+    next: Next,
+) -> Result<Response, BridgeError> {
+    let auth_header = request
+        .headers()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok());
+
+    match auth_header {
+        Some(header) if header.starts_with("Bearer ") => {
+            let token = &header[7..];
+            if token == state.control_plane_api_key {
+                Ok(next.run(request).await)
+            } else {
+                Err(BridgeError::Unauthorized("invalid token".into()))
+            }
+        }
+        _ => Err(BridgeError::Unauthorized(
+            "missing or invalid authorization header".into(),
+        )),
+    }
+}
 
 /// Middleware that injects an X-Request-ID header if not present.
 pub async fn request_id(mut request: Request, next: Next) -> Response {

@@ -6,12 +6,28 @@ use serde_json::json;
 use crate::state::AppState;
 
 /// GET /agents — list all loaded agents.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/agents",
+    responses(
+        (status = 200, description = "List of agent summaries", body = Vec<bridge_core::AgentSummary>)
+    )
+))]
 pub async fn list_agents(State(state): State<AppState>) -> Json<serde_json::Value> {
     let agents = state.supervisor.list_agents();
     Json(json!(agents))
 }
 
 /// GET /agents/:agent_id — get agent details.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/agents/{agent_id}",
+    params(("agent_id" = String, Path, description = "Agent identifier")),
+    responses(
+        (status = 200, description = "Agent details", body = serde_json::Value),
+        (status = 404, description = "Agent not found")
+    )
+))]
 pub async fn get_agent(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,

@@ -9,6 +9,7 @@ pub fn to_sse_event(event: &SseEvent) -> Result<Event, serde_json::Error> {
         SseEvent::ToolCallStart { .. } => "tool_call_start",
         SseEvent::ToolCallResult { .. } => "tool_call_result",
         SseEvent::MessageEnd { .. } => "message_end",
+        SseEvent::TodoUpdated { .. } => "todo_updated",
         SseEvent::Error { .. } => "error",
         SseEvent::Done => "done",
     };

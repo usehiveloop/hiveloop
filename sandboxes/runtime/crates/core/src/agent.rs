@@ -10,6 +10,8 @@ pub type AgentId = String;
 
 /// Complete definition of an AI agent fetched from the control plane.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "openapi", schema(no_recursion))]
 pub struct AgentDefinition {
     /// Unique agent identifier
     pub id: AgentId,
@@ -54,6 +56,7 @@ pub struct AgentDefinition {
 
 /// Configuration options for an agent.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentConfig {
     /// Maximum tokens for LLM response
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -74,6 +77,7 @@ pub struct AgentConfig {
 
 /// Lightweight agent summary for listing endpoints.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentSummary {
     /// Agent identifier
     pub id: AgentId,

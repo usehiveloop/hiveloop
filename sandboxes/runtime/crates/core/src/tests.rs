@@ -1012,7 +1012,6 @@ mod serde_roundtrip_tests {
         assert_eq!(config.control_plane_url, "");
         assert_eq!(config.control_plane_api_key, "");
         assert_eq!(config.listen_addr, "0.0.0.0:8080");
-        assert_eq!(config.sync_interval_secs, 30);
         assert_eq!(config.drain_timeout_secs, 60);
         assert!(config.max_concurrent_conversations.is_none());
         assert_eq!(config.log_level, "info");
@@ -1025,11 +1024,11 @@ mod serde_roundtrip_tests {
             control_plane_url: "https://api.example.com".to_string(),
             control_plane_api_key: "cpk-test-key".to_string(),
             listen_addr: "127.0.0.1:9090".to_string(),
-            sync_interval_secs: 60,
             drain_timeout_secs: 120,
             max_concurrent_conversations: Some(100),
             log_level: "debug".to_string(),
             log_format: LogFormat::Json,
+            lsp: None,
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize RuntimeConfig");
@@ -1041,7 +1040,6 @@ mod serde_roundtrip_tests {
             deserialized.control_plane_api_key
         );
         assert_eq!(config.listen_addr, deserialized.listen_addr);
-        assert_eq!(config.sync_interval_secs, deserialized.sync_interval_secs);
         assert_eq!(config.drain_timeout_secs, deserialized.drain_timeout_secs);
         assert_eq!(
             config.max_concurrent_conversations,
@@ -1057,7 +1055,6 @@ mod serde_roundtrip_tests {
             "control_plane_url": "https://api.example.com",
             "control_plane_api_key": "key",
             "listen_addr": "0.0.0.0:8080",
-            "sync_interval_secs": 30,
             "drain_timeout_secs": 60,
             "log_level": "info",
             "log_format": "text"
@@ -1142,6 +1139,14 @@ mod serde_roundtrip_tests {
             "internal error: fail"
         );
         assert_eq!(BridgeError::RateLimited.to_string(), "rate limited");
+        assert_eq!(
+            BridgeError::Unauthorized("bad token".into()).to_string(),
+            "unauthorized: bad token"
+        );
+        assert_eq!(
+            BridgeError::Conflict("active conversations".into()).to_string(),
+            "conflict: active conversations"
+        );
     }
 
     // ──────────────────────────────────────────────

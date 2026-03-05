@@ -47,6 +47,14 @@ pub enum BridgeError {
     /// Rate limit exceeded
     #[error("rate limited")]
     RateLimited,
+
+    /// Unauthorized access
+    #[error("unauthorized: {0}")]
+    Unauthorized(String),
+
+    /// Conflict with current state
+    #[error("conflict: {0}")]
+    Conflict(String),
 }
 
 /// Convenience Result type alias for bridge operations.
@@ -68,6 +76,8 @@ impl IntoResponse for BridgeError {
             BridgeError::WebhookError(_) => (StatusCode::INTERNAL_SERVER_ERROR, "webhook_error"),
             BridgeError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error"),
             BridgeError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "rate_limited"),
+            BridgeError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized"),
+            BridgeError::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
         };
 
         let body = serde_json::json!({
@@ -128,5 +138,13 @@ mod tests {
             "internal error: fail"
         );
         assert_eq!(BridgeError::RateLimited.to_string(), "rate limited");
+        assert_eq!(
+            BridgeError::Unauthorized("bad token".into()).to_string(),
+            "unauthorized: bad token"
+        );
+        assert_eq!(
+            BridgeError::Conflict("active conversations".into()).to_string(),
+            "conflict: active conversations"
+        );
     }
 }

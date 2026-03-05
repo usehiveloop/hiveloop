@@ -9,6 +9,7 @@ llm = { workspace = true }
 mcp = { workspace = true }
 rig-core = { workspace = true }
 tools = { workspace = true }
+lsp = { workspace = true }
 webhooks = { workspace = true }
 dashmap = { workspace = true }
 tokio = { workspace = true }

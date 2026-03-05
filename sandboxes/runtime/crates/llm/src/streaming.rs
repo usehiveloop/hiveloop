@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// SSE event types emitted during a conversation response.
 #[derive(Debug, Clone, Serialize)]
@@ -50,8 +50,24 @@ pub enum SseEvent {
         /// Error message
         message: String,
     },
+    /// The todo list was updated.
+    TodoUpdated {
+        /// The complete current todo list.
+        todos: Vec<TodoItem>,
+    },
     /// The response stream is complete.
     Done,
+}
+
+/// A single todo item in the task list.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TodoItem {
+    /// Brief description of the task.
+    pub content: String,
+    /// Current status: pending, in_progress, completed, cancelled.
+    pub status: String,
+    /// Priority level: high, medium, low.
+    pub priority: String,
 }
 
 /// Token usage information for a response.
@@ -91,6 +107,30 @@ mod tests {
         assert!(json.contains("message_end"));
         assert!(json.contains("100"));
         assert!(json.contains("50"));
+    }
+
+    #[test]
+    fn test_todo_updated_serialization() {
+        let event = SseEvent::TodoUpdated {
+            todos: vec![
+                TodoItem {
+                    content: "Implement feature".to_string(),
+                    status: "in_progress".to_string(),
+                    priority: "high".to_string(),
+                },
+                TodoItem {
+                    content: "Write tests".to_string(),
+                    status: "pending".to_string(),
+                    priority: "medium".to_string(),
+                },
+            ],
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("todo_updated"));
+        assert!(json.contains("Implement feature"));
+        assert!(json.contains("in_progress"));
+        assert!(json.contains("Write tests"));
+        assert!(json.contains("pending"));
     }
 
     #[test]

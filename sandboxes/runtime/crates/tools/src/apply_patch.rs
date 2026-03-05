@@ -1,7 +1,9 @@
 use async_trait::async_trait;
+use lsp::LspManager;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::ToolExecutor;
 
@@ -81,6 +83,8 @@ fn strip_heredoc(input: &str) -> String {
 }
 
 fn parse_patch(patch_text: &str) -> Result<Vec<Hunk>, String> {
+    // Normalize CRLF and CR line endings to LF
+    let patch_text = patch_text.replace("\r\n", "\n").replace('\r', "\n");
     let cleaned = strip_heredoc(patch_text.trim());
     let lines: Vec<&str> = cleaned.split('\n').collect();
 
@@ -433,6 +437,8 @@ async fn apply_hunks(hunks: &[Hunk]) -> Result<Vec<String>, String> {
                 let content = tokio::fs::read_to_string(path)
                     .await
                     .map_err(|e| format!("Failed to read {path}: {e}"))?;
+                // Normalize CRLF/CR to LF
+                let content = content.replace("\r\n", "\n").replace('\r', "\n");
 
                 let mut original_lines: Vec<String> =
                     content.split('\n').map(|s| s.to_string()).collect();
@@ -500,13 +506,27 @@ pub struct ApplyPatchArgs {
 pub struct ApplyPatchResult {
     pub summary: Vec<String>,
     pub files_changed: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostics: Option<String>,
 }
 
-pub struct ApplyPatchTool;
+pub struct ApplyPatchTool {
+    lsp_manager: Option<Arc<LspManager>>,
+}
 
 impl ApplyPatchTool {
     pub fn new() -> Self {
-        Self
+        Self { lsp_manager: None }
+    }
+
+    pub fn with_lsp_manager(mut self, m: Arc<LspManager>) -> Self {
+        self.lsp_manager = Some(m);
+        self
+    }
+
+    pub fn with_lsp_manager_opt(mut self, m: Option<Arc<LspManager>>) -> Self {
+        self.lsp_manager = m;
+        self
     }
 }
 
@@ -543,9 +563,33 @@ impl ToolExecutor for ApplyPatchTool {
         let summary = apply_hunks(&hunks).await?;
         let files_changed = summary.len();
 
+        // Fetch LSP diagnostics for all modified/added files
+        let diagnostics = if let Some(ref lsp) = self.lsp_manager {
+            let mut all_diag = String::new();
+            for entry in &summary {
+                // entries are like "M path" or "A path"
+                let file_path = entry.split_whitespace().nth(1).unwrap_or("");
+                if !file_path.is_empty() && (entry.starts_with("M ") || entry.starts_with("A ")) {
+                    let output =
+                        crate::diagnostics_helper::fetch_diagnostics_output(lsp, file_path).await;
+                    if !output.is_empty() {
+                        all_diag.push_str(&output);
+                    }
+                }
+            }
+            if all_diag.is_empty() {
+                None
+            } else {
+                Some(all_diag)
+            }
+        } else {
+            None
+        };
+
         let result = ApplyPatchResult {
             summary,
             files_changed,
+            diagnostics,
         };
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
@@ -747,6 +791,47 @@ mod tests {
     fn test_strip_heredoc_no_match() {
         let input = "just regular text";
         assert_eq!(strip_heredoc(input), "just regular text");
+    }
+
+    #[test]
+    fn test_parse_patch_crlf_normalized() {
+        // Patch with CRLF line endings should parse correctly
+        let patch = "*** Begin Patch\r\n*** Add File: hello.txt\r\n+Hello world\r\n+Second line\r\n*** End Patch\r\n";
+
+        let hunks = parse_patch(patch).expect("parse");
+        assert_eq!(hunks.len(), 1);
+        match &hunks[0] {
+            Hunk::Add { path, contents } => {
+                assert_eq!(path, "hello.txt");
+                assert_eq!(contents, "Hello world\nSecond line");
+            }
+            _ => panic!("expected Add hunk"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_apply_patch_crlf_file() {
+        let dir = tempdir().expect("create temp dir");
+        let file_path = dir.path().join("crlf_file.txt");
+        // Write file with CRLF line endings
+        std::fs::write(&file_path, "fn main() {\r\n    println!(\"old\");\r\n}\r\n").expect("write");
+
+        let patch = format!(
+            "*** Begin Patch\n*** Update File: {}\n@@ fn main() {{\n-    println!(\"old\");\n+    println!(\"new\");\n*** End Patch",
+            file_path.display()
+        );
+
+        let tool = ApplyPatchTool::new();
+        let args = serde_json::json!({ "patchText": patch });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: ApplyPatchResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.files_changed, 1);
+
+        let content = std::fs::read_to_string(&file_path).expect("read");
+        assert!(content.contains("println!(\"new\")"));
+        assert!(!content.contains("println!(\"old\")"));
     }
 
     #[test]

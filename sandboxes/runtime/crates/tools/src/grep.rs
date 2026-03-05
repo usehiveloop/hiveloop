@@ -6,11 +6,24 @@ use ignore::types::TypesBuilder;
 use ignore::WalkBuilder;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 
 use crate::boundary::ProjectBoundary;
 use crate::ToolExecutor;
+
+/// Maximum length for a single match line before truncation.
+const MAX_MATCH_LINE_LENGTH: usize = 2000;
+
+fn truncate_match_line(line: &str) -> String {
+    if line.len() > MAX_MATCH_LINE_LENGTH {
+        format!("{}...", &line[..MAX_MATCH_LINE_LENGTH])
+    } else {
+        line.to_string()
+    }
+}
 
 /// Output mode for grep results.
 #[derive(Debug, Deserialize, JsonSchema, Clone, Default)]
@@ -83,10 +96,12 @@ pub struct GrepResult {
     pub total_matches: usize,
     pub files_searched: usize,
     pub truncated: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 /// Default max results.
-const DEFAULT_MAX_RESULTS: usize = 1000;
+const DEFAULT_MAX_RESULTS: usize = 100;
 
 pub struct GrepTool {
     boundary: Option<ProjectBoundary>,
@@ -141,7 +156,16 @@ impl ToolExecutor for GrepTool {
             .await
             .map_err(|e| format!("Task join error: {e}"))??;
 
-        serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
+        let serialized = serde_json::to_string(&result)
+            .map_err(|e| format!("Failed to serialize result: {e}"))?;
+
+        // Apply shared truncation for large results
+        let truncated = crate::truncation::truncate_output(
+            &serialized,
+            crate::truncation::MAX_LINES,
+            crate::truncation::MAX_BYTES,
+        );
+        Ok(truncated.content)
     }
 }
 
@@ -156,7 +180,7 @@ impl Sink for CollectorSink {
     type Error = std::io::Error;
 
     fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> Result<bool, Self::Error> {
-        let content = String::from_utf8_lossy(mat.bytes()).trim_end().to_string();
+        let content = truncate_match_line(&String::from_utf8_lossy(mat.bytes()).trim_end().to_string());
         let line_number = mat.line_number();
 
         let entry = GrepMatch {
@@ -185,7 +209,7 @@ impl Sink for CollectorSink {
             _ => return Ok(true),
         }
 
-        let content = String::from_utf8_lossy(ctx.bytes()).trim_end().to_string();
+        let content = truncate_match_line(&String::from_utf8_lossy(ctx.bytes()).trim_end().to_string());
         let line_number = ctx.line_number();
 
         let entry = GrepMatch {
@@ -267,6 +291,8 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
     let mut files_searched: usize = 0;
     let mut files_with_matches: Vec<String> = Vec::new();
     let mut count_entries: Vec<GrepCountEntry> = Vec::new();
+    let mut file_mtimes: HashMap<String, SystemTime> = HashMap::new();
+    let mut inaccessible_count: usize = 0;
 
     if is_single_file {
         files_searched = 1;
@@ -282,9 +308,15 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
             .map_err(|e| format!("Search error: {e}"))?;
 
         if sink.match_count > 0 {
-            files_with_matches.push(root.to_string_lossy().to_string());
+            let path_str = root.to_string_lossy().to_string();
+            if let Ok(meta) = std::fs::metadata(root) {
+                if let Ok(mtime) = meta.modified() {
+                    file_mtimes.insert(path_str.clone(), mtime);
+                }
+            }
+            files_with_matches.push(path_str.clone());
             count_entries.push(GrepCountEntry {
-                path: root.to_string_lossy().to_string(),
+                path: path_str,
                 count: sink.match_count,
             });
         }
@@ -294,7 +326,10 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
         for entry in walker {
             let entry = match entry {
                 Ok(e) => e,
-                Err(_) => continue,
+                Err(_) => {
+                    inaccessible_count += 1;
+                    continue;
+                }
             };
 
             let path = entry.path();
@@ -313,13 +348,47 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
 
             // Silently skip files that can't be searched (binary, etc.)
             if searcher.search_path(&matcher, path, &mut sink).is_ok() && sink.match_count > 0 {
-                files_with_matches.push(path.to_string_lossy().to_string());
+                let path_str = path.to_string_lossy().to_string();
+                if let Ok(meta) = std::fs::metadata(path) {
+                    if let Ok(mtime) = meta.modified() {
+                        file_mtimes.insert(path_str.clone(), mtime);
+                    }
+                }
+                files_with_matches.push(path_str.clone());
                 count_entries.push(GrepCountEntry {
-                    path: path.to_string_lossy().to_string(),
+                    path: path_str,
                     count: sink.match_count,
                 });
             }
         }
+    }
+
+    // Sort files_with_matches by mtime descending (newest first)
+    files_with_matches.sort_by(|a, b| {
+        let time_a = file_mtimes.get(a).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_b = file_mtimes.get(b).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        time_b.cmp(&time_a)
+    });
+
+    // Sort count_entries by mtime descending
+    count_entries.sort_by(|a, b| {
+        let time_a = file_mtimes.get(&a.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_b = file_mtimes.get(&b.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        time_b.cmp(&time_a)
+    });
+
+    // Sort content matches by file mtime descending
+    if let Ok(mut matches) = all_matches.lock() {
+        matches.sort_by(|a, b| {
+            let time_a = file_mtimes.get(&a.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+            let time_b = file_mtimes.get(&b.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+            let time_cmp = time_b.cmp(&time_a);
+            if time_cmp == std::cmp::Ordering::Equal {
+                a.line_number.cmp(&b.line_number)
+            } else {
+                time_cmp
+            }
+        });
     }
 
     // Build result based on output mode
@@ -360,11 +429,18 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
         }
     };
 
+    let note = if inaccessible_count > 0 {
+        Some("(Some paths were inaccessible and skipped)".to_string())
+    } else {
+        None
+    };
+
     Ok(GrepResult {
         matches,
         total_matches,
         files_searched,
         truncated,
+        note,
     })
 }
 
@@ -606,6 +682,83 @@ mod tests {
         assert_eq!(parsed.total_matches, 1);
         assert_eq!(parsed.files_searched, 1);
         assert_eq!(parsed.matches[0]["content"], "beta");
+    }
+
+    #[tokio::test]
+    async fn test_grep_results_sorted_by_mtime() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        // Create files with different mtimes
+        fs::write(dir_path.join("old.txt"), "match_word here\n").expect("write");
+        // Sleep to ensure different mtime
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        fs::write(dir_path.join("new.txt"), "match_word here\n").expect("write");
+
+        let tool = GrepTool::new();
+        let args = serde_json::json!({
+            "pattern": "match_word",
+            "path": dir_path.to_str().unwrap(),
+            "output_mode": "files_with_matches"
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: GrepResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.total_matches, 2);
+        // Newest file should appear first
+        let first = parsed.matches[0].as_str().unwrap();
+        assert!(first.ends_with("new.txt"), "newest file should be first, got: {first}");
+    }
+
+    #[tokio::test]
+    async fn test_grep_long_line_truncation() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        let long_line = format!("prefix_{}_suffix", "x".repeat(3000));
+        fs::write(dir_path.join("long.txt"), &long_line).expect("write");
+
+        let tool = GrepTool::new();
+        let args = serde_json::json!({
+            "pattern": "prefix_",
+            "path": dir_path.to_str().unwrap(),
+            "output_mode": "content"
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: GrepResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.total_matches, 1);
+        let content = parsed.matches[0]["content"].as_str().unwrap();
+        assert!(content.ends_with("..."), "long line should be truncated with ...");
+        // Should be 2000 + 3 for "..."
+        assert!(content.len() <= 2003 + 10);
+    }
+
+    #[tokio::test]
+    async fn test_grep_default_max_is_100() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        // Create 150 files each with a match
+        for i in 0..150 {
+            fs::write(dir_path.join(format!("f{i:03}.txt")), "findme\n").expect("write");
+        }
+
+        let tool = GrepTool::new();
+        let args = serde_json::json!({
+            "pattern": "findme",
+            "path": dir_path.to_str().unwrap(),
+            "output_mode": "files_with_matches"
+        });
+
+        let result = tool.execute(args).await.expect("execute");
+        let parsed: GrepResult = serde_json::from_str(&result).expect("parse");
+
+        assert!(parsed.truncated, "should be truncated at default 100");
+        assert_eq!(parsed.matches.len(), 100);
+        assert!(parsed.total_matches > 100);
     }
 
     #[tokio::test]

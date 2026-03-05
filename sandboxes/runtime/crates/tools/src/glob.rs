@@ -92,7 +92,16 @@ impl ToolExecutor for GlobTool {
             .await
             .map_err(|e| format!("Task join error: {e}"))??;
 
-        serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
+        let serialized = serde_json::to_string(&result)
+            .map_err(|e| format!("Failed to serialize result: {e}"))?;
+
+        // Apply shared truncation for large results
+        let truncated = crate::truncation::truncate_output(
+            &serialized,
+            crate::truncation::MAX_LINES,
+            crate::truncation::MAX_BYTES,
+        );
+        Ok(truncated.content)
     }
 }
 
@@ -114,6 +123,7 @@ fn execute_glob(pattern: &str, search_path: &str) -> Result<GlobResult, String> 
         .build();
 
     let mut matched_files: Vec<(String, Option<SystemTime>)> = Vec::new();
+    let mut truncated = false;
 
     for entry in walker {
         let entry = match entry {
@@ -131,6 +141,12 @@ fn execute_glob(pattern: &str, search_path: &str) -> Result<GlobResult, String> 
         let relative = path.strip_prefix(&root).unwrap_or(path);
 
         if matcher.is_match(relative) {
+            // Early termination once we have enough results
+            if matched_files.len() >= MAX_RESULTS {
+                truncated = true;
+                break;
+            }
+
             let abs_path = if path.is_absolute() {
                 path.to_string_lossy().to_string()
             } else {
@@ -153,7 +169,6 @@ fn execute_glob(pattern: &str, search_path: &str) -> Result<GlobResult, String> 
     });
 
     let total_matches = matched_files.len();
-    let truncated = total_matches > MAX_RESULTS;
 
     let files: Vec<GlobFileEntry> = matched_files
         .into_iter()

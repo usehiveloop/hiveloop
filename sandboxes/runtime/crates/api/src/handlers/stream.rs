@@ -9,6 +9,15 @@ use crate::sse::to_sse_event;
 use crate::state::AppState;
 
 /// GET /conversations/:conv_id/stream — SSE stream for a conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/conversations/{conv_id}/stream",
+    params(("conv_id" = String, Path, description = "Conversation identifier")),
+    responses(
+        (status = 200, description = "SSE event stream", content_type = "text/event-stream"),
+        (status = 404, description = "Conversation not found")
+    )
+))]
 pub async fn stream_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,

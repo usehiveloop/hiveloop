@@ -14,7 +14,7 @@ mod tests;
 
 // Re-exports for convenience
 pub use agent::{AgentConfig, AgentDefinition, AgentId, AgentSummary};
-pub use config::{LogFormat, RuntimeConfig};
+pub use config::{LogFormat, LspConfig, RuntimeConfig};
 pub use conversation::{
     ContentBlock, ConversationId, ConversationRecord, Message, PaginatedConversations, Role,
     ToolCall, ToolResult,

@@ -1,0 +1,5 @@
+Read the current todo/task list.
+
+This tool takes no parameters and returns the full list of tasks that were previously set via todowrite. Use this to check the current state of your task list before making updates.
+
+Returns the list of todos with their content, status, and priority. Returns an empty list if no todos have been written yet.

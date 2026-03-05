@@ -1,0 +1,72 @@
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi clean
+
+# --- Build ---
+
+build: ## Build debug binary
+	cargo build -p bridge
+
+build-release: ## Build optimized release binary
+	cargo build --release -p bridge
+
+# --- Run ---
+
+run: ## Run bridge (debug)
+	cargo run -p bridge
+
+run-release: ## Run bridge (release)
+	cargo run --release -p bridge
+
+# --- Check / Lint / Format ---
+
+check: ## Type-check all crates
+	cargo check --workspace
+
+fmt: ## Format all code
+	cargo fmt --all
+
+fmt-check: ## Check formatting without modifying
+	cargo fmt --all -- --check
+
+lint: ## Run clippy linter
+	cargo clippy --workspace -- -D warnings
+
+# --- Tests ---
+
+test: ## Run all unit tests (fast, no servers)
+	cargo test --workspace
+
+test-unit: ## Run library tests only
+	cargo test --workspace --lib
+
+test-e2e: ## Run e2e tests (single-threaded)
+	cargo test -p bridge-e2e --test e2e_tests -- --test-threads=1
+
+test-lsp: ## Run LSP unit tests
+	cargo test -p lsp
+
+test-lsp-integration: ## Run LSP integration tests (requires setup-lsp)
+	cargo test -p lsp -- --ignored
+
+test-all: test test-lsp-integration test-e2e ## Run everything
+
+# --- Setup ---
+
+setup-lsp: ## Install LSP servers for integration tests
+	./scripts/setup-lsp-servers.sh
+
+# --- OpenAPI ---
+
+openapi: ## Generate OpenAPI v3 spec (openapi.json)
+	cargo run -p bridge --features openapi --bin gen-openapi
+
+# --- Clean ---
+
+clean: ## Remove build artifacts
+	cargo clean
+
+# --- Help ---
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

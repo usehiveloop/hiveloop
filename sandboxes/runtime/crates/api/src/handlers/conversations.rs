@@ -9,12 +9,22 @@ use crate::state::AppState;
 
 /// Request body for creating a message.
 #[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SendMessageRequest {
     /// The text content to send.
     pub content: String,
 }
 
 /// POST /agents/:agent_id/conversations — create a new conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/agents/{agent_id}/conversations",
+    params(("agent_id" = String, Path, description = "Agent identifier")),
+    responses(
+        (status = 201, description = "Conversation created", body = serde_json::Value),
+        (status = 404, description = "Agent not found")
+    )
+))]
 pub async fn create_conversation(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
@@ -34,6 +44,16 @@ pub async fn create_conversation(
 }
 
 /// POST /conversations/:conv_id/messages — send a message to a conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/conversations/{conv_id}/messages",
+    params(("conv_id" = String, Path, description = "Conversation identifier")),
+    request_body = SendMessageRequest,
+    responses(
+        (status = 202, description = "Message accepted", body = serde_json::Value),
+        (status = 404, description = "Conversation not found")
+    )
+))]
 pub async fn send_message(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
@@ -51,6 +71,15 @@ pub async fn send_message(
 }
 
 /// DELETE /conversations/:conv_id — end a conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    delete,
+    path = "/conversations/{conv_id}",
+    params(("conv_id" = String, Path, description = "Conversation identifier")),
+    responses(
+        (status = 200, description = "Conversation ended", body = serde_json::Value),
+        (status = 404, description = "Conversation not found")
+    )
+))]
 pub async fn end_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,

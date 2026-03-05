@@ -1,6 +1,8 @@
 use async_trait::async_trait;
+use lsp::LspManager;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::boundary::ProjectBoundary;
 use crate::edit::apply_edit;
@@ -8,7 +10,7 @@ use crate::file_tracker::FileTracker;
 use crate::ToolExecutor;
 
 /// A single edit operation within a multiedit.
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleEdit {
     /// The text to find and replace.
@@ -35,11 +37,14 @@ pub struct MultiEditResult {
     pub path: String,
     pub edits_applied: usize,
     pub total_replacements: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostics: Option<String>,
 }
 
 pub struct MultiEditTool {
     file_tracker: Option<FileTracker>,
     boundary: Option<ProjectBoundary>,
+    lsp_manager: Option<Arc<LspManager>>,
 }
 
 impl MultiEditTool {
@@ -47,6 +52,7 @@ impl MultiEditTool {
         Self {
             file_tracker: None,
             boundary: None,
+            lsp_manager: None,
         }
     }
 
@@ -59,12 +65,99 @@ impl MultiEditTool {
         self.boundary = Some(boundary);
         self
     }
+
+    pub fn with_lsp_manager(mut self, m: Arc<LspManager>) -> Self {
+        self.lsp_manager = Some(m);
+        self
+    }
+
+    pub fn with_lsp_manager_opt(mut self, m: Option<Arc<LspManager>>) -> Self {
+        self.lsp_manager = m;
+        self
+    }
 }
 
 impl Default for MultiEditTool {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Core multiedit logic extracted so it can be called from within with_lock.
+async fn do_multiedit(
+    file_path: &str,
+    edits: &[SingleEdit],
+    boundary: &Option<ProjectBoundary>,
+    file_tracker: &Option<FileTracker>,
+    lsp_manager: &Option<Arc<LspManager>>,
+) -> Result<String, String> {
+    // Check project boundary
+    if let Some(ref boundary) = boundary {
+        boundary.check(file_path)?;
+    }
+
+    // Enforce staleness check (includes never-read check)
+    if let Some(ref tracker) = file_tracker {
+        tracker.assert_not_stale(file_path)?;
+    }
+
+    let content = tokio::fs::read_to_string(file_path)
+        .await
+        .map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => format!("File not found: {file_path}"),
+            std::io::ErrorKind::PermissionDenied => {
+                format!("Permission denied: {file_path}")
+            }
+            _ => format!("Failed to read file: {e}"),
+        })?;
+
+    // Apply all edits sequentially — if any fails, no partial writes happen
+    let mut current_content = content;
+    let mut total_replacements = 0;
+
+    for (i, edit) in edits.iter().enumerate() {
+        let replace_all = edit.replace_all.unwrap_or(false);
+        let (new_content, count) = apply_edit(
+            &current_content,
+            &edit.old_string,
+            &edit.new_string,
+            replace_all,
+        )
+        .map_err(|e| format!("Edit #{} failed: {e}", i + 1))?;
+        current_content = new_content;
+        total_replacements += count;
+    }
+
+    // Write final content
+    tokio::fs::write(file_path, &current_content)
+        .await
+        .map_err(|e| format!("Failed to write file: {e}"))?;
+
+    // Update tracked timestamp after successful write
+    if let Some(ref tracker) = file_tracker {
+        tracker.mark_written(file_path);
+    }
+
+    // Fetch LSP diagnostics
+    let diagnostics = if let Some(ref lsp) = lsp_manager {
+        let output = crate::diagnostics_helper::fetch_diagnostics_output(lsp, file_path).await;
+        if output.is_empty() {
+            None
+        } else {
+            Some(output)
+        }
+    } else {
+        None
+    };
+
+    let result = MultiEditResult {
+        path: file_path.to_string(),
+        edits_applied: edits.len(),
+        total_replacements,
+        diagnostics,
+    };
+
+    serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
 }
 
 #[async_trait]
@@ -86,61 +179,27 @@ impl ToolExecutor for MultiEditTool {
         let args: MultiEditArgs =
             serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
 
-        let file_path = &args.file_path;
+        let file_path = args.file_path.clone();
 
         if args.edits.is_empty() {
             return Err("No edits provided".to_string());
         }
 
-        // Check project boundary
-        if let Some(ref boundary) = self.boundary {
-            boundary.check(file_path)?;
-        }
+        let edits = args.edits.clone();
+        let boundary = self.boundary.clone();
+        let file_tracker = self.file_tracker.clone();
+        let lsp_manager = self.lsp_manager.clone();
 
-        // Enforce read-before-edit
         if let Some(ref tracker) = self.file_tracker {
-            tracker.require_read(file_path)?;
+            let tracker = tracker.clone();
+            tracker
+                .with_lock(&file_path, || {
+                    do_multiedit(&file_path, &edits, &boundary, &file_tracker, &lsp_manager)
+                })
+                .await
+        } else {
+            do_multiedit(&file_path, &edits, &boundary, &file_tracker, &lsp_manager).await
         }
-
-        let content = tokio::fs::read_to_string(file_path)
-            .await
-            .map_err(|e| match e.kind() {
-                std::io::ErrorKind::NotFound => format!("File not found: {file_path}"),
-                std::io::ErrorKind::PermissionDenied => {
-                    format!("Permission denied: {file_path}")
-                }
-                _ => format!("Failed to read file: {e}"),
-            })?;
-
-        // Apply all edits sequentially — if any fails, no partial writes happen
-        let mut current_content = content;
-        let mut total_replacements = 0;
-
-        for (i, edit) in args.edits.iter().enumerate() {
-            let replace_all = edit.replace_all.unwrap_or(false);
-            let (new_content, count) = apply_edit(
-                &current_content,
-                &edit.old_string,
-                &edit.new_string,
-                replace_all,
-            )
-            .map_err(|e| format!("Edit #{} failed: {e}", i + 1))?;
-            current_content = new_content;
-            total_replacements += count;
-        }
-
-        // Write final content
-        tokio::fs::write(file_path, &current_content)
-            .await
-            .map_err(|e| format!("Failed to write file: {e}"))?;
-
-        let result = MultiEditResult {
-            path: file_path.clone(),
-            edits_applied: args.edits.len(),
-            total_replacements,
-        };
-
-        serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
     }
 }
 

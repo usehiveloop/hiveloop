@@ -1,0 +1,34 @@
+Perform code intelligence operations using Language Server Protocol (LSP) servers.
+
+This tool provides access to LSP operations like go-to-definition, hover, find-references, diagnostics, and more. LSP servers are started automatically when you first access a file they support.
+
+## Operations
+
+- **goToDefinition**: Jump to where a symbol is defined. Returns the file path and position of the definition.
+- **findReferences**: Find all places where a symbol is used. Returns a list of file paths and positions.
+- **hover**: Get type information and documentation for a symbol at a position.
+- **documentSymbol**: List all symbols (functions, classes, variables, etc.) in a file. No line/character needed.
+- **workspaceSymbol**: Search for symbols across the entire workspace by name. Provide search query in the `query` parameter. Returns up to 10 results filtered to relevant kinds (classes, functions, methods, interfaces, variables, constants, structs, enums).
+- **goToImplementation**: Find implementations of an interface/trait/abstract class.
+- **prepareCallHierarchy**: Get the call hierarchy item at a position (used as input for incoming/outgoing calls).
+- **incomingCalls**: Find all callers of a function/method at the given position.
+- **outgoingCalls**: Find all functions/methods called from the function at the given position.
+- **diagnostics**: Get compiler errors, warnings, and hints for a file. No line/character needed. Use after editing a file to check for errors.
+
+## Parameters
+
+- `operation` (required): One of the operation names listed above.
+- `file_path` (required): Path to the file. Both absolute and relative paths are accepted (relative paths are resolved against the project root).
+- `line` (optional): 1-based line number. Required for position-based operations.
+- `character` (optional): 1-based character/column number. Required for position-based operations.
+- `query` (optional): Search query for workspaceSymbol operation.
+
+## Notes
+
+- Line and character numbers are **1-based** (first line is 1, first column is 1).
+- The tool automatically opens the file in the LSP server if needed. On subsequent opens, it re-reads from disk and sends an update to the server, keeping it in sync with file edits.
+- Built-in server support for 30+ languages including: TypeScript/JavaScript, Rust, Go, Python, C/C++, Java, Ruby, PHP, Dart, Haskell, Elixir, and many more.
+- If no LSP server binary is found for a file type, the tool returns an error gracefully.
+- When multiple LSP servers match a file type, operations are fanned out to all servers and results are merged.
+- Use the **diagnostics** operation after editing files to check for compilation errors before proceeding.
+- Use this tool to understand code structure before making edits — it's faster and more accurate than text search for finding definitions and references.

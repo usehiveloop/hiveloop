@@ -5,6 +5,7 @@ pub type ConversationId = String;
 
 /// A message in a conversation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Message {
     /// Role of the message sender
     pub role: Role,
@@ -16,6 +17,7 @@ pub struct Message {
 
 /// Role of a message sender in a conversation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     /// User message
@@ -30,6 +32,7 @@ pub enum Role {
 
 /// A content block within a message.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ContentBlock {
     /// Plain text content
@@ -52,6 +55,7 @@ pub enum ContentBlock {
 
 /// A request to call a tool.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ToolCall {
     /// Unique identifier for this tool call
     pub id: String,
@@ -63,6 +67,7 @@ pub struct ToolCall {
 
 /// The result of a tool execution.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ToolResult {
     /// ID of the tool call this result corresponds to
     pub tool_call_id: String,
@@ -75,6 +80,7 @@ pub struct ToolResult {
 
 /// A conversation with its full message history, as returned by the control plane.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ConversationRecord {
     /// Unique conversation identifier.
     pub id: ConversationId,

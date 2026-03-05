@@ -2,13 +2,13 @@ use anyhow::Context;
 use bridge_core::RuntimeConfig;
 use figment::providers::{Env, Format, Serialized, Toml};
 use figment::Figment;
+use lsp::LspManager;
 use mcp::McpManager;
 use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tokio_util::task::TaskTracker;
-use tracing::{error, info};
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -26,58 +26,46 @@ async fn main() -> anyhow::Result<()> {
 
     // Create global lifecycle primitives
     let cancel = CancellationToken::new();
-    let tracker = TaskTracker::new();
 
     // Create shared services
     let mcp_manager = Arc::new(McpManager::new());
-    let supervisor = Arc::new(AgentSupervisor::new(mcp_manager.clone(), cancel.clone()));
 
-    // Fetch initial agents from control plane
-    let client = reqwest::Client::new();
-    match sync::poller::fetch_agents(&client, &config).await {
-        Ok(agents) => {
-            info!(count = agents.len(), "fetched initial agents");
-            if let Err(e) = supervisor.load_agents(agents).await {
-                error!(error = %e, "failed to load initial agents");
-            }
+    // Create LSP manager for code intelligence
+    let project_root = std::env::current_dir().unwrap_or_default();
+    let lsp_config = config.lsp.clone().and_then(|lsp_cfg| {
+        if lsp_cfg.is_disabled() {
+            // LSP explicitly disabled — pass empty config so no servers are registered
+            Some(std::collections::HashMap::new())
+        } else {
+            lsp_cfg.into_servers().map(|server_map| {
+                server_map
+                    .into_iter()
+                    .map(|(id, cfg)| {
+                        (
+                            id,
+                            lsp::LspServerConfig {
+                                command: cfg.command,
+                                extensions: cfg.extensions,
+                                env: cfg.env,
+                                initialization_options: cfg.initialization_options,
+                                disabled: cfg.disabled,
+                            },
+                        )
+                    })
+                    .collect()
+            })
         }
-        Err(e) => {
-            error!(error = %e, "failed to fetch initial agents from control plane");
-            return Err(anyhow::anyhow!("failed to connect to control plane: {}", e));
-        }
-    }
+    });
+    let lsp_manager = Arc::new(LspManager::new(project_root, lsp_config));
 
-    // Hydrate conversations from the control plane (non-fatal on failure)
-    let app_state = api::AppState::new(supervisor.clone());
-    for summary in supervisor.list_agents() {
-        match sync::poller::fetch_conversations(&client, &config, &summary.id).await {
-            Ok(records) => {
-                let sse_receivers =
-                    supervisor.hydrate_conversations(&summary.id, records);
-                for (conv_id, sse_rx) in sse_receivers {
-                    app_state.sse_streams.insert(conv_id, sse_rx);
-                }
-            }
-            Err(e) => {
-                error!(
-                    agent_id = summary.id,
-                    error = %e,
-                    "failed to fetch conversations for agent"
-                );
-            }
-        }
-    }
+    let supervisor = Arc::new(AgentSupervisor::with_lsp(
+        mcp_manager.clone(),
+        lsp_manager,
+        cancel.clone(),
+    ));
 
-    // Spawn sync poller
-    {
-        let supervisor = supervisor.clone();
-        let client = client.clone();
-        let config = config.clone();
-        let cancel = cancel.clone();
-        tracker.spawn(async move {
-            sync::poller::run_sync_loop(&supervisor, &client, &config, cancel).await;
-        });
-    }
+    // Create app state — bridge starts with zero agents, waits for pushes
+    let app_state = api::AppState::new(supervisor.clone(), config.control_plane_api_key.clone());
 
     // Build HTTP router
     let app = api::build_router(app_state);
@@ -97,8 +85,6 @@ async fn main() -> anyhow::Result<()> {
     // Shutdown sequence
     info!("shutting down...");
     cancel.cancel();
-    tracker.close();
-    tracker.wait().await;
     supervisor.shutdown().await;
     info!("bridge stopped");
 

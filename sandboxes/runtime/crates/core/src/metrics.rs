@@ -77,6 +77,7 @@ impl Default for AgentMetrics {
 
 /// Serializable snapshot of agent metrics for the /metrics endpoint.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MetricsSnapshot {
     /// Agent identifier
     pub agent_id: AgentId,
@@ -104,6 +105,7 @@ pub struct MetricsSnapshot {
 
 /// Global metrics across all agents.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GlobalMetrics {
     /// Total number of loaded agents
     pub total_agents: usize,
@@ -115,6 +117,7 @@ pub struct GlobalMetrics {
 
 /// Complete metrics response for GET /metrics.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MetricsResponse {
     /// Timestamp of the snapshot
     pub timestamp: chrono::DateTime<chrono::Utc>,

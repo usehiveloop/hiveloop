@@ -16,15 +16,18 @@ pub struct AppState {
     ///
     /// Stores the SSE receiver so the stream handler can pick it up.
     pub sse_streams: Arc<DashMap<String, mpsc::Receiver<SseEvent>>>,
+    /// API key for authenticating control plane push requests.
+    pub control_plane_api_key: String,
 }
 
 impl AppState {
     /// Create a new application state.
-    pub fn new(supervisor: Arc<AgentSupervisor>) -> Self {
+    pub fn new(supervisor: Arc<AgentSupervisor>, control_plane_api_key: String) -> Self {
         Self {
             supervisor,
             startup_time: Instant::now(),
             sse_streams: Arc::new(DashMap::new()),
+            control_plane_api_key,
         }
     }
 }

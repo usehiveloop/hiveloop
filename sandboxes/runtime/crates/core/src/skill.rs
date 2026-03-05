@@ -5,6 +5,7 @@ pub type SkillId = String;
 
 /// Definition of a skill that can be activated by an agent.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SkillDefinition {
     /// Unique identifier for the skill
     pub id: SkillId,

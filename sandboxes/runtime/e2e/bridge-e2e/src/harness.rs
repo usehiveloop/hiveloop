@@ -205,7 +205,6 @@ impl TestHarness {
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
-            .env("BRIDGE_SYNC_INTERVAL_SECS", "5")
             .env("BRIDGE_LOG_LEVEL", "debug")
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -241,6 +240,9 @@ impl TestHarness {
 
         // 4. Poll /health until 200 (max 30s)
         harness.wait_for_bridge_healthy().await?;
+
+        // 5. Fetch agents from mock CP and push them to the bridge
+        harness.push_agents_from_cp().await?;
 
         Ok(harness)
     }
@@ -351,7 +353,6 @@ impl TestHarness {
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
-            .env("BRIDGE_SYNC_INTERVAL_SECS", "300") // avoid sync during tests
             .env("BRIDGE_LOG_LEVEL", "info")
             .env("SEARCH_ENDPOINT", format!("{}/search", &cp_base_url))
             .stdout(Stdio::from(bridge_stdout_log))
@@ -391,7 +392,10 @@ impl TestHarness {
             .wait_for_bridge_healthy_with_timeout(Duration::from_secs(60))
             .await?;
 
-        // 5. Wait for agents to be synced and MCP connections established
+        // 5. Push agents from mock CP to bridge
+        harness.push_agents_from_cp().await?;
+
+        // 6. Wait for agents to be loaded (MCP connections take longer)
         harness.wait_for_agents_loaded(8).await?;
 
         Ok(harness)
@@ -1283,6 +1287,103 @@ impl TestHarness {
         }
 
         Ok(events)
+    }
+
+    // ---- Push helpers (control plane → bridge) ----
+
+    /// Fetch agents from mock CP via GET /agents, then push them to bridge via POST /push/agents.
+    pub async fn push_agents_from_cp(&self) -> Result<()> {
+        // Fetch agent definitions from mock control plane
+        let resp = self
+            .client
+            .get(format!("{}/agents", self.cp_base_url))
+            .send()
+            .await
+            .context("GET /agents from CP failed")?;
+
+        let agents: Vec<serde_json::Value> = resp
+            .json()
+            .await
+            .context("failed to parse CP /agents response")?;
+
+        tracing::info!(count = agents.len(), "fetched agents from mock CP, pushing to bridge");
+
+        // Push to bridge
+        let push_resp = self
+            .client
+            .post(format!("{}/push/agents", self.bridge_base_url))
+            .header("authorization", "Bearer e2e-test-key")
+            .json(&serde_json::json!({"agents": agents}))
+            .send()
+            .await
+            .context("POST /push/agents to bridge failed")?;
+
+        if !push_resp.status().is_success() {
+            let status = push_resp.status();
+            let body = push_resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "failed to push agents to bridge: status={}, body={}",
+                status,
+                body
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Push a diff to the bridge via POST /push/diff.
+    pub async fn push_diff_to_bridge(
+        &self,
+        added: &[serde_json::Value],
+        updated: &[serde_json::Value],
+        removed: &[&str],
+    ) -> Result<()> {
+        let resp = self
+            .client
+            .post(format!("{}/push/diff", self.bridge_base_url))
+            .header("authorization", "Bearer e2e-test-key")
+            .json(&serde_json::json!({
+                "added": added,
+                "updated": updated,
+                "removed": removed,
+            }))
+            .send()
+            .await
+            .context("POST /push/diff to bridge failed")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "failed to push diff to bridge: status={}, body={}",
+                status,
+                body
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Push a single agent to the bridge via PUT /push/agents/{agent_id}.
+    pub async fn push_agent_to_bridge(
+        &self,
+        agent: &serde_json::Value,
+    ) -> Result<reqwest::Response> {
+        let agent_id = agent
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow!("agent has no id field"))?;
+
+        let resp = self
+            .client
+            .put(format!("{}/push/agents/{}", self.bridge_base_url, agent_id))
+            .header("authorization", "Bearer e2e-test-key")
+            .json(agent)
+            .send()
+            .await
+            .context("PUT /push/agents/{id} to bridge failed")?;
+
+        Ok(resp)
     }
 
     // ---- Mock Control Plane helpers ----
