@@ -3,7 +3,7 @@ use bridge_core::AgentMetrics;
 use llm::{SseEvent, TokenUsage};
 use rig::completion::Prompt;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -63,6 +63,8 @@ pub struct ConversationParams {
     /// No-tools agent used to retry when the primary agent returns an empty response.
     /// Because it has no tools registered the model is forced to produce text.
     pub retry_agent: Arc<llm::BridgeAgent>,
+    /// Shared abort token — holds the current turn's CancellationToken.
+    pub abort_token: Arc<Mutex<CancellationToken>>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -91,6 +93,7 @@ pub async fn run_conversation(params: ConversationParams) {
         tool_executors,
         initial_history,
         retry_agent,
+        abort_token,
     } = params;
 
     info!(
@@ -175,6 +178,13 @@ pub async fn run_conversation(params: ConversationParams) {
 
         let start = std::time::Instant::now();
 
+        // Create a fresh abort token for this turn
+        let turn_cancel = CancellationToken::new();
+        {
+            let mut guard = abort_token.lock().unwrap();
+            *guard = turn_cancel.clone();
+        }
+
         // Spawn the agent prompt in a separate task so that tokio::time::timeout
         // is guaranteed to fire even if the future blocks a worker thread.
         // Using prompt().with_hook() instead of chat() so tool calls emit SSE events.
@@ -183,7 +193,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let mut history_clone = history.clone();
         let sse_tx_clone = sse_tx.clone();
         let agent_context_clone = agent_context.clone();
-        let cancel_clone = cancel.clone();
+        let turn_cancel_clone = turn_cancel.clone();
         let tool_names_clone = tool_names.clone();
         let tool_executors_clone = tool_executors.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
@@ -191,7 +201,7 @@ pub async fn run_conversation(params: ConversationParams) {
         tokio::spawn(async move {
             let emitter = llm::ToolCallEmitter {
                 sse_tx: sse_tx_clone,
-                cancel: cancel_clone,
+                cancel: turn_cancel_clone,
                 tool_names: tool_names_clone,
                 tool_executors: tool_executors_clone,
             };
@@ -212,8 +222,31 @@ pub async fn run_conversation(params: ConversationParams) {
             let _ = result_tx.send((result, history_clone));
         });
 
-        // Wait for the result with a timeout
-        let chat_result = tokio::time::timeout(AGENT_CHAT_TIMEOUT, result_rx).await;
+        // Wait for the result with a timeout, or abort/shutdown
+        let chat_result = tokio::select! {
+            // Agent-level shutdown (kills all conversations)
+            _ = cancel.cancelled() => {
+                debug!(conversation_id = conversation_id, "conversation cancelled by agent shutdown");
+                break;
+            }
+            // Turn-level abort (user requested abort)
+            _ = turn_cancel.cancelled() => {
+                info!(conversation_id = conversation_id, "turn aborted by user");
+                let _ = sse_tx
+                    .send(SseEvent::Error {
+                        code: "aborted".to_string(),
+                        message: "Turn aborted by user".to_string(),
+                    })
+                    .await;
+                let _ = sse_tx.send(SseEvent::Done).await;
+                turn_count += 1;
+                continue;
+            }
+            // Normal completion or timeout
+            result = tokio::time::timeout(AGENT_CHAT_TIMEOUT, result_rx) => {
+                result
+            }
+        };
 
         match chat_result {
             // Timeout fired
@@ -314,7 +347,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     for _attempt in 0..MAX_CONTINUATIONS {
                         let agent_clone = agent.clone();
                         let sse_tx_clone = sse_tx.clone();
-                        let cancel_clone = cancel.clone();
+                        let turn_cancel_clone = turn_cancel.clone();
                         let tool_names_clone = tool_names.clone();
                         let tool_executors_clone = tool_executors.clone();
                         let agent_context_clone = agent_context.clone();
@@ -325,7 +358,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         tokio::spawn(async move {
                             let emitter = llm::ToolCallEmitter {
                                 sse_tx: sse_tx_clone,
-                                cancel: cancel_clone,
+                                cancel: turn_cancel_clone,
                                 tool_names: tool_names_clone,
                                 tool_executors: tool_executors_clone,
                             };

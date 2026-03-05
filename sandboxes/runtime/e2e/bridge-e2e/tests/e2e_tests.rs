@@ -281,6 +281,139 @@ async fn test_metrics_endpoint() {
 }
 
 // ============================================================================
+// Abort tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_abort_conversation_returns_200() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Create a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // Abort the conversation (no turn in-flight — should still return 200)
+    let abort_resp = harness
+        .abort_conversation(conv_id)
+        .await
+        .expect("abort_conversation request failed");
+
+    assert_eq!(
+        abort_resp.status().as_u16(),
+        200,
+        "POST /conversations/{conv_id}/abort should return 200"
+    );
+
+    let abort_body: serde_json::Value =
+        abort_resp.json().await.expect("failed to parse abort body");
+    assert_eq!(
+        abort_body.get("status").and_then(|v| v.as_str()),
+        Some("aborted"),
+        "abort response should have status: aborted"
+    );
+}
+
+#[tokio::test]
+async fn test_abort_unknown_conversation_returns_404() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let fake_conv_id = uuid::Uuid::new_v4().to_string();
+
+    let abort_resp = harness
+        .abort_conversation(&fake_conv_id)
+        .await
+        .expect("abort_conversation request failed");
+
+    assert_eq!(
+        abort_resp.status().as_u16(),
+        404,
+        "aborting unknown conversation should return 404"
+    );
+}
+
+#[tokio::test]
+async fn test_abort_then_send_message_still_works() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Create a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // Abort (no-op since no turn is in-flight)
+    let abort_resp = harness
+        .abort_conversation(conv_id)
+        .await
+        .expect("abort_conversation failed");
+    assert_eq!(abort_resp.status().as_u16(), 200);
+
+    // Send a message after abort — conversation should still be alive
+    let msg_resp = harness
+        .send_message(conv_id, "Hello after abort!")
+        .await
+        .expect("send_message request failed");
+
+    assert_eq!(
+        msg_resp.status().as_u16(),
+        202,
+        "sending message after abort should return 202 (conversation still alive)"
+    );
+}
+
+#[tokio::test]
+async fn test_double_abort_is_idempotent() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    // Create a conversation
+    let create_resp = harness
+        .create_conversation("agent_simple")
+        .await
+        .expect("create_conversation failed");
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id");
+
+    // Abort twice — both should succeed (idempotent)
+    let abort1 = harness.abort_conversation(conv_id).await.expect("abort 1 failed");
+    assert_eq!(abort1.status().as_u16(), 200);
+
+    let abort2 = harness.abort_conversation(conv_id).await.expect("abort 2 failed");
+    assert_eq!(abort2.status().as_u16(), 200);
+}
+
+// ============================================================================
 // Error tests
 // ============================================================================
 

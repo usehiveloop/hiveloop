@@ -41,6 +41,10 @@ pub fn build_router(state: AppState) -> Router {
             "/conversations/{conv_id}",
             delete(conversations::end_conversation),
         )
+        .route(
+            "/conversations/{conv_id}/abort",
+            post(conversations::abort_conversation),
+        )
         // SSE streaming
         .route(
             "/conversations/{conv_id}/stream",

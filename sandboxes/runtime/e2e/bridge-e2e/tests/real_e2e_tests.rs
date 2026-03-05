@@ -972,6 +972,241 @@ async fn test_multi_agent_concurrent_conversations() {
 }
 
 // ============================================================================
+// Test: Abort — Per-Conversation Cancellation
+// Verifies: POST /conversations/{conv_id}/abort cancels the in-flight turn,
+// SSE stream receives error(aborted) + done, conversation remains usable.
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_abort_conversation() {
+    if !require_fireworks_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    // Use researcher agent — it has simple tools (web_search, web_fetch) that
+    // reliably work with Fireworks and take enough time for the abort to fire.
+    let resp = harness
+        .create_conversation("researcher")
+        .await
+        .expect("create conversation");
+    let body: serde_json::Value = resp.json().await.expect("parse create response");
+    let conv_id = body["conversation_id"]
+        .as_str()
+        .expect("conversation_id")
+        .to_string();
+
+    harness
+        .register_conversation(&conv_id, "researcher")
+        .await;
+
+    // Send a message that will trigger tool calls (web_search takes time)
+    let msg_resp = harness
+        .send_message(
+            &conv_id,
+            "Research the history of the Rust programming language in depth. Use the web_search tool to search for 'Rust programming language history timeline'. Then search for 'Rust borrow checker design'. Then search for 'Rust async await RFC history'. Give me a comprehensive report.",
+        )
+        .await
+        .expect("send message");
+    assert!(
+        msg_resp.status().is_success() || msg_resp.status().as_u16() == 202,
+        "message send failed: {}",
+        msg_resp.status()
+    );
+
+    // Start reading the SSE stream in a background task, while we send the abort.
+    // This ensures we don't miss any events.
+    let bridge_url = harness.bridge_url().to_string();
+    let conv_id_clone = conv_id.clone();
+    let sse_reader = tokio::spawn(async move {
+        use futures::StreamExt;
+
+        let stream_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .unwrap();
+
+        let resp = stream_client
+            .get(format!(
+                "{}/conversations/{}/stream",
+                bridge_url, conv_id_clone
+            ))
+            .send()
+            .await
+            .expect("stream connect failed");
+
+        let mut stream = resp.bytes_stream();
+        let mut buffer = String::new();
+        let mut events: Vec<(String, serde_json::Value)> = Vec::new();
+        let mut current_event_type = String::new();
+        let deadline = std::time::Instant::now() + Duration::from_secs(60);
+
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+
+            match tokio::time::timeout(remaining, stream.next()).await {
+                Ok(Some(Ok(chunk))) => {
+                    buffer.push_str(&String::from_utf8_lossy(&chunk));
+                }
+                Ok(Some(Err(_))) | Ok(None) | Err(_) => break,
+            }
+
+            let mut got_done = false;
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].trim_end().to_string();
+                buffer = buffer[newline_pos + 1..].to_string();
+
+                if line.is_empty() {
+                    continue;
+                }
+                if let Some(event_name) = line.strip_prefix("event:") {
+                    current_event_type = event_name.trim().to_string();
+                } else if let Some(data_str) = line.strip_prefix("data:") {
+                    let data_str = data_str.trim();
+                    if data_str.is_empty() {
+                        continue;
+                    }
+                    let data: serde_json::Value =
+                        serde_json::from_str(data_str).unwrap_or_else(|_| {
+                            serde_json::Value::String(data_str.to_string())
+                        });
+                    let event_type = if !current_event_type.is_empty() {
+                        current_event_type.clone()
+                    } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
+                        t.to_string()
+                    } else {
+                        "message".to_string()
+                    };
+
+                    if event_type == "done" {
+                        events.push((event_type, data));
+                        got_done = true;
+                        break;
+                    }
+                    events.push((event_type, data));
+                    current_event_type.clear();
+                }
+            }
+            if got_done {
+                break;
+            }
+        }
+
+        events
+    });
+
+    // Wait for the LLM call to begin processing, then abort.
+    // 3 seconds is enough for the message to be received and the LLM call to start.
+    tokio::time::sleep(Duration::from_secs(3)).await;
+
+    let abort_start = std::time::Instant::now();
+    let abort_resp = harness
+        .abort_conversation(&conv_id)
+        .await
+        .expect("abort request failed");
+
+    assert_eq!(
+        abort_resp.status().as_u16(),
+        200,
+        "abort should return 200"
+    );
+
+    let abort_body: serde_json::Value = abort_resp.json().await.expect("parse abort body");
+    assert_eq!(
+        abort_body.get("status").and_then(|s| s.as_str()),
+        Some("aborted"),
+        "abort response should have status: aborted"
+    );
+
+    // Collect SSE events from the background reader
+    let events = sse_reader.await.expect("SSE reader task panicked");
+    let abort_latency = abort_start.elapsed();
+
+    eprintln!(
+        "[abort] abort latency: {:?}, collected {} events: {:?}",
+        abort_latency,
+        events.len(),
+        events
+            .iter()
+            .map(|(t, d)| format!("{}:{}", t, &d.to_string()[..d.to_string().len().min(120)]))
+            .collect::<Vec<_>>()
+    );
+
+    // Verify we got an error event with code "aborted"
+    let abort_event = events.iter().find(|(t, d)| {
+        t == "error"
+            && d.get("code").and_then(|c| c.as_str()) == Some("aborted")
+    });
+    assert!(
+        abort_event.is_some(),
+        "expected an error event with code 'aborted'. Events: {:?}",
+        events
+            .iter()
+            .map(|(t, d)| format!("{}:{}", t, d))
+            .collect::<Vec<_>>()
+    );
+
+    // Verify we got a done event
+    let done_event = events.iter().find(|(t, _)| t == "done");
+    assert!(
+        done_event.is_some(),
+        "expected a 'done' event after abort"
+    );
+
+    // The abort should resolve quickly (not wait for the full LLM response).
+    // Allow up to 10 seconds — the key point is it should NOT take the full
+    // LLM response time (which would be 15-40+ seconds for tool-calling agents).
+    assert!(
+        abort_latency < Duration::from_secs(10),
+        "abort should resolve quickly, but took {:?}",
+        abort_latency
+    );
+
+    // Now verify the conversation is still usable — send another message
+    // and expect a normal response.
+    let msg2_resp = harness
+        .send_message(&conv_id, "What is Rust known for? Answer in one sentence.")
+        .await
+        .expect("send second message after abort");
+
+    assert!(
+        msg2_resp.status().is_success() || msg2_resp.status().as_u16() == 202,
+        "second message after abort failed: {}",
+        msg2_resp.status()
+    );
+
+    // Read the second turn's SSE events — use stream_sse_until_done_count with 1
+    // since the SSE connection was consumed by the first reader
+    let (events2, response2) = harness
+        .stream_sse_until_done(&conv_id, LLM_TIMEOUT)
+        .await
+        .expect("stream SSE events for second turn");
+
+    eprintln!(
+        "[abort turn2] response: {} chars, events: {}",
+        response2.len(),
+        events2.len()
+    );
+
+    assert!(
+        !response2.is_empty(),
+        "conversation should still work after abort — second turn returned empty response. Events: {:?}",
+        events2
+            .iter()
+            .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(200)]))
+            .collect::<Vec<_>>()
+    );
+
+    eprintln!("[abort] test passed — abort worked and conversation remained usable");
+}
+
+// ============================================================================
 // Test: Executor — Background Bash
 // Verifies: bash tool called with background: true, notification round-trip
 // ============================================================================

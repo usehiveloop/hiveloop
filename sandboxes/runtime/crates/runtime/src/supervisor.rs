@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
@@ -166,10 +166,13 @@ impl AgentSupervisor {
         let (message_tx, message_rx) = mpsc::channel::<Message>(32);
         let (sse_tx, sse_rx) = mpsc::channel::<SseEvent>(256);
 
+        let abort_token = Arc::new(Mutex::new(CancellationToken::new()));
+
         let handle = ConversationHandle {
             id: conv_id.clone(),
             message_tx,
             created_at: chrono::Utc::now(),
+            abort_token: abort_token.clone(),
         };
 
         state.conversations.insert(conv_id.clone(), handle);
@@ -233,6 +236,7 @@ impl AgentSupervisor {
                 tool_executors,
                 initial_history: None,
                 retry_agent,
+                abort_token,
             })
             .await;
         });
@@ -303,6 +307,37 @@ impl AgentSupervisor {
         // Dropping the handle closes the message_tx sender, which causes the
         // conversation loop to exit gracefully.
 
+        Ok(())
+    }
+
+    /// Abort the current in-flight turn for a conversation.
+    ///
+    /// Cancels the current turn's token, causing the conversation loop to
+    /// send an abort SSE event and continue waiting for the next message.
+    pub fn abort_conversation(
+        &self,
+        agent_id: &str,
+        conversation_id: &str,
+    ) -> Result<(), BridgeError> {
+        let state = self
+            .agent_map
+            .get(agent_id)
+            .ok_or_else(|| BridgeError::AgentNotFound(agent_id.to_string()))?;
+
+        let handle = state
+            .conversations
+            .get(conversation_id)
+            .ok_or_else(|| BridgeError::ConversationNotFound(conversation_id.to_string()))?;
+
+        // Cancel the current turn's token
+        let token = handle.abort_token.lock().unwrap();
+        token.cancel();
+
+        info!(
+            agent_id = agent_id,
+            conversation_id = conversation_id,
+            "conversation aborted"
+        );
         Ok(())
     }
 
@@ -470,10 +505,13 @@ impl AgentSupervisor {
         let (message_tx, message_rx) = mpsc::channel::<Message>(32);
         let (sse_tx, sse_rx) = mpsc::channel::<SseEvent>(256);
 
+        let abort_token = Arc::new(Mutex::new(CancellationToken::new()));
+
         let handle = ConversationHandle {
             id: conv_id.clone(),
             message_tx,
             created_at: record.created_at,
+            abort_token: abort_token.clone(),
         };
 
         state.conversations.insert(conv_id.clone(), handle);
@@ -539,6 +577,7 @@ impl AgentSupervisor {
                 tool_executors,
                 initial_history: Some(initial_history),
                 retry_agent,
+                abort_token,
             })
             .await;
         });

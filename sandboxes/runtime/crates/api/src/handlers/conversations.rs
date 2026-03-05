@@ -94,6 +94,25 @@ pub async fn end_conversation(
     Ok(Json(json!({"status": "ended"})))
 }
 
+/// POST /conversations/:conv_id/abort — abort the current in-flight turn.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/conversations/{conv_id}/abort",
+    params(("conv_id" = String, Path, description = "Conversation identifier")),
+    responses(
+        (status = 200, description = "Turn aborted", body = serde_json::Value),
+        (status = 404, description = "Conversation not found")
+    )
+))]
+pub async fn abort_conversation(
+    State(state): State<AppState>,
+    Path(conv_id): Path<String>,
+) -> Result<Json<serde_json::Value>, BridgeError> {
+    let agent_id = find_agent_for_conversation(&state, &conv_id)?;
+    state.supervisor.abort_conversation(&agent_id, &conv_id)?;
+    Ok(Json(json!({"status": "aborted"})))
+}
+
 /// Find the agent that owns a conversation by searching all agents.
 fn find_agent_for_conversation(state: &AppState, conv_id: &str) -> Result<String, BridgeError> {
     for summary in state.supervisor.list_agents() {

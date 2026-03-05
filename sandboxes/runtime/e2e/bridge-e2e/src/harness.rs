@@ -488,7 +488,7 @@ impl TestHarness {
     }
 
     /// Connect to SSE stream and collect events until Done or timeout.
-    async fn stream_sse_until_done(
+    pub async fn stream_sse_until_done(
         &self,
         conv_id: &str,
         timeout: Duration,
@@ -1239,6 +1239,32 @@ impl TestHarness {
             .send()
             .await
             .context("DELETE end conversation request failed")?;
+
+        Ok(resp)
+    }
+
+    /// POST /conversations/{conv_id}/abort — abort the current in-flight turn.
+    pub async fn abort_conversation(&self, conv_id: &str) -> Result<reqwest::Response> {
+        let label = self.log_label(conv_id);
+        self.append_log(
+            &label,
+            &format!(
+                "[{}] ================================================================================\n\
+                 CONVERSATION ABORTED\n\
+                 ================================================================================\n\n",
+                now_str()
+            ),
+        );
+
+        let resp = self
+            .client
+            .post(format!(
+                "{}/conversations/{}/abort",
+                self.bridge_base_url, conv_id
+            ))
+            .send()
+            .await
+            .context("POST abort conversation request failed")?;
 
         Ok(resp)
     }

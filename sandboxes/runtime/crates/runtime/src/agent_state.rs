@@ -2,7 +2,7 @@ use bridge_core::conversation::Message;
 use bridge_core::{AgentDefinition, AgentMetrics};
 use dashmap::DashMap;
 use llm::BridgeAgent;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -18,6 +18,9 @@ pub struct ConversationHandle {
     pub message_tx: mpsc::Sender<Message>,
     /// When this conversation was created.
     pub created_at: chrono::DateTime<chrono::Utc>,
+    /// Token for aborting the current in-flight turn.
+    /// Replaced with a fresh token at the start of each turn.
+    pub abort_token: Arc<Mutex<CancellationToken>>,
 }
 
 /// Complete runtime state for a single agent.
