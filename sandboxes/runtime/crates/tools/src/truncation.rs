@@ -259,10 +259,7 @@ mod tests {
 
         cleanup_old_outputs();
 
-        assert!(
-            recent_file.exists(),
-            "recent file should be kept"
-        );
+        assert!(recent_file.exists(), "recent file should be kept");
 
         // Clean up
         let _ = std::fs::remove_file(&recent_file);

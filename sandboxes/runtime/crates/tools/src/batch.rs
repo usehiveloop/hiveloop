@@ -165,7 +165,10 @@ impl ToolExecutor for BatchTool {
                 success: false,
                 tool: discarded_call.tool.clone(),
                 result: None,
-                error: Some(format!("Maximum of {} tools allowed in batch", MAX_BATCH_SIZE)),
+                error: Some(format!(
+                    "Maximum of {} tools allowed in batch",
+                    MAX_BATCH_SIZE
+                )),
             });
         }
 
@@ -307,8 +310,14 @@ mod tests {
 
         assert_eq!(parsed.failed, 1);
         let err_msg = parsed.results[0].error.as_ref().unwrap();
-        assert!(err_msg.contains("not in registry"), "error should mention 'not in registry': {err_msg}");
-        assert!(err_msg.contains("Available tools:"), "error should list available tools: {err_msg}");
+        assert!(
+            err_msg.contains("not in registry"),
+            "error should mention 'not in registry': {err_msg}"
+        );
+        assert!(
+            err_msg.contains("Available tools:"),
+            "error should list available tools: {err_msg}"
+        );
     }
 
     #[tokio::test]
@@ -335,8 +344,14 @@ mod tests {
         });
 
         let result = tool.execute(args).await.expect("execute");
-        assert!(result.contains("successfully"), "should have encouragement message: {result}");
-        assert!(result.contains("batch tool"), "should encourage batch usage: {result}");
+        assert!(
+            result.contains("successfully"),
+            "should have encouragement message: {result}"
+        );
+        assert!(
+            result.contains("batch tool"),
+            "should encourage batch usage: {result}"
+        );
     }
 
     #[tokio::test]
@@ -350,7 +365,10 @@ mod tests {
         });
 
         let result = tool.execute(args).await.expect("execute");
-        assert!(!result.contains("successfully"), "should NOT have encouragement on failure");
+        assert!(
+            !result.contains("successfully"),
+            "should NOT have encouragement on failure"
+        );
     }
 
     #[tokio::test]

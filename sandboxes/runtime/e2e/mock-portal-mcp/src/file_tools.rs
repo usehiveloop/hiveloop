@@ -54,13 +54,19 @@ fn collect_glob_matches(
 }
 
 /// Execute the Grep tool against the workspace directory.
-pub fn grep(workspace: &Path, pattern: &str, file_glob: Option<&str>, subpath: Option<&str>) -> ToolResult {
+pub fn grep(
+    workspace: &Path,
+    pattern: &str,
+    file_glob: Option<&str>,
+    subpath: Option<&str>,
+) -> ToolResult {
     let re = match regex::Regex::new(pattern) {
         Ok(r) => r,
         Err(e) => return ToolResult::error(format!("invalid regex: {e}")),
     };
 
-    let glob_matcher = file_glob.and_then(|g| globset::Glob::new(g).ok().map(|g| g.compile_matcher()));
+    let glob_matcher =
+        file_glob.and_then(|g| globset::Glob::new(g).ok().map(|g| g.compile_matcher()));
 
     let search_root = match subpath {
         Some(p) => workspace.join(p),
@@ -68,7 +74,13 @@ pub fn grep(workspace: &Path, pattern: &str, file_glob: Option<&str>, subpath: O
     };
 
     let mut results = Vec::new();
-    grep_recursive(&search_root, workspace, &re, glob_matcher.as_ref(), &mut results);
+    grep_recursive(
+        &search_root,
+        workspace,
+        &re,
+        glob_matcher.as_ref(),
+        &mut results,
+    );
 
     if results.is_empty() {
         ToolResult::text("No matches found.".into())

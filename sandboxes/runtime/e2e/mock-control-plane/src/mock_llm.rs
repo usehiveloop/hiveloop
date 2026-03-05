@@ -345,10 +345,7 @@ fn stream_response(
 }
 
 /// Build a non-streaming response that calls the "agent" tool with proper arguments.
-fn build_agent_tool_call_response(
-    subagent_name: &str,
-    prompt: &str,
-) -> ChatCompletionResponse {
+fn build_agent_tool_call_response(subagent_name: &str, prompt: &str) -> ChatCompletionResponse {
     let args = serde_json::json!({
         "subagent": subagent_name,
         "prompt": prompt,

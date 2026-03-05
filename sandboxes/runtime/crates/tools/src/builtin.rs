@@ -34,9 +34,7 @@ pub fn register_builtin_tools_with_lsp(
     lsp_manager: Option<Arc<LspManager>>,
 ) {
     let tracker = FileTracker::new();
-    let boundary = ProjectBoundary::new(
-        std::env::current_dir().unwrap_or_default(),
-    );
+    let boundary = ProjectBoundary::new(std::env::current_dir().unwrap_or_default());
 
     // Filesystem tools
     registry.register(Arc::new(
@@ -67,8 +65,7 @@ pub fn register_builtin_tools_with_lsp(
             .with_lsp_manager_opt(lsp_manager.clone()),
     ));
     registry.register(Arc::new(
-        crate::apply_patch::ApplyPatchTool::new()
-            .with_lsp_manager_opt(lsp_manager.clone()),
+        crate::apply_patch::ApplyPatchTool::new().with_lsp_manager_opt(lsp_manager.clone()),
     ));
     registry.register(Arc::new(
         crate::multiedit::MultiEditTool::new()
@@ -87,7 +84,9 @@ pub fn register_builtin_tools_with_lsp(
 
     // Todo tools — shared state between read and write
     let todo_state = TodoState::new();
-    registry.register(Arc::new(crate::todo::TodoWriteTool::with_state(todo_state.clone())));
+    registry.register(Arc::new(crate::todo::TodoWriteTool::with_state(
+        todo_state.clone(),
+    )));
     registry.register(Arc::new(crate::todo::TodoReadTool::with_state(todo_state)));
 
     // LSP tool — code intelligence (only if manager provided)
@@ -109,9 +108,7 @@ pub fn register_builtin_tools_with_lsp(
 /// other subagents. This prevents unbounded recursion.
 pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
     let tracker = FileTracker::new();
-    let boundary = ProjectBoundary::new(
-        std::env::current_dir().unwrap_or_default(),
-    );
+    let boundary = ProjectBoundary::new(std::env::current_dir().unwrap_or_default());
 
     // Filesystem tools
     registry.register(Arc::new(
@@ -156,7 +153,9 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
 
     // Todo tools — shared state between read and write
     let todo_state = TodoState::new();
-    registry.register(Arc::new(crate::todo::TodoWriteTool::with_state(todo_state.clone())));
+    registry.register(Arc::new(crate::todo::TodoWriteTool::with_state(
+        todo_state.clone(),
+    )));
     registry.register(Arc::new(crate::todo::TodoReadTool::with_state(todo_state)));
 
     // No agent tool — subagents cannot spawn other subagents
@@ -187,9 +186,7 @@ pub fn register_filtered_builtin_tools_with_lsp(
 
     let filter = Some(allowed_tools);
     let tracker = FileTracker::new();
-    let boundary = ProjectBoundary::new(
-        std::env::current_dir().unwrap_or_default(),
-    );
+    let boundary = ProjectBoundary::new(std::env::current_dir().unwrap_or_default());
 
     // Filesystem tools
     maybe_register(
@@ -238,8 +235,7 @@ pub fn register_filtered_builtin_tools_with_lsp(
     maybe_register(
         registry,
         Arc::new(
-            crate::apply_patch::ApplyPatchTool::new()
-                .with_lsp_manager_opt(lsp_manager.clone()),
+            crate::apply_patch::ApplyPatchTool::new().with_lsp_manager_opt(lsp_manager.clone()),
         ),
         filter,
     );
@@ -293,11 +289,7 @@ pub fn register_filtered_builtin_tools_with_lsp(
     }
 
     // Agent tool
-    maybe_register(
-        registry,
-        Arc::new(crate::agent::AgentTool::new()),
-        filter,
-    );
+    maybe_register(registry, Arc::new(crate::agent::AgentTool::new()), filter);
 
     // Batch tool — registered last with a snapshot of all other tools
     if allowed_tools.iter().any(|n| n == "batch") {
@@ -347,10 +339,7 @@ mod tests {
     #[test]
     fn test_filtered_unknown_names_ignored() {
         let mut registry = ToolRegistry::new();
-        let allowed = vec![
-            "bash".to_string(),
-            "nonexistent_tool".to_string(),
-        ];
+        let allowed = vec!["bash".to_string(), "nonexistent_tool".to_string()];
         register_filtered_builtin_tools(&mut registry, &allowed);
         assert!(registry.get("bash").is_some());
         assert!(registry.get("nonexistent_tool").is_none());

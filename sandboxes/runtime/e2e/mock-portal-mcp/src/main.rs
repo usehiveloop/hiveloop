@@ -34,11 +34,7 @@ fn main() {
         let request: JsonRpcRequest = match serde_json::from_str(&line) {
             Ok(r) => r,
             Err(e) => {
-                let resp = JsonRpcResponse::error(
-                    None,
-                    -32700,
-                    format!("parse error: {e}"),
-                );
+                let resp = JsonRpcResponse::error(None, -32700, format!("parse error: {e}"));
                 write_response(&mut stdout_lock, &resp);
                 continue;
             }
@@ -53,25 +49,23 @@ fn main() {
 
 fn handle_request(
     req: &JsonRpcRequest,
-    workspace_dir: &PathBuf,
+    workspace_dir: &std::path::Path,
     log_file: Option<&str>,
 ) -> Option<JsonRpcResponse> {
     match req.method.as_str() {
-        "initialize" => {
-            Some(JsonRpcResponse::success(
-                req.id.clone(),
-                json!({
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "tools": {}
-                    },
-                    "serverInfo": {
-                        "name": "mock-portal-mcp",
-                        "version": "1.0.0"
-                    }
-                }),
-            ))
-        }
+        "initialize" => Some(JsonRpcResponse::success(
+            req.id.clone(),
+            json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "mock-portal-mcp",
+                    "version": "1.0.0"
+                }
+            }),
+        )),
 
         "notifications/initialized" => {
             // Client acknowledgement — no response needed
@@ -109,17 +103,13 @@ fn handle_request(
             Some(JsonRpcResponse::success(req.id.clone(), result_value))
         }
 
-        "ping" => {
-            Some(JsonRpcResponse::success(req.id.clone(), json!({})))
-        }
+        "ping" => Some(JsonRpcResponse::success(req.id.clone(), json!({}))),
 
-        _ => {
-            Some(JsonRpcResponse::error(
-                req.id.clone(),
-                -32601,
-                format!("method not found: {}", req.method),
-            ))
-        }
+        _ => Some(JsonRpcResponse::error(
+            req.id.clone(),
+            -32601,
+            format!("method not found: {}", req.method),
+        )),
     }
 }
 
@@ -152,11 +142,7 @@ fn log_tool_call(
     if let Ok(line) = serde_json::to_string(&entry) {
         // Append to file; create if needed
         use std::fs::OpenOptions;
-        if let Ok(mut file) = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(log_path)
-        {
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
             let _ = writeln!(file, "{line}");
         }
     }

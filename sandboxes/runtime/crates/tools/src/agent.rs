@@ -66,13 +66,17 @@ pub struct AgentToolParams {
     #[schemars(description = "Short (3-5 word) description of the task. Example: 'Fix login bug'")]
     pub description: String,
     /// The detailed task for the subagent to perform.
-    #[schemars(description = "The detailed task for the subagent to perform. Be specific and include all necessary context")]
+    #[schemars(
+        description = "The detailed task for the subagent to perform. Be specific and include all necessary context"
+    )]
     pub prompt: String,
     /// Which subagent to invoke (must match a defined subagent name).
     #[schemars(description = "Which subagent to invoke. Must match an available subagent name")]
     pub subagent: String,
     /// Set to true to run in background (returns immediately, notifies on completion).
-    #[schemars(description = "Set to true to run in background. Returns immediately with task_id; notifies on completion")]
+    #[schemars(
+        description = "Set to true to run in background. Returns immediately with task_id; notifies on completion"
+    )]
     #[serde(default)]
     pub background: bool,
     /// Resume a previous subagent session by task_id.
@@ -84,6 +88,12 @@ pub struct AgentToolParams {
 /// Tool that invokes subagents for autonomous task execution.
 pub struct AgentTool {
     description: String,
+}
+
+impl Default for AgentTool {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AgentTool {
@@ -183,11 +193,7 @@ impl ToolExecutor for AgentTool {
             // Foreground execution
             let result = ctx
                 .runner
-                .run_foreground(
-                    &params.subagent,
-                    &params.prompt,
-                    params.task_id.as_deref(),
-                )
+                .run_foreground(&params.subagent, &params.prompt, params.task_id.as_deref())
                 .await?;
 
             Ok(format!(

@@ -72,50 +72,53 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             .await;
         if let Some(ref wh) = self.webhook_ctx {
             wh.dispatcher.dispatch(webhooks::events::tool_call_started(
-                &self.agent_id, &self.conversation_id,
+                &self.agent_id,
+                &self.conversation_id,
                 json!({"tool_name": tool_name, "arguments": &arguments}),
-                &wh.url, &wh.secret,
+                &wh.url,
+                &wh.secret,
             ));
         }
 
         // Resolve the effective tool name: normalize, case-insensitive, fuzzy.
-        let (effective_name, name_was_repaired) = if !self.tool_names.is_empty() {
-            match self.resolve_tool_name(tool_name) {
-                Some(resolved) => {
-                    let repaired = resolved != tool_name;
-                    if repaired {
-                        debug!(
-                            original = tool_name,
-                            resolved = %resolved,
-                            "auto-repaired tool name"
-                        );
+        let (effective_name, name_was_repaired) =
+            if !self.tool_names.is_empty() {
+                match self.resolve_tool_name(tool_name) {
+                    Some(resolved) => {
+                        let repaired = resolved != tool_name;
+                        if repaired {
+                            debug!(
+                                original = tool_name,
+                                resolved = %resolved,
+                                "auto-repaired tool name"
+                            );
+                        }
+                        (resolved, repaired)
                     }
-                    (resolved, repaired)
-                }
-                None => {
-                    // Unresolvable — return error with suggestion.
-                    let error = self.unknown_tool_error(tool_name);
-                    let _ = self
-                        .sse_tx
-                        .send(SseEvent::ToolCallResult {
-                            id: id_for_bg.clone(),
-                            result: error.clone(),
-                            is_error: true,
-                        })
-                        .await;
-                    if let Some(ref wh) = self.webhook_ctx {
-                        wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    None => {
+                        // Unresolvable — return error with suggestion.
+                        let error = self.unknown_tool_error(tool_name);
+                        let _ = self
+                            .sse_tx
+                            .send(SseEvent::ToolCallResult {
+                                id: id_for_bg.clone(),
+                                result: error.clone(),
+                                is_error: true,
+                            })
+                            .await;
+                        if let Some(ref wh) = self.webhook_ctx {
+                            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
                             &self.agent_id, &self.conversation_id,
                             json!({"tool_name": tool_name, "result": &error, "is_error": true}),
                             &wh.url, &wh.secret,
                         ));
+                        }
+                        return ToolCallHookAction::Skip { reason: error };
                     }
-                    return ToolCallHookAction::Skip { reason: error };
                 }
-            }
-        } else {
-            (tool_name.to_string(), false)
-        };
+            } else {
+                (tool_name.to_string(), false)
+            };
 
         // Intercept bash calls with background: true.
         if effective_name == "bash" {
@@ -165,11 +168,14 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                &self.agent_id, &self.conversation_id,
-                json!({"tool_name": tool_name, "result": result, "is_error": false}),
-                &wh.url, &wh.secret,
-            ));
+            wh.dispatcher
+                .dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id,
+                    &self.conversation_id,
+                    json!({"tool_name": tool_name, "result": result, "is_error": false}),
+                    &wh.url,
+                    &wh.secret,
+                ));
         }
 
         // Emit a structured TodoUpdated event when the todowrite tool completes.
@@ -186,9 +192,11 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     .collect();
                 if let Some(ref wh) = self.webhook_ctx {
                     wh.dispatcher.dispatch(webhooks::events::todo_updated(
-                        &self.agent_id, &self.conversation_id,
+                        &self.agent_id,
+                        &self.conversation_id,
                         json!({"todos": &todos}),
-                        &wh.url, &wh.secret,
+                        &wh.url,
+                        &wh.secret,
                     ));
                 }
                 let _ = self.sse_tx.send(SseEvent::TodoUpdated { todos }).await;
@@ -330,18 +338,21 @@ impl ToolCallEmitter {
                     })
                     .await;
                 if let Some(ref wh) = self.webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                        &self.agent_id, &self.conversation_id,
-                        json!({"tool_name": tool_name, "result": &error, "is_error": true}),
-                        &wh.url, &wh.secret,
-                    ));
+                    wh.dispatcher
+                        .dispatch(webhooks::events::tool_call_completed(
+                            &self.agent_id,
+                            &self.conversation_id,
+                            json!({"tool_name": tool_name, "result": &error, "is_error": true}),
+                            &wh.url,
+                            &wh.secret,
+                        ));
                 }
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
 
-        let args_value: serde_json::Value = serde_json::from_str(args)
-            .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+        let args_value: serde_json::Value =
+            serde_json::from_str(args).unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
 
         let (result_str, is_error) = match executor.execute(args_value).await {
             Ok(output) => (output, false),
@@ -357,16 +368,17 @@ impl ToolCallEmitter {
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                &self.agent_id, &self.conversation_id,
-                json!({"tool_name": tool_name, "result": &result_str, "is_error": is_error}),
-                &wh.url, &wh.secret,
-            ));
+            wh.dispatcher
+                .dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id,
+                    &self.conversation_id,
+                    json!({"tool_name": tool_name, "result": &result_str, "is_error": is_error}),
+                    &wh.url,
+                    &wh.secret,
+                ));
         }
 
-        ToolCallHookAction::Skip {
-            reason: result_str,
-        }
+        ToolCallHookAction::Skip { reason: result_str }
     }
 
     /// Handle a bash tool call with `background: true`.
@@ -375,11 +387,7 @@ impl ToolCallEmitter {
     /// conversation's `notification_tx` when complete. Returns `Skip` with
     /// a JSON result containing the task_id so the tool server does not
     /// execute the bash tool itself.
-    async fn handle_background_bash(
-        &self,
-        args: BashArgs,
-        sse_id: String,
-    ) -> ToolCallHookAction {
+    async fn handle_background_bash(&self, args: BashArgs, sse_id: String) -> ToolCallHookAction {
         let ctx = match AGENT_CONTEXT.try_with(|c| c.clone()) {
             Ok(ctx) => ctx,
             Err(_) => {
@@ -447,11 +455,14 @@ impl ToolCallEmitter {
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                &self.agent_id, &self.conversation_id,
-                json!({"tool_name": "bash", "result": &result_json_clone, "is_error": false}),
-                &wh.url, &wh.secret,
-            ));
+            wh.dispatcher
+                .dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id,
+                    &self.conversation_id,
+                    json!({"tool_name": "bash", "result": &result_json_clone, "is_error": false}),
+                    &wh.url,
+                    &wh.secret,
+                ));
         }
 
         ToolCallHookAction::Skip {
@@ -480,11 +491,14 @@ impl ToolCallEmitter {
                     })
                     .await;
                 if let Some(ref wh) = self.webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                        &self.agent_id, &self.conversation_id,
-                        json!({"tool_name": "agent", "result": &error, "is_error": true}),
-                        &wh.url, &wh.secret,
-                    ));
+                    wh.dispatcher
+                        .dispatch(webhooks::events::tool_call_completed(
+                            &self.agent_id,
+                            &self.conversation_id,
+                            json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                            &wh.url,
+                            &wh.secret,
+                        ));
                 }
                 return ToolCallHookAction::Skip { reason: error };
             }
@@ -502,11 +516,14 @@ impl ToolCallEmitter {
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
-                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                    &self.agent_id, &self.conversation_id,
-                    json!({"tool_name": "agent", "result": &error, "is_error": true}),
-                    &wh.url, &wh.secret,
-                ));
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
             }
             return ToolCallHookAction::Skip { reason: error };
         }
@@ -534,11 +551,14 @@ impl ToolCallEmitter {
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
-                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                    &self.agent_id, &self.conversation_id,
-                    json!({"tool_name": "agent", "result": &error, "is_error": true}),
-                    &wh.url, &wh.secret,
-                ));
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "agent", "result": &error, "is_error": true}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
             }
             return ToolCallHookAction::Skip { reason: error };
         }
@@ -572,24 +592,21 @@ impl ToolCallEmitter {
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
-                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                    &self.agent_id, &self.conversation_id,
-                    json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
-                    &wh.url, &wh.secret,
-                ));
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
             }
-            ToolCallHookAction::Skip {
-                reason: result_str,
-            }
+            ToolCallHookAction::Skip { reason: result_str }
         } else {
             // Foreground execution
             let result = ctx
                 .runner
-                .run_foreground(
-                    &params.subagent,
-                    &params.prompt,
-                    params.task_id.as_deref(),
-                )
+                .run_foreground(&params.subagent, &params.prompt, params.task_id.as_deref())
                 .await;
 
             let (result_str, is_error) = match result {
@@ -612,15 +629,16 @@ impl ToolCallEmitter {
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
-                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
-                    &self.agent_id, &self.conversation_id,
-                    json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
-                    &wh.url, &wh.secret,
-                ));
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "agent", "result": &result_str, "is_error": is_error}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
             }
-            ToolCallHookAction::Skip {
-                reason: result_str,
-            }
+            ToolCallHookAction::Skip { reason: result_str }
         }
     }
 }
@@ -633,7 +651,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -664,7 +690,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_sends_tool_call_result() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
             &emitter,
@@ -696,7 +730,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_returns_continue() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -723,7 +765,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_uses_internal_call_id_when_no_tool_call_id() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -746,7 +796,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_handles_invalid_json_args() {
         let (tx, mut rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
             &emitter,
@@ -801,8 +859,7 @@ mod tests {
             }
         }
 
-        let (notif_tx, mut notif_rx) =
-            tokio::sync::mpsc::channel::<AgentTaskNotification>(16);
+        let (notif_tx, mut notif_rx) = tokio::sync::mpsc::channel::<AgentTaskNotification>(16);
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
@@ -849,7 +906,10 @@ mod tests {
         let start_event = sse_rx.try_recv().expect("should have tool_call_start");
         match &start_event {
             SseEvent::ToolCallStart { id, .. } => {
-                assert_eq!(id, "call_bg", "ToolCallStart should use the original tool_call_id");
+                assert_eq!(
+                    id, "call_bg",
+                    "ToolCallStart should use the original tool_call_id"
+                );
             }
             other => panic!("expected ToolCallStart, got {:?}", other),
         }
@@ -857,19 +917,19 @@ mod tests {
         let result_event = sse_rx.try_recv().expect("should have tool_call_result");
         match &result_event {
             SseEvent::ToolCallResult { id, .. } => {
-                assert_eq!(id, "call_bg", "ToolCallResult should use the same id as ToolCallStart");
+                assert_eq!(
+                    id, "call_bg",
+                    "ToolCallResult should use the same id as ToolCallStart"
+                );
             }
             other => panic!("expected ToolCallResult, got {:?}", other),
         }
 
         // Wait for the background notification
-        let notification = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            notif_rx.recv(),
-        )
-        .await
-        .expect("notification should arrive")
-        .expect("channel should not be closed");
+        let notification = tokio::time::timeout(std::time::Duration::from_secs(5), notif_rx.recv())
+            .await
+            .expect("notification should arrive")
+            .expect("channel should not be closed");
 
         assert_eq!(notification.description, "bg test");
         let output = notification.output.expect("should be Ok");
@@ -879,7 +939,15 @@ mod tests {
     #[tokio::test]
     async fn test_emitter_does_not_intercept_foreground_bash() {
         let (tx, _rx) = mpsc::channel(16);
-        let emitter = ToolCallEmitter { sse_tx: tx, cancel: CancellationToken::new(), tool_names: HashSet::new(), tool_executors: HashMap::new(), webhook_ctx: None, agent_id: "test-agent".to_string(), conversation_id: "test-conv".to_string() };
+        let emitter = ToolCallEmitter {
+            sse_tx: tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+        };
 
         // bash without background: true should Continue normally
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -931,8 +999,7 @@ mod tests {
             }
         }
 
-        let (notif_tx, _notif_rx) =
-            tokio::sync::mpsc::channel::<AgentTaskNotification>(16);
+        let (notif_tx, _notif_rx) = tokio::sync::mpsc::channel::<AgentTaskNotification>(16);
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
@@ -968,8 +1035,14 @@ mod tests {
         match &action {
             ToolCallHookAction::Skip { reason } => {
                 assert!(reason.contains("agent-task-789"), "should contain task_id");
-                assert!(reason.contains("Result from coder"), "should contain subagent output");
-                assert!(reason.contains("<task_result>"), "should contain task_result tags");
+                assert!(
+                    reason.contains("Result from coder"),
+                    "should contain subagent output"
+                );
+                assert!(
+                    reason.contains("<task_result>"),
+                    "should contain task_result tags"
+                );
             }
             other => panic!("expected Skip, got {:?}", other),
         }
@@ -986,7 +1059,11 @@ mod tests {
 
         let result_event = sse_rx.try_recv().expect("should have tool_call_result");
         match &result_event {
-            SseEvent::ToolCallResult { id, is_error, result } => {
+            SseEvent::ToolCallResult {
+                id,
+                is_error,
+                result,
+            } => {
                 assert_eq!(id, "call_agent");
                 assert!(!is_error, "should not be an error");
                 assert!(result.contains("Result from coder"));
@@ -1034,7 +1111,9 @@ mod tests {
         let _start = rx.try_recv().expect("should have tool_call_start");
         let result_event = rx.try_recv().expect("should have tool_call_result");
         match &result_event {
-            SseEvent::ToolCallResult { is_error, result, .. } => {
+            SseEvent::ToolCallResult {
+                is_error, result, ..
+            } => {
                 assert!(is_error);
                 assert!(result.contains("Unknown tool"));
             }
@@ -1110,9 +1189,15 @@ mod tests {
         struct StubBash;
         #[async_trait::async_trait]
         impl ToolExecutor for StubBash {
-            fn name(&self) -> &str { "bash" }
-            fn description(&self) -> &str { "stub" }
-            fn parameters_schema(&self) -> serde_json::Value { serde_json::json!({}) }
+            fn name(&self) -> &str {
+                "bash"
+            }
+            fn description(&self) -> &str {
+                "stub"
+            }
+            fn parameters_schema(&self) -> serde_json::Value {
+                serde_json::json!({})
+            }
             async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
                 Ok("repaired_bash_output".to_string())
             }
@@ -1142,7 +1227,11 @@ mod tests {
 
         match &action {
             ToolCallHookAction::Skip { reason } => {
-                assert!(reason.contains("repaired_bash_output"), "should contain the tool output: {}", reason);
+                assert!(
+                    reason.contains("repaired_bash_output"),
+                    "should contain the tool output: {}",
+                    reason
+                );
             }
             other => panic!("expected Skip with repaired output, got {:?}", other),
         }
@@ -1151,7 +1240,9 @@ mod tests {
         let _start = rx.try_recv().expect("should have tool_call_start");
         let result_event = rx.try_recv().expect("should have tool_call_result");
         match &result_event {
-            SseEvent::ToolCallResult { is_error, result, .. } => {
+            SseEvent::ToolCallResult {
+                is_error, result, ..
+            } => {
                 assert!(!is_error, "should not be an error");
                 assert!(result.contains("repaired_bash_output"));
             }
@@ -1170,9 +1261,15 @@ mod tests {
         struct StubBash;
         #[async_trait::async_trait]
         impl ToolExecutor for StubBash {
-            fn name(&self) -> &str { "bash" }
-            fn description(&self) -> &str { "stub" }
-            fn parameters_schema(&self) -> serde_json::Value { serde_json::json!({}) }
+            fn name(&self) -> &str {
+                "bash"
+            }
+            fn description(&self) -> &str {
+                "stub"
+            }
+            fn parameters_schema(&self) -> serde_json::Value {
+                serde_json::json!({})
+            }
             async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
                 Ok("trimmed_output".to_string())
             }
@@ -1202,7 +1299,11 @@ mod tests {
 
         match &action {
             ToolCallHookAction::Skip { reason } => {
-                assert!(reason.contains("trimmed_output"), "should contain the tool output: {}", reason);
+                assert!(
+                    reason.contains("trimmed_output"),
+                    "should contain the tool output: {}",
+                    reason
+                );
             }
             other => panic!("expected Skip with repaired output, got {:?}", other),
         }

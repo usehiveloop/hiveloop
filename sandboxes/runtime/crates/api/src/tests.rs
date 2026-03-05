@@ -521,9 +521,7 @@ async fn push_diff_empty_succeeds() {
                 .uri("/push/diff")
                 .header("content-type", "application/json")
                 .header("authorization", "Bearer valid-control-plane-token")
-                .body(Body::from(
-                    r#"{"added":[],"updated":[],"removed":[]}"#,
-                ))
+                .body(Body::from(r#"{"added":[],"updated":[],"removed":[]}"#))
                 .unwrap(),
         )
         .await

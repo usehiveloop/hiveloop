@@ -113,9 +113,7 @@ const WORKSPACE_SYMBOL_LIMIT: usize = 10;
 impl LspArgs {
     /// Get 0-based line/character, converting from 1-based input.
     fn position(&self) -> Result<(u32, u32), String> {
-        let line = self
-            .line
-            .ok_or("'line' is required for this operation")?;
+        let line = self.line.ok_or("'line' is required for this operation")?;
         let character = self
             .character
             .ok_or("'character' is required for this operation")?;
@@ -136,9 +134,7 @@ impl LspArgs {
         if path.is_absolute() {
             path.to_path_buf()
         } else {
-            std::env::current_dir()
-                .unwrap_or_default()
-                .join(path)
+            std::env::current_dir().unwrap_or_default().join(path)
         }
     }
 }
@@ -202,8 +198,7 @@ impl ToolExecutor for LspTool {
                             line: loc.range.start.line + 1,
                             character: loc.range.start.character + 1,
                         };
-                        serde_json::to_string_pretty(&result)
-                            .map_err(|e| e.to_string())
+                        serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
                     }
                     None => Ok("No definition found at this position.".into()),
                 }
@@ -328,8 +323,7 @@ impl ToolExecutor for LspTool {
                             line: loc.range.start.line + 1,
                             character: loc.range.start.character + 1,
                         };
-                        serde_json::to_string_pretty(&result)
-                            .map_err(|e| e.to_string())
+                        serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
                     }
                     None => Ok("No implementation found at this position.".into()),
                 }

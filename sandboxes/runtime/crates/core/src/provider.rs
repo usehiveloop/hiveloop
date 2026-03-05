@@ -1,7 +1,16 @@
 use serde::{Deserialize, Serialize};
 
 /// Supported LLM provider types.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum_macros::Display, strum_macros::EnumString)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    strum_macros::Display,
+    strum_macros::EnumString,
+)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderType {

@@ -14,7 +14,9 @@ use crate::ToolExecutor;
 #[serde(rename_all = "camelCase")]
 pub struct WriteArgs {
     /// Absolute path to the file to write. Parent directories are created automatically.
-    #[schemars(description = "Absolute path to the file to write. Parent directories are created automatically")]
+    #[schemars(
+        description = "Absolute path to the file to write. Parent directories are created automatically"
+    )]
     pub file_path: String,
     /// The full content to write to the file. Overwrites existing content.
     #[schemars(description = "The full content to write to the file. Overwrites existing content")]
@@ -296,7 +298,9 @@ mod tests {
             "filePath": path_str,
             "content": "first write"
         });
-        tool.execute(args).await.expect("first write should succeed");
+        tool.execute(args)
+            .await
+            .expect("first write should succeed");
 
         // Second write should work without re-reading (because mark_written was called)
         let args2 = serde_json::json!({

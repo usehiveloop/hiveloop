@@ -112,7 +112,9 @@ impl WebhookLog {
 
     /// Whether any entry has the given event type.
     pub fn has_type(&self, event_type: &str) -> bool {
-        self.entries.iter().any(|e| e.event_type() == Some(event_type))
+        self.entries
+            .iter()
+            .any(|e| e.event_type() == Some(event_type))
     }
 
     /// Filter entries by conversation ID.
@@ -233,9 +235,7 @@ fn format_sse_for_log(event_type: &str, data: &serde_json::Value) -> String {
             let id = data.get("id").and_then(|v| v.as_str()).unwrap_or("?");
             let args = data
                 .get("arguments")
-                .map(|a| {
-                    serde_json::to_string_pretty(a).unwrap_or_else(|_| a.to_string())
-                })
+                .map(|a| serde_json::to_string_pretty(a).unwrap_or_else(|_| a.to_string()))
                 .unwrap_or_default();
             format!("Tool: {} (id: {})\nArguments:\n{}", name, id, args)
         }
@@ -245,10 +245,7 @@ fn format_sse_for_log(event_type: &str, data: &serde_json::Value) -> String {
                 .get("is_error")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
-            let result_str = data
-                .get("result")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let result_str = data.get("result").and_then(|v| v.as_str()).unwrap_or("");
             let formatted = serde_json::from_str::<serde_json::Value>(result_str)
                 .map(|v| {
                     serde_json::to_string_pretty(&v).unwrap_or_else(|_| result_str.to_string())
@@ -356,7 +353,10 @@ impl TestHarness {
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
             .env("BRIDGE_LOG_LEVEL", "debug")
-            .env("BRIDGE_WEBHOOK_URL", format!("{}/webhooks/receive", cp_base_url))
+            .env(
+                "BRIDGE_WEBHOOK_URL",
+                format!("{}/webhooks/receive", cp_base_url),
+            )
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
@@ -369,7 +369,8 @@ impl TestHarness {
             .build()
             .context("failed to build reqwest client")?;
 
-        let log_dir = std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
+        let log_dir =
+            std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
         let _ = std::fs::remove_dir_all(&log_dir);
         let _ = std::fs::create_dir_all(&log_dir);
         eprintln!("[harness] Conversation logs: {}", log_dir.display());
@@ -448,7 +449,10 @@ impl TestHarness {
             }
         }
 
-        let fixtures_dir = workspace_root.join("e2e").join("fixtures").join("real-agents");
+        let fixtures_dir = workspace_root
+            .join("e2e")
+            .join("fixtures")
+            .join("real-agents");
         let tool_log_dir = std::env::temp_dir().join("portal-mcp-logs");
         let _ = std::fs::remove_dir_all(&tool_log_dir);
         let _ = std::fs::create_dir_all(&tool_log_dir);
@@ -480,7 +484,10 @@ impl TestHarness {
         let (mock_cp_port, cp_drain) = Self::read_port_from_stdout(cp_stdout)?;
         let cp_base_url = format!("http://127.0.0.1:{}", mock_cp_port);
 
-        tracing::info!(port = mock_cp_port, "mock control plane started (real agents)");
+        tracing::info!(
+            port = mock_cp_port,
+            "mock control plane started (real agents)"
+        );
 
         // 3. Start bridge
         let bridge_port = Self::find_free_port()?;
@@ -491,14 +498,12 @@ impl TestHarness {
         // CRITICAL: if stdout is piped but never read, the pipe buffer fills up
         // (~64KB on macOS) and blocks the bridge process when it writes logs,
         // which deadlocks the async runtime.
-        let bridge_stdout_log = std::fs::File::create(
-            std::env::temp_dir().join("bridge-e2e-stdout.log"),
-        )
-        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
-        let bridge_stderr_log = std::fs::File::create(
-            std::env::temp_dir().join("bridge-e2e-stderr.log"),
-        )
-        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        let bridge_stdout_log =
+            std::fs::File::create(std::env::temp_dir().join("bridge-e2e-stdout.log"))
+                .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        let bridge_stderr_log =
+            std::fs::File::create(std::env::temp_dir().join("bridge-e2e-stderr.log"))
+                .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
 
         let bridge_process = Command::new(&bridge_binary)
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
@@ -506,7 +511,10 @@ impl TestHarness {
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
             .env("BRIDGE_LOG_LEVEL", "info")
             .env("SEARCH_ENDPOINT", format!("{}/search", &cp_base_url))
-            .env("BRIDGE_WEBHOOK_URL", format!("{}/webhooks/receive", cp_base_url))
+            .env(
+                "BRIDGE_WEBHOOK_URL",
+                format!("{}/webhooks/receive", cp_base_url),
+            )
             .stdout(Stdio::from(bridge_stdout_log))
             .stderr(Stdio::from(bridge_stderr_log))
             .spawn()
@@ -519,7 +527,8 @@ impl TestHarness {
             .build()
             .context("failed to build reqwest client")?;
 
-        let log_dir = std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
+        let log_dir =
+            std::env::temp_dir().join(format!("bridge-e2e-conversation-logs-{}", bridge_port));
         let _ = std::fs::remove_dir_all(&log_dir);
         let _ = std::fs::create_dir_all(&log_dir);
         eprintln!("[harness] Conversation logs: {}", log_dir.display());
@@ -590,8 +599,7 @@ impl TestHarness {
             .to_string();
 
         // Register conversation and log header + system prompt
-        self.register_conversation(&conversation_id, agent_id)
-            .await;
+        self.register_conversation(&conversation_id, agent_id).await;
 
         // Send message (logging happens inside send_message)
         let msg_resp = self.send_message(&conversation_id, message).await?;
@@ -664,11 +672,7 @@ impl TestHarness {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!(
-                "stream endpoint returned {}: {}",
-                status,
-                body
-            ));
+            return Err(anyhow!("stream endpoint returned {}: {}", status, body));
         }
 
         let mut events = Vec::new();
@@ -723,10 +727,8 @@ impl TestHarness {
                         continue;
                     }
 
-                    let data: serde_json::Value =
-                        serde_json::from_str(data_str).unwrap_or_else(|_| {
-                            serde_json::Value::String(data_str.to_string())
-                        });
+                    let data: serde_json::Value = serde_json::from_str(data_str)
+                        .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
 
                     // Determine event type from event: line or from data.type
                     let event_type = if !current_event_type.is_empty() {
@@ -770,7 +772,11 @@ impl TestHarness {
                 "[harness] Warning: no content_delta events found. Events received: {:?}",
                 events
                     .iter()
-                    .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(100)]))
+                    .map(|e| format!(
+                        "{}:{}",
+                        e.event_type,
+                        &e.data.to_string()[..e.data.to_string().len().min(100)]
+                    ))
                     .collect::<Vec<_>>()
             );
         }
@@ -806,11 +812,7 @@ impl TestHarness {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!(
-                "stream endpoint returned {}: {}",
-                status,
-                body
-            ));
+            return Err(anyhow!("stream endpoint returned {}: {}", status, body));
         }
 
         let mut events = Vec::new();
@@ -871,10 +873,8 @@ impl TestHarness {
                         continue;
                     }
 
-                    let data: serde_json::Value =
-                        serde_json::from_str(data_str).unwrap_or_else(|_| {
-                            serde_json::Value::String(data_str.to_string())
-                        });
+                    let data: serde_json::Value = serde_json::from_str(data_str)
+                        .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
 
                     let event_type = if !current_event_type.is_empty() {
                         current_event_type.clone()
@@ -1066,10 +1066,7 @@ impl TestHarness {
                             .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
                             .collect();
                         if !server_names.is_empty() {
-                            log.push_str(&format!(
-                                "MCP Servers: {}\n\n",
-                                server_names.join(", ")
-                            ));
+                            log.push_str(&format!("MCP Servers: {}\n\n", server_names.join(", ")));
                         }
                     }
                     if let Some(subagents) = body.get("subagents").and_then(|v| v.as_array()) {
@@ -1146,9 +1143,7 @@ impl TestHarness {
                 .read_line(&mut line_buf)
                 .context("failed to read stdout line")?;
             if bytes_read == 0 {
-                return Err(anyhow!(
-                    "mock-control-plane exited without printing PORT="
-                ));
+                return Err(anyhow!("mock-control-plane exited without printing PORT="));
             }
 
             let line = line_buf.trim();
@@ -1484,7 +1479,10 @@ impl TestHarness {
             .await
             .context("failed to parse CP /agents response")?;
 
-        tracing::info!(count = agents.len(), "fetched agents from mock CP, pushing to bridge");
+        tracing::info!(
+            count = agents.len(),
+            "fetched agents from mock CP, pushing to bridge"
+        );
 
         // Push to bridge
         let push_resp = self

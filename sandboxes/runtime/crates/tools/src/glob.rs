@@ -206,8 +206,14 @@ mod tests {
         let tool = GlobTool::new();
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(desc.contains("glob pattern"), "should mention glob patterns");
-        assert!(desc.contains("modification time"), "should mention sort order");
+        assert!(
+            desc.contains("glob pattern"),
+            "should mention glob patterns"
+        );
+        assert!(
+            desc.contains("modification time"),
+            "should mention sort order"
+        );
         assert!(desc.contains("Agent"), "should mention cross-tool guidance");
     }
 

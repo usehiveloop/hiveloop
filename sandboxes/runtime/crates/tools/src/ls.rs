@@ -159,12 +159,11 @@ impl ToolExecutor for LsTool {
         }
 
         let root = path.to_path_buf();
-        let (output, total_entries, truncated) =
-            tokio::task::spawn_blocking(move || {
-                render_tree(&root, DEFAULT_IGNORE_PATTERNS, MAX_ENTRIES)
-            })
-            .await
-            .map_err(|e| format!("Task join error: {e}"))??;
+        let (output, total_entries, truncated) = tokio::task::spawn_blocking(move || {
+            render_tree(&root, DEFAULT_IGNORE_PATTERNS, MAX_ENTRIES)
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??;
 
         let result = LsResult {
             output,
@@ -303,10 +302,7 @@ mod tests {
         let parsed: LsResult = serde_json::from_str(&result).expect("parse");
 
         assert!(parsed.output.contains("readme.txt"));
-        assert!(
-            !parsed.output.contains(".git"),
-            ".git should be excluded"
-        );
+        assert!(!parsed.output.contains(".git"), ".git should be excluded");
     }
 
     #[tokio::test]

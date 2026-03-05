@@ -34,8 +34,7 @@ impl WebSearchTool {
     /// Create a new `WebSearchTool` with the given endpoint URL.
     pub fn new(endpoint: String) -> Self {
         let year = chrono::Utc::now().format("%Y").to_string();
-        let description =
-            include_str!("instructions/web_search.txt").replace("{{year}}", &year);
+        let description = include_str!("instructions/web_search.txt").replace("{{year}}", &year);
         Self {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
@@ -86,9 +85,7 @@ impl WebSearchTool {
                     .with_max_delay(Duration::from_secs(5))
                     .with_max_times(3),
             )
-            .when(|e: &String| {
-                e.starts_with("Server error") || e.starts_with("Request failed")
-            })
+            .when(|e: &String| e.starts_with("Server error") || e.starts_with("Request failed"))
             .await
     }
 }
@@ -111,10 +108,7 @@ fn parse_serper_response(body: &str) -> Result<Vec<SearchResult>, String> {
 
     // Optionally prepend knowledge graph as first result
     if let Some(kg) = json.get("knowledgeGraph") {
-        let title = kg
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let title = kg.get("title").and_then(|v| v.as_str()).unwrap_or_default();
         let description = kg
             .get("description")
             .and_then(|v| v.as_str())
@@ -158,7 +152,10 @@ fn parse_serper_response(body: &str) -> Result<Vec<SearchResult>, String> {
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
                 .to_string();
-            let position = item.get("position").and_then(|v| v.as_u64()).map(|p| p as u32);
+            let position = item
+                .get("position")
+                .and_then(|v| v.as_u64())
+                .map(|p| p as u32);
 
             if !title.is_empty() {
                 results.push(SearchResult {
@@ -214,10 +211,16 @@ mod tests {
         let tool = WebSearchTool::new("http://unused".to_string());
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(!desc.contains("{{year}}"), "template variable should be replaced");
+        assert!(
+            !desc.contains("{{year}}"),
+            "template variable should be replaced"
+        );
         let current_year = chrono::Utc::now().format("%Y").to_string();
         assert!(desc.contains(&current_year), "should contain current year");
-        assert!(desc.contains("knowledge cutoff"), "should mention knowledge cutoff");
+        assert!(
+            desc.contains("knowledge cutoff"),
+            "should mention knowledge cutoff"
+        );
     }
 
     fn serper_response() -> serde_json::Value {
@@ -295,8 +298,7 @@ mod tests {
             .and(path("/search"))
             .and(body_json(serde_json::json!({ "q": "hello world" })))
             .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(serde_json::json!({ "organic": [] })),
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({ "organic": [] })),
             )
             .expect(1)
             .mount(&server)

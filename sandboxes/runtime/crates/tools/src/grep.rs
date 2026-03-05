@@ -45,13 +45,17 @@ pub struct GrepArgs {
     #[schemars(description = "Regular expression pattern to search for. Example: 'fn\\s+main'")]
     pub pattern: String,
     /// File or directory to search in. Defaults to current working directory.
-    #[schemars(description = "File or directory to search in. Defaults to current working directory")]
+    #[schemars(
+        description = "File or directory to search in. Defaults to current working directory"
+    )]
     pub path: Option<String>,
     /// Glob pattern to filter files (e.g., "*.js", "*.{ts,tsx}").
     #[schemars(description = "Glob pattern to filter files. Example: '*.rs', '*.{ts,tsx}'")]
     pub glob: Option<String>,
     /// File type to search (e.g., "js", "py", "rust"). More efficient than glob for standard types.
-    #[schemars(description = "File type to search. Example: 'js', 'py', 'rust'. More efficient than glob for standard types")]
+    #[schemars(
+        description = "File type to search. Example: 'js', 'py', 'rust'. More efficient than glob for standard types"
+    )]
     pub file_type: Option<String>,
     /// Case insensitive search.
     #[schemars(description = "Set to true for case-insensitive matching")]
@@ -63,13 +67,19 @@ pub struct GrepArgs {
     #[schemars(description = "Number of context lines to show after each match")]
     pub context_after: Option<usize>,
     /// Number of lines to show before and after each match (overrides context_before/after).
-    #[schemars(description = "Number of context lines before and after each match. Overrides context_before/context_after")]
+    #[schemars(
+        description = "Number of context lines before and after each match. Overrides context_before/context_after"
+    )]
     pub context: Option<usize>,
     /// Output mode: "content", "files_with_matches", or "count".
-    #[schemars(description = "Output mode: 'content' shows matching lines, 'files_with_matches' shows file paths (default), 'count' shows match counts")]
+    #[schemars(
+        description = "Output mode: 'content' shows matching lines, 'files_with_matches' shows file paths (default), 'count' shows match counts"
+    )]
     pub output_mode: Option<OutputMode>,
     /// Maximum number of results to return. Default: 100. Use a higher value when you need comprehensive search results, or lower for quick lookups.
-    #[schemars(description = "Maximum number of results to return. Default: 100. Use a higher value for comprehensive results, lower for quick lookups")]
+    #[schemars(
+        description = "Maximum number of results to return. Default: 100. Use a higher value for comprehensive results, lower for quick lookups"
+    )]
     pub max_results: Option<usize>,
 }
 
@@ -180,7 +190,7 @@ impl Sink for CollectorSink {
     type Error = std::io::Error;
 
     fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> Result<bool, Self::Error> {
-        let content = truncate_match_line(&String::from_utf8_lossy(mat.bytes()).trim_end().to_string());
+        let content = truncate_match_line(String::from_utf8_lossy(mat.bytes()).trim_end());
         let line_number = mat.line_number();
 
         let entry = GrepMatch {
@@ -209,7 +219,7 @@ impl Sink for CollectorSink {
             _ => return Ok(true),
         }
 
-        let content = truncate_match_line(&String::from_utf8_lossy(ctx.bytes()).trim_end().to_string());
+        let content = truncate_match_line(String::from_utf8_lossy(ctx.bytes()).trim_end());
         let line_number = ctx.line_number();
 
         let entry = GrepMatch {
@@ -365,23 +375,41 @@ fn execute_grep(args: GrepArgs) -> Result<GrepResult, String> {
 
     // Sort files_with_matches by mtime descending (newest first)
     files_with_matches.sort_by(|a, b| {
-        let time_a = file_mtimes.get(a).copied().unwrap_or(SystemTime::UNIX_EPOCH);
-        let time_b = file_mtimes.get(b).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_a = file_mtimes
+            .get(a)
+            .copied()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_b = file_mtimes
+            .get(b)
+            .copied()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
         time_b.cmp(&time_a)
     });
 
     // Sort count_entries by mtime descending
     count_entries.sort_by(|a, b| {
-        let time_a = file_mtimes.get(&a.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
-        let time_b = file_mtimes.get(&b.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_a = file_mtimes
+            .get(&a.path)
+            .copied()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        let time_b = file_mtimes
+            .get(&b.path)
+            .copied()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
         time_b.cmp(&time_a)
     });
 
     // Sort content matches by file mtime descending
     if let Ok(mut matches) = all_matches.lock() {
         matches.sort_by(|a, b| {
-            let time_a = file_mtimes.get(&a.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
-            let time_b = file_mtimes.get(&b.path).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+            let time_a = file_mtimes
+                .get(&a.path)
+                .copied()
+                .unwrap_or(SystemTime::UNIX_EPOCH);
+            let time_b = file_mtimes
+                .get(&b.path)
+                .copied()
+                .unwrap_or(SystemTime::UNIX_EPOCH);
             let time_cmp = time_b.cmp(&time_a);
             if time_cmp == std::cmp::Ordering::Equal {
                 a.line_number.cmp(&b.line_number)
@@ -456,7 +484,10 @@ mod tests {
         let desc = tool.description();
         assert!(!desc.is_empty());
         assert!(desc.contains("regex"), "should mention regex support");
-        assert!(desc.contains("modification time"), "should mention sort order");
+        assert!(
+            desc.contains("modification time"),
+            "should mention sort order"
+        );
         assert!(desc.contains("Agent"), "should mention cross-tool guidance");
     }
 
@@ -708,7 +739,10 @@ mod tests {
         assert_eq!(parsed.total_matches, 2);
         // Newest file should appear first
         let first = parsed.matches[0].as_str().unwrap();
-        assert!(first.ends_with("new.txt"), "newest file should be first, got: {first}");
+        assert!(
+            first.ends_with("new.txt"),
+            "newest file should be first, got: {first}"
+        );
     }
 
     #[tokio::test]
@@ -731,7 +765,10 @@ mod tests {
 
         assert_eq!(parsed.total_matches, 1);
         let content = parsed.matches[0]["content"].as_str().unwrap();
-        assert!(content.ends_with("..."), "long line should be truncated with ...");
+        assert!(
+            content.ends_with("..."),
+            "long line should be truncated with ..."
+        );
         // Should be 2000 + 3 for "..."
         assert!(content.len() <= 2003 + 10);
     }

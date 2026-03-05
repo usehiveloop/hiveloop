@@ -28,9 +28,9 @@ const BINARY_THRESHOLD: f64 = 0.30;
 
 /// Known binary file extensions (skip content check).
 const BINARY_EXTENSIONS: &[&str] = &[
-    "zip", "tar", "gz", "exe", "dll", "so", "class", "jar", "war", "7z",
-    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp",
-    "bin", "dat", "obj", "o", "a", "lib", "wasm", "pyc", "pyo",
+    "zip", "tar", "gz", "exe", "dll", "so", "class", "jar", "war", "7z", "doc", "docx", "xls",
+    "xlsx", "ppt", "pptx", "odt", "ods", "odp", "bin", "dat", "obj", "o", "a", "lib", "wasm",
+    "pyc", "pyo",
 ];
 
 fn is_binary_extension(path: &Path) -> bool {
@@ -83,7 +83,11 @@ fn suggest_similar_files(path: &str) -> Vec<String> {
     }
 
     candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    candidates.into_iter().take(3).map(|(path, _)| path).collect()
+    candidates
+        .into_iter()
+        .take(3)
+        .map(|(path, _)| path)
+        .collect()
 }
 
 /// Check if a file extension is SVG (text/XML, should be read normally).
@@ -98,13 +102,19 @@ fn is_svg(path: &Path) -> bool {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReadArgs {
     /// Absolute path to the file to read. Example: '/home/user/project/src/main.rs'
-    #[schemars(description = "Absolute path to the file to read. Example: '/home/user/project/src/main.rs'")]
+    #[schemars(
+        description = "Absolute path to the file to read. Example: '/home/user/project/src/main.rs'"
+    )]
     pub file_path: String,
     /// Line number to start reading from (1-based). Use with limit for large files.
-    #[schemars(description = "Line number to start reading from (1-based). Use with limit for large files")]
+    #[schemars(
+        description = "Line number to start reading from (1-based). Use with limit for large files"
+    )]
     pub offset: Option<usize>,
     /// Maximum number of lines to read. Default: 2000. Use with offset for pagination.
-    #[schemars(description = "Maximum number of lines to read. Default: 2000. Use with offset for pagination")]
+    #[schemars(
+        description = "Maximum number of lines to read. Default: 2000. Use with offset for pagination"
+    )]
     pub limit: Option<usize>,
 }
 
@@ -221,8 +231,8 @@ impl ToolExecutor for ReadTool {
             {
                 let name = entry.file_name().to_string_lossy().to_string();
                 let ft = entry.file_type().await.ok();
-                let is_dir = ft.as_ref().map_or(false, |t| t.is_dir());
-                let is_symlink = ft.as_ref().map_or(false, |t| t.is_symlink());
+                let is_dir = ft.as_ref().is_some_and(|t| t.is_dir());
+                let is_symlink = ft.as_ref().is_some_and(|t| t.is_symlink());
 
                 if is_dir {
                     entries.push(format!("{}/", name));
@@ -242,7 +252,7 @@ impl ToolExecutor for ReadTool {
                 }
             }
 
-            entries.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+            entries.sort_by_key(|a| a.to_lowercase());
 
             // Apply offset/limit pagination
             let start = if offset > 0 { offset - 1 } else { 0 };
@@ -262,8 +272,7 @@ impl ToolExecutor for ReadTool {
                 lines_read: selected.len(),
                 truncated,
             };
-            return serde_json::to_string(&result)
-                .map_err(|e| format!("Failed to serialize: {e}"));
+            return serde_json::to_string(&result).map_err(|e| format!("Failed to serialize: {e}"));
         }
 
         let path_obj = Path::new(file_path);
@@ -453,7 +462,10 @@ mod tests {
         let tool = ReadTool::new();
         let desc = tool.description();
         assert!(!desc.is_empty());
-        assert!(desc.contains("absolute path"), "should mention absolute path requirement");
+        assert!(
+            desc.contains("absolute path"),
+            "should mention absolute path requirement"
+        );
         assert!(desc.contains("2000"), "should mention default line limit");
         assert!(desc.contains("image"), "should mention image support");
         assert!(desc.contains("grep"), "should mention cross-tool guidance");
@@ -591,7 +603,10 @@ mod tests {
         });
 
         let err = tool.execute(args).await.unwrap_err();
-        assert!(err.contains("Did you mean"), "should suggest similar files: {err}");
+        assert!(
+            err.contains("Did you mean"),
+            "should suggest similar files: {err}"
+        );
         assert!(err.contains("foo.rs"), "should suggest foo.rs: {err}");
     }
 
@@ -606,7 +621,10 @@ mod tests {
 
         let err = tool.execute(args).await.unwrap_err();
         assert!(err.contains("not found"));
-        assert!(!err.contains("Did you mean"), "should not suggest when dir is empty");
+        assert!(
+            !err.contains("Did you mean"),
+            "should not suggest when dir is empty"
+        );
     }
 
     #[tokio::test]
@@ -618,7 +636,10 @@ mod tests {
 
         let err = tool.execute(args).await.unwrap_err();
         assert!(err.contains("not found"));
-        assert!(!err.contains("Did you mean"), "should not suggest when parent is missing");
+        assert!(
+            !err.contains("Did you mean"),
+            "should not suggest when parent is missing"
+        );
     }
 
     #[tokio::test]
@@ -724,8 +745,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("create temp dir");
         let file_path = dir.path().join("test.png");
         // Write some binary data with a null byte to trigger binary detection
-        std::fs::write(&file_path, &[0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D, 0x0A])
-            .expect("write");
+        std::fs::write(&file_path, &[0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D, 0x0A]).expect("write");
 
         let tool = ReadTool::new();
         let args = serde_json::json!({

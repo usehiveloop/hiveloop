@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::WebhookDispatcher;
+use std::sync::Arc;
 
 /// Bundles a dispatcher, URL, and secret into a single clonable handle.
 ///

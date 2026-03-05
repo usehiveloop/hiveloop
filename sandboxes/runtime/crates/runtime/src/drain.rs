@@ -93,7 +93,12 @@ mod tests {
         let mut def = make_test_definition(id);
         def.version = Some(version.to_string());
         let agent = build_agent(&def, vec![]).expect("build agent");
-        Arc::new(AgentState::new(def, agent, ToolRegistry::new(), Arc::new(dashmap::DashMap::new())))
+        Arc::new(AgentState::new(
+            def,
+            agent,
+            ToolRegistry::new(),
+            Arc::new(dashmap::DashMap::new()),
+        ))
     }
 
     #[tokio::test]

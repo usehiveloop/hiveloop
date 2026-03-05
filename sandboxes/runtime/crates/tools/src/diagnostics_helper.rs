@@ -28,10 +28,7 @@ pub fn format_diagnostic(d: &Diagnostic) -> String {
 ///
 /// Returns a formatted string suitable for appending to tool output,
 /// or an empty string if there are no errors or the LSP is unavailable.
-pub async fn fetch_diagnostics_output(
-    lsp_manager: &Arc<LspManager>,
-    file_path: &str,
-) -> String {
+pub async fn fetch_diagnostics_output(lsp_manager: &Arc<LspManager>, file_path: &str) -> String {
     let path = Path::new(file_path);
 
     // Notify the LSP about the file change
@@ -118,7 +115,12 @@ mod tests {
 
     #[test]
     fn test_format_diagnostic_info() {
-        let d = make_diagnostic(DiagnosticSeverity::INFORMATION, 5, 10, "consider refactoring");
+        let d = make_diagnostic(
+            DiagnosticSeverity::INFORMATION,
+            5,
+            10,
+            "consider refactoring",
+        );
         let result = format_diagnostic(&d);
         assert_eq!(result, "INFO [6:11] consider refactoring");
     }

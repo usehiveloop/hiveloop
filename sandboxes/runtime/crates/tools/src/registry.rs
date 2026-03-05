@@ -128,11 +128,7 @@ impl ToolRegistry {
 ///
 /// Extracts required fields from the JSON schema and presents a clear
 /// error message instead of a raw validation dump.
-pub fn format_validation_error(
-    tool_name: &str,
-    error: &str,
-    schema: &serde_json::Value,
-) -> String {
+pub fn format_validation_error(tool_name: &str, error: &str, schema: &serde_json::Value) -> String {
     // Extract required field names from the schema
     let required_fields: Vec<&str> = schema
         .get("properties")
@@ -140,28 +136,20 @@ pub fn format_validation_error(
             schema
                 .get("$defs")
                 .and_then(|d| d.as_object())
-                .and_then(|defs| {
-                    defs.values()
-                        .find(|v| v.get("properties").is_some())
-                })
+                .and_then(|defs| defs.values().find(|v| v.get("properties").is_some()))
                 .and_then(|v| v.get("properties"))
         })
-        .and_then(|_| schema.get("required").or_else(|| {
-            schema
-                .get("$defs")
-                .and_then(|d| d.as_object())
-                .and_then(|defs| {
-                    defs.values()
-                        .find(|v| v.get("required").is_some())
-                })
-                .and_then(|v| v.get("required"))
-        }))
-        .and_then(|r| r.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str())
-                .collect()
+        .and_then(|_| {
+            schema.get("required").or_else(|| {
+                schema
+                    .get("$defs")
+                    .and_then(|d| d.as_object())
+                    .and_then(|defs| defs.values().find(|v| v.get("required").is_some()))
+                    .and_then(|v| v.get("required"))
+            })
         })
+        .and_then(|r| r.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
         .unwrap_or_default();
 
     // Simplify the error message
@@ -221,10 +209,18 @@ mod tests {
 
     fn make_registry() -> ToolRegistry {
         let mut reg = ToolRegistry::new();
-        reg.register(Arc::new(StubTool { tool_name: "bash".to_string() }));
-        reg.register(Arc::new(StubTool { tool_name: "Read".to_string() }));
-        reg.register(Arc::new(StubTool { tool_name: "edit".to_string() }));
-        reg.register(Arc::new(StubTool { tool_name: "Grep".to_string() }));
+        reg.register(Arc::new(StubTool {
+            tool_name: "bash".to_string(),
+        }));
+        reg.register(Arc::new(StubTool {
+            tool_name: "Read".to_string(),
+        }));
+        reg.register(Arc::new(StubTool {
+            tool_name: "edit".to_string(),
+        }));
+        reg.register(Arc::new(StubTool {
+            tool_name: "Grep".to_string(),
+        }));
         reg
     }
 

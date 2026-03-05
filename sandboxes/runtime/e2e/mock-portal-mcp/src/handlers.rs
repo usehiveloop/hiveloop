@@ -14,7 +14,10 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
 
         // ── Issue ──
         "createIssue" => {
-            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or("New Issue");
+            let title = args
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("New Issue");
             ToolResult::text(json!({
                 "id": format!("issue_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap()),
                 "identifier": "ENG-45",
@@ -30,16 +33,20 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
                 Some(issue) => ToolResult::text(issue.to_string()),
                 None => ToolResult::text(
                     // Default to first issue if no match
-                    mock_data::issues().first().cloned().unwrap_or(json!(null)).to_string(),
+                    mock_data::issues()
+                        .first()
+                        .cloned()
+                        .unwrap_or(json!(null))
+                        .to_string(),
                 ),
             }
         }
         "updateIssue" => {
             ToolResult::text(json!({"success": true, "message": "Issue updated"}).to_string())
         }
-        "updateIssueStatus" => {
-            ToolResult::text(json!({"success": true, "message": "Issue status updated"}).to_string())
-        }
+        "updateIssueStatus" => ToolResult::text(
+            json!({"success": true, "message": "Issue status updated"}).to_string(),
+        ),
         "assignIssue" => {
             ToolResult::text(json!({"success": true, "message": "Issue assigned"}).to_string())
         }
@@ -60,22 +67,23 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
         }
 
         // ── Dependencies ──
-        "addIssueDependency" => {
-            ToolResult::text(json!({"success": true, "id": "dep_new", "message": "Dependency added"}).to_string())
-        }
+        "addIssueDependency" => ToolResult::text(
+            json!({"success": true, "id": "dep_new", "message": "Dependency added"}).to_string(),
+        ),
         "removeIssueDependency" => {
             ToolResult::text(json!({"success": true, "message": "Dependency removed"}).to_string())
         }
-        "listIssueDependencies" => {
-            ToolResult::text(mock_data::issue_dependencies().to_string())
-        }
+        "listIssueDependencies" => ToolResult::text(mock_data::issue_dependencies().to_string()),
 
         // ── Status ──
         "listStatuses" => ToolResult::text(mock_data::statuses().to_string()),
 
         // ── Project ──
         "createProject" => {
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("New Project");
+            let name = args
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("New Project");
             ToolResult::text(json!({
                 "id": format!("project_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap()),
                 "name": name,
@@ -94,7 +102,10 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
 
         // ── Document ──
         "createDocument" => {
-            let title = args.get("title").and_then(|v| v.as_str()).unwrap_or("New Document");
+            let title = args
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("New Document");
             ToolResult::text(json!({
                 "id": format!("doc_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap()),
                 "title": title,
@@ -103,22 +114,23 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
             }).to_string())
         }
         "getDocument" => {
-            let doc_id = args.get("documentId").and_then(|v| v.as_str()).unwrap_or("");
+            let doc_id = args
+                .get("documentId")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let docs = mock_data::documents();
             let doc = docs.iter().find(|d| {
-                d.get("id").and_then(|v| v.as_str()).is_some_and(|id| id == doc_id)
+                d.get("id")
+                    .and_then(|v| v.as_str())
+                    .is_some_and(|id| id == doc_id)
             });
             ToolResult::text(doc.cloned().unwrap_or(docs[0].clone()).to_string())
         }
-        "listDocuments" => {
-            ToolResult::text(json!(mock_data::documents()).to_string())
-        }
+        "listDocuments" => ToolResult::text(json!(mock_data::documents()).to_string()),
         "updateDocument" => {
             ToolResult::text(json!({"success": true, "message": "Document updated"}).to_string())
         }
-        "searchDocuments" => {
-            ToolResult::text(json!(mock_data::documents()).to_string())
-        }
+        "searchDocuments" => ToolResult::text(json!(mock_data::documents()).to_string()),
         "moveDocument" => {
             ToolResult::text(json!({"success": true, "message": "Document moved"}).to_string())
         }
@@ -130,12 +142,18 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
         "listLabels" => ToolResult::text(mock_data::labels().to_string()),
         "listWorkspaceLabels" => ToolResult::text(mock_data::labels().to_string()),
         "createLabel" => {
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("new-label");
-            ToolResult::text(json!({
-                "id": format!("label_{}", name.replace(' ', "_")),
-                "name": name,
-                "color": "#888888"
-            }).to_string())
+            let name = args
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("new-label");
+            ToolResult::text(
+                json!({
+                    "id": format!("label_{}", name.replace(' ', "_")),
+                    "name": name,
+                    "color": "#888888"
+                })
+                .to_string(),
+            )
         }
 
         // ── Comment ──
@@ -155,7 +173,10 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
 
         // ── View ──
         "createView" => {
-            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("New View");
+            let name = args
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("New View");
             ToolResult::text(json!({
                 "id": format!("view_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap()),
                 "name": name,
@@ -169,19 +190,28 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
         // ── Portal Agent ──
         "pingHuman" => {
             let message = args.get("message").and_then(|v| v.as_str()).unwrap_or("");
-            ToolResult::text(json!({
-                "success": true,
-                "message": format!("Human pinged with message: {}", message),
-                "notifiedAt": chrono::Utc::now().to_rfc3339()
-            }).to_string())
+            ToolResult::text(
+                json!({
+                    "success": true,
+                    "message": format!("Human pinged with message: {}", message),
+                    "notifiedAt": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            )
         }
         "pingMeBack" => {
-            let delay = args.get("delayMinutes").and_then(|v| v.as_i64()).unwrap_or(5);
-            ToolResult::text(json!({
-                "success": true,
-                "message": format!("Ping scheduled in {} minutes", delay),
-                "scheduledAt": chrono::Utc::now().to_rfc3339()
-            }).to_string())
+            let delay = args
+                .get("delayMinutes")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(5);
+            ToolResult::text(
+                json!({
+                    "success": true,
+                    "message": format!("Ping scheduled in {} minutes", delay),
+                    "scheduledAt": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            )
         }
         "submitApprovalRequest" => {
             let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("");
@@ -195,21 +225,11 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
         }
 
         // ── GitHub PR ──
-        "listIssuePullRequests" => {
-            ToolResult::text(mock_data::issue_pull_requests().to_string())
-        }
-        "getPullRequest" => {
-            ToolResult::text(mock_data::pull_request_156().to_string())
-        }
-        "fetchPullRequestComments" => {
-            ToolResult::text(mock_data::pr_comments().to_string())
-        }
-        "fetchPullRequestReviews" => {
-            ToolResult::text(mock_data::pr_reviews().to_string())
-        }
-        "fetchPullRequestChecks" => {
-            ToolResult::text(mock_data::pr_checks().to_string())
-        }
+        "listIssuePullRequests" => ToolResult::text(mock_data::issue_pull_requests().to_string()),
+        "getPullRequest" => ToolResult::text(mock_data::pull_request_156().to_string()),
+        "fetchPullRequestComments" => ToolResult::text(mock_data::pr_comments().to_string()),
+        "fetchPullRequestReviews" => ToolResult::text(mock_data::pr_reviews().to_string()),
+        "fetchPullRequestChecks" => ToolResult::text(mock_data::pr_checks().to_string()),
         "addPullRequestComment" => {
             let body = args.get("body").and_then(|v| v.as_str()).unwrap_or("");
             ToolResult::text(json!({
@@ -219,16 +239,20 @@ pub fn handle_tool_call(name: &str, args: &Value, workspace_dir: &Path) -> ToolR
                 "message": "PR comment added"
             }).to_string())
         }
-        "getGithubInstallationToken" => {
-            ToolResult::text(json!({
+        "getGithubInstallationToken" => ToolResult::text(
+            json!({
                 "token": "ghs_mock_installation_token_for_testing",
                 "expiresAt": "2025-12-31T23:59:59Z"
-            }).to_string())
-        }
+            })
+            .to_string(),
+        ),
 
         // ── File System Tools ──
         "Glob" => {
-            let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("**/*");
+            let pattern = args
+                .get("pattern")
+                .and_then(|v| v.as_str())
+                .unwrap_or("**/*");
             file_tools::glob(workspace_dir, pattern)
         }
         "Grep" => {

@@ -8,7 +8,14 @@ pub fn conversation_created(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ConversationCreated, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ConversationCreated,
+        agent_id,
+        conv_id,
+        json!({}),
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a message_received event.
@@ -19,7 +26,14 @@ pub fn message_received(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::MessageReceived, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::MessageReceived,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a response_started event.
@@ -29,7 +43,14 @@ pub fn response_started(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ResponseStarted, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ResponseStarted,
+        agent_id,
+        conv_id,
+        json!({}),
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a response_chunk event.
@@ -40,7 +61,14 @@ pub fn response_chunk(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ResponseChunk, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ResponseChunk,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a response_completed event.
@@ -51,7 +79,14 @@ pub fn response_completed(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ResponseCompleted, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ResponseCompleted,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a tool_call_started event.
@@ -62,7 +97,14 @@ pub fn tool_call_started(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ToolCallStarted, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ToolCallStarted,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a tool_call_completed event.
@@ -73,7 +115,14 @@ pub fn tool_call_completed(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ToolCallCompleted, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ToolCallCompleted,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a conversation_ended event.
@@ -83,7 +132,14 @@ pub fn conversation_ended(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::ConversationEnded, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::ConversationEnded,
+        agent_id,
+        conv_id,
+        json!({}),
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a todo_updated event.
@@ -94,7 +150,14 @@ pub fn todo_updated(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::TodoUpdated, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::TodoUpdated,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for a turn_completed event.
@@ -104,7 +167,14 @@ pub fn turn_completed(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::TurnCompleted, agent_id, conv_id, json!({}), webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::TurnCompleted,
+        agent_id,
+        conv_id,
+        json!({}),
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 /// Create a webhook payload for an agent_error event.
@@ -115,7 +185,14 @@ pub fn agent_error(
     webhook_url: &str,
     webhook_secret: &str,
 ) -> WebhookPayload {
-    WebhookPayload::new(WebhookEventType::AgentError, agent_id, conv_id, data, webhook_url, webhook_secret)
+    WebhookPayload::new(
+        WebhookEventType::AgentError,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
 }
 
 #[cfg(test)]

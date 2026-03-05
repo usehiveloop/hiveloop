@@ -77,6 +77,12 @@ pub struct TodoWriteTool {
     state: TodoState,
 }
 
+impl Default for TodoWriteTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TodoWriteTool {
     pub fn new() -> Self {
         Self {
@@ -129,6 +135,12 @@ impl ToolExecutor for TodoWriteTool {
 /// Built-in tool that reads the current todo list (no parameters).
 pub struct TodoReadTool {
     state: TodoState,
+}
+
+impl Default for TodoReadTool {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TodoReadTool {

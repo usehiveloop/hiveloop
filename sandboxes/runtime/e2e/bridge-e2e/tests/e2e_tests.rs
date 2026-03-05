@@ -407,10 +407,16 @@ async fn test_double_abort_is_idempotent() {
         .expect("missing conversation_id");
 
     // Abort twice — both should succeed (idempotent)
-    let abort1 = harness.abort_conversation(conv_id).await.expect("abort 1 failed");
+    let abort1 = harness
+        .abort_conversation(conv_id)
+        .await
+        .expect("abort 1 failed");
     assert_eq!(abort1.status().as_u16(), 200);
 
-    let abort2 = harness.abort_conversation(conv_id).await.expect("abort 2 failed");
+    let abort2 = harness
+        .abort_conversation(conv_id)
+        .await
+        .expect("abort 2 failed");
     assert_eq!(abort2.status().as_u16(), 200);
 }
 
@@ -642,13 +648,19 @@ async fn test_webhooks_dispatched_for_conversation() {
 
     // Verify agent_id is set to the agent we used
     let created = log.by_type("conversation_created");
-    assert_eq!(created.len(), 1, "should have exactly one conversation_created");
+    assert_eq!(
+        created.len(),
+        1,
+        "should have exactly one conversation_created"
+    );
     assert_eq!(created[0].agent_id(), Some("agent_simple"));
 
     // Verify message_received has content in its data
     let received = log.by_type("message_received");
     assert!(!received.is_empty(), "should have message_received");
-    let data = received[0].data().expect("message_received should have data");
+    let data = received[0]
+        .data()
+        .expect("message_received should have data");
     assert_eq!(
         data.get("content").and_then(|v| v.as_str()),
         Some("Hello, agent!"),
@@ -787,4 +799,3 @@ async fn test_webhook_end_conversation() {
     assert_eq!(ended[0].conversation_id(), Some(conv_id));
     assert_eq!(ended[0].agent_id(), Some("agent_simple"));
 }
-

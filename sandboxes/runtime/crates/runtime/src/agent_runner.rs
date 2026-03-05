@@ -31,6 +31,12 @@ pub struct AgentSessionStore {
     sessions: DashMap<String, Vec<rig::message::Message>>,
 }
 
+impl Default for AgentSessionStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AgentSessionStore {
     pub fn new() -> Self {
         Self {
@@ -78,6 +84,7 @@ pub struct ConversationSubAgentRunner {
 }
 
 impl ConversationSubAgentRunner {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         subagents: Arc<DashMap<String, SubAgentEntry>>,
         session_store: Arc<AgentSessionStore>,
@@ -170,10 +177,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         self.session_store.save(task_id.clone(), history);
 
         match result {
-            Ok(output) => Ok(AgentTaskResult {
-                task_id,
-                output,
-            }),
+            Ok(output) => Ok(AgentTaskResult { task_id, output }),
             Err(e) => Err(e),
         }
     }
@@ -262,18 +266,13 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             session_store.save(task_id_clone.clone(), history);
 
             // Send notification
-            let output = match result {
-                Ok(output) => Ok(output),
-                Err(e) => Err(e),
-            };
-
             let notification = AgentTaskNotification {
                 task_id: task_id_clone.clone(),
                 description: description_owned,
-                output,
+                output: result,
             };
 
-            if let Err(_) = notification_tx.send(notification).await {
+            if notification_tx.send(notification).await.is_err() {
                 debug!(
                     task_id = %task_id_clone,
                     "notification channel closed, conversation likely ended"

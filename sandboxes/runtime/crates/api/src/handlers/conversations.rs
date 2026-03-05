@@ -42,7 +42,10 @@ pub async fn create_conversation(
     state.sse_streams.insert(conv_id.clone(), sse_rx);
 
     if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(&state, webhooks::events::conversation_created(&agent_id, &conv_id, &wh.url, &wh.secret));
+        emit_webhook(
+            &state,
+            webhooks::events::conversation_created(&agent_id, &conv_id, &wh.url, &wh.secret),
+        );
     }
 
     Ok((
@@ -74,9 +77,16 @@ pub async fn send_message(
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
 
     if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(&state, webhooks::events::message_received(
-            &agent_id, &conv_id, json!({"content": &body.content}), &wh.url, &wh.secret,
-        ));
+        emit_webhook(
+            &state,
+            webhooks::events::message_received(
+                &agent_id,
+                &conv_id,
+                json!({"content": &body.content}),
+                &wh.url,
+                &wh.secret,
+            ),
+        );
     }
 
     state
@@ -109,7 +119,10 @@ pub async fn end_conversation(
     state.sse_streams.remove(&conv_id);
 
     if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(&state, webhooks::events::conversation_ended(&agent_id, &conv_id, &wh.url, &wh.secret));
+        emit_webhook(
+            &state,
+            webhooks::events::conversation_ended(&agent_id, &conv_id, &wh.url, &wh.secret),
+        );
     }
 
     Ok(Json(json!({"status": "ended"})))

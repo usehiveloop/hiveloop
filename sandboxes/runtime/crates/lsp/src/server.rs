@@ -19,12 +19,7 @@ pub struct ServerDef {
 }
 
 /// Helper to build a ServerDef concisely.
-fn server(
-    id: &str,
-    command: &[&str],
-    extensions: &[&str],
-    root_markers: &[&str],
-) -> ServerDef {
+fn server(id: &str, command: &[&str], extensions: &[&str], root_markers: &[&str]) -> ServerDef {
     ServerDef {
         id: id.into(),
         command: command.iter().map(|s| s.to_string()).collect(),
@@ -121,24 +116,14 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["rs"],
             &["Cargo.toml", "Cargo.lock"],
         ),
-        server(
-            "go",
-            &["gopls"],
-            &["go"],
-            &["go.mod", "go.sum"],
-        ),
+        server("go", &["gopls"], &["go"], &["go.mod", "go.sum"]),
         server(
             "clangd",
             &["clangd", "--background-index", "--clang-tidy"],
             &["c", "cpp", "cc", "cxx", "h", "hpp", "hh", "hxx"],
             &["compile_commands.json", "CMakeLists.txt", "Makefile"],
         ),
-        server(
-            "zig",
-            &["zls"],
-            &["zig", "zon"],
-            &["build.zig"],
-        ),
+        server("zig", &["zls"], &["zig", "zon"], &["build.zig"]),
         // --- Scripting ---
         server(
             "python",
@@ -184,12 +169,7 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["pubspec.yaml"],
         ),
         // --- JVM ---
-        server(
-            "jdtls",
-            &["jdtls"],
-            &["java"],
-            &["pom.xml", "build.gradle"],
-        ),
+        server("jdtls", &["jdtls"], &["java"], &["pom.xml", "build.gradle"]),
         server(
             "kotlin-ls",
             &["kotlin-language-server"],
@@ -228,24 +208,14 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["ml", "mli"],
             &["dune-project", "opam"],
         ),
-        server(
-            "gleam",
-            &["gleam", "lsp"],
-            &["gleam"],
-            &["gleam.toml"],
-        ),
+        server("gleam", &["gleam", "lsp"], &["gleam"], &["gleam.toml"]),
         server(
             "clojure-lsp",
             &["clojure-lsp", "listen"],
             &["clj", "cljs", "cljc", "edn"],
             &["deps.edn", "project.clj"],
         ),
-        server(
-            "elm",
-            &["elm-language-server"],
-            &["elm"],
-            &["elm.json"],
-        ),
+        server("elm", &["elm-language-server"], &["elm"], &["elm.json"]),
         // --- Other ---
         server(
             "prisma",
@@ -259,30 +229,15 @@ pub fn builtin_servers() -> Vec<ServerDef> {
             &["tf", "tfvars"],
             &[".terraform.lock.hcl"],
         ),
-        server(
-            "texlab",
-            &["texlab"],
-            &["tex", "bib"],
-            &[".latexmkrc"],
-        ),
+        server("texlab", &["texlab"], &["tex", "bib"], &[".latexmkrc"]),
         server(
             "dockerfile",
             &["dockerfile-language-server-nodejs", "--stdio"],
             &["dockerfile"],
             &[],
         ),
-        server(
-            "nixd",
-            &["nixd"],
-            &["nix"],
-            &["flake.nix"],
-        ),
-        server(
-            "tinymist",
-            &["tinymist"],
-            &["typ", "typc"],
-            &["typst.toml"],
-        ),
+        server("nixd", &["nixd"], &["nix"], &["flake.nix"]),
+        server("tinymist", &["tinymist"], &["typ", "typc"], &["typst.toml"]),
         server(
             "julials",
             &[

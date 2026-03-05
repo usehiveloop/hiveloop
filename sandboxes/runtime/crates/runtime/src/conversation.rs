@@ -154,7 +154,12 @@ pub async fn run_conversation(params: ConversationParams) {
                 }
                 let _ = sse_tx.send(SseEvent::Done).await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                        &agent_id,
+                        &conversation_id,
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
                 break;
             }
@@ -187,7 +192,12 @@ pub async fn run_conversation(params: ConversationParams) {
             })
             .await;
         if let Some(ref wh) = webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::response_started(&agent_id, &conversation_id, &wh.url, &wh.secret));
+            wh.dispatcher.dispatch(webhooks::events::response_started(
+                &agent_id,
+                &conversation_id,
+                &wh.url,
+                &wh.secret,
+            ));
         }
 
         let start = std::time::Instant::now();
@@ -303,7 +313,12 @@ pub async fn run_conversation(params: ConversationParams) {
                 }
                 let _ = sse_tx.send(SseEvent::Done).await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                        &agent_id,
+                        &conversation_id,
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
             }
             // Task was cancelled (oneshot sender dropped)
@@ -320,11 +335,22 @@ pub async fn run_conversation(params: ConversationParams) {
                     })
                     .await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_error", "message": "agent chat task cancelled"}), &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::agent_error(
+                        &agent_id,
+                        &conversation_id,
+                        json!({"code": "agent_error", "message": "agent chat task cancelled"}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
                 let _ = sse_tx.send(SseEvent::Done).await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                        &agent_id,
+                        &conversation_id,
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
             }
             // Got result from agent
@@ -369,7 +395,12 @@ pub async fn run_conversation(params: ConversationParams) {
                             }
                             let _ = sse_tx.send(SseEvent::Done).await;
                             if let Some(ref wh) = webhook_ctx {
-                                wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                                wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                                    &agent_id,
+                                    &conversation_id,
+                                    &wh.url,
+                                    &wh.secret,
+                                ));
                             }
                             turn_count += 1;
                             continue;
@@ -377,10 +408,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     }
                 };
 
-                let needs_recovery = match &response_text {
-                    Some(text) if !text.is_empty() => false,
-                    _ => true,
-                };
+                let needs_recovery = !matches!(&response_text, Some(text) if !text.is_empty());
 
                 let response = if needs_recovery {
                     warn!(
@@ -471,7 +499,9 @@ pub async fn run_conversation(params: ConversationParams) {
                             "continuation did not produce text, retrying with no-tools agent with enriched history"
                         );
                         match retry_agent
-                            .prompt("Please provide a text response summarizing what you found or did.")
+                            .prompt(
+                                "Please provide a text response summarizing what you found or did.",
+                            )
                             .with_history(&mut enriched_history)
                             .await
                         {
@@ -490,7 +520,9 @@ pub async fn run_conversation(params: ConversationParams) {
                                     conversation_id = conversation_id,
                                     "no-tools retry also returned empty, using fallback"
                                 );
-                                let fallback = "I completed the requested tasks using the available tools.".to_string();
+                                let fallback =
+                                    "I completed the requested tasks using the available tools."
+                                        .to_string();
                                 enriched_history.push(rig::message::Message::assistant(&fallback));
                                 fallback
                             }
@@ -501,7 +533,9 @@ pub async fn run_conversation(params: ConversationParams) {
                                     error = %e,
                                     "no-tools retry failed, using fallback"
                                 );
-                                let fallback = "I completed the requested tasks using the available tools.".to_string();
+                                let fallback =
+                                    "I completed the requested tasks using the available tools."
+                                        .to_string();
                                 enriched_history.push(rig::message::Message::assistant(&fallback));
                                 fallback
                             }
@@ -530,7 +564,13 @@ pub async fn run_conversation(params: ConversationParams) {
                     })
                     .await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::response_chunk(&agent_id, &conversation_id, json!({"delta": &response}), &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::response_chunk(
+                        &agent_id,
+                        &conversation_id,
+                        json!({"delta": &response}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
 
                 // Replace main history with the enriched version so that
@@ -538,7 +578,12 @@ pub async fn run_conversation(params: ConversationParams) {
                 history = enriched_history;
 
                 // Record metrics
-                token_tracker::record_request(&metrics, initial_input_tokens, initial_output_tokens, latency_ms);
+                token_tracker::record_request(
+                    &metrics,
+                    initial_input_tokens,
+                    initial_output_tokens,
+                    latency_ms,
+                );
 
                 // Signal completion
                 let _ = sse_tx
@@ -555,7 +600,12 @@ pub async fn run_conversation(params: ConversationParams) {
                 }
                 let _ = sse_tx.send(SseEvent::Done).await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                        &agent_id,
+                        &conversation_id,
+                        &wh.url,
+                        &wh.secret,
+                    ));
                 }
             }
         }

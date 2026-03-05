@@ -263,7 +263,11 @@ impl Replacer for WhitespaceNormalizedReplacer {
         }
 
         let new_lines_vec: Vec<&str> = new_string.lines().collect();
-        let matches_to_apply = if replace_all { matches.clone() } else { vec![matches[0]] };
+        let matches_to_apply = if replace_all {
+            matches.clone()
+        } else {
+            vec![matches[0]]
+        };
 
         let mut result_lines: Vec<&str> = content_lines;
         let mut sorted = matches_to_apply.clone();
@@ -533,9 +537,7 @@ impl Replacer for ContextAwareReplacer {
         let content_lines: Vec<&str> = content.lines().collect();
 
         // Find the first line that matches the first context anchor
-        let start = content_lines
-            .iter()
-            .position(|l| l.trim() == first)?;
+        let start = content_lines.iter().position(|l| l.trim() == first)?;
 
         // Find the last line (after start) that matches the last context anchor
         let end = content_lines[start..]
@@ -549,10 +551,7 @@ impl Replacer for ContextAwareReplacer {
 
         // Verify inner lines match approximately
         let block = &content_lines[start..=end];
-        let sim = strsim::normalized_levenshtein(
-            &block.join("\n"),
-            &old_lines.join("\n"),
-        );
+        let sim = strsim::normalized_levenshtein(&block.join("\n"), &old_lines.join("\n"));
         if sim < 0.7 {
             return None;
         }
@@ -717,9 +716,7 @@ mod tests {
         // Test that the chain finds an exact match
         let content = "hello world";
         for strategy in &strategies {
-            if let Some((result, count)) =
-                strategy.try_replace(content, "world", "rust", false)
-            {
+            if let Some((result, count)) = strategy.try_replace(content, "world", "rust", false) {
                 assert_eq!(result, "hello rust");
                 assert_eq!(count, 1);
                 assert_eq!(strategy.name(), "simple"); // Should be found by first strategy

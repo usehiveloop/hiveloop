@@ -222,7 +222,10 @@ mod tests {
 
         tracker.mark_read(path_str);
         let result = tracker.assert_not_stale(path_str);
-        assert!(result.is_ok(), "unmodified file should pass staleness check");
+        assert!(
+            result.is_ok(),
+            "unmodified file should pass staleness check"
+        );
     }
 
     #[test]

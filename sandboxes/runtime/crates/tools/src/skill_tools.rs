@@ -25,7 +25,12 @@ impl SkillTool {
     pub fn new(skills: Vec<SkillDefinition>) -> Self {
         let skill_listing = skills
             .iter()
-            .map(|s| format!("<skill name=\"{}\" description=\"{}\" />", s.title, s.description))
+            .map(|s| {
+                format!(
+                    "<skill name=\"{}\" description=\"{}\" />",
+                    s.title, s.description
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -64,9 +69,10 @@ impl ToolExecutor for SkillTool {
 
         let query = args.name.to_lowercase();
 
-        let skill = self.skills.iter().find(|s| {
-            s.id.to_lowercase() == query || s.title.to_lowercase() == query
-        });
+        let skill = self
+            .skills
+            .iter()
+            .find(|s| s.id.to_lowercase() == query || s.title.to_lowercase() == query);
 
         match skill {
             Some(s) => Ok(format!(

@@ -22,7 +22,9 @@ pub struct EditArgs {
     #[schemars(description = "Absolute path to the file to modify")]
     pub file_path: String,
     /// The exact text to find and replace. Must match uniquely in the file unless replaceAll is true.
-    #[schemars(description = "The exact text to find and replace. Must match uniquely in the file unless replaceAll is true")]
+    #[schemars(
+        description = "The exact text to find and replace. Must match uniquely in the file unless replaceAll is true"
+    )]
     pub old_string: String,
     /// The replacement text. Must differ from oldString.
     #[schemars(description = "The replacement text. Must differ from oldString")]
@@ -183,8 +185,7 @@ async fn do_edit(
 
         // Fetch LSP diagnostics for create/append case
         let diagnostics = if let Some(ref lsp) = lsp_manager {
-            let output =
-                crate::diagnostics_helper::fetch_diagnostics_output(lsp, file_path).await;
+            let output = crate::diagnostics_helper::fetch_diagnostics_output(lsp, file_path).await;
             if output.is_empty() {
                 None
             } else {

@@ -40,7 +40,12 @@ async fn converse_with_retry(
     let mut last_turn = None;
     for attempt in 0..MAX_RETRIES {
         if attempt > 0 {
-            eprintln!("[{}] retrying (attempt {}/{})", label, attempt + 1, MAX_RETRIES);
+            eprintln!(
+                "[{}] retrying (attempt {}/{})",
+                label,
+                attempt + 1,
+                MAX_RETRIES
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
@@ -49,10 +54,7 @@ async fn converse_with_retry(
             .await
             .expect("conversation failed");
 
-        let has_error = turn
-            .sse_events
-            .iter()
-            .any(|e| e.event_type == "error");
+        let has_error = turn.sse_events.iter().any(|e| e.event_type == "error");
 
         if !turn.response_text.is_empty() && !has_error {
             return turn;
@@ -64,7 +66,11 @@ async fn converse_with_retry(
             attempt + 1,
             turn.sse_events
                 .iter()
-                .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(120)]))
+                .map(|e| format!(
+                    "{}:{}",
+                    e.event_type,
+                    &e.data.to_string()[..e.data.to_string().len().min(120)]
+                ))
                 .collect::<Vec<_>>()
         );
         last_turn = Some(turn);
@@ -91,7 +97,9 @@ fn assert_any_tool_called_in_sse(turn: &ConversationTurn, tool_names: &[&str], l
         })
         .collect();
 
-    let found = called_tools.iter().any(|t| tool_names.contains(&t.as_str()));
+    let found = called_tools
+        .iter()
+        .any(|t| tool_names.contains(&t.as_str()));
     assert!(
         found,
         "[{}] none of {:?} were called. Tools called (from SSE): {:?}",
@@ -107,7 +115,11 @@ fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
         label,
         turn.sse_events
             .iter()
-            .map(|e| format!("{}:{}", e.event_type, &e.data.to_string()[..e.data.to_string().len().min(200)]))
+            .map(|e| format!(
+                "{}:{}",
+                e.event_type,
+                &e.data.to_string()[..e.data.to_string().len().min(200)]
+            ))
             .collect::<Vec<_>>()
     );
 }
@@ -314,8 +326,16 @@ async fn test_theo_system_design() {
     assert_any_tool_called_in_sse(
         &turn,
         &[
-            "Glob", "Grep", "Read", "LS", "getIssue", "searchDocuments", "listDocuments",
-            "createDocument", "updateDocument", "createComment",
+            "Glob",
+            "Grep",
+            "Read",
+            "LS",
+            "getIssue",
+            "searchDocuments",
+            "listDocuments",
+            "createDocument",
+            "updateDocument",
+            "createComment",
         ],
         "theo design workflow",
     );
@@ -359,7 +379,15 @@ async fn test_mimi_technical_writer() {
     // don't appear in the MCP tool call log — check SSE events instead.
     assert_any_tool_called_in_sse(
         &turn,
-        &["Glob", "Grep", "Read", "LS", "getIssue", "searchDocuments", "listDocuments"],
+        &[
+            "Glob",
+            "Grep",
+            "Read",
+            "LS",
+            "getIssue",
+            "searchDocuments",
+            "listDocuments",
+        ],
         "mimi exploration",
     );
     harness
@@ -662,7 +690,11 @@ async fn test_delegator_subagent_natural_invocation() {
         turn.sse_events
             .iter()
             .filter(|e| e.event_type == "tool_call_start")
-            .map(|e| format!("{}: {}", e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"), &e.data.to_string()[..e.data.to_string().len().min(200)]))
+            .map(|e| format!(
+                "{}: {}",
+                e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"),
+                &e.data.to_string()[..e.data.to_string().len().min(200)]
+            ))
             .collect::<Vec<_>>(),
         turn.sse_events
             .iter()
@@ -777,14 +809,38 @@ async fn test_multi_agent_concurrent_conversations() {
 
     // Create 8 conversations simultaneously with simple non-tool messages
     let messages = vec![
-        ("code-review", "What is the most important thing in a code review? Answer in 2-3 sentences."),
-        ("portal-control", "Briefly describe your role as Portal in this workspace. 2-3 sentences."),
-        ("security-audit", "What are the top 3 OWASP vulnerabilities? Answer briefly."),
-        ("system-design", "What makes a good system design document? Answer in 2-3 sentences."),
-        ("technical-writer", "What makes good API documentation? Answer in 2-3 sentences."),
-        ("researcher", "What is Rust known for? Answer in 2-3 sentences."),
-        ("delegator", "What makes a good engineering lead? Answer in 2-3 sentences."),
-        ("executor", "What is the most important DevOps principle? Answer in 2-3 sentences."),
+        (
+            "code-review",
+            "What is the most important thing in a code review? Answer in 2-3 sentences.",
+        ),
+        (
+            "portal-control",
+            "Briefly describe your role as Portal in this workspace. 2-3 sentences.",
+        ),
+        (
+            "security-audit",
+            "What are the top 3 OWASP vulnerabilities? Answer briefly.",
+        ),
+        (
+            "system-design",
+            "What makes a good system design document? Answer in 2-3 sentences.",
+        ),
+        (
+            "technical-writer",
+            "What makes good API documentation? Answer in 2-3 sentences.",
+        ),
+        (
+            "researcher",
+            "What is Rust known for? Answer in 2-3 sentences.",
+        ),
+        (
+            "delegator",
+            "What makes a good engineering lead? Answer in 2-3 sentences.",
+        ),
+        (
+            "executor",
+            "What is the most important DevOps principle? Answer in 2-3 sentences.",
+        ),
     ];
 
     let mut handles = Vec::new();
@@ -895,7 +951,10 @@ async fn test_multi_agent_concurrent_conversations() {
                         let event_type = if !current_event_type.is_empty() {
                             current_event_type.clone()
                         } else if let Ok(v) = serde_json::from_str::<serde_json::Value>(data_str) {
-                            v.get("type").and_then(|t| t.as_str()).unwrap_or("message").to_string()
+                            v.get("type")
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("message")
+                                .to_string()
                         } else {
                             "message".to_string()
                         };
@@ -948,10 +1007,7 @@ async fn test_multi_agent_concurrent_conversations() {
     assert_eq!(results.len(), 8, "all 8 agents should have responded");
 
     // Verify metrics show conversations tracked
-    let metrics = harness
-        .get_metrics()
-        .await
-        .expect("failed to get metrics");
+    let metrics = harness.get_metrics().await.expect("failed to get metrics");
 
     if let Some(global) = metrics.get("global") {
         let total_agents = global
@@ -999,9 +1055,7 @@ async fn test_abort_conversation() {
         .expect("conversation_id")
         .to_string();
 
-    harness
-        .register_conversation(&conv_id, "researcher")
-        .await;
+    harness.register_conversation(&conv_id, "researcher").await;
 
     // Send a message that will trigger tool calls (web_search takes time)
     let msg_resp = harness
@@ -1075,10 +1129,8 @@ async fn test_abort_conversation() {
                     if data_str.is_empty() {
                         continue;
                     }
-                    let data: serde_json::Value =
-                        serde_json::from_str(data_str).unwrap_or_else(|_| {
-                            serde_json::Value::String(data_str.to_string())
-                        });
+                    let data: serde_json::Value = serde_json::from_str(data_str)
+                        .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
                     let event_type = if !current_event_type.is_empty() {
                         current_event_type.clone()
                     } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
@@ -1124,11 +1176,7 @@ async fn test_abort_conversation() {
         .await
         .expect("abort request failed");
 
-    assert_eq!(
-        abort_resp.status().as_u16(),
-        200,
-        "abort should return 200"
-    );
+    assert_eq!(abort_resp.status().as_u16(), 200, "abort should return 200");
 
     let abort_body: serde_json::Value = abort_resp.json().await.expect("parse abort body");
     assert_eq!(
@@ -1152,10 +1200,9 @@ async fn test_abort_conversation() {
     );
 
     // Verify we got an error event with code "aborted"
-    let abort_event = abort_events.iter().find(|(t, d)| {
-        t == "error"
-            && d.get("code").and_then(|c| c.as_str()) == Some("aborted")
-    });
+    let abort_event = abort_events
+        .iter()
+        .find(|(t, d)| t == "error" && d.get("code").and_then(|c| c.as_str()) == Some("aborted"));
     assert!(
         abort_event.is_some(),
         "expected an error event with code 'aborted'. Events: {:?}",
@@ -1167,10 +1214,7 @@ async fn test_abort_conversation() {
 
     // Verify we got a done event
     let done_event = abort_events.iter().find(|(t, _)| t == "done");
-    assert!(
-        done_event.is_some(),
-        "expected a 'done' event after abort"
-    );
+    assert!(done_event.is_some(), "expected a 'done' event after abort");
 
     // The abort should resolve quickly (not wait for the full LLM response).
     // Allow up to 10 seconds — the key point is it should NOT take the full
@@ -1264,7 +1308,10 @@ async fn test_executor_background_bash() {
         .await
         .expect("create conversation");
     let body: serde_json::Value = resp.json().await.expect("parse create response");
-    let conversation_id = body["conversation_id"].as_str().expect("conversation_id").to_string();
+    let conversation_id = body["conversation_id"]
+        .as_str()
+        .expect("conversation_id")
+        .to_string();
 
     // Register for conversation logging
     harness
@@ -1322,9 +1369,7 @@ async fn test_executor_background_bash() {
             Some(serde_json::Value::Object(obj)) => {
                 obj.get("background") == Some(&serde_json::json!(true))
             }
-            Some(serde_json::Value::String(s)) => {
-                s.contains("background") && s.contains("true")
-            }
+            Some(serde_json::Value::String(s)) => s.contains("background") && s.contains("true"),
             _ => false,
         }
     });

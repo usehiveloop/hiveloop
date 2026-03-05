@@ -103,7 +103,12 @@ mod tests {
             updated_at: None,
         };
         let agent = build_agent(&definition, vec![]).expect("build agent");
-        Arc::new(AgentState::new(definition, agent, ToolRegistry::new(), Arc::new(dashmap::DashMap::new())))
+        Arc::new(AgentState::new(
+            definition,
+            agent,
+            ToolRegistry::new(),
+            Arc::new(dashmap::DashMap::new()),
+        ))
     }
 
     #[test]

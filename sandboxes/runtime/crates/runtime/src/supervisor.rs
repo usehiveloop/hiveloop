@@ -99,11 +99,8 @@ impl AgentSupervisor {
         }
 
         // Register built-in tools — filtered by the agent's tool list if non-empty
-        let builtin_tool_names: Vec<String> = definition
-            .tools
-            .iter()
-            .map(|t| t.name.clone())
-            .collect();
+        let builtin_tool_names: Vec<String> =
+            definition.tools.iter().map(|t| t.name.clone()).collect();
         if builtin_tool_names.is_empty() {
             tools::builtin::register_builtin_tools_with_lsp(
                 &mut tool_registry,
@@ -119,9 +116,9 @@ impl AgentSupervisor {
 
         // Register skill tool if the agent has skills
         if !definition.skills.is_empty() {
-            tool_registry.register(Arc::new(
-                tools::skill_tools::SkillTool::new(definition.skills.clone()),
-            ));
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(
+                definition.skills.clone(),
+            )));
         }
 
         // Collect all tool executors for the LLM agent
@@ -197,8 +194,7 @@ impl AgentSupervisor {
         let conv_id_clone = conv_id.clone();
 
         // Build agent context for subagent tool
-        let (notification_tx, notification_rx) =
-            mpsc::channel::<AgentTaskNotification>(64);
+        let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
         let runner = Arc::new(ConversationSubAgentRunner::new(
             state.subagents.clone(),
             state.session_store.clone(),
@@ -226,8 +222,7 @@ impl AgentSupervisor {
 
         // Build a no-tools retry agent for recovering from empty responses
         let retry_agent = Arc::new(
-            build_agent(&state.definition, vec![])
-                .expect("no-tools agent build should not fail"),
+            build_agent(&state.definition, vec![]).expect("no-tools agent build should not fail"),
         );
 
         let webhook_ctx = self.webhook_ctx.clone();
@@ -422,11 +417,8 @@ impl AgentSupervisor {
         }
 
         // Register built-in tools — filtered by the agent's tool list if non-empty
-        let builtin_tool_names: Vec<String> = definition
-            .tools
-            .iter()
-            .map(|t| t.name.clone())
-            .collect();
+        let builtin_tool_names: Vec<String> =
+            definition.tools.iter().map(|t| t.name.clone()).collect();
         if builtin_tool_names.is_empty() {
             tools::builtin::register_builtin_tools_with_lsp(
                 &mut tool_registry,
@@ -442,9 +434,9 @@ impl AgentSupervisor {
 
         // Register skill tool if the agent has skills
         if !definition.skills.is_empty() {
-            tool_registry.register(Arc::new(
-                tools::skill_tools::SkillTool::new(definition.skills.clone()),
-            ));
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(
+                definition.skills.clone(),
+            )));
         }
 
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
@@ -540,8 +532,7 @@ impl AgentSupervisor {
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
 
-        let (notification_tx, notification_rx) =
-            mpsc::channel::<AgentTaskNotification>(64);
+        let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
         let runner = Arc::new(ConversationSubAgentRunner::new(
             state.subagents.clone(),
             state.session_store.clone(),
@@ -569,8 +560,7 @@ impl AgentSupervisor {
 
         // Build a no-tools retry agent for recovering from empty responses
         let retry_agent = Arc::new(
-            build_agent(&state.definition, vec![])
-                .expect("no-tools agent build should not fail"),
+            build_agent(&state.definition, vec![]).expect("no-tools agent build should not fail"),
         );
 
         let webhook_ctx = self.webhook_ctx.clone();

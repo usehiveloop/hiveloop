@@ -39,13 +39,17 @@ pub struct FetchResult {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct WebFetchArgs {
     /// The URL to fetch content from. Must be a fully-formed valid URL.
-    #[schemars(description = "The URL to fetch content from. Must be a fully-formed valid URL. HTTP is upgraded to HTTPS")]
+    #[schemars(
+        description = "The URL to fetch content from. Must be a fully-formed valid URL. HTTP is upgraded to HTTPS"
+    )]
     pub url: String,
     /// Maximum content length in characters. Defaults to 50000.
     #[schemars(description = "Maximum content length in characters. Default: 50000")]
     pub max_length: Option<usize>,
     /// Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text), or 'html' (raw HTML).
-    #[schemars(description = "Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text, tags stripped), or 'html' (raw HTML)")]
+    #[schemars(
+        description = "Output format: 'markdown' (default, HTML→Markdown), 'text' (plain text, tags stripped), or 'html' (raw HTML)"
+    )]
     #[serde(default)]
     pub format: FetchFormat,
 }
@@ -133,7 +137,11 @@ impl WebFetchTool {
                 if retry.status().is_success() {
                     retry
                 } else {
-                    return Err(format!("HTTP error {} for URL: {}", retry.status(), final_url));
+                    return Err(format!(
+                        "HTTP error {} for URL: {}",
+                        retry.status(),
+                        final_url
+                    ));
                 }
             } else {
                 return Err(format!("HTTP error {status} for URL: {final_url}"));
@@ -381,7 +389,10 @@ mod tests {
         assert!(!desc.is_empty());
         assert!(desc.contains("markdown"), "should mention markdown format");
         assert!(desc.contains("URL"), "should mention URL input");
-        assert!(desc.contains("Format options"), "should mention format options");
+        assert!(
+            desc.contains("Format options"),
+            "should mention format options"
+        );
     }
 
     #[test]
@@ -491,7 +502,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/page", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/page", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -514,7 +529,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/data.json", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/data.json", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
@@ -534,7 +553,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/missing", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/missing", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
@@ -555,7 +578,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/empty", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/empty", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -594,7 +621,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/long", server.uri()), 100, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/long", server.uri()),
+                100,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -641,17 +672,21 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/new"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_raw("<html><body><p>Final destination</p></body></html>", "text/html"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(
+                "<html><body><p>Final destination</p></body></html>",
+                "text/html",
+            ))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/old", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/old", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed after redirect");
 
@@ -705,7 +740,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/hop1", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/hop1", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should follow redirect chain");
 
@@ -743,16 +782,18 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/article"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/redirect-me", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/redirect-me", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed after redirect");
 
@@ -779,12 +820,22 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/error", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/error", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
-        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
-        assert!(err.contains("500"), "error should contain status code 500: {err}");
+        assert!(
+            err.contains("HTTP error"),
+            "error should mention HTTP error: {err}"
+        );
+        assert!(
+            err.contains("500"),
+            "error should contain status code 500: {err}"
+        );
     }
 
     #[tokio::test]
@@ -800,12 +851,22 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/forbidden", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/forbidden", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
-        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
-        assert!(err.contains("403"), "error should contain status code 403: {err}");
+        assert!(
+            err.contains("HTTP error"),
+            "error should mention HTTP error: {err}"
+        );
+        assert!(
+            err.contains("403"),
+            "error should contain status code 403: {err}"
+        );
     }
 
     #[tokio::test]
@@ -821,12 +882,22 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/unavailable", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/unavailable", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
-        assert!(err.contains("HTTP error"), "error should mention HTTP error: {err}");
-        assert!(err.contains("503"), "error should contain status code 503: {err}");
+        assert!(
+            err.contains("HTTP error"),
+            "error should mention HTTP error: {err}"
+        );
+        assert!(
+            err.contains("503"),
+            "error should contain status code 503: {err}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -850,7 +921,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/no-ct", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/no-ct", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed when Content-Type is missing");
 
@@ -863,19 +938,21 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/xhtml"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(
-                    "<html><body><p>XHTML content</p></body></html>",
-                    "application/xhtml+xml; charset=utf-8",
-                ),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(
+                "<html><body><p>XHTML content</p></body></html>",
+                "application/xhtml+xml; charset=utf-8",
+            ))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/xhtml", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/xhtml", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should accept application/xhtml+xml");
 
@@ -889,7 +966,8 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/doc.pdf"))
             .respond_with(
-                ResponseTemplate::new(200).set_body_raw(b"fake pdf bytes" as &[u8], "application/pdf"),
+                ResponseTemplate::new(200)
+                    .set_body_raw(b"fake pdf bytes" as &[u8], "application/pdf"),
             )
             .expect(1)
             .mount(&server)
@@ -897,7 +975,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/doc.pdf", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/doc.pdf", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
@@ -922,7 +1004,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/image.png", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/image.png", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("should return image as base64");
 
@@ -938,19 +1024,21 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/icon.svg"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(
-                    r#"<svg xmlns="http://www.w3.org/2000/svg"><circle r="50"/></svg>"#,
-                    "image/svg+xml",
-                ),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(
+                r#"<svg xmlns="http://www.w3.org/2000/svg"><circle r="50"/></svg>"#,
+                "image/svg+xml",
+            ))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/icon.svg", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Html)
+            .fetch(
+                &format!("{}/icon.svg", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Html,
+            )
             .await
             .expect("SVG should be processed as HTML/text");
 
@@ -969,16 +1057,18 @@ mod tests {
         let large_body = "x".repeat(6 * 1024 * 1024);
         Mock::given(method("GET"))
             .and(path("/huge"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(large_body, "text/html"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(large_body, "text/html"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/huge", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/huge", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
@@ -1006,7 +1096,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(&format!("{}/cl-huge", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/cl-huge", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .unwrap_err();
 
@@ -1038,17 +1132,21 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/cf-page"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_raw("<html><body><p>Success after retry</p></body></html>", "text/html"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(
+                "<html><body><p>Success after retry</p></body></html>",
+                "text/html",
+            ))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/cf-page", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/cf-page", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("should succeed after CF retry");
 
@@ -1077,16 +1175,18 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/scripted"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/scripted", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/scripted", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -1138,16 +1238,18 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/titled"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/titled", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/titled", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -1169,8 +1271,7 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/blank"))
             .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_raw("<html><body></body></html>", "text/html"),
+                ResponseTemplate::new(200).set_body_raw("<html><body></body></html>", "text/html"),
             )
             .expect(1)
             .mount(&server)
@@ -1178,7 +1279,11 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/blank", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Markdown)
+            .fetch(
+                &format!("{}/blank", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Markdown,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -1198,15 +1303,11 @@ mod tests {
         let server = MockServer::start().await;
 
         let long_paragraph = "word ".repeat(200);
-        let html = format!(
-            r#"<html><body><p>{long_paragraph}</p></body></html>"#
-        );
+        let html = format!(r#"<html><body><p>{long_paragraph}</p></body></html>"#);
 
         Mock::given(method("GET"))
             .and(path("/truncate-exec"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
@@ -1231,13 +1332,12 @@ mod tests {
     async fn test_execute_with_default_max_length() {
         let server = MockServer::start().await;
 
-        let html = r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
+        let html =
+            r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
 
         Mock::given(method("GET"))
             .and(path("/default-exec"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
@@ -1251,10 +1351,7 @@ mod tests {
         let parsed: FetchResult =
             serde_json::from_str(&output).expect("output should be valid FetchResult JSON");
 
-        assert!(
-            !parsed.content.is_empty(),
-            "content should not be empty"
-        );
+        assert!(!parsed.content.is_empty(), "content should not be empty");
         assert!(
             !parsed.content.contains("[Content truncated...]"),
             "short content should not be truncated with default max_length"
@@ -1269,16 +1366,18 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/text"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/text", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Text)
+            .fetch(
+                &format!("{}/text", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Text,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -1299,16 +1398,18 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/raw"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(&format!("{}/raw", server.uri()), DEFAULT_MAX_LENGTH, &FetchFormat::Html)
+            .fetch(
+                &format!("{}/raw", server.uri()),
+                DEFAULT_MAX_LENGTH,
+                &FetchFormat::Html,
+            )
             .await
             .expect("fetch should succeed");
 
@@ -1325,9 +1426,7 @@ mod tests {
 
         Mock::given(method("GET"))
             .and(path("/fmt"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
             .expect(1)
             .mount(&server)
             .await;

@@ -109,10 +109,7 @@ impl LspManager {
     /// Ensure ALL matching servers are running for the given file.
     /// Returns server IDs for all successfully started servers.
     async fn ensure_servers(&self, file: &Path) -> Result<Vec<String>, LspError> {
-        let ext = file
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         let defs = self.servers_for_ext(ext);
         if defs.is_empty() {
@@ -124,8 +121,8 @@ impl LspManager {
         let mut server_ids = Vec::new();
 
         for def in &defs {
-            let root = find_root(file, &def.root_markers)
-                .unwrap_or_else(|| self.project_root.clone());
+            let root =
+                find_root(file, &def.root_markers).unwrap_or_else(|| self.project_root.clone());
 
             let reg_key = format!("{}:{}", def.id, root.display());
 
@@ -164,7 +161,10 @@ impl LspManager {
 
             // Insert spawn lock
             let notify = Arc::new(Notify::new());
-            self.spawning.write().await.insert(reg_key.clone(), notify.clone());
+            self.spawning
+                .write()
+                .await
+                .insert(reg_key.clone(), notify.clone());
 
             let result = self.spawn_server(def, &root, &reg_key).await;
 
@@ -194,9 +194,10 @@ impl LspManager {
         reg_key: &str,
     ) -> Result<String, LspError> {
         // Check binary exists
-        let binary = def.command.first().ok_or_else(|| {
-            LspError::Config(format!("server '{}' has empty command", def.id))
-        })?;
+        let binary = def
+            .command
+            .first()
+            .ok_or_else(|| LspError::Config(format!("server '{}' has empty command", def.id)))?;
 
         if which::which(binary).is_err() {
             warn!(server = %def.id, binary = %binary, "LSP server binary not found");
@@ -288,9 +289,9 @@ impl LspManager {
         let file = self.resolve_path(file);
         let server_ids = self.ensure_servers(&file).await?;
         let uri = path_to_uri(&file);
-        let content = tokio::fs::read_to_string(&file).await.map_err(|e| {
-            LspError::FileNotFound(format!("{}: {}", file.display(), e))
-        })?;
+        let content = tokio::fs::read_to_string(&file)
+            .await
+            .map_err(|e| LspError::FileNotFound(format!("{}: {}", file.display(), e)))?;
 
         let bridge = self.bridge.read().await;
 
@@ -307,9 +308,7 @@ impl LspManager {
 
         for server_id in &server_ids {
             let result = if is_reopen {
-                bridge
-                    .update_document(server_id, &uri, &content)
-                    .await
+                bridge.update_document(server_id, &uri, &content).await
             } else {
                 bridge.open_document(server_id, &uri, &content).await
             };
@@ -417,10 +416,7 @@ impl LspManager {
 
     /// Get document symbols.
     /// Fans out to all matching servers, returns first non-empty result.
-    pub async fn document_symbols(
-        &self,
-        file: &Path,
-    ) -> Result<Vec<DocumentSymbol>, LspError> {
+    pub async fn document_symbols(&self, file: &Path) -> Result<Vec<DocumentSymbol>, LspError> {
         let file = self.resolve_path(file);
         let server_ids = self.ensure_servers(&file).await?;
         let uri = path_to_uri(&file);
@@ -601,10 +597,7 @@ impl LspManager {
     }
 
     /// Get diagnostics for a file from all matching LSP servers.
-    pub async fn diagnostics(
-        &self,
-        file: &Path,
-    ) -> Result<Vec<Diagnostic>, LspError> {
+    pub async fn diagnostics(&self, file: &Path) -> Result<Vec<Diagnostic>, LspError> {
         let file = self.resolve_path(file);
         let server_ids = self.ensure_servers(&file).await?;
         let uri = path_to_uri(&file);
@@ -638,9 +631,7 @@ fn path_to_uri(path: &Path) -> String {
     let abs = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        std::env::current_dir()
-            .unwrap_or_default()
-            .join(path)
+        std::env::current_dir().unwrap_or_default().join(path)
     };
     format!("file://{}", abs.display())
 }

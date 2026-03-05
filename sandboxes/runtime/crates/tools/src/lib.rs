@@ -23,7 +23,9 @@ pub mod web_fetch;
 pub mod web_search;
 pub mod write;
 
-pub use agent::{AgentContext, AgentTaskNotification, AgentToolParams, SubAgentRunner, AGENT_CONTEXT};
+pub use agent::{
+    AgentContext, AgentTaskNotification, AgentToolParams, SubAgentRunner, AGENT_CONTEXT,
+};
 pub use boundary::ProjectBoundary;
 pub use file_tracker::FileTracker;
 pub use registry::{ToolExecutor, ToolRegistry};

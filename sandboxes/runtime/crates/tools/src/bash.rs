@@ -14,17 +14,23 @@ pub struct BashArgs {
     #[schemars(description = "The shell command to execute. Example: 'ls -la /tmp'")]
     pub command: String,
     /// Timeout in milliseconds. Default: 120000 (2 minutes). Maximum: 600000 (10 minutes).
-    #[schemars(description = "Timeout in milliseconds. Default: 120000 (2 minutes). Maximum: 600000 (10 minutes)")]
+    #[schemars(
+        description = "Timeout in milliseconds. Default: 120000 (2 minutes). Maximum: 600000 (10 minutes)"
+    )]
     pub timeout: Option<u64>,
     /// Working directory for the command. Defaults to current directory. Use this instead of 'cd <dir> && <cmd>'.
-    #[schemars(description = "Working directory for the command. Defaults to current directory. Use this instead of 'cd <dir> && <cmd>'")]
+    #[schemars(
+        description = "Working directory for the command. Defaults to current directory. Use this instead of 'cd <dir> && <cmd>'"
+    )]
     pub workdir: Option<String>,
     /// A short description of what this command does in 5-10 words.
     #[schemars(description = "A short description of what this command does in 5-10 words")]
     pub description: Option<String>,
     /// Run this command in the background. Returns immediately with a task_id.
     /// The agent will be notified when the command completes.
-    #[schemars(description = "Set to true to run in the background. Returns immediately with a task_id; you will be notified on completion")]
+    #[schemars(
+        description = "Set to true to run in the background. Returns immediately with a task_id; you will be notified on completion"
+    )]
     #[serde(default)]
     pub background: bool,
 }
@@ -67,7 +73,11 @@ fn kill_process_tree(child: &tokio::process::Child) {
 
 /// Execute a bash command and return the result.
 /// Public so it can be called from the hook layer for background execution.
-pub async fn run_command(command: &str, workdir: &str, timeout_ms: u64) -> Result<BashResult, String> {
+pub async fn run_command(
+    command: &str,
+    workdir: &str,
+    timeout_ms: u64,
+) -> Result<BashResult, String> {
     let mut cmd = tokio::process::Command::new("sh");
     cmd.arg("-c").arg(command);
     cmd.current_dir(workdir);
@@ -197,12 +207,10 @@ impl ToolExecutor for BashTool {
                 let result = run_command(&command, &workdir, timeout_ms).await;
 
                 let output = match result {
-                    Ok(bash_result) => {
-                        match serde_json::to_string(&bash_result) {
-                            Ok(json) => Ok(json),
-                            Err(e) => Err(format!("Failed to serialize result: {e}")),
-                        }
-                    }
+                    Ok(bash_result) => match serde_json::to_string(&bash_result) {
+                        Ok(json) => Ok(json),
+                        Err(e) => Err(format!("Failed to serialize result: {e}")),
+                    },
                     Err(e) => Err(e),
                 };
 
@@ -226,8 +234,7 @@ impl ToolExecutor for BashTool {
             // Foreground execution: block until complete
             let result = run_command(&command, &workdir, timeout_ms).await?;
 
-            serde_json::to_string(&result)
-                .map_err(|e| format!("Failed to serialize result: {e}"))
+            serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
         }
     }
 }
@@ -395,7 +402,10 @@ mod tests {
         let long = vec![b'x'; MAX_OUTPUT_BYTES + 100];
         let result = truncate_output(&long);
         // Should contain head, tail, and a spill path
-        assert!(result.contains("Output truncated"), "should mention truncation");
+        assert!(
+            result.contains("Output truncated"),
+            "should mention truncation"
+        );
         assert!(result.contains("saved to:"), "should include file path");
         assert!(
             result.contains("bridge_bash_"),
@@ -445,16 +455,12 @@ mod tests {
             .expect("notification should arrive within 5s")
             .expect("channel should not be closed");
 
-        assert_eq!(
-            notification.task_id,
-            parsed["task_id"].as_str().unwrap()
-        );
+        assert_eq!(notification.task_id, parsed["task_id"].as_str().unwrap());
         assert_eq!(notification.description, "background echo test");
 
         // The output should contain the command's result
         let cmd_output = notification.output.expect("should be Ok");
-        let bash_result: BashResult =
-            serde_json::from_str(&cmd_output).expect("parse BashResult");
+        let bash_result: BashResult = serde_json::from_str(&cmd_output).expect("parse BashResult");
         assert!(bash_result.output.contains("bg_test_output"));
         assert_eq!(bash_result.exit_code, Some(0));
         assert!(!bash_result.timed_out);
@@ -489,7 +495,10 @@ mod tests {
         .await
         .expect("should not deadlock");
 
-        assert!(!result.timed_out, "command should complete without deadlock");
+        assert!(
+            !result.timed_out,
+            "command should complete without deadlock"
+        );
         assert_eq!(result.exit_code, Some(0));
         assert!(result.output.contains("out1"));
         assert!(result.output.contains("err1"));
@@ -498,13 +507,9 @@ mod tests {
     #[tokio::test]
     async fn test_bash_stdin_null() {
         // `read` would hang if stdin were open; with Stdio::null() it gets EOF immediately
-        let result = run_command(
-            "read -t 1 input || echo 'no_stdin'",
-            "/tmp",
-            5_000,
-        )
-        .await
-        .expect("should complete without hanging");
+        let result = run_command("read -t 1 input || echo 'no_stdin'", "/tmp", 5_000)
+            .await
+            .expect("should complete without hanging");
 
         assert!(!result.timed_out, "should not time out");
         assert!(result.output.contains("no_stdin"));
@@ -515,13 +520,9 @@ mod tests {
     async fn test_bash_process_group_kill() {
         // Spawn a command that starts a subprocess, then kill via timeout.
         // The subprocess should also be killed via process group.
-        let result = run_command(
-            "sleep 60 & echo child=$!; wait",
-            "/tmp",
-            500,
-        )
-        .await
-        .expect("should return on timeout");
+        let result = run_command("sleep 60 & echo child=$!; wait", "/tmp", 500)
+            .await
+            .expect("should return on timeout");
 
         assert!(result.timed_out, "should have timed out");
 

@@ -55,10 +55,7 @@ macro_rules! skip_if_not_installed {
 }
 
 /// Build an `LspManager` with custom server configs pointing to local binaries.
-fn make_manager(
-    project_root: &Path,
-    servers: Vec<(&str, Vec<String>, Vec<&str>)>,
-) -> LspManager {
+fn make_manager(project_root: &Path, servers: Vec<(&str, Vec<String>, Vec<&str>)>) -> LspManager {
     let mut custom = HashMap::new();
     for (id, command, extensions) in servers {
         custom.insert(
@@ -79,7 +76,6 @@ fn make_manager(
 async fn wait_for_indexing(secs: u64) {
     tokio::time::sleep(Duration::from_secs(secs)).await;
 }
-
 
 // ---------------------------------------------------------------------------
 // Project scaffolding helpers
@@ -136,11 +132,7 @@ fn create_go_project() -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
-    std::fs::write(
-        root.join("go.mod"),
-        "module testproject\n\ngo 1.21\n",
-    )
-    .unwrap();
+    std::fs::write(root.join("go.mod"), "module testproject\n\ngo 1.21\n").unwrap();
 
     std::fs::write(
         root.join("main.go"),
@@ -327,7 +319,10 @@ async fn test_rust_go_to_definition() {
 
     let loc = loc.unwrap();
     // Should point to the `add` function declaration (line 10)
-    assert_eq!(loc.range.start.line, 10, "definition should point to add fn declaration");
+    assert_eq!(
+        loc.range.start.line, 10,
+        "definition should point to add fn declaration"
+    );
 
     manager.shutdown().await;
 }
@@ -531,8 +526,14 @@ async fn test_ts_document_symbols() {
     assert!(!symbols.is_empty(), "expected document symbols");
 
     let names: Vec<&str> = symbols.iter().map(|s| s.name.as_str()).collect();
-    assert!(names.contains(&"Calculator"), "expected Calculator class symbol");
-    assert!(names.contains(&"multiply"), "expected multiply function symbol");
+    assert!(
+        names.contains(&"Calculator"),
+        "expected Calculator class symbol"
+    );
+    assert!(
+        names.contains(&"multiply"),
+        "expected multiply function symbol"
+    );
 
     manager.shutdown().await;
 }

@@ -280,11 +280,32 @@ mod tests {
                 let schema_str = serde_json::to_string_pretty(&schema).unwrap();
 
                 // After flattening, no schema should have $schema, title, definitions, $defs, or $ref
-                assert!(schema.get("$schema").is_none(), "tool '{}' still has $schema after flatten", name);
-                assert!(schema.get("title").is_none(), "tool '{}' still has title after flatten", name);
-                assert!(schema.get("definitions").is_none(), "tool '{}' still has definitions after flatten", name);
-                assert!(schema.get("$defs").is_none(), "tool '{}' still has $defs after flatten", name);
-                assert!(!schema_str.contains("\"$ref\""), "tool '{}' still has $ref after flatten:\n{}", name, schema_str);
+                assert!(
+                    schema.get("$schema").is_none(),
+                    "tool '{}' still has $schema after flatten",
+                    name
+                );
+                assert!(
+                    schema.get("title").is_none(),
+                    "tool '{}' still has title after flatten",
+                    name
+                );
+                assert!(
+                    schema.get("definitions").is_none(),
+                    "tool '{}' still has definitions after flatten",
+                    name
+                );
+                assert!(
+                    schema.get("$defs").is_none(),
+                    "tool '{}' still has $defs after flatten",
+                    name
+                );
+                assert!(
+                    !schema_str.contains("\"$ref\""),
+                    "tool '{}' still has $ref after flatten:\n{}",
+                    name,
+                    schema_str
+                );
 
                 if had_defs {
                     eprintln!("=== TOOL: {} (flattened) ===\n{}\n", name, schema_str);

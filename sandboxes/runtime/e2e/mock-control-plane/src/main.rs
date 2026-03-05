@@ -69,10 +69,7 @@ async fn main() {
                             let log_dir = std::env::temp_dir().join("portal-mcp-logs");
                             let _ = std::fs::create_dir_all(&log_dir);
                             let log_path = log_dir.join(format!("{stem}.jsonl"));
-                            c = c.replace(
-                                "PLACEHOLDER_LOG_PATH",
-                                &log_path.to_string_lossy(),
-                            );
+                            c = c.replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
                             c
                         } else {
                             contents

@@ -62,8 +62,8 @@ fn strip_heredoc(input: &str) -> String {
 
     // Strip optional quotes around delimiter
     let delimiter = after_arrows
-        .trim_start_matches(|c| c == '\'' || c == '"')
-        .trim_end_matches(|c| c == '\'' || c == '"')
+        .trim_start_matches(['\'', '"'])
+        .trim_end_matches(['\'', '"'])
         .trim();
 
     if delimiter.is_empty() {
@@ -105,8 +105,8 @@ fn parse_patch(patch_text: &str) -> Result<Vec<Hunk>, String> {
     while i < end_idx {
         let line = lines[i];
 
-        if line.starts_with("*** Add File:") {
-            let file_path = line["*** Add File:".len()..].trim().to_string();
+        if let Some(rest) = line.strip_prefix("*** Add File:") {
+            let file_path = rest.trim().to_string();
             if file_path.is_empty() {
                 return Err("Add File header has empty path".to_string());
             }
@@ -128,15 +128,15 @@ fn parse_patch(patch_text: &str) -> Result<Vec<Hunk>, String> {
                 path: file_path,
                 contents: content,
             });
-        } else if line.starts_with("*** Delete File:") {
-            let file_path = line["*** Delete File:".len()..].trim().to_string();
+        } else if let Some(rest) = line.strip_prefix("*** Delete File:") {
+            let file_path = rest.trim().to_string();
             if file_path.is_empty() {
                 return Err("Delete File header has empty path".to_string());
             }
             hunks.push(Hunk::Delete { path: file_path });
             i += 1;
-        } else if line.starts_with("*** Update File:") {
-            let file_path = line["*** Update File:".len()..].trim().to_string();
+        } else if let Some(rest) = line.strip_prefix("*** Update File:") {
+            let file_path = rest.trim().to_string();
             if file_path.is_empty() {
                 return Err("Update File header has empty path".to_string());
             }
@@ -327,19 +327,14 @@ fn compute_replacements(
         if let Some(ref context) = chunk.context {
             let context_pattern = vec![context.clone()];
             let context_idx = seek_sequence(original_lines, &context_pattern, line_index, false)
-                .ok_or_else(|| {
-                    format!(
-                        "Failed to find context '{}' in {}",
-                        context, file_path
-                    )
-                })?;
+                .ok_or_else(|| format!("Failed to find context '{}' in {}", context, file_path))?;
             line_index = context_idx + 1;
         }
 
         // Handle pure addition (no old lines)
         if chunk.old_lines.is_empty() {
             let insertion_idx = if !original_lines.is_empty()
-                && original_lines.last().map_or(false, |l| l.is_empty())
+                && original_lines.last().is_some_and(|l| l.is_empty())
             {
                 original_lines.len() - 1
             } else {
@@ -358,9 +353,9 @@ fn compute_replacements(
             Some(idx) => Some(idx),
             None => {
                 // Retry without trailing empty line
-                if !pattern.is_empty() && pattern.last().map_or(false, |l| l.is_empty()) {
+                if !pattern.is_empty() && pattern.last().is_some_and(|l| l.is_empty()) {
                     pattern.pop();
-                    if !new_slice.is_empty() && new_slice.last().map_or(false, |l| l.is_empty()) {
+                    if !new_slice.is_empty() && new_slice.last().is_some_and(|l| l.is_empty()) {
                         new_slice.pop();
                     }
                     seek_sequence(original_lines, &pattern, line_index, chunk.is_end_of_file)
@@ -444,7 +439,7 @@ async fn apply_hunks(hunks: &[Hunk]) -> Result<Vec<String>, String> {
                     content.split('\n').map(|s| s.to_string()).collect();
 
                 // Drop trailing empty element for consistent line counting
-                if original_lines.last().map_or(false, |l| l.is_empty()) {
+                if original_lines.last().is_some_and(|l| l.is_empty()) {
                     original_lines.pop();
                 }
 
@@ -452,7 +447,7 @@ async fn apply_hunks(hunks: &[Hunk]) -> Result<Vec<String>, String> {
                 let mut new_lines = apply_replacements(&original_lines, &replacements);
 
                 // Ensure trailing newline
-                if new_lines.is_empty() || !new_lines.last().map_or(true, |l| l.is_empty()) {
+                if new_lines.is_empty() || !new_lines.last().is_none_or(|l| l.is_empty()) {
                     new_lines.push(String::new());
                 }
 
@@ -698,10 +693,7 @@ mod tests {
 
     #[test]
     fn test_seek_sequence_trimmed() {
-        let lines: Vec<String> = vec![
-            "  line 1  ".to_string(),
-            "  line 2  ".to_string(),
-        ];
+        let lines: Vec<String> = vec!["  line 1  ".to_string(), "  line 2  ".to_string()];
         let pattern = vec!["line 2".to_string()];
         assert_eq!(seek_sequence(&lines, &pattern, 0, false), Some(1));
     }
@@ -814,7 +806,8 @@ mod tests {
         let dir = tempdir().expect("create temp dir");
         let file_path = dir.path().join("crlf_file.txt");
         // Write file with CRLF line endings
-        std::fs::write(&file_path, "fn main() {\r\n    println!(\"old\");\r\n}\r\n").expect("write");
+        std::fs::write(&file_path, "fn main() {\r\n    println!(\"old\");\r\n}\r\n")
+            .expect("write");
 
         let patch = format!(
             "*** Begin Patch\n*** Update File: {}\n@@ fn main() {{\n-    println!(\"old\");\n+    println!(\"new\");\n*** End Patch",
