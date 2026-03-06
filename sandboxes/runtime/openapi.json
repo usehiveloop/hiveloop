@@ -99,6 +99,158 @@
         }
       }
     },
+    "/agents/{agent_id}/conversations/{conv_id}/approvals": {
+      "get": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "List all pending approval requests for a conversation.",
+        "operationId": "list_approvals",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pending approvals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "Bulk resolve multiple pending approval requests.",
+        "operationId": "bulk_resolve_approvals",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApprovalReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk approval result",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}": {
+      "post": {
+        "tags": [
+          "crate::handlers::permissions"
+        ],
+        "summary": "Resolve a single pending approval request.",
+        "operationId": "resolve_approval",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "description": "Agent identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "description": "Approval request identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approval resolved",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Approval request not found"
+          }
+        }
+      }
+    },
     "/conversations/{conv_id}": {
       "delete": {
         "tags": [
@@ -120,6 +272,39 @@
         "responses": {
           "200": {
             "description": "Conversation ended",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found"
+          }
+        }
+      }
+    },
+    "/conversations/{conv_id}/abort": {
+      "post": {
+        "tags": [
+          "crate::handlers::conversations"
+        ],
+        "summary": "POST /conversations/:conv_id/abort — abort the current in-flight turn.",
+        "operationId": "abort_conversation",
+        "parameters": [
+          {
+            "name": "conv_id",
+            "in": "path",
+            "description": "Conversation identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turn aborted",
             "content": {
               "application/json": {
                 "schema": {}
@@ -544,6 +729,13 @@
             "$ref": "#/components/schemas/String",
             "description": "Unique agent identifier"
           },
+          "integrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationDefinition"
+            },
+            "description": "External integrations (e.g., GitHub, Slack, Mailchimp).\nEach integration's actions become individual tools for the agent."
+          },
           "mcp_servers": {
             "type": "array",
             "items": {
@@ -554,6 +746,16 @@
           "name": {
             "type": "string",
             "description": "Human-readable agent name"
+          },
+          "permissions": {
+            "type": "object",
+            "description": "Per-tool permission overrides. Key = tool name, Value = permission level.\nTools not listed default to `Allow`.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToolPermission"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
           },
           "provider": {
             "$ref": "#/components/schemas/ProviderConfig",
@@ -636,6 +838,102 @@
               "null"
             ],
             "description": "Agent version"
+          }
+        }
+      },
+      "ApprovalDecision": {
+        "type": "string",
+        "description": "The user's decision on an approval request.",
+        "enum": [
+          "approve",
+          "deny"
+        ]
+      },
+      "ApprovalReply": {
+        "type": "object",
+        "description": "HTTP request body for resolving a single approval.",
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          }
+        }
+      },
+      "ApprovalRequest": {
+        "type": "object",
+        "description": "A pending approval request for a tool call.",
+        "required": [
+          "id",
+          "agent_id",
+          "conversation_id",
+          "tool_name",
+          "tool_call_id",
+          "arguments",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "Agent that initiated the tool call."
+          },
+          "arguments": {
+            "description": "Arguments passed to the tool."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "Conversation in which the tool call occurred."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the approval request was created."
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique ID for this approval request."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus",
+            "description": "Current status of the approval request."
+          },
+          "tool_call_id": {
+            "type": "string",
+            "description": "The LLM's tool call ID."
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the tool being called."
+          }
+        }
+      },
+      "ApprovalStatus": {
+        "type": "string",
+        "description": "Status of an approval request.",
+        "enum": [
+          "pending",
+          "approved",
+          "denied"
+        ]
+      },
+      "BulkApprovalReply": {
+        "type": "object",
+        "description": "HTTP request body for resolving multiple approvals at once.",
+        "required": [
+          "request_ids",
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "request_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -819,6 +1117,59 @@
             "items": {
               "$ref": "#/components/schemas/ConversationRecord"
             }
+          }
+        }
+      },
+      "IntegrationAction": {
+        "type": "object",
+        "description": "A single action within an integration that an agent can invoke.\n\nEach action maps to a specific API operation on the external service.\nThe control plane defines the schema and permissions for each action.",
+        "required": [
+          "name",
+          "description",
+          "parameters_schema",
+          "permission"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what this action does."
+          },
+          "name": {
+            "type": "string",
+            "description": "Action identifier (e.g., \"create_pull_request\", \"send_message\")."
+          },
+          "parameters_schema": {
+            "description": "JSON Schema for the action's parameters."
+          },
+          "permission": {
+            "$ref": "#/components/schemas/ToolPermission",
+            "description": "Permission level for this action."
+          }
+        }
+      },
+      "IntegrationDefinition": {
+        "type": "object",
+        "description": "Definition of an external integration available to an agent.\n\nEach integration represents a connection to an external service (e.g., GitHub,\nMailchimp, Slack) managed by the control plane. The control plane handles\nauthentication and proxies requests to the underlying service.",
+        "required": [
+          "name",
+          "description",
+          "actions"
+        ],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationAction"
+            },
+            "description": "Available actions within this integration."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the integration."
+          },
+          "name": {
+            "type": "string",
+            "description": "Integration identifier (e.g., \"github\", \"mailchimp\", \"slack\")."
           }
         }
       },

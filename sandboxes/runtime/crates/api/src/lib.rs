@@ -31,6 +31,10 @@ mod openapi {
             crate::handlers::push::remove_agent,
             crate::handlers::push::hydrate_conversations,
             crate::handlers::push::push_diff,
+            crate::handlers::conversations::abort_conversation,
+            crate::handlers::permissions::list_approvals,
+            crate::handlers::permissions::resolve_approval,
+            crate::handlers::permissions::bulk_resolve_approvals,
         ),
         components(schemas(
             bridge_core::AgentDefinition,
@@ -55,6 +59,13 @@ mod openapi {
             crate::handlers::push::PushAgentsRequest,
             crate::handlers::push::HydrateConversationsRequest,
             crate::handlers::push::PushDiffRequest,
+            bridge_core::ApprovalRequest,
+            bridge_core::permission::ApprovalStatus,
+            bridge_core::ApprovalDecision,
+            bridge_core::ApprovalReply,
+            bridge_core::BulkApprovalReply,
+            bridge_core::IntegrationDefinition,
+            bridge_core::IntegrationAction,
         )),
         security(("bearer" = []))
     )]

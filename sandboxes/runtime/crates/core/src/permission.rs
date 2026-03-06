@@ -16,6 +16,7 @@ pub enum ToolPermission {
 /// Status of an approval request.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum ApprovalStatus {
     Pending,
     Approved,
@@ -25,6 +26,7 @@ pub enum ApprovalStatus {
 /// The user's decision on an approval request.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum ApprovalDecision {
     Approve,
     Deny,
@@ -32,6 +34,7 @@ pub enum ApprovalDecision {
 
 /// A pending approval request for a tool call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApprovalRequest {
     /// Unique ID for this approval request.
     pub id: String,
@@ -53,12 +56,14 @@ pub struct ApprovalRequest {
 
 /// HTTP request body for resolving a single approval.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApprovalReply {
     pub decision: ApprovalDecision,
 }
 
 /// HTTP request body for resolving multiple approvals at once.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct BulkApprovalReply {
     pub request_ids: Vec<String>,
     pub decision: ApprovalDecision,

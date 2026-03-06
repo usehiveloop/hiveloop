@@ -7,6 +7,17 @@ use serde_json::json;
 use crate::state::AppState;
 
 /// List all pending approval requests for a conversation.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    get,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+    ),
+    responses(
+        (status = 200, description = "List of pending approvals", body = Vec<ApprovalRequest>),
+    )
+))]
 pub async fn list_approvals(
     State(state): State<AppState>,
     Path((_agent_id, conv_id)): Path<(String, String)>,
@@ -16,6 +27,20 @@ pub async fn list_approvals(
 }
 
 /// Resolve a single pending approval request.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+        ("request_id" = String, Path, description = "Approval request identifier"),
+    ),
+    request_body = ApprovalReply,
+    responses(
+        (status = 200, description = "Approval resolved", body = serde_json::Value),
+        (status = 404, description = "Approval request not found")
+    )
+))]
 pub async fn resolve_approval(
     State(state): State<AppState>,
     Path((_agent_id, conv_id, request_id)): Path<(String, String, String)>,
@@ -43,6 +68,18 @@ pub async fn resolve_approval(
 }
 
 /// Bulk resolve multiple pending approval requests.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    post,
+    path = "/agents/{agent_id}/conversations/{conv_id}/approvals",
+    params(
+        ("agent_id" = String, Path, description = "Agent identifier"),
+        ("conv_id" = String, Path, description = "Conversation identifier"),
+    ),
+    request_body = BulkApprovalReply,
+    responses(
+        (status = 200, description = "Bulk approval result", body = serde_json::Value),
+    )
+))]
 pub async fn bulk_resolve_approvals(
     State(state): State<AppState>,
     Path((_agent_id, _conv_id)): Path<(String, String)>,
