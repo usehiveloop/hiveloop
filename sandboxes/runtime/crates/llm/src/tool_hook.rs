@@ -153,6 +153,12 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 return ToolCallHookAction::Skip { reason: error };
             }
             Some(ToolPermission::RequireApproval) => {
+                // Extract integration metadata from tool name (format: "integration__action")
+                let (int_name, int_action) =
+                    tools::integration::parse_integration_tool_name(&effective_name)
+                        .map(|(n, a)| (Some(n.to_string()), Some(a.to_string())))
+                        .unwrap_or((None, None));
+
                 let decision = self
                     .permission_manager
                     .request_approval(
@@ -163,6 +169,8 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         &arguments,
                         &self.sse_tx,
                         &self.webhook_ctx,
+                        int_name,
+                        int_action,
                     )
                     .await;
                 match decision {

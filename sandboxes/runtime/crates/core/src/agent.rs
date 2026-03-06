@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::integration::IntegrationDefinition;
 use crate::mcp::McpServerDefinition;
 use crate::permission::ToolPermission;
 use crate::provider::ProviderConfig;
@@ -37,6 +38,10 @@ pub struct AgentDefinition {
     /// Available skills
     #[serde(default)]
     pub skills: Vec<SkillDefinition>,
+    /// External integrations (e.g., GitHub, Slack, Mailchimp).
+    /// Each integration's actions become individual tools for the agent.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub integrations: Vec<IntegrationDefinition>,
     /// Agent configuration options
     #[serde(default)]
     pub config: AgentConfig,

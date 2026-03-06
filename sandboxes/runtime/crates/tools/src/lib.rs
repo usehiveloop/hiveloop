@@ -11,6 +11,7 @@ pub mod edit_strategies;
 pub mod file_tracker;
 pub mod glob;
 pub mod grep;
+pub mod integration;
 pub mod ls;
 pub mod lsp_tool;
 pub mod multiedit;

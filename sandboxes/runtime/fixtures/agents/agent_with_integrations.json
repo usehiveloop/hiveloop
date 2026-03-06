@@ -1,0 +1,104 @@
+{
+  "id": "agent_integrations",
+  "name": "Integration Agent",
+  "system_prompt": "You are an agent with access to external integrations including GitHub, Mailchimp, and Slack. Use the appropriate integration tools when asked.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "mock-model",
+    "api_key": "test-key",
+    "base_url": "PLACEHOLDER_MOCK_LLM_URL"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "integrations": [
+    {
+      "name": "github",
+      "description": "GitHub integration for repository management",
+      "actions": [
+        {
+          "name": "create_pull_request",
+          "description": "Create a new pull request in a repository",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "description": "PR title" },
+              "body": { "type": "string", "description": "PR description" },
+              "head": { "type": "string", "description": "Source branch" },
+              "base": { "type": "string", "description": "Target branch" }
+            },
+            "required": ["title", "head", "base"]
+          },
+          "permission": "require_approval"
+        },
+        {
+          "name": "list_issues",
+          "description": "List issues in a repository",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "state": { "type": "string", "enum": ["open", "closed", "all"] }
+            }
+          },
+          "permission": "allow"
+        },
+        {
+          "name": "delete_repository",
+          "description": "Delete a repository (dangerous)",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "repo": { "type": "string" }
+            },
+            "required": ["repo"]
+          },
+          "permission": "deny"
+        }
+      ]
+    },
+    {
+      "name": "mailchimp",
+      "description": "Mailchimp email marketing integration",
+      "actions": [
+        {
+          "name": "create_campaign",
+          "description": "Create a new email campaign",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "list_id": { "type": "string", "description": "Mailing list ID" },
+              "subject": { "type": "string", "description": "Email subject line" }
+            },
+            "required": ["list_id", "subject"]
+          },
+          "permission": "allow"
+        }
+      ]
+    },
+    {
+      "name": "slack",
+      "description": "Slack messaging integration",
+      "actions": [
+        {
+          "name": "send_message",
+          "description": "Send a message to a Slack channel",
+          "parameters_schema": {
+            "type": "object",
+            "properties": {
+              "channel": { "type": "string", "description": "Channel ID" },
+              "text": { "type": "string", "description": "Message text" }
+            },
+            "required": ["channel", "text"]
+          },
+          "permission": "require_approval"
+        }
+      ]
+    }
+  ],
+  "permissions": {},
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 10,
+    "temperature": 0.7
+  }
+}

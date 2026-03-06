@@ -43,6 +43,8 @@ impl PermissionManager {
         arguments: &serde_json::Value,
         sse_tx: &mpsc::Sender<SseEvent>,
         webhook_ctx: &Option<WebhookContext>,
+        integration_name: Option<String>,
+        integration_action: Option<String>,
     ) -> Result<ApprovalDecision, ()> {
         let request_id = uuid::Uuid::new_v4().to_string();
         let (tx, rx) = oneshot::channel();
@@ -65,6 +67,8 @@ impl PermissionManager {
                 tool_name: tool_name.to_string(),
                 tool_call_id: tool_call_id.to_string(),
                 arguments: arguments.clone(),
+                integration_name,
+                integration_action,
             })
             .await;
 
@@ -204,6 +208,8 @@ mod tests {
                     &json!({"command": "ls"}),
                     &sse_tx,
                     &None,
+                    None,
+                    None,
                 )
                 .await
         });
@@ -236,6 +242,8 @@ mod tests {
                     &json!({"command": "rm -rf /"}),
                     &sse_tx,
                     &None,
+                    None,
+                    None,
                 )
                 .await
         });
@@ -268,6 +276,8 @@ mod tests {
                     &json!({}),
                     &sse_tx,
                     &None,
+                    None,
+                    None,
                 )
                 .await;
         });
@@ -289,7 +299,7 @@ mod tests {
         let sse_tx2 = sse_tx.clone();
         let _h1 = tokio::spawn(async move {
             let _ = m2
-                .request_approval("agent1", "conv1", "bash", "call_1", &json!({}), &sse_tx, &None)
+                .request_approval("agent1", "conv1", "bash", "call_1", &json!({}), &sse_tx, &None, None, None)
                 .await;
         });
 
@@ -304,6 +314,8 @@ mod tests {
                     &json!({}),
                     &sse_tx2,
                     &None,
+                    None,
+                    None,
                 )
                 .await;
         });

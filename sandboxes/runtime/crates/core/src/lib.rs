@@ -2,6 +2,7 @@ pub mod agent;
 pub mod config;
 pub mod conversation;
 pub mod error;
+pub mod integration;
 pub mod mcp;
 pub mod metrics;
 pub mod permission;
@@ -26,5 +27,6 @@ pub use metrics::{AgentMetrics, GlobalMetrics, MetricsResponse, MetricsSnapshot}
 pub use provider::{ProviderConfig, ProviderType};
 pub use skill::{SkillDefinition, SkillId};
 pub use tool::ToolDefinition;
+pub use integration::{IntegrationAction, IntegrationDefinition};
 pub use permission::{ApprovalDecision, ApprovalReply, ApprovalRequest, BulkApprovalReply, ToolPermission};
 pub use webhook::{WebhookEventType, WebhookPayload};

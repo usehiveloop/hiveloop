@@ -88,7 +88,7 @@ impl AgentSupervisor {
     }
 
     /// Build and load a single agent.
-    async fn load_single_agent(&self, definition: AgentDefinition) -> Result<(), BridgeError> {
+    async fn load_single_agent(&self, mut definition: AgentDefinition) -> Result<(), BridgeError> {
         let agent_id = definition.id.clone();
 
         // Connect to MCP servers and discover tools
@@ -130,6 +130,22 @@ impl AgentSupervisor {
             )));
         }
 
+        // Register integration tools and inject their permissions
+        let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
+            .unwrap_or_else(|_| "http://localhost:3000".to_string());
+        let integration_tools = tools::integration::create_integration_tools(
+            &definition.integrations,
+            &control_plane_url,
+        );
+        for (tool, permission) in &integration_tools {
+            tool_registry.register(tool.clone());
+            if *permission != bridge_core::permission::ToolPermission::Allow {
+                definition
+                    .permissions
+                    .insert(tool.name().to_string(), permission.clone());
+            }
+        }
+
         // Collect all tool executors for the LLM agent
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()
@@ -143,7 +159,7 @@ impl AgentSupervisor {
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
         // Build subagents from definition.subagents
-        let subagent_map = build_subagents(&definition)?;
+        let subagent_map = build_subagents(&definition, &integration_tools)?;
 
         let state = Arc::new(AgentState::new(
             definition,
@@ -411,7 +427,7 @@ impl AgentSupervisor {
     /// Build agent state without inserting into the map (used for drain_and_replace).
     async fn load_single_agent_state(
         &self,
-        definition: AgentDefinition,
+        mut definition: AgentDefinition,
     ) -> Result<Arc<AgentState>, BridgeError> {
         let agent_id = definition.id.clone();
 
@@ -452,6 +468,22 @@ impl AgentSupervisor {
             )));
         }
 
+        // Register integration tools and inject their permissions
+        let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
+            .unwrap_or_else(|_| "http://localhost:3000".to_string());
+        let integration_tools = tools::integration::create_integration_tools(
+            &definition.integrations,
+            &control_plane_url,
+        );
+        for (tool, permission) in &integration_tools {
+            tool_registry.register(tool.clone());
+            if *permission != bridge_core::permission::ToolPermission::Allow {
+                definition
+                    .permissions
+                    .insert(tool.name().to_string(), permission.clone());
+            }
+        }
+
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()
             .iter()
@@ -462,7 +494,7 @@ impl AgentSupervisor {
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
         // Build subagents from definition.subagents
-        let subagent_map = build_subagents(&definition)?;
+        let subagent_map = build_subagents(&definition, &integration_tools)?;
 
         Ok(Arc::new(AgentState::new(
             definition,
@@ -655,16 +687,23 @@ impl AgentSupervisor {
 
 /// Build subagent entries from an agent definition's subagents list.
 ///
-/// Each subagent gets built-in tools only (no MCP, no agent tool to prevent
-/// unbounded recursion at the configuration level).
+/// Each subagent gets built-in tools plus the parent's integration tools
+/// (with the same permissions). No MCP, no agent tool to prevent
+/// unbounded recursion at the configuration level.
 fn build_subagents(
     definition: &AgentDefinition,
+    parent_integration_tools: &[(Arc<dyn tools::ToolExecutor>, bridge_core::permission::ToolPermission)],
 ) -> Result<Arc<DashMap<String, SubAgentEntry>>, BridgeError> {
     let subagent_map = Arc::new(DashMap::new());
 
     for subagent_def in &definition.subagents {
         let mut sub_registry = ToolRegistry::new();
         tools::builtin::register_builtin_tools_for_subagent(&mut sub_registry);
+
+        // Inherit parent's integration tools with same permissions
+        for (tool, _) in parent_integration_tools {
+            sub_registry.register(tool.clone());
+        }
 
         let sub_executors: Vec<Arc<dyn tools::ToolExecutor>> = sub_registry
             .list()

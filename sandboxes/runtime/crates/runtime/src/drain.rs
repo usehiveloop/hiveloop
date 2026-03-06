@@ -80,6 +80,7 @@ mod tests {
             tools: vec![],
             mcp_servers: vec![],
             skills: vec![],
+            integrations: vec![],
             config: AgentConfig::default(),
             subagents: vec![],
             permissions: std::collections::HashMap::new(),

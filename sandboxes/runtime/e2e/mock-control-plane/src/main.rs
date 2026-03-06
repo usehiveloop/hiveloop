@@ -1,3 +1,4 @@
+mod mock_integrations;
 mod mock_llm;
 mod routes;
 mod store;
@@ -41,6 +42,14 @@ async fn main() {
         .position(|a| a == "--workspace-dir")
         .and_then(|i| args.get(i + 1).cloned());
 
+    // Bind listener FIRST so we know the actual port for placeholder replacement.
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = TcpListener::bind(&addr)
+        .await
+        .expect("failed to bind listener");
+
+    let actual_port = listener.local_addr().expect("no local addr").port();
+
     let mock_store = Arc::new(store::MockStore::new());
 
     // Load fixture agents if the directory exists
@@ -50,16 +59,19 @@ async fn main() {
             if path.extension().is_some_and(|e| e == "json") {
                 match std::fs::read_to_string(&path) {
                     Ok(contents) => {
-                        // If Fireworks key is provided, replace placeholders in raw JSON
-                        // before deserializing
-                        let contents = if let Some(ref key) = fireworks_key {
-                            let mut c = contents;
-                            c = c.replace("PLACEHOLDER_FIREWORKS_KEY", key);
+                        let mut contents = contents;
+
+                        // Replace mock LLM URL with this server's /v1 endpoint.
+                        let mock_llm_url = format!("http://127.0.0.1:{}/v1", actual_port);
+                        contents = contents.replace("PLACEHOLDER_MOCK_LLM_URL", &mock_llm_url);
+
+                        if let Some(ref key) = fireworks_key {
+                            contents = contents.replace("PLACEHOLDER_FIREWORKS_KEY", key);
                             if let Some(ref mcp_path) = mock_portal_mcp_path {
-                                c = c.replace("PLACEHOLDER_MOCK_PORTAL_MCP_PATH", mcp_path);
+                                contents = contents.replace("PLACEHOLDER_MOCK_PORTAL_MCP_PATH", mcp_path);
                             }
                             if let Some(ref ws_dir) = workspace_dir {
-                                c = c.replace("PLACEHOLDER_WORKSPACE_DIR", ws_dir);
+                                contents = contents.replace("PLACEHOLDER_WORKSPACE_DIR", ws_dir);
                             }
                             // Generate a unique log path per agent (use filename stem)
                             let stem = path
@@ -69,11 +81,8 @@ async fn main() {
                             let log_dir = std::env::temp_dir().join("portal-mcp-logs");
                             let _ = std::fs::create_dir_all(&log_dir);
                             let log_path = log_dir.join(format!("{stem}.jsonl"));
-                            c = c.replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
-                            c
-                        } else {
-                            contents
-                        };
+                            contents = contents.replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
+                        }
 
                         match serde_json::from_str::<bridge_core::AgentDefinition>(&contents) {
                             Ok(agent) => {
@@ -122,16 +131,14 @@ async fn main() {
         .route("/webhooks/log", delete(routes::clear_webhook_log))
         // Mock search
         .route("/search", post(routes::mock_search))
+        // Mock integrations
+        .route(
+            "/integrations/{integration_name}/actions/{action_name}",
+            post(mock_integrations::execute_integration_action),
+        )
         // Mock LLM
         .route("/v1/chat/completions", post(mock_llm::chat_completions))
         .with_state(mock_store);
-
-    let addr = format!("127.0.0.1:{}", port);
-    let listener = TcpListener::bind(&addr)
-        .await
-        .expect("failed to bind listener");
-
-    let actual_port = listener.local_addr().expect("no local addr").port();
 
     // Print port to stdout so the test harness can read it
     println!("PORT={}", actual_port);

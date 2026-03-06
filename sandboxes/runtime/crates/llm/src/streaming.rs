@@ -65,6 +65,12 @@ pub enum SseEvent {
         tool_call_id: String,
         /// Arguments passed to the tool.
         arguments: serde_json::Value,
+        /// Integration name if this is an integration tool (e.g., "github").
+        #[serde(skip_serializing_if = "Option::is_none")]
+        integration_name: Option<String>,
+        /// Integration action if this is an integration tool (e.g., "create_pull_request").
+        #[serde(skip_serializing_if = "Option::is_none")]
+        integration_action: Option<String>,
     },
     /// A tool approval request was resolved.
     ToolApprovalResolved {

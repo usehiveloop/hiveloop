@@ -17,10 +17,61 @@ pub struct ChatCompletionRequest {
 }
 
 /// A message in the chat completion request.
+/// Content can be a string or an array of content parts (OpenAI format).
 #[derive(Debug, Deserialize)]
 pub struct ChatMessage {
     pub role: String,
+    #[serde(default, deserialize_with = "deserialize_content")]
     pub content: Option<String>,
+}
+
+fn deserialize_content<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de;
+
+    struct ContentVisitor;
+
+    impl<'de> de::Visitor<'de> for ContentVisitor {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a string, null, or an array of content parts")
+        }
+
+        fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_string<E: de::Error>(self, v: String) -> Result<Self::Value, E> {
+            Ok(Some(v))
+        }
+
+        fn visit_seq<A: de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut parts = Vec::new();
+            while let Some(part) = seq.next_element::<serde_json::Value>()? {
+                if let Some(text) = part.get("text").and_then(|t| t.as_str()) {
+                    parts.push(text.to_string());
+                }
+            }
+            if parts.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(parts.join("")))
+            }
+        }
+    }
+
+    deserializer.deserialize_any(ContentVisitor)
 }
 
 /// OpenAI-compatible chat completion response.
@@ -75,6 +126,59 @@ pub struct Usage {
     pub total_tokens: u32,
 }
 
+/// Extract an integration tool trigger from the user message.
+/// Pattern: "use_integration:INTEGRATION:ACTION" in the message text.
+/// Returns Some((tool_name, cleaned_prompt)) if found.
+fn extract_integration_trigger(message: &str) -> Option<(String, String)> {
+    let prefix = "use_integration:";
+    if let Some(start) = message.find(prefix) {
+        let after = &message[start + prefix.len()..];
+        let parts: Vec<&str> = after.splitn(2, ':').collect();
+        if parts.len() == 2 {
+            let integration: String = parts[0]
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+                .collect();
+            let action: String = parts[1]
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+                .collect();
+            if !integration.is_empty() && !action.is_empty() {
+                let tool_name = format!("{}__{}", integration, action);
+                let trigger = format!("{}{}:{}", prefix, integration, action);
+                let prompt = message.replace(&trigger, "").trim().to_string();
+                return Some((tool_name, prompt));
+            }
+        }
+    }
+    None
+}
+
+/// Return mock arguments for a given integration tool call.
+fn mock_integration_args(tool_name: &str) -> serde_json::Value {
+    match tool_name {
+        "github__create_pull_request" => serde_json::json!({
+            "title": "Add feature X",
+            "body": "This PR adds feature X to the project",
+            "head": "feature-x",
+            "base": "main"
+        }),
+        "github__list_issues" => serde_json::json!({}),
+        "github__get_repository" => serde_json::json!({}),
+        "mailchimp__create_campaign" => serde_json::json!({
+            "list_id": "list_default",
+            "subject": "March Newsletter"
+        }),
+        "mailchimp__list_subscribers" => serde_json::json!({}),
+        "slack__send_message" => serde_json::json!({
+            "channel": "C01234567",
+            "text": "Hello from the agent"
+        }),
+        "slack__list_channels" => serde_json::json!({}),
+        _ => serde_json::json!({}),
+    }
+}
+
 /// Extract an agent tool trigger from the user message.
 /// Pattern: "use_agent:SUBAGENT_NAME" in the message text.
 /// Returns Some((subagent_name, cleaned_prompt)) if found.
@@ -117,6 +221,30 @@ pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl In
             return stream_response(last_user_message, false, &req.tools).into_response();
         }
         return (StatusCode::OK, Json(build_text_response(last_user_message))).into_response();
+    }
+
+    // Check for integration tool trigger: use_integration:INTEGRATION:ACTION
+    if let Some((tool_name, _prompt)) = extract_integration_trigger(last_user_message) {
+        let has_integration_tool = req.tools.iter().any(|t| {
+            t.get("function")
+                .and_then(|f| f.get("name"))
+                .and_then(|n| n.as_str())
+                == Some(&tool_name)
+        });
+
+        if has_integration_tool {
+            let args = mock_integration_args(&tool_name);
+            let args_str = serde_json::to_string(&args).unwrap();
+
+            if req.stream {
+                return stream_specific_tool_call(&tool_name, &args_str).into_response();
+            }
+            return (
+                StatusCode::OK,
+                Json(build_specific_tool_call_response(&tool_name, &args_str)),
+            )
+                .into_response();
+        }
     }
 
     // Check for agent tool trigger: use_agent:SUBAGENT_NAME
@@ -217,6 +345,98 @@ fn build_tool_call_response(tools: &[serde_json::Value]) -> ChatCompletionRespon
             total_tokens: 25,
         },
     }
+}
+
+fn build_specific_tool_call_response(
+    tool_name: &str,
+    arguments: &str,
+) -> ChatCompletionResponse {
+    ChatCompletionResponse {
+        id: format!("chatcmpl-{}", uuid::Uuid::new_v4()),
+        object: "chat.completion".to_string(),
+        created: chrono::Utc::now().timestamp(),
+        model: "mock-model".to_string(),
+        choices: vec![Choice {
+            index: 0,
+            message: ResponseMessage {
+                role: "assistant".to_string(),
+                content: None,
+                tool_calls: Some(vec![ToolCallResponse {
+                    id: format!("call_{}", uuid::Uuid::new_v4()),
+                    call_type: "function".to_string(),
+                    function: FunctionCall {
+                        name: tool_name.to_string(),
+                        arguments: arguments.to_string(),
+                    },
+                }]),
+            },
+            finish_reason: "tool_calls".to_string(),
+        }],
+        usage: Usage {
+            prompt_tokens: 10,
+            completion_tokens: 15,
+            total_tokens: 25,
+        },
+    }
+}
+
+fn stream_specific_tool_call(
+    tool_name: &str,
+    arguments: &str,
+) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
+    let tool_name = tool_name.to_string();
+    let arguments = arguments.to_string();
+
+    let stream = async_stream::stream! {
+        let id = format!("chatcmpl-{}", uuid::Uuid::new_v4());
+        let call_id = format!("call_{}", uuid::Uuid::new_v4());
+
+        let chunk = serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": chrono::Utc::now().timestamp(),
+            "model": "mock-model",
+            "choices": [{
+                "index": 0,
+                "delta": {
+                    "role": "assistant",
+                    "tool_calls": [{
+                        "index": 0,
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "arguments": arguments
+                        }
+                    }]
+                },
+                "finish_reason": null
+            }]
+        });
+        yield Ok(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+
+        let final_chunk = serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": chrono::Utc::now().timestamp(),
+            "model": "mock-model",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": "tool_calls"
+            }],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 15,
+                "total_tokens": 25
+            }
+        });
+        yield Ok(Event::default().data(serde_json::to_string(&final_chunk).unwrap()));
+
+        yield Ok(Event::default().data("[DONE]"));
+    };
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
 fn stream_response(
