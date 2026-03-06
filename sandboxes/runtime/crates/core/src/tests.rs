@@ -1432,8 +1432,7 @@ mod serde_roundtrip_tests {
         };
 
         let json = serde_json::to_string_pretty(&integration).expect("serialize");
-        let deserialized: IntegrationDefinition =
-            serde_json::from_str(&json).expect("deserialize");
+        let deserialized: IntegrationDefinition = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(integration, deserialized);
     }
 

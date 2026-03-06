@@ -27,10 +27,7 @@ fn require_fireworks_key() -> bool {
 
 /// Helper: create conversation, send message, connect SSE stream.
 /// Returns (conv_id, sse_stream).
-async fn setup_conversation(
-    harness: &TestHarness,
-    message: &str,
-) -> (String, SseStream) {
+async fn setup_conversation(harness: &TestHarness, message: &str) -> (String, SseStream) {
     let resp = harness
         .create_conversation(AGENT_ID)
         .await
@@ -75,8 +72,11 @@ async fn test_approve_tool_call() {
         .await
         .expect("failed to start real harness");
 
-    let (conv_id, stream) =
-        setup_conversation(&harness, "Use the bash tool to run: echo hello_approval_test").await;
+    let (conv_id, stream) = setup_conversation(
+        &harness,
+        "Use the bash tool to run: echo hello_approval_test",
+    )
+    .await;
 
     eprintln!("[test] conversation created: {}", conv_id);
 
@@ -106,7 +106,9 @@ async fn test_approve_tool_call() {
         "expected at least one pending approval"
     );
     assert!(
-        pending.iter().any(|a| a["id"].as_str() == Some(&request_id)),
+        pending
+            .iter()
+            .any(|a| a["id"].as_str() == Some(&request_id)),
         "expected pending approval with id={}",
         request_id
     );
@@ -183,7 +185,10 @@ async fn test_deny_tool_call() {
         e.event_type == "tool_call_result"
             && e.data.get("is_error").and_then(|v| v.as_bool()) == Some(true)
     });
-    assert!(has_denial_result, "expected tool_call_result with denial error");
+    assert!(
+        has_denial_result,
+        "expected tool_call_result with denial error"
+    );
 
     eprintln!("[test] test_deny_tool_call PASSED");
 }
@@ -221,7 +226,11 @@ async fn test_denied_tool() {
 
     eprintln!(
         "[test] first tool call: {}",
-        glob_start.data.get("name").and_then(|n| n.as_str()).unwrap_or("?")
+        glob_start
+            .data
+            .get("name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("?")
     );
 
     // Wait a moment for the denied result to arrive
@@ -402,10 +411,7 @@ async fn test_approval_webhook_events() {
             data.get("request_id").and_then(|v| v.as_str()),
             Some(request_id.as_str()),
         );
-        assert_eq!(
-            data.get("tool_name").and_then(|v| v.as_str()),
-            Some("bash"),
-        );
+        assert_eq!(data.get("tool_name").and_then(|v| v.as_str()), Some("bash"),);
     }
 
     // Approve

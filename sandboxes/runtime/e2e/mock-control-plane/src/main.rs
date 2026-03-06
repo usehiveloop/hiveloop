@@ -68,7 +68,8 @@ async fn main() {
                         if let Some(ref key) = fireworks_key {
                             contents = contents.replace("PLACEHOLDER_FIREWORKS_KEY", key);
                             if let Some(ref mcp_path) = mock_portal_mcp_path {
-                                contents = contents.replace("PLACEHOLDER_MOCK_PORTAL_MCP_PATH", mcp_path);
+                                contents =
+                                    contents.replace("PLACEHOLDER_MOCK_PORTAL_MCP_PATH", mcp_path);
                             }
                             if let Some(ref ws_dir) = workspace_dir {
                                 contents = contents.replace("PLACEHOLDER_WORKSPACE_DIR", ws_dir);
@@ -81,7 +82,8 @@ async fn main() {
                             let log_dir = std::env::temp_dir().join("portal-mcp-logs");
                             let _ = std::fs::create_dir_all(&log_dir);
                             let log_path = log_dir.join(format!("{stem}.jsonl"));
-                            contents = contents.replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
+                            contents = contents
+                                .replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
                         }
 
                         match serde_json::from_str::<bridge_core::AgentDefinition>(&contents) {

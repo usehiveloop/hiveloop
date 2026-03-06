@@ -22,11 +22,13 @@ pub use conversation::{
     ToolCall, ToolResult,
 };
 pub use error::{BridgeError, Result};
+pub use integration::{IntegrationAction, IntegrationDefinition};
 pub use mcp::{McpServerDefinition, McpTransport};
 pub use metrics::{AgentMetrics, GlobalMetrics, MetricsResponse, MetricsSnapshot};
+pub use permission::{
+    ApprovalDecision, ApprovalReply, ApprovalRequest, BulkApprovalReply, ToolPermission,
+};
 pub use provider::{ProviderConfig, ProviderType};
 pub use skill::{SkillDefinition, SkillId};
 pub use tool::ToolDefinition;
-pub use integration::{IntegrationAction, IntegrationDefinition};
-pub use permission::{ApprovalDecision, ApprovalReply, ApprovalRequest, BulkApprovalReply, ToolPermission};
 pub use webhook::{WebhookEventType, WebhookPayload};

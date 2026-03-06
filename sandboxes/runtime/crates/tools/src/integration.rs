@@ -138,10 +138,7 @@ pub fn create_integration_tools(
                 control_plane_url.to_string(),
             ));
 
-            tools.push((
-                executor as Arc<dyn ToolExecutor>,
-                action.permission.clone(),
-            ));
+            tools.push((executor as Arc<dyn ToolExecutor>, action.permission.clone()));
         }
     }
 
@@ -269,7 +266,9 @@ mod tests {
         let tools = create_integration_tools(&integrations, "http://localhost:3000");
         assert_eq!(tools.len(), 2);
 
-        let send = tools.iter().find(|(t, _)| t.name() == "slack__send_message");
+        let send = tools
+            .iter()
+            .find(|(t, _)| t.name() == "slack__send_message");
         assert_eq!(send.unwrap().1, ToolPermission::RequireApproval);
 
         let list = tools
@@ -370,7 +369,10 @@ mod tests {
 
         // 404 is a client error — should be returned as-is (not retried)
         let result = executor.execute(serde_json::json!({})).await;
-        assert!(result.is_ok(), "client errors should be returned as Ok (passthrough)");
+        assert!(
+            result.is_ok(),
+            "client errors should be returned as Ok (passthrough)"
+        );
         let body = result.unwrap();
         assert!(body.contains("Unknown action"));
     }
@@ -392,9 +394,7 @@ mod tests {
 
         Mock::given(method("POST"))
             .and(path("/integrations/github/actions/list_issues"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!([{"id": 1}])),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([{"id": 1}])))
             .mount(&server)
             .await;
 

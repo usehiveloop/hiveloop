@@ -148,9 +148,7 @@ async fn test_real_llm_integration_allow_executes() {
     eprintln!("[test] tools called: {:?}", tool_starts);
 
     assert!(
-        tool_starts
-            .iter()
-            .any(|t| *t == "github__list_issues"),
+        tool_starts.iter().any(|t| *t == "github__list_issues"),
         "expected github__list_issues tool call, got {:?}",
         tool_starts
     );
@@ -510,9 +508,7 @@ async fn test_real_llm_integration_natural_language_routing() {
 
     // The LLM should route this to github__list_issues
     assert!(
-        tool_starts
-            .iter()
-            .any(|t| *t == "github__list_issues"),
+        tool_starts.iter().any(|t| *t == "github__list_issues"),
         "expected LLM to call github__list_issues from natural language, got {:?}",
         tool_starts
     );

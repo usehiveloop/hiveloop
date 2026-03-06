@@ -34,6 +34,7 @@ impl PermissionManager {
     ///
     /// Returns `Ok(decision)` when the user approves/denies, or `Err(())` if
     /// the conversation ended (sender dropped).
+    #[allow(clippy::too_many_arguments)]
     pub async fn request_approval(
         &self,
         agent_id: &str,
@@ -299,7 +300,17 @@ mod tests {
         let sse_tx2 = sse_tx.clone();
         let _h1 = tokio::spawn(async move {
             let _ = m2
-                .request_approval("agent1", "conv1", "bash", "call_1", &json!({}), &sse_tx, &None, None, None)
+                .request_approval(
+                    "agent1",
+                    "conv1",
+                    "bash",
+                    "call_1",
+                    &json!({}),
+                    &sse_tx,
+                    &None,
+                    None,
+                    None,
+                )
                 .await;
         });
 

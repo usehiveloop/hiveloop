@@ -61,7 +61,9 @@ pub async fn resolve_approval(
             .resolve(&request_id, body.decision, None, &state.webhook_ctx);
 
     if resolved {
-        Ok(Json(json!({"status": "resolved", "request_id": request_id})))
+        Ok(Json(
+            json!({"status": "resolved", "request_id": request_id}),
+        ))
     } else {
         Err(StatusCode::NOT_FOUND)
     }

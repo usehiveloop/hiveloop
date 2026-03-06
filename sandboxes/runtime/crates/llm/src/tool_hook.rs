@@ -1,7 +1,7 @@
-use bridge_core::permission::{ApprovalDecision, ToolPermission};
 use crate::permission_manager::PermissionManager;
 use crate::streaming::TodoItem;
 use crate::SseEvent;
+use bridge_core::permission::{ApprovalDecision, ToolPermission};
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
 use serde_json::json;
@@ -175,8 +175,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     .await;
                 match decision {
                     Ok(ApprovalDecision::Deny) => {
-                        let error =
-                            json!({"error": "Tool call denied by user"}).to_string();
+                        let error = json!({"error": "Tool call denied by user"}).to_string();
                         let _ = self
                             .sse_tx
                             .send(SseEvent::ToolCallResult {

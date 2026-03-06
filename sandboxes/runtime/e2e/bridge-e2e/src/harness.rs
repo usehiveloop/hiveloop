@@ -499,12 +499,14 @@ impl TestHarness {
         // (~64KB on macOS) and blocks the bridge process when it writes logs,
         // which deadlocks the async runtime.
         // Use bridge_port in the filename so parallel tests don't overwrite each other.
-        let bridge_stdout_log =
-            std::fs::File::create(std::env::temp_dir().join(format!("bridge-e2e-stdout-{}.log", bridge_port)))
-                .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
-        let bridge_stderr_log =
-            std::fs::File::create(std::env::temp_dir().join(format!("bridge-e2e-stderr-{}.log", bridge_port)))
-                .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        let bridge_stdout_log = std::fs::File::create(
+            std::env::temp_dir().join(format!("bridge-e2e-stdout-{}.log", bridge_port)),
+        )
+        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        let bridge_stderr_log = std::fs::File::create(
+            std::env::temp_dir().join(format!("bridge-e2e-stderr-{}.log", bridge_port)),
+        )
+        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
 
         eprintln!(
             "[harness] Bridge logs: stdout={}/bridge-e2e-stdout-{}.log stderr={}/bridge-e2e-stderr-{}.log",
@@ -1751,10 +1753,16 @@ impl TestHarness {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("list approvals failed: status={}, body={}", status, body));
+            return Err(anyhow!(
+                "list approvals failed: status={}, body={}",
+                status,
+                body
+            ));
         }
 
-        let approvals: Vec<serde_json::Value> = resp.json().await
+        let approvals: Vec<serde_json::Value> = resp
+            .json()
+            .await
             .context("failed to parse approvals response")?;
         Ok(approvals)
     }
@@ -1808,10 +1816,16 @@ impl TestHarness {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("bulk resolve failed: status={}, body={}", status, body));
+            return Err(anyhow!(
+                "bulk resolve failed: status={}, body={}",
+                status,
+                body
+            ));
         }
 
-        resp.json().await.context("failed to parse bulk resolve response")
+        resp.json()
+            .await
+            .context("failed to parse bulk resolve response")
     }
 
     /// Stream SSE events collecting them until a specific event type is seen,
@@ -1949,7 +1963,10 @@ impl TestHarness {
                             match proc.try_wait() {
                                 Ok(Some(_)) => {}
                                 _ => {
-                                    eprintln!("[harness] {} did not exit after SIGTERM, killing", name);
+                                    eprintln!(
+                                        "[harness] {} did not exit after SIGTERM, killing",
+                                        name
+                                    );
                                     let _ = proc.kill();
                                     let _ = proc.wait();
                                 }
@@ -2044,9 +2061,7 @@ impl SseStream {
                         }
 
                         let data: serde_json::Value = serde_json::from_str(data_str)
-                            .unwrap_or_else(|_| {
-                                serde_json::Value::String(data_str.to_string())
-                            });
+                            .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
 
                         let event_type = if !current_event_type.is_empty() {
                             current_event_type.clone()
@@ -2056,10 +2071,7 @@ impl SseStream {
                             "message".to_string()
                         };
 
-                        let event = SseEvent {
-                            event_type,
-                            data,
-                        };
+                        let event = SseEvent { event_type, data };
 
                         // Log to console like stream_sse_until_done does
                         let formatted = format_sse_for_log(&event.event_type, &event.data);
@@ -2086,11 +2098,7 @@ impl SseStream {
     }
 
     /// Wait until an event of the given type appears, or timeout.
-    pub async fn wait_for_event(
-        &self,
-        event_type: &str,
-        timeout: Duration,
-    ) -> Option<SseEvent> {
+    pub async fn wait_for_event(&self, event_type: &str, timeout: Duration) -> Option<SseEvent> {
         let deadline = Instant::now() + timeout;
         loop {
             {

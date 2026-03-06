@@ -84,9 +84,7 @@ async fn test_integration_tool_allow_executes_immediately() {
         .collect();
 
     assert!(
-        tool_starts
-            .iter()
-            .any(|t| *t == "github__list_issues"),
+        tool_starts.iter().any(|t| *t == "github__list_issues"),
         "expected github__list_issues tool call, got {:?}",
         tool_starts
     );

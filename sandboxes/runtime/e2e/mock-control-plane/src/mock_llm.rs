@@ -347,10 +347,7 @@ fn build_tool_call_response(tools: &[serde_json::Value]) -> ChatCompletionRespon
     }
 }
 
-fn build_specific_tool_call_response(
-    tool_name: &str,
-    arguments: &str,
-) -> ChatCompletionResponse {
+fn build_specific_tool_call_response(tool_name: &str, arguments: &str) -> ChatCompletionResponse {
     ChatCompletionResponse {
         id: format!("chatcmpl-{}", uuid::Uuid::new_v4()),
         object: "chat.completion".to_string(),
