@@ -744,20 +744,6 @@ mod tests {
     use super::*;
     use crate::BridgeCompletionModel;
 
-    fn test_emitter(sse_tx: mpsc::Sender<SseEvent>) -> ToolCallEmitter {
-        ToolCallEmitter {
-            sse_tx,
-            cancel: CancellationToken::new(),
-            tool_names: HashSet::new(),
-            tool_executors: HashMap::new(),
-            webhook_ctx: None,
-            agent_id: "test-agent".to_string(),
-            conversation_id: "test-conv".to_string(),
-            permission_manager: Arc::new(PermissionManager::new()),
-            agent_permissions: HashMap::new(),
-        }
-    }
-
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
