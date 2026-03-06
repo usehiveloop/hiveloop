@@ -1,0 +1,24 @@
+{
+  "id": "approval-agent",
+  "name": "Approval Agent",
+  "system_prompt": "You are a helpful assistant. When asked to run a command, use the bash tool. When asked to read a file, use the Read tool. When asked to list files, use the Glob tool. Always use the exact tool requested. Keep responses concise.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "accounts/fireworks/models/kimi-k2p5",
+    "api_key": "PLACEHOLDER_FIREWORKS_KEY",
+    "base_url": "https://api.fireworks.ai/inference/v1"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "permissions": {
+    "bash": "require_approval",
+    "Read": "allow",
+    "Glob": "deny"
+  },
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 10,
+    "temperature": 0.1
+  }
+}

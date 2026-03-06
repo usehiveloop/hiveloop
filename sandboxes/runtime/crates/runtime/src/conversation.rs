@@ -1,6 +1,7 @@
 use bridge_core::conversation::{Message, Role};
+use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
-use llm::{SseEvent, TokenUsage};
+use llm::{PermissionManager, SseEvent, TokenUsage};
 use rig::completion::Prompt;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -69,6 +70,10 @@ pub struct ConversationParams {
     pub abort_token: Arc<Mutex<CancellationToken>>,
     /// Optional webhook context for dispatching webhook events alongside SSE.
     pub webhook_ctx: Option<WebhookContext>,
+    /// Permission manager for handling tool approval requests.
+    pub permission_manager: Arc<PermissionManager>,
+    /// Per-tool permission overrides for this agent.
+    pub agent_permissions: HashMap<String, ToolPermission>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -99,6 +104,8 @@ pub async fn run_conversation(params: ConversationParams) {
         retry_agent,
         abort_token,
         webhook_ctx,
+        permission_manager,
+        agent_permissions,
     } = params;
 
     info!(
@@ -223,6 +230,8 @@ pub async fn run_conversation(params: ConversationParams) {
         let webhook_ctx_clone = webhook_ctx.clone();
         let agent_id_clone = agent_id.clone();
         let conversation_id_clone = conversation_id.clone();
+        let permission_manager_clone = permission_manager.clone();
+        let agent_permissions_clone = agent_permissions.clone();
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
@@ -234,6 +243,8 @@ pub async fn run_conversation(params: ConversationParams) {
                 webhook_ctx: webhook_ctx_clone,
                 agent_id: agent_id_clone,
                 conversation_id: conversation_id_clone,
+                permission_manager: permission_manager_clone,
+                agent_permissions: agent_permissions_clone,
             };
             let fut = async {
                 agent_clone
@@ -282,8 +293,18 @@ pub async fn run_conversation(params: ConversationParams) {
                 turn_count += 1;
                 continue;
             }
-            // Normal completion or timeout
-            result = tokio::time::timeout(AGENT_CHAT_TIMEOUT, result_rx) => {
+            // Normal completion or timeout.
+            // When the agent has any require_approval permissions, the timeout is
+            // disabled entirely — the tool call can block indefinitely waiting for
+            // user approval. The abort mechanism exists for manual cancellation.
+            result = async {
+                let has_approval_tools = agent_permissions.values().any(|p| *p == bridge_core::permission::ToolPermission::RequireApproval);
+                if has_approval_tools {
+                    Ok(result_rx.await)
+                } else {
+                    tokio::time::timeout(AGENT_CHAT_TIMEOUT, result_rx).await
+                }
+            } => {
                 result
             }
         };
@@ -430,6 +451,8 @@ pub async fn run_conversation(params: ConversationParams) {
                         let webhook_ctx_clone = webhook_ctx.clone();
                         let agent_id_clone = agent_id.clone();
                         let conversation_id_clone = conversation_id.clone();
+                        let permission_manager_clone = permission_manager.clone();
+                        let agent_permissions_clone = agent_permissions.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
                         let cont_prompt = "Continue working on the task. If you have completed all the work, provide a final text summary of what you did and what you found.".to_string();
@@ -443,6 +466,8 @@ pub async fn run_conversation(params: ConversationParams) {
                                 webhook_ctx: webhook_ctx_clone,
                                 agent_id: agent_id_clone,
                                 conversation_id: conversation_id_clone,
+                                permission_manager: permission_manager_clone,
+                                agent_permissions: agent_permissions_clone,
                             };
                             let fut = async {
                                 agent_clone
@@ -596,7 +621,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     })
                     .await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::response_completed(&agent_id, &conversation_id, json!({"input_tokens": initial_input_tokens, "output_tokens": initial_output_tokens}), &wh.url, &wh.secret));
+                    wh.dispatcher.dispatch(webhooks::events::response_completed(&agent_id, &conversation_id, json!({"input_tokens": initial_input_tokens, "output_tokens": initial_output_tokens, "full_response": &response}), &wh.url, &wh.secret));
                 }
                 let _ = sse_tx.send(SseEvent::Done).await;
                 if let Some(ref wh) = webhook_ctx {
@@ -612,6 +637,9 @@ pub async fn run_conversation(params: ConversationParams) {
 
         turn_count += 1;
     }
+
+    // Cleanup pending approvals for this conversation
+    permission_manager.cleanup_conversation(&conversation_id);
 
     // Cleanup session store entries for this conversation
     if let Some(store) = session_store {

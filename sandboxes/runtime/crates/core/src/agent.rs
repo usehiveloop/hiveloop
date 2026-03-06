@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::mcp::McpServerDefinition;
+use crate::permission::ToolPermission;
 use crate::provider::ProviderConfig;
 use crate::skill::SkillDefinition;
 use crate::tool::ToolDefinition;
@@ -40,6 +43,10 @@ pub struct AgentDefinition {
     /// Nested subagent definitions
     #[serde(default)]
     pub subagents: Vec<AgentDefinition>,
+    /// Per-tool permission overrides. Key = tool name, Value = permission level.
+    /// Tools not listed default to `Allow`.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub permissions: HashMap<String, ToolPermission>,
     /// Webhook URL for event delivery
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<String>,

@@ -1,7 +1,7 @@
 use bridge_core::conversation::{ContentBlock, ConversationRecord, Message, Role};
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
 use dashmap::DashMap;
-use llm::{adapt_tools, build_agent, DynamicTool, SseEvent};
+use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
 use std::sync::{Arc, Mutex};
@@ -33,6 +33,8 @@ pub struct AgentSupervisor {
     cancel: CancellationToken,
     /// Optional webhook context for dispatching webhook events.
     webhook_ctx: Option<WebhookContext>,
+    /// Shared permission manager for tool approval requests.
+    permission_manager: Arc<PermissionManager>,
 }
 
 impl AgentSupervisor {
@@ -44,6 +46,7 @@ impl AgentSupervisor {
             lsp_manager: None,
             cancel,
             webhook_ctx: None,
+            permission_manager: Arc::new(PermissionManager::new()),
         }
     }
 
@@ -59,7 +62,13 @@ impl AgentSupervisor {
             lsp_manager: Some(lsp_manager),
             cancel,
             webhook_ctx: None,
+            permission_manager: Arc::new(PermissionManager::new()),
         }
+    }
+
+    /// Get the permission manager (shared across all conversations).
+    pub fn permission_manager(&self) -> Arc<PermissionManager> {
+        self.permission_manager.clone()
     }
 
     /// Set the webhook context for dispatching webhook events.
@@ -226,6 +235,8 @@ impl AgentSupervisor {
         );
 
         let webhook_ctx = self.webhook_ctx.clone();
+        let permission_manager = self.permission_manager.clone();
+        let agent_permissions = state.definition.permissions.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -245,6 +256,8 @@ impl AgentSupervisor {
                 retry_agent,
                 abort_token,
                 webhook_ctx,
+                permission_manager,
+                agent_permissions,
             })
             .await;
         });
@@ -564,6 +577,8 @@ impl AgentSupervisor {
         );
 
         let webhook_ctx = self.webhook_ctx.clone();
+        let permission_manager = self.permission_manager.clone();
+        let agent_permissions = state.definition.permissions.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -583,6 +598,8 @@ impl AgentSupervisor {
                 retry_agent,
                 abort_token,
                 webhook_ctx,
+                permission_manager,
+                agent_permissions,
             })
             .await;
         });

@@ -23,8 +23,5 @@ Thumbs.db
 /e2e/bridge-e2e/tests/*.log
 portal-mcp-logs/
 
-# Generated OpenAPI spec
-/openapi.json
-
 # LSP server binaries for integration tests
 .lsp-servers/

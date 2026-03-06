@@ -177,6 +177,42 @@ pub fn turn_completed(
     )
 }
 
+/// Create a webhook payload for a tool_approval_required event.
+pub fn tool_approval_required(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::ToolApprovalRequired,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
+/// Create a webhook payload for a tool_approval_resolved event.
+pub fn tool_approval_resolved(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::ToolApprovalResolved,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
 /// Create a webhook payload for an agent_error event.
 pub fn agent_error(
     agent_id: &str,

@@ -4,7 +4,7 @@ use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::handlers::{agents, conversations, health, metrics, push, stream};
+use crate::handlers::{agents, conversations, health, metrics, permissions, push, stream};
 use crate::middleware::bearer_auth;
 use crate::state::AppState;
 
@@ -44,6 +44,19 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/conversations/{conv_id}/abort",
             post(conversations::abort_conversation),
+        )
+        // Tool approvals
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals",
+            get(permissions::list_approvals),
+        )
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals",
+            post(permissions::bulk_resolve_approvals),
+        )
+        .route(
+            "/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}",
+            post(permissions::resolve_approval),
         )
         // SSE streaming
         .route(

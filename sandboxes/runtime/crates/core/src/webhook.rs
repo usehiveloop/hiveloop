@@ -29,6 +29,10 @@ pub enum WebhookEventType {
     TodoUpdated,
     /// A turn completed (stream done signal)
     TurnCompleted,
+    /// A tool call requires user approval before execution
+    ToolApprovalRequired,
+    /// A tool approval request was resolved (approved or denied)
+    ToolApprovalResolved,
 }
 
 /// Payload for a webhook delivery.

@@ -54,6 +54,11 @@
       "content": "You are a code review expert. Review code for quality, bugs, and best practices."
     }
   ],
+  "permissions": {
+    "bash": "require_approval",
+    "write": "require_approval",
+    "calculator": "allow"
+  },
   "config": {
     "max_tokens": 4096,
     "max_turns": 10,

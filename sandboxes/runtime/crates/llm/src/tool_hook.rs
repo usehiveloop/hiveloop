@@ -1,3 +1,5 @@
+use bridge_core::permission::{ApprovalDecision, ToolPermission};
+use crate::permission_manager::PermissionManager;
 use crate::streaming::TodoItem;
 use crate::SseEvent;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
@@ -11,7 +13,7 @@ use tools::agent::{AgentTaskNotification, AgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
 use tools::todo::TodoWriteResult;
 use tools::ToolExecutor;
-use tracing::debug;
+use tracing::{debug, warn};
 use webhooks::WebhookContext;
 
 /// A [`PromptHook`] that emits [`SseEvent::ToolCallStart`] and
@@ -45,6 +47,10 @@ pub struct ToolCallEmitter {
     pub agent_id: String,
     /// Conversation ID for webhook payloads.
     pub conversation_id: String,
+    /// Permission manager for handling tool approval requests.
+    pub permission_manager: Arc<PermissionManager>,
+    /// Per-tool permission overrides for this agent.
+    pub agent_permissions: HashMap<String, ToolPermission>,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -119,6 +125,89 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             } else {
                 (tool_name.to_string(), false)
             };
+
+        // Check permission for this tool
+        match self.agent_permissions.get(&effective_name) {
+            Some(ToolPermission::Deny) => {
+                let error = json!({
+                    "error": format!("Tool '{}' is denied by agent permissions", effective_name)
+                })
+                .to_string();
+                let _ = self
+                    .sse_tx
+                    .send(SseEvent::ToolCallResult {
+                        id: id_for_bg.clone(),
+                        result: error.clone(),
+                        is_error: true,
+                    })
+                    .await;
+                if let Some(ref wh) = self.webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": &effective_name, "result": &error, "is_error": true}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
+                }
+                return ToolCallHookAction::Skip { reason: error };
+            }
+            Some(ToolPermission::RequireApproval) => {
+                let decision = self
+                    .permission_manager
+                    .request_approval(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        &effective_name,
+                        &id_for_bg,
+                        &arguments,
+                        &self.sse_tx,
+                        &self.webhook_ctx,
+                    )
+                    .await;
+                match decision {
+                    Ok(ApprovalDecision::Deny) => {
+                        let error =
+                            json!({"error": "Tool call denied by user"}).to_string();
+                        let _ = self
+                            .sse_tx
+                            .send(SseEvent::ToolCallResult {
+                                id: id_for_bg.clone(),
+                                result: error.clone(),
+                                is_error: true,
+                            })
+                            .await;
+                        if let Some(ref wh) = self.webhook_ctx {
+                            wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                                &self.agent_id,
+                                &self.conversation_id,
+                                json!({"tool_name": &effective_name, "result": &error, "is_error": true}),
+                                &wh.url,
+                                &wh.secret,
+                            ));
+                        }
+                        return ToolCallHookAction::Skip { reason: error };
+                    }
+                    Ok(ApprovalDecision::Approve) => {
+                        // Fall through to normal execution
+                    }
+                    Err(()) => {
+                        warn!(
+                            tool_name = %effective_name,
+                            "approval channel dropped (conversation ended), skipping tool call"
+                        );
+                        let error = json!({
+                            "error": "Tool approval cancelled — conversation ended"
+                        })
+                        .to_string();
+                        return ToolCallHookAction::Skip { reason: error };
+                    }
+                }
+            }
+            Some(ToolPermission::Allow) | None => {
+                // Fall through to normal execution
+            }
+        }
 
         // Intercept bash calls with background: true.
         if effective_name == "bash" {
@@ -648,6 +737,20 @@ mod tests {
     use super::*;
     use crate::BridgeCompletionModel;
 
+    fn test_emitter(sse_tx: mpsc::Sender<SseEvent>) -> ToolCallEmitter {
+        ToolCallEmitter {
+            sse_tx,
+            cancel: CancellationToken::new(),
+            tool_names: HashSet::new(),
+            tool_executors: HashMap::new(),
+            webhook_ctx: None,
+            agent_id: "test-agent".to_string(),
+            conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
+        }
+    }
+
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
         let (tx, mut rx) = mpsc::channel(16);
@@ -659,6 +762,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -698,6 +803,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
@@ -738,6 +845,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -773,6 +882,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -804,6 +915,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -876,6 +989,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let action = AGENT_CONTEXT
@@ -947,6 +1062,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         // bash without background: true should Continue normally
@@ -1016,6 +1133,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let action = AGENT_CONTEXT
@@ -1087,6 +1206,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
@@ -1136,6 +1257,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         // Known tool should pass through
@@ -1162,6 +1285,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -1213,6 +1338,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
@@ -1285,6 +1412,8 @@ mod tests {
             webhook_ctx: None,
             agent_id: "test-agent".to_string(),
             conversation_id: "test-conv".to_string(),
+            permission_manager: Arc::new(PermissionManager::new()),
+            agent_permissions: HashMap::new(),
         };
 
         // " bash" (leading space) should auto-repair to "bash"

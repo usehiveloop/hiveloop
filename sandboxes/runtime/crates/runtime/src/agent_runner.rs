@@ -151,6 +151,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             webhook_ctx: None,
             agent_id: String::new(),
             conversation_id: self.conversation_id.clone(),
+            permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
+            agent_permissions: std::collections::HashMap::new(),
         };
 
         let prompt_owned = prompt.to_string();
@@ -238,6 +240,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 webhook_ctx: None,
                 agent_id: String::new(),
                 conversation_id: emitter_conv_id,
+                permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
+                agent_permissions: std::collections::HashMap::new(),
             };
 
             let result = AGENT_CONTEXT

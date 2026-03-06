@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use llm::SseEvent;
+use llm::{PermissionManager, SseEvent};
 use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -21,6 +21,8 @@ pub struct AppState {
     pub control_plane_api_key: String,
     /// Optional webhook context for dispatching webhook events.
     pub webhook_ctx: Option<WebhookContext>,
+    /// Shared permission manager for tool approval requests.
+    pub permission_manager: Arc<PermissionManager>,
 }
 
 impl AppState {
@@ -30,12 +32,14 @@ impl AppState {
         control_plane_api_key: String,
         webhook_ctx: Option<WebhookContext>,
     ) -> Self {
+        let permission_manager = supervisor.permission_manager();
         Self {
             supervisor,
             startup_time: Instant::now(),
             sse_streams: Arc::new(DashMap::new()),
             control_plane_api_key,
             webhook_ctx,
+            permission_manager,
         }
     }
 }

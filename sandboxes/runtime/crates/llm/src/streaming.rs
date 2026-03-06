@@ -55,6 +55,24 @@ pub enum SseEvent {
         /// The complete current todo list.
         todos: Vec<TodoItem>,
     },
+    /// A tool call requires user approval before execution.
+    ToolApprovalRequired {
+        /// Unique ID for this approval request.
+        request_id: String,
+        /// Name of the tool being called.
+        tool_name: String,
+        /// The LLM's tool call ID.
+        tool_call_id: String,
+        /// Arguments passed to the tool.
+        arguments: serde_json::Value,
+    },
+    /// A tool approval request was resolved.
+    ToolApprovalResolved {
+        /// The approval request ID that was resolved.
+        request_id: String,
+        /// The decision: "approve" or "deny".
+        decision: String,
+    },
     /// The response stream is complete.
     Done,
 }

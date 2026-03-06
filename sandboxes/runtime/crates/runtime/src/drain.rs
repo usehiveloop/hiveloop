@@ -82,6 +82,7 @@ mod tests {
             skills: vec![],
             config: AgentConfig::default(),
             subagents: vec![],
+            permissions: std::collections::HashMap::new(),
             webhook_url: None,
             webhook_secret: None,
             version: Some("1".to_string()),

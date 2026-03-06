@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 /// A single turn in a multi-turn conversation.
@@ -494,22 +494,29 @@ impl TestHarness {
         let bridge_listen_addr = format!("127.0.0.1:{}", bridge_port);
         let bridge_base_url = format!("http://127.0.0.1:{}", bridge_port);
 
-        // Redirect bridge stdout+stderr to files instead of piping.
+        // Redirect bridge stdout+stderr to per-instance files instead of piping.
         // CRITICAL: if stdout is piped but never read, the pipe buffer fills up
         // (~64KB on macOS) and blocks the bridge process when it writes logs,
         // which deadlocks the async runtime.
+        // Use bridge_port in the filename so parallel tests don't overwrite each other.
         let bridge_stdout_log =
-            std::fs::File::create(std::env::temp_dir().join("bridge-e2e-stdout.log"))
+            std::fs::File::create(std::env::temp_dir().join(format!("bridge-e2e-stdout-{}.log", bridge_port)))
                 .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
         let bridge_stderr_log =
-            std::fs::File::create(std::env::temp_dir().join("bridge-e2e-stderr.log"))
+            std::fs::File::create(std::env::temp_dir().join(format!("bridge-e2e-stderr-{}.log", bridge_port)))
                 .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+
+        eprintln!(
+            "[harness] Bridge logs: stdout={}/bridge-e2e-stdout-{}.log stderr={}/bridge-e2e-stderr-{}.log",
+            std::env::temp_dir().display(), bridge_port,
+            std::env::temp_dir().display(), bridge_port,
+        );
 
         let bridge_process = Command::new(&bridge_binary)
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
-            .env("BRIDGE_LOG_LEVEL", "info")
+            .env("BRIDGE_LOG_LEVEL", "debug")
             .env("SEARCH_ENDPOINT", format!("{}/search", &cp_base_url))
             .env(
                 "BRIDGE_WEBHOOK_URL",
@@ -1723,24 +1730,402 @@ impl TestHarness {
         Ok(())
     }
 
-    /// Stop the harness — kill both processes and wait for them to exit.
-    pub fn stop(&mut self) {
-        if let Some(ref mut proc) = self.bridge_process {
-            let _ = proc.kill();
-            let _ = proc.wait();
-        }
-        self.bridge_process = None;
+    // ---- Tool Approval helpers ----
 
-        if let Some(ref mut proc) = self.mock_cp_process {
-            let _ = proc.kill();
-            let _ = proc.wait();
+    /// GET /agents/{agent_id}/conversations/{conv_id}/approvals — list pending approvals.
+    pub async fn list_approvals(
+        &self,
+        agent_id: &str,
+        conv_id: &str,
+    ) -> Result<Vec<serde_json::Value>> {
+        let resp = self
+            .client
+            .get(format!(
+                "{}/agents/{}/conversations/{}/approvals",
+                self.bridge_base_url, agent_id, conv_id
+            ))
+            .send()
+            .await
+            .context("GET approvals request failed")?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("list approvals failed: status={}, body={}", status, body));
         }
-        self.mock_cp_process = None;
+
+        let approvals: Vec<serde_json::Value> = resp.json().await
+            .context("failed to parse approvals response")?;
+        Ok(approvals)
+    }
+
+    /// POST /agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}
+    /// — resolve a single approval request.
+    pub async fn resolve_approval(
+        &self,
+        agent_id: &str,
+        conv_id: &str,
+        request_id: &str,
+        decision: &str,
+    ) -> Result<reqwest::Response> {
+        let resp = self
+            .client
+            .post(format!(
+                "{}/agents/{}/conversations/{}/approvals/{}",
+                self.bridge_base_url, agent_id, conv_id, request_id
+            ))
+            .json(&serde_json::json!({"decision": decision}))
+            .send()
+            .await
+            .context("POST resolve approval request failed")?;
+
+        Ok(resp)
+    }
+
+    /// POST /agents/{agent_id}/conversations/{conv_id}/approvals
+    /// — bulk resolve multiple approval requests.
+    pub async fn bulk_resolve_approvals(
+        &self,
+        agent_id: &str,
+        conv_id: &str,
+        request_ids: &[String],
+        decision: &str,
+    ) -> Result<serde_json::Value> {
+        let resp = self
+            .client
+            .post(format!(
+                "{}/agents/{}/conversations/{}/approvals",
+                self.bridge_base_url, agent_id, conv_id
+            ))
+            .json(&serde_json::json!({
+                "request_ids": request_ids,
+                "decision": decision,
+            }))
+            .send()
+            .await
+            .context("POST bulk resolve approvals request failed")?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("bulk resolve failed: status={}, body={}", status, body));
+        }
+
+        resp.json().await.context("failed to parse bulk resolve response")
+    }
+
+    /// Stream SSE events collecting them until a specific event type is seen,
+    /// then return all events collected so far (including the target event).
+    ///
+    /// Useful for waiting until `tool_approval_required` fires before interacting
+    /// with the approval API.
+    pub async fn stream_sse_until_event(
+        &self,
+        conv_id: &str,
+        target_event_type: &str,
+        timeout: Duration,
+    ) -> Result<Vec<SseEvent>> {
+        use futures::StreamExt;
+
+        let stream_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .context("failed to build stream client")?;
+
+        let resp = stream_client
+            .get(format!(
+                "{}/conversations/{}/stream",
+                self.bridge_base_url, conv_id
+            ))
+            .send()
+            .await
+            .context("GET stream request failed")?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("stream endpoint returned {}: {}", status, body));
+        }
+
+        let mut events = Vec::new();
+        let mut current_event_type = String::new();
+        let deadline = Instant::now() + timeout;
+        let mut stream = resp.bytes_stream();
+        let mut buffer = String::new();
+
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                eprintln!(
+                    "[harness] SSE stream timed out waiting for '{}'",
+                    target_event_type
+                );
+                break;
+            }
+
+            match tokio::time::timeout(remaining, stream.next()).await {
+                Ok(Some(Ok(chunk))) => {
+                    buffer.push_str(&String::from_utf8_lossy(&chunk));
+                }
+                Ok(Some(Err(e))) => {
+                    eprintln!("[harness] SSE stream chunk error: {}", e);
+                    break;
+                }
+                Ok(None) => break,
+                Err(_) => {
+                    eprintln!(
+                        "[harness] SSE stream timed out waiting for '{}'",
+                        target_event_type
+                    );
+                    break;
+                }
+            }
+
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].trim_end().to_string();
+                buffer = buffer[newline_pos + 1..].to_string();
+
+                if line.is_empty() {
+                    continue;
+                }
+
+                if let Some(event_name) = line.strip_prefix("event:") {
+                    current_event_type = event_name.trim().to_string();
+                } else if let Some(data_str) = line.strip_prefix("data:") {
+                    let data_str = data_str.trim();
+                    if data_str.is_empty() {
+                        continue;
+                    }
+
+                    let data: serde_json::Value = serde_json::from_str(data_str)
+                        .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
+
+                    let event_type = if !current_event_type.is_empty() {
+                        current_event_type.clone()
+                    } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
+                        t.to_string()
+                    } else {
+                        "message".to_string()
+                    };
+
+                    self.log_sse_event(conv_id, &event_type, &data);
+
+                    let event = SseEvent {
+                        event_type: event_type.clone(),
+                        data,
+                    };
+                    events.push(event);
+
+                    if event_type == target_event_type || event_type == "done" {
+                        return Ok(events);
+                    }
+
+                    current_event_type.clear();
+                }
+            }
+        }
+
+        Ok(events)
+    }
+
+    /// Stop the harness — gracefully terminate processes so logs are flushed.
+    pub fn stop(&mut self) {
+        for (name, proc_opt) in [
+            ("bridge", &mut self.bridge_process),
+            ("mock-cp", &mut self.mock_cp_process),
+        ] {
+            if let Some(ref mut proc) = proc_opt {
+                // Send SIGTERM first for graceful shutdown (flushes logs)
+                #[cfg(unix)]
+                {
+                    unsafe {
+                        libc::kill(proc.id() as i32, libc::SIGTERM);
+                    }
+                    // Give the process a moment to flush and exit
+                    match proc.try_wait() {
+                        Ok(Some(_)) => {}
+                        _ => {
+                            std::thread::sleep(std::time::Duration::from_millis(500));
+                            match proc.try_wait() {
+                                Ok(Some(_)) => {}
+                                _ => {
+                                    eprintln!("[harness] {} did not exit after SIGTERM, killing", name);
+                                    let _ = proc.kill();
+                                    let _ = proc.wait();
+                                }
+                            }
+                        }
+                    }
+                }
+                #[cfg(not(unix))]
+                {
+                    let _ = name;
+                    let _ = proc.kill();
+                    let _ = proc.wait();
+                }
+            }
+            *proc_opt = None;
+        }
     }
 }
 
 impl Drop for TestHarness {
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+/// A long-lived SSE stream reader that collects events in a background task.
+///
+/// Unlike `stream_sse_until_done`, this keeps the connection alive so the test
+/// can interact with the approval API while events continue to arrive.
+pub struct SseStream {
+    events: Arc<std::sync::Mutex<Vec<SseEvent>>>,
+    _handle: tokio::task::JoinHandle<()>,
+}
+
+impl SseStream {
+    /// Connect to the SSE stream for a conversation and start collecting events
+    /// in a background task. Events are logged to the console as they arrive.
+    pub async fn connect(bridge_base_url: &str, conv_id: &str) -> Result<Self> {
+        let stream_client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .context("failed to build stream client")?;
+
+        let resp = stream_client
+            .get(format!(
+                "{}/conversations/{}/stream",
+                bridge_base_url, conv_id
+            ))
+            .send()
+            .await
+            .context("GET stream request failed")?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("stream endpoint returned {}: {}", status, body));
+        }
+
+        let events: Arc<std::sync::Mutex<Vec<SseEvent>>> =
+            Arc::new(std::sync::Mutex::new(Vec::new()));
+        let events_clone = events.clone();
+        let log_conv_id = conv_id.to_string();
+
+        let handle = tokio::spawn(async move {
+            use futures::StreamExt;
+            let mut stream = resp.bytes_stream();
+            let mut buffer = String::new();
+            let mut current_event_type = String::new();
+
+            loop {
+                match stream.next().await {
+                    Some(Ok(chunk)) => {
+                        buffer.push_str(&String::from_utf8_lossy(&chunk));
+                    }
+                    _ => break,
+                }
+
+                while let Some(newline_pos) = buffer.find('\n') {
+                    let line = buffer[..newline_pos].trim_end().to_string();
+                    buffer = buffer[newline_pos + 1..].to_string();
+
+                    if line.is_empty() {
+                        continue;
+                    }
+
+                    if let Some(event_name) = line.strip_prefix("event:") {
+                        current_event_type = event_name.trim().to_string();
+                    } else if let Some(data_str) = line.strip_prefix("data:") {
+                        let data_str = data_str.trim();
+                        if data_str.is_empty() {
+                            continue;
+                        }
+
+                        let data: serde_json::Value = serde_json::from_str(data_str)
+                            .unwrap_or_else(|_| {
+                                serde_json::Value::String(data_str.to_string())
+                            });
+
+                        let event_type = if !current_event_type.is_empty() {
+                            current_event_type.clone()
+                        } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
+                            t.to_string()
+                        } else {
+                            "message".to_string()
+                        };
+
+                        let event = SseEvent {
+                            event_type,
+                            data,
+                        };
+
+                        // Log to console like stream_sse_until_done does
+                        let formatted = format_sse_for_log(&event.event_type, &event.data);
+                        let short_id = if log_conv_id.len() > 8 {
+                            &log_conv_id[..8]
+                        } else {
+                            &log_conv_id
+                        };
+                        for line in formatted.lines() {
+                            eprintln!("[conv:{}] [SSE:{}] {}", short_id, event.event_type, line);
+                        }
+
+                        events_clone.lock().unwrap().push(event);
+                        current_event_type.clear();
+                    }
+                }
+            }
+        });
+
+        Ok(Self {
+            events,
+            _handle: handle,
+        })
+    }
+
+    /// Wait until an event of the given type appears, or timeout.
+    pub async fn wait_for_event(
+        &self,
+        event_type: &str,
+        timeout: Duration,
+    ) -> Option<SseEvent> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            {
+                let events = self.events.lock().unwrap();
+                if let Some(e) = events.iter().find(|e| e.event_type == event_type) {
+                    return Some(e.clone());
+                }
+            }
+            if Instant::now() >= deadline {
+                return None;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
+
+    /// Wait until the "done" event appears, or timeout. Returns all collected events.
+    pub async fn wait_for_done(&self, timeout: Duration) -> Vec<SseEvent> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            {
+                let events = self.events.lock().unwrap();
+                if events.iter().any(|e| e.event_type == "done") {
+                    return events.clone();
+                }
+            }
+            if Instant::now() >= deadline {
+                let events = self.events.lock().unwrap();
+                return events.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
+
+    /// Get a snapshot of all events collected so far.
+    pub fn events(&self) -> Vec<SseEvent> {
+        self.events.lock().unwrap().clone()
     }
 }

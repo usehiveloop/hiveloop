@@ -1,5 +1,5 @@
 pub mod harness;
 
 pub use harness::{
-    ConversationTurn, SseEvent, TestHarness, ToolCallLogEntry, WebhookEntry, WebhookLog,
+    ConversationTurn, SseEvent, SseStream, TestHarness, ToolCallLogEntry, WebhookEntry, WebhookLog,
 };
