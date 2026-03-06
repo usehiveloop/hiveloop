@@ -47,7 +47,17 @@ test-lsp: ## Run LSP unit tests
 test-lsp-integration: ## Run LSP integration tests (requires setup-lsp)
 	cargo test -p lsp -- --ignored
 
-test-all: test test-lsp-integration test-e2e ## Run everything
+test-all: ## Run everything (requires FIREWORKS_API_KEY in env or .env file)
+	@if [ -f .env ] && [ -z "$$FIREWORKS_API_KEY" ]; then \
+		export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); \
+	fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then \
+		echo "Error: FIREWORKS_API_KEY is not set and no .env file found"; \
+		exit 1; \
+	fi; \
+	$(MAKE) setup-lsp && \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test --workspace --exclude bridge-e2e -- --include-ignored && \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e -- --include-ignored --test-threads=1
 
 # --- Setup ---
 

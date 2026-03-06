@@ -692,7 +692,10 @@ impl AgentSupervisor {
 /// unbounded recursion at the configuration level.
 fn build_subagents(
     definition: &AgentDefinition,
-    parent_integration_tools: &[(Arc<dyn tools::ToolExecutor>, bridge_core::permission::ToolPermission)],
+    parent_integration_tools: &[(
+        Arc<dyn tools::ToolExecutor>,
+        bridge_core::permission::ToolPermission,
+    )],
 ) -> Result<Arc<DashMap<String, SubAgentEntry>>, BridgeError> {
     let subagent_map = Arc::new(DashMap::new());
 
