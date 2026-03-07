@@ -64,6 +64,7 @@ mod serde_roundtrip_tests {
                 temperature: Some(0.7),
                 json_schema: Some(serde_json::json!({"type": "object"})),
                 rate_limit_rpm: Some(60),
+                compaction: None,
             },
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
@@ -191,6 +192,7 @@ mod serde_roundtrip_tests {
             temperature: Some(0.9),
             json_schema: Some(serde_json::json!({"type": "string"})),
             rate_limit_rpm: Some(120),
+            compaction: None,
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");

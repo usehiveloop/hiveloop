@@ -85,6 +85,37 @@ pub struct AgentConfig {
     /// Rate limit in requests per minute
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rate_limit_rpm: Option<u32>,
+    /// Conversation compaction configuration
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compaction: Option<CompactionConfig>,
+}
+
+/// Configuration for conversation compaction (history summarization).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct CompactionConfig {
+    /// Token budget. Compaction triggers when estimated tokens exceed this.
+    #[serde(default = "default_token_budget")]
+    pub token_budget: u32,
+
+    /// Number of recent messages to preserve verbatim after compaction.
+    #[serde(default = "default_tail_messages")]
+    pub tail_messages: u32,
+
+    /// Custom system prompt for the summarization call. Uses a default if None.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary_prompt: Option<String>,
+
+    /// Provider config for the summarization model (required — defined by control plane).
+    pub summary_provider: ProviderConfig,
+}
+
+fn default_token_budget() -> u32 {
+    100_000
+}
+
+fn default_tail_messages() -> u32 {
+    10
 }
 
 /// Lightweight agent summary for listing endpoints.

@@ -220,16 +220,20 @@ impl AgentSupervisor {
 
         // Build agent context for subagent tool
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
-        let runner = Arc::new(ConversationSubAgentRunner::new(
-            state.subagents.clone(),
-            state.session_store.clone(),
-            notification_tx.clone(),
-            cancel.clone(),
-            sse_tx.clone(),
-            conv_id_clone.clone(),
-            0, // depth
-            3, // max_depth
-        ));
+        let subagent_compaction = state.definition.config.compaction.clone();
+        let runner = Arc::new(
+            ConversationSubAgentRunner::new(
+                state.subagents.clone(),
+                state.session_store.clone(),
+                notification_tx.clone(),
+                cancel.clone(),
+                sse_tx.clone(),
+                conv_id_clone.clone(),
+                0, // depth
+                3, // max_depth
+            )
+            .with_compaction(subagent_compaction),
+        );
         let agent_context = AgentContext {
             runner,
             notification_tx,
@@ -253,6 +257,7 @@ impl AgentSupervisor {
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = state.definition.permissions.clone();
+        let compaction_config = state.definition.config.compaction.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -274,6 +279,7 @@ impl AgentSupervisor {
                 webhook_ctx,
                 permission_manager,
                 agent_permissions,
+                compaction_config,
             })
             .await;
         });
@@ -578,16 +584,20 @@ impl AgentSupervisor {
         let conv_id_clone = conv_id.clone();
 
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
-        let runner = Arc::new(ConversationSubAgentRunner::new(
-            state.subagents.clone(),
-            state.session_store.clone(),
-            notification_tx.clone(),
-            cancel.clone(),
-            sse_tx.clone(),
-            conv_id_clone.clone(),
-            0,
-            3,
-        ));
+        let subagent_compaction = state.definition.config.compaction.clone();
+        let runner = Arc::new(
+            ConversationSubAgentRunner::new(
+                state.subagents.clone(),
+                state.session_store.clone(),
+                notification_tx.clone(),
+                cancel.clone(),
+                sse_tx.clone(),
+                conv_id_clone.clone(),
+                0,
+                3,
+            )
+            .with_compaction(subagent_compaction),
+        );
         let agent_context = AgentContext {
             runner,
             notification_tx,
@@ -611,6 +621,7 @@ impl AgentSupervisor {
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = state.definition.permissions.clone();
+        let compaction_config = state.definition.config.compaction.clone();
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -632,6 +643,7 @@ impl AgentSupervisor {
                 webhook_ctx,
                 permission_manager,
                 agent_permissions,
+                compaction_config,
             })
             .await;
         });

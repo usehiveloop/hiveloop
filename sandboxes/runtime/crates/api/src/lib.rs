@@ -39,6 +39,7 @@ mod openapi {
         components(schemas(
             bridge_core::AgentDefinition,
             bridge_core::AgentConfig,
+            bridge_core::CompactionConfig,
             bridge_core::AgentSummary,
             bridge_core::ProviderConfig,
             bridge_core::ProviderType,

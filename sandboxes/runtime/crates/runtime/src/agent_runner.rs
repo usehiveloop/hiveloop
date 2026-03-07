@@ -81,6 +81,7 @@ pub struct ConversationSubAgentRunner {
     conversation_id: String,
     depth: usize,
     max_depth: usize,
+    compaction_config: Option<bridge_core::agent::CompactionConfig>,
 }
 
 impl ConversationSubAgentRunner {
@@ -104,7 +105,14 @@ impl ConversationSubAgentRunner {
             conversation_id,
             depth,
             max_depth,
+            compaction_config: None,
         }
+    }
+
+    /// Set the compaction configuration for subagent sessions.
+    pub fn with_compaction(mut self, config: Option<bridge_core::agent::CompactionConfig>) -> Self {
+        self.compaction_config = config;
+        self
     }
 
     /// Generate a task_id scoped to this conversation.
@@ -142,6 +150,18 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             .unwrap_or_else(|| self.generate_task_id());
 
         let mut history = self.session_store.get_or_create(&task_id);
+
+        // Compact subagent history if configured
+        if let Some(ref config) = self.compaction_config {
+            if let Ok(Some(result)) =
+                crate::compaction::maybe_compact(&history, config).await
+            {
+                history = result.compacted_history;
+                self.session_store
+                    .save(task_id.clone(), history.clone());
+            }
+        }
+
         let cancel = self.cancel.clone();
         let emitter = ToolCallEmitter {
             sse_tx: self.sse_tx.clone(),
@@ -199,7 +219,20 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let task_id = self.generate_task_id();
         let task_id_clone = task_id.clone();
 
-        let history = self.session_store.get_or_create(&task_id);
+        let mut history = self.session_store.get_or_create(&task_id);
+        let compaction_config = self.compaction_config.clone();
+
+        // Compact subagent history if configured
+        if let Some(ref config) = compaction_config {
+            if let Ok(Some(result)) =
+                crate::compaction::maybe_compact(&history, config).await
+            {
+                history = result.compacted_history;
+                self.session_store
+                    .save(task_id.clone(), history.clone());
+            }
+        }
+
         let session_store = self.session_store.clone();
         let notification_tx = self.notification_tx.clone();
         let cancel = self.cancel.clone();

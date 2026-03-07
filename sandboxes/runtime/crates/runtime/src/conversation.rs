@@ -74,6 +74,8 @@ pub struct ConversationParams {
     pub permission_manager: Arc<PermissionManager>,
     /// Per-tool permission overrides for this agent.
     pub agent_permissions: HashMap<String, ToolPermission>,
+    /// Optional compaction configuration for history summarization.
+    pub compaction_config: Option<bridge_core::agent::CompactionConfig>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -106,6 +108,7 @@ pub async fn run_conversation(params: ConversationParams) {
         webhook_ctx,
         permission_manager,
         agent_permissions,
+        compaction_config,
     } = params;
 
     info!(
@@ -188,6 +191,46 @@ pub async fn run_conversation(params: ConversationParams) {
                 )
             }
         };
+
+        // Check if compaction is needed before adding the new message
+        if let Some(ref compaction_config) = compaction_config {
+            match crate::compaction::maybe_compact(&history, compaction_config).await {
+                Ok(Some(result)) => {
+                    info!(
+                        conversation_id = conversation_id,
+                        pre_tokens = result.pre_compaction_tokens,
+                        post_tokens = result.post_compaction_tokens,
+                        messages_compacted = result.messages_compacted,
+                        "conversation compacted"
+                    );
+
+                    // Replace in-memory history
+                    history = result.compacted_history;
+
+                    // Fire webhook
+                    if let Some(ref wh) = webhook_ctx {
+                        wh.dispatcher.dispatch(
+                            webhooks::events::conversation_compacted(
+                                &agent_id,
+                                &conversation_id,
+                                json!({
+                                    "summary": result.summary_text,
+                                    "messages_compacted": result.messages_compacted,
+                                    "pre_compaction_tokens": result.pre_compaction_tokens,
+                                    "post_compaction_tokens": result.post_compaction_tokens,
+                                }),
+                                &wh.url,
+                                &wh.secret,
+                            ),
+                        );
+                    }
+                }
+                Ok(None) => {} // under budget, no compaction needed
+                Err(e) => {
+                    warn!(error = %e, "compaction failed, continuing with full history");
+                }
+            }
+        }
 
         history.push(rig::message::Message::user(&user_text));
 

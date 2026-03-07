@@ -112,6 +112,9 @@ unicode-normalization = "0.1"
 # OpenAPI
 utoipa = { version = "5", features = ["chrono"] }
 
+# Token counting
+tiktoken-rs = "0.6"
+
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }

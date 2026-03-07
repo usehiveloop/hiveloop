@@ -213,6 +213,24 @@ pub fn tool_approval_resolved(
     )
 }
 
+/// Create a webhook payload for a conversation_compacted event.
+pub fn conversation_compacted(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::ConversationCompacted,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
 /// Create a webhook payload for an agent_error event.
 pub fn agent_error(
     agent_id: &str,
@@ -323,6 +341,24 @@ mod tests {
         let data = json!({"todos": [{"content": "task 1", "status": "in_progress"}]});
         let payload = todo_updated(AGENT, CONV, data.clone(), URL, SECRET);
         assert_eq!(payload.event_type, WebhookEventType::TodoUpdated);
+        assert_eq!(payload.data, data);
+    }
+
+    #[test]
+    fn test_conversation_compacted() {
+        let data = json!({
+            "summary": "User asked to refactor auth module.",
+            "messages_compacted": 35,
+            "pre_compaction_tokens": 120000,
+            "post_compaction_tokens": 15000
+        });
+        let payload = conversation_compacted(AGENT, CONV, data.clone(), URL, SECRET);
+        assert_eq!(
+            payload.event_type,
+            WebhookEventType::ConversationCompacted
+        );
+        assert_eq!(payload.agent_id, AGENT);
+        assert_eq!(payload.conversation_id, CONV);
         assert_eq!(payload.data, data);
     }
 

@@ -15,7 +15,7 @@ pub mod webhook;
 mod tests;
 
 // Re-exports for convenience
-pub use agent::{AgentConfig, AgentDefinition, AgentId, AgentSummary};
+pub use agent::{AgentConfig, AgentDefinition, AgentId, AgentSummary, CompactionConfig};
 pub use config::{LogFormat, LspConfig, RuntimeConfig};
 pub use conversation::{
     ContentBlock, ConversationId, ConversationRecord, Message, PaginatedConversations, Role,

@@ -33,6 +33,8 @@ pub enum WebhookEventType {
     ToolApprovalRequired,
     /// A tool approval request was resolved (approved or denied)
     ToolApprovalResolved,
+    /// The conversation history was compacted (summarized)
+    ConversationCompacted,
 }
 
 /// Payload for a webhook delivery.

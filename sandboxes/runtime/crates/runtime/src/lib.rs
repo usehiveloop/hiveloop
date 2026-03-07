@@ -1,6 +1,7 @@
 pub mod agent_map;
 pub mod agent_runner;
 pub mod agent_state;
+pub mod compaction;
 pub mod conversation;
 pub mod drain;
 pub mod permission_manager;

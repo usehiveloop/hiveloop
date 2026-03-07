@@ -1387,3 +1387,159 @@ async fn test_executor_background_bash() {
         &response_text[..response_text.len().min(500)]
     );
 }
+
+// ============================================================================
+// Test: Compaction — triggers compaction and fires webhook
+// Verifies: conversation_compacted webhook with summary, token counts
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_compaction_triggers_and_fires_webhook() {
+    if !require_fireworks_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    // Clear any prior webhooks
+    harness
+        .clear_webhook_log()
+        .await
+        .expect("failed to clear webhook log");
+
+    // Create a conversation on the compaction agent (token_budget=150)
+    let create_resp = harness
+        .create_conversation("compaction-agent")
+        .await
+        .expect("create_conversation failed");
+
+    assert_eq!(create_resp.status().as_u16(), 201);
+
+    let create_body: serde_json::Value = create_resp
+        .json()
+        .await
+        .expect("failed to parse create body");
+    let conv_id = create_body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id")
+        .to_string();
+
+    // Register for conversation logging
+    harness
+        .register_conversation(&conv_id, "compaction-agent")
+        .await;
+
+    // Real-world messages that build up context quickly
+    let messages: Vec<&str> = vec![
+        "Draft a formal email to the VP of Engineering about the Q3 roadmap planning session scheduled for next Thursday",
+        "Actually, also CC the product team leads and mention that we need their input on the resource allocation proposals",
+        "Add a paragraph about the budget constraints we discussed in last week's leadership meeting",
+        "Now draft a separate follow-up email to the design team about the UI refresh project timeline and deliverables",
+        "One more thing — include a reminder about the Friday design review and ask them to prepare their mockups",
+        "Thanks, that looks great. Send it off.",
+    ];
+
+    let total_messages = messages.len();
+
+    // Send the first message so the conversation loop starts processing
+    let msg_resp = harness
+        .send_message(&conv_id, messages[0])
+        .await
+        .expect("send_message failed");
+    assert_eq!(msg_resp.status().as_u16(), 202);
+
+    // Spawn a background task to send remaining messages after each turn completes.
+    // The conversation loop processes one message at a time from a buffered channel,
+    // so we queue them with small delays to let each turn start.
+    let bridge_url = harness.bridge_url().to_string();
+    let conv_id_bg = conv_id.clone();
+    let remaining: Vec<String> = messages[1..].iter().map(|s| s.to_string()).collect();
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        for msg in &remaining {
+            // Each Fireworks round-trip takes ~5-10s; with compaction it may
+            // need two calls (summary + chat). Wait long enough for the
+            // previous turn to fully complete before queuing the next message.
+            tokio::time::sleep(Duration::from_secs(15)).await;
+            let _ = client
+                .post(format!(
+                    "{}/conversations/{}/messages",
+                    bridge_url, conv_id_bg
+                ))
+                .json(&serde_json::json!({"content": msg}))
+                .send()
+                .await;
+        }
+    });
+
+    // Read the SSE stream until all turns complete (one `done` per turn)
+    let (_events, _text) = harness
+        .stream_sse_until_done_count(&conv_id, total_messages, LLM_TIMEOUT)
+        .await
+        .expect("stream_sse_until_done_count failed");
+
+    // Wait for the conversation_compacted webhook
+    let log = harness
+        .wait_for_webhook_type("conversation_compacted", Duration::from_secs(30))
+        .await
+        .expect("conversation_compacted webhook never arrived");
+
+    let compacted = log.by_type("conversation_compacted");
+    assert!(
+        !compacted.is_empty(),
+        "should have at least one conversation_compacted webhook"
+    );
+
+    // Verify the webhook payload
+    let entry = compacted[0];
+    assert_eq!(entry.agent_id(), Some("compaction-agent"));
+    assert_eq!(entry.conversation_id(), Some(conv_id.as_str()));
+
+    let data = entry.data().expect("conversation_compacted should have data");
+    assert!(
+        data.get("summary")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
+        "summary should be a non-empty string; got: {:?}",
+        data.get("summary")
+    );
+    assert!(
+        data.get("messages_compacted")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+            > 0,
+        "messages_compacted should be > 0"
+    );
+    let pre = data
+        .get("pre_compaction_tokens")
+        .and_then(|v| v.as_u64())
+        .expect("pre_compaction_tokens missing");
+    let post = data
+        .get("post_compaction_tokens")
+        .and_then(|v| v.as_u64())
+        .expect("post_compaction_tokens missing");
+    assert!(
+        pre > 1500,
+        "pre_compaction_tokens ({}) should exceed budget (1500)",
+        pre
+    );
+    // After compacting many turns into a summary, post should be notably smaller
+    assert!(
+        post < pre,
+        "post_compaction_tokens ({}) should be less than pre ({})",
+        post,
+        pre
+    );
+
+    // End the conversation
+    let end_resp = harness
+        .end_conversation(&conv_id)
+        .await
+        .expect("end_conversation failed");
+    assert_eq!(end_resp.status().as_u16(), 200);
+
+    eprintln!("[compaction] test passed — compaction triggered with pre={} post={}", pre, post);
+}
