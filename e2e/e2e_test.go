@@ -32,11 +32,13 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/useportal/proxy-bridge/internal/cache"
+	"github.com/useportal/proxy-bridge/internal/counter"
 	"github.com/useportal/proxy-bridge/internal/crypto"
 	"github.com/useportal/proxy-bridge/internal/handler"
 	"github.com/useportal/proxy-bridge/internal/middleware"
 	"github.com/useportal/proxy-bridge/internal/model"
 	"github.com/useportal/proxy-bridge/internal/proxy"
+	"github.com/useportal/proxy-bridge/internal/registry"
 	"github.com/useportal/proxy-bridge/internal/token"
 )
 
@@ -80,6 +82,9 @@ func loadEnv(t *testing.T) {
 
 func newHarness(t *testing.T) *testHarness {
 	t.Helper()
+
+	// Allow loopback addresses for test httptest servers
+	proxy.AllowLoopback = true
 
 	// DB
 	dsn := envOr("DATABASE_URL", testDBURL)
@@ -128,9 +133,22 @@ func newHarness(t *testing.T) *testHarness {
 	// Build the full Chi router
 	r := chi.NewRouter()
 
-	// Credential + token handlers (management API — org auth required)
-	credHandler := handler.NewCredentialHandler(db, vault, cm)
-	tokenHandler := handler.NewTokenHandler(db, signingKey, cm)
+	// Request-cap counter
+	ctr := counter.New(rc, db)
+
+	// Credential + token + identity handlers
+	credHandler := handler.NewCredentialHandler(db, vault, cm, ctr)
+	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr)
+	identityHandler := handler.NewIdentityHandler(db)
+
+	// Provider handler
+	reg := registry.Global()
+	providerHandler := handler.NewProviderHandler(reg)
+
+	// Connect handlers
+	connectSessionHandler := handler.NewConnectSessionHandler(db, reg)
+	connectAPIHandler := handler.NewConnectAPIHandler(db, vault, reg)
+	settingsHandler := handler.NewSettingsHandler(db)
 
 	// Management routes (no ZITADEL auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {
@@ -139,12 +157,39 @@ func newHarness(t *testing.T) *testHarness {
 		r.Delete("/credentials/{id}", credHandler.Revoke)
 		r.Post("/tokens", tokenHandler.Mint)
 		r.Delete("/tokens/{jti}", tokenHandler.Revoke)
+		r.Post("/identities", identityHandler.Create)
+		r.Get("/identities", identityHandler.List)
+		r.Get("/identities/{id}", identityHandler.Get)
+		r.Put("/identities/{id}", identityHandler.Update)
+		r.Delete("/identities/{id}", identityHandler.Delete)
+		r.Get("/providers", providerHandler.List)
+		r.Get("/providers/{id}", providerHandler.Get)
+		r.Get("/providers/{id}/models", providerHandler.Models)
+		r.Post("/connect/sessions", connectSessionHandler.Create)
+		r.Get("/settings/connect", settingsHandler.GetConnectSettings)
+		r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
 	})
 
-	// Proxy route (token auth)
+	// Connect API (session-authenticated)
+	r.Route("/connect/api", func(r chi.Router) {
+		r.Use(middleware.ConnectSessionAuth(db))
+		r.Use(middleware.ConnectSecurityHeaders())
+		r.Use(middleware.ConnectCORS())
+
+		r.Get("/session", connectAPIHandler.SessionInfo)
+		r.Get("/providers", connectAPIHandler.ListProviders)
+		r.Get("/connections", connectAPIHandler.ListConnections)
+		r.Post("/connections", connectAPIHandler.CreateConnection)
+		r.Delete("/connections/{id}", connectAPIHandler.DeleteConnection)
+		r.Post("/connections/{id}/verify", connectAPIHandler.VerifyConnection)
+	})
+
+	// Proxy route (token auth + identity rate limits + request caps)
 	proxyHandler := handler.NewProxyHandler(cm, proxy.NewTransport())
 	r.Route("/v1/proxy/{credentialID}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, db))
+		r.Use(middleware.IdentityRateLimit(rc, db))
+		r.Use(middleware.RemainingCheck(ctr))
 		r.Handle("/*", proxyHandler)
 	})
 
@@ -172,8 +217,11 @@ func (h *testHarness) createOrg(t *testing.T) model.Org {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() {
+		h.db.Where("org_id = ?", org.ID).Delete(&model.ConnectSession{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Token{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
+		h.db.Where("identity_id IN (SELECT id FROM identities WHERE org_id = ?)", org.ID).Delete(&model.IdentityRateLimit{})
+		h.db.Where("org_id = ?", org.ID).Delete(&model.Identity{})
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 	return org

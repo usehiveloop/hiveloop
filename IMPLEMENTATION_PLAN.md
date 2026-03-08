@@ -1,4 +1,4 @@
-# Proxy Bridge — Implementation Plan
+# llmvault — Implementation Plan
 
 ## Overview
 

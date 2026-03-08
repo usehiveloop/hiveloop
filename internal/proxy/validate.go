@@ -32,6 +32,9 @@ var (
 		"metadata.google.internal": {},
 		"metadata":                 {}, // Azure often uses "metadata"
 	}
+
+	// AllowLoopback can be set to true in tests to allow loopback/private addresses.
+	AllowLoopback = false
 )
 
 func ipInNets(ip net.IP, nets ...*net.IPNet) bool {
@@ -57,7 +60,23 @@ func isDisallowedIP(ip net.IP) bool {
 
 // ValidateBaseURL verifies that the provided base URL is http(s), has a hostname,
 // and does not resolve to loopback, link-local, private, or otherwise disallowed ranges.
+// Set AllowLoopback = true in tests to bypass IP checks.
 func ValidateBaseURL(raw string) error {
+	if AllowLoopback {
+		// In test mode, only validate scheme and host presence
+		u, err := url.Parse(raw)
+		if err != nil {
+			return errors.New("invalid base_url: parse failed")
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return errors.New("invalid base_url: scheme must be http or https")
+		}
+		if u.Hostname() == "" {
+			return errors.New("invalid base_url: missing host")
+		}
+		return nil
+	}
+
 	u, err := url.Parse(raw)
 	if err != nil {
 		return errors.New("invalid base_url: parse failed")

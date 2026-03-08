@@ -1,4 +1,5 @@
 bin/
+server
 .env
 .env.test
 *.exe

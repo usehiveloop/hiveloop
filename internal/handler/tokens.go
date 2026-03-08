@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/useportal/proxy-bridge/internal/cache"
+	"github.com/useportal/proxy-bridge/internal/counter"
 	"github.com/useportal/proxy-bridge/internal/middleware"
 	"github.com/useportal/proxy-bridge/internal/model"
 	"github.com/useportal/proxy-bridge/internal/token"
@@ -20,21 +21,27 @@ type TokenHandler struct {
 	db           *gorm.DB
 	signingKey   []byte
 	cacheManager *cache.Manager
+	counter      *counter.Counter
 }
 
 // NewTokenHandler creates a new token handler.
-func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager) *TokenHandler {
-	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm}
+func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager, ctr *counter.Counter) *TokenHandler {
+	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm, counter: ctr}
 }
 
 type mintTokenRequest struct {
-	CredentialID string `json:"credential_id"`
-	TTL          string `json:"ttl"` // e.g. "1h", "24h"
+	CredentialID   string     `json:"credential_id"`
+	TTL            string     `json:"ttl"` // e.g. "1h", "24h"
+	Remaining      *int64     `json:"remaining,omitempty"`
+	RefillAmount   *int64     `json:"refill_amount,omitempty"`
+	RefillInterval *string    `json:"refill_interval,omitempty"`
+	Meta           model.JSON `json:"meta,omitempty"`
 }
 
 type mintTokenResponse struct {
 	Token     string `json:"token"`
 	ExpiresAt string `json:"expires_at"`
+	JTI       string `json:"jti"`
 }
 
 const maxTokenTTL = 24 * time.Hour
@@ -89,6 +96,14 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate refill_interval if provided
+	if req.RefillInterval != nil {
+		if _, err := time.ParseDuration(*req.RefillInterval); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid refill_interval: must be a valid Go duration (e.g. 1h, 24h)"})
+			return
+		}
+	}
+
 	// Mint the JWT
 	tokenStr, jti, err := token.Mint(h.signingKey, org.ID.String(), cred.ID.String(), ttl)
 	if err != nil {
@@ -98,20 +113,30 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 
 	expiresAt := time.Now().Add(ttl)
 	tokenRecord := model.Token{
-		ID:           uuid.New(),
-		OrgID:        org.ID,
-		CredentialID: cred.ID,
-		JTI:          jti,
-		ExpiresAt:    expiresAt,
+		ID:             uuid.New(),
+		OrgID:          org.ID,
+		CredentialID:   cred.ID,
+		JTI:            jti,
+		ExpiresAt:      expiresAt,
+		Remaining:      req.Remaining,
+		RefillAmount:   req.RefillAmount,
+		RefillInterval: req.RefillInterval,
+		Meta:           req.Meta,
 	}
 	if err := h.db.Create(&tokenRecord).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store token"})
 		return
 	}
 
+	// Seed Redis counter if a cap is configured
+	if tokenRecord.Remaining != nil && h.counter != nil {
+		_ = h.counter.SeedToken(r.Context(), jti, *tokenRecord.Remaining, ttl)
+	}
+
 	writeJSON(w, http.StatusCreated, mintTokenResponse{
 		Token:     "ptok_" + tokenStr,
 		ExpiresAt: expiresAt.Format(time.RFC3339),
+		JTI:       jti,
 	})
 }
 

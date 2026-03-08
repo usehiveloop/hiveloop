@@ -1,0 +1,47 @@
+# Build artifacts
+bin/
+server
+*.exe
+*.test
+*.out
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files (secrets)
+.env
+.env.test
+.env.local
+
+# Docker (avoid recursive build context)
+docker-compose.yml
+
+# Test artifacts
+e2e/
+strix_runs/
+
+# Claude / AI agents
+.claude/
+.agents/
+
+# Marketing docs
+marketing/
+
+# ZITADEL bootstrap secrets
+docker/zitadel/bootstrap/*.pat
+docker/zitadel/bootstrap/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vendor (we use go mod download in Docker)
+vendor/
+
+# Patches
+patches/

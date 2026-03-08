@@ -18,6 +18,7 @@ import (
 
 	"github.com/useportal/proxy-bridge/internal/cache"
 	"github.com/useportal/proxy-bridge/internal/config"
+	"github.com/useportal/proxy-bridge/internal/counter"
 	"github.com/useportal/proxy-bridge/internal/crypto"
 	"github.com/useportal/proxy-bridge/internal/db"
 	"github.com/useportal/proxy-bridge/internal/handler"
@@ -25,6 +26,13 @@ import (
 	"github.com/useportal/proxy-bridge/internal/middleware"
 	"github.com/useportal/proxy-bridge/internal/model"
 	"github.com/useportal/proxy-bridge/internal/proxy"
+	"github.com/useportal/proxy-bridge/internal/registry"
+)
+
+// Set via -ldflags at build time.
+var (
+	version = "dev"
+	commit  = "unknown"
 )
 
 func main() {
@@ -48,6 +56,7 @@ func run() error {
 	// 2. Logging — must be initialized before anything else logs
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
 	logger := slog.Default()
+	slog.Info("starting proxy-bridge", "version", version, "commit", commit)
 
 	// 3. Database
 	database, err := db.New(cfg.DatabaseURL)
@@ -100,15 +109,28 @@ func run() error {
 		}
 	}()
 
-	// 8. Audit writer (buffered, non-blocking)
+	// 8. Request-cap counter (Redis + Postgres lazy refill)
+	ctr := counter.New(redisClient, database)
+	slog.Info("request counter ready")
+
+	// 9. Audit writer (buffered, non-blocking)
 	auditWriter := middleware.NewAuditWriter(database, 10000)
 
-	// 9. Signing key
+	// 10. Signing key
 	signingKey := []byte(cfg.JWTSigningKey)
 
-	// 10. Handlers
-	credHandler := handler.NewCredentialHandler(database, vault, cacheManager)
-	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager)
+	// 11. Provider registry (embedded at build time)
+	reg := registry.Global()
+	slog.Info("provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
+
+	// 12. Handlers
+	credHandler := handler.NewCredentialHandler(database, vault, cacheManager, ctr)
+	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr)
+	identityHandler := handler.NewIdentityHandler(database)
+	providerHandler := handler.NewProviderHandler(reg)
+	connectSessionHandler := handler.NewConnectSessionHandler(database, reg)
+	connectAPIHandler := handler.NewConnectAPIHandler(database, vault, reg)
+	settingsHandler := handler.NewSettingsHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, proxy.NewTransport())
 
 	// 11. Router
@@ -123,6 +145,11 @@ func run() error {
 	// Health checks (no auth)
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
+
+	// Provider discovery (no auth — used by frontend)
+	r.Get("/v1/providers", providerHandler.List)
+	r.Get("/v1/providers/{id}", providerHandler.Get)
+	r.Get("/v1/providers/{id}/models", providerHandler.Models)
 
 	// Org-authenticated routes (ZITADEL) — credential & token management
 	if cfg.ZitadelClientID != "" && cfg.ZitadelClientSecret != "" {
@@ -143,14 +170,38 @@ func run() error {
 			r.Delete("/credentials/{id}", credHandler.Revoke)
 			r.Post("/tokens", tokenHandler.Mint)
 			r.Delete("/tokens/{jti}", tokenHandler.Revoke)
+			r.Post("/identities", identityHandler.Create)
+			r.Get("/identities", identityHandler.List)
+			r.Get("/identities/{id}", identityHandler.Get)
+			r.Put("/identities/{id}", identityHandler.Update)
+			r.Delete("/identities/{id}", identityHandler.Delete)
+			r.Post("/connect/sessions", connectSessionHandler.Create)
+			r.Get("/settings/connect", settingsHandler.GetConnectSettings)
+			r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
 		})
 	} else {
 		slog.Warn("ZITADEL credentials not configured — management API disabled")
 	}
 
+	// Connect API (session-authenticated — used by Connect widget iframe)
+	r.Route("/connect/api", func(r chi.Router) {
+		r.Use(middleware.ConnectSessionAuth(database))
+		r.Use(middleware.ConnectSecurityHeaders())
+		r.Use(middleware.ConnectCORS())
+
+		r.Get("/session", connectAPIHandler.SessionInfo)
+		r.Get("/providers", connectAPIHandler.ListProviders)
+		r.Get("/connections", connectAPIHandler.ListConnections)
+		r.Post("/connections", connectAPIHandler.CreateConnection)
+		r.Delete("/connections/{id}", connectAPIHandler.DeleteConnection)
+		r.Post("/connections/{id}/verify", connectAPIHandler.VerifyConnection)
+	})
+
 	// Sandbox-authenticated routes (proxy) — token auth via JWT
 	r.Route("/v1/proxy/{credentialID}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Use(middleware.IdentityRateLimit(redisClient, database))
+		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(auditWriter))
 		r.Handle("/*", proxyHandler)
 	})
