@@ -12,11 +12,11 @@ import (
 )
 
 // NewDirector returns an httputil.ReverseProxy Director function.
-// It resolves the credential from the cache, rewrites the URL to the
-// upstream base URL, and attaches the real API key.
+// It resolves the credential from the cache, validates the upstream BaseURL,
+// rewrites the URL to the upstream, and attaches the real API key.
 //
-// The request path is expected to be /v1/proxy/{credentialID}/...
-// where ... is forwarded to the upstream.
+// The request path is expected to be /v1/proxy/{credentialID}/... where ...
+// is forwarded to the upstream.
 func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 	return func(req *http.Request) {
 		claims, ok := middleware.ClaimsFromContext(req.Context())
@@ -37,6 +37,20 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		if err != nil {
 			req.Header.Set("X-Proxy-Error", fmt.Sprintf("credential error: %v", err))
 			return
+		}
+
+		// SSRF hardening: validate destination BaseURL and drop metadata-related headers
+		if err := ValidateBaseURL(cred.BaseURL); err != nil {
+			req.Header.Set("X-Proxy-Error", fmt.Sprintf("disallowed upstream: %v", err))
+			return
+		}
+		for _, h := range []string{
+			"Metadata-Flavor",
+			"X-Aws-Ec2-Metadata-Token",
+			"X-Aws-Ec2-Metadata-Token-Ttl-Seconds",
+			"Metadata",
+		} {
+			req.Header.Del(h)
 		}
 
 		// Rewrite URL: strip /v1/proxy/{credentialID} prefix, append rest to base URL

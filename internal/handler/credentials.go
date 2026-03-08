@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/useportal/proxy-bridge/internal/crypto"
 	"github.com/useportal/proxy-bridge/internal/middleware"
 	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/proxy-bridge/internal/proxy"
 )
 
 // CredentialHandler manages credential CRUD operations.
@@ -65,6 +67,12 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 	validSchemes := map[string]bool{"bearer": true, "x-api-key": true, "api-key": true, "query_param": true}
 	if !validSchemes[req.AuthScheme] {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid auth_scheme"})
+		return
+	}
+
+	// SSRF hardening: validate BaseURL before storing
+	if err := proxy.ValidateBaseURL(req.BaseURL); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid base_url: %v", err)})
 		return
 	}
 
