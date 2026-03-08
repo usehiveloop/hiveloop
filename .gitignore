@@ -1,0 +1,14 @@
+bin/
+.env
+.env.test
+*.exe
+*.test
+*.out
+vendor/
+
+# ZITADEL bootstrap secrets (generated at runtime)
+docker/zitadel/bootstrap/*.pat
+docker/zitadel/bootstrap/*.json
+strix_runs/
+.agents/
+.claude/

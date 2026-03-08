@@ -1,0 +1,170 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: proxybridge
+      POSTGRES_USER: proxybridge
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proxybridge"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  vault:
+    image: hashicorp/vault:1.15
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: ["CMD-SHELL", "VAULT_ADDR=http://127.0.0.1:8200 vault status"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  vault-init:
+    image: hashicorp/vault:1.15
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        vault secrets enable transit 2>/dev/null || true
+        vault write -f transit/keys/proxy-bridge-master 2>/dev/null || true
+        echo "Vault transit engine initialized"
+    restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  # --- ZITADEL (Identity & Auth) ---
+
+  zitadel-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: zitadel
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - zitadel-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d zitadel -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v4.11.0
+    user: "0"
+    command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters"
+    environment:
+      ZITADEL_PORT: 8080
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_EXTERNALPORT: 8085
+      ZITADEL_EXTERNALSECURE: false
+      ZITADEL_TLS_ENABLED: false
+
+      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
+
+      # Bootstrap admin machine user with PAT
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: llmvault-admin
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: LLMVault Admin SA
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+      ZITADEL_FIRSTINSTANCE_PATPATH: /zitadel/bootstrap/admin.pat
+
+      # Disable Login V2 requirement (no login UI needed for machine auth)
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: false
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./docker/zitadel/bootstrap:/zitadel/bootstrap:rw
+    healthcheck:
+      test: ["CMD", "/app/zitadel", "ready"]
+      interval: 5s
+      timeout: 30s
+      retries: 15
+      start_period: 30s
+    depends_on:
+      zitadel-db:
+        condition: service_healthy
+
+  zitadel-init:
+    image: alpine:3.19
+    depends_on:
+      zitadel:
+        condition: service_healthy
+    volumes:
+      - ./docker/zitadel/bootstrap:/zitadel/bootstrap:rw
+      - ./docker/zitadel/init.sh:/scripts/init.sh:ro
+    entrypoint: /bin/sh
+    command: ["/scripts/init.sh"]
+    restart: "no"
+
+  proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      zitadel-init:
+        condition: service_completed_successfully
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://proxybridge:localdev@postgres:5432/proxybridge?sslmode=disable
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token
+      VAULT_KEY_NAME: proxy-bridge-master
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      REDIS_CACHE_TTL: 30m
+      MEM_CACHE_TTL: 5m
+      MEM_CACHE_MAX_SIZE: 10000
+      JWT_SIGNING_KEY: local-dev-signing-key-change-in-prod
+      ZITADEL_DOMAIN: http://zitadel:8080
+      ZITADEL_CREDS_FILE: /zitadel/bootstrap/api-credentials.json
+    volumes:
+      - ./docker/zitadel/bootstrap:/zitadel/bootstrap:ro
+
+volumes:
+  pgdata:
+  zitadel-pgdata:

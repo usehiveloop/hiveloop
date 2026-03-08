@@ -1,0 +1,24 @@
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - bodyclose
+    - noctx
+    - copyloopvar
+
+linters-settings:
+  gosec:
+    excludes:
+      - G104 # unhandled errors on deferred close — acceptable in this codebase
+
+issues:
+  exclude-dirs:
+    - vendor
+
+run:
+  timeout: 5m
