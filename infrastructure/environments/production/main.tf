@@ -69,3 +69,57 @@ module "ecs_cluster" {
   
   enable_container_insights = true
 }
+
+# =============================================================================
+# Phase 1: Database Layer
+# =============================================================================
+
+module "rds" {
+  source = "../../modules/rds"
+
+  name       = "llmvault-prod"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+  
+  # Allow ECS tasks to connect
+  allowed_security_group_ids = [module.vpc.vpc_endpoint_security_group_id]
+  
+  # Database configuration
+  db_name             = "llmvault"
+  db_username         = "llmvault"
+  engine_version      = "17.4"
+  instance_class      = "db.t4g.micro"
+  allocated_storage   = 20
+  max_allocated_storage = 100
+  
+  # Backup settings
+  backup_retention_days = 7
+  backup_window         = "03:00-04:00"
+  maintenance_window    = "Mon:04:00-Mon:05:00"
+  
+  # Protection (disable for easier iteration)
+  deletion_protection = false
+  skip_final_snapshot = true
+}
+
+# =============================================================================
+# Phase 2: Cache Layer
+# =============================================================================
+
+module "elasticache" {
+  source = "../../modules/elasticache"
+
+  name       = "llmvault-prod"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+  
+  # Allow ECS tasks to connect
+  allowed_security_group_ids = [module.vpc.vpc_endpoint_security_group_id]
+  
+  # Cache configuration
+  engine_version        = "7.1"
+  node_type             = "cache.t4g.micro"
+  snapshot_retention_days = 1
+  snapshot_window       = "05:00-06:00"
+  maintenance_window    = "sun:06:00-sun:07:00"
+}
