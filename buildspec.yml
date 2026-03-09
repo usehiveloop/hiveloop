@@ -1,0 +1,103 @@
+# LLMVault CodeBuild buildspec
+#
+# Triggered by GitHub webhook on push to main/develop or tag push (v*).
+# All configuration is injected via CodeBuild environment variables (see build-stack.ts).
+#
+# Branches:
+#   main    → build images only
+#   develop → build + deploy staging
+#   v* tag  → build + deploy staging + deploy production
+
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+      - export COMMIT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
+      - export TAG=sha-$COMMIT_SHA
+      - export DEPLOY_STAGING=false
+      - export DEPLOY_PROD=false
+      - |
+        REF=${CODEBUILD_WEBHOOK_HEAD_REF:-}
+        if [[ "$REF" == refs/tags/v* ]]; then
+          export TAG=${REF#refs/tags/}
+          export DEPLOY_STAGING=true
+          export DEPLOY_PROD=true
+        elif [[ "$REF" == refs/heads/develop ]]; then
+          export DEPLOY_STAGING=true
+        fi
+      - echo "Building $TAG (staging=$DEPLOY_STAGING prod=$DEPLOY_PROD)"
+
+  build:
+    commands:
+      # Go API image
+      - |
+        docker build -f docker/Dockerfile \
+          --build-arg VERSION=$TAG \
+          --build-arg COMMIT=$COMMIT_SHA \
+          -t $ECR_REGISTRY/llmvault/api:$TAG \
+          -t $ECR_REGISTRY/llmvault/api:latest .
+      - docker push $ECR_REGISTRY/llmvault/api --all-tags
+
+      # Next.js web image
+      - |
+        docker build -f docker/Dockerfile.web \
+          --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+          --build-arg NEXT_PUBLIC_ZITADEL_ISSUER=$NEXT_PUBLIC_ZITADEL_ISSUER \
+          --build-arg NEXT_PUBLIC_CONNECT_URL=$NEXT_PUBLIC_CONNECT_URL \
+          --build-arg NEXT_PUBLIC_ZITADEL_CLIENT_ID=$NEXT_PUBLIC_ZITADEL_CLIENT_ID \
+          -t $ECR_REGISTRY/llmvault/web:$TAG \
+          -t $ECR_REGISTRY/llmvault/web:latest .
+      - docker push $ECR_REGISTRY/llmvault/web --all-tags
+
+      # Connect SPA (static Vite build)
+      - cd apps/connect && npm ci && npm run build && cd ../..
+
+  post_build:
+    commands:
+      # --- Staging deploy ---
+      - |
+        if [ "$DEPLOY_STAGING" = "true" ]; then
+          echo "--- Deploying to staging ---"
+          aws s3 sync apps/connect/dist/ s3://$STG_CONNECT_BUCKET --delete
+
+          if [ "$STG_DEPLOY_MODE" = "ec2" ]; then
+            aws ssm send-command \
+              --document-name AWS-RunShellScript \
+              --targets Key=tag:Name,Values=$STG_INSTANCE_TAG \
+              --parameters '{"commands":["/opt/llmvault/deploy.sh"]}' \
+              --comment "Deploy $TAG" --output text
+          else
+            aws ecs update-service --cluster $STG_CLUSTER --service api --force-new-deployment --no-cli-pager
+            aws ecs update-service --cluster $STG_CLUSTER --service web --force-new-deployment --no-cli-pager
+            aws ecs update-service --cluster $STG_CLUSTER --service zitadel --force-new-deployment --no-cli-pager
+          fi
+
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STG_CDN_STACK \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+        fi
+
+      # --- Production deploy ---
+      - |
+        if [ "$DEPLOY_PROD" = "true" ]; then
+          echo "--- Deploying to production ---"
+          aws s3 sync apps/connect/dist/ s3://$PROD_CONNECT_BUCKET --delete
+
+          aws ecs update-service --cluster $PROD_CLUSTER --service api --force-new-deployment --no-cli-pager
+          aws ecs update-service --cluster $PROD_CLUSTER --service web --force-new-deployment --no-cli-pager
+          aws ecs update-service --cluster $PROD_CLUSTER --service zitadel --force-new-deployment --no-cli-pager
+
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name $PROD_CDN_STACK \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+        fi

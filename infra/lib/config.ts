@@ -57,6 +57,15 @@ export function ssmPath(env: string, name: string): string {
   return `/llmvault/${env}/${name}`;
 }
 
+// ---------------------------------------------------------------------------
+// GitHub repository (for CodeBuild webhook)
+// ---------------------------------------------------------------------------
+
+export const github = {
+  owner: 'useportal',
+  repo: 'llmvault',
+} as const;
+
 export const SSM_PARAMS = {
   databaseUrl: 'database-url',
   redisPassword: 'redis-password',

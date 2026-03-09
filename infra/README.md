@@ -276,15 +276,68 @@ validate the domains.
 
 ---
 
-## CI/CD (GitHub Actions)
+## CI/CD (CodeBuild — recommended)
 
-The workflow at `.github/workflows/deploy.yml` handles automated deployments:
+AWS CodeBuild builds Docker images on ARM64 natively (no QEMU emulation),
+pushes to ECR with zero egress, and deploys automatically. Triggered by
+GitHub webhook — no GitHub Actions minutes consumed for builds.
 
 | Trigger | Action |
 |---------|--------|
-| Push to `main` | Build + test + push images to ECR |
-| Push to `develop` | Build + test + push + deploy to staging |
-| Create GitHub Release | Build + push + deploy staging + deploy production |
+| Push to `main` | Build images, push to ECR |
+| Push to `develop` | Build + deploy to staging |
+| Tag `v*` | Build + deploy staging + deploy production |
+
+### One-time setup: connect GitHub to CodeBuild
+
+Create a GitHub personal access token (PAT) with `repo` and `admin:repo_hook`
+scopes, then register it with CodeBuild:
+
+```bash
+aws codebuild import-source-credentials \
+  --server-type GITHUB \
+  --auth-type PERSONAL_ACCESS_TOKEN \
+  --token ghp_xxxxxxxxxxxx
+```
+
+Then deploy the build stack:
+
+```bash
+npx cdk deploy LLMVault-Build
+```
+
+This creates the CodeBuild project and registers a webhook on the GitHub
+repo. All subsequent pushes trigger builds automatically.
+
+### Configuration
+
+Edit `lib/config.ts` to change the GitHub owner/repo:
+
+```typescript
+export const github = {
+  owner: 'useportal',
+  repo: 'llmvault',
+};
+```
+
+The buildspec lives at `buildspec.yml` in the repo root. It references
+environment variables injected by CDK (ECR registry, domain names, bucket
+names, etc.), so you rarely need to edit it directly.
+
+### Costs
+
+CodeBuild ARM `arm1.small` — $0.0034/min. A typical build takes ~8 minutes
+(~$0.03 per build). First 100 minutes/month are free.
+
+---
+
+## CI/CD (GitHub Actions — alternative)
+
+If you prefer GitHub Actions, the workflow at `.github/workflows/deploy.yml`
+is a drop-in alternative. It uses GitHub OIDC for AWS authentication.
+
+> **Note:** GitHub Actions builds ARM images via QEMU emulation, which is
+> slower than native ARM on CodeBuild. Use CodeBuild if build speed matters.
 
 ### Required GitHub Secrets
 
@@ -302,13 +355,11 @@ The workflow at `.github/workflows/deploy.yml` handles automated deployments:
 Create an IAM OIDC identity provider for GitHub Actions (one-time):
 
 ```bash
-# Create the OIDC provider
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com \
   --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 
-# Create the deploy role (replace with your GitHub org/repo)
 cat > trust-policy.json <<'EOF'
 {
   "Version": "2012-10-17",
@@ -383,6 +434,7 @@ redisNodeType: 'cache.t4g.small',        // bigger cache
 | Stack | Purpose |
 |-------|---------|
 | `LLMVault-Shared` | ECR repositories (deploy once) |
+| `LLMVault-Build` | CodeBuild project + GitHub webhook (deploy once) |
 | `LLMVault-{env}-Network` | VPC, subnets, security groups |
 | `LLMVault-{env}-Security` | KMS key, IAM roles |
 | `LLMVault-{env}-Data` | RDS + ElastiCache (Fargate mode only) |
