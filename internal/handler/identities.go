@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 // IdentityHandler manages identity CRUD operations.

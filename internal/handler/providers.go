@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/useportal/proxy-bridge/internal/registry"
+	"github.com/useportal/llmvault/internal/registry"
 )
 
 // ProviderHandler serves the embedded provider/model catalog.

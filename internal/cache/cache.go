@@ -12,8 +12,8 @@ import (
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 // DecryptedCredential is the fully resolved, plaintext credential returned
@@ -24,14 +24,14 @@ type DecryptedCredential struct {
 	AuthScheme string
 }
 
-// Manager orchestrates the 3-tier cache: L1 (memory) → L2 (Redis) → L3 (Postgres + Vault).
+// Manager orchestrates the 3-tier cache: L1 (memory) → L2 (Redis) → L3 (Postgres + KMS).
 type Manager struct {
 	memory      *MemoryCache
 	redisCache  *RedisCache
 	dekCache    *DEKCache
 	revokedTok  *RevokedTokenCache
 	invalidator *Invalidator
-	vault       *crypto.VaultTransit
+	kms         *crypto.KeyWrapper
 	db          *gorm.DB
 
 	flight singleflight.Group
@@ -47,7 +47,7 @@ func NewManager(
 	dekCache *DEKCache,
 	revokedTok *RevokedTokenCache,
 	invalidator *Invalidator,
-	vault *crypto.VaultTransit,
+	kms *crypto.KeyWrapper,
 	db *gorm.DB,
 	hardExpiry time.Duration,
 ) *Manager {
@@ -57,7 +57,7 @@ func NewManager(
 		dekCache:    dekCache,
 		revokedTok:  revokedTok,
 		invalidator: invalidator,
-		vault:       vault,
+		kms:         kms,
 		db:          db,
 		hardExpiry:  hardExpiry,
 	}
@@ -126,11 +126,11 @@ func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string
 		}
 	}
 
-	// L3: Postgres + Vault (cold path)
+	// L3: Postgres + KMS (cold path)
 	return m.resolveFromDB(ctx, credentialID, orgID)
 }
 
-// resolveFromDB fetches from Postgres, decrypts via Vault, and promotes to L2 + L1.
+// resolveFromDB fetches from Postgres, decrypts via KMS, and promotes to L2 + L1.
 func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID uuid.UUID) (*DecryptedCredential, error) {
 	var dbCred model.Credential
 	err := m.db.WithContext(ctx).
@@ -143,10 +143,10 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		return nil, fmt.Errorf("db lookup: %w", err)
 	}
 
-	// Unwrap DEK via Vault Transit
-	dek, err := m.vault.Unwrap(dbCred.WrappedDEK)
+	// Unwrap DEK via KMS
+	dek, err := m.kms.Unwrap(ctx, dbCred.WrappedDEK)
 	if err != nil {
-		return nil, fmt.Errorf("vault unwrap: %w", err)
+		return nil, fmt.Errorf("kms unwrap: %w", err)
 	}
 
 	// Decrypt API key
@@ -183,7 +183,7 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 }
 
 // decryptWithDEKCache decrypts an API key using a DEK from the DEK cache
-// (or falls back to Vault unwrap if the DEK isn't cached).
+// (or falls back to KMS unwrap if the DEK isn't cached).
 func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, encryptedKey, wrappedDEK []byte) ([]byte, error) {
 	// Try DEK cache first
 	if enclave, ok := m.dekCache.Get(credentialID); ok {
@@ -205,10 +205,10 @@ func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, 
 		m.dekCache.Invalidate(credentialID)
 	}
 
-	// DEK not cached — unwrap via Vault
-	dek, err := m.vault.Unwrap(wrappedDEK)
+	// DEK not cached — unwrap via KMS
+	dek, err := m.kms.Unwrap(ctx, wrappedDEK)
 	if err != nil {
-		return nil, fmt.Errorf("vault unwrap: %w", err)
+		return nil, fmt.Errorf("kms unwrap: %w", err)
 	}
 
 	apiKey, err := crypto.DecryptCredential(encryptedKey, dek)
@@ -354,14 +354,14 @@ func DefaultConfig() Config {
 }
 
 // Build constructs a fully wired cache Manager.
-func Build(cfg Config, redisClient *redis.Client, vault *crypto.VaultTransit, db *gorm.DB) *Manager {
+func Build(cfg Config, redisClient *redis.Client, kms *crypto.KeyWrapper, db *gorm.DB) *Manager {
 	memCache := NewMemoryCache(cfg.MemMaxSize, cfg.MemTTL)
 	dekCache := NewDEKCache(cfg.DEKMaxSize, cfg.DEKTTL)
 	redisCache := NewRedisCache(redisClient, cfg.RedisTTL)
 	revokedTok := NewRevokedTokenCache(redisClient)
 	invalidator := NewInvalidator(redisClient, memCache, dekCache)
 
-	return NewManager(memCache, redisCache, dekCache, revokedTok, invalidator, vault, db, cfg.HardExpiry)
+	return NewManager(memCache, redisCache, dekCache, revokedTok, invalidator, kms, db, cfg.HardExpiry)
 }
 
 // ensure singleflight is used (compile-time check)

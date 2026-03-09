@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 // identityRateLimitScript atomically checks and increments a rate limit counter.

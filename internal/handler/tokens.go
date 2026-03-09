@@ -9,11 +9,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/counter"
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/token"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/counter"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/token"
 )
 
 // TokenHandler manages sandbox proxy token operations.

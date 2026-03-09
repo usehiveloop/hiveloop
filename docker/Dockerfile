@@ -17,17 +17,17 @@ ARG COMMIT=unknown
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
-    -o /proxy-bridge ./cmd/server
+    -o /llmvault ./cmd/server
 
 # ---- Runtime stage ----
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=build /proxy-bridge /proxy-bridge
+COPY --from=build /llmvault /llmvault
 
 USER nonroot:nonroot
 
 EXPOSE 8080
 
-ENTRYPOINT ["/proxy-bridge"]
+ENTRYPOINT ["/llmvault"]

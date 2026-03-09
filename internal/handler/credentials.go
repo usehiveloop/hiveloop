@@ -10,26 +10,26 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/counter"
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/proxy"
-	"github.com/useportal/proxy-bridge/internal/registry"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/counter"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/proxy"
+	"github.com/useportal/llmvault/internal/registry"
 )
 
 // CredentialHandler manages credential CRUD operations.
 type CredentialHandler struct {
 	db           *gorm.DB
-	vault        *crypto.VaultTransit
+	kms          *crypto.KeyWrapper
 	cacheManager *cache.Manager
 	counter      *counter.Counter
 }
 
 // NewCredentialHandler creates a new credential handler.
-func NewCredentialHandler(db *gorm.DB, vault *crypto.VaultTransit, cm *cache.Manager, ctr *counter.Counter) *CredentialHandler {
-	return &CredentialHandler{db: db, vault: vault, cacheManager: cm, counter: ctr}
+func NewCredentialHandler(db *gorm.DB, kms *crypto.KeyWrapper, cm *cache.Manager, ctr *counter.Counter) *CredentialHandler {
+	return &CredentialHandler{db: db, kms: kms, cacheManager: cm, counter: ctr}
 }
 
 type createCredentialRequest struct {
@@ -91,7 +91,7 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate DEK, encrypt the API key, wrap the DEK via Vault Transit
+	// Generate DEK, encrypt the API key, wrap the DEK via KMS
 	dek, err := crypto.GenerateDEK()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "encryption failed"})
@@ -104,7 +104,7 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wrappedDEK, err := h.vault.Wrap(dek)
+	wrappedDEK, err := h.kms.Wrap(r.Context(), dek)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "key wrapping failed"})
 		return

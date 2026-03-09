@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 // AuditWriter is a buffered audit log writer that never blocks the request hot path.

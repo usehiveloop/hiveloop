@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	CredentialChannel = "proxy-bridge:invalidate:credential"
-	TokenChannel      = "proxy-bridge:invalidate:token"
+	CredentialChannel = "llmvault:invalidate:credential"
+	TokenChannel      = "llmvault:invalidate:token"
 )
 
 // Invalidator handles cross-instance cache invalidation via Redis pub/sub.

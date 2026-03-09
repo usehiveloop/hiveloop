@@ -1,0 +1,874 @@
+================================================================================
+NANGO CONNECT — COMPLETE IMPLEMENTATION ANALYSIS
+================================================================================
+
+Source: /Users/bahdcoder/code/llmvault.dev/nango
+Packages analyzed:
+  - /packages/connect-ui       (the embedded React app)
+  - /packages/frontend/lib     (the host-app SDK + iframe manager)
+  - /packages/types             (shared TypeScript types)
+  - /packages/server            (backend routes + session management)
+
+================================================================================
+1. ARCHITECTURE OVERVIEW
+================================================================================
+
+Nango Connect is a three-layer system:
+
+  HOST APP  ←→  FRONTEND SDK (ConnectUI class)  ←→  IFRAME (connect-ui React app)
+                                                       ↕
+                                                   NANGO API
+
+Layer 1: Host App
+  - Imports @nangohq/frontend SDK
+  - Creates a ConnectUI instance with a session token
+  - Calls connectUI.open() to launch the iframe
+  - Receives events (connect, error, close) via callbacks
+
+Layer 2: Frontend SDK (/packages/frontend/lib)
+  - ConnectUI class manages iframe lifecycle (create, inject, destroy)
+  - Nango class manages OAuth popup windows + WebSocket auth
+  - Communicates with iframe via window.postMessage
+  - Communicates with host app via callback functions
+
+Layer 3: Connect UI (/packages/connect-ui)
+  - Standalone React SPA served from a separate domain (connect.nango.dev)
+  - Loaded inside the iframe
+  - Communicates with parent via window.postMessage
+  - Communicates with Nango API via HTTP (Bearer token auth)
+
+================================================================================
+2. IFRAME STRATEGY
+================================================================================
+
+2.1 IFRAME CREATION (/packages/frontend/lib/connectUI.ts)
+─────────────────────────────────────────────────────────
+
+The ConnectUI class creates and injects an iframe into the host page's DOM:
+
+  class ConnectUI {
+    private iframe: HTMLIFrameElement | null = null;
+
+    open() {
+      this.iframe = this.createIframe();
+      document.body.append(this.iframe);
+      document.body.style.overflow = 'hidden';  // Prevent host scroll
+      this.setupEventListeners();
+    }
+
+    private createIframe(): HTMLIFrameElement {
+      const iframe = document.createElement('iframe');
+      iframe.src = baseURL + '?' + queryParams;
+      iframe.id = 'connect-ui';
+      iframe.style.position = 'fixed';
+      iframe.style.zIndex = '9999';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '100vw';
+      iframe.style.height = '100vh';
+      iframe.style.backgroundColor = 'transparent';
+      iframe.style.border = 'none';
+      return iframe;
+    }
+  }
+
+Key decisions:
+  - position: fixed — overlays entire viewport regardless of scroll
+  - z-index: 9999 — sits above all host content
+  - 100vw × 100vh — full viewport coverage
+  - background: transparent — the React app inside renders its own backdrop
+  - border: none — no browser default iframe border
+  - document.body.overflow = 'hidden' — prevents host page scrolling under the modal
+
+2.2 IFRAME SIZING MODES
+────────────────────────
+
+FULLSCREEN MODE (default):
+  - iframe: 100vw × 100vh, fixed position
+  - Inside the iframe, Layout component renders a semi-transparent backdrop
+  - The actual modal widget is centered: max 500px × 700px
+  - CSS: bg-subtle/80 dark:bg-black (backdrop overlay)
+
+EMBEDDED MODE (isEmbedded=true):
+  - Used when connect UI is rendered in a constrained container
+  - Widget constrained to sm:w-[500px] sm:h-[700px]
+  - No backdrop overlay
+  - Responsive: full screen on mobile, fixed size on tablet+
+
+AUTH LINK MODE (isAuthLink=true):
+  - Direct URL access (not in iframe)
+  - Full page layout with padding
+  - URL: connect.nango.dev?session_token=ptok_xxx
+
+2.3 URL PARAMETERS PASSED TO IFRAME
+────────────────────────────────────
+
+  apiURL                  — Backend API base URL (default: https://api.nango.dev)
+  detectClosedAuthWindow  — Boolean, detect if OAuth popup was closed early
+  lang                    — Language code (en, fr, de, es)
+  theme                   — Theme override (light, dark, system)
+  session_token           — Session token (fallback if not sent via postMessage)
+  embedded=true           — Rendered inside constrained container
+  preview=true            — Preview mode (skips telemetry, for dev/testing)
+
+2.4 IFRAME CLEANUP
+──────────────────
+
+  close() {
+    if (this.iframe) {
+      this.iframe.remove();
+      this.iframe = null;
+    }
+    document.body.style.overflow = '';  // Restore host scrolling
+    this.removeEventListeners();
+  }
+
+================================================================================
+3. IFRAME COMMUNICATION (PostMessage Protocol)
+================================================================================
+
+3.1 MESSAGE TYPES (/packages/frontend/lib/types.ts)
+────────────────────────────────────────────────────
+
+PARENT → IFRAME:
+  { type: 'session_token', sessionToken: string }
+    — Delivers the session token after iframe signals ready
+
+  { type: 'settings_changed', payload: ConnectUISettings }
+    — Dynamic settings update (theme changes, etc.)
+
+IFRAME → PARENT:
+  { type: 'ready' }
+    — iframe has loaded and is ready to receive the session token
+
+  { type: 'close' }
+    — User closed the modal (X button, click outside, ESC key)
+
+  { type: 'connect', payload: { providerConfigKey, connectionId, isPending } }
+    — Successfully connected a provider
+
+  { type: 'error', payload: { errorType: AuthErrorType, errorMessage: string } }
+    — Authentication failed
+
+  { type: 'settings_changed', payload: ConnectUISettings }
+    — Settings changed within iframe
+
+3.2 COMMUNICATION FLOW
+──────────────────────
+
+  1. Host creates iframe, injects into DOM
+  2. iframe React app boots, Home component mounts
+  3. iframe sends { type: 'ready' } to parent
+  4. Parent receives 'ready', sends { type: 'session_token', sessionToken }
+  5. iframe receives token, calls GET /connect/session with Bearer auth
+  6. Server validates token, returns session data (allowed integrations, etc.)
+  7. iframe navigates to /integrations, shows provider list
+
+  ... user selects provider, enters credentials ...
+
+  8. iframe calls nango.auth() or nango.create() to validate credentials
+  9. On success: iframe sends { type: 'connect', payload: {...} } to parent
+  10. Parent receives 'connect' event, fires onEvent callback
+  11. iframe sends { type: 'close' } on user dismissal
+  12. Parent removes iframe from DOM, restores body scroll
+
+3.3 EVENT LISTENER SETUP (/packages/frontend/lib/connectUI.ts)
+──────────────────────────────────────────────────────────────
+
+  private setupEventListeners() {
+    window.addEventListener('message', this.handleMessage);
+  }
+
+  private handleMessage = (event: MessageEvent) => {
+    // SECURITY: Origin validation
+    if (event.origin !== new URL(this.baseURL).origin) return;
+
+    const data = event.data as ConnectUIEvent;
+
+    switch (data.type) {
+      case 'ready':
+        // Send session token to iframe
+        this.iframe?.contentWindow?.postMessage(
+          { type: 'session_token', sessionToken: this.sessionToken },
+          this.baseURL
+        );
+        break;
+      case 'close':
+        this.close();
+        this.onEvent?.(data);
+        break;
+      case 'connect':
+      case 'error':
+        this.onEvent?.(data);
+        break;
+    }
+  }
+
+3.4 IFRAME-SIDE LISTENER (/packages/connect-ui/src/lib/events.ts)
+────────────────────────────────────────────────────────────────
+
+  // Send message to parent
+  export function triggerClose() {
+    window.parent.postMessage({ type: 'close' }, '*');
+  }
+
+  export function triggerConnect(payload: AuthResult) {
+    window.parent.postMessage({ type: 'connect', payload }, '*');
+  }
+
+  export function triggerError(payload: { errorType, errorMessage }) {
+    window.parent.postMessage({ type: 'error', payload }, '*');
+  }
+
+  export function triggerReady() {
+    window.parent.postMessage({ type: 'ready' }, '*');
+  }
+
+================================================================================
+4. CSS STRATEGIES
+================================================================================
+
+4.1 FRAMEWORK
+─────────────
+
+  - TailwindCSS v4 with custom theme configuration
+  - CSS custom properties for dynamic theming
+  - No CSS-in-JS or styled-components
+
+4.2 COLOR SYSTEM (/packages/connect-ui/src/index.css)
+─────────────────────────────────────────────────────
+
+  CSS custom properties registered in @theme:
+    --color-primary         — Brand/accent color (blue default)
+    --color-on-primary      — Text on primary color
+    --color-surface         — Card/component backgrounds
+    --color-elevated        — Elevated surface (modal bg)
+    --color-subtle          — Muted backgrounds
+    --color-text-primary    — Primary text
+    --color-text-secondary  — Secondary/muted text
+    --color-border          — Border color
+    --color-success         — Success state
+    --color-error           — Error state
+
+  Dark mode via @variant dark:
+    All color tokens overridden for dark theme
+    .dark class applied to root element
+
+4.3 LAYOUT STRATEGY
+───────────────────
+
+  MODAL (Layout.tsx):
+    Outer: absolute h-screen w-screen flex justify-center
+           bg-subtle/80 dark:bg-black (semi-transparent backdrop)
+    Inner: flex flex-col w-full h-full sm:w-[500px] sm:h-[700px]
+           bg-surface text-text-primary rounded-md overflow-y-auto
+
+  RESPONSIVE BREAKPOINTS:
+    Mobile: full screen (w-full h-full)
+    Desktop (sm:640px+): centered card at 500×700px
+
+  CLOSE BUTTON: absolute top-right corner of the modal
+  BACK BUTTON: absolute top-left when on sub-views
+
+4.4 DYNAMIC THEMING (/packages/connect-ui/src/lib/theme.ts)
+───────────────────────────────────────────────────────────
+
+  - System theme detection: matchMedia('(prefers-color-scheme: dark)')
+  - Luminance-based contrast calculation for text on colored backgrounds
+  - CSS variable injection at runtime for brand color customization
+  - Theme can be overridden via URL param or postMessage
+
+4.5 POSITIONING: CLICK-OUTSIDE DETECTION
+────────────────────────────────────────
+
+  The backdrop (bg-subtle/80) is a click target:
+    <div onClick={handleClickOutside} className="bg-subtle/80 ...">
+      <div onClick={(e) => e.stopPropagation()} className="modal-content">
+        ...
+      </div>
+    </div>
+
+  Clicking the backdrop triggers close. Click propagation stopped on modal content.
+
+================================================================================
+5. SECURITY STRATEGIES
+================================================================================
+
+5.1 SESSION TOKEN ARCHITECTURE
+──────────────────────────────
+
+  Token format: ptok_<random> (validated by Zod schema)
+  Token TTL: 30 minutes (configurable, enforced by keystore)
+  Token scope: tied to specific account + environment + end_user
+
+  Session creation (server-side):
+    POST /connect/sessions
+    Body: {
+      end_user: { id, email, display_name },
+      organization: { id, display_name },
+      allowed_integrations: ['github', 'slack'],
+      integrations_config_defaults: { ... },
+      tags: { ... }
+    }
+    Response: { token: 'ptok_xxx', expires_at, connect_link }
+
+  The token is:
+    - Created server-side by the HOST APP's backend (not the browser)
+    - Passed to the frontend SDK
+    - Delivered to the iframe via postMessage (not URL for security)
+    - Used as Bearer token for all iframe → API requests
+    - Scoped to specific allowed_integrations
+    - Time-limited (30 min TTL)
+
+5.2 ORIGIN VALIDATION
+─────────────────────
+
+  Parent validates iframe messages:
+    if (event.origin !== new URL(this.baseURL).origin) return;
+
+  This ensures only messages from the connect.nango.dev domain are processed.
+  Prevents other iframes or malicious scripts from injecting fake events.
+
+  iframe sends messages with wildcard origin ('*') but the parent
+  validates the event.origin on receipt. This is the correct pattern:
+  the RECEIVER validates, not the sender.
+
+5.3 TOKEN DELIVERY SECURITY
+───────────────────────────
+
+  Primary: postMessage (after iframe signals 'ready')
+    - Token never appears in URL
+    - Token never appears in browser history
+    - Token is delivered directly to iframe window context
+
+  Fallback: URL query parameter (session_token=...)
+    - Used for "auth link" mode (direct URL access, no parent frame)
+    - Less secure — token visible in URL, browser history, server logs
+    - Used only for shareable auth links, not iframe mode
+
+5.4 CREDENTIAL HANDLING
+───────────────────────
+
+  - API keys entered in the iframe are sent directly to the Nango API
+  - Never passed through postMessage to the parent
+  - Never stored in the iframe's localStorage or sessionStorage
+  - Transmitted over HTTPS to the API endpoint
+  - The host app only receives { providerConfigKey, connectionId }
+    — never the raw credential
+
+5.5 CORS CONFIGURATION
+──────────────────────
+
+  Server routes use explicit CORS:
+    origin: connectUrl (e.g., https://connect.nango.dev)
+    credentials: false
+
+  Only the connect UI domain can call connect-specific API endpoints.
+  The host app's domain is NOT allowed to call these endpoints directly.
+
+5.6 CONTENT SECURITY POLICY
+───────────────────────────
+
+  The iframe is loaded from a separate domain (connect.nango.dev),
+  so the host app's CSP must allow:
+    frame-src: https://connect.nango.dev
+
+  The connect UI's own CSP allows:
+    connect-src: https://api.nango.dev (API calls)
+    script-src: 'self' (no external scripts)
+
+5.7 SCOPE LIMITATION
+────────────────────
+
+  Sessions are scoped:
+    - allowed_integrations: only these providers shown in the UI
+    - integrations_config_defaults: pre-filled config per provider
+    - end_user: session tied to specific user identity
+    - account + environment: multi-tenant isolation
+
+  A token for "github only" cannot be used to connect "slack".
+
+================================================================================
+6. FRONTEND SDK API (/packages/frontend/lib)
+================================================================================
+
+6.1 ConnectUI CLASS
+───────────────────
+
+  import { ConnectUI } from '@nangohq/frontend';
+
+  const connectUI = new ConnectUI({
+    // Required
+    sessionToken: 'ptok_xxx',
+
+    // Optional
+    baseURL: 'https://connect.nango.dev',     // Connect UI URL
+    apiURL: 'https://api.nango.dev',           // API endpoint
+    detectClosedAuthWindow: true,              // Detect popup close
+    lang: 'en',                                // Language
+    themeOverride: { primary: '#7C3AED' },     // Brand color
+
+    // Event callback
+    onEvent: (event) => {
+      switch (event.type) {
+        case 'connect':
+          console.log('Connected:', event.payload.providerConfigKey);
+          break;
+        case 'close':
+          console.log('User closed');
+          break;
+        case 'error':
+          console.error('Error:', event.payload.errorMessage);
+          break;
+      }
+    }
+  });
+
+  // Open the connect UI
+  connectUI.open();
+
+  // Programmatically close
+  connectUI.close();
+
+6.2 Nango CLASS (lower-level)
+─────────────────────────────
+
+  import Nango from '@nangohq/frontend';
+
+  const nango = new Nango({
+    host: 'https://api.nango.dev',
+    connectSessionToken: 'ptok_xxx',
+  });
+
+  // OAuth flow (opens popup)
+  const result = await nango.auth('github', 'conn-id', {
+    detectClosedAuthWindow: true,
+  });
+
+  // API key / basic auth (no popup)
+  const result = await nango.create('openai', 'conn-id', {
+    credentials: { apiKey: 'sk-xxx' }
+  });
+
+  // Open managed ConnectUI
+  nango.openConnectUI({ ... });
+
+  // Reconnect existing connection
+  await nango.reconnect('github', { connectionId: 'conn-id' });
+
+================================================================================
+7. AUTHENTICATION FLOW (Detailed)
+================================================================================
+
+7.1 SESSION CREATION (Host App Backend → Nango API)
+────────────────────────────────────────────────────
+
+  POST https://api.nango.dev/connect/sessions
+  Headers:
+    Authorization: Bearer <secret-key>   // Nango secret key (server-side only)
+  Body:
+    {
+      "end_user": {
+        "id": "user-123",
+        "email": "user@example.com",
+        "display_name": "Jane Doe"
+      },
+      "organization": {
+        "id": "org-456",
+        "display_name": "Acme Corp"
+      },
+      "allowed_integrations": ["github", "slack", "openai"],
+      "integrations_config_defaults": {
+        "github": {
+          "oauth_scopes_override": "repo,user"
+        },
+        "slack": {
+          "connection_config": {
+            "bot_name": "MyBot"
+          }
+        }
+      },
+      "tags": {
+        "customer_id": "cust-789",
+        "plan": "enterprise"
+      }
+    }
+  Response:
+    {
+      "token": "ptok_xxx",
+      "connect_link": "https://connect.nango.dev?session_token=ptok_xxx",
+      "expires_at": "2024-03-08T12:30:00Z"
+    }
+
+7.2 IFRAME INITIALIZATION
+─────────────────────────
+
+  1. Host app frontend creates ConnectUI with token
+  2. ConnectUI.open() creates iframe pointing to connect.nango.dev
+  3. React app boots inside iframe
+  4. Home component mounts, sends { type: 'ready' } to parent
+  5. Parent receives 'ready', sends { type: 'session_token', sessionToken }
+  6. Home component receives token, stores in Zustand
+  7. Home calls GET /connect/session with Bearer token
+  8. Server validates token (TTL check, scope check)
+  9. Server returns ConnectSessionOutput:
+     {
+       endUser: { id, email, display_name },
+       connectUISettings: { ... },
+       allowed_integrations: ['github', 'slack'],
+       integrations_config_defaults: { ... },
+       isReconnecting: false,
+       overrides: { ... }
+     }
+  10. App navigates to /integrations
+
+7.3 PROVIDER SELECTION
+──────────────────────
+
+  1. IntegrationsList renders allowed integrations
+  2. Each integration card shows: icon, name, description
+  3. User clicks integration
+  4. App fetches GET /providers/:provider for credential schema
+  5. Provider metadata includes:
+     - auth_mode: 'OAUTH2' | 'API_KEY' | 'BASIC' | 'JWT' | ...
+     - credentials: Zod schema for form generation
+     - docs_url: link to provider console
+  6. Navigates to /go with provider in Zustand store
+
+7.4 CREDENTIAL COLLECTION (/go route)
+──────────────────────────────────────
+
+  For API Key auth:
+    1. Form dynamically generated from provider's credential schema
+    2. User enters API key
+    3. On submit, calls nango.create(providerConfigKey, connectionId, {
+         credentials: { apiKey: 'sk-xxx' }
+       })
+    4. SDK sends POST /api-auth/api-key/:providerConfigKey
+    5. Server validates credentials against provider API
+    6. On success: { providerConfigKey, connectionId, isPending: false }
+
+  For OAuth auth:
+    1. Shows "Connect with {Provider}" button
+    2. On click, calls nango.auth(providerConfigKey, connectionId)
+    3. SDK opens OAuth popup via AuthorizationModal
+    4. SDK establishes WebSocket to Nango server
+    5. Server sends connection_ack with ws_client_id
+    6. Popup navigates to OAuth provider with ws_client_id
+    7. User authorizes in popup
+    8. OAuth callback hits Nango server
+    9. Server sends 'success' via WebSocket
+    10. SDK resolves auth() promise
+    11. Popup auto-closes
+
+  For Basic auth:
+    1. Form shows username + password fields
+    2. On submit, calls nango.create() with { username, password }
+    3. POST /api-auth/basic/:providerConfigKey
+
+7.5 CONNECTION RESULT
+─────────────────────
+
+  On success:
+    - iframe sends postMessage { type: 'connect', payload: { providerConfigKey, connectionId, isPending } }
+    - Parent's onEvent callback fires
+    - If isPending: connection being tested, may update later
+    - If not isPending: connection is active and ready
+
+  On error:
+    - iframe sends postMessage { type: 'error', payload: { errorType, errorMessage } }
+    - Error types: 'invalid_credentials', 'connection_test_failed', 'unknown'
+    - UI shows error screen with retry option
+
+================================================================================
+8. API ENDPOINTS
+================================================================================
+
+8.1 PUBLIC (no auth):
+  GET  /providers                       — List all providers
+  GET  /providers/:provider             — Get provider metadata
+
+8.2 CONNECT SESSION (server secret key auth):
+  POST /connect/sessions                — Create session
+  POST /connect/sessions/reconnect      — Reconnect existing connection
+
+8.3 CONNECT SESSION (session token auth):
+  GET  /connect/session                 — Get session details
+  DELETE /connect/session               — Clear/end session
+  POST /connect/telemetry               — Track UI events
+
+8.4 AUTH (session token auth):
+  POST /oauth/connect/:providerConfigKey  — OAuth flow
+  POST /api-auth/api-key/:providerConfigKey — API key auth
+  POST /api-auth/basic/:providerConfigKey   — Basic auth
+  POST /app-store-auth/:providerConfigKey   — App Store auth
+  POST /auth/jwt/:providerConfigKey         — JWT auth
+  POST /auth/tba/:providerConfigKey         — Token-based auth
+
+8.5 INTEGRATION DISCOVERY (session token auth):
+  GET  /integrations                    — List allowed integrations
+
+================================================================================
+9. BUILD & PACKAGING
+================================================================================
+
+9.1 BUILD TOOLS
+───────────────
+
+  Bundler: Vite
+  Compiler: React SWC (fast Rust-based compiler)
+  CSS: TailwindCSS v4 (PostCSS plugin)
+  SVG: vite-plugin-svgr (SVGs as React components)
+
+9.2 BUILD CONFIGURATION (/packages/connect-ui/vite.config.ts)
+─────────────────────────────────────────────────────────────
+
+  - Output: /dist/ with index.html + hashed assets
+  - Code splitting: language files as separate async chunks
+    (lang-en.js, lang-fr.js, lang-de.js, lang-es.js)
+  - Chunk size warning: 600KB threshold
+  - Source maps: enabled for debugging
+
+9.3 DEPLOYMENT
+──────────────
+
+  - Served from separate domain: https://connect.nango.dev
+  - Can be self-hosted (override baseURL in SDK)
+  - Static files served by CDN or static file server
+  - Dev server: port 3009 with hot reload
+
+9.4 NPM PACKAGES
+─────────────────
+
+  @nangohq/frontend — SDK for host apps (browser)
+    Exports: ConnectUI, Nango, AuthError, types
+    Size: ~20KB minified
+
+  @nangohq/connect-ui — Not published separately
+    Deployed as hosted web app, not an npm package
+
+================================================================================
+10. EVENT & TELEMETRY SYSTEM
+================================================================================
+
+10.1 CONTROL EVENTS (postMessage)
+─────────────────────────────────
+
+  ready     — iframe loaded, ready for token
+  close     — user dismissed modal
+  connect   — auth succeeded
+  error     — auth failed
+
+10.2 TELEMETRY EVENTS (/packages/connect-ui/src/lib/telemetry.ts)
+────────────────────────────────────────────────────────────────
+
+  Sent via navigator.sendBeacon() to POST /connect/telemetry
+  (sendBeacon ensures delivery even on page unload)
+
+  Events tracked:
+    open                    — UI opened
+    view:list               — Viewed integrations list
+    view:integration        — Viewed specific integration
+    view:success            — Viewed success screen
+    view:credentials_error  — Credential validation failed
+    view:unknown_error      — Unknown error occurred
+    click:integration       — Clicked integration card
+    click:connect           — Clicked connect button
+    click:close             — Clicked X button
+    click:finish            — Clicked finish/done
+    click:outside           — Clicked backdrop
+    popup:blocked_by_browser — OAuth popup was blocked
+    popup:closed_early       — User closed OAuth popup
+
+  Telemetry is skipped in preview mode (isPreview=true).
+
+================================================================================
+11. STATE MANAGEMENT (Zustand)
+================================================================================
+
+11.1 STORE SHAPE (/packages/connect-ui/src/lib/store.ts)
+────────────────────────────────────────────────────────
+
+  {
+    sessionToken: string | null,
+    provider: Provider | null,
+    integration: Integration | null,
+    session: ConnectSessionOutput | null,
+    nango: Nango | null,
+    isDirty: boolean,
+    isEmbedded: boolean,
+    isAuthLink: boolean,
+    isPreview: boolean,
+    apiURL: string,
+    detectClosedAuthWindow: boolean,
+    showWatermark: boolean,
+    // setters for each field
+  }
+
+11.2 STATE LIFECYCLE
+────────────────────
+
+  1. App boots → reads URL params → sets isEmbedded, isPreview, apiURL
+  2. Home mounts → listens for postMessage → receives sessionToken
+  3. Fetches /connect/session → stores session data
+  4. Creates Nango SDK instance → stores in state
+  5. User navigates → provider/integration set on selection
+  6. isDirty tracks form modifications → prevents accidental close
+  7. On close/success → state cleaned up, iframe removed
+
+================================================================================
+12. WEBSOCKET / REAL-TIME (OAuth Popups Only)
+================================================================================
+
+12.1 AUTHORIZATION MODAL (/packages/frontend/lib/authModal.ts)
+─────────────────────────────────────────────────────────────
+
+  Used ONLY for OAuth flows that require popup windows.
+  NOT used for API key / basic auth flows.
+
+  class AuthorizationModal {
+    private swClient: WebSocket;
+
+    constructor({ webSocketUrl, successHandler, errorHandler }) {
+      this.swClient = new WebSocket(webSocketUrl);
+
+      this.swClient.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+
+        switch (data.message_type) {
+          case 'connection_ack':
+            // Server acknowledged WebSocket connection
+            // Now safe to open the OAuth popup
+            this.baseURL.searchParams.set('ws_client_id', data.ws_client_id);
+            this.open();  // window.open(oauthURL)
+            break;
+
+          case 'success':
+            successHandler(data);
+            this.swClient.close();
+            break;
+
+          case 'error':
+            errorHandler(data.error_type, data.error_desc);
+            this.swClient.close();
+            break;
+        }
+      };
+    }
+  }
+
+12.2 OAUTH POPUP FLOW
+─────────────────────
+
+  1. nango.auth('github') called
+  2. SDK opens WebSocket to wss://api.nango.dev/
+  3. Server sends { message_type: 'connection_ack', ws_client_id: 'xxx' }
+  4. SDK opens popup: window.open(oauthURL + '?ws_client_id=xxx')
+  5. User authorizes in popup window
+  6. OAuth provider redirects to Nango callback URL
+  7. Nango server processes callback, stores tokens
+  8. Nango server sends { message_type: 'success', ... } over WebSocket
+  9. SDK receives success, resolves promise
+  10. Popup auto-closes
+
+  Why WebSocket instead of polling?
+    - Instant notification when OAuth completes
+    - No polling overhead
+    - Works even if popup redirects to different domain
+    - Server pushes result, client doesn't need to poll
+
+================================================================================
+13. INTERNATIONALIZATION (i18n)
+================================================================================
+
+  - Language files: en, fr, de, es
+  - Loaded as async chunks (code splitting per language)
+  - Selected via URL param: ?lang=fr
+  - Translations cover all UI strings
+  - Default: English
+
+================================================================================
+14. ERROR HANDLING
+================================================================================
+
+  - React Error Boundary wraps the entire app
+  - Custom error fallback UI shown on unhandled errors
+  - Auth errors categorized by type:
+    - invalid_credentials — bad API key / credentials
+    - connection_test_failed — credentials valid but connection test failed
+    - unknown — unexpected error
+  - Retry available on error screens
+  - Dirty state tracked — confirms close if user has unsaved input
+
+================================================================================
+15. KEY ARCHITECTURAL DECISIONS
+================================================================================
+
+  1. SEPARATE DOMAIN FOR CONNECT UI
+     - Hosted on connect.nango.dev, separate from api.nango.dev
+     - Isolates credential handling from host app
+     - Host app never has access to raw credentials
+     - CORS restricts API access to connect domain only
+
+  2. IFRAME OVER WEB COMPONENT
+     - Full DOM isolation (no CSS leakage from host)
+     - Security boundary (separate origin)
+     - Cannot be tampered with by host app JS
+     - Downside: heavier, requires postMessage communication
+
+  3. TOKEN DELIVERY VIA POSTMESSAGE (not URL)
+     - Token not in URL = not in browser history
+     - Token not in server access logs
+     - Token not in Referer headers
+     - Fallback URL param only for auth link mode
+
+  4. SERVER-SIDE SESSION CREATION
+     - Host app backend creates session with secret key
+     - Frontend never has the Nango secret key
+     - Session scoped to specific user + allowed integrations
+     - Time-limited (30 min default)
+
+  5. FULLSCREEN IFRAME WITH TRANSPARENT BG
+     - iframe covers entire viewport
+     - React app renders its own backdrop overlay
+     - Allows custom backdrop styling
+     - Click-outside detection handled inside iframe
+
+  6. WEBSOCKET FOR OAUTH COMPLETION
+     - Instant notification, no polling
+     - Reliable even with cross-domain redirects
+     - Server pushes result to client
+
+  7. SENDBEACON FOR TELEMETRY
+     - navigator.sendBeacon() guarantees delivery on page unload
+     - Non-blocking, doesn't delay user interaction
+     - Fire-and-forget pattern
+
+================================================================================
+16. SUMMARY TABLE
+================================================================================
+
+  Aspect                  | Implementation
+  ────────────────────────┼────────────────────────────────────────────
+  Framework               | React 18, TypeScript, Vite
+  State Management        | Zustand (single global store)
+  Routing                 | TanStack Router v1.98
+  Styling                 | TailwindCSS 4, CSS custom properties
+  Auth                    | Bearer tokens, ptok_ prefix, 30min TTL
+  Iframe                  | position:fixed, 100vw×100vh, z-index:9999
+  Communication           | postMessage (iframe↔parent), HTTP, WebSocket
+  Modal Size              | max 500×700px (responsive full-screen mobile)
+  i18n                    | Async chunk loading (en, fr, de, es)
+  Events                  | postMessage for control, sendBeacon for telemetry
+  Error Handling          | React Error Boundary + typed auth errors
+  Security                | Origin validation, scoped tokens, CORS, no inline creds
+  Build                   | Vite + SWC, code splitting by language
+  Deployment              | Separate domain CDN (connect.nango.dev)
+  OAuth                   | Popup window + WebSocket for completion signal
+  Credential isolation    | Creds stay in iframe, host only gets connectionId
+
+================================================================================
+END OF ANALYSIS
+================================================================================

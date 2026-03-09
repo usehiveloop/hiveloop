@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/proxy"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/proxy"
 )
 
 // NewProxyHandler creates the streaming reverse proxy handler.

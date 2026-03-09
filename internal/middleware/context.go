@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 type contextKey int

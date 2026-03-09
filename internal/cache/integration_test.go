@@ -13,17 +13,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 const (
-	testDBURL       = "postgres://proxybridge:localdev@localhost:5433/proxybridge?sslmode=disable"
-	testRedisAddr   = "localhost:6379"
-	testVaultAddr   = "http://localhost:8200"
-	testVaultToken  = "dev-token"
-	testVaultKey    = "proxy-bridge-master"
+	testDBURL     = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+	testRedisAddr = "localhost:6379"
 )
 
 func connectTestDB(t *testing.T) *gorm.DB {
@@ -60,25 +57,17 @@ func connectTestRedis(t *testing.T) *redis.Client {
 	return client
 }
 
-func connectTestVault(t *testing.T) *crypto.VaultTransit {
+func createTestKMS(t *testing.T) *crypto.KeyWrapper {
 	t.Helper()
-	addr := os.Getenv("VAULT_ADDR")
-	if addr == "" {
-		addr = testVaultAddr
-	}
-	token := os.Getenv("VAULT_TOKEN")
-	if token == "" {
-		token = testVaultToken
-	}
-	v, err := crypto.NewVaultTransit(addr, token, testVaultKey)
+	kms, err := crypto.NewAEADWrapper("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "test-key")
 	if err != nil {
-		t.Fatalf("cannot connect to Vault: %v", err)
+		t.Fatalf("cannot create AEAD wrapper: %v", err)
 	}
-	return v
+	return kms
 }
 
-// createTestCredential creates a real encrypted credential in Postgres via Vault.
-func createTestCredential(t *testing.T, db *gorm.DB, vault *crypto.VaultTransit, orgID uuid.UUID, apiKey string) model.Credential {
+// createTestCredential creates a real encrypted credential in Postgres via KMS.
+func createTestCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID uuid.UUID, apiKey string) model.Credential {
 	t.Helper()
 
 	dek, err := crypto.GenerateDEK()
@@ -89,9 +78,9 @@ func createTestCredential(t *testing.T, db *gorm.DB, vault *crypto.VaultTransit,
 	if err != nil {
 		t.Fatalf("encrypt: %v", err)
 	}
-	wrappedDEK, err := vault.Wrap(dek)
+	wrappedDEK, err := kms.Wrap(context.Background(), dek)
 	if err != nil {
-		t.Fatalf("vault wrap: %v", err)
+		t.Fatalf("kms wrap: %v", err)
 	}
 	// Zero plaintext DEK
 	for i := range dek {
@@ -133,7 +122,7 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	return org
 }
 
-func buildManager(t *testing.T, redisClient *redis.Client, vault *crypto.VaultTransit, db *gorm.DB) *cache.Manager {
+func buildManager(t *testing.T, redisClient *redis.Client, kms *crypto.KeyWrapper, db *gorm.DB) *cache.Manager {
 	t.Helper()
 	cfg := cache.Config{
 		MemMaxSize: 100,
@@ -143,7 +132,7 @@ func buildManager(t *testing.T, redisClient *redis.Client, vault *crypto.VaultTr
 		DEKTTL:     10 * time.Minute,
 		HardExpiry: 15 * time.Minute,
 	}
-	return cache.Build(cfg, redisClient, vault, db)
+	return cache.Build(cfg, redisClient, kms, db)
 }
 
 // --------------------------------------------------------------------------
@@ -454,19 +443,19 @@ func TestIntegration_Invalidation_TokenPubSub(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// Full Cache Manager — integration tests hitting Postgres + Vault + Redis
+// Full Cache Manager — integration tests hitting Postgres + KMS + Redis
 // --------------------------------------------------------------------------
 
 func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-test-cold-path-key")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-test-cold-path-key")
 
-	// Cold call — must go through L3 (Postgres + Vault)
+	// Cold call — must go through L3 (Postgres + KMS)
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("get credential: %v", err)
@@ -485,11 +474,11 @@ func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
 func TestIntegration_CacheManager_L1HitAfterColdPath(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-test-l1-promotion")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-test-l1-promotion")
 
 	// First call: L3 cold path (promotes to L2 + L1)
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
@@ -511,7 +500,7 @@ func TestIntegration_CacheManager_L1HitAfterColdPath(t *testing.T) {
 	}
 	buf.Destroy()
 
-	// Second call: should hit L1 (no Vault or DB calls)
+	// Second call: should hit L1 (no KMS or DB calls)
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
 	if err != nil {
 		t.Fatalf("second get: %v", err)
@@ -524,11 +513,11 @@ func TestIntegration_CacheManager_L1HitAfterColdPath(t *testing.T) {
 func TestIntegration_CacheManager_L2HitAfterL1Eviction(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-test-l2-hit")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-test-l2-hit")
 
 	// Cold path → promotes to L1 + L2
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
@@ -560,8 +549,8 @@ func TestIntegration_CacheManager_L2HitAfterL1Eviction(t *testing.T) {
 func TestIntegration_CacheManager_AllMiss_CredentialNotFound(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
 
@@ -574,11 +563,11 @@ func TestIntegration_CacheManager_AllMiss_CredentialNotFound(t *testing.T) {
 func TestIntegration_CacheManager_RevokedCredentialNotServed(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-revoked-key")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-revoked-key")
 
 	// Revoke the credential in Postgres
 	now := time.Now()
@@ -593,11 +582,11 @@ func TestIntegration_CacheManager_RevokedCredentialNotServed(t *testing.T) {
 func TestIntegration_CacheManager_InvalidateCredential(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-invalidate-test")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-invalidate-test")
 
 	// Populate all tiers
 	_, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org.ID)
@@ -635,8 +624,8 @@ func TestIntegration_CacheManager_InvalidateCredential(t *testing.T) {
 func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
 	jti := "jti-" + uuid.New().String()
@@ -697,8 +686,8 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
 	jti := "jti-db-" + uuid.New().String()
@@ -748,12 +737,12 @@ func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 func TestIntegration_CacheManager_OrgIsolation(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org1 := createTestOrg(t, db)
 	org2 := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org1.ID, "sk-org1-secret")
+	cred := createTestCredential(t, db, kms, org1.ID, "sk-org1-secret")
 
 	// Org1 can access its own credential
 	result, err := mgr.GetDecryptedCredential(context.Background(), cred.ID.String(), org1.ID)
@@ -774,11 +763,11 @@ func TestIntegration_CacheManager_OrgIsolation(t *testing.T) {
 func TestIntegration_CacheManager_ConcurrentAccess(t *testing.T) {
 	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	vault := connectTestVault(t)
-	mgr := buildManager(t, rc, vault, db)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 
 	org := createTestOrg(t, db)
-	cred := createTestCredential(t, db, vault, org.ID, "sk-concurrent-test")
+	cred := createTestCredential(t, db, kms, org.ID, "sk-concurrent-test")
 
 	// 20 goroutines hitting the same credential simultaneously
 	const workers = 20

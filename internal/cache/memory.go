@@ -73,7 +73,7 @@ func (c *MemoryCache) Len() int {
 }
 
 // DEKCache caches unwrapped DEKs in sealed memory keyed by credential ID.
-// This avoids repeated Vault Transit calls on L2 cache hits.
+// This avoids repeated KMS unwrap calls on L2 cache hits.
 type DEKCache struct {
 	lru *expirable.LRU[string, *memguard.Enclave]
 }

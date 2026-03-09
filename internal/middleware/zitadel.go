@@ -12,7 +12,7 @@ import (
 	zmw "github.com/zitadel/zitadel-go/v3/pkg/http/middleware"
 	"github.com/zitadel/zitadel-go/v3/pkg/zitadel"
 
-	"github.com/useportal/proxy-bridge/internal/model"
+	"github.com/useportal/llmvault/internal/model"
 )
 
 // NewZitadelAuth initializes the ZITADEL authorization layer using OAuth2

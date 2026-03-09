@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/useportal/proxy-bridge/internal/counter"
+	"github.com/useportal/llmvault/internal/counter"
 )
 
 // RemainingCheck returns middleware that enforces request caps on both the token

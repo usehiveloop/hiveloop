@@ -15,14 +15,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/token"
-	zitadelclient "github.com/useportal/proxy-bridge/internal/zitadel"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/token"
+	zitadelclient "github.com/useportal/llmvault/internal/zitadel"
 )
 
 const (
-	testDBURL      = "postgres://proxybridge:localdev@localhost:5433/proxybridge?sslmode=disable"
+	testDBURL      = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
 	testSigningKey = "local-dev-signing-key-change-in-prod"
 )
 
@@ -64,12 +64,19 @@ func cleanupOrg(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	db.Where("id = ?", orgID).Delete(&model.Org{})
 }
 
+// zitadelCreds holds the API application credentials for tests.
+type zitadelCreds struct {
+	ProjectID    string
+	ClientID     string
+	ClientSecret string
+}
+
 // zitadelTestHelper manages ZITADEL test resources.
 type zitadelTestHelper struct {
-	client    *zitadelclient.Client
-	creds     *zitadelclient.Credentials
-	adminPAT  string
-	domain    string
+	client   *zitadelclient.Client
+	creds    zitadelCreds
+	adminPAT string
+	domain   string
 }
 
 func newZitadelHelper(t *testing.T) *zitadelTestHelper {
@@ -80,28 +87,29 @@ func newZitadelHelper(t *testing.T) *zitadelTestHelper {
 		domain = "http://localhost:8085"
 	}
 
-	patPath := os.Getenv("ZITADEL_PAT_PATH")
-	if patPath == "" {
-		patPath = "../../docker/zitadel/bootstrap/admin.pat"
-	}
-	pat, err := os.ReadFile(patPath)
-	if err != nil {
-		t.Fatalf("cannot read ZITADEL admin PAT from %s: %v", patPath, err)
+	// Admin PAT: env var first, fall back to bootstrap file
+	adminPAT := os.Getenv("ZITADEL_ADMIN_PAT")
+	if adminPAT == "" {
+		data, err := os.ReadFile("../../docker/zitadel/bootstrap/admin.pat")
+		if err != nil {
+			t.Fatalf("ZITADEL_ADMIN_PAT not set and cannot read bootstrap file: %v", err)
+		}
+		adminPAT = strings.TrimSpace(string(data))
 	}
 
-	credsPath := os.Getenv("ZITADEL_CREDS_PATH")
-	if credsPath == "" {
-		credsPath = "../../docker/zitadel/bootstrap/api-credentials.json"
-	}
-	creds, err := zitadelclient.LoadCredentials(credsPath)
-	if err != nil {
-		t.Fatalf("cannot load ZITADEL credentials from %s: %v", credsPath, err)
+	// API credentials: all from env vars
+	clientID := os.Getenv("ZITADEL_CLIENT_ID")
+	clientSecret := os.Getenv("ZITADEL_CLIENT_SECRET")
+	projectID := os.Getenv("ZITADEL_PROJECT_ID")
+
+	if clientID == "" || clientSecret == "" || projectID == "" {
+		t.Fatal("ZITADEL_CLIENT_ID, ZITADEL_CLIENT_SECRET, and ZITADEL_PROJECT_ID must be set")
 	}
 
 	return &zitadelTestHelper{
-		client:   zitadelclient.NewClient(domain, strings.TrimSpace(string(pat))),
-		creds:    creds,
-		adminPAT: strings.TrimSpace(string(pat)),
+		client:   zitadelclient.NewClient(domain, adminPAT),
+		creds:    zitadelCreds{ProjectID: projectID, ClientID: clientID, ClientSecret: clientSecret},
+		adminPAT: adminPAT,
 		domain:   domain,
 	}
 }

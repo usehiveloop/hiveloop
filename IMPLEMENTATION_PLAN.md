@@ -41,7 +41,7 @@ L3: Postgres + Vault Transit       ~3-8ms    source of truth, cold path only
 ## Project Structure
 
 ```
-proxy-bridge/
+llmvault/
 ├── cmd/
 │   └── server/
 │       └── main.go                    # Entrypoint: config loading, dependency wiring, server start
@@ -150,7 +150,7 @@ proxy-bridge/
 ### Step 1.1 — Initialize Go module + dependencies
 
 ```
-go mod init github.com/useportal/proxy-bridge
+go mod init github.com/useportal/llmvault
 
 go get github.com/jackc/pgx/v5
 go get github.com/hashicorp/vault/api/v2
@@ -174,12 +174,12 @@ Four services:
 
 Vault init script (`docker/vault/config.hcl` + entrypoint):
 - Enable Transit secrets engine
-- Create an encryption key named `proxy-bridge-master`
+- Create an encryption key named `llmvault-master`
 - Create a policy that only allows encrypt/decrypt on that key
 - Generate a token scoped to that policy (used by the proxy)
 
 Postgres init script (`docker/postgres/init.sql`):
-- Create database `proxybridge`
+- Create database `llmvault`
 - Create application user with limited privileges (no CREATE/DROP)
 - A separate migration user for schema changes
 
@@ -198,7 +198,7 @@ type Config struct {
     // Vault
     VaultAddr       string        `env:"VAULT_ADDR,required"`
     VaultToken      string        `env:"VAULT_TOKEN,required"`
-    VaultKeyName    string        `env:"VAULT_KEY_NAME" envDefault:"proxy-bridge-master"`
+    VaultKeyName    string        `env:"VAULT_KEY_NAME" envDefault:"llmvault-master"`
 
     // Redis
     RedisAddr       string        `env:"REDIS_ADDR,required"`
@@ -314,7 +314,7 @@ File: `internal/db/migrate.go`
 ### Step 1.6 — Makefile
 
 ```makefile
-build:          go build -o bin/proxy-bridge ./cmd/server
+build:          go build -o bin/llmvault ./cmd/server
 test:           go test ./internal/... -v -race -count=1
 test-e2e:       docker compose up -d && go test ./e2e/... -v -tags=e2e -count=1
 lint:           golangci-lint run ./...
@@ -644,7 +644,7 @@ type DEKCache struct {
 File: `internal/cache/invalidation.go`
 
 ```go
-const InvalidationChannel = "proxy-bridge:invalidate"
+const InvalidationChannel = "llmvault:invalidate"
 
 type Invalidator struct {
     pubsub   *redis.PubSub
@@ -1027,13 +1027,13 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /proxy-bridge ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /llmvault ./cmd/server
 
 # Runtime stage
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /proxy-bridge /proxy-bridge
+COPY --from=build /llmvault /llmvault
 USER nonroot:nonroot
-ENTRYPOINT ["/proxy-bridge"]
+ENTRYPOINT ["/llmvault"]
 ```
 
 - Distroless: no shell, no package manager, no attack surface
@@ -1047,15 +1047,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: proxybridge
-      POSTGRES_USER: proxybridge
+      POSTGRES_DB: llmvault
+      POSTGRES_USER: llmvault
       POSTGRES_PASSWORD: localdev
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U proxybridge"]
+      test: ["CMD-SHELL", "pg_isready -U llmvault"]
       interval: 2s
       timeout: 5s
       retries: 5
@@ -1076,7 +1076,7 @@ services:
         vault server -dev -dev-listen-address=0.0.0.0:8200 &
         sleep 2 &&
         vault secrets enable transit &&
-        vault write -f transit/keys/proxy-bridge-master &&
+        vault write -f transit/keys/llmvault-master &&
         wait
       "
 
@@ -1101,10 +1101,10 @@ services:
       redis:    { condition: service_healthy }
     environment:
       PORT: 8080
-      DATABASE_URL: postgres://proxybridge:localdev@postgres:5432/proxybridge?sslmode=disable
+      DATABASE_URL: postgres://llmvault:localdev@postgres:5432/llmvault?sslmode=disable
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: dev-token
-      VAULT_KEY_NAME: proxy-bridge-master
+      VAULT_KEY_NAME: llmvault-master
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ""
       REDIS_DB: 0

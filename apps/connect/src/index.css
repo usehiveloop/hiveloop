@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/*
+ * Connect UI — Dynamic Design Tokens
+ *
+ * All visual values are CSS custom properties (--color-cw-*).
+ * @theme registers them as Tailwind utility classes.
+ * .dark overrides them for dark mode.
+ * Host apps override at runtime by setting --color-cw-* on the widget root.
+ */
+
+@custom-variant cw-desktop (@media (min-width: 480px));
+@custom-variant cw-mobile (@media (max-width: 479px));
+
+@theme {
+  --color-cw-bg: #FFFFFF;
+  --color-cw-surface: #F9FAFB;
+  --color-cw-border: #E4E4E7;
+  --color-cw-divider: #F4F4F5;
+  --color-cw-heading: #09090B;
+  --color-cw-body: #71717A;
+  --color-cw-secondary: #A1A1AA;
+  --color-cw-placeholder: #D4D4D8;
+  --color-cw-input-placeholder: #A1A1AA;
+  --color-cw-icon-muted: #A1A1AA;
+
+  --color-cw-accent: #8B5CF6;
+  --color-cw-accent-hover: #7C3AED;
+  --color-cw-accent-active: #6D28D9;
+  --color-cw-accent-subtle: #8B5CF60F;
+  --color-cw-accent-subtle-border: #8B5CF61F;
+
+  --color-cw-success: #22C55E;
+  --color-cw-success-bg: #F0FDF4;
+  --color-cw-error: #EF4444;
+  --color-cw-error-bg: #FEF2F2;
+  --color-cw-error-hover: #DC2626;
+
+  --color-cw-logo: #8B5CF6;
+  --color-cw-empty-icon-bg: #F4F4F5;
+
+  --color-cw-provider-openai: #0D0D0D;
+  --color-cw-provider-anthropic: #D4A373;
+  --color-cw-provider-google-gemini: #4285F4;
+  --color-cw-provider-mistral: #4A90D9;
+  --color-cw-provider-groq: #E8734A;
+  --color-cw-provider-deepseek: #4A6CF7;
+  --color-cw-provider-cohere: #39594D;
+  --color-cw-provider-perplexity: #6366F1;
+}
+
+/* ─── Dark mode ─── */
+.dark {
+  --color-cw-bg: #1C1B22;
+  --color-cw-surface: #16151B;
+  --color-cw-border: #2A2932;
+  --color-cw-divider: #2A2932;
+  --color-cw-heading: #F5F5F4;
+  --color-cw-body: #A1A1AA;
+  --color-cw-secondary: #71717A;
+  --color-cw-placeholder: #52525B;
+  --color-cw-input-placeholder: #52525B;
+  --color-cw-icon-muted: #A1A1AA;
+
+  --color-cw-accent-subtle: #8B5CF614;
+  --color-cw-accent-subtle-border: #8B5CF626;
+
+  --color-cw-success-bg: #22C55E1A;
+  --color-cw-error-bg: #EF44441A;
+
+  --color-cw-logo: #A78BFA;
+  --color-cw-empty-icon-bg: #2A2932;
+}
+
+/* ─── Widget root styles ─── */
+.connect-widget {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 12px;
+  line-height: 16px;
+  width: 100%;
+  height: 100%;
+  overflow: clip;
+  position: relative;
+  padding: 48px 24px 24px;
+  background-color: var(--color-cw-bg);
+}
+
+@media (min-width: 480px) {
+  .connect-widget {
+    width: 480px;
+    height: 580px;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* Footer logo font */
+.connect-logo-text {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+
+/* ─── Base reset ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Spinner animation */
+@keyframes cw-spin {
+  to { transform: rotate(360deg); }
+}
+.cw-spinner {
+  animation: cw-spin 0.8s linear infinite;
+}

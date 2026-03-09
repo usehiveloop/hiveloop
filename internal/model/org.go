@@ -22,10 +22,6 @@ type Org struct {
 func (Org) TableName() string { return "orgs" }
 
 func AutoMigrate(db *gorm.DB) error {
-	// Transition: make old api_key_hash column nullable (if it exists)
-	db.Exec("ALTER TABLE orgs ALTER COLUMN api_key_hash DROP NOT NULL")
-	db.Exec("DROP INDEX IF EXISTS idx_orgs_api_key_hash")
-
 	if err := db.AutoMigrate(
 		&Org{},
 		&Identity{},

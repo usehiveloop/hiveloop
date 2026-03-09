@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/middleware"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/middleware"
 )
 
 // NewDirector returns an httputil.ReverseProxy Director function.

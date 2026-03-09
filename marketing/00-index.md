@@ -19,6 +19,7 @@ Core marketing documents for llmvault.dev. Read in order for the full picture, o
 | 09 | [Launch Checklist](./09-launch-checklist.md) | Pre-launch, launch day, post-launch checklists with success criteria |
 | 10 | [Future Features & Use Cases](./10-future-features-and-use-cases.md) | 15 future features across 3 tiers, 6 new use cases, feature prioritization, revised pricing |
 | 11 | [Unkey Feature Analysis](./11-unkey-feature-analysis.md) | 8 Unkey features adapted for LLMVault, build order, compound effect analysis |
+| 12 | [Use Case: AI Spend Tracking](./12-use-case-ai-spend-tracking.md) | Market context ($8.4B opportunity), 2 new personas (FinOps Fiona, Budget Brian), competitive positioning, 5-piece content strategy, free tool spec, 30-day sprint |
 
 ---
 

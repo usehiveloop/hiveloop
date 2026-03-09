@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/token"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/token"
 )
 
 // TokenAuth returns middleware that authenticates requests using sandbox proxy tokens (JWTs).

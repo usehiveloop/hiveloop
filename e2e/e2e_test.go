@@ -3,10 +3,10 @@
 // streaming reverse proxy → upstream LLM provider (via OpenRouter).
 //
 // These tests require:
-//   - Running Docker Compose stack (Postgres, Vault, Redis)
+//   - Running Docker Compose stack (Postgres, Redis)
 //   - OPENROUTER_API_KEY env var set in .env or environment
 //
-// The tests store the OpenRouter key as a credential (encrypted via Vault),
+// The tests store the OpenRouter key as a credential (encrypted via AEAD KMS),
 // mint a sandbox token, then proxy requests through the reverse proxy to
 // OpenRouter, which fans out to Anthropic, OpenAI, Google, etc.
 package e2e
@@ -31,30 +31,27 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/counter"
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/handler"
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/proxy"
-	"github.com/useportal/proxy-bridge/internal/registry"
-	"github.com/useportal/proxy-bridge/internal/token"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/counter"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/handler"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/proxy"
+	"github.com/useportal/llmvault/internal/registry"
+	"github.com/useportal/llmvault/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://proxybridge:localdev@localhost:5433/proxybridge?sslmode=disable"
+	testDBURL      = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
 	testRedisAddr  = "localhost:6379"
-	testVaultAddr  = "http://localhost:8200"
-	testVaultToken = "dev-token"
-	testVaultKey   = "proxy-bridge-master"
 	testSigningKey = "e2e-signing-key-for-tests"
 )
 
 // testHarness bundles all infrastructure needed for E2E tests.
 type testHarness struct {
 	db           *gorm.DB
-	vault        *crypto.VaultTransit
+	kms          *crypto.KeyWrapper
 	redisClient  *redis.Client
 	cacheManager *cache.Manager
 	router       *chi.Mux
@@ -107,14 +104,10 @@ func newHarness(t *testing.T) *testHarness {
 	}
 	t.Cleanup(func() { rc.Close() })
 
-	// Vault
-	vault, err := crypto.NewVaultTransit(
-		envOr("VAULT_ADDR", testVaultAddr),
-		envOr("VAULT_TOKEN", testVaultToken),
-		testVaultKey,
-	)
+	// KMS (AEAD wrapper for tests)
+	kms, err := crypto.NewAEADWrapper("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "e2e-test-key")
 	if err != nil {
-		t.Fatalf("cannot connect to Vault: %v", err)
+		t.Fatalf("cannot create AEAD wrapper: %v", err)
 	}
 
 	// Cache
@@ -126,7 +119,7 @@ func newHarness(t *testing.T) *testHarness {
 		DEKTTL:     10 * time.Minute,
 		HardExpiry: 15 * time.Minute,
 	}
-	cm := cache.Build(cfg, rc, vault, db)
+	cm := cache.Build(cfg, rc, kms, db)
 
 	signingKey := []byte(testSigningKey)
 
@@ -137,7 +130,7 @@ func newHarness(t *testing.T) *testHarness {
 	ctr := counter.New(rc, db)
 
 	// Credential + token + identity handlers
-	credHandler := handler.NewCredentialHandler(db, vault, cm, ctr)
+	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
 	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr)
 	identityHandler := handler.NewIdentityHandler(db)
 
@@ -147,7 +140,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Connect handlers
 	connectSessionHandler := handler.NewConnectSessionHandler(db, reg)
-	connectAPIHandler := handler.NewConnectAPIHandler(db, vault, reg)
+	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg)
 	settingsHandler := handler.NewSettingsHandler(db)
 
 	// Management routes (no ZITADEL auth in E2E — we set org on context directly)
@@ -195,7 +188,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	return &testHarness{
 		db:           db,
-		vault:        vault,
+		kms:          kms,
 		redisClient:  rc,
 		cacheManager: cm,
 		router:       r,

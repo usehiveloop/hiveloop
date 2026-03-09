@@ -10,23 +10,23 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/proxy"
-	"github.com/useportal/proxy-bridge/internal/registry"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/proxy"
+	"github.com/useportal/llmvault/internal/registry"
 )
 
 // ConnectAPIHandler serves the Connect widget's API endpoints.
 type ConnectAPIHandler struct {
-	db    *gorm.DB
-	vault *crypto.VaultTransit
-	reg   *registry.Registry
+	db  *gorm.DB
+	kms *crypto.KeyWrapper
+	reg *registry.Registry
 }
 
 // NewConnectAPIHandler creates a new connect API handler.
-func NewConnectAPIHandler(db *gorm.DB, vault *crypto.VaultTransit, reg *registry.Registry) *ConnectAPIHandler {
-	return &ConnectAPIHandler{db: db, vault: vault, reg: reg}
+func NewConnectAPIHandler(db *gorm.DB, kms *crypto.KeyWrapper, reg *registry.Registry) *ConnectAPIHandler {
+	return &ConnectAPIHandler{db: db, kms: kms, reg: reg}
 }
 
 // knownBaseURLs provides base URLs for providers that lack an API field in the registry.
@@ -275,7 +275,7 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	wrappedDEK, err := h.vault.Wrap(dek)
+	wrappedDEK, err := h.kms.Wrap(r.Context(), dek)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "key wrapping failed"})
 		return
@@ -387,7 +387,7 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Decrypt the API key
-	dek, err := h.vault.Unwrap(cred.WrappedDEK)
+	dek, err := h.kms.Unwrap(r.Context(), cred.WrappedDEK)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "decryption failed"})
 		return

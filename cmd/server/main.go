@@ -16,17 +16,18 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/useportal/proxy-bridge/internal/cache"
-	"github.com/useportal/proxy-bridge/internal/config"
-	"github.com/useportal/proxy-bridge/internal/counter"
-	"github.com/useportal/proxy-bridge/internal/crypto"
-	"github.com/useportal/proxy-bridge/internal/db"
-	"github.com/useportal/proxy-bridge/internal/handler"
-	"github.com/useportal/proxy-bridge/internal/logging"
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/model"
-	"github.com/useportal/proxy-bridge/internal/proxy"
-	"github.com/useportal/proxy-bridge/internal/registry"
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/config"
+	"github.com/useportal/llmvault/internal/counter"
+	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/useportal/llmvault/internal/db"
+	"github.com/useportal/llmvault/internal/handler"
+	"github.com/useportal/llmvault/internal/logging"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/model"
+	"github.com/useportal/llmvault/internal/proxy"
+	"github.com/useportal/llmvault/internal/registry"
+	"github.com/useportal/llmvault/internal/zitadel"
 )
 
 // Set via -ldflags at build time.
@@ -56,7 +57,7 @@ func run() error {
 	// 2. Logging — must be initialized before anything else logs
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
 	logger := slog.Default()
-	slog.Info("starting proxy-bridge", "version", version, "commit", commit)
+	slog.Info("starting llmvault", "version", version, "commit", commit)
 
 	// 3. Database
 	database, err := db.New(cfg.DatabaseURL)
@@ -68,12 +69,23 @@ func run() error {
 	}
 	slog.Info("database ready")
 
-	// 4. Vault Transit
-	vault, err := crypto.NewVaultTransit(cfg.VaultAddr, cfg.VaultToken, cfg.VaultKeyName)
-	if err != nil {
-		return fmt.Errorf("connecting to vault: %w", err)
+	// 4. KMS wrapper (envelope encryption for DEKs)
+	var kms *crypto.KeyWrapper
+	switch cfg.KMSType {
+	case "aead":
+		kms, err = crypto.NewAEADWrapper(cfg.KMSKey, "aead-local")
+		if err != nil {
+			return fmt.Errorf("creating AEAD KMS wrapper: %w", err)
+		}
+	case "awskms":
+		kms, err = crypto.NewAWSKMSWrapper(cfg.KMSKey, cfg.AWSRegion)
+		if err != nil {
+			return fmt.Errorf("creating AWS KMS wrapper: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms)", cfg.KMSType)
 	}
-	slog.Info("vault transit ready")
+	slog.Info("kms wrapper ready", "type", cfg.KMSType)
 
 	// 5. Redis
 	redisClient := redis.NewClient(&redis.Options{
@@ -87,7 +99,7 @@ func run() error {
 	defer redisClient.Close()
 	slog.Info("redis ready")
 
-	// 6. Cache manager (L1 memory → L2 Redis → L3 Postgres+Vault)
+	// 6. Cache manager (L1 memory → L2 Redis → L3 Postgres+KMS)
 	cacheCfg := cache.Config{
 		MemMaxSize: cfg.MemCacheMaxSize,
 		MemTTL:     cfg.MemCacheTTL,
@@ -96,7 +108,7 @@ func run() error {
 		DEKTTL:     30 * time.Minute,
 		HardExpiry: 15 * time.Minute,
 	}
-	cacheManager := cache.Build(cacheCfg, redisClient, vault, database)
+	cacheManager := cache.Build(cacheCfg, redisClient, kms, database)
 	slog.Info("cache manager ready")
 
 	// 7. Start cache invalidation subscriber (cross-instance pub/sub)
@@ -123,14 +135,22 @@ func run() error {
 	reg := registry.Global()
 	slog.Info("provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
 
-	// 12. Handlers
-	credHandler := handler.NewCredentialHandler(database, vault, cacheManager, ctr)
+	// 12. ZITADEL admin client (for org management)
+	var zClient *zitadel.Client
+	if cfg.ZitadelAdminPAT != "" {
+		zClient = zitadel.NewClient(cfg.ZitadelDomain, cfg.ZitadelAdminPAT)
+		slog.Info("zitadel admin client ready")
+	}
+
+	// 13. Handlers
+	credHandler := handler.NewCredentialHandler(database, kms, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr)
 	identityHandler := handler.NewIdentityHandler(database)
 	providerHandler := handler.NewProviderHandler(reg)
 	connectSessionHandler := handler.NewConnectSessionHandler(database, reg)
-	connectAPIHandler := handler.NewConnectAPIHandler(database, vault, reg)
+	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg)
 	settingsHandler := handler.NewSettingsHandler(database)
+	orgHandler := handler.NewOrgHandler(database, zClient, cfg.ZitadelProjectID)
 	proxyHandler := handler.NewProxyHandler(cacheManager, proxy.NewTransport())
 
 	// 11. Router
@@ -140,6 +160,7 @@ func run() error {
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
+	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
 
 	// Health checks (no auth)
@@ -161,23 +182,31 @@ func run() error {
 
 		r.Route("/v1", func(r chi.Router) {
 			r.Use(zitadelMW.RequireAuthorization())
-			r.Use(middleware.ResolveOrg(zitadelMW, database))
-			r.Use(middleware.RateLimit())
-			r.Use(middleware.Audit(auditWriter))
 
-			r.Post("/credentials", credHandler.Create)
-			r.Get("/credentials", credHandler.List)
-			r.Delete("/credentials/{id}", credHandler.Revoke)
-			r.Post("/tokens", tokenHandler.Mint)
-			r.Delete("/tokens/{jti}", tokenHandler.Revoke)
-			r.Post("/identities", identityHandler.Create)
-			r.Get("/identities", identityHandler.List)
-			r.Get("/identities/{id}", identityHandler.Get)
-			r.Put("/identities/{id}", identityHandler.Update)
-			r.Delete("/identities/{id}", identityHandler.Delete)
-			r.Post("/connect/sessions", connectSessionHandler.Create)
-			r.Get("/settings/connect", settingsHandler.GetConnectSettings)
-			r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
+			// Org management (auth required, no org context needed)
+			r.Post("/orgs", orgHandler.Create)
+
+			// Org-scoped routes (require resolved org context)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.ResolveOrg(zitadelMW, database))
+				r.Use(middleware.RateLimit())
+				r.Use(middleware.Audit(auditWriter))
+
+				r.Get("/orgs/current", orgHandler.Current)
+				r.Post("/credentials", credHandler.Create)
+				r.Get("/credentials", credHandler.List)
+				r.Delete("/credentials/{id}", credHandler.Revoke)
+				r.Post("/tokens", tokenHandler.Mint)
+				r.Delete("/tokens/{jti}", tokenHandler.Revoke)
+				r.Post("/identities", identityHandler.Create)
+				r.Get("/identities", identityHandler.List)
+				r.Get("/identities/{id}", identityHandler.Get)
+				r.Put("/identities/{id}", identityHandler.Update)
+				r.Delete("/identities/{id}", identityHandler.Delete)
+				r.Post("/connect/sessions", connectSessionHandler.Create)
+				r.Get("/settings/connect", settingsHandler.GetConnectSettings)
+				r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
+			})
 		})
 	} else {
 		slog.Warn("ZITADEL credentials not configured — management API disabled")

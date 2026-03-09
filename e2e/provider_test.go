@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/useportal/proxy-bridge/internal/middleware"
-	"github.com/useportal/proxy-bridge/internal/registry"
+	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/useportal/llmvault/internal/registry"
 )
 
 // --------------------------------------------------------------------------

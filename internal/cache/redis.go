@@ -12,7 +12,7 @@ import (
 const keyPrefix = "pbcred:"
 
 // RedisCredential is the L2 cache representation. Values remain encrypted —
-// the API key is still DEK-encrypted and the DEK is still Vault-wrapped.
+// the API key is still DEK-encrypted and the DEK is still KMS-wrapped.
 type RedisCredential struct {
 	EncryptedKey []byte `json:"ek"`
 	WrappedDEK   []byte `json:"wd"`
