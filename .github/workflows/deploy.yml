@@ -1,0 +1,188 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Test
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - run: go vet ./...
+      - run: go test ./internal/... -race -count=1
+
+  # ---------------------------------------------------------------------------
+  # Build & push Docker images + Connect SPA
+  # ---------------------------------------------------------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --- Go API image ---
+      - name: Build & push API image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg VERSION=${{ steps.tag.outputs.tag }} \
+            --build-arg COMMIT=${GITHUB_SHA::8} \
+            -t $ECR_REGISTRY/llmvault/api:${{ steps.tag.outputs.tag }} \
+            -t $ECR_REGISTRY/llmvault/api:latest \
+            .
+          docker push $ECR_REGISTRY/llmvault/api --all-tags
+
+      # --- Next.js web image ---
+      - name: Build & push Web image
+        run: |
+          docker build \
+            -f docker/Dockerfile.web \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_ZITADEL_ISSUER=${{ secrets.NEXT_PUBLIC_ZITADEL_ISSUER }} \
+            --build-arg NEXT_PUBLIC_CONNECT_URL=${{ secrets.NEXT_PUBLIC_CONNECT_URL }} \
+            --build-arg NEXT_PUBLIC_ZITADEL_CLIENT_ID=${{ secrets.NEXT_PUBLIC_ZITADEL_CLIENT_ID }} \
+            -t $ECR_REGISTRY/llmvault/web:${{ steps.tag.outputs.tag }} \
+            -t $ECR_REGISTRY/llmvault/web:latest \
+            .
+          docker push $ECR_REGISTRY/llmvault/web --all-tags
+
+      # --- Connect SPA (static build → S3) ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Connect SPA
+        working-directory: apps/connect
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload Connect to S3 (staging)
+        if: github.ref == 'refs/heads/develop' || github.event_name == 'release'
+        run: |
+          aws s3 sync apps/connect/dist/ s3://llmvault-staging-connect --delete
+
+      - name: Upload Connect to S3 (production)
+        if: github.event_name == 'release'
+        run: |
+          aws s3 sync apps/connect/dist/ s3://llmvault-prod-connect --delete
+
+  # ---------------------------------------------------------------------------
+  # Deploy to staging (on push to develop or release)
+  # ---------------------------------------------------------------------------
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # EC2 mode: SSM RunCommand to pull and restart
+      - name: Deploy to staging EC2
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets '[{"Key":"tag:Name","Values":["llmvault-staging"]}]' \
+            --parameters '{"commands":["/opt/llmvault/deploy.sh"]}' \
+            --comment "Deploy ${{ steps.tag.outputs.tag || github.sha }}" \
+            --output text
+
+      # Invalidate Connect CDN cache
+      - name: Invalidate staging CloudFront
+        run: |
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name LLMVault-staging-Cdn \
+            --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+
+  # ---------------------------------------------------------------------------
+  # Deploy to production (on GitHub release only)
+  # ---------------------------------------------------------------------------
+  deploy-production:
+    if: github.event_name == 'release'
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Fargate mode: force new deployment
+      - name: Deploy API to ECS
+        run: |
+          aws ecs update-service \
+            --cluster llmvault-prod \
+            --service api \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Deploy Web to ECS
+        run: |
+          aws ecs update-service \
+            --cluster llmvault-prod \
+            --service web \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Deploy ZITADEL to ECS
+        run: |
+          aws ecs update-service \
+            --cluster llmvault-prod \
+            --service zitadel \
+            --force-new-deployment \
+            --no-cli-pager
+
+      # Invalidate Connect CDN cache
+      - name: Invalidate production CloudFront
+        run: |
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name LLMVault-prod-Cdn \
+            --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
