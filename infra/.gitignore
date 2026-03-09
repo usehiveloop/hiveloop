@@ -1,7 +1,0 @@
-node_modules/
-dist/
-*.js
-*.d.ts
-cdk.out/
-.cdk.staging/
-.env
