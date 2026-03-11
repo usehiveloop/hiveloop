@@ -97,12 +97,6 @@ log_success "Atomic deployment complete!"
 log_info "Version: v${VERSION}"
 log_info "URL: https://connect.${ENV}.llmvault.dev"
 
-# Cleanup old versions (keep last 5)
-log_step "Cleaning up old versions..."
-aws s3 ls "s3://${BUCKET_NAME}/" | grep "^PRE v" | sort -r | tail -n +6 | while read -r line; do
-    OLD_VERSION=$(echo "$line" | awk '{print $2}' | sed 's/\/$//')
-    log_info "Removing old version: $OLD_VERSION"
-    aws s3 rm "s3://${BUCKET_NAME}/${OLD_VERSION}/" --recursive || true
-done
-
-log_success "Cleanup complete"
+# NOTE: Old versions are kept for quick rollback
+# To rollback: aws s3 cp s3://bucket/v{old-version}/index.html s3://bucket/index.html
+# To list versions: aws s3 ls s3://${BUCKET_NAME}/ | grep "^PRE v"
