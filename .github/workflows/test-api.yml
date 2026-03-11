@@ -25,6 +25,9 @@ jobs:
         run: |
           docker compose version
 
+      - name: create required directories
+        run: mkdir -p docker/zitadel/bootstrap
+
       - name: create .env file
         run: |
           cat > .env << 'EOF'
