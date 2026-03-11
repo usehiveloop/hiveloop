@@ -5,7 +5,6 @@ import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as kms from "aws-cdk-lib/aws-kms";
-import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import {
   EnvironmentConfig,
@@ -25,6 +24,10 @@ export interface ApiStackProps extends cdk.StackProps {
   redisEndpoint: string;
   redisPort: string;
   zitadelDomain: string;
+  zitadelAdminPatSecret: secretsmanager.ISecret;
+  zitadelApiClientIdSecret: secretsmanager.ISecret;
+  zitadelApiClientSecretSecret: secretsmanager.ISecret;
+  zitadelProjectIdSecret: secretsmanager.ISecret;
 }
 
 export class ApiStack extends cdk.Stack {
@@ -46,20 +49,6 @@ export class ApiStack extends cdk.Stack {
     // -------------------------------------------------------------------
     // Secrets
     // -------------------------------------------------------------------
-    // Look up ZITADEL secrets by name (created in ZitadelStack, populated after init)
-    const zitadelAdminPat = secretsmanager.Secret.fromSecretNameV2(
-      this, "ZitadelAdminPat", `${prefix}/zitadel-admin-pat`
-    );
-    const zitadelApiClientId = secretsmanager.Secret.fromSecretNameV2(
-      this, "ZitadelApiClientId", `${prefix}/zitadel-api-client-id`
-    );
-    const zitadelApiClientSecret = secretsmanager.Secret.fromSecretNameV2(
-      this, "ZitadelApiClientSecret", `${prefix}/zitadel-api-client-secret`
-    );
-    const zitadelProjectId = secretsmanager.Secret.fromSecretNameV2(
-      this, "ZitadelProjectId", `${prefix}/zitadel-project-id`
-    );
-
     const jwtSigningKey = new secretsmanager.Secret(this, "JwtSigningKey", {
       secretName: `${prefix}/jwt-signing-key`,
       description: "JWT signing key for proxy tokens",
@@ -85,18 +74,6 @@ export class ApiStack extends cdk.Stack {
 
     // KMS grant on task role (used at runtime by the app)
     kmsKey.grantEncryptDecrypt(taskDef.taskRole);
-
-    // Grant execution role access to all project secrets.
-    // fromSecretNameV2() partial ARNs don't include the random suffix,
-    // so CDK's auto-grant doesn't match. Use a wildcard instead.
-    taskDef.executionRole!.addToPrincipalPolicy(
-      new iam.PolicyStatement({
-        actions: ["secretsmanager:GetSecretValue"],
-        resources: [
-          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:${prefix}/*`,
-        ],
-      })
-    );
 
     const logGroup = new logs.LogGroup(this, "Logs", {
       logGroupName: `/ecs/${prefix}/api`,
@@ -159,12 +136,18 @@ export class ApiStack extends cdk.Stack {
       secrets: {
         DATABASE_URL: ecs.Secret.fromSecretsManager(dbUrlSecretRef),
         JWT_SIGNING_KEY: ecs.Secret.fromSecretsManager(jwtSigningKey),
-        ZITADEL_ADMIN_PAT: ecs.Secret.fromSecretsManager(zitadelAdminPat),
-        ZITADEL_CLIENT_ID: ecs.Secret.fromSecretsManager(zitadelApiClientId),
-        ZITADEL_CLIENT_SECRET: ecs.Secret.fromSecretsManager(
-          zitadelApiClientSecret
+        ZITADEL_ADMIN_PAT: ecs.Secret.fromSecretsManager(
+          props.zitadelAdminPatSecret
         ),
-        ZITADEL_PROJECT_ID: ecs.Secret.fromSecretsManager(zitadelProjectId),
+        ZITADEL_CLIENT_ID: ecs.Secret.fromSecretsManager(
+          props.zitadelApiClientIdSecret
+        ),
+        ZITADEL_CLIENT_SECRET: ecs.Secret.fromSecretsManager(
+          props.zitadelApiClientSecretSecret
+        ),
+        ZITADEL_PROJECT_ID: ecs.Secret.fromSecretsManager(
+          props.zitadelProjectIdSecret
+        ),
       },
       logging: ecs.LogDrivers.awsLogs({
         logGroup,

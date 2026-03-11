@@ -25,6 +25,10 @@ export interface ZitadelStackProps extends cdk.StackProps {
 export class ZitadelStack extends cdk.Stack {
   public readonly masterKeySecret: secretsmanager.ISecret;
   public readonly zitadelDbPasswordSecret: secretsmanager.ISecret;
+  public readonly adminPatSecret: secretsmanager.ISecret;
+  public readonly projectIdSecret: secretsmanager.ISecret;
+  public readonly apiClientIdSecret: secretsmanager.ISecret;
+  public readonly apiClientSecretSecret: secretsmanager.ISecret;
 
   constructor(scope: Construct, id: string, props: ZitadelStackProps) {
     super(scope, id, props);
@@ -74,19 +78,19 @@ export class ZitadelStack extends cdk.Stack {
     );
 
     // Admin machine user PAT — populate after init
-    const adminPatSecret = new secretsmanager.Secret(this, "AdminPat", {
+    this.adminPatSecret = new secretsmanager.Secret(this, "AdminPat", {
       secretName: `${prefix}/zitadel-admin-pat`,
       description:
         "ZITADEL admin machine user PAT — populate manually after init",
     });
 
     // init.sh outputs — populate after running bootstrap script
-    const projectIdSecret = new secretsmanager.Secret(this, "ProjectId", {
+    this.projectIdSecret = new secretsmanager.Secret(this, "ProjectId", {
       secretName: `${prefix}/zitadel-project-id`,
       description: "ZITADEL project ID — populate after init",
     });
 
-    const apiClientIdSecret = new secretsmanager.Secret(
+    this.apiClientIdSecret = new secretsmanager.Secret(
       this,
       "ApiClientId",
       {
@@ -95,7 +99,7 @@ export class ZitadelStack extends cdk.Stack {
       }
     );
 
-    const apiClientSecretSecret = new secretsmanager.Secret(
+    this.apiClientSecretSecret = new secretsmanager.Secret(
       this,
       "ApiClientSecret",
       {
@@ -237,7 +241,7 @@ export class ZitadelStack extends cdk.Stack {
       },
       secrets: {
         ZITADEL_SERVICE_USER_TOKEN: ecs.Secret.fromSecretsManager(
-          adminPatSecret
+          this.adminPatSecret
         ),
       },
       logging: ecs.LogDrivers.awsLogs({
@@ -272,19 +276,19 @@ export class ZitadelStack extends cdk.Stack {
       description: "ZITADEL admin human user password",
     });
     new cdk.CfnOutput(this, "AdminPatSecretArn", {
-      value: adminPatSecret.secretArn,
+      value: this.adminPatSecret.secretArn,
       description: "Populate with admin PAT after init",
     });
     new cdk.CfnOutput(this, "ProjectIdSecretArn", {
-      value: projectIdSecret.secretArn,
+      value: this.projectIdSecret.secretArn,
       description: "Populate with project ID after init",
     });
     new cdk.CfnOutput(this, "ApiClientIdSecretArn", {
-      value: apiClientIdSecret.secretArn,
+      value: this.apiClientIdSecret.secretArn,
       description: "Populate with API client ID after init",
     });
     new cdk.CfnOutput(this, "ApiClientSecretSecretArn", {
-      value: apiClientSecretSecret.secretArn,
+      value: this.apiClientSecretSecret.secretArn,
       description: "Populate with API client secret after init",
     });
     new cdk.CfnOutput(this, "DashboardClientIdSecretArn", {
