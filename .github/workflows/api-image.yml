@@ -3,14 +3,6 @@ name: publish api image
 on:
   push:
     branches: [main]
-    paths:
-      - "cmd/**"
-      - "internal/**"
-      - "e2e/**"
-      - "go.mod"
-      - "go.sum"
-      - "docker/Dockerfile"
-      - ".github/workflows/api-image.yml"
   release:
     types: [published]
 
