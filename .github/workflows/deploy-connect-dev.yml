@@ -3,9 +3,6 @@ name: deploy connect to development
 on:
   push:
     branches: [main]
-    paths:
-      - 'apps/connect/**'
-      - '.github/workflows/deploy-connect-dev.yml'
 
 concurrency:
   group: deploy-connect-dev
