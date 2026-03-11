@@ -5,9 +5,11 @@ import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as kms from "aws-cdk-lib/aws-kms";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import {
   EnvironmentConfig,
+  envDomain,
   subdomain,
 } from "../config/environments";
 import { PROJECT_NAME, TAGS } from "../config/constants";
@@ -44,6 +46,20 @@ export class ApiStack extends cdk.Stack {
     // -------------------------------------------------------------------
     // Secrets
     // -------------------------------------------------------------------
+    // Look up ZITADEL secrets by name (created in ZitadelStack, populated after init)
+    const zitadelAdminPat = secretsmanager.Secret.fromSecretNameV2(
+      this, "ZitadelAdminPat", `${prefix}/zitadel-admin-pat`
+    );
+    const zitadelApiClientId = secretsmanager.Secret.fromSecretNameV2(
+      this, "ZitadelApiClientId", `${prefix}/zitadel-api-client-id`
+    );
+    const zitadelApiClientSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, "ZitadelApiClientSecret", `${prefix}/zitadel-api-client-secret`
+    );
+    const zitadelProjectId = secretsmanager.Secret.fromSecretNameV2(
+      this, "ZitadelProjectId", `${prefix}/zitadel-project-id`
+    );
+
     const jwtSigningKey = new secretsmanager.Secret(this, "JwtSigningKey", {
       secretName: `${prefix}/jwt-signing-key`,
       description: "JWT signing key for proxy tokens",
@@ -69,8 +85,18 @@ export class ApiStack extends cdk.Stack {
 
     // KMS grant on task role (used at runtime by the app)
     kmsKey.grantEncryptDecrypt(taskDef.taskRole);
-    // Note: execution role grants for secrets are handled automatically
-    // by CDK when using ecs.Secret.fromSecretsManager() in container defs.
+
+    // Grant execution role access to all project secrets.
+    // fromSecretNameV2() partial ARNs don't include the random suffix,
+    // so CDK's auto-grant doesn't match. Use a wildcard instead.
+    taskDef.executionRole!.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:${prefix}/*`,
+        ],
+      })
+    );
 
     const logGroup = new logs.LogGroup(this, "Logs", {
       logGroupName: `/ecs/${prefix}/api`,
@@ -78,38 +104,67 @@ export class ApiStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // -------------------------------------------------------------------
+    // DATABASE_URL secret — constructed from RDS secret via dynamic refs
+    // -------------------------------------------------------------------
+    const dbUrlSecret = new secretsmanager.CfnSecret(this, "DatabaseUrl", {
+      name: `${prefix}/database-url`,
+      secretString: cdk.Fn.sub(
+        "postgres://${username}:${password}@${host}:5432/llmvault?sslmode=require",
+        {
+          username: `{{resolve:secretsmanager:${props.dbSecret.secretName}:SecretString:username}}`,
+          password: `{{resolve:secretsmanager:${props.dbSecret.secretName}:SecretString:password}}`,
+          host: props.dbEndpoint,
+        }
+      ),
+    });
+    const dbUrlSecretRef = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "DatabaseUrlRef",
+      `${prefix}/database-url`
+    );
+    dbUrlSecretRef.node.addDependency(dbUrlSecret);
+
     taskDef.addContainer("api", {
       containerName: "api",
-      image: ecs.ContainerImage.fromRegistry("ghcr.io/llmvault/llmvault:latest"),
+      image: ecs.ContainerImage.fromRegistry("ghcr.io/llmvault/llmvault:dev"),
       portMappings: [{ containerPort: 8080, protocol: ecs.Protocol.TCP }],
       environment: {
         // Server
         PORT: "8080",
         ENVIRONMENT: config.name,
-
-        // Database — built from secret at runtime
-        DB_HOST: props.dbEndpoint,
-        DB_PORT: "5432",
-        DB_NAME: "llmvault",
-        DB_SSLMODE: "require",
+        LOG_LEVEL: "info",
+        LOG_FORMAT: "json",
 
         // Redis
         REDIS_ADDR: `${props.redisEndpoint}:${props.redisPort}`,
+        REDIS_DB: "0",
+        REDIS_CACHE_TTL: "5m",
 
-        // KMS — AWS KMS for production envelope encryption
+        // L1 Cache
+        MEM_CACHE_TTL: "1m",
+        MEM_CACHE_MAX_SIZE: "1000",
+
+        // KMS — AWS KMS for envelope encryption
         KMS_TYPE: "awskms",
         KMS_KEY: kmsKey.keyArn,
         AWS_REGION: config.region,
 
         // ZITADEL
         ZITADEL_DOMAIN: props.zitadelDomain,
-        ZITADEL_PORT: "443",
-        ZITADEL_SECURE: "true",
+
+        // CORS
+        CORS_ORIGINS: `https://${subdomain(config, "connect")},https://${envDomain(config)}`,
       },
       secrets: {
-        DB_USERNAME: ecs.Secret.fromSecretsManager(props.dbSecret, "username"),
-        DB_PASSWORD: ecs.Secret.fromSecretsManager(props.dbSecret, "password"),
+        DATABASE_URL: ecs.Secret.fromSecretsManager(dbUrlSecretRef),
         JWT_SIGNING_KEY: ecs.Secret.fromSecretsManager(jwtSigningKey),
+        ZITADEL_ADMIN_PAT: ecs.Secret.fromSecretsManager(zitadelAdminPat),
+        ZITADEL_CLIENT_ID: ecs.Secret.fromSecretsManager(zitadelApiClientId),
+        ZITADEL_CLIENT_SECRET: ecs.Secret.fromSecretsManager(
+          zitadelApiClientSecret
+        ),
+        ZITADEL_PROJECT_ID: ecs.Secret.fromSecretsManager(zitadelProjectId),
       },
       logging: ecs.LogDrivers.awsLogs({
         logGroup,

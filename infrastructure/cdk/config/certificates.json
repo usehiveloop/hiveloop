@@ -1,0 +1,9 @@
+{
+  "_comment": "ACM Certificate ARNs for CloudFront (must be in us-east-1)",
+  "dev": {
+    "connect": "arn:aws:acm:us-east-1:944765969440:certificate/7c131c60-2970-4352-9084-e5589666f7b2"
+  },
+  "prod": {
+    "connect": null
+  }
+}

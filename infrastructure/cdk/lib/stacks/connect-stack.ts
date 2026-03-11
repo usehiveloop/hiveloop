@@ -11,21 +11,22 @@ import { PROJECT_NAME, TAGS } from "../config/constants";
 
 export interface ConnectStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
+  /** Optional ACM certificate ARN for custom domain (must be in us-east-1) */
+  certificateArn?: string;
 }
 
 export class ConnectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ConnectStackProps) {
     super(scope, id, props);
 
-    const { config } = props;
+    const { config, certificateArn } = props;
     const prefix = `${PROJECT_NAME}-${config.name}`;
     const domain = subdomain(config, "connect");
     
-    // CloudFront requires ACM certificate in us-east-1
-    // Since we're using Cloudflare for DNS, we'll create cert manually and import it
-    // For now, we'll skip custom domain and use the CloudFront default domain
-    // You can add the custom domain manually after creating the cert in us-east-1
-    const certificate = undefined;
+    // Import certificate if ARN provided (must be in us-east-1 for CloudFront)
+    const certificate = certificateArn 
+      ? acm.Certificate.fromCertificateArn(this, "ConnectCertificate", certificateArn)
+      : undefined;
 
     // -------------------------------------------------------------------
     // S3 Bucket for static assets
@@ -61,8 +62,8 @@ export class ConnectStack extends cdk.Stack {
     // 3. Pass the certificate ARN here
     const distribution = new cloudfront.Distribution(this, "ConnectDistribution", {
       defaultRootObject: "index.html",
-      // domainNames: [domain],  // Uncomment after adding certificate
-      // certificate,           // Uncomment after adding certificate
+      domainNames: certificate ? [domain] : undefined,
+      certificate: certificate,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // North America & Europe
       
       defaultBehavior: {
