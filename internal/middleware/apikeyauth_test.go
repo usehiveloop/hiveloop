@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/useportal/llmvault/internal/cache"
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // --------------------------------------------------------------------------

@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // ConnectSessionAuth returns middleware that authenticates requests using

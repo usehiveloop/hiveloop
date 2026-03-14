@@ -3,7 +3,7 @@ import openapi_fetch__default from 'openapi-fetch';
 
 interface components {
     schemas: {
-        "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
             actions?: string[];
             connection_id?: string;
             resources?: {
@@ -13,7 +13,7 @@ interface components {
         JSON: {
             [key: string]: unknown;
         };
-        "github_com_useportal_llmvault_internal_nango.Credentials": {
+        "github_com_llmvault_llmvault_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
             client_id?: string;
@@ -79,6 +79,10 @@ interface components {
             identity_id?: string;
             session_token?: string;
         };
+        connectSessionTokenResponse: {
+            provider_config_key?: string;
+            token?: string;
+        };
         connectSettingsRequest: {
             allowed_origins?: string[];
         };
@@ -141,8 +145,11 @@ interface components {
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
+        createIntegrationConnectionRequest: {
+            nango_connection_id?: string;
+        };
         createIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -212,6 +219,11 @@ interface components {
             revoked_at?: string;
             updated_at?: string;
         };
+        integrationProviderInfo: {
+            auth_mode?: string;
+            display_name?: string;
+            name?: string;
+        };
         integrationResponse: {
             created_at?: string;
             display_name?: string;
@@ -227,7 +239,7 @@ interface components {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_useportal_llmvault_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -342,7 +354,7 @@ interface components {
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
         updateIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
@@ -354,6 +366,12 @@ interface components {
             requests?: components["schemas"]["requestStats"];
             tokens?: components["schemas"]["tokenStats"];
             top_credentials?: components["schemas"]["topCredential"][];
+        };
+        widgetIntegrationResponse: {
+            auth_mode?: string;
+            display_name?: string;
+            id?: string;
+            provider?: string;
         };
     };
     responses: never;
@@ -375,7 +393,7 @@ type CredentialResponse = Schemas["credentialResponse"];
 type CreateCredentialRequest = Schemas["createCredentialRequest"];
 type MintTokenRequest = Schemas["mintTokenRequest"];
 type MintTokenResponse = Schemas["mintTokenResponse"];
-type TokenScope = Schemas["github_com_useportal_llmvault_internal_mcp.TokenScope"];
+type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
 type IdentityResponse = Schemas["identityResponse"];
 type CreateIdentityRequest = Schemas["createIdentityRequest"];
 type UpdateIdentityRequest = Schemas["updateIdentityRequest"];
@@ -387,7 +405,7 @@ type ConnectSettingsResponse = Schemas["connectSettingsResponse"];
 type IntegrationResponse = Schemas["integrationResponse"];
 type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
 type UpdateIntegrationRequest = Schemas["updateIntegrationRequest"];
-type NangoCredentials = Schemas["github_com_useportal_llmvault_internal_nango.Credentials"];
+type NangoCredentials = Schemas["github_com_llmvault_llmvault_internal_nango.Credentials"];
 type IntegConnResponse = Schemas["integConnResponse"];
 type IntegConnCreateRequest = Schemas["integConnCreateRequest"];
 type UsageResponse = Schemas["usageResponse"];
@@ -841,7 +859,7 @@ declare class TokensResource extends BaseResource {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_useportal_llmvault_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
             ttl?: string;
         };
     }, `${string}/${string}`>>;
@@ -1466,7 +1484,7 @@ declare class IntegrationsResource extends BaseResource {
         };
     }, {
         body: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -1664,7 +1682,7 @@ declare class IntegrationsResource extends BaseResource {
             };
         };
         body: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
@@ -1752,7 +1770,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["integrationProviderInfo"][];
                 };
             };
         };
@@ -1770,7 +1788,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["integrationProviderInfo"][];
                 };
             };
         };

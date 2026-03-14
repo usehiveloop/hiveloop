@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/cache"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // APIKeyAuth returns middleware that authenticates requests using self-issued API keys (llmv_sk_*).

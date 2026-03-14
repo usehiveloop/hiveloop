@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/cache"
-	"github.com/useportal/llmvault/internal/counter"
-	"github.com/useportal/llmvault/internal/mcp"
-	"github.com/useportal/llmvault/internal/mcp/catalog"
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
-	"github.com/useportal/llmvault/internal/token"
+	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/counter"
+	"github.com/llmvault/llmvault/internal/mcp"
+	"github.com/llmvault/llmvault/internal/mcp/catalog"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/token"
 )
 
 // TokenHandler manages sandbox proxy token operations.

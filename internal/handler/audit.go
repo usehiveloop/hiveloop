@@ -8,7 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/middleware"
 )
 
 // AuditHandler serves audit log entries.

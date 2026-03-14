@@ -2383,7 +2383,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
             "type": "object",
             "properties": {
                 "actions": {
@@ -2406,11 +2406,11 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_useportal_llmvault_internal_model.JSON": {
+        "github_com_llmvault_llmvault_internal_model.JSON": {
             "type": "object",
             "additionalProperties": {}
         },
-        "github_com_useportal_llmvault_internal_nango.Credentials": {
+        "github_com_llmvault_llmvault_internal_nango.Credentials": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -2456,7 +2456,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_useportal_llmvault_internal_registry.Cost": {
+        "github_com_llmvault_llmvault_internal_registry.Cost": {
             "type": "object",
             "properties": {
                 "input": {
@@ -2467,7 +2467,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_useportal_llmvault_internal_registry.Limit": {
+        "github_com_llmvault_llmvault_internal_registry.Limit": {
             "type": "object",
             "properties": {
                 "context": {
@@ -2478,7 +2478,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_useportal_llmvault_internal_registry.Modalities": {
+        "github_com_llmvault_llmvault_internal_registry.Modalities": {
             "type": "object",
             "properties": {
                 "input": {
@@ -2739,7 +2739,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "permissions": {
                     "type": "array",
@@ -2789,7 +2789,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -2809,7 +2809,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -2831,13 +2831,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -2877,7 +2877,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -2963,7 +2963,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -2994,7 +2994,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
@@ -3017,7 +3017,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
@@ -3057,10 +3057,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "nango_config": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -3077,7 +3077,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -3091,7 +3091,7 @@ const docTemplate = `{
                 "scopes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_useportal_llmvault_internal_mcp.TokenScope"
+                        "$ref": "#/definitions/github_com_llmvault_llmvault_internal_mcp.TokenScope"
                     }
                 },
                 "ttl": {
@@ -3118,7 +3118,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "cost": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_registry.Cost"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Cost"
                 },
                 "family": {
                     "type": "string"
@@ -3130,10 +3130,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "limit": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_registry.Limit"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Limit"
                 },
                 "modalities": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_registry.Modalities"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Modalities"
                 },
                 "name": {
                     "type": "string"
@@ -3436,7 +3436,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -3450,13 +3450,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_useportal_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 }
             }
         },

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // --------------------------------------------------------------------------

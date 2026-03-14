@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/middleware"
 )
 
 // SettingsHandler manages org-level settings.

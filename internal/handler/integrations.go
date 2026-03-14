@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
-	"github.com/useportal/llmvault/internal/nango"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/nango"
 )
 
 // IntegrationHandler manages integration CRUD operations.

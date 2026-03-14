@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // --------------------------------------------------------------------------

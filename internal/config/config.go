@@ -7,7 +7,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 
-	"github.com/useportal/llmvault/internal/crypto"
+	"github.com/llmvault/llmvault/internal/crypto"
 )
 
 type Config struct {

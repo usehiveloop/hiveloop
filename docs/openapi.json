@@ -3019,7 +3019,7 @@
       }
     },
     "schemas": {
-      "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+      "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
         "type": "object",
         "properties": {
           "actions": {
@@ -3046,7 +3046,7 @@
         "type": "object",
         "additionalProperties": {}
       },
-      "github_com_useportal_llmvault_internal_nango.Credentials": {
+      "github_com_llmvault_llmvault_internal_nango.Credentials": {
         "type": "object",
         "properties": {
           "app_id": {
@@ -3467,7 +3467,7 @@
         "type": "object",
         "properties": {
           "credentials": {
-            "$ref": "#/components/schemas/github_com_useportal_llmvault_internal_nango.Credentials"
+            "$ref": "#/components/schemas/github_com_llmvault_llmvault_internal_nango.Credentials"
           },
           "display_name": {
             "type": "string"
@@ -3727,7 +3727,7 @@
           "scopes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/github_com_useportal_llmvault_internal_mcp.TokenScope"
+              "$ref": "#/components/schemas/github_com_llmvault_llmvault_internal_mcp.TokenScope"
             }
           },
           "ttl": {
@@ -4086,7 +4086,7 @@
         "type": "object",
         "properties": {
           "credentials": {
-            "$ref": "#/components/schemas/github_com_useportal_llmvault_internal_nango.Credentials"
+            "$ref": "#/components/schemas/github_com_llmvault_llmvault_internal_nango.Credentials"
           },
           "display_name": {
             "type": "string"

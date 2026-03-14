@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // ConnectionHandler manages connection CRUD operations.

@@ -1246,7 +1246,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": Record<string, never>[];
+                        "application/json": components["schemas"]["integrationProviderInfo"][];
                     };
                 };
             };
@@ -2520,6 +2520,272 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/widget/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List org integrations for widget
+         * @description Returns integrations configured by the org for the current session.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["widgetIntegrationResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/integrations/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available providers
+         * @description Returns all Nango providers available for creating integrations.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["integrationProviderInfo"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/integrations/{id}/connect-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a connect session for an integration
+         * @description Creates a Nango connect session scoped to a specific integration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["connectSessionTokenResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/integrations/{id}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a connection via the widget
+         * @description Stores a new connection record after a successful Nango auth flow.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Connection details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createIntegrationConnectionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["integConnResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/widget/providers": {
         parameters: {
             query?: never;
@@ -2620,7 +2886,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
             actions?: string[];
             connection_id?: string;
             resources?: {
@@ -2630,7 +2896,7 @@ export interface components {
         JSON: {
             [key: string]: unknown;
         };
-        "github_com_useportal_llmvault_internal_nango.Credentials": {
+        "github_com_llmvault_llmvault_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
             client_id?: string;
@@ -2696,6 +2962,10 @@ export interface components {
             identity_id?: string;
             session_token?: string;
         };
+        connectSessionTokenResponse: {
+            provider_config_key?: string;
+            token?: string;
+        };
         connectSettingsRequest: {
             allowed_origins?: string[];
         };
@@ -2758,8 +3028,11 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
+        createIntegrationConnectionRequest: {
+            nango_connection_id?: string;
+        };
         createIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -2829,6 +3102,11 @@ export interface components {
             revoked_at?: string;
             updated_at?: string;
         };
+        integrationProviderInfo: {
+            auth_mode?: string;
+            display_name?: string;
+            name?: string;
+        };
         integrationResponse: {
             created_at?: string;
             display_name?: string;
@@ -2844,7 +3122,7 @@ export interface components {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_useportal_llmvault_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -2959,7 +3237,7 @@ export interface components {
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
         updateIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
@@ -2971,6 +3249,12 @@ export interface components {
             requests?: components["schemas"]["requestStats"];
             tokens?: components["schemas"]["tokenStats"];
             top_credentials?: components["schemas"]["topCredential"][];
+        };
+        widgetIntegrationResponse: {
+            auth_mode?: string;
+            display_name?: string;
+            id?: string;
+            provider?: string;
         };
     };
     responses: never;

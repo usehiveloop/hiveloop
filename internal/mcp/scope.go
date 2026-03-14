@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/mcp/catalog"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/mcp/catalog"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // TokenScope represents a single scope rule for a minted token, granting

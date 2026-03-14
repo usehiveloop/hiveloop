@@ -13,9 +13,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/cache"
-	"github.com/useportal/llmvault/internal/crypto"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/crypto"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 const (

@@ -17,7 +17,7 @@ export type CreateCredentialRequest = Schemas["createCredentialRequest"];
 
 export type MintTokenRequest = Schemas["mintTokenRequest"];
 export type MintTokenResponse = Schemas["mintTokenResponse"];
-export type TokenScope = Schemas["github_com_useportal_llmvault_internal_mcp.TokenScope"];
+export type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
 
 export type IdentityResponse = Schemas["identityResponse"];
 export type CreateIdentityRequest = Schemas["createIdentityRequest"];
@@ -32,7 +32,7 @@ export type ConnectSettingsResponse = Schemas["connectSettingsResponse"];
 export type IntegrationResponse = Schemas["integrationResponse"];
 export type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
 export type UpdateIntegrationRequest = Schemas["updateIntegrationRequest"];
-export type NangoCredentials = Schemas["github_com_useportal_llmvault_internal_nango.Credentials"];
+export type NangoCredentials = Schemas["github_com_llmvault_llmvault_internal_nango.Credentials"];
 
 export type IntegConnResponse = Schemas["integConnResponse"];
 export type IntegConnCreateRequest = Schemas["integConnCreateRequest"];

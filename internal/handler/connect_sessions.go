@@ -10,9 +10,9 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
-	"github.com/useportal/llmvault/internal/registry"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/registry"
 )
 
 // ConnectSessionHandler manages connect session creation.

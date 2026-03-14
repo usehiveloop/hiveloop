@@ -62,7 +62,7 @@ export async function Nav() {
         <Link href="/docs" className="text-sm text-muted-foreground">Docs</Link>
         <Link href="/pricing" className="text-sm text-muted-foreground">Pricing</Link>
         <Link href="/architecture" className="text-sm text-muted-foreground">Architecture</Link>
-        <a href="https://github.com/useportal/llmvault" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground">GitHub</a>
+        <a href="https://github.com/llmvault/llmvault" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground">GitHub</a>
         {isAuthenticated ? (
           <Button render={<Link href="/dashboard" />} className="h-auto px-5 py-2 text-sm font-medium">
             Dashboard

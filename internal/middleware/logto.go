@@ -14,7 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // LogtoAuth validates Logto JWTs using JWKS fetched from the issuer.

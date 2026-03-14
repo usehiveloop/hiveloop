@@ -12,10 +12,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/useportal/llmvault/internal/handler"
-	"github.com/useportal/llmvault/internal/logto"
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/handler"
+	"github.com/llmvault/llmvault/internal/logto"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // orgHarness extends the base testHarness with Logto integration for org tests.

@@ -18,10 +18,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/cache"
-	"github.com/useportal/llmvault/internal/handler"
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/handler"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 const (

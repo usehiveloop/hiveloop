@@ -22,8 +22,8 @@ openapi:
 	raw = json.dumps(d); \
 	raw = raw.replace('internal_handler.', ''); \
 	raw = raw.replace('internal_handler_', ''); \
-	raw = raw.replace('github_com_useportal_llmvault_internal_registry.', ''); \
-	raw = raw.replace('github_com_useportal_llmvault_internal_model.', ''); \
+	raw = raw.replace('github_com_llmvault_llmvault_internal_registry.', ''); \
+	raw = raw.replace('github_com_llmvault_llmvault_internal_model.', ''); \
 	json.dump(json.loads(raw), open('docs/openapi.json','w'), indent=2) \
 	"
 	@echo "✓ docs/openapi.json updated"

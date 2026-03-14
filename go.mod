@@ -1,4 +1,4 @@
-module github.com/useportal/llmvault
+module github.com/llmvault/llmvault
 
 go 1.25.1
 

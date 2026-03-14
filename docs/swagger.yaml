@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  github_com_useportal_llmvault_internal_mcp.TokenScope:
+  github_com_llmvault_llmvault_internal_mcp.TokenScope:
     properties:
       actions:
         items:
@@ -15,10 +15,10 @@ definitions:
           type: array
         type: object
     type: object
-  github_com_useportal_llmvault_internal_model.JSON:
+  github_com_llmvault_llmvault_internal_model.JSON:
     additionalProperties: {}
     type: object
-  github_com_useportal_llmvault_internal_nango.Credentials:
+  github_com_llmvault_llmvault_internal_nango.Credentials:
     properties:
       app_id:
         type: string
@@ -49,21 +49,21 @@ definitions:
       webhook_secret:
         type: string
     type: object
-  github_com_useportal_llmvault_internal_registry.Cost:
+  github_com_llmvault_llmvault_internal_registry.Cost:
     properties:
       input:
         type: number
       output:
         type: number
     type: object
-  github_com_useportal_llmvault_internal_registry.Limit:
+  github_com_llmvault_llmvault_internal_registry.Limit:
     properties:
       context:
         type: integer
       output:
         type: integer
     type: object
-  github_com_useportal_llmvault_internal_registry.Modalities:
+  github_com_llmvault_llmvault_internal_registry.Modalities:
     properties:
       input:
         items:
@@ -234,7 +234,7 @@ definitions:
       identity_id:
         type: string
       metadata:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       permissions:
         items:
           type: string
@@ -267,7 +267,7 @@ definitions:
       label:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       refill_amount:
         type: integer
       refill_interval:
@@ -280,7 +280,7 @@ definitions:
       external_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
         items:
           $ref: '#/definitions/internal_handler.identityRateLimitParams'
@@ -294,11 +294,11 @@ definitions:
   internal_handler.createIntegrationRequest:
     properties:
       credentials:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_nango.Credentials'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials'
       display_name:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       provider:
         type: string
     type: object
@@ -324,7 +324,7 @@ definitions:
       last_used_at:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       provider_id:
         type: string
       refill_amount:
@@ -380,7 +380,7 @@ definitions:
       last_used_at:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
         items:
           $ref: '#/definitions/internal_handler.identityRateLimitParams'
@@ -400,7 +400,7 @@ definitions:
       identity_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       nango_connection_id:
         type: string
     type: object
@@ -415,7 +415,7 @@ definitions:
       integration_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       nango_connection_id:
         type: string
       revoked_at:
@@ -441,9 +441,9 @@ definitions:
       id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       nango_config:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       provider:
         type: string
       updated_at:
@@ -454,7 +454,7 @@ definitions:
       credential_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       refill_amount:
         type: integer
       refill_interval:
@@ -463,7 +463,7 @@ definitions:
         type: integer
       scopes:
         items:
-          $ref: '#/definitions/github_com_useportal_llmvault_internal_mcp.TokenScope'
+          $ref: '#/definitions/github_com_llmvault_llmvault_internal_mcp.TokenScope'
         type: array
       ttl:
         description: e.g. "1h", "24h"
@@ -481,7 +481,7 @@ definitions:
   internal_handler.modelSummary:
     properties:
       cost:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Cost'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_registry.Cost'
       family:
         type: string
       id:
@@ -489,9 +489,9 @@ definitions:
       knowledge:
         type: string
       limit:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Limit'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_registry.Limit'
       modalities:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Modalities'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_registry.Modalities'
       name:
         type: string
       open_weights:
@@ -688,7 +688,7 @@ definitions:
       external_id:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
         items:
           $ref: '#/definitions/internal_handler.identityRateLimitParams'
@@ -697,11 +697,11 @@ definitions:
   internal_handler.updateIntegrationRequest:
     properties:
       credentials:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_nango.Credentials'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials'
       display_name:
         type: string
       meta:
-        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
     type: object
   internal_handler.usageResponse:
     properties:

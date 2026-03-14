@@ -10,12 +10,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/crypto"
-	"github.com/useportal/llmvault/internal/middleware"
-	"github.com/useportal/llmvault/internal/model"
-	"github.com/useportal/llmvault/internal/nango"
-	"github.com/useportal/llmvault/internal/proxy"
-	"github.com/useportal/llmvault/internal/registry"
+	"github.com/llmvault/llmvault/internal/crypto"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/llmvault/llmvault/internal/proxy"
+	"github.com/llmvault/llmvault/internal/registry"
 )
 
 // ConnectAPIHandler serves the Connect widget's API endpoints.

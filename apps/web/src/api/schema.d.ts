@@ -2620,7 +2620,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
             actions?: string[];
             connection_id?: string;
             resources?: {
@@ -2630,7 +2630,7 @@ export interface components {
         JSON: {
             [key: string]: unknown;
         };
-        "github_com_useportal_llmvault_internal_nango.Credentials": {
+        "github_com_llmvault_llmvault_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
             client_id?: string;
@@ -2759,7 +2759,7 @@ export interface components {
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
         createIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -2844,7 +2844,7 @@ export interface components {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_useportal_llmvault_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -2959,7 +2959,7 @@ export interface components {
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
         updateIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_useportal_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };

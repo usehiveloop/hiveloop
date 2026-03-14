@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 func TestGenerateAPIKey_Format(t *testing.T) {

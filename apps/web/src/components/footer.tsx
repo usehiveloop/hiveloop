@@ -15,7 +15,7 @@ export function Footer() {
           <Link href="/docs" className="text-[13px] leading-4 text-dim">Docs</Link>
           <Link href="/pricing" className="text-[13px] leading-4 text-dim">Pricing</Link>
           <Link href="/architecture" className="text-[13px] leading-4 text-dim">Architecture</Link>
-          <a href="https://github.com/useportal/llmvault" target="_blank" rel="noopener noreferrer" className="text-[13px] leading-4 text-dim">GitHub</a>
+          <a href="https://github.com/llmvault/llmvault" target="_blank" rel="noopener noreferrer" className="text-[13px] leading-4 text-dim">GitHub</a>
           <a href="https://twitter.com/llmvault" target="_blank" rel="noopener noreferrer" className="text-[13px] leading-4 text-dim">Twitter</a>
         </div>
         <span className="text-[13px] leading-4 text-dim">

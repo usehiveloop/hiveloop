@@ -12,8 +12,8 @@ import (
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
-	"github.com/useportal/llmvault/internal/crypto"
-	"github.com/useportal/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/crypto"
+	"github.com/llmvault/llmvault/internal/model"
 )
 
 // DecryptedCredential is the fully resolved, plaintext credential returned
