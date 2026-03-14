@@ -5,13 +5,21 @@ import { createWidgetFetchClient } from '../api/client'
 
 const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.llmvault.dev'
 
-export function useNangoAuth(integrationId: string) {
+export function useNangoAuth(integrationId: string, callbacks: {
+  onSuccess: () => void
+  onError: (error: string) => void
+}) {
   const { sessionId } = useConnect()
 
   return useMutation({
     mutationFn: async () => {
-      const client = createWidgetFetchClient(sessionId!)
+      if (!sessionId) {
+        throw new Error('No session token available')
+      }
 
+      const client = createWidgetFetchClient(sessionId)
+
+      // Step 1: Get connect session token
       const { data: sessionData } = await client.POST(
         '/v1/widget/integrations/{id}/connect-session',
         { params: { path: { id: integrationId } } }
@@ -23,14 +31,21 @@ export function useNangoAuth(integrationId: string) {
         throw new Error('Failed to create connect session')
       }
 
+      // Step 2: Initialize Nango and trigger auth
       const nango = new Nango({ connectSessionToken: token, host: INTEGRATIONS_API })
-
       const result = await nango.auth(providerConfigKey, { detectClosedAuthWindow: true })
 
+      // Step 3: Store the connection
       await client.POST('/v1/widget/integrations/{id}/connections', {
         params: { path: { id: integrationId } },
         body: { nango_connection_id: result.connectionId },
       })
+    },
+    onSuccess: () => {
+      callbacks.onSuccess()
+    },
+    onError: (err) => {
+      callbacks.onError(err instanceof Error ? err.message : 'Connection failed')
     },
   })
 }

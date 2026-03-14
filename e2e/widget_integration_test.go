@@ -355,3 +355,128 @@ func TestE2E_Widget_ConnectSession_Success(t *testing.T) {
 		t.Logf("Nango returned %d (expected in test env without matching Nango integration)", rr.Code)
 	}
 }
+
+// --------------------------------------------------------------------------
+// E2E: Widget ListIntegrations — connection_id reflects connected state
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_ListIntegrations_ConnectionID(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Before connection: connection_id should be null
+	rr := h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", token, nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var list []map[string]any
+	json.NewDecoder(rr.Body).Decode(&list)
+	if len(list) != 1 {
+		t.Fatalf("expected 1 integration, got %d", len(list))
+	}
+	if list[0]["connection_id"] != nil {
+		t.Errorf("expected connection_id to be null before connecting, got %v", list[0]["connection_id"])
+	}
+
+	// Create a connection via the widget endpoint
+	body := `{"nango_connection_id":"nango-conn-cid"}`
+	rr = h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var connResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&connResp)
+	connID := connResp["id"].(string)
+
+	// After connection: connection_id should be the connection UUID
+	rr = h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", token, nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	json.NewDecoder(rr.Body).Decode(&list)
+	if len(list) != 1 {
+		t.Fatalf("expected 1 integration, got %d", len(list))
+	}
+	if list[0]["connection_id"] != connID {
+		t.Errorf("expected connection_id %s, got %v", connID, list[0]["connection_id"])
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget CreateIntegrationConnection — duplicate rejected with 409
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_CreateIntegrationConnection_DuplicateRejected(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// First connection succeeds
+	body := `{"nango_connection_id":"nango-conn-dup1"}`
+	rr := h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	// Second connection should be rejected with 409
+	body = `{"nango_connection_id":"nango-conn-dup2"}`
+	rr = h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var errResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&errResp)
+	if errResp["error"] != "already connected to this integration" {
+		t.Errorf("unexpected error message: %v", errResp["error"])
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget CreateIntegrationConnection — revoked allows reconnect
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_CreateIntegrationConnection_RevokedAllowsReconnect(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Create a connection
+	body := `{"nango_connection_id":"nango-conn-rev1"}`
+	rr := h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var connResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&connResp)
+	connID := connResp["id"].(string)
+
+	// Revoke it (soft-delete by setting revoked_at)
+	if err := h.db.Model(&model.Connection{}).Where("id = ?", connID).Update("revoked_at", "2026-01-01").Error; err != nil {
+		t.Fatalf("failed to revoke connection: %v", err)
+	}
+
+	// Should be able to create a new connection
+	body = `{"nango_connection_id":"nango-conn-rev2"}`
+	rr = h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 after revoke, got %d: %s", rr.Code, rr.Body.String())
+	}
+}

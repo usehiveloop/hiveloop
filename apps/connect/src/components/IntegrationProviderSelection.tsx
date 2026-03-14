@@ -7,7 +7,7 @@ import { Error } from './Error'
 import { Footer } from './Footer'
 import { IntegrationProviderLogo } from './IntegrationProviderLogo'
 import { IconButton } from './IconButton'
-import { BackIcon, CloseIcon, SearchIcon, ChevronRightIcon, SpinnerIcon } from './icons'
+import { BackIcon, CloseIcon, SearchIcon, ChevronRightIcon, SpinnerIcon, CheckIcon } from './icons'
 
 function formatAuthMode(mode: string): string {
   switch (mode) {
@@ -74,6 +74,41 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
     )
   }
 
+  if (!isLoading && providers.length === 0) {
+    return (
+      <div className="flex flex-col h-full pb-8">
+        <div className="flex items-center shrink-0 gap-3">
+          {onBack && (
+            <IconButton onClick={onBack}>
+              <BackIcon />
+            </IconButton>
+          )}
+          <div className="grow text-xl tracking-tight text-cw-heading cw-mobile:font-semibold cw-desktop:font-bold leading-6">
+            Connect an integration
+          </div>
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        <div className="flex flex-col items-center justify-center grow gap-3 px-6">
+          <div className="flex items-center justify-center rounded-full bg-cw-surface shrink-0 size-14">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M14 3.5L5.25 8.75v10.5L14 24.5l8.75-5.25V8.75L14 3.5z" stroke="var(--color-cw-secondary)" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M14 14v10.5M14 14l8.75-5.25M14 14L5.25 8.75" stroke="var(--color-cw-secondary)" strokeWidth="1.5" />
+            </svg>
+          </div>
+          <div className="text-base text-cw-heading font-semibold leading-5">No integrations configured</div>
+          <div className="text-sm text-center text-cw-secondary leading-normal">
+            This workspace has no integrations set up yet. Ask your administrator to configure integrations.
+          </div>
+        </div>
+
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full pb-8">
       <div className="flex items-center shrink-0 gap-3">
@@ -110,28 +145,46 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
           </div>
 
           <div className="hidden cw-desktop:flex flex-wrap gap-2">
-            {popular.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                className="flex items-center rounded-lg py-2.5 px-4 gap-2 bg-cw-surface border border-solid border-cw-border cursor-pointer hover:border-cw-placeholder transition-colors"
-              >
-                <IntegrationProviderLogo providerName={p.provider ?? ''} size="size-5.5" />
-                <div className="text-sm text-cw-heading font-medium leading-4.5">{p.display_name || p.provider}</div>
-              </button>
-            ))}
+            {popular.map((p) => {
+              const connected = p.connection_id != null
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => !connected && onSelect(p)}
+                  disabled={connected}
+                  className={`flex items-center rounded-lg py-2.5 px-4 gap-2 bg-cw-surface border border-solid transition-colors ${
+                    connected
+                      ? 'border-cw-success/30 cursor-default opacity-75'
+                      : 'border-cw-border cursor-pointer hover:border-cw-placeholder'
+                  }`}
+                >
+                  <IntegrationProviderLogo providerName={p.provider ?? ''} size="size-5.5" />
+                  <div className="text-sm text-cw-heading font-medium leading-4.5">{p.display_name || p.provider}</div>
+                  {connected && <CheckIcon size={16} />}
+                </button>
+              )
+            })}
           </div>
 
           <div className="flex cw-desktop:hidden flex-wrap gap-2">
-            {popular.slice(0, 3).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                className="flex items-center rounded-full py-1.5 px-3 gap-1.5 bg-cw-surface border border-solid border-cw-border cursor-pointer hover:border-cw-placeholder transition-colors"
-              >
-                <div className="text-xs text-cw-heading font-medium leading-4">{p.display_name || p.provider}</div>
-              </button>
-            ))}
+            {popular.slice(0, 3).map((p) => {
+              const connected = p.connection_id != null
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => !connected && onSelect(p)}
+                  disabled={connected}
+                  className={`flex items-center rounded-full py-1.5 px-3 gap-1.5 bg-cw-surface border border-solid transition-colors ${
+                    connected
+                      ? 'border-cw-success/30 cursor-default opacity-75'
+                      : 'border-cw-border cursor-pointer hover:border-cw-placeholder'
+                  }`}
+                >
+                  <div className="text-xs text-cw-heading font-medium leading-4">{p.display_name || p.provider}</div>
+                  {connected && <CheckIcon size={14} />}
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -149,25 +202,27 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
             <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const p = filtered[virtualRow.index]
+                const connected = p.connection_id != null
                 return (
                   <button
                     key={p.id}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    onClick={() => onSelect(p)}
-                    className={`absolute top-0 left-0 w-full flex items-center cw-mobile:py-3.5 cw-desktop:py-3 gap-3.5 bg-transparent border-0 cursor-pointer text-left hover:bg-cw-surface transition-colors ${
+                    onClick={() => !connected && onSelect(p)}
+                    disabled={connected}
+                    className={`absolute top-0 left-0 w-full flex items-center cw-mobile:py-3.5 cw-desktop:py-3 gap-3.5 bg-transparent border-0 text-left transition-colors ${
                       virtualRow.index < filtered.length - 1 ? 'border-b border-b-solid border-b-cw-divider' : ''
-                    }`}
+                    } ${connected ? 'cursor-default' : 'cursor-pointer hover:bg-cw-surface'}`}
                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
                     <IntegrationProviderLogo providerName={p.provider ?? ''} size="cw-mobile:size-10 cw-desktop:size-9" />
                     <div className="flex flex-col grow shrink basis-0 gap-0.5">
                       <div className="text-[15px] text-cw-heading font-semibold leading-4.5">{p.display_name || p.provider}</div>
                       <div className="text-xs text-cw-secondary leading-4">
-                        {formatAuthMode(p.auth_mode ?? '')}
+                        {connected ? 'Connected' : formatAuthMode(p.auth_mode ?? '')}
                       </div>
                     </div>
-                    <ChevronRightIcon />
+                    {connected ? <CheckIcon size={20} /> : <ChevronRightIcon />}
                   </button>
                 )
               })}

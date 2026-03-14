@@ -3252,6 +3252,7 @@ export interface components {
         };
         widgetIntegrationResponse: {
             auth_mode?: string;
+            connection_id?: string;
             display_name?: string;
             id?: string;
             provider?: string;

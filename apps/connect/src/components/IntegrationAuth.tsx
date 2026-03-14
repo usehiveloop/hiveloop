@@ -15,7 +15,10 @@ interface Props {
 }
 
 export function IntegrationAuth({ integration, navigate, onBack, onClose }: Props) {
-  const mutation = useNangoAuth(integration.id ?? '')
+  const mutation = useNangoAuth(integration.id ?? '', {
+    onSuccess: () => navigate({ type: 'INTEGRATION_SUCCESS' }),
+    onError: (error) => navigate({ type: 'INTEGRATION_ERROR', error }),
+  })
   const triggered = useRef(false)
 
   useEffect(() => {
@@ -24,14 +27,6 @@ export function IntegrationAuth({ integration, navigate, onBack, onClose }: Prop
       mutation.mutate()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (mutation.isSuccess) {
-      navigate({ type: 'INTEGRATION_SUCCESS' })
-    } else if (mutation.isError) {
-      navigate({ type: 'INTEGRATION_ERROR', error: mutation.error.message })
-    }
-  }, [mutation.isSuccess, mutation.isError, mutation.error, navigate])
 
   return (
     <div className="flex flex-col h-full pb-8">

@@ -515,10 +515,11 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 }
 
 type widgetIntegrationResponse struct {
-	ID          string `json:"id"`
-	Provider    string `json:"provider"`
-	DisplayName string `json:"display_name"`
-	AuthMode    string `json:"auth_mode"`
+	ID           string  `json:"id"`
+	Provider     string  `json:"provider"`
+	DisplayName  string  `json:"display_name"`
+	AuthMode     string  `json:"auth_mode"`
+	ConnectionID *string `json:"connection_id"`
 }
 
 // ListIntegrations handles GET /v1/widget/integrations.
@@ -531,7 +532,7 @@ type widgetIntegrationResponse struct {
 // @Security BearerAuth
 // @Router /v1/widget/integrations [get]
 func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.ConnectSessionFromContext(r.Context())
+	sess, ok := middleware.ConnectSessionFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
 		return
@@ -545,18 +546,33 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Build a map of integration_id → connection_id for the current identity
+	connectionMap := make(map[uuid.UUID]string)
+	if sess.IdentityID != nil {
+		var conns []model.Connection
+		if err := h.db.Where("org_id = ? AND identity_id = ? AND revoked_at IS NULL", org.ID, *sess.IdentityID).Find(&conns).Error; err == nil {
+			for _, c := range conns {
+				connectionMap[c.IntegrationID] = c.ID.String()
+			}
+		}
+	}
+
 	resp := make([]widgetIntegrationResponse, 0, len(integrations))
 	for _, integ := range integrations {
 		authMode := ""
 		if p, found := h.nango.GetProvider(integ.Provider); found {
 			authMode = p.AuthMode
 		}
-		resp = append(resp, widgetIntegrationResponse{
+		item := widgetIntegrationResponse{
 			ID:          integ.ID.String(),
 			Provider:    integ.Provider,
 			DisplayName: integ.DisplayName,
 			AuthMode:    authMode,
-		})
+		}
+		if connID, ok := connectionMap[integ.ID]; ok {
+			item.ConnectionID = &connID
+		}
+		resp = append(resp, item)
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -701,6 +717,17 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 	if req.NangoConnectionID == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "nango_connection_id is required"})
 		return
+	}
+
+	// Enforce one active connection per identity per integration
+	if sess.IdentityID != nil {
+		var existing model.Connection
+		err := h.db.Where("org_id = ? AND integration_id = ? AND identity_id = ? AND revoked_at IS NULL",
+			org.ID, integ.ID, *sess.IdentityID).First(&existing).Error
+		if err == nil {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "already connected to this integration"})
+			return
+		}
 	}
 
 	conn := model.Connection{

@@ -3498,6 +3498,9 @@ const docTemplate = `{
                 "auth_mode": {
                     "type": "string"
                 },
+                "connection_id": {
+                    "type": "string"
+                },
                 "display_name": {
                     "type": "string"
                 },
