@@ -6,9 +6,18 @@
         "display_name": "Channels",
         "description": "Slack channels the AI can access",
         "id_field": "id",
-        "name_field": "name",
+        "name_field": "name_normalized",
         "icon": "hash",
-        "list_action": "list_channels"
+        "list_action": "/conversations.list",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "types": "public_channel,private_channel",
+            "exclude_archived": "true",
+            "limit": "1000"
+          },
+          "response_path": "channels"
+        }
       }
     },
     "actions": {
@@ -60,7 +69,16 @@
         "id_field": "full_name",
         "name_field": "name",
         "icon": "repo",
-        "list_action": "list_repos"
+        "list_action": "/user/repos",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "sort": "updated",
+            "direction": "desc",
+            "per_page": "100"
+          },
+          "response_path": ""
+        }
       }
     },
     "actions": {
@@ -129,7 +147,17 @@
         "id_field": "id",
         "name_field": "name",
         "icon": "folder",
-        "list_action": "list_files"
+        "list_action": "/drive/v3/files",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "q": "mimeType='application/vnd.google-apps.folder' and trashed=false",
+            "spaces": "drive",
+            "fields": "files(id,name)",
+            "pageSize": "100"
+          },
+          "response_path": "files"
+        }
       }
     },
     "actions": {
@@ -181,7 +209,8 @@
               "property": "object"
             },
             "page_size": 100
-          }
+          },
+          "response_path": "results"
         }
       },
       "database": {
@@ -202,7 +231,8 @@
               "property": "object"
             },
             "page_size": 100
-          }
+          },
+          "response_path": "results"
         }
       }
     },

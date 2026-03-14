@@ -22,9 +22,9 @@ func TestResourceDef(t *testing.T) {
 				DisplayName: "Channels",
 				Description: "Slack channels the AI can access",
 				IDField:     "id",
-				NameField:   "name",
+				NameField:   "name_normalized",
 				Icon:        "hash",
-				ListAction:  "list_channels",
+				ListAction:  "/conversations.list",
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestResourceDef(t *testing.T) {
 				IDField:     "full_name",
 				NameField:   "name",
 				Icon:        "repo",
-				ListAction:  "list_repos",
+				ListAction:  "/user/repos",
 			},
 		},
 		{
@@ -50,7 +50,7 @@ func TestResourceDef(t *testing.T) {
 				IDField:     "id",
 				NameField:   "name",
 				Icon:        "folder",
-				ListAction:  "list_files",
+				ListAction:  "/drive/v3/files",
 			},
 		},
 		{
@@ -361,12 +361,33 @@ func TestRequestConfig(t *testing.T) {
 		t.Fatal("linear team body template is nil")
 	}
 
-	// Test Slack channel (no RequestConfig - uses default behavior)
+	// Test Slack channel (now has RequestConfig for generic discovery)
 	slackChannel, ok := c.GetResourceDef("slack", "channel")
 	if !ok {
 		t.Fatal("slack channel resource not found")
 	}
-	if slackChannel.RequestConfig != nil {
-		t.Error("slack channel RequestConfig should be nil")
+	if slackChannel.RequestConfig == nil {
+		t.Fatal("slack channel RequestConfig is nil")
+	}
+	if slackChannel.RequestConfig.Method != "GET" {
+		t.Errorf("slack channel method = %q, want GET", slackChannel.RequestConfig.Method)
+	}
+	if slackChannel.RequestConfig.QueryParams == nil {
+		t.Fatal("slack channel query params are nil")
+	}
+	if slackChannel.ListAction != "/conversations.list" {
+		t.Errorf("slack channel list_action = %q, want /conversations.list", slackChannel.ListAction)
+	}
+
+	// Test GitHub repo (has RequestConfig)
+	githubRepo, ok := c.GetResourceDef("github", "repo")
+	if !ok {
+		t.Fatal("github repo resource not found")
+	}
+	if githubRepo.RequestConfig == nil {
+		t.Fatal("github repo RequestConfig is nil")
+	}
+	if githubRepo.ListAction != "/user/repos" {
+		t.Errorf("github repo list_action = %q, want /user/repos", githubRepo.ListAction)
 	}
 }

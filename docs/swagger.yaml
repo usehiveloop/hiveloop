@@ -78,9 +78,6 @@ definitions:
     properties:
       id:
         type: string
-      metadata:
-        additionalProperties: true
-        type: object
       name:
         type: string
       type:
@@ -88,10 +85,6 @@ definitions:
     type: object
   github_com_llmvault_llmvault_internal_resources.DiscoveryResult:
     properties:
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
       resources:
         items:
           $ref: '#/definitions/github_com_llmvault_llmvault_internal_resources.AvailableResource'

@@ -2734,10 +2734,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
                 "name": {
                     "type": "string"
                 },
@@ -2749,12 +2745,6 @@ const docTemplate = `{
         "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
             "type": "object",
             "properties": {
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                },
                 "resources": {
                     "type": "array",
                     "items": {

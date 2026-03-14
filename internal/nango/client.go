@@ -298,15 +298,32 @@ func (c *Client) ProxyRequest(ctx context.Context, method, providerConfigKey, co
 // ProxyRequestWithHeaders makes a request through Nango's proxy to the provider's API with custom headers.
 // This allows making authenticated requests with provider-specific headers (e.g., Notion-Version).
 func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any, headers map[string]string) (map[string]any, error) {
-	slog.Debug("nango: proxy request", "method", method, "provider_config_key", providerConfigKey, "connection_id", connectionID, "path", path)
+	logger := slog.With(
+		"component", "nango_client",
+		"method", method,
+		"provider_config_key", providerConfigKey,
+		"connection_id", connectionID,
+		"path", path,
+		"query_param_count", len(queryParams),
+		"custom_header_count", len(headers),
+	)
+
+	// Log query params at debug level (may contain sensitive data)
+	if len(queryParams) > 0 {
+		logger.Debug("proxy request with query params", "query_params", queryParams)
+	}
 
 	var bodyReader io.Reader
+	var bodySize int
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
+			logger.Error("failed to marshal request body", "error", err.Error())
 			return nil, fmt.Errorf("marshaling proxy request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(jsonBody)
+		bodySize = len(jsonBody)
+		logger.Debug("request body prepared", "body_size_bytes", bodySize)
 	}
 
 	// Build query string
@@ -319,8 +336,15 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		query = "?" + strings.Join(q, "&")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.endpoint+path+query, bodyReader)
+	fullURL := c.endpoint + path + query
+	logger.Info("sending proxy request to provider API",
+		"url", fullURL,
+		"has_body", body != nil,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
 	if err != nil {
+		logger.Error("failed to create HTTP request", "error", err.Error())
 		return nil, err
 	}
 
@@ -329,8 +353,13 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	}
 
 	// Set custom headers for the provider
+	customHeaderKeys := make([]string, 0, len(headers))
 	for k, v := range headers {
 		req.Header.Set(k, v)
+		customHeaderKeys = append(customHeaderKeys, k)
+	}
+	if len(customHeaderKeys) > 0 {
+		logger.Debug("set custom provider headers", "header_keys", customHeaderKeys)
 	}
 
 	// Set Nango proxy headers
@@ -338,33 +367,70 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	req.Header.Set("Provider-Config-Key", providerConfigKey)
 	req.Header.Set("Connection-Id", connectionID)
 
+	logger.Debug("executing HTTP request")
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logger.Error("HTTP request failed", "error", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Error("failed to read response body", "error", err.Error())
 		return nil, err
 	}
 
-	slog.Debug("nango: proxy response", "method", method, "path", path, "status", resp.StatusCode)
+	logger = logger.With("status_code", resp.StatusCode, "response_size_bytes", len(respBody))
+
+	// Log response headers at debug level
+	responseContentType := resp.Header.Get("Content-Type")
+	if responseContentType != "" {
+		logger = logger.With("content_type", responseContentType)
+	}
 
 	if resp.StatusCode >= 400 {
+		logger.Error("provider API returned error status",
+			"response_body_preview", truncate(string(respBody), 500),
+		)
 		return nil, fmt.Errorf("nango proxy error %d: %s", resp.StatusCode, string(respBody))
 	}
 
+	logger.Info("provider API request successful")
+
 	if len(respBody) == 0 {
+		logger.Debug("empty response body")
 		return nil, nil
 	}
 
+	// Try to parse as JSON
 	var result map[string]any
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		// Try to return raw response if not JSON
+		logger.Info("response is not valid JSON, returning as raw string",
+			"parse_error", err.Error(),
+			"response_preview", truncate(string(respBody), 200),
+		)
+		// Return raw response if not JSON
 		return map[string]any{"_raw": string(respBody)}, nil
 	}
+
+	// Log parsed response structure
+	topLevelKeys := make([]string, 0, len(result))
+	for k := range result {
+		topLevelKeys = append(topLevelKeys, k)
+	}
+	logger.Debug("parsed JSON response", "top_level_keys", topLevelKeys)
+
 	return result, nil
+}
+
+// truncate truncates a string to maxLen characters, adding "..." if truncated.
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (map[string]any, error) {
