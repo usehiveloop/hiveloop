@@ -25,7 +25,7 @@ export function IntegrationDisconnectConfirm({ integration, onConfirm, onCancel 
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['widget', 'integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/integrations'] })
       onConfirm()
     },
   })

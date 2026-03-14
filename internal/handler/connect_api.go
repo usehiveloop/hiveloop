@@ -801,8 +801,15 @@ func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r
 
 	// Soft-delete locally
 	now := time.Now()
-	if err := h.db.Model(&conn).Update("revoked_at", &now).Error; err != nil {
+	result := h.db.Model(&model.Connection{}).
+		Where("id = ? AND revoked_at IS NULL", conn.ID).
+		Update("revoked_at", &now)
+	if result.Error != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete connection"})
+		return
+	}
+	if result.RowsAffected == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
 		return
 	}
 

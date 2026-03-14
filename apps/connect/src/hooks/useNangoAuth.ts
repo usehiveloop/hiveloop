@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Nango from '@nangohq/frontend'
 import { useConnect } from './useConnect'
 import { createWidgetFetchClient } from '../api/client'
@@ -10,6 +10,7 @@ export function useNangoAuth(integrationId: string, callbacks: {
   onError: (error: string) => void
 }) {
   const { sessionId } = useConnect()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async () => {
@@ -42,6 +43,7 @@ export function useNangoAuth(integrationId: string, callbacks: {
       })
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/integrations'] })
       callbacks.onSuccess()
     },
     onError: (err) => {
