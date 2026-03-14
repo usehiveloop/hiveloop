@@ -2204,6 +2204,55 @@ paths:
       summary: Create a connection via the widget
       tags:
       - widget
+  /v1/widget/integrations/{id}/connections/{connectionId}:
+    delete:
+      description: Revokes (soft-deletes) an integration connection owned by the session's
+        identity.
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Connection ID
+        in: path
+        name: connectionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an integration connection
+      tags:
+      - widget
   /v1/widget/integrations/providers:
     get:
       description: Returns all Nango providers available for creating integrations.

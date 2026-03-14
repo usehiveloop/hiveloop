@@ -30,11 +30,12 @@ function formatAuthMode(mode: string): string {
 
 interface Props {
   onSelect: (integration: IntegrationProvider) => void
+  onViewDetail: (integration: IntegrationProvider) => void
   onBack?: () => void
   onClose: () => void
 }
 
-export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Props) {
+export function IntegrationProviderSelection({ onSelect, onViewDetail, onBack, onClose }: Props) {
   const [search, setSearch] = useState('')
   const { data: providers = [], isLoading, isError, refetch } = useIntegrationProviders()
 
@@ -150,12 +151,9 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
               return (
                 <button
                   key={p.id}
-                  onClick={() => !connected && onSelect(p)}
-                  disabled={connected}
-                  className={`flex items-center rounded-lg py-2.5 px-4 gap-2 bg-cw-surface border border-solid transition-colors ${
-                    connected
-                      ? 'border-cw-success/30 cursor-default opacity-75'
-                      : 'border-cw-border cursor-pointer hover:border-cw-placeholder'
+                  onClick={() => connected ? onViewDetail(p) : onSelect(p)}
+                  className={`flex items-center rounded-lg py-2.5 px-4 gap-2 bg-cw-surface border border-solid cursor-pointer transition-colors ${
+                    connected ? 'border-cw-success/30 hover:border-cw-success/50' : 'border-cw-border hover:border-cw-placeholder'
                   }`}
                 >
                   <IntegrationProviderLogo providerName={p.provider ?? ''} size="size-5.5" />
@@ -172,12 +170,9 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
               return (
                 <button
                   key={p.id}
-                  onClick={() => !connected && onSelect(p)}
-                  disabled={connected}
-                  className={`flex items-center rounded-full py-1.5 px-3 gap-1.5 bg-cw-surface border border-solid transition-colors ${
-                    connected
-                      ? 'border-cw-success/30 cursor-default opacity-75'
-                      : 'border-cw-border cursor-pointer hover:border-cw-placeholder'
+                  onClick={() => connected ? onViewDetail(p) : onSelect(p)}
+                  className={`flex items-center rounded-full py-1.5 px-3 gap-1.5 bg-cw-surface border border-solid cursor-pointer transition-colors ${
+                    connected ? 'border-cw-success/30 hover:border-cw-success/50' : 'border-cw-border hover:border-cw-placeholder'
                   }`}
                 >
                   <div className="text-xs text-cw-heading font-medium leading-4">{p.display_name || p.provider}</div>
@@ -208,11 +203,10 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
                     key={p.id}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    onClick={() => !connected && onSelect(p)}
-                    disabled={connected}
-                    className={`absolute top-0 left-0 w-full flex items-center cw-mobile:py-3.5 cw-desktop:py-3 gap-3.5 bg-transparent border-0 text-left transition-colors ${
+                    onClick={() => connected ? onViewDetail(p) : onSelect(p)}
+                    className={`absolute top-0 left-0 w-full flex items-center cw-mobile:py-3.5 cw-desktop:py-3 gap-3.5 bg-transparent border-0 cursor-pointer text-left hover:bg-cw-surface transition-colors ${
                       virtualRow.index < filtered.length - 1 ? 'border-b border-b-solid border-b-cw-divider' : ''
-                    } ${connected ? 'cursor-default' : 'cursor-pointer hover:bg-cw-surface'}`}
+                    }`}
                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
                     <IntegrationProviderLogo providerName={p.provider ?? ''} size="cw-mobile:size-10 cw-desktop:size-9" />

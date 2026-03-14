@@ -216,6 +216,7 @@ func newHarness(t *testing.T) *testHarness {
 			r.Get("/", connectAPIHandler.ListIntegrations)
 			r.Post("/{id}/connect-session", connectAPIHandler.CreateIntegrationConnectSession)
 			r.Post("/{id}/connections", connectAPIHandler.CreateIntegrationConnection)
+			r.Delete("/{id}/connections/{connectionId}", connectAPIHandler.DeleteIntegrationConnection)
 		})
 		r.Get("/connections", connectAPIHandler.ListConnections)
 		r.Post("/connections", connectAPIHandler.CreateConnection)

@@ -221,6 +221,47 @@ func (c *Client) DeleteIntegration(ctx context.Context, uniqueKey string) error 
 	return nil
 }
 
+// DeleteConnection removes a connection by its ID.
+// DELETE /connection/{connectionId}?provider_config_key={providerConfigKey}
+func (c *Client) DeleteConnection(ctx context.Context, connectionID, providerConfigKey string) error {
+	slog.Info("nango: deleting connection", "connection_id", connectionID, "provider_config_key", providerConfigKey)
+	path := fmt.Sprintf("/connection/%s?provider_config_key=%s", connectionID, providerConfigKey)
+	_, err := c.doJSON(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		slog.Error("nango: delete connection failed", "error", err, "connection_id", connectionID)
+		return err
+	}
+	slog.Info("nango: connection deleted", "connection_id", connectionID)
+	return nil
+}
+
+// CreateConnectionRequest is the payload for creating a connection directly in Nango.
+type CreateConnectionRequest struct {
+	ProviderConfigKey string `json:"provider_config_key"`
+	ConnectionID      string `json:"connection_id"`
+	APIKey            string `json:"api_key,omitempty"`
+}
+
+// CreateConnection creates a connection directly in Nango (e.g. for API_KEY auth mode).
+// POST /connection
+func (c *Client) CreateConnection(ctx context.Context, req CreateConnectionRequest) error {
+	slog.Info("nango: creating connection", "connection_id", req.ConnectionID, "provider_config_key", req.ProviderConfigKey)
+	_, err := c.doJSON(ctx, http.MethodPost, "/connection", req)
+	if err != nil {
+		slog.Error("nango: create connection failed", "error", err, "connection_id", req.ConnectionID)
+		return err
+	}
+	slog.Info("nango: connection created", "connection_id", req.ConnectionID)
+	return nil
+}
+
+// GetConnection retrieves a connection from Nango.
+// GET /connection/{connectionId}?provider_config_key={providerConfigKey}
+func (c *Client) GetConnection(ctx context.Context, connectionID, providerConfigKey string) (map[string]any, error) {
+	path := fmt.Sprintf("/connection/%s?provider_config_key=%s", connectionID, providerConfigKey)
+	return c.doJSON(ctx, http.MethodGet, path, nil)
+}
+
 // CreateConnectSession creates a Nango connect session.
 // POST /connect/sessions
 func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSessionRequest) (*ConnectSessionResponse, error) {

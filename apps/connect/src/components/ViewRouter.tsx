@@ -11,6 +11,8 @@ import { ProviderDetail } from './ProviderDetail'
 import { RevokeConfirm } from './RevokeConfirm'
 import { EmptyState } from './EmptyState'
 import { IntegrationAuth } from './IntegrationAuth'
+import { IntegrationDetail } from './IntegrationDetail'
+import { IntegrationDisconnectConfirm } from './IntegrationDisconnectConfirm'
 
 interface Props {
   view: View
@@ -33,6 +35,7 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
       return (
         <IntegrationProviderSelection
           onSelect={(integration) => navigate({ type: 'SELECT_INTEGRATION_PROVIDER', integration })}
+          onViewDetail={(integration) => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration })}
           onBack={canGoBack ? () => navigate({ type: 'BACK' }) : undefined}
           onClose={onClose}
         />
@@ -131,6 +134,23 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
           message={view.error || 'Something went wrong while connecting. Please try again.'}
           onRetry={() => navigate({ type: 'BACK' })}
           onCancel={onClose}
+        />
+      )
+    case 'integration-detail':
+      return (
+        <IntegrationDetail
+          integration={view.integration}
+          onDisconnect={() => navigate({ type: 'DISCONNECT_INTEGRATION', integration: view.integration })}
+          onBack={() => navigate({ type: 'BACK' })}
+          onClose={onClose}
+        />
+      )
+    case 'integration-disconnect-confirm':
+      return (
+        <IntegrationDisconnectConfirm
+          integration={view.integration}
+          onConfirm={() => navigate({ type: 'CONFIRM_INTEGRATION_DISCONNECT' })}
+          onCancel={() => navigate({ type: 'BACK' })}
         />
       )
   }

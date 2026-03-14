@@ -19,6 +19,9 @@ type Action =
   | { type: 'CONFIRM_REVOKE' }
   | { type: 'CONNECT_NEW' }
   | { type: 'VIEW_EMPTY' }
+  | { type: 'VIEW_INTEGRATION_DETAIL'; integration: IntegrationProvider }
+  | { type: 'DISCONNECT_INTEGRATION'; integration: IntegrationProvider }
+  | { type: 'CONFIRM_INTEGRATION_DISCONNECT' }
 
 type Direction = 'forward' | 'back'
 
@@ -112,6 +115,15 @@ function reducer(state: State, action: Action): State {
       return push({ type: 'provider-selection' })
     case 'VIEW_EMPTY':
       return resetHome({ type: 'empty-state' })
+    case 'VIEW_INTEGRATION_DETAIL':
+      return push({ type: 'integration-detail', integration: action.integration })
+    case 'DISCONNECT_INTEGRATION':
+      return push({ type: 'integration-disconnect-confirm', integration: action.integration })
+    case 'CONFIRM_INTEGRATION_DISCONNECT': {
+      const c = state.current
+      if (c.type !== 'integration-disconnect-confirm') return state
+      return reset({ type: 'integration-selection' })
+    }
     default:
       return state
   }

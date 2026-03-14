@@ -137,7 +137,7 @@ function WorkspaceSwitcher({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const active = organizations.find((o) => o.id === activeOrgId) ?? organizations[0];
+  const active = organizations.find((organization) => organization.id === activeOrgId) ?? organizations[0];
 
   function handleSwitch(orgId: string) {
     setOpen(false);

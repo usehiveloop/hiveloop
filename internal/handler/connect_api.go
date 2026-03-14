@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -744,6 +745,68 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 	}
 
 	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn))
+}
+
+// DeleteIntegrationConnection handles DELETE /v1/widget/integrations/{id}/connections/{connectionId}.
+// @Summary Delete an integration connection
+// @Description Revokes (soft-deletes) an integration connection owned by the session's identity.
+// @Tags widget
+// @Produce json
+// @Param id path string true "Integration ID"
+// @Param connectionId path string true "Connection ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/widget/integrations/{id}/connections/{connectionId} [delete]
+func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r *http.Request) {
+	sess, ok := middleware.ConnectSessionFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
+		return
+	}
+
+	if !hasPermission(sess, "delete") {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "permission denied"})
+		return
+	}
+
+	org, _ := middleware.OrgFromContext(r.Context())
+	connID := chi.URLParam(r, "connectionId")
+
+	if sess.IdentityID == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session has no identity"})
+		return
+	}
+
+	// Look up the connection (with its integration) to get Nango IDs
+	var conn model.Connection
+	if err := h.db.Preload("Integration").Where("id = ? AND org_id = ? AND identity_id = ? AND revoked_at IS NULL",
+		connID, org.ID, *sess.IdentityID).First(&conn).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
+		return
+	}
+
+	// Build the org-namespaced Nango provider config key
+	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
+
+	// Delete from Nango
+	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nangoProviderConfigKey); err != nil {
+		slog.Error("nango: delete connection failed, proceeding with local revocation",
+			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
+	}
+
+	// Soft-delete locally
+	now := time.Now()
+	if err := h.db.Model(&conn).Update("revoked_at", &now).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete connection"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 // hasPermission checks if the session has a specific permission.

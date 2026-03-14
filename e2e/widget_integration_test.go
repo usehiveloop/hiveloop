@@ -1,15 +1,19 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/nango"
 )
 
 // --------------------------------------------------------------------------
@@ -478,5 +482,185 @@ func TestE2E_Widget_CreateIntegrationConnection_RevokedAllowsReconnect(t *testin
 		token, strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201 after revoke, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget DeleteIntegrationConnection — full Nango sync
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_DeleteIntegrationConnection(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	sessionToken, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	// Find an API_KEY auth mode provider (no OAuth needed to create connection)
+	providers := h.nangoClient.GetProviders()
+	var apiKeyProvider string
+	for _, p := range providers {
+		if p.AuthMode == "API_KEY" {
+			apiKeyProvider = p.Name
+			break
+		}
+	}
+	if apiKeyProvider == "" {
+		t.Fatal("no API_KEY auth mode provider found in Nango catalog")
+	}
+
+	// Create integration via management API (creates in Nango)
+	body := fmt.Sprintf(`{"provider":%q,"display_name":"Disconnect Test"}`, apiKeyProvider)
+	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create integration: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var integResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&integResp)
+	integID := integResp["id"].(string)
+
+	// Get the integration's unique_key from DB
+	var dbInteg model.Integration
+	if err := h.db.Where("id = ?", integID).First(&dbInteg).Error; err != nil {
+		t.Fatalf("lookup integration: %v", err)
+	}
+	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), dbInteg.UniqueKey)
+
+	// Create a connection directly in Nango
+	nangoConnID := fmt.Sprintf("test-conn-%s", uuid.New().String()[:8])
+	if err := h.nangoClient.CreateConnection(context.Background(), nango.CreateConnectionRequest{
+		ProviderConfigKey: nangoProviderConfigKey,
+		ConnectionID:      nangoConnID,
+		APIKey:            "test-api-key-12345",
+	}); err != nil {
+		t.Fatalf("create Nango connection: %v", err)
+	}
+
+	// Verify connection exists in Nango
+	nangoConn, err := h.nangoClient.GetConnection(context.Background(), nangoConnID, nangoProviderConfigKey)
+	if err != nil {
+		t.Fatalf("get Nango connection: %v", err)
+	}
+	if nangoConn == nil {
+		t.Fatal("connection not found in Nango after create")
+	}
+
+	// Store connection record in our DB (simulates what CreateIntegrationConnection does)
+	rr = h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integID+"/connections",
+		sessionToken, strings.NewReader(fmt.Sprintf(`{"nango_connection_id":%q}`, nangoConnID)))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("store connection: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var connResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&connResp)
+	connID := connResp["id"].(string)
+
+	// Verify connection_id shows up in listing
+	rr = h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", sessionToken, nil)
+	var list []map[string]any
+	json.NewDecoder(rr.Body).Decode(&list)
+	found := false
+	for _, item := range list {
+		if item["id"] == integID && item["connection_id"] == connID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected connection_id in listing")
+	}
+
+	// Delete via the widget endpoint
+	rr = h.connectRequest(t, http.MethodDelete,
+		"/v1/widget/integrations/"+integID+"/connections/"+connID,
+		sessionToken, nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("delete: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	// Verify connection is gone from Nango
+	_, err = h.nangoClient.GetConnection(context.Background(), nangoConnID, nangoProviderConfigKey)
+	if err == nil {
+		t.Fatal("connection should be gone from Nango after delete")
+	}
+
+	// Verify connection_id is null in listing
+	rr = h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", sessionToken, nil)
+	json.NewDecoder(rr.Body).Decode(&list)
+	for _, item := range list {
+		if item["id"] == integID && item["connection_id"] != nil {
+			t.Errorf("expected connection_id to be null after delete, got %v", item["connection_id"])
+		}
+	}
+
+	// Verify DB record is soft-deleted
+	var conn model.Connection
+	if err := h.db.Where("id = ?", connID).First(&conn).Error; err != nil {
+		t.Fatalf("connection not found in DB: %v", err)
+	}
+	if conn.RevokedAt == nil {
+		t.Error("expected revoked_at to be set")
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget DeleteIntegrationConnection — not found
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_DeleteIntegrationConnection_NotFound(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	rr := h.connectRequest(t, http.MethodDelete,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+uuid.New().String(),
+		token, nil)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget DeleteIntegrationConnection — allows reconnect after disconnect
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_DeleteIntegrationConnection_AllowsReconnect(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Connect
+	body := `{"nango_connection_id":"nango-conn-recon1"}`
+	rr := h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var connResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&connResp)
+	connID := connResp["id"].(string)
+
+	// Disconnect via API
+	rr = h.connectRequest(t, http.MethodDelete,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+connID,
+		token, nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	// Reconnect should succeed (duplicate check ignores revoked)
+	body = `{"nango_connection_id":"nango-conn-recon2"}`
+	rr = h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 after disconnect, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
