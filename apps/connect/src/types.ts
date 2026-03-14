@@ -2,14 +2,7 @@ import type { components } from './api/schema'
 
 export type Connection = components['schemas']['connectionResponse']
 
-export type IntegrationProviderInfo = components['schemas']['integrationProviderInfo']
-
-export interface IntegrationProvider {
-  id: string
-  provider: string
-  display_name: string
-  auth_mode: string
-}
+export type IntegrationProvider = components['schemas']['widgetIntegrationResponse']
 
 export type View =
   | { type: 'provider-selection' }

@@ -724,6 +724,17 @@ definitions:
           $ref: '#/definitions/internal_handler.topCredential'
         type: array
     type: object
+  internal_handler.widgetIntegrationResponse:
+    properties:
+      auth_mode:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      provider:
+        type: string
+    type: object
 host: api.dev.llmvault.dev
 info:
   contact: {}
@@ -2078,6 +2089,27 @@ paths:
       security:
       - BearerAuth: []
       summary: Verify a connection
+      tags:
+      - widget
+  /v1/widget/integrations:
+    get:
+      description: Returns integrations configured by the org for the current session.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.widgetIntegrationResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List org integrations for widget
       tags:
       - widget
   /v1/widget/integrations/{id}/connect-session:

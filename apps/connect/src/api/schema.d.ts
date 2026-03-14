@@ -2520,6 +2520,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/widget/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List org integrations for widget
+         * @description Returns integrations configured by the org for the current session.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["widgetIntegrationResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/widget/integrations/providers": {
         parameters: {
             query?: never;
@@ -3201,6 +3249,12 @@ export interface components {
             requests?: components["schemas"]["requestStats"];
             tokens?: components["schemas"]["tokenStats"];
             top_credentials?: components["schemas"]["topCredential"][];
+        };
+        widgetIntegrationResponse: {
+            auth_mode?: string;
+            display_name?: string;
+            id?: string;
+            provider?: string;
         };
     };
     responses: never;

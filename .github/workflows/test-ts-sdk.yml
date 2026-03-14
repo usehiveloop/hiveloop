@@ -1,0 +1,43 @@
+name: test-ts-sdk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/sdk/**"
+  pull_request:
+    paths:
+      - "packages/sdk/**"
+
+concurrency:
+  group: test-ts-sdk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/sdk/package-lock.json
+
+      - name: install dependencies
+        working-directory: packages/sdk
+        run: npm ci
+
+      - name: generate types
+        working-directory: packages/sdk
+        run: npm run generate
+
+      - name: test
+        working-directory: packages/sdk
+        run: npm test
+        env:
+          LLM_VAULT_API_KEY: ${{ secrets.LLM_VAULT_API_KEY }}

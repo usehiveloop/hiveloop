@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function IntegrationAuth({ integration, navigate, onBack, onClose }: Props) {
-  const mutation = useNangoAuth(integration.id)
+  const mutation = useNangoAuth(integration.id ?? '')
   const triggered = useRef(false)
 
   useEffect(() => {
@@ -51,14 +51,14 @@ export function IntegrationAuth({ integration, navigate, onBack, onClose }: Prop
 
       <div className="flex flex-col items-center justify-center grow gap-4">
         <IntegrationProviderLogo
-          providerName={integration.provider}
+          providerName={integration.provider ?? ''}
           size="size-16"
           rounded="rounded-xl"
         />
         <div className="flex items-center gap-2.5">
           <SpinnerIcon className="cw-spinner" />
           <div className="text-sm text-cw-secondary">
-            Connecting to {integration.display_name}...
+            Connecting to {integration.display_name ?? integration.provider}...
           </div>
         </div>
       </div>

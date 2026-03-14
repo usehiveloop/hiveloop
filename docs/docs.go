@@ -2114,6 +2114,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/widget/integrations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns integrations configured by the org for the current session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "widget"
+                ],
+                "summary": "List org integrations for widget",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.widgetIntegrationResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/widget/integrations/providers": {
             "get": {
                 "security": [
@@ -3455,6 +3489,23 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_handler.topCredential"
                     }
+                }
+            }
+        },
+        "internal_handler.widgetIntegrationResponse": {
+            "type": "object",
+            "properties": {
+                "auth_mode": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
                 }
             }
         }

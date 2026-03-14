@@ -324,6 +324,7 @@ func run() error {
 		r.Get("/session", connectAPIHandler.SessionInfo)
 		r.Get("/providers", connectAPIHandler.ListProviders)
 		r.Get("/integrations/providers", integrationHandler.ListProviders)
+		r.Get("/integrations", connectAPIHandler.ListIntegrations)
 		r.Post("/integrations/{id}/connect-session", connectAPIHandler.CreateIntegrationConnectSession)
 		r.Post("/integrations/{id}/connections", connectAPIHandler.CreateIntegrationConnection)
 		r.Get("/connections", connectAPIHandler.ListConnections)

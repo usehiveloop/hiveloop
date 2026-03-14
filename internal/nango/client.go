@@ -51,9 +51,15 @@ type Credentials struct {
 	Password string `json:"password,omitempty"`
 }
 
+// ConnectSessionEndUser identifies the end user for a Nango connect session.
+type ConnectSessionEndUser struct {
+	ID string `json:"id"`
+}
+
 // CreateConnectSessionRequest is the payload for creating a connect session in Nango.
 type CreateConnectSessionRequest struct {
-	AllowedIntegrations []string `json:"allowed_integrations,omitempty"`
+	EndUser             ConnectSessionEndUser `json:"end_user"`
+	AllowedIntegrations []string              `json:"allowed_integrations,omitempty"`
 }
 
 // ConnectSessionResponse represents the response from creating a connect session.

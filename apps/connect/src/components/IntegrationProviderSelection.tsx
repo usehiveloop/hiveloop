@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { popularIntegrationNames } from '../data/integrations'
 import { useIntegrationProviders } from '../hooks/useIntegrationProviders'
-import type { IntegrationProvider, IntegrationProviderInfo } from '../types'
+import type { IntegrationProvider } from '../types'
 import { Error } from './Error'
 import { Footer } from './Footer'
 import { IntegrationProviderLogo } from './IntegrationProviderLogo'
@@ -28,15 +28,6 @@ function formatAuthMode(mode: string): string {
   }
 }
 
-function toIntegrationProvider(p: IntegrationProviderInfo): IntegrationProvider {
-  return {
-    id: '',
-    provider: p.name ?? '',
-    display_name: p.display_name ?? '',
-    auth_mode: p.auth_mode ?? '',
-  }
-}
-
 interface Props {
   onSelect: (integration: IntegrationProvider) => void
   onBack?: () => void
@@ -48,7 +39,7 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
   const { data: providers = [], isLoading, isError, refetch } = useIntegrationProviders()
 
   const popular = useMemo(
-    () => providers.filter((p) => popularIntegrationNames.includes(p.name ?? '')),
+    () => providers.filter((p) => popularIntegrationNames.includes(p.provider ?? '')),
     [providers]
   )
 
@@ -57,7 +48,7 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
       search.trim()
         ? providers.filter((p) => {
             const q = search.toLowerCase()
-            return (p.name ?? '').toLowerCase().includes(q) || (p.display_name ?? '').toLowerCase().includes(q)
+            return (p.provider ?? '').toLowerCase().includes(q) || (p.display_name ?? '').toLowerCase().includes(q)
           })
         : providers,
     [search, providers]
@@ -112,7 +103,7 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
       </div>
 
 
-      {!search && !isLoading && (
+      {!search && !isLoading && popular.length > 0 && (
         <div className="flex items-center cw-mobile:mt-4 cw-desktop:mt-5 shrink-0 cw-mobile:gap-2 cw-desktop:flex-col cw-desktop:gap-2.5">
           <div className="cw-mobile:text-xs cw-desktop:text-2xs cw-desktop:tracking-wider cw-desktop:uppercase text-cw-secondary cw-mobile:font-medium cw-desktop:font-semibold cw-mobile:leading-4 cw-desktop:leading-3.5 cw-mobile:mr-1">
             Popular
@@ -121,12 +112,12 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
           <div className="hidden cw-desktop:flex flex-wrap gap-2">
             {popular.map((p) => (
               <button
-                key={p.name}
-                onClick={() => onSelect(toIntegrationProvider(p))}
+                key={p.id}
+                onClick={() => onSelect(p)}
                 className="flex items-center rounded-lg py-2.5 px-4 gap-2 bg-cw-surface border border-solid border-cw-border cursor-pointer hover:border-cw-placeholder transition-colors"
               >
-                <IntegrationProviderLogo providerName={p.name ?? ''} size="size-5.5" />
-                <div className="text-sm text-cw-heading font-medium leading-4.5">{p.display_name || p.name}</div>
+                <IntegrationProviderLogo providerName={p.provider ?? ''} size="size-5.5" />
+                <div className="text-sm text-cw-heading font-medium leading-4.5">{p.display_name || p.provider}</div>
               </button>
             ))}
           </div>
@@ -134,11 +125,11 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
           <div className="flex cw-desktop:hidden flex-wrap gap-2">
             {popular.slice(0, 3).map((p) => (
               <button
-                key={p.name}
-                onClick={() => onSelect(toIntegrationProvider(p))}
+                key={p.id}
+                onClick={() => onSelect(p)}
                 className="flex items-center rounded-full py-1.5 px-3 gap-1.5 bg-cw-surface border border-solid border-cw-border cursor-pointer hover:border-cw-placeholder transition-colors"
               >
-                <div className="text-xs text-cw-heading font-medium leading-4">{p.display_name || p.name}</div>
+                <div className="text-xs text-cw-heading font-medium leading-4">{p.display_name || p.provider}</div>
               </button>
             ))}
           </div>
@@ -160,18 +151,18 @@ export function IntegrationProviderSelection({ onSelect, onBack, onClose }: Prop
                 const p = filtered[virtualRow.index]
                 return (
                   <button
-                    key={p.name}
+                    key={p.id}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    onClick={() => onSelect(toIntegrationProvider(p))}
+                    onClick={() => onSelect(p)}
                     className={`absolute top-0 left-0 w-full flex items-center cw-mobile:py-3.5 cw-desktop:py-3 gap-3.5 bg-transparent border-0 cursor-pointer text-left hover:bg-cw-surface transition-colors ${
                       virtualRow.index < filtered.length - 1 ? 'border-b border-b-solid border-b-cw-divider' : ''
                     }`}
                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
-                    <IntegrationProviderLogo providerName={p.name ?? ''} size="cw-mobile:size-10 cw-desktop:size-9" />
+                    <IntegrationProviderLogo providerName={p.provider ?? ''} size="cw-mobile:size-10 cw-desktop:size-9" />
                     <div className="flex flex-col grow shrink basis-0 gap-0.5">
-                      <div className="text-[15px] text-cw-heading font-semibold leading-4.5">{p.display_name || p.name}</div>
+                      <div className="text-[15px] text-cw-heading font-semibold leading-4.5">{p.display_name || p.provider}</div>
                       <div className="text-xs text-cw-secondary leading-4">
                         {formatAuthMode(p.auth_mode ?? '')}
                       </div>

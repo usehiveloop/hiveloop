@@ -2675,6 +2675,45 @@
         }
       }
     },
+    "/v1/widget/integrations": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns integrations configured by the org for the current session.",
+        "tags": [
+          "widget"
+        ],
+        "summary": "List org integrations for widget",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/widgetIntegrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/widget/integrations/providers": {
       "get": {
         "security": [
@@ -4086,6 +4125,23 @@
             "items": {
               "$ref": "#/components/schemas/topCredential"
             }
+          }
+        }
+      },
+      "widgetIntegrationResponse": {
+        "type": "object",
+        "properties": {
+          "auth_mode": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
           }
         }
       }

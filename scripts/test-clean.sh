@@ -76,7 +76,7 @@ case "$TARGET" in
         ;;
     connect)
         run_tests "Running Connect widget tests..." \
-            go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connect"
+            go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connect|TestE2E_Widget"
         ;;
     vault)
         run_tests "Running Vault KMS tests..." \

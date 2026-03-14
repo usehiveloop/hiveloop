@@ -1,0 +1,34 @@
+name: types-ts-sdk
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/sdk/**"
+  pull_request:
+    paths:
+      - "packages/sdk/**"
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/sdk/package-lock.json
+
+      - name: install dependencies
+        run: npm ci
+        working-directory: packages/sdk
+
+      - name: generate types
+        run: npm run generate
+        working-directory: packages/sdk
+
+      - name: typecheck
+        run: npx tsc --noEmit
+        working-directory: packages/sdk

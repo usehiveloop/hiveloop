@@ -514,6 +514,54 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, result)
 }
 
+type widgetIntegrationResponse struct {
+	ID          string `json:"id"`
+	Provider    string `json:"provider"`
+	DisplayName string `json:"display_name"`
+	AuthMode    string `json:"auth_mode"`
+}
+
+// ListIntegrations handles GET /v1/widget/integrations.
+// @Summary List org integrations for widget
+// @Description Returns integrations configured by the org for the current session.
+// @Tags widget
+// @Produce json
+// @Success 200 {array} widgetIntegrationResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/widget/integrations [get]
+func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Request) {
+	_, ok := middleware.ConnectSessionFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
+		return
+	}
+
+	org, _ := middleware.OrgFromContext(r.Context())
+
+	var integrations []model.Integration
+	if err := h.db.Where("org_id = ? AND deleted_at IS NULL", org.ID).Find(&integrations).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list integrations"})
+		return
+	}
+
+	resp := make([]widgetIntegrationResponse, 0, len(integrations))
+	for _, integ := range integrations {
+		authMode := ""
+		if p, found := h.nango.GetProvider(integ.Provider); found {
+			authMode = p.AuthMode
+		}
+		resp = append(resp, widgetIntegrationResponse{
+			ID:          integ.ID.String(),
+			Provider:    integ.Provider,
+			DisplayName: integ.DisplayName,
+			AuthMode:    authMode,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
 type connectSessionTokenResponse struct {
 	Token             string `json:"token"`
 	ProviderConfigKey string `json:"provider_config_key"`
@@ -572,7 +620,17 @@ func (h *ConnectAPIHandler) CreateIntegrationConnectSession(w http.ResponseWrite
 	// Build the org-namespaced Nango unique key
 	nangoUniqueKey := fmt.Sprintf("%s_%s", org.ID.String(), integ.UniqueKey)
 
+	// Use session external_id or identity_id as end_user for Nango
+	endUserID := sess.ExternalID
+	if endUserID == "" && sess.IdentityID != nil {
+		endUserID = sess.IdentityID.String()
+	}
+	if endUserID == "" {
+		endUserID = sess.ID.String()
+	}
+
 	sessionResp, err := h.nango.CreateConnectSession(r.Context(), nango.CreateConnectSessionRequest{
+		EndUser:             nango.ConnectSessionEndUser{ID: endUserID},
 		AllowedIntegrations: []string{nangoUniqueKey},
 	})
 	if err != nil {

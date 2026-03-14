@@ -118,9 +118,9 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
     case 'integration-success':
       return (
         <Success
-          providerId={view.integration.provider}
+          providerId={view.integration.provider ?? ''}
           title="Connected"
-          message={`${view.integration.display_name} has been connected successfully.`}
+          message={`${view.integration.display_name ?? view.integration.provider} has been connected successfully.`}
           onDone={() => navigate({ type: 'DONE' })}
         />
       )
