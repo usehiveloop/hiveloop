@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -195,8 +196,14 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&cred).Error; err != nil {
+		slog.Error("failed to store credential", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store credential"})
 		return
+	}
+
+	slog.Info("credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", providerID, "label", req.Label)
+	if cred.IdentityID != nil {
+		slog.Info("credential linked to identity", "credential_id", cred.ID, "identity_id", *cred.IdentityID)
 	}
 
 	// Seed Redis counter if a cap is configured
@@ -378,10 +385,12 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		Update("revoked_at", &now)
 
 	if result.Error != nil {
+		slog.Error("failed to revoke credential", "error", result.Error, "org_id", org.ID, "credential_id", credID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke"})
 		return
 	}
 	if result.RowsAffected == 0 {
+		slog.Warn("credential not found or already revoked", "org_id", org.ID, "credential_id", credID)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "credential not found or already revoked"})
 		return
 	}
@@ -389,6 +398,7 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	// Invalidate all cache tiers
 	_ = h.cacheManager.InvalidateCredential(r.Context(), credID)
 
+	slog.Info("credential revoked", "org_id", org.ID, "credential_id", credID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 

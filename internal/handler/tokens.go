@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -176,6 +177,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Meta:           req.Meta,
 	}
 	if err := h.db.Create(&tokenRecord).Error; err != nil {
+		slog.Error("failed to store token", "error", err, "org_id", org.ID, "credential_id", req.CredentialID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store token"})
 		return
 	}
@@ -185,6 +187,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		_ = h.counter.SeedToken(r.Context(), jti, *tokenRecord.Remaining, ttl)
 	}
 
+	slog.Info("token minted", "org_id", org.ID, "credential_id", req.CredentialID, "jti", jti, "ttl", ttl.String(), "scopes", len(req.Scopes))
 	writeJSON(w, http.StatusCreated, mintTokenResponse{
 		Token:     "ptok_" + tokenStr,
 		ExpiresAt: expiresAt.Format(time.RFC3339),
@@ -224,10 +227,12 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		Update("revoked_at", &now)
 
 	if result.Error != nil {
+		slog.Error("failed to revoke token", "error", result.Error, "org_id", org.ID, "jti", jti)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke token"})
 		return
 	}
 	if result.RowsAffected == 0 {
+		slog.Warn("token not found or already revoked", "org_id", org.ID, "jti", jti)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "token not found or already revoked"})
 		return
 	}
@@ -235,5 +240,6 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	// Propagate revocation through cache tiers
 	_ = h.cacheManager.InvalidateToken(r.Context(), jti, 24*time.Hour)
 
+	slog.Info("token revoked", "org_id", org.ID, "jti", jti)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

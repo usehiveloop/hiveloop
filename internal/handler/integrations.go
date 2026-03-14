@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -202,15 +203,19 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	uniqueKey := fmt.Sprintf("%s-%s", req.Provider, integID.String()[:8])
 
 	// Push to Nango first (source of truth for OAuth credentials)
+	nk := nangoKey(org.ID, uniqueKey)
 	nangoReq := nango.CreateIntegrationRequest{
-		UniqueKey:   nangoKey(org.ID, uniqueKey),
+		UniqueKey:   nk,
 		Provider:    req.Provider,
 		Credentials: req.Credentials,
 	}
+	slog.Info("creating nango integration", "org_id", org.ID, "provider", req.Provider, "nango_key", nk)
 	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
+		slog.Error("nango integration creation failed", "error", err, "org_id", org.ID, "provider", req.Provider)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create integration in Nango: " + err.Error()})
 		return
 	}
+	slog.Info("nango integration created", "org_id", org.ID, "provider", req.Provider, "nango_key", nk)
 
 	integ := model.Integration{
 		ID:          integID,
@@ -222,10 +227,12 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&integ).Error; err != nil {
+		slog.Error("failed to store integration", "error", err, "org_id", org.ID, "provider", req.Provider)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create integration"})
 		return
 	}
 
+	slog.Info("integration created", "org_id", org.ID, "integration_id", integ.ID, "provider", req.Provider, "display_name", req.DisplayName)
 	writeJSON(w, http.StatusCreated, toIntegrationResponse(integ))
 }
 
@@ -352,13 +359,17 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		nk := nangoKey(org.ID, integ.UniqueKey)
 		nangoReq := nango.UpdateIntegrationRequest{
 			Credentials: req.Credentials,
 		}
-		if err := h.nango.UpdateIntegration(r.Context(), nangoKey(org.ID, integ.UniqueKey), nangoReq); err != nil {
+		slog.Info("updating nango integration credentials", "org_id", org.ID, "integration_id", integ.ID, "nango_key", nk)
+		if err := h.nango.UpdateIntegration(r.Context(), nk, nangoReq); err != nil {
+			slog.Error("nango integration update failed", "error", err, "org_id", org.ID, "integration_id", integ.ID)
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to update integration in Nango: " + err.Error()})
 			return
 		}
+		slog.Info("nango integration credentials updated", "org_id", org.ID, "integration_id", integ.ID)
 	}
 
 	updates := map[string]any{}
@@ -370,6 +381,7 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(updates) > 0 {
 		if err := h.db.Model(&integ).Updates(updates).Error; err != nil {
+			slog.Error("failed to update integration", "error", err, "org_id", org.ID, "integration_id", integ.ID)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update integration"})
 			return
 		}
@@ -378,6 +390,7 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Reload
 	h.db.Where("id = ?", integ.ID).First(&integ)
 
+	slog.Info("integration updated", "org_id", org.ID, "integration_id", integ.ID, "credentials_updated", req.Credentials != nil)
 	writeJSON(w, http.StatusOK, toIntegrationResponse(integ))
 }
 
@@ -406,18 +419,24 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove from Nango
-	if err := h.nango.DeleteIntegration(r.Context(), nangoKey(org.ID, integ.UniqueKey)); err != nil {
+	nk := nangoKey(org.ID, integ.UniqueKey)
+	slog.Info("deleting nango integration", "org_id", org.ID, "integration_id", integ.ID, "nango_key", nk)
+	if err := h.nango.DeleteIntegration(r.Context(), nk); err != nil {
+		slog.Error("nango integration deletion failed", "error", err, "org_id", org.ID, "integration_id", integ.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete integration from Nango: " + err.Error()})
 		return
 	}
+	slog.Info("nango integration deleted", "org_id", org.ID, "integration_id", integ.ID)
 
 	// Soft-delete
 	now := time.Now()
 	if err := h.db.Model(&integ).Update("deleted_at", now).Error; err != nil {
+		slog.Error("failed to soft-delete integration", "error", err, "org_id", org.ID, "integration_id", integ.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete integration"})
 		return
 	}
 
+	slog.Info("integration deleted", "org_id", org.ID, "integration_id", integ.ID, "provider", integ.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
@@ -433,5 +452,6 @@ func (h *IntegrationHandler) ListProviders(w http.ResponseWriter, r *http.Reques
 	for i, p := range providers {
 		resp[i] = providerInfo{Name: p.Name, DisplayName: p.DisplayName, AuthMode: p.AuthMode}
 	}
+	slog.Info("listed integration providers", "count", len(resp))
 	writeJSON(w, http.StatusOK, resp)
 }

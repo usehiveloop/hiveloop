@@ -13,6 +13,7 @@ import { CreateIntegrationDialog } from "./create-integration-dialog";
 import { EditIntegrationDialog } from "./edit-integration-dialog";
 import { DeleteIntegrationDialog } from "./delete-integration-dialog";
 import { IntegrationMobileCard } from "./integration-mobile-card";
+import { ProviderLogo } from "./provider-logo";
 import { listIntegrations, deleteIntegration } from "./api";
 import { formatDate, type IntegrationResponse, type ModalState } from "./utils";
 
@@ -89,14 +90,19 @@ export default function IntegrationsPage() {
     {
       id: "display_name",
       header: "Name",
-      width: "30%",
+      width: "35%",
       cellClassName: "text-[13px] font-medium text-foreground",
-      cell: (row) => row.display_name,
+      cell: (row) => (
+        <div className="flex items-center gap-3">
+          <ProviderLogo providerId={row.provider} size="size-7" />
+          <span>{row.display_name}</span>
+        </div>
+      ),
     },
     {
       id: "provider",
       header: "Provider",
-      width: "20%",
+      width: "15%",
       cell: (row) => <ProviderBadge provider={row.provider} />,
     },
     {

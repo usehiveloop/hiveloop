@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -107,6 +108,7 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 	c.providers = catalog
 	c.mu.Unlock()
 
+	slog.Info("nango providers fetched", "count", len(catalog))
 	return nil
 }
 
@@ -132,15 +134,27 @@ func (c *Client) GetProviders() []Provider {
 // CreateIntegration creates an integration in Nango.
 // POST /integrations
 func (c *Client) CreateIntegration(ctx context.Context, req CreateIntegrationRequest) error {
+	slog.Info("nango: creating integration", "unique_key", req.UniqueKey, "provider", req.Provider)
 	_, err := c.doJSON(ctx, http.MethodPost, "/integrations", req)
-	return err
+	if err != nil {
+		slog.Error("nango: create integration failed", "error", err, "unique_key", req.UniqueKey)
+		return err
+	}
+	slog.Info("nango: integration created", "unique_key", req.UniqueKey, "provider", req.Provider)
+	return nil
 }
 
 // UpdateIntegration updates an existing integration in Nango.
 // PATCH /integrations/{uniqueKey}
 func (c *Client) UpdateIntegration(ctx context.Context, uniqueKey string, req UpdateIntegrationRequest) error {
+	slog.Info("nango: updating integration", "unique_key", uniqueKey)
 	_, err := c.doJSON(ctx, http.MethodPatch, "/integrations/"+uniqueKey, req)
-	return err
+	if err != nil {
+		slog.Error("nango: update integration failed", "error", err, "unique_key", uniqueKey)
+		return err
+	}
+	slog.Info("nango: integration updated", "unique_key", uniqueKey)
+	return nil
 }
 
 // GetIntegration fetches an integration by its unique key.
@@ -152,11 +166,19 @@ func (c *Client) GetIntegration(ctx context.Context, uniqueKey string) (map[stri
 // DeleteIntegration removes an integration by its unique key.
 // DELETE /integrations/{uniqueKey}
 func (c *Client) DeleteIntegration(ctx context.Context, uniqueKey string) error {
+	slog.Info("nango: deleting integration", "unique_key", uniqueKey)
 	_, err := c.doJSON(ctx, http.MethodDelete, "/integrations/"+uniqueKey, nil)
-	return err
+	if err != nil {
+		slog.Error("nango: delete integration failed", "error", err, "unique_key", uniqueKey)
+		return err
+	}
+	slog.Info("nango: integration deleted", "unique_key", uniqueKey)
+	return nil
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (map[string]any, error) {
+	slog.Debug("nango: request", "method", method, "path", path)
+
 	var bodyReader io.Reader
 	if payload != nil {
 		jsonBody, err := json.Marshal(payload)
@@ -185,6 +207,8 @@ func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (
 	if err != nil {
 		return nil, err
 	}
+
+	slog.Debug("nango: response", "method", method, "path", path, "status", resp.StatusCode)
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("nango API error %d: %s", resp.StatusCode, string(respBody))

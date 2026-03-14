@@ -13,6 +13,7 @@
     "@base-ui/react": "^1.2.0",
     "@logto/next": "^4.2.9",
     "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-virtual": "^3.13.22",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fetch-h2": "^3.0.2",

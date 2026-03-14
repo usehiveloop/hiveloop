@@ -14,9 +14,16 @@ import { useWidget } from '../../hooks/useWidget'
  * Renders the real ViewRouter + useWidget state machine with MSW-mocked API.
  * Every test drives the UI the way a user would: click, type, read the screen.
  */
-function ConnectFlowHarness({ onClose = vi.fn() }: { onClose?: () => void }) {
-  const { view, canGoBack, navigate } = useWidget({ type: 'provider-selection' })
-  return <ViewRouter view={view} canGoBack={canGoBack} navigate={navigate} onClose={onClose} />
+function ConnectFlowHarness({
+  initialView = { type: 'provider-selection' } as import('../../types').View,
+  onClose,
+}: {
+  initialView?: import('../../types').View
+  onClose?: () => void
+}) {
+  const { view, canGoBack, navigate } = useWidget(initialView)
+  const handleClose = onClose ?? (() => navigate({ type: 'CANCEL' }))
+  return <ViewRouter view={view} canGoBack={canGoBack} navigate={navigate} onClose={handleClose} />
 }
 
 async function waitForProviders() {
@@ -457,5 +464,155 @@ describe('Connection errors', () => {
     await user.click(screen.getByText('Cancel'))
 
     expect(onClose).toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Connected list → connect flow (returnTo navigation)
+// ---------------------------------------------------------------------------
+
+describe('Navigation from connected list', () => {
+  it('shows existing connections on the connected list screen', async () => {
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    expect(await screen.findByText('Connected providers')).toBeInTheDocument()
+    expect(await screen.findByText('Active')).toBeInTheDocument()
+  })
+
+  it('shows the empty state when there are no connections', async () => {
+    server.use(
+      http.get('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+        HttpResponse.json({ data: [], has_more: false }),
+      ),
+    )
+
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    expect(await screen.findByText('No providers connected')).toBeInTheDocument()
+  })
+
+  it('shows a back button on provider selection when coming from connected list', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    await user.click(await screen.findByText('Connect new provider'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Connect a provider')).toBeInTheDocument()
+    })
+
+    // Back button should exist in the header (two buttons: back + close)
+    const header = screen.getByText('Connect a provider').parentElement!
+    const buttons = header.querySelectorAll('button')
+    expect(buttons.length).toBe(2)
+  })
+
+  it('back button on provider selection returns to connected list', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    await user.click(await screen.findByText('Connect new provider'))
+    await waitFor(() => {
+      expect(screen.getByText('Connect a provider')).toBeInTheDocument()
+    })
+
+    // Click the back button (first button in header)
+    const header = screen.getByText('Connect a provider').parentElement!
+    await user.click(header.querySelector('button')!)
+
+    expect(await screen.findByText('Connected providers')).toBeInTheDocument()
+  })
+
+  it('after successful connection, Done returns to connected list', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    // Navigate: connected list → connect new → select provider → enter key → success → done
+    await user.click(await screen.findByText('Connect new provider'))
+    await waitForProviders()
+    await clickProviderInList(user, 'Mistral')
+
+    await user.type(
+      await screen.findByPlaceholderText('Paste your Mistral API key'),
+      'sk-live-abc123',
+    )
+    await user.click(getConnectButton())
+
+    await screen.findByText('Connected')
+    await user.click(screen.getByText('Done'))
+
+    expect(await screen.findByText('Connected providers')).toBeInTheDocument()
+  })
+
+  it('after connection error, Cancel returns to connected list', async () => {
+    const user = userEvent.setup()
+
+    server.use(
+      http.post('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+        HttpResponse.json({ error: 'fail' }, { status: 500 }),
+      ),
+    )
+
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    await user.click(await screen.findByText('Connect new provider'))
+    await waitForProviders()
+    await clickProviderInList(user, 'Mistral')
+
+    await user.type(
+      await screen.findByPlaceholderText('Paste your Mistral API key'),
+      'sk-bad',
+    )
+    await user.click(getConnectButton())
+
+    await screen.findByText('Connection failed')
+    await user.click(screen.getByText('Cancel'))
+
+    expect(await screen.findByText('Connected providers')).toBeInTheDocument()
+  })
+
+  it('no back button on provider selection when it is the initial view', () => {
+    renderWithProviders(<ConnectFlowHarness />)
+
+    // Only the close button should exist in the header
+    const header = screen.getByText('Connect a provider').parentElement!
+    const buttons = header.querySelectorAll('button')
+    expect(buttons.length).toBe(1)
+  })
+
+  it('revoke flow returns to connected list after success', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ConnectFlowHarness initialView={{ type: 'connected-list' }} />,
+    )
+
+    // Click a connection card to view detail
+    await user.click(await screen.findByText('Active'))
+
+    // Click revoke
+    await user.click(await screen.findByText('Revoke access'))
+
+    // Confirm revoke
+    await user.click(await screen.findByText('Yes, revoke access'))
+
+    // Should show revoke success
+    expect(await screen.findByText('Access revoked')).toBeInTheDocument()
+
+    // Click back to providers
+    await user.click(screen.getByText('Back to providers'))
+
+    expect(await screen.findByText('Connected providers')).toBeInTheDocument()
   })
 })

@@ -2,6 +2,7 @@
 
 import { MoreHorizontal } from "lucide-react";
 import { ProviderBadge } from "@/components/provider-badge";
+import { ProviderLogo } from "./provider-logo";
 import { formatDate, type IntegrationResponse } from "./utils";
 
 export function IntegrationMobileCard({
@@ -16,11 +17,14 @@ export function IntegrationMobileCard({
   return (
     <div className="flex flex-col gap-3 border border-border bg-card p-4">
       <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-1">
-          <span className="text-[13px] font-medium text-foreground">
-            {integration.display_name}
-          </span>
-          <ProviderBadge provider={integration.provider} />
+        <div className="flex items-center gap-3">
+          <ProviderLogo providerId={integration.provider} size="size-8" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[13px] font-medium text-foreground">
+              {integration.display_name}
+            </span>
+            <ProviderBadge provider={integration.provider} />
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
