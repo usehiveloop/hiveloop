@@ -1,0 +1,167 @@
+package middleware
+
+import (
+	"net/http"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
+
+	"github.com/useportal/llmvault/internal/cache"
+	"github.com/useportal/llmvault/internal/model"
+)
+
+// APIKeyAuth returns middleware that authenticates requests using self-issued API keys (llmv_sk_*).
+// It checks the in-memory cache first, then falls back to the database.
+func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rawKey := extractBearerToken(r)
+			if rawKey == "" {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization header"})
+				return
+			}
+
+			if !strings.HasPrefix(rawKey, "llmv_sk_") {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid api key format"})
+				return
+			}
+
+			keyHash := model.HashAPIKey(rawKey)
+
+			// L1: Check in-memory cache
+			if cached, ok := keyCache.Get(keyHash); ok {
+				var org model.Org
+				if err := db.Where("id = ?", cached.OrgID).First(&org).Error; err != nil {
+					writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "organization not found"})
+					return
+				}
+				if !org.Active {
+					writeJSON(w, http.StatusForbidden, map[string]string{"error": "organization is inactive"})
+					return
+				}
+
+				claims := &APIKeyClaims{
+					KeyID:  cached.ID.String(),
+					OrgID:  cached.OrgID.String(),
+					Scopes: cached.Scopes,
+				}
+				r = WithOrg(r, &org)
+				r = WithAPIKeyClaims(r, claims)
+
+				go db.Model(&model.APIKey{}).Where("id = ?", cached.ID).
+					Update("last_used_at", time.Now())
+
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// L2: Database lookup
+			var apiKey model.APIKey
+			if err := db.Preload("Org").Where("key_hash = ? AND revoked_at IS NULL", keyHash).
+				First(&apiKey).Error; err != nil {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid api key"})
+				return
+			}
+
+			if apiKey.ExpiresAt != nil && time.Now().After(*apiKey.ExpiresAt) {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "api key expired"})
+				return
+			}
+
+			if !apiKey.Org.Active {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "organization is inactive"})
+				return
+			}
+
+			// Promote to cache
+			keyCache.Set(keyHash, &cache.CachedAPIKey{
+				ID:        apiKey.ID,
+				OrgID:     apiKey.OrgID,
+				Scopes:    apiKey.Scopes,
+				ExpiresAt: apiKey.ExpiresAt,
+			})
+
+			claims := &APIKeyClaims{
+				KeyID:  apiKey.ID.String(),
+				OrgID:  apiKey.OrgID.String(),
+				Scopes: apiKey.Scopes,
+			}
+			r = WithOrg(r, &apiKey.Org)
+			r = WithAPIKeyClaims(r, claims)
+
+			go db.Model(&apiKey).Update("last_used_at", time.Now())
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// MultiAuth dispatches authentication based on the bearer token prefix:
+// - "llmv_sk_*" → API Key auth
+// - everything else → Logto JWT auth
+func MultiAuth(logtoAuth *LogtoAuth, db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
+	logtoMW := logtoAuth.RequireAuthorization()
+	apiKeyMW := APIKeyAuth(db, keyCache)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := extractBearerToken(r)
+			if token == "" {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization"})
+				return
+			}
+
+			if strings.HasPrefix(token, "llmv_sk_") {
+				apiKeyMW(next).ServeHTTP(w, r)
+			} else {
+				logtoMW(next).ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+// ResolveOrgFlexible resolves the org from context. If already set (by API key auth), it's a no-op.
+// Otherwise, falls back to Logto-based org resolution.
+func ResolveOrgFlexible(db *gorm.DB) func(http.Handler) http.Handler {
+	logtoResolve := ResolveOrg(db)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := OrgFromContext(r.Context()); ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+			logtoResolve(next).ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireAPIKeyScopeOrLogto enforces scope checking for API key auth.
+// Logto JWT requests pass through unchecked (they use Logto's own scope system).
+func RequireAPIKeyScopeOrLogto(scope string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Logto-authenticated requests bypass scope checks
+			if _, ok := LogtoClaimsFromContext(r.Context()); ok {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			claims, ok := APIKeyClaimsFromContext(r.Context())
+			if !ok {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
+				return
+			}
+
+			for _, s := range claims.Scopes {
+				if s == scope || s == "all" {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "api key lacks required scope: " + scope})
+		})
+	}
+}

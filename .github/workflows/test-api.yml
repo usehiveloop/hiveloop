@@ -1,0 +1,176 @@
+name: test-api
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  ENVIRONMENT: development
+  PORT: 8080
+  LOG_LEVEL: info
+  LOG_FORMAT: json
+  POSTGRES_USER: llmvault
+  POSTGRES_PASSWORD: localdev
+  POSTGRES_DB: llmvault
+  POSTGRES_PORT: 5433
+  DB_HOST: localhost
+  DB_PORT: 5433
+  DB_USER: llmvault
+  DB_PASSWORD: localdev
+  DB_NAME: llmvault
+  DB_SSLMODE: disable
+  KMS_TYPE: aead
+  KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
+  REDIS_ADDR: localhost:6379
+  REDIS_DB: 0
+  REDIS_CACHE_TTL: 30m
+  MEM_CACHE_TTL: 5m
+  MEM_CACHE_MAX_SIZE: 10000
+  JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
+  CORS_ORIGINS: http://localhost:3000
+  VAULT_TOKEN: llmvault-dev-token
+  VAULT_ADDRESS: http://localhost:8200
+  LOGTO_ENDPOINT: https://auth.dev.llmvault.dev
+  LOGTO_AUDIENCE: https://api.llmvault.dev
+  LOGTO_M2M_APP_ID: ${{ secrets.LOGTO_M2M_APP_ID }}
+  LOGTO_M2M_APP_SECRET: ${{ secrets.LOGTO_M2M_APP_SECRET }}
+  LOGTO_TEST_APP_ID: ${{ secrets.LOGTO_TEST_APP_ID }}
+  LOGTO_TEST_APP_SECRET: ${{ secrets.LOGTO_TEST_APP_SECRET }}
+  NANGO_ENDPOINT: https://integrations.dev.llmvault.dev
+  NANGO_SECRET_KEY: ${{ secrets.NANGO_SECRET_KEY }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+
+jobs:
+  test-logto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run logto tests
+        run: make test-logto
+        timeout-minutes: 5
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  test-nango:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run nango tests
+        run: make test-nango
+        timeout-minutes: 5
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  test-proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run proxy tests
+        run: make test-proxy
+        timeout-minutes: 5
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  test-connect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run connect tests
+        run: make test-connect
+        timeout-minutes: 5
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  test-vault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run vault tests
+        run: make test-vault
+        timeout-minutes: 5
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  test-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: start infrastructure
+        run: make test-setup
+        timeout-minutes: 5
+      - name: run internal + core e2e tests
+        run: |
+          go test ./internal/... -v -race -count=1
+          go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Credential|TestE2E_Token|TestE2E_Pagination|TestE2E_Identity|TestE2E_Provider|TestE2E_Registry|TestE2E_AuditEntry"
+        timeout-minutes: 10
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  results:
+    if: always()
+    needs: [test-logto, test-nango, test-proxy, test-connect, test-vault, test-core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: check results
+        run: |
+          if [ "${{ needs.test-logto.result }}" != "success" ] || \
+             [ "${{ needs.test-nango.result }}" != "success" ] || \
+             [ "${{ needs.test-proxy.result }}" != "success" ] || \
+             [ "${{ needs.test-connect.result }}" != "success" ] || \
+             [ "${{ needs.test-vault.result }}" != "success" ] || \
+             [ "${{ needs.test-core.result }}" != "success" ]; then
+            echo "One or more test jobs failed"
+            exit 1
+          fi
+          echo "All test jobs passed"

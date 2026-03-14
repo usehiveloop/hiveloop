@@ -1,0 +1,1509 @@
+basePath: /
+definitions:
+  github_com_useportal_llmvault_internal_model.JSON:
+    additionalProperties: {}
+    type: object
+  github_com_useportal_llmvault_internal_registry.Cost:
+    properties:
+      input:
+        type: number
+      output:
+        type: number
+    type: object
+  github_com_useportal_llmvault_internal_registry.Limit:
+    properties:
+      context:
+        type: integer
+      output:
+        type: integer
+    type: object
+  github_com_useportal_llmvault_internal_registry.Modalities:
+    properties:
+      input:
+        items:
+          type: string
+        type: array
+      output:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.apiKeyResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      key_prefix:
+        type: string
+      last_used_at:
+        type: string
+      name:
+        type: string
+      revoked_at:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.apiKeyStats:
+    properties:
+      active:
+        type: integer
+      revoked:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.connectSessionResponse:
+    properties:
+      allowed_origins:
+        items:
+          type: string
+        type: array
+      allowed_providers:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      session_token:
+        type: string
+    type: object
+  internal_handler.connectSettingsRequest:
+    properties:
+      allowed_origins:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.connectSettingsResponse:
+    properties:
+      allowed_origins:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.connectionResponse:
+    properties:
+      auth_scheme:
+        type: string
+      base_url:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      label:
+        type: string
+      provider_id:
+        type: string
+      provider_name:
+        type: string
+    type: object
+  internal_handler.createAPIKeyRequest:
+    properties:
+      expires_in:
+        description: Go duration, e.g. "720h"
+        type: string
+      name:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.createAPIKeyResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      key_prefix:
+        type: string
+      name:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.createConnectSessionRequest:
+    properties:
+      allowed_origins:
+        items:
+          type: string
+        type: array
+      allowed_providers:
+        items:
+          type: string
+        type: array
+      external_id:
+        type: string
+      identity_id:
+        type: string
+      metadata:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      permissions:
+        items:
+          type: string
+        type: array
+      ttl:
+        type: string
+    type: object
+  internal_handler.createConnectionRequest:
+    properties:
+      api_key:
+        type: string
+      label:
+        type: string
+      provider_id:
+        type: string
+    type: object
+  internal_handler.createCredentialRequest:
+    properties:
+      api_key:
+        type: string
+      auth_scheme:
+        type: string
+      base_url:
+        type: string
+      external_id:
+        description: auto-upserts identity
+        type: string
+      identity_id:
+        type: string
+      label:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+    type: object
+  internal_handler.createIdentityRequest:
+    properties:
+      external_id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      ratelimits:
+        items:
+          $ref: '#/definitions/internal_handler.identityRateLimitParams'
+        type: array
+    type: object
+  internal_handler.createOrgRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  internal_handler.credentialResponse:
+    properties:
+      auth_scheme:
+        type: string
+      base_url:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      label:
+        type: string
+      last_used_at:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      provider_id:
+        type: string
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+      request_count:
+        type: integer
+      revoked_at:
+        type: string
+    type: object
+  internal_handler.credentialStats:
+    properties:
+      active:
+        type: integer
+      revoked:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.dailyRequests:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+    type: object
+  internal_handler.errorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  internal_handler.identityRateLimitParams:
+    properties:
+      duration:
+        description: milliseconds
+        type: integer
+      limit:
+        type: integer
+      name:
+        type: string
+    type: object
+  internal_handler.identityResponse:
+    properties:
+      created_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      last_used_at:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      ratelimits:
+        items:
+          $ref: '#/definitions/internal_handler.identityRateLimitParams'
+        type: array
+      request_count:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_handler.identityStats:
+    properties:
+      total:
+        type: integer
+    type: object
+  internal_handler.mintTokenRequest:
+    properties:
+      credential_id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+      ttl:
+        description: e.g. "1h", "24h"
+        type: string
+    type: object
+  internal_handler.mintTokenResponse:
+    properties:
+      expires_at:
+        type: string
+      jti:
+        type: string
+      token:
+        type: string
+    type: object
+  internal_handler.modelSummary:
+    properties:
+      cost:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Cost'
+      family:
+        type: string
+      id:
+        type: string
+      knowledge:
+        type: string
+      limit:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Limit'
+      modalities:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_registry.Modalities'
+      name:
+        type: string
+      open_weights:
+        type: boolean
+      reasoning:
+        type: boolean
+      release_date:
+        type: string
+      status:
+        type: string
+      structured_output:
+        type: boolean
+      tool_call:
+        type: boolean
+    type: object
+  internal_handler.orgResponse:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: string
+      logto_org_id:
+        type: string
+      name:
+        type: string
+      rate_limit:
+        type: integer
+    type: object
+  internal_handler.paginatedResponse-internal_handler_apiKeyResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.apiKeyResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_connectionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.connectionResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_credentialResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.credentialResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_identityResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.identityResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.providerDetail:
+    properties:
+      api:
+        type: string
+      doc:
+        type: string
+      id:
+        type: string
+      models:
+        items:
+          $ref: '#/definitions/internal_handler.modelSummary'
+        type: array
+      name:
+        type: string
+    type: object
+  internal_handler.providerSummary:
+    properties:
+      api:
+        type: string
+      doc:
+        type: string
+      id:
+        type: string
+      model_count:
+        type: integer
+      name:
+        type: string
+    type: object
+  internal_handler.requestStats:
+    properties:
+      last_7d:
+        type: integer
+      last_30d:
+        type: integer
+      today:
+        type: integer
+      total:
+        type: integer
+      yesterday:
+        type: integer
+    type: object
+  internal_handler.sessionInfoResponse:
+    properties:
+      activated_at:
+        type: string
+      allowed_providers:
+        items:
+          type: string
+        type: array
+      expires_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.tokenStats:
+    properties:
+      active:
+        type: integer
+      expired:
+        type: integer
+      revoked:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.topCredential:
+    properties:
+      id:
+        type: string
+      label:
+        type: string
+      provider_id:
+        type: string
+      request_count:
+        type: integer
+    type: object
+  internal_handler.updateIdentityRequest:
+    properties:
+      external_id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_useportal_llmvault_internal_model.JSON'
+      ratelimits:
+        items:
+          $ref: '#/definitions/internal_handler.identityRateLimitParams'
+        type: array
+    type: object
+  internal_handler.usageResponse:
+    properties:
+      api_keys:
+        $ref: '#/definitions/internal_handler.apiKeyStats'
+      credentials:
+        $ref: '#/definitions/internal_handler.credentialStats'
+      daily_requests:
+        items:
+          $ref: '#/definitions/internal_handler.dailyRequests'
+        type: array
+      identities:
+        $ref: '#/definitions/internal_handler.identityStats'
+      requests:
+        $ref: '#/definitions/internal_handler.requestStats'
+      tokens:
+        $ref: '#/definitions/internal_handler.tokenStats'
+      top_credentials:
+        items:
+          $ref: '#/definitions/internal_handler.topCredential'
+        type: array
+    type: object
+host: api.dev.llmvault.dev
+info:
+  contact: {}
+  description: Proxy bridge for LLM API credentials.
+  title: LLMVault API
+  version: "1.0"
+paths:
+  /v1/api-keys:
+    get:
+      description: Returns API keys for the current organization with cursor pagination.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_apiKeyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List API keys
+      tags:
+      - api-keys
+    post:
+      consumes:
+      - application/json
+      description: Creates a new API key for the current organization. The plaintext
+        key is returned once.
+      parameters:
+      - description: API key parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createAPIKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.createAPIKeyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an API key
+      tags:
+      - api-keys
+  /v1/api-keys/{id}:
+    delete:
+      description: Soft-deletes an API key by setting its revoked_at timestamp.
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke an API key
+      tags:
+      - api-keys
+  /v1/connect/sessions:
+    post:
+      consumes:
+      - application/json
+      description: Creates a short-lived session for the Connect widget. Requires
+        an identity_id or external_id to link the session to an end-user.
+      parameters:
+      - description: Session parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createConnectSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.connectSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a connect session
+      tags:
+      - connect-sessions
+  /v1/credentials:
+    get:
+      description: Returns credentials for the current organization with cursor-based
+        pagination and usage stats.
+      parameters:
+      - description: Filter by identity ID
+        in: query
+        name: identity_id
+        type: string
+      - description: Filter by identity external ID
+        in: query
+        name: external_id
+        type: string
+      - description: Filter by JSONB metadata (e.g. {\
+        in: query
+        name: meta
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_credentialResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List credentials
+      tags:
+      - credentials
+    post:
+      consumes:
+      - application/json
+      description: Stores an encrypted LLM API credential for the current organization.
+      parameters:
+      - description: Credential details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createCredentialRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.credentialResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a credential
+      tags:
+      - credentials
+  /v1/credentials/{id}:
+    delete:
+      description: Soft-deletes a credential by setting its revoked_at timestamp.
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.credentialResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a credential
+      tags:
+      - credentials
+  /v1/identities:
+    get:
+      description: Returns identities for the current organization with cursor-based
+        pagination and usage stats.
+      parameters:
+      - description: Filter by external ID
+        in: query
+        name: external_id
+        type: string
+      - description: Filter by JSONB metadata (e.g. {\
+        in: query
+        name: meta
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_identityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List identities
+      tags:
+      - identities
+    post:
+      consumes:
+      - application/json
+      description: Creates a new identity for the current organization.
+      parameters:
+      - description: Identity details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.identityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an identity
+      tags:
+      - identities
+  /v1/identities/{id}:
+    delete:
+      description: Permanently deletes an identity by ID.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an identity
+      tags:
+      - identities
+    get:
+      description: Returns a single identity by ID.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.identityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an identity
+      tags:
+      - identities
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing identity's external_id, metadata, or rate limits.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.identityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an identity
+      tags:
+      - identities
+  /v1/orgs:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new organization in Logto and stores a local record.
+      parameters:
+      - description: Organization name
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createOrgRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.orgResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an organization
+      tags:
+      - orgs
+  /v1/orgs/current:
+    get:
+      description: Returns the organization resolved from the request's auth context.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.orgResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current organization
+      tags:
+      - orgs
+  /v1/providers:
+    get:
+      description: Returns every provider in the catalog with a model count.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.providerSummary'
+            type: array
+      summary: List all providers
+      tags:
+      - providers
+  /v1/providers/{id}:
+    get:
+      description: Returns a single provider with its full model list.
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.providerDetail'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Get provider detail
+      tags:
+      - providers
+  /v1/providers/{id}/models:
+    get:
+      description: Returns the model catalog for a single provider.
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.modelSummary'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: List models for a provider
+      tags:
+      - providers
+  /v1/settings/connect:
+    get:
+      description: Returns the Connect widget settings for the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.connectSettingsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Connect settings
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Updates the Connect widget settings (e.g. allowed origins) for
+        the current organization.
+      parameters:
+      - description: Settings to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.connectSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.connectSettingsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Connect settings
+      tags:
+      - settings
+  /v1/tokens:
+    post:
+      consumes:
+      - application/json
+      description: Creates a short-lived JWT proxy token scoped to a credential.
+      parameters:
+      - description: Token minting parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.mintTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.mintTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mint a proxy token
+      tags:
+      - tokens
+  /v1/tokens/{jti}:
+    delete:
+      description: Revokes a proxy token by its JTI and propagates through cache tiers.
+      parameters:
+      - description: Token JTI
+        in: path
+        name: jti
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a proxy token
+      tags:
+      - tokens
+  /v1/usage:
+    get:
+      description: Returns aggregated usage statistics for the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.usageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get organization usage
+      tags:
+      - usage
+  /v1/widget/connections:
+    get:
+      description: Returns active connections (credentials) for the session's identity
+        with cursor pagination.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_connectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List connections
+      tags:
+      - widget
+    post:
+      consumes:
+      - application/json
+      description: Creates a new credential connection for the session's identity
+        via the widget.
+      parameters:
+      - description: Connection details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createConnectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.connectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a connection
+      tags:
+      - widget
+  /v1/widget/connections/{id}:
+    delete:
+      description: Revokes (soft-deletes) a connection owned by the session's identity.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a connection
+      tags:
+      - widget
+  /v1/widget/connections/{id}/verify:
+    post:
+      description: Decrypts the stored API key and verifies it against the provider.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Verify a connection
+      tags:
+      - widget
+  /v1/widget/providers:
+    get:
+      description: Returns providers available to the current session, filtered by
+        allowed_providers.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.providerSummary'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List providers for widget
+      tags:
+      - widget
+  /v1/widget/session:
+    get:
+      description: Returns details about the current Connect widget session.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.sessionInfoResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get session info
+      tags:
+      - widget
+schemes:
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Logto JWT bearer token (Management API) or Connect session token
+      (Widget API).
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

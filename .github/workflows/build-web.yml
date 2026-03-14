@@ -1,0 +1,26 @@
+name: build-web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+  pull_request:
+    paths:
+      - "apps/web/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=http://localhost:8080 \
+            --build-arg NEXT_PUBLIC_LOGTO_ISSUER=http://localhost:3001/oidc \
+            --build-arg NEXT_PUBLIC_CONNECT_URL=http://localhost:5173 \
+            --build-arg NEXT_PUBLIC_LOGTO_CLIENT_ID=placeholder \
+            -t llmvault-web \
+            ./apps/web

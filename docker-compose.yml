@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-llmvault}
+      POSTGRES_USER: ${POSTGRES_USER:-llmvault}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-llmvault}"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  # --- Mailpit (Email testing) ---
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    environment:
+      MP_DATA_FILE: /data/mailpit.db
+      MP_UI_BIND_ADDR: 0.0.0.0:8025
+      MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MP_SMTP_AUTH_ACCEPT_ANY: true
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+    volumes:
+      - mailpitdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025/livez"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- HashiCorp Vault (KMS for envelope encryption) ---
+  vault:
+    image: hashicorp/vault:1.18
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: llmvault-dev-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://0.0.0.0:8200
+    volumes:
+      - ./docker/vault/init.sh:/vault/init.sh:ro
+      - vaultdata:/vault/file
+    cap_add:
+      - IPC_LOCK
+    command: >
+      sh -c "
+        vault server -dev -dev-root-token-id=llmvault-dev-token -dev-listen-address=0.0.0.0:8200 &
+        sleep 2 &&
+        export VAULT_ADDR=http://localhost:8200 &&
+        export VAULT_TOKEN=llmvault-dev-token &&
+        /vault/init.sh &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  pgdata:
+  vaultdata:
+  mailpitdata:
