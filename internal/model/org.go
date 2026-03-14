@@ -33,6 +33,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&ConnectSession{},
 		&APIKey{},
 		&Integration{},
+		&Connection{},
 	); err != nil {
 		return err
 	}

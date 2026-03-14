@@ -24,6 +24,7 @@ import (
 	"github.com/useportal/llmvault/internal/handler"
 	"github.com/useportal/llmvault/internal/logging"
 	"github.com/useportal/llmvault/internal/logto"
+	"github.com/useportal/llmvault/internal/mcp/catalog"
 	"github.com/useportal/llmvault/internal/middleware"
 	"github.com/useportal/llmvault/internal/model"
 	"github.com/useportal/llmvault/internal/nango"
@@ -175,28 +176,34 @@ func run() error {
 		slog.Info("logto admin client ready")
 	}
 
-	// 12b. Nango client (OAuth integration proxy)
-	var nangoClient *nango.Client
-	if cfg.NangoEndpoint != "" && cfg.NangoSecretKey != "" {
-		nangoClient = nango.NewClient(cfg.NangoEndpoint, cfg.NangoSecretKey)
-		if err := nangoClient.FetchProviders(context.Background()); err != nil {
-			return fmt.Errorf("fetching Nango provider catalog: %w", err)
-		}
-		slog.Info("nango client ready", "providers", len(nangoClient.GetProviders()))
+	// 12b. Nango client (REQUIRED — OAuth integration proxy)
+	if cfg.NangoEndpoint == "" || cfg.NangoSecretKey == "" {
+		return fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
 	}
+	nangoClient := nango.NewClient(cfg.NangoEndpoint, cfg.NangoSecretKey)
+	if err := nangoClient.FetchProviders(context.Background()); err != nil {
+		return fmt.Errorf("fetching Nango provider catalog: %w", err)
+	}
+	slog.Info("nango client ready", "providers", len(nangoClient.GetProviders()))
+
+	// 12c. Actions catalog (embedded at build time)
+	actionsCatalog := catalog.Global()
+	slog.Info("actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
 	// 13. Handlers
 	credHandler := handler.NewCredentialHandler(database, kms, cacheManager, ctr)
-	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr)
+	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog)
 	identityHandler := handler.NewIdentityHandler(database)
 	providerHandler := handler.NewProviderHandler(reg)
 	connectSessionHandler := handler.NewConnectSessionHandler(database, reg)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg)
 	settingsHandler := handler.NewSettingsHandler(database)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
+	connectionHandler := handler.NewConnectionHandler(database)
 	orgHandler := handler.NewOrgHandler(database, logtoClient)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
+	auditHandler := handler.NewAuditHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, proxy.NewTransport())
 
 	// 14. Router
@@ -238,6 +245,7 @@ func run() error {
 
 				r.Get("/orgs/current", orgHandler.Current)
 				r.Get("/usage", usageHandler.Get)
+				r.Get("/audit", auditHandler.List)
 
 				// API key CRUD (any auth, no scope required)
 				r.Post("/api-keys", apiKeyHandler.Create)
@@ -278,11 +286,21 @@ func run() error {
 				// Integration operations — scope: "integrations"
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
+					r.Get("/integrations/providers", integrationHandler.ListProviders)
 					r.Post("/integrations", integrationHandler.Create)
 					r.Get("/integrations", integrationHandler.List)
 					r.Get("/integrations/{id}", integrationHandler.Get)
 					r.Put("/integrations/{id}", integrationHandler.Update)
 					r.Delete("/integrations/{id}", integrationHandler.Delete)
+					r.Post("/integrations/{id}/connections", connectionHandler.Create)
+					r.Get("/integrations/{id}/connections", connectionHandler.List)
+				})
+
+				// Connection operations — scope: "integrations"
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
+					r.Get("/connections/{id}", connectionHandler.Get)
+					r.Delete("/connections/{id}", connectionHandler.Revoke)
 				})
 
 				// Settings — scope: "all"

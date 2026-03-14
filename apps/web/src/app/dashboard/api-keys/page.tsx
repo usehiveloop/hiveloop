@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatusBadge } from "@/components/status-badge";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { $api } from "@/api/client";
 import { deriveStatus, formatDate, relativeTime, type APIKeyResponse, type CreateAPIKeyResult, type StatusFilter, type ModalState } from "./utils";
@@ -16,10 +17,44 @@ import { KeyCreatedDialog } from "./key-created-dialog";
 import { RevokeAPIKeyDialog } from "./revoke-api-key-dialog";
 import { APIKeyMobileCard } from "./api-key-mobile-card";
 
+const PAGE_SIZE = 20;
+
+const skeletonColumns = [
+  { width: "22%" },
+  { width: "16%" },
+  { width: "18%" },
+  { width: "8%" },
+  { width: "12%" },
+  { width: "14%" },
+  { width: "10%" },
+];
+
 export default function APIKeysPage() {
   const queryClient = useQueryClient();
-  const { data: page, isLoading } = $api.useQuery("get", "/v1/api-keys");
+  const [cursors, setCursors] = useState<string[]>([]);
+  const currentCursor = cursors[cursors.length - 1];
+
+  const { data: page, isLoading } = $api.useQuery("get", "/v1/api-keys", {
+    params: {
+      query: {
+        limit: PAGE_SIZE,
+        ...(currentCursor ? { cursor: currentCursor } : {}),
+      },
+    },
+  });
   const keys = page?.data ?? [];
+  const hasMore = page?.has_more ?? false;
+  const pageNumber = cursors.length + 1;
+
+  const goNext = useCallback(() => {
+    if (page?.next_cursor) {
+      setCursors((prev) => [...prev, page.next_cursor!]);
+    }
+  }, [page]);
+
+  const goPrev = useCallback(() => {
+    setCursors((prev) => prev.slice(0, -1));
+  }, []);
   const revokeMutation = $api.useMutation("delete", "/v1/api-keys/{id}", {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/v1/api-keys"] }),
   });
@@ -181,7 +216,7 @@ export default function APIKeysPage() {
       {/* Table */}
       <section className="flex shrink-0 flex-col px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8 lg:px-8">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading...</div>
+          <TableSkeleton columns={skeletonColumns} rows={6} />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
             <span className="text-sm text-muted-foreground">
@@ -195,6 +230,37 @@ export default function APIKeysPage() {
             keyExtractor={(row) => row.id ?? ""}
             mobileCard={(row) => <APIKeyMobileCard apiKey={row} onRevoke={() => { setRevokeTarget(row); setModal("revoke-confirm"); }} />}
           />
+        )}
+
+        {/* Pagination */}
+        {!isLoading && keys.length > 0 && (
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <span className="text-[13px] text-muted-foreground">
+              Page {pageNumber}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={cursors.length === 0}
+                onClick={goPrev}
+                className="h-8 gap-1 text-[13px]"
+              >
+                <ChevronLeft className="size-3.5" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasMore}
+                onClick={goNext}
+                className="h-8 gap-1 text-[13px]"
+              >
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
         )}
       </section>
 

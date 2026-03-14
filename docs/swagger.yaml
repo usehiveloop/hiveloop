@@ -1,5 +1,20 @@
 basePath: /
 definitions:
+  github_com_useportal_llmvault_internal_mcp.TokenScope:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      connection_id:
+        type: string
+      resources:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
   github_com_useportal_llmvault_internal_model.JSON:
     additionalProperties: {}
     type: object
@@ -56,6 +71,29 @@ definitions:
       revoked:
         type: integer
       total:
+        type: integer
+    type: object
+  internal_handler.auditEntryResponse:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      id:
+        type: integer
+      identity_id:
+        type: string
+      ip_address:
+        type: string
+      latency_ms:
+        type: integer
+      method:
+        type: string
+      path:
+        type: string
+      status:
         type: integer
     type: object
   internal_handler.connectSessionResponse:
@@ -315,6 +353,10 @@ definitions:
         type: string
       remaining:
         type: integer
+      scopes:
+        items:
+          $ref: '#/definitions/github_com_useportal_llmvault_internal_mcp.TokenScope'
+        type: array
       ttl:
         description: e.g. "1h", "24h"
         type: string
@@ -377,6 +419,17 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.apiKeyResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_auditEntryResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.auditEntryResponse'
         type: array
       has_more:
         type: boolean
@@ -650,6 +703,47 @@ paths:
       summary: Revoke an API key
       tags:
       - api-keys
+  /v1/audit:
+    get:
+      description: Returns audit log entries for the current organization with cursor
+        pagination. Cursor is the last-seen entry ID.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (entry ID) from previous response
+        in: query
+        name: cursor
+        type: string
+      - description: Filter by action (e.g. proxy.request, api.request)
+        in: query
+        name: action
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_auditEntryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List audit log entries
+      tags:
+      - audit
   /v1/connect/sessions:
     post:
       consumes:

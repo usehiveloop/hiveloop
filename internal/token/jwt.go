@@ -12,12 +12,18 @@ import (
 type Claims struct {
 	OrgID        string `json:"org_id"`
 	CredentialID string `json:"cred_id"`
+	ScopeHash    string `json:"scope_hash,omitempty"`
 	jwt.RegisteredClaims
+}
+
+// MintOptions holds optional parameters for token minting.
+type MintOptions struct {
+	ScopeHash string // SHA-256 hash of scope rules, if scopes are present
 }
 
 // Mint creates a signed JWT with the given claims and TTL.
 // Returns the token string and the JTI.
-func Mint(signingKey []byte, orgID, credentialID string, ttl time.Duration) (string, string, error) {
+func Mint(signingKey []byte, orgID, credentialID string, ttl time.Duration, opts ...MintOptions) (string, string, error) {
 	jti := uuid.New().String()
 	now := time.Now()
 
@@ -29,6 +35,10 @@ func Mint(signingKey []byte, orgID, credentialID string, ttl time.Duration) (str
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 		},
+	}
+
+	if len(opts) > 0 && opts[0].ScopeHash != "" {
+		claims.ScopeHash = opts[0].ScopeHash
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -11,6 +11,8 @@ import (
 
 	"github.com/useportal/llmvault/internal/cache"
 	"github.com/useportal/llmvault/internal/counter"
+	"github.com/useportal/llmvault/internal/mcp"
+	"github.com/useportal/llmvault/internal/mcp/catalog"
 	"github.com/useportal/llmvault/internal/middleware"
 	"github.com/useportal/llmvault/internal/model"
 	"github.com/useportal/llmvault/internal/token"
@@ -22,20 +24,22 @@ type TokenHandler struct {
 	signingKey   []byte
 	cacheManager *cache.Manager
 	counter      *counter.Counter
+	catalog      *catalog.Catalog
 }
 
 // NewTokenHandler creates a new token handler.
-func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager, ctr *counter.Counter) *TokenHandler {
-	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm, counter: ctr}
+func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager, ctr *counter.Counter, cat *catalog.Catalog) *TokenHandler {
+	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm, counter: ctr, catalog: cat}
 }
 
 type mintTokenRequest struct {
-	CredentialID   string     `json:"credential_id"`
-	TTL            string     `json:"ttl"` // e.g. "1h", "24h"
-	Remaining      *int64     `json:"remaining,omitempty"`
-	RefillAmount   *int64     `json:"refill_amount,omitempty"`
-	RefillInterval *string    `json:"refill_interval,omitempty"`
-	Meta           model.JSON `json:"meta,omitempty"`
+	CredentialID   string           `json:"credential_id"`
+	TTL            string           `json:"ttl"` // e.g. "1h", "24h"
+	Remaining      *int64           `json:"remaining,omitempty"`
+	RefillAmount   *int64           `json:"refill_amount,omitempty"`
+	RefillInterval *string          `json:"refill_interval,omitempty"`
+	Scopes         []mcp.TokenScope `json:"scopes,omitempty"`
+	Meta           model.JSON       `json:"meta,omitempty"`
 }
 
 type mintTokenResponse struct {
@@ -117,8 +121,42 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate scopes against catalog and database
+	if len(req.Scopes) > 0 && h.catalog != nil {
+		if err := mcp.ValidateScopes(h.db, org.ID, h.catalog, req.Scopes); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+
+	// Compute scope hash for JWT claims
+	var mintOpts []token.MintOptions
+	var scopesJSON model.JSON
+	if len(req.Scopes) > 0 {
+		scopeHash, err := mcp.ScopeHash(req.Scopes)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to compute scope hash"})
+			return
+		}
+		mintOpts = append(mintOpts, token.MintOptions{ScopeHash: scopeHash})
+
+		// Serialize scopes to JSON for storage
+		scopeBytes, err := json.Marshal(req.Scopes)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to serialize scopes"})
+			return
+		}
+		var scopeMap model.JSON
+		if err := json.Unmarshal(scopeBytes, &scopeMap); err != nil {
+			// Scopes is an array, store it under a "scopes" key
+			scopesJSON = model.JSON{"scopes": req.Scopes}
+		} else {
+			scopesJSON = scopeMap
+		}
+	}
+
 	// Mint the JWT
-	tokenStr, jti, err := token.Mint(h.signingKey, org.ID.String(), cred.ID.String(), ttl)
+	tokenStr, jti, err := token.Mint(h.signingKey, org.ID.String(), cred.ID.String(), ttl, mintOpts...)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mint token"})
 		return
@@ -134,6 +172,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Remaining:      req.Remaining,
 		RefillAmount:   req.RefillAmount,
 		RefillInterval: req.RefillInterval,
+		Scopes:         scopesJSON,
 		Meta:           req.Meta,
 	}
 	if err := h.db.Create(&tokenRecord).Error; err != nil {

@@ -35,6 +35,7 @@ import (
 	"github.com/useportal/llmvault/internal/counter"
 	"github.com/useportal/llmvault/internal/crypto"
 	"github.com/useportal/llmvault/internal/handler"
+	"github.com/useportal/llmvault/internal/mcp/catalog"
 	"github.com/useportal/llmvault/internal/middleware"
 	"github.com/useportal/llmvault/internal/model"
 	"github.com/useportal/llmvault/internal/nango"
@@ -138,9 +139,12 @@ func newHarness(t *testing.T) *testHarness {
 	// Request-cap counter
 	ctr := counter.New(rc, db)
 
+	// Actions catalog
+	actionsCatalog := catalog.Global()
+
 	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
-	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr)
+	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog)
 	identityHandler := handler.NewIdentityHandler(db)
 
 	// Provider handler
@@ -164,8 +168,9 @@ func newHarness(t *testing.T) *testHarness {
 		t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 	}
 
-	// Integration handler
+	// Integration + connection handlers
 	integrationHandler := handler.NewIntegrationHandler(db, nangoClient)
+	connectionHandler := handler.NewConnectionHandler(db)
 
 	// Management routes (no Logto auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {
@@ -185,11 +190,16 @@ func newHarness(t *testing.T) *testHarness {
 		r.Post("/connect/sessions", connectSessionHandler.Create)
 		r.Get("/settings/connect", settingsHandler.GetConnectSettings)
 		r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
+		r.Get("/integrations/providers", integrationHandler.ListProviders)
 		r.Post("/integrations", integrationHandler.Create)
 		r.Get("/integrations", integrationHandler.List)
 		r.Get("/integrations/{id}", integrationHandler.Get)
 		r.Put("/integrations/{id}", integrationHandler.Update)
 		r.Delete("/integrations/{id}", integrationHandler.Delete)
+		r.Post("/integrations/{id}/connections", connectionHandler.Create)
+		r.Get("/integrations/{id}/connections", connectionHandler.List)
+		r.Get("/connections/{id}", connectionHandler.Get)
+		r.Delete("/connections/{id}", connectionHandler.Revoke)
 	})
 
 	// Connect API (session-authenticated)
@@ -252,6 +262,7 @@ func (h *testHarness) createOrg(t *testing.T) model.Org {
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		h.db.Where("identity_id IN (SELECT id FROM identities WHERE org_id = ?)", org.ID).Delete(&model.IdentityRateLimit{})
 		h.db.Where("org_id = ?", org.ID).Delete(&model.Identity{})
+		h.db.Where("org_id = ?", org.ID).Delete(&model.Connection{})
 		h.db.Unscoped().Where("org_id = ?", org.ID).Delete(&model.Integration{})
 		h.db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})

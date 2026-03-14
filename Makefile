@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-models generate docker-build docker-run test-clean test-clean-logto test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-logto test-nango test-proxy test-connect test-vault test-integrations test-setup vault-up vault-dev openapi
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-models fetch-actions generate docker-build docker-run test-clean test-clean-logto test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-logto test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -7,6 +7,10 @@ IMAGE   ?= llmvault/llmvault
 # Fetch models.dev provider catalog and write internal/registry/models.json
 fetch-models:
 	go run ./cmd/fetchmodels
+
+# Fetch Nango provider catalog and write internal/mcp/catalog/actions.json
+fetch-actions:
+	go run ./cmd/fetchactions
 
 # Regenerate OpenAPI spec from handler annotations (Swagger 2.0 → OpenAPI 3.0, clean schema names)
 openapi:
@@ -24,8 +28,8 @@ openapi:
 	"
 	@echo "✓ docs/openapi.json updated"
 
-# Generate all embedded assets (currently just models)
-generate: fetch-models
+# Generate all embedded assets
+generate: fetch-models fetch-actions
 
 # Build the binary
 build:
@@ -87,6 +91,10 @@ test-connect:
 # Vault KMS e2e tests
 test-vault:
 	go test ./e2e/... -v -count=1 -timeout=5m -run "TestVaultE2E"
+
+# Connection + scoped token e2e tests
+test-connections:
+	go test ./e2e/... -v -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
 
 # All integration e2e tests (nango + connect + proxy + vault)
 test-integrations:

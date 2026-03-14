@@ -18,6 +18,7 @@ type Token struct {
 	RefillAmount   *int64     `gorm:"column:refill_amount"`
 	RefillInterval *string    `gorm:"column:refill_interval"`
 	LastRefillAt   *time.Time `gorm:"column:last_refill_at"`
+	Scopes         JSON       `gorm:"type:jsonb"`
 	Meta           JSON       `gorm:"type:jsonb;default:'{}'"`
 	RevokedAt      *time.Time
 	CreatedAt      time.Time

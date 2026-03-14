@@ -226,6 +226,88 @@
         }
       }
     },
+    "/v1/audit": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns audit log entries for the current organization with cursor pagination. Cursor is the last-seen entry ID.",
+        "tags": [
+          "audit"
+        ],
+        "summary": "List audit log entries",
+        "parameters": [
+          {
+            "description": "Max items per page (1-100, default 50)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor (entry ID) from previous response",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by action (e.g. proxy.request, api.request)",
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-auditEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/connect/sessions": {
       "post": {
         "security": [
@@ -1895,6 +1977,29 @@
       }
     },
     "schemas": {
+      "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "JSON": {
         "type": "object",
         "additionalProperties": {}
@@ -1980,6 +2085,41 @@
             "type": "integer"
           },
           "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "auditEntryResponse": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
             "type": "integer"
           }
         }
@@ -2377,6 +2517,12 @@
           "remaining": {
             "type": "integer"
           },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/github_com_useportal_llmvault_internal_mcp.TokenScope"
+            }
+          },
           "ttl": {
             "description": "e.g. \"1h\", \"24h\"",
             "type": "string"
@@ -2471,6 +2617,23 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/apiKeyResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-auditEntryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/auditEntryResponse"
             }
           },
           "has_more": {

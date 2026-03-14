@@ -1,40 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { Search, ChevronDown, Download } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { $api } from "@/api/client";
+import type { components } from "@/api/schema";
 
+type AuditEntry = components["schemas"]["auditEntryResponse"];
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+type ActionFilter = "All" | "Proxy" | "Management";
 
-type AuditEvent = {
-  id: string;
-  timestamp: string;
-  credential: string | null;
-  method: HttpMethod;
-  path: string;
-  status: number;
-  latency: string;
-  ipAddress: string;
-  category: "proxy" | "management";
+const PAGE_SIZE = 50;
+
+const actionQueryMap: Record<ActionFilter, string | undefined> = {
+  All: undefined,
+  Proxy: "proxy.request",
+  Management: "api.request",
 };
 
-const events: AuditEvent[] = [
-  { id: "1", timestamp: "Mar 9, 14:23:41", credential: "prod-openai-main", method: "POST", path: "/v1/chat/completions", status: 200, latency: "234ms", ipAddress: "192.168.1.42", category: "proxy" },
-  { id: "2", timestamp: "Mar 9, 14:22:18", credential: null, method: "POST", path: "/v1/credentials", status: 201, latency: "45ms", ipAddress: "10.0.3.15", category: "management" },
-  { id: "3", timestamp: "Mar 9, 14:21:05", credential: "staging-anthropic", method: "POST", path: "/v1/chat/completions", status: 429, latency: "12ms", ipAddress: "203.0.113.7", category: "proxy" },
-  { id: "4", timestamp: "Mar 9, 14:19:33", credential: "prod-openai-main", method: "GET", path: "/v1/models", status: 200, latency: "45ms", ipAddress: "192.168.1.42", category: "proxy" },
-  { id: "5", timestamp: "Mar 9, 14:17:52", credential: "prod-gemini-flash", method: "POST", path: "/v1/chat/completions", status: 500, latency: "1,203ms", ipAddress: "172.16.0.89", category: "proxy" },
-  { id: "6", timestamp: "Mar 9, 14:15:09", credential: null, method: "DELETE", path: "/v1/tokens/ptok_3b7a…c812", status: 200, latency: "23ms", ipAddress: "10.0.3.15", category: "management" },
-  { id: "7", timestamp: "Mar 9, 14:12:44", credential: "cohere-embed-v3", method: "POST", path: "/v1/embeddings", status: 200, latency: "89ms", ipAddress: "10.0.3.15", category: "proxy" },
-  { id: "8", timestamp: "Mar 9, 14:10:21", credential: null, method: "GET", path: "/v1/identities", status: 200, latency: "31ms", ipAddress: "10.0.3.15", category: "management" },
-];
-
-type EventFilter = "All" | "Proxy" | "Management";
-const filterCounts: Record<EventFilter, number> = { All: 2847, Proxy: 2691, Management: 156 };
-
-const methodConfig: Record<HttpMethod, { bg: string; text: string }> = {
+const methodConfig: Record<string, { bg: string; text: string }> = {
   GET: { bg: "#3B82F614", text: "#3B82F6" },
   POST: { bg: "#22C55E14", text: "#22C55E" },
   PUT: { bg: "#F59E0B14", text: "#F59E0B" },
@@ -42,8 +29,8 @@ const methodConfig: Record<HttpMethod, { bg: string; text: string }> = {
   DELETE: { bg: "#EF444414", text: "#EF4444" },
 };
 
-function MethodBadge({ method }: { method: HttpMethod }) {
-  const config = methodConfig[method];
+function MethodBadge({ method }: { method: string }) {
+  const config = methodConfig[method] ?? { bg: "#71717A14", text: "#71717A" };
   return (
     <span
       className="inline-block rounded-lg px-2.5 py-0.75 text-[11px] font-semibold"
@@ -60,100 +47,173 @@ function statusColor(status: number): string {
   return "#EF4444";
 }
 
-const columns: DataTableColumn<AuditEvent>[] = [
+function formatTimestamp(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatLatency(ms: number): string {
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${ms}ms`;
+}
+
+function truncateId(id: string): string {
+  if (id.length <= 12) return id;
+  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+}
+
+const skeletonColumns = [
+  { width: "14%" },
+  { width: "14%" },
+  { width: "8%" },
+  { width: "26%" },
+  { width: "8%" },
+  { width: "10%" },
+  { width: "20%" },
+];
+
+const columns: DataTableColumn<AuditEntry>[] = [
   {
     id: "timestamp",
     header: "Timestamp",
     width: "14%",
     cellClassName: "text-[13px] text-foreground",
-    cell: (row) => row.timestamp,
+    cell: (row) => row.created_at ? formatTimestamp(row.created_at) : "",
   },
   {
     id: "credential",
     header: "Credential",
     width: "14%",
     cellClassName: "font-mono text-xs text-muted-foreground",
-    cell: (row) => row.credential ?? "—",
+    cell: (row) => row.credential_id ? truncateId(row.credential_id) : "—",
   },
   {
     id: "method",
     header: "Method",
     width: "8%",
-    cell: (row) => <MethodBadge method={row.method} />,
+    cell: (row) => row.method ? <MethodBadge method={row.method} /> : "—",
   },
   {
     id: "path",
     header: "Path",
     width: "26%",
     cellClassName: "font-mono text-[13px] text-foreground",
-    cell: (row) => row.path,
+    cell: (row) => row.path ?? "",
   },
   {
     id: "status",
     header: "Status",
     width: "8%",
-    cell: (row) => (
-      <span className="font-mono text-[13px]" style={{ color: statusColor(row.status) }}>
-        {row.status}
-      </span>
-    ),
+    cell: (row) =>
+      row.status ? (
+        <span className="font-mono text-[13px]" style={{ color: statusColor(row.status) }}>
+          {row.status}
+        </span>
+      ) : (
+        "—"
+      ),
   },
   {
     id: "latency",
     header: "Latency",
     width: "10%",
     cellClassName: "font-mono text-[13px] text-muted-foreground",
-    cell: (row) => row.latency,
+    cell: (row) => (row.latency_ms != null ? formatLatency(row.latency_ms) : "—"),
   },
   {
     id: "ipAddress",
     header: "IP Address",
     width: "20%",
     cellClassName: "font-mono text-[13px] text-dim",
-    cell: (row) => row.ipAddress,
+    cell: (row) => row.ip_address ?? "—",
   },
 ];
 
-function MobileCard({ event }: { event: AuditEvent }) {
+function MobileCard({ event }: { event: AuditEntry }) {
   return (
     <div className="flex flex-col gap-3 border border-border bg-card p-4">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] text-foreground">{event.timestamp}</span>
+          <span className="text-[13px] text-foreground">
+            {event.created_at ? formatTimestamp(event.created_at) : ""}
+          </span>
           <span className="font-mono text-[11px] text-muted-foreground">
-            {event.credential ?? "—"}
+            {event.credential_id ? truncateId(event.credential_id) : "—"}
           </span>
         </div>
-        <MethodBadge method={event.method} />
+        {event.method && <MethodBadge method={event.method} />}
       </div>
       <span className="font-mono text-[13px] text-foreground">{event.path}</span>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-mono" style={{ color: statusColor(event.status) }}>
-          {event.status}
+        {event.status ? (
+          <span className="font-mono" style={{ color: statusColor(event.status) }}>
+            {event.status}
+          </span>
+        ) : (
+          <span>—</span>
+        )}
+        <span className="font-mono text-muted-foreground">
+          {event.latency_ms != null ? formatLatency(event.latency_ms) : "—"}
         </span>
-        <span className="font-mono text-muted-foreground">{event.latency}</span>
-        <span className="font-mono text-dim">{event.ipAddress}</span>
+        <span className="font-mono text-dim">{event.ip_address ?? "—"}</span>
       </div>
     </div>
   );
 }
 
 export default function AuditLogPage() {
-  const [filter, setFilter] = useState<EventFilter>("All");
+  const [filter, setFilter] = useState<ActionFilter>("All");
   const [search, setSearch] = useState("");
+  const [cursors, setCursors] = useState<string[]>([]);
+  const currentCursor = cursors[cursors.length - 1];
 
-  const filtered = events.filter((e) => {
-    if (filter === "Proxy" && e.category !== "proxy") return false;
-    if (filter === "Management" && e.category !== "management") return false;
-    if (
-      search &&
-      !e.path.toLowerCase().includes(search.toLowerCase()) &&
-      !e.credential?.toLowerCase().includes(search.toLowerCase()) &&
-      !e.ipAddress.includes(search)
-    )
-      return false;
-    return true;
+  const actionQuery = actionQueryMap[filter];
+
+  const { data, isLoading } = $api.useQuery("get", "/v1/audit", {
+    params: {
+      query: {
+        limit: PAGE_SIZE,
+        ...(currentCursor ? { cursor: currentCursor } : {}),
+        ...(actionQuery ? { action: actionQuery } : {}),
+      },
+    },
   });
+
+  const entries = data?.data ?? [];
+  const hasMore = data?.has_more ?? false;
+  const pageNumber = cursors.length + 1;
+
+  const filtered = search
+    ? entries.filter(
+        (e) =>
+          (e.path ?? "").toLowerCase().includes(search.toLowerCase()) ||
+          (e.credential_id ?? "").toLowerCase().includes(search.toLowerCase()) ||
+          (e.ip_address ?? "").includes(search),
+      )
+    : entries;
+
+  const goNext = useCallback(() => {
+    if (data?.next_cursor) {
+      setCursors((prev) => [...prev, data.next_cursor!]);
+    }
+  }, [data]);
+
+  const goPrev = useCallback(() => {
+    setCursors((prev) => prev.slice(0, -1));
+  }, []);
+
+  // Reset pagination when filter changes
+  const setFilterAndReset = useCallback((f: ActionFilter) => {
+    setFilter(f);
+    setCursors([]);
+  }, []);
 
   return (
     <>
@@ -172,10 +232,6 @@ export default function AuditLogPage() {
               className="w-[145px] pl-9 font-mono text-[13px]"
             />
           </div>
-          <Button size="lg">
-            <Download className="size-3.5" />
-            Export
-          </Button>
         </div>
       </header>
 
@@ -193,36 +249,70 @@ export default function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <section className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-4 sm:px-6 lg:px-8">
-        {(["All", "Proxy", "Management"] as EventFilter[]).map((tab) => (
+      <section className="flex shrink-0 items-center gap-2 px-4 pt-4 sm:px-6 lg:px-8">
+        {(["All", "Proxy", "Management"] as ActionFilter[]).map((tab) => (
           <button
             key={tab}
-            onClick={() => setFilter(tab)}
+            onClick={() => setFilterAndReset(tab)}
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               filter === tab
                 ? "bg-primary/8 text-chart-2"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab} ({filterCounts[tab].toLocaleString()})
+            {tab}
           </button>
         ))}
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
-        <button className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
-          Last 7 days
-          <ChevronDown className="size-2.5" />
-        </button>
       </section>
 
       {/* Table */}
-      <section className="flex shrink-0 flex-col px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8">
-        <DataTable
-          columns={columns}
-          data={filtered}
-          keyExtractor={(row) => row.id}
-          mobileCard={(row) => <MobileCard event={row} />}
-          minWidth={1048}
-        />
+      <section className="flex shrink-0 flex-col px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8 lg:px-8">
+        {isLoading ? (
+          <TableSkeleton columns={skeletonColumns} rows={8} />
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16">
+            <span className="text-sm text-muted-foreground">
+              {entries.length === 0 ? "No audit log entries yet." : "No entries match your search."}
+            </span>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filtered}
+            keyExtractor={(row) => String(row.id ?? "")}
+            mobileCard={(row) => <MobileCard event={row} />}
+            minWidth={1048}
+          />
+        )}
+
+        {/* Pagination */}
+        {!isLoading && entries.length > 0 && (
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <span className="text-[13px] text-muted-foreground">Page {pageNumber}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={cursors.length === 0}
+                onClick={goPrev}
+                className="h-8 gap-1 text-[13px]"
+              >
+                <ChevronLeft className="size-3.5" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasMore}
+                onClick={goNext}
+                className="h-8 gap-1 text-[13px]"
+              >
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
     </>
   );

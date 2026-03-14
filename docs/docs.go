@@ -188,6 +188,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/audit": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns audit log entries for the current organization with cursor pagination. Cursor is the last-seen entry ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List audit log entries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items per page (1-100, default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (entry ID) from previous response",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action (e.g. proxy.request, api.request)",
+                        "name": "action",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_auditEntryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/connect/sessions": {
             "post": {
                 "security": [
@@ -1508,6 +1571,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_useportal_llmvault_internal_mcp.TokenScope": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "connection_id": {
+                    "type": "string"
+                },
+                "resources": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "github_com_useportal_llmvault_internal_model.JSON": {
             "type": "object",
             "additionalProperties": {}
@@ -1593,6 +1679,41 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handler.auditEntryResponse": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "credential_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "identity_id": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "latency_ms": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "integer"
                 }
             }
@@ -1990,6 +2111,12 @@ const docTemplate = `{
                 "remaining": {
                     "type": "integer"
                 },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_useportal_llmvault_internal_mcp.TokenScope"
+                    }
+                },
                 "ttl": {
                     "description": "e.g. \"1h\", \"24h\"",
                     "type": "string"
@@ -2084,6 +2211,23 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.apiKeyResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.paginatedResponse-internal_handler_auditEntryResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.auditEntryResponse"
                     }
                 },
                 "has_more": {

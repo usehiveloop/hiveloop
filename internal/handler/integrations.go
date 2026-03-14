@@ -185,18 +185,16 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate provider exists in Nango catalog
-	if h.nango != nil {
-		provider, found := h.nango.GetProvider(req.Provider)
-		if !found {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider %q", req.Provider)})
-			return
-		}
+	provider, found := h.nango.GetProvider(req.Provider)
+	if !found {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider %q", req.Provider)})
+		return
+	}
 
-		// Validate credentials against provider's auth_mode
-		if err := validateCredentials(provider, req.Credentials); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
-		}
+	// Validate credentials against provider's auth_mode
+	if err := validateCredentials(provider, req.Credentials); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
 	}
 
 	// Auto-generate unique_key (internal only, never exposed to users)
@@ -204,16 +202,14 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	uniqueKey := fmt.Sprintf("%s-%s", req.Provider, integID.String()[:8])
 
 	// Push to Nango first (source of truth for OAuth credentials)
-	if h.nango != nil {
-		nangoReq := nango.CreateIntegrationRequest{
-			UniqueKey:   nangoKey(org.ID, uniqueKey),
-			Provider:    req.Provider,
-			Credentials: req.Credentials,
-		}
-		if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create integration in Nango: " + err.Error()})
-			return
-		}
+	nangoReq := nango.CreateIntegrationRequest{
+		UniqueKey:   nangoKey(org.ID, uniqueKey),
+		Provider:    req.Provider,
+		Credentials: req.Credentials,
+	}
+	if err := h.nango.CreateIntegration(r.Context(), nangoReq); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create integration in Nango: " + err.Error()})
+		return
 	}
 
 	integ := model.Integration{
@@ -345,7 +341,7 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If credentials provided, validate and push to Nango
-	if req.Credentials != nil && h.nango != nil {
+	if req.Credentials != nil {
 		provider, found := h.nango.GetProvider(integ.Provider)
 		if !found {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider %q", integ.Provider)})
@@ -410,11 +406,9 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove from Nango
-	if h.nango != nil {
-		if err := h.nango.DeleteIntegration(r.Context(), nangoKey(org.ID, integ.UniqueKey)); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete integration from Nango: " + err.Error()})
-			return
-		}
+	if err := h.nango.DeleteIntegration(r.Context(), nangoKey(org.ID, integ.UniqueKey)); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete integration from Nango: " + err.Error()})
+		return
 	}
 
 	// Soft-delete
@@ -425,4 +419,19 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// ListProviders handles GET /v1/integrations/providers.
+func (h *IntegrationHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
+	providers := h.nango.GetProviders()
+	type providerInfo struct {
+		Name        string `json:"name"`
+		DisplayName string `json:"display_name"`
+		AuthMode    string `json:"auth_mode"`
+	}
+	resp := make([]providerInfo, len(providers))
+	for i, p := range providers {
+		resp[i] = providerInfo{Name: p.Name, DisplayName: p.DisplayName, AuthMode: p.AuthMode}
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

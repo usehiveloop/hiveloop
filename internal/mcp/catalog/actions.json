@@ -1,0 +1,245 @@
+{
+  "slack": {
+    "display_name": "Slack",
+    "actions": {
+      "list_channels": {
+        "display_name": "List Channels",
+        "description": "List all channels in the workspace",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "limit": { "type": "integer", "description": "Max results" }
+          }
+        }
+      },
+      "read_messages": {
+        "display_name": "Read Messages",
+        "description": "Read messages from a channel",
+        "resource_type": "channel",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "channel": { "type": "string", "description": "Channel ID" },
+            "limit": { "type": "integer", "description": "Max messages" }
+          },
+          "required": ["channel"]
+        }
+      },
+      "send_message": {
+        "display_name": "Send Message",
+        "description": "Send a message to a channel",
+        "resource_type": "channel",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "channel": { "type": "string", "description": "Channel ID" },
+            "text": { "type": "string", "description": "Message text" }
+          },
+          "required": ["channel", "text"]
+        }
+      }
+    }
+  },
+  "github": {
+    "display_name": "GitHub",
+    "actions": {
+      "list_repos": {
+        "display_name": "List Repositories",
+        "description": "List repositories for the authenticated user",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "per_page": {
+              "type": "integer",
+              "description": "Results per page"
+            },
+            "sort": {
+              "type": "string",
+              "description": "Sort field (created, updated, pushed, full_name)"
+            }
+          }
+        }
+      },
+      "list_issues": {
+        "display_name": "List Issues",
+        "description": "List issues in a repository",
+        "resource_type": "repo",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "description": "Repository (owner/name)"
+            },
+            "state": {
+              "type": "string",
+              "description": "Issue state (open, closed, all)"
+            }
+          },
+          "required": ["repo"]
+        }
+      },
+      "create_issue": {
+        "display_name": "Create Issue",
+        "description": "Create an issue in a repository",
+        "resource_type": "repo",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "description": "Repository (owner/name)"
+            },
+            "title": { "type": "string", "description": "Issue title" },
+            "body": { "type": "string", "description": "Issue body" }
+          },
+          "required": ["repo", "title"]
+        }
+      }
+    }
+  },
+  "google": {
+    "display_name": "Google",
+    "actions": {
+      "list_files": {
+        "display_name": "List Files",
+        "description": "List files in Google Drive",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "page_size": { "type": "integer", "description": "Max results" },
+            "q": { "type": "string", "description": "Search query" }
+          }
+        }
+      },
+      "list_events": {
+        "display_name": "List Events",
+        "description": "List calendar events",
+        "resource_type": "calendar",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "calendar_id": { "type": "string", "description": "Calendar ID" },
+            "max_results": { "type": "integer", "description": "Max events" }
+          },
+          "required": ["calendar_id"]
+        }
+      }
+    }
+  },
+  "notion": {
+    "display_name": "Notion",
+    "actions": {
+      "search": {
+        "display_name": "Search",
+        "description": "Search pages and databases in Notion",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "page_size": { "type": "integer", "description": "Max results" }
+          }
+        }
+      },
+      "get_page": {
+        "display_name": "Get Page",
+        "description": "Retrieve a Notion page",
+        "resource_type": "page",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "page_id": { "type": "string", "description": "Page ID" }
+          },
+          "required": ["page_id"]
+        }
+      },
+      "query_database": {
+        "display_name": "Query Database",
+        "description": "Query a Notion database",
+        "resource_type": "database",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "database_id": { "type": "string", "description": "Database ID" },
+            "page_size": { "type": "integer", "description": "Max results" }
+          },
+          "required": ["database_id"]
+        }
+      }
+    }
+  },
+  "linear": {
+    "display_name": "Linear",
+    "actions": {
+      "list_issues": {
+        "display_name": "List Issues",
+        "description": "List issues in Linear",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "integer",
+              "description": "Number of issues to fetch"
+            }
+          }
+        }
+      },
+      "create_issue": {
+        "display_name": "Create Issue",
+        "description": "Create an issue in Linear",
+        "resource_type": "team",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "team_id": { "type": "string", "description": "Team ID" },
+            "title": { "type": "string", "description": "Issue title" },
+            "description": {
+              "type": "string",
+              "description": "Issue description"
+            }
+          },
+          "required": ["team_id", "title"]
+        }
+      },
+      "list_projects": {
+        "display_name": "List Projects",
+        "description": "List projects in Linear",
+        "resource_type": "",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "integer",
+              "description": "Number of projects to fetch"
+            }
+          }
+        }
+      }
+    }
+  },
+  "asana": {
+    "display_name": "Asana",
+    "actions": {}
+  },
+  "jira": {
+    "display_name": "Jira",
+    "actions": {}
+  },
+  "salesforce": {
+    "display_name": "Salesforce",
+    "actions": {}
+  },
+  "hubspot": {
+    "display_name": "HubSpot",
+    "actions": {}
+  },
+  "zendesk": {
+    "display_name": "Zendesk",
+    "actions": {}
+  }
+}

@@ -34,6 +34,7 @@ import (
 	"github.com/useportal/llmvault/internal/counter"
 	"github.com/useportal/llmvault/internal/crypto"
 	"github.com/useportal/llmvault/internal/handler"
+	"github.com/useportal/llmvault/internal/mcp/catalog"
 	"github.com/useportal/llmvault/internal/middleware"
 	"github.com/useportal/llmvault/internal/model"
 	"github.com/useportal/llmvault/internal/proxy"
@@ -124,9 +125,12 @@ func newVaultHarness(t *testing.T) *vaultTestHarness {
 	// Request-cap counter
 	ctr := counter.New(rc, db)
 
+	// Actions catalog
+	actionsCatalog := catalog.Global()
+
 	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
-	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr)
+	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog)
 	identityHandler := handler.NewIdentityHandler(db)
 
 	// Provider handler

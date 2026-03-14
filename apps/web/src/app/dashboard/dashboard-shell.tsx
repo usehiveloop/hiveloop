@@ -14,6 +14,7 @@ import {
   Coins,
   Users,
   Blocks,
+  Cable,
   Clock,
   Settings,
   Lock,
@@ -47,6 +48,7 @@ const navSections: NavSection[] = [
     title: "Experience",
     items: [
       { label: "Connect UI", icon: Blocks, href: "/dashboard/connect" },
+      { label: "Integrations", icon: Cable, href: "/dashboard/integrations" },
     ],
   },
   {

@@ -23,10 +23,12 @@ interface State {
   current: View
   history: View[]
   direction: Direction
+  returnTo: View
 }
 
 function reducer(state: State, action: Action): State {
   const push = (view: View): State => ({
+    ...state,
     current: view,
     history: [...state.history, state.current],
     direction: 'forward',
@@ -34,12 +36,22 @@ function reducer(state: State, action: Action): State {
   const pop = (): State => {
     const history = [...state.history]
     const previous = history.pop()
-    return { current: previous ?? { type: 'provider-selection' }, history, direction: 'back' }
+    return { ...state, current: previous ?? state.returnTo, history, direction: 'back' }
   }
+  /** Clear history but preserve returnTo. */
   const reset = (view: View): State => ({
+    ...state,
     current: view,
     history: [],
     direction: 'forward',
+  })
+  /** Navigate to a new root and set it as returnTo. */
+  const resetHome = (view: View): State => ({
+    ...state,
+    current: view,
+    history: [],
+    direction: 'forward',
+    returnTo: view,
   })
 
   switch (action.type) {
@@ -67,11 +79,11 @@ function reducer(state: State, action: Action): State {
     }
     case 'DONE':
     case 'CANCEL':
-      return reset({ type: 'provider-selection' })
+      return resetHome(state.returnTo)
     case 'BACK':
       return pop()
     case 'VIEW_CONNECTIONS':
-      return reset({ type: 'connected-list' })
+      return resetHome({ type: 'connected-list' })
     case 'VIEW_DETAIL':
       return push({ type: 'provider-detail', connection: action.connection })
     case 'REVOKE':
@@ -84,7 +96,7 @@ function reducer(state: State, action: Action): State {
     case 'CONNECT_NEW':
       return push({ type: 'provider-selection' })
     case 'VIEW_EMPTY':
-      return reset({ type: 'empty-state' })
+      return resetHome({ type: 'empty-state' })
     default:
       return state
   }
@@ -93,10 +105,12 @@ function reducer(state: State, action: Action): State {
 export type { Action }
 
 export function useWidget(initialView?: View) {
+  const initial = initialView ?? { type: 'provider-selection' }
   const [state, dispatch] = useReducer(reducer, {
-    current: initialView ?? { type: 'provider-selection' },
+    current: initial,
     history: [],
     direction: 'forward',
+    returnTo: initial,
   })
   const navigate = useCallback((action: Action) => dispatch(action), [])
   return { view: state.current, direction: state.direction, canGoBack: state.history.length > 0, navigate }
