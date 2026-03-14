@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -286,6 +287,84 @@ func (c *Client) CreateConnectSession(ctx context.Context, req CreateConnectSess
 
 	slog.Info("nango: connect session created")
 	return &ConnectSessionResponse{Token: token, ExpiresAt: expiresAt}, nil
+}
+
+// ProxyRequest makes a request through Nango's proxy to the provider's API.
+// This allows making authenticated requests to the provider's API using the stored credentials.
+func (c *Client) ProxyRequest(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any) (map[string]any, error) {
+	return c.ProxyRequestWithHeaders(ctx, method, providerConfigKey, connectionID, path, queryParams, body, nil)
+}
+
+// ProxyRequestWithHeaders makes a request through Nango's proxy to the provider's API with custom headers.
+// This allows making authenticated requests with provider-specific headers (e.g., Notion-Version).
+func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerConfigKey, connectionID, path string, queryParams map[string]string, body any, headers map[string]string) (map[string]any, error) {
+	slog.Debug("nango: proxy request", "method", method, "provider_config_key", providerConfigKey, "connection_id", connectionID, "path", path)
+
+	var bodyReader io.Reader
+	if body != nil {
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling proxy request body: %w", err)
+		}
+		bodyReader = bytes.NewReader(jsonBody)
+	}
+
+	// Build query string
+	query := ""
+	if len(queryParams) > 0 {
+		q := make([]string, 0, len(queryParams))
+		for k, v := range queryParams {
+			q = append(q, fmt.Sprintf("%s=%s", k, v))
+		}
+		query = "?" + strings.Join(q, "&")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, c.endpoint+path+query, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Set custom headers for the provider
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	// Set Nango proxy headers
+	req.Header.Set("Authorization", "Bearer "+c.secretKey)
+	req.Header.Set("Provider-Config-Key", providerConfigKey)
+	req.Header.Set("Connection-Id", connectionID)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Debug("nango: proxy response", "method", method, "path", path, "status", resp.StatusCode)
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("nango proxy error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	if len(respBody) == 0 {
+		return nil, nil
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		// Try to return raw response if not JSON
+		return map[string]any{"_raw": string(respBody)}, nil
+	}
+	return result, nil
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (map[string]any, error) {

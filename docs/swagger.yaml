@@ -74,6 +74,29 @@ definitions:
           type: string
         type: array
     type: object
+  github_com_llmvault_llmvault_internal_resources.AvailableResource:
+    properties:
+      id:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  github_com_llmvault_llmvault_internal_resources.DiscoveryResult:
+    properties:
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+      resources:
+        items:
+          $ref: '#/definitions/github_com_llmvault_llmvault_internal_resources.AvailableResource'
+        type: array
+    type: object
   internal_handler.apiKeyResponse:
     properties:
       created_at:
@@ -290,6 +313,12 @@ definitions:
     properties:
       nango_connection_id:
         type: string
+      resources:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
     type: object
   internal_handler.createIntegrationRequest:
     properties:
@@ -599,6 +628,15 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.patchIntegrationConnectionRequest:
+    properties:
+      resources:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
   internal_handler.providerDetail:
     properties:
       api:
@@ -735,6 +773,21 @@ definitions:
       id:
         type: string
       provider:
+        type: string
+      resources:
+        items:
+          $ref: '#/definitions/internal_handler.widgetResourceResponse'
+        type: array
+    type: object
+  internal_handler.widgetResourceResponse:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      icon:
+        type: string
+      type:
         type: string
     type: object
 host: api.dev.llmvault.dev
@@ -2251,6 +2304,111 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an integration connection
+      tags:
+      - widget
+    patch:
+      consumes:
+      - application/json
+      description: Updates the resources configured for a connection (resource selection).
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Connection ID
+        in: path
+        name: connectionId
+        required: true
+        type: string
+      - description: Update parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.patchIntegrationConnectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.integConnResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update connection resources
+      tags:
+      - widget
+  /v1/widget/integrations/{id}/resources/{type}/available:
+    get:
+      description: Fetches available resources of a specific type from the provider
+        API.
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource type (e.g., channel, repo, folder)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Nango connection ID from OAuth flow
+        in: query
+        name: nango_connection_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_llmvault_llmvault_internal_resources.DiscoveryResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available resources
       tags:
       - widget
   /v1/widget/integrations/providers:

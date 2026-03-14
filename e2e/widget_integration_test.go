@@ -139,6 +139,256 @@ func TestE2E_Widget_ListIntegrations_ExcludesDeleted(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
+// E2E: Widget ListIntegrations — includes resource configuration
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_ListIntegrations_Resources(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	// Create integrations with resource configs
+	h.createIntegration(t, org, "slack", "Slack Workspace")
+	h.createIntegration(t, org, "github", "GitHub Org")
+	h.createIntegration(t, org, "asana", "Asana") // no resources
+
+	rr := h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", token, nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var list []map[string]any
+	json.NewDecoder(rr.Body).Decode(&list)
+	if len(list) != 3 {
+		t.Fatalf("expected 3 integrations, got %d", len(list))
+	}
+
+	// Find each integration and verify resources
+	for _, item := range list {
+		provider, _ := item["provider"].(string)
+		resources, hasResources := item["resources"].([]interface{})
+
+		switch provider {
+		case "slack":
+			if !hasResources {
+				t.Error("slack integration should have resources")
+				continue
+			}
+			if len(resources) != 1 {
+				t.Errorf("slack expected 1 resource type, got %d", len(resources))
+				continue
+			}
+			res := resources[0].(map[string]interface{})
+			if res["type"] != "channel" {
+				t.Errorf("slack expected resource type 'channel', got %v", res["type"])
+			}
+			if res["display_name"] != "Channels" {
+				t.Errorf("slack expected display_name 'Channels', got %v", res["display_name"])
+			}
+			if res["icon"] != "hash" {
+				t.Errorf("slack expected icon 'hash', got %v", res["icon"])
+			}
+
+		case "github":
+			if !hasResources {
+				t.Error("github integration should have resources")
+				continue
+			}
+			if len(resources) != 1 {
+				t.Errorf("github expected 1 resource type, got %d", len(resources))
+				continue
+			}
+			res := resources[0].(map[string]interface{})
+			if res["type"] != "repo" {
+				t.Errorf("github expected resource type 'repo', got %v", res["type"])
+			}
+
+		case "asana":
+			// Asana has no resources configured, should be empty array
+			if !hasResources {
+				t.Error("asana integration should have resources field (empty array)")
+				continue
+			}
+			if len(resources) != 0 {
+				t.Errorf("asana expected 0 resource types, got %d", len(resources))
+			}
+		}
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget CreateIntegrationConnection with resources
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_CreateIntegrationConnection_WithResources(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Create a connection with resources
+	body := `{"nango_connection_id":"nango-conn-123","resources":{"channel":["C123","C456"]}}`
+	rr := h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp map[string]any
+	json.NewDecoder(rr.Body).Decode(&resp)
+
+	if resp["id"] == nil || resp["id"] == "" {
+		t.Error("expected non-empty connection id")
+	}
+
+	// Verify resources are in meta
+	meta, ok := resp["meta"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected meta to be present")
+	}
+
+	resources, ok := meta["resources"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected resources in meta")
+	}
+
+	channels, ok := resources["channel"].([]interface{})
+	if !ok || len(channels) != 2 {
+		t.Fatalf("expected 2 channels, got %v", resources["channel"])
+	}
+
+	if channels[0] != "C123" || channels[1] != "C456" {
+		t.Errorf("expected channels [C123, C456], got %v", channels)
+	}
+
+	// Verify connection is in list with resources
+	rr = h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", token, nil)
+	var list []map[string]any
+	json.NewDecoder(rr.Body).Decode(&list)
+
+	for _, item := range list {
+		if item["id"] == integ.ID.String() {
+			// connection_id should be set
+			if item["connection_id"] == nil {
+				t.Error("expected connection_id to be set")
+			}
+		}
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget PatchIntegrationConnection — update resources
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_PatchIntegrationConnection(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Create a connection without resources
+	body := `{"nango_connection_id":"nango-conn-123"}`
+	rr := h.connectRequest(t, http.MethodPost,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections",
+		token, strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var createResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&createResp)
+	connID := createResp["id"].(string)
+
+	// Verify no resources initially (meta may be nil or empty)
+	if m, ok := createResp["meta"].(map[string]interface{}); ok {
+		if _, hasResources := m["resources"]; hasResources {
+			t.Error("expected no resources initially")
+		}
+	}
+
+	// Patch to add resources
+	patchBody := `{"resources":{"channel":["C789","CABC"]}}`
+	rr = h.connectRequest(t, http.MethodPatch,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+connID,
+		token, strings.NewReader(patchBody))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("patch: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var patchResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&patchResp)
+
+	// Verify resources updated
+	meta := patchResp["meta"].(map[string]interface{})
+	resources := meta["resources"].(map[string]interface{})
+	channels := resources["channel"].([]interface{})
+	if len(channels) != 2 || channels[0] != "C789" || channels[1] != "CABC" {
+		t.Errorf("expected updated channels [C789, CABC], got %v", channels)
+	}
+
+	// Patch to update resources
+	patchBody = `{"resources":{"channel":["C111"]}}`
+	rr = h.connectRequest(t, http.MethodPatch,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+connID,
+		token, strings.NewReader(patchBody))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("patch update: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	json.NewDecoder(rr.Body).Decode(&patchResp)
+	meta = patchResp["meta"].(map[string]interface{})
+	resources = meta["resources"].(map[string]interface{})
+	channels = resources["channel"].([]interface{})
+	if len(channels) != 1 || channels[0] != "C111" {
+		t.Errorf("expected updated channel [C111], got %v", channels)
+	}
+
+	// Patch with empty resources to clear
+	patchBody = `{"resources":{}}`
+	rr = h.connectRequest(t, http.MethodPatch,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+connID,
+		token, strings.NewReader(patchBody))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("patch clear: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var clearResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&clearResp)
+
+	// When meta is empty, it may be omitted from JSON response
+	if meta, ok := clearResp["meta"].(map[string]interface{}); ok {
+		if _, hasResources := meta["resources"]; hasResources {
+			t.Errorf("expected resources to be cleared, but got: %v", meta["resources"])
+		}
+	}
+	// If meta is not present at all, resources are cleared (success)
+}
+
+// --------------------------------------------------------------------------
+// E2E: Widget PatchIntegrationConnection — not found cases
+// --------------------------------------------------------------------------
+
+func TestE2E_Widget_PatchIntegrationConnection_NotFound(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
+
+	integ := h.createIntegration(t, org, "slack", "Slack")
+
+	// Patch non-existent connection
+	patchBody := `{"resources":{"channel":["C123"]}}`
+	rr := h.connectRequest(t, http.MethodPatch,
+		"/v1/widget/integrations/"+integ.ID.String()+"/connections/"+uuid.New().String(),
+		token, strings.NewReader(patchBody))
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// --------------------------------------------------------------------------
 // E2E: Widget CreateIntegrationConnection — full flow
 // --------------------------------------------------------------------------
 

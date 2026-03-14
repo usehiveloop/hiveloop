@@ -1,6 +1,16 @@
 {
   "slack": {
     "display_name": "Slack",
+    "resources": {
+      "channel": {
+        "display_name": "Channels",
+        "description": "Slack channels the AI can access",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "hash",
+        "list_action": "list_channels"
+      }
+    },
     "actions": {
       "list_channels": {
         "display_name": "List Channels",
@@ -43,6 +53,16 @@
   },
   "github": {
     "display_name": "GitHub",
+    "resources": {
+      "repo": {
+        "display_name": "Repositories",
+        "description": "GitHub repositories the AI can access",
+        "id_field": "full_name",
+        "name_field": "name",
+        "icon": "repo",
+        "list_action": "list_repos"
+      }
+    },
     "actions": {
       "list_repos": {
         "display_name": "List Repositories",
@@ -100,8 +120,18 @@
       }
     }
   },
-  "google": {
-    "display_name": "Google",
+  "google_drive": {
+    "display_name": "Google Drive",
+    "resources": {
+      "folder": {
+        "display_name": "Folders",
+        "description": "Folders the AI can access files within",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "folder",
+        "list_action": "list_files"
+      }
+    },
     "actions": {
       "list_files": {
         "display_name": "List Files",
@@ -132,6 +162,50 @@
   },
   "notion": {
     "display_name": "Notion",
+    "resources": {
+      "page": {
+        "display_name": "Pages",
+        "description": "Notion pages the AI can access",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "page",
+        "list_action": "/v1/search",
+        "request_config": {
+          "method": "POST",
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "body_template": {
+            "filter": {
+              "value": "page",
+              "property": "object"
+            },
+            "page_size": 100
+          }
+        }
+      },
+      "database": {
+        "display_name": "Databases",
+        "description": "Notion databases the AI can query",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "database",
+        "list_action": "/v1/search",
+        "request_config": {
+          "method": "POST",
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "body_template": {
+            "filter": {
+              "value": "database",
+              "property": "object"
+            },
+            "page_size": 100
+          }
+        }
+      }
+    },
     "actions": {
       "search": {
         "display_name": "Search",
@@ -174,6 +248,23 @@
   },
   "linear": {
     "display_name": "Linear",
+    "resources": {
+      "team": {
+        "display_name": "Teams",
+        "description": "Linear teams the AI can create issues in",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "team",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ teams { nodes { id name key description } } }"
+          },
+          "response_path": "data.teams.nodes"
+        }
+      }
+    },
     "actions": {
       "list_issues": {
         "display_name": "List Issues",

@@ -165,7 +165,7 @@ func newHarness(t *testing.T) *testHarness {
 		t.Fatalf("failed to fetch Nango providers: %v", err)
 	}
 
-	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nangoClient)
+	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nangoClient, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(db)
 	t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 
@@ -215,7 +215,9 @@ func newHarness(t *testing.T) *testHarness {
 			r.Get("/providers", integrationHandler.ListProviders)
 			r.Get("/", connectAPIHandler.ListIntegrations)
 			r.Post("/{id}/connect-session", connectAPIHandler.CreateIntegrationConnectSession)
+			r.Get("/{id}/resources/{type}/available", connectAPIHandler.ListAvailableResources)
 			r.Post("/{id}/connections", connectAPIHandler.CreateIntegrationConnection)
+			r.Patch("/{id}/connections/{connectionId}", connectAPIHandler.PatchIntegrationConnection)
 			r.Delete("/{id}/connections/{connectionId}", connectAPIHandler.DeleteIntegrationConnection)
 		})
 		r.Get("/connections", connectAPIHandler.ListConnections)

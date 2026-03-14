@@ -67,8 +67,9 @@ func ValidateScopes(db *gorm.DB, orgID uuid.UUID, cat *catalog.Catalog, scopes [
 			return fmt.Errorf("scope[%d]: %w", i, err)
 		}
 
-		// Validate resource types
-		if err := cat.ValidateResources(provider, scope.Actions, scope.Resources); err != nil {
+		// Validate resource types and IDs against connection's configured resources
+		// TODO: In Phase 4, pass connection's actual resources from Connection.Meta
+		if err := cat.ValidateResources(provider, scope.Actions, scope.Resources, nil); err != nil {
 			return fmt.Errorf("scope[%d]: %w", i, err)
 		}
 	}

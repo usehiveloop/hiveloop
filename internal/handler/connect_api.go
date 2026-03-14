@@ -12,24 +12,29 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/llmvault/llmvault/internal/crypto"
+	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/nango"
 	"github.com/llmvault/llmvault/internal/proxy"
 	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/llmvault/llmvault/internal/resources"
 )
 
 // ConnectAPIHandler serves the Connect widget's API endpoints.
 type ConnectAPIHandler struct {
-	db    *gorm.DB
-	kms   *crypto.KeyWrapper
-	reg   *registry.Registry
-	nango *nango.Client
+	db        *gorm.DB
+	kms       *crypto.KeyWrapper
+	reg       *registry.Registry
+	nango     *nango.Client
+	catalog   *catalog.Catalog
+	discovery *resources.Discovery
 }
 
 // NewConnectAPIHandler creates a new connect API handler.
-func NewConnectAPIHandler(db *gorm.DB, kms *crypto.KeyWrapper, reg *registry.Registry, nangoClient *nango.Client) *ConnectAPIHandler {
-	return &ConnectAPIHandler{db: db, kms: kms, reg: reg, nango: nangoClient}
+func NewConnectAPIHandler(db *gorm.DB, kms *crypto.KeyWrapper, reg *registry.Registry, nangoClient *nango.Client, cat *catalog.Catalog) *ConnectAPIHandler {
+	discovery := resources.NewDiscovery(cat, nangoClient)
+	return &ConnectAPIHandler{db: db, kms: kms, reg: reg, nango: nangoClient, catalog: cat, discovery: discovery}
 }
 
 // knownBaseURLs provides base URLs for providers that lack an API field in the registry.
@@ -515,12 +520,20 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, result)
 }
 
+type widgetResourceResponse struct {
+	Type        string `json:"type"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+	Icon        string `json:"icon,omitempty"`
+}
+
 type widgetIntegrationResponse struct {
-	ID           string  `json:"id"`
-	Provider     string  `json:"provider"`
-	DisplayName  string  `json:"display_name"`
-	AuthMode     string  `json:"auth_mode"`
-	ConnectionID *string `json:"connection_id"`
+	ID           string                   `json:"id"`
+	Provider     string                   `json:"provider"`
+	DisplayName  string                   `json:"display_name"`
+	AuthMode     string                   `json:"auth_mode"`
+	ConnectionID *string                  `json:"connection_id"`
+	Resources    []widgetResourceResponse `json:"resources"`
 }
 
 // ListIntegrations handles GET /v1/widget/integrations.
@@ -569,10 +582,24 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 			Provider:    integ.Provider,
 			DisplayName: integ.DisplayName,
 			AuthMode:    authMode,
+			Resources:   []widgetResourceResponse{},
 		}
 		if connID, ok := connectionMap[integ.ID]; ok {
 			item.ConnectionID = &connID
 		}
+
+		// Add resource configurations from catalog
+		if resourceTypes := h.catalog.ListResourceTypes(integ.Provider); resourceTypes != nil {
+			for typeKey, resDef := range resourceTypes {
+				item.Resources = append(item.Resources, widgetResourceResponse{
+					Type:        typeKey,
+					DisplayName: resDef.DisplayName,
+					Description: resDef.Description,
+					Icon:        resDef.Icon,
+				})
+			}
+		}
+
 		resp = append(resp, item)
 	}
 
@@ -585,7 +612,8 @@ type connectSessionTokenResponse struct {
 }
 
 type createIntegrationConnectionRequest struct {
-	NangoConnectionID string `json:"nango_connection_id"`
+	NangoConnectionID string                 `json:"nango_connection_id"`
+	Resources         map[string][]string    `json:"resources,omitempty"`
 }
 
 // CreateIntegrationConnectSession handles POST /v1/widget/integrations/{id}/connect-session.
@@ -731,12 +759,18 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 		}
 	}
 
+	meta := model.JSON{}
+	if len(req.Resources) > 0 {
+		meta["resources"] = req.Resources
+	}
+
 	conn := model.Connection{
 		ID:                uuid.New(),
 		OrgID:             org.ID,
 		IntegrationID:     integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
 		IdentityID:        sess.IdentityID,
+		Meta:              meta,
 	}
 
 	if err := h.db.Create(&conn).Error; err != nil {
@@ -745,6 +779,99 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 	}
 
 	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn))
+}
+
+// PatchIntegrationConnection handles PATCH /v1/widget/integrations/{id}/connections/{connectionId}.
+// @Summary Update connection resources
+// @Description Updates the resources configured for a connection (resource selection).
+// @Tags widget
+// @Accept json
+// @Produce json
+// @Param id path string true "Integration ID"
+// @Param connectionId path string true "Connection ID"
+// @Param body body patchIntegrationConnectionRequest true "Update parameters"
+// @Success 200 {object} integConnResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/widget/integrations/{id}/connections/{connectionId} [patch]
+func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r *http.Request) {
+	sess, ok := middleware.ConnectSessionFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
+		return
+	}
+
+	if !hasPermission(sess, "update") {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "permission denied"})
+		return
+	}
+
+	org, _ := middleware.OrgFromContext(r.Context())
+	integID := chi.URLParam(r, "id")
+	connID := chi.URLParam(r, "connectionId")
+
+	if sess.IdentityID == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session has no identity"})
+		return
+	}
+
+	// Parse integration ID
+	integUUID, err := uuid.Parse(integID)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid integration id"})
+		return
+	}
+
+	// Verify integration exists and belongs to org
+	var integ model.Integration
+	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "integration not found"})
+		return
+	}
+
+	var req patchIntegrationConnectionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// Look up the connection
+	var conn model.Connection
+	if err := h.db.Where("id = ? AND org_id = ? AND integration_id = ? AND identity_id = ? AND revoked_at IS NULL",
+		connID, org.ID, integ.ID, *sess.IdentityID).First(&conn).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
+		return
+	}
+
+	// Update meta with resources
+	meta := conn.Meta
+	if meta == nil {
+		meta = model.JSON{}
+	}
+
+	if len(req.Resources) > 0 {
+		meta["resources"] = req.Resources
+	} else {
+		delete(meta, "resources")
+	}
+
+	conn.Meta = meta
+	conn.UpdatedAt = time.Now()
+
+	if err := h.db.Save(&conn).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update connection"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toIntegConnResponse(conn))
+}
+
+type patchIntegrationConnectionRequest struct {
+	Resources map[string][]string `json:"resources,omitempty"`
 }
 
 // DeleteIntegrationConnection handles DELETE /v1/widget/integrations/{id}/connections/{connectionId}.
@@ -827,6 +954,91 @@ func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// ListAvailableResources handles GET /v1/widget/integrations/{id}/resources/{type}/available.
+// @Summary List available resources
+// @Description Fetches available resources of a specific type from the provider API.
+// @Tags widget
+// @Produce json
+// @Param id path string true "Integration ID"
+// @Param type path string true "Resource type (e.g., channel, repo, folder)"
+// @Param nango_connection_id query string true "Nango connection ID from OAuth flow"
+// @Success 200 {object} resources.DiscoveryResult
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/widget/integrations/{id}/resources/{type}/available [get]
+func (h *ConnectAPIHandler) ListAvailableResources(w http.ResponseWriter, r *http.Request) {
+	sess, ok := middleware.ConnectSessionFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
+		return
+	}
+
+	if !hasPermission(sess, "list") {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "permission denied"})
+		return
+	}
+
+	org, _ := middleware.OrgFromContext(r.Context())
+
+	integID := chi.URLParam(r, "id")
+	resourceType := chi.URLParam(r, "type")
+
+	if integID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "integration id required"})
+		return
+	}
+
+	if resourceType == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "resource type required"})
+		return
+	}
+
+	integUUID, err := uuid.Parse(integID)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid integration id"})
+		return
+	}
+
+	// Get integration to find provider
+	var integ model.Integration
+	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "integration not found"})
+		return
+	}
+
+	// Check if provider supports resource discovery
+	if !h.discovery.HasDiscovery(integ.Provider) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": fmt.Sprintf("resource discovery not supported for provider %s", integ.Provider),
+		})
+		return
+	}
+
+	// Get nango_connection_id from query param
+	nangoConnID := r.URL.Query().Get("nango_connection_id")
+	if nangoConnID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "nango_connection_id query parameter required"})
+		return
+	}
+
+	// Build provider config key
+	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), integ.UniqueKey)
+
+	// Discover resources
+	result, err := h.discovery.Discover(r.Context(), integ.Provider, resourceType, nangoProviderConfigKey, nangoConnID)
+	if err != nil {
+		slog.Error("resource discovery failed", "error", err, "provider", integ.Provider, "resource_type", resourceType)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }
 
 // hasPermission checks if the session has a specific permission.

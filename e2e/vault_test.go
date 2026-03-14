@@ -139,7 +139,7 @@ func newVaultHarness(t *testing.T) *vaultTestHarness {
 
 	// Connect handlers
 	connectSessionHandler := handler.NewConnectSessionHandler(db, reg)
-	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nil)
+	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nil, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(db)
 
 	// Management routes

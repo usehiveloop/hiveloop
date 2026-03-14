@@ -14,10 +14,31 @@ import (
 //go:embed actions.json
 var actionsJSON []byte
 
+// RequestConfig defines custom request configuration for resource discovery.
+type RequestConfig struct {
+	Method       string            `json:"method,omitempty"`        // HTTP method (GET, POST, etc.)
+	Headers      map[string]string `json:"headers,omitempty"`       // Custom headers to add
+	QueryParams  map[string]string `json:"query_params,omitempty"`  // Static query parameters
+	BodyTemplate map[string]any    `json:"body_template,omitempty"` // Default body for POST requests
+	ResponsePath string            `json:"response_path,omitempty"` // Dot-notation path to items (e.g., "data.items")
+}
+
+// ResourceDef describes a resource type that can be configured for a provider.
+type ResourceDef struct {
+	DisplayName   string          `json:"display_name"`
+	Description   string          `json:"description"`
+	IDField       string          `json:"id_field"`
+	NameField     string          `json:"name_field"`
+	Icon          string          `json:"icon,omitempty"`
+	ListAction    string          `json:"list_action"`
+	RequestConfig *RequestConfig  `json:"request_config,omitempty"` // Optional request customization
+}
+
 // ProviderActions describes a provider and its available actions.
 type ProviderActions struct {
-	DisplayName string               `json:"display_name"`
-	Actions     map[string]ActionDef `json:"actions"`
+	DisplayName string                `json:"display_name"`
+	Resources   map[string]ResourceDef `json:"resources"`
+	Actions     map[string]ActionDef  `json:"actions"`
 }
 
 // ActionDef describes a single action a provider supports.
@@ -124,10 +145,42 @@ func (c *Catalog) ValidateActions(provider string, actions []string) error {
 	return nil
 }
 
+// ListResourceTypes returns all resource types for a provider.
+func (c *Catalog) ListResourceTypes(provider string) map[string]ResourceDef {
+	p, ok := c.providers[provider]
+	if !ok {
+		return nil
+	}
+	return p.Resources
+}
+
+// GetResourceDef returns a specific resource definition for a provider.
+func (c *Catalog) GetResourceDef(provider, resourceType string) (*ResourceDef, bool) {
+	p, ok := c.providers[provider]
+	if !ok {
+		return nil, false
+	}
+	r, ok := p.Resources[resourceType]
+	if !ok {
+		return nil, false
+	}
+	return &r, true
+}
+
+// HasConfigurableResources returns true if the provider has resource configuration.
+func (c *Catalog) HasConfigurableResources(provider string) bool {
+	p, ok := c.providers[provider]
+	if !ok {
+		return false
+	}
+	return len(p.Resources) > 0
+}
+
 // ValidateResources checks that every resource type key in the resources map
-// matches the resource_type of at least one action in the given action list.
-func (c *Catalog) ValidateResources(provider string, actions []string, resources map[string][]string) error {
-	if len(resources) == 0 {
+// matches the resource_type of at least one action in the given action list,
+// and that each resource ID is in the allowed set from the connection.
+func (c *Catalog) ValidateResources(provider string, actions []string, requestedResources, allowedResources map[string][]string) error {
+	if len(requestedResources) == 0 {
 		return nil
 	}
 
@@ -144,9 +197,23 @@ func (c *Catalog) ValidateResources(provider string, actions []string, resources
 		}
 	}
 
-	for resourceType := range resources {
+	for resourceType, requestedIDs := range requestedResources {
+		// Check resource type is valid for these actions
 		if !validResourceTypes[resourceType] {
 			return fmt.Errorf("resource type %q does not match any listed action for provider %q", resourceType, provider)
+		}
+
+		// Check each requested ID is in the allowed set
+		allowedIDs := allowedResources[resourceType]
+		allowedSet := make(map[string]bool, len(allowedIDs))
+		for _, id := range allowedIDs {
+			allowedSet[id] = true
+		}
+
+		for _, reqID := range requestedIDs {
+			if !allowedSet[reqID] {
+				return fmt.Errorf("resource %q of type %q not configured for this connection", reqID, resourceType)
+			}
 		}
 	}
 
