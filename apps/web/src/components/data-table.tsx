@@ -38,14 +38,12 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <>
-      {/* Mobile card view */}
       <div className="flex flex-col gap-3 md:hidden">
         {data.map((row) => (
           <div key={keyExtractor(row)}>{mobileCard(row)}</div>
         ))}
       </div>
 
-      {/* Desktop table view */}
       <div className="hidden md:block">
         <Table style={{ minWidth }}>
           <TableHeader>

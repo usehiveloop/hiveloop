@@ -3808,6 +3808,9 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
+                },
+                "unique_key": {
+                    "type": "string"
                 }
             }
         },

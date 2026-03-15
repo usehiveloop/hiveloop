@@ -15,6 +15,7 @@ import { IntegrationResourceSelection } from './IntegrationResourceSelection'
 import { IntegrationDetail } from './IntegrationDetail'
 import { IntegrationDisconnectConfirm } from './IntegrationDisconnectConfirm'
 import { IntegrationSuccess } from './IntegrationSuccess'
+import { ResourceSelectionSuccess } from './ResourceSelectionSuccess'
 
 interface Props {
   view: View
@@ -137,6 +138,13 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
           integration={view.integration}
           onDone={() => navigate({ type: 'DONE' })}
           onManage={() => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration: view.integration })}
+        />
+      )
+    case 'resource-selection-success':
+      return (
+        <ResourceSelectionSuccess
+          integration={view.integration}
+          onDone={() => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration: view.integration })}
         />
       )
     case 'integration-error':

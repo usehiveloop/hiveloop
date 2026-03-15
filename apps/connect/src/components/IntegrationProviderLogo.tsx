@@ -4,16 +4,15 @@ const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integ
 
 interface Props {
   providerName: string
-  size: string
-  rounded?: string
+  className?: string
 }
 
-export function IntegrationProviderLogo({ providerName, size, rounded = 'rounded-lg' }: Props) {
+export function IntegrationProviderLogo({ providerName, className = 'size-10 rounded-lg' }: Props) {
   const [errored, setErrored] = useState(false)
   const src = `${INTEGRATIONS_API}/images/template-logos/${providerName}.svg`
 
   return (
-    <div className={`shrink-0 ${rounded} ${size} flex items-center justify-center overflow-hidden bg-cw-surface`}>
+    <div className={`shrink-0 flex items-center justify-center overflow-hidden bg-cw-surface ${className}`}>
       {errored ? (
         <span className="text-[11px] font-semibold uppercase text-cw-secondary">
           {providerName.slice(0, 2)}

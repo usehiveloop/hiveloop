@@ -529,6 +529,7 @@ type widgetResourceResponse struct {
 
 type widgetIntegrationResponse struct {
 	ID                string                   `json:"id"`
+	UniqueKey         string                   `json:"unique_key"`
 	Provider          string                   `json:"provider"`
 	DisplayName       string                   `json:"display_name"`
 	AuthMode          string                   `json:"auth_mode"`
@@ -581,6 +582,7 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 		}
 		item := widgetIntegrationResponse{
 			ID:          integ.ID.String(),
+			UniqueKey:   integ.UniqueKey,
 			Provider:    integ.Provider,
 			DisplayName: integ.DisplayName,
 			AuthMode:    authMode,

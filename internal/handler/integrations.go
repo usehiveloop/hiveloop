@@ -42,6 +42,7 @@ type updateIntegrationRequest struct {
 
 type integrationResponse struct {
 	ID          string     `json:"id"`
+	UniqueKey   string     `json:"unique_key"`
 	Provider    string     `json:"provider"`
 	DisplayName string     `json:"display_name"`
 	Meta        model.JSON `json:"meta,omitempty"`
@@ -53,6 +54,7 @@ type integrationResponse struct {
 func toIntegrationResponse(integ model.Integration) integrationResponse {
 	return integrationResponse{
 		ID:          integ.ID.String(),
+		UniqueKey:   integ.UniqueKey,
 		Provider:    integ.Provider,
 		DisplayName: integ.DisplayName,
 		Meta:        integ.Meta,

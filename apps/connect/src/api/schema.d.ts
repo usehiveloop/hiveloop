@@ -3538,6 +3538,7 @@ export interface components {
             selected_resources?: {
                 [key: string]: string[];
             };
+            unique_key?: string;
         };
         "internal_handler.widgetResourceResponse": {
             description?: string;

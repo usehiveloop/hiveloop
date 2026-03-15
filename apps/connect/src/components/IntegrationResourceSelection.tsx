@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { AnimatePresence } from 'motion/react'
 import type { IntegrationProvider, AvailableResource } from '../types'
 import type { Action } from '../hooks/useWidget'
 import { useAvailableResources } from '../hooks/useAvailableResources'
+import { useIntegrationProviders } from '../hooks/useIntegrationProviders'
 import { useUpdateConnectionResources } from '../hooks/useUpdateConnectionResources'
 import { IntegrationResourceSelectionLogo } from './IntegrationResourceSelectionLogo'
 import { FadeView } from './AnimatedView'
@@ -31,11 +32,19 @@ export function IntegrationResourceSelection({
   onClose,
 }: Props) {
   const resourceTypes = integration.resources ?? []
+
+  const { data: integrations } = useIntegrationProviders()
+  const freshIntegration = useMemo(
+    () => integrations?.find((i) => i.id === integration.id),
+    [integrations, integration.id]
+  )
+
   const [selectedResources, setSelectedResources] = useState<Record<string, string[]>>(
     () => {
+      const src = freshIntegration?.selected_resources ?? integration.selected_resources
       const initial: Record<string, string[]> = {}
-      if (integration.selected_resources) {
-        for (const [key, ids] of Object.entries(integration.selected_resources)) {
+      if (src) {
+        for (const [key, ids] of Object.entries(src)) {
           if (Array.isArray(ids)) {
             initial[key] = [...ids]
           }
@@ -134,8 +143,7 @@ export function IntegrationResourceSelection({
           <div className="flex items-center gap-3 mt-4 shrink-0">
             <IntegrationResourceSelectionLogo
               providerName={integration.provider ?? ''}
-              size="size-10"
-              rounded="rounded-lg"
+              className="size-10 rounded-lg"
             />
             <div className="flex flex-col">
               <span className="text-sm font-medium text-cw-heading">

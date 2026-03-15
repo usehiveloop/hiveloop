@@ -48,7 +48,7 @@ export function IntegrationDetail({ integration, onDisconnect, onBack, onClose, 
         <IconButton onClick={onBack}>
           <BackIcon />
         </IconButton>
-        <IntegrationProviderLogo providerName={integration.provider ?? ''} size="size-9" />
+        <IntegrationProviderLogo providerName={integration.provider ?? ''} className="size-9 rounded-lg" />
         <div className="flex flex-col grow shrink basis-0 gap-px">
           <div className="text-lg text-cw-heading font-bold leading-5.5">{name}</div>
           <div className="flex items-center gap-1.25">

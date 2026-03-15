@@ -147,6 +147,8 @@ export default function IntegrationDetailPage() {
     { params: { path: { id } } },
   );
 
+  console.log({integration})
+
   const { data: connPage, isLoading: connsLoading } = $api.useQuery(
     "get",
     "/v1/integrations/{id}/connections",
@@ -224,7 +226,6 @@ export default function IntegrationDetailPage() {
 
   return (
     <>
-      {/* Header */}
       <header className="flex shrink-0 flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
         <div className="flex items-center gap-1.5">
           <Link
@@ -253,12 +254,9 @@ export default function IntegrationDetailPage() {
         </div>
       </header>
 
-      {/* Content */}
       <div className="flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        {/* Info cards row */}
         <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-stretch">
-          {/* Stat cards — stacked */}
-          <div className="flex flex-1 flex-col gap-3 sm:gap-4 [&>*]:flex-1">
+          <div className="flex flex-1 flex-col gap-3 sm:gap-4 *:flex-1">
             <StatCard
               label="Total Connections"
               value={String(connections.length)}
@@ -273,7 +271,6 @@ export default function IntegrationDetailPage() {
             />
           </div>
 
-          {/* Configuration card */}
           <div className="flex flex-1 flex-col gap-4 border border-border bg-card p-4 sm:p-5">
           <span className="text-[13px] font-semibold uppercase tracking-wider text-dim">
             Configuration
@@ -298,7 +295,6 @@ export default function IntegrationDetailPage() {
           </div>
         </div>
 
-        {/* Connections table */}
         <div className="flex flex-col">
           <div className="pb-4">
             <span className="text-sm font-medium text-foreground">

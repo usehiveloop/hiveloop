@@ -25,6 +25,7 @@ export type View =
   | { type: 'integration-auth'; integration: IntegrationProvider }
   | { type: 'integration-resource-selection'; integration: IntegrationProvider; connectionId: string; nangoConnectionId: string }
   | { type: 'integration-success'; integration: IntegrationProvider }
+  | { type: 'resource-selection-success'; integration: IntegrationProvider }
   | { type: 'integration-error'; integration: IntegrationProvider; error: string }
   | { type: 'integration-detail'; integration: IntegrationProvider }
   | { type: 'integration-disconnect-confirm'; integration: IntegrationProvider }

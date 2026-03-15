@@ -2,10 +2,9 @@ import { IntegrationProviderLogo } from './IntegrationProviderLogo'
 
 interface Props {
   providerName: string
-  size?: string
-  rounded?: string
+  className?: string
 }
 
-export function IntegrationResourceSelectionLogo({ providerName, size = 'size-10', rounded = 'rounded-lg' }: Props) {
-  return <IntegrationProviderLogo providerName={providerName} size={size} rounded={rounded} />
+export function IntegrationResourceSelectionLogo({ providerName, className = 'size-10 rounded-lg' }: Props) {
+  return <IntegrationProviderLogo providerName={providerName} className={className} />
 }

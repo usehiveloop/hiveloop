@@ -15,21 +15,9 @@ interface Props {
 }
 
 export function IntegrationAuth({ integration, navigate, onBack, onClose }: Props) {
-  const hasResources = (integration.resources?.length ?? 0) > 0
-
   const mutation = useNangoAuth(integration.id ?? '', {
-    onSuccess: (result) => {
-      if (hasResources) {
-        // Integration has configurable resources - show resource picker
-        navigate({
-          type: 'INTEGRATION_REQUIRES_RESOURCE_SELECTION',
-          connectionId: result.id,
-          nangoConnectionId: result.nango_connection_id,
-        })
-      } else {
-        // No resources to configure - go straight to success
-        navigate({ type: 'INTEGRATION_SUCCESS' })
-      }
+    onSuccess: () => {
+      navigate({ type: 'INTEGRATION_SUCCESS' })
     },
     onError: (error) => navigate({ type: 'INTEGRATION_ERROR', error }),
   })
@@ -61,8 +49,7 @@ export function IntegrationAuth({ integration, navigate, onBack, onClose }: Prop
       <div className="flex flex-col items-center justify-center grow gap-4">
         <IntegrationProviderLogo
           providerName={integration.provider ?? ''}
-          size="size-16"
-          rounded="rounded-xl"
+          className="size-16 rounded-xl"
         />
         <div className="flex items-center gap-2.5">
           <SpinnerIcon className="cw-spinner" />

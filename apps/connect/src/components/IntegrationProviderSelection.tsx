@@ -156,7 +156,7 @@ export function IntegrationProviderSelection({ onSelect, onViewDetail, onBack, o
                     connected ? 'border-cw-success/30 hover:border-cw-success/50' : 'border-cw-border hover:border-cw-placeholder'
                   }`}
                 >
-                  <IntegrationProviderLogo providerName={p.provider ?? ''} size="size-5.5" />
+                  <IntegrationProviderLogo providerName={p.provider ?? ''} className="size-5.5 rounded" />
                   <div className="text-sm text-cw-heading font-medium leading-4.5">{p.display_name || p.provider}</div>
                   {connected && <CheckIcon size={16} />}
                 </button>
@@ -209,7 +209,7 @@ export function IntegrationProviderSelection({ onSelect, onViewDetail, onBack, o
                     }`}
                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
-                    <IntegrationProviderLogo providerName={p.provider ?? ''} size="cw-mobile:size-10 cw-desktop:size-9" />
+                    <IntegrationProviderLogo providerName={p.provider ?? ''} className="cw-mobile:size-10 cw-desktop:size-9 rounded-lg" />
                     <div className="flex flex-col grow shrink basis-0 gap-0.5">
                       <div className="text-[15px] text-cw-heading font-semibold leading-4.5">{p.display_name || p.provider}</div>
                       {connected ? (

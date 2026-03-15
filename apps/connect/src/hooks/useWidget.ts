@@ -101,7 +101,7 @@ function reducer(state: State, action: Action): State {
     case 'RESOURCE_SELECTION_SKIP': {
       const c = state.current
       if (c.type !== 'integration-resource-selection') return state
-      return reset({ type: 'integration-success', integration: c.integration })
+      return reset({ type: 'resource-selection-success', integration: c.integration })
     }
     case 'SELECT_RESOURCE_TYPE': {
       const c = state.current
