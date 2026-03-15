@@ -21,9 +21,9 @@ function ConnectFlowHarness({
   initialView?: import('../../types').View
   onClose?: () => void
 }) {
-  const { view, canGoBack, navigate } = useWidget(initialView)
+  const { view, canGoBack, returnTo, navigate } = useWidget(initialView)
   const handleClose = onClose ?? (() => navigate({ type: 'CANCEL' }))
-  return <ViewRouter view={view} canGoBack={canGoBack} navigate={navigate} onClose={handleClose} />
+  return <ViewRouter view={view} canGoBack={canGoBack} returnTo={returnTo} navigate={navigate} onClose={handleClose} />
 }
 
 async function waitForProviders() {

@@ -29,5 +29,7 @@ export type View =
   | { type: 'integration-error'; integration: IntegrationProvider; error: string }
   | { type: 'integration-detail'; integration: IntegrationProvider }
   | { type: 'integration-disconnect-confirm'; integration: IntegrationProvider }
+  | { type: 'provider-connect'; providerId: string }
+  | { type: 'integration-connect'; provider: string }
 
 export type ThemeMode = 'light' | 'dark' | 'system'

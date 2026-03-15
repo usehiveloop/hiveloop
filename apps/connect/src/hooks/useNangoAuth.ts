@@ -56,8 +56,8 @@ export function useNangoAuth(integrationId: string, callbacks: {
         nango_connection_id: result.connectionId,
       }
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/integrations'] })
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/integrations'] })
       callbacks.onSuccess(result)
     },
     onError: (err) => {

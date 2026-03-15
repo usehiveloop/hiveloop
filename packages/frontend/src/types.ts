@@ -4,6 +4,8 @@ export type ConnectScreen =
   | 'provider-selection'
   | 'integration-selection'
   | 'connected-list'
+  | 'provider-connect'
+  | 'integration-connect'
 
 export type ConnectErrorCode =
   | 'session_invalid'
@@ -42,6 +44,8 @@ export interface LLMVaultConnectConfig {
 export interface ConnectOpenOptions {
   sessionToken: string
   screen?: ConnectScreen
+  providerId?: string
+  integrationId?: string
   preview?: boolean
   onSuccess?: (payload: SuccessPayload) => void
   onIntegrationSuccess?: (payload: IntegrationSuccessPayload) => void

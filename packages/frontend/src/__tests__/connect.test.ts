@@ -114,6 +114,36 @@ describe('LLMVaultConnect', () => {
       expect(url.searchParams.has('preview')).toBe(false)
     })
 
+    it('passes providerId param when provided', () => {
+      connect.open({ sessionToken: 'tok_test', screen: 'provider-connect', providerId: 'anthropic' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.get('screen')).toBe('provider-connect')
+      expect(url.searchParams.get('providerId')).toBe('anthropic')
+    })
+
+    it('does not set providerId param when omitted', () => {
+      connect.open({ sessionToken: 'tok_test' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.has('providerId')).toBe(false)
+    })
+
+    it('passes integrationId param when provided', () => {
+      connect.open({ sessionToken: 'tok_test', screen: 'integration-connect', integrationId: 'int_slack' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.get('screen')).toBe('integration-connect')
+      expect(url.searchParams.get('integrationId')).toBe('int_slack')
+    })
+
+    it('does not set integrationId param when omitted', () => {
+      connect.open({ sessionToken: 'tok_test' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.has('integrationId')).toBe(false)
+    })
+
     it('iframe has correct styles', () => {
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()

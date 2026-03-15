@@ -40,6 +40,12 @@ export class LLMVaultConnect {
     if (options.screen) {
       url.searchParams.set('screen', options.screen)
     }
+    if (options.providerId) {
+      url.searchParams.set('providerId', options.providerId)
+    }
+    if (options.integrationId) {
+      url.searchParams.set('integrationId', options.integrationId)
+    }
     if (options.preview) {
       url.searchParams.set('preview', 'true')
     }

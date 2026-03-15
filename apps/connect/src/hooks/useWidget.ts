@@ -27,6 +27,12 @@ type Action =
   | { type: 'DISCONNECT_INTEGRATION'; integration: IntegrationProvider }
   | { type: 'CONFIRM_INTEGRATION_DISCONNECT' }
   | { type: 'VIEW_INTEGRATIONS' }
+  | { type: 'PROVIDER_CONNECT_SUBMIT' }
+  | { type: 'PROVIDER_CONNECT_SUCCESS'; connectionId: string }
+  | { type: 'PROVIDER_CONNECT_ERROR' }
+  | { type: 'INTEGRATION_CONNECT_START'; integration: IntegrationProvider }
+  | { type: 'INTEGRATION_CONNECT_SUCCESS' }
+  | { type: 'INTEGRATION_CONNECT_ERROR'; error: string }
 
 export interface ResourceTypeInfo {
   type?: string
@@ -78,37 +84,37 @@ function reducer(state: State, action: Action): State {
     case 'SELECT_INTEGRATION_PROVIDER':
       return push({ type: 'integration-auth', integration: action.integration })
     case 'INTEGRATION_SUCCESS': {
-      const c = state.current
-      if (c.type !== 'integration-auth' && c.type !== 'integration-resource-selection') return state
-      return reset({ type: 'integration-success', integration: c.integration })
+      const current = state.current
+      if (current.type !== 'integration-auth' && current.type !== 'integration-resource-selection') return state
+      return reset({ type: 'integration-success', integration: current.integration })
     }
     case 'INTEGRATION_ERROR': {
-      const c = state.current
-      if (c.type !== 'integration-auth' && c.type !== 'integration-resource-selection') return state
-      return reset({ type: 'integration-error', integration: c.integration, error: action.error })
+      const current = state.current
+      if (current.type !== 'integration-auth' && current.type !== 'integration-resource-selection') return state
+      return reset({ type: 'integration-error', integration: current.integration, error: action.error })
     }
     case 'INTEGRATION_REQUIRES_RESOURCE_SELECTION': {
-      const c = state.current
-      if (c.type !== 'integration-auth') return state
+      const current = state.current
+      if (current.type !== 'integration-auth') return state
       return push({
         type: 'integration-resource-selection',
-        integration: c.integration,
+        integration: current.integration,
         connectionId: action.connectionId,
         nangoConnectionId: action.nangoConnectionId,
       })
     }
     case 'RESOURCE_SELECTION_COMPLETE':
     case 'RESOURCE_SELECTION_SKIP': {
-      const c = state.current
-      if (c.type !== 'integration-resource-selection') return state
-      return reset({ type: 'resource-selection-success', integration: c.integration })
+      const current = state.current
+      if (current.type !== 'integration-resource-selection') return state
+      return reset({ type: 'resource-selection-success', integration: current.integration })
     }
     case 'SELECT_RESOURCE_TYPE': {
-      const c = state.current
-      if (c.type !== 'integration-detail') return state
+      const current = state.current
+      if (current.type !== 'integration-detail') return state
       // Navigate to resource selection for the selected resource type
       // Requires connection_id and nango_connection_id from the integration
-      const integration = c.integration
+      const integration = current.integration
       if (!integration.connection_id || !integration.nango_connection_id) return state
       return push({
         type: 'integration-resource-selection',
@@ -118,24 +124,24 @@ function reducer(state: State, action: Action): State {
       })
     }
     case 'SUBMIT_KEY': {
-      const c = state.current
-      if (c.type !== 'api-key-input') return state
-      return push({ type: 'validating', providerId: c.providerId })
+      const current = state.current
+      if (current.type !== 'api-key-input') return state
+      return push({ type: 'validating', providerId: current.providerId })
     }
     case 'CONNECTION_SUCCESS': {
-      const c = state.current
-      if (c.type !== 'validating') return state
-      return reset({ type: 'success', providerId: c.providerId, connectionId: action.connectionId })
+      const current = state.current
+      if (current.type !== 'validating') return state
+      return reset({ type: 'success', providerId: current.providerId, connectionId: action.connectionId })
     }
     case 'CONNECTION_ERROR': {
-      const c = state.current
-      if (c.type !== 'validating') return state
-      return reset({ type: 'error', providerId: c.providerId })
+      const current = state.current
+      if (current.type !== 'validating') return state
+      return reset({ type: 'error', providerId: current.providerId })
     }
     case 'RETRY': {
-      const c = state.current
-      if (c.type !== 'error') return state
-      return reset({ type: 'api-key-input', providerId: c.providerId })
+      const current = state.current
+      if (current.type !== 'error') return state
+      return reset({ type: 'api-key-input', providerId: current.providerId })
     }
     case 'DONE':
     case 'CANCEL':
@@ -168,6 +174,36 @@ function reducer(state: State, action: Action): State {
     }
     case 'VIEW_INTEGRATIONS':
       return reset({ type: 'integration-selection' })
+    case 'PROVIDER_CONNECT_SUBMIT': {
+      const current = state.current
+      if (current.type !== 'provider-connect') return state
+      return push({ type: 'validating', providerId: current.providerId })
+    }
+    case 'PROVIDER_CONNECT_SUCCESS': {
+      const current = state.current
+      if (current.type !== 'validating') return state
+      return reset({ type: 'success', providerId: current.providerId, connectionId: action.connectionId })
+    }
+    case 'PROVIDER_CONNECT_ERROR': {
+      const current = state.current
+      if (current.type !== 'validating') return state
+      return reset({ type: 'error', providerId: current.providerId })
+    }
+    case 'INTEGRATION_CONNECT_START': {
+      const current = state.current
+      if (current.type !== 'integration-connect') return state
+      return push({ type: 'integration-auth', integration: action.integration })
+    }
+    case 'INTEGRATION_CONNECT_SUCCESS': {
+      const current = state.current
+      if (current.type !== 'integration-auth') return state
+      return reset({ type: 'integration-success', integration: current.integration })
+    }
+    case 'INTEGRATION_CONNECT_ERROR': {
+      const current = state.current
+      if (current.type !== 'integration-auth') return state
+      return reset({ type: 'integration-error', integration: current.integration, error: action.error })
+    }
     default:
       return state
   }
@@ -184,5 +220,5 @@ export function useWidget(initialView?: View) {
     returnTo: initial,
   })
   const navigate = useCallback((action: Action) => dispatch(action), [])
-  return { view: state.current, direction: state.direction, canGoBack: state.history.length > 0, navigate }
+  return { view: state.current, direction: state.direction, canGoBack: state.history.length > 0, returnTo: state.returnTo, navigate }
 }

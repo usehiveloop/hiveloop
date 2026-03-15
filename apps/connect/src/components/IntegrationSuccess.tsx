@@ -7,7 +7,7 @@ import { CheckIcon } from './icons'
 interface Props {
   integration: IntegrationProvider
   onDone: () => void
-  onManage: () => void
+  onManage?: () => void
 }
 
 export function IntegrationSuccess({ integration, onDone, onManage }: Props) {
@@ -34,10 +34,12 @@ export function IntegrationSuccess({ integration, onDone, onManage }: Props) {
       </div>
       
       <div className="flex flex-col w-full gap-2 mt-3">
-        <Button onClick={onManage} variant="primary">
-          Manage connection
-        </Button>
-        <Button onClick={onDone} variant="secondary">
+        {onManage && (
+          <Button onClick={onManage} variant="primary">
+            Manage connection
+          </Button>
+        )}
+        <Button onClick={onDone} variant={onManage ? 'secondary' : 'primary'}>
           Done
         </Button>
       </div>

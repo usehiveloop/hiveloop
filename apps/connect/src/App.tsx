@@ -15,7 +15,8 @@ import { Loading } from './components/Loading'
 import type { View } from './types'
 
 function getInitialView(): View {
-  const screen = new URLSearchParams(window.location.search).get('screen')
+  const params = new URLSearchParams(window.location.search)
+  const screen = params.get('screen')
   switch (screen) {
     case 'provider-selection':  return { type: 'provider-selection' }
     case 'api-key-input':       return { type: 'api-key-input', providerId: 'openai' }
@@ -28,6 +29,8 @@ function getInitialView(): View {
     case 'integration-auth':      return { type: 'integration-auth', integration: { id: '', provider: 'slack', display_name: 'Slack', auth_mode: 'OAUTH2' } }
     case 'integration-success':   return { type: 'integration-success', integration: { id: '', provider: 'slack', display_name: 'Slack', auth_mode: 'OAUTH2' } }
     case 'integration-error':     return { type: 'integration-error', integration: { id: '', provider: 'slack', display_name: 'Slack', auth_mode: 'OAUTH2' }, error: 'Preview error' }
+    case 'provider-connect':      return { type: 'provider-connect', providerId: params.get('providerId') ?? 'openai' }
+    case 'integration-connect':   return { type: 'integration-connect', provider: params.get('integrationId') ?? '' }
     default:                    return { type: 'provider-selection' }
   }
 }
@@ -37,7 +40,7 @@ function App() {
   const { resolved } = useTheme(
     (params.get('theme') as 'light' | 'dark') || 'system'
   )
-  const { view, direction, canGoBack, navigate } = useWidget(getInitialView())
+  const { view, direction, canGoBack, returnTo, navigate } = useWidget(getInitialView())
   const [sessionExpired, setSessionExpired] = useState(false)
   const { sendToParent, isEmbedded } = useParentMessaging()
 
@@ -96,6 +99,7 @@ function App() {
         <ViewRouter
           view={view}
           canGoBack={canGoBack}
+          returnTo={returnTo}
           navigate={navigate}
           onClose={onClose}
         />

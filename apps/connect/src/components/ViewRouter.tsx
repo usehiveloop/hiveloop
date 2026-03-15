@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { View } from '../types'
 import type { Action } from '../hooks/useWidget'
 import { useParentEvents } from '../hooks/useParentEvents'
+
 import { ProviderSelection } from './ProviderSelection'
 import { IntegrationProviderSelection } from './IntegrationProviderSelection'
 import { ApiKeyInput } from './ApiKeyInput'
@@ -18,15 +19,19 @@ import { IntegrationDetail } from './IntegrationDetail'
 import { IntegrationDisconnectConfirm } from './IntegrationDisconnectConfirm'
 import { IntegrationSuccess } from './IntegrationSuccess'
 import { ResourceSelectionSuccess } from './ResourceSelectionSuccess'
+import { ProviderConnect } from './ProviderConnect'
+import { IntegrationConnect } from './IntegrationConnect'
 
 interface Props {
   view: View
   canGoBack: boolean
+  returnTo: View
   navigate: (action: Action) => void
   onClose: () => void
 }
 
-export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
+export function ViewRouter({ view, canGoBack, returnTo, navigate, onClose }: Props) {
+  const isSingleConnect = returnTo.type === 'provider-connect' || returnTo.type === 'integration-connect'
   const { sendToParent } = useParentEvents()
 
   // Send error events to parent
@@ -81,13 +86,14 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
         <Success
           providerId={view.providerId}
           connectionId={view.connectionId}
-          onDone={() => navigate({ type: 'DONE' })}
+          onDone={isSingleConnect ? onClose : () => navigate({ type: 'DONE' })}
         />
       )
     case 'error':
       return (
         <Error
-          onRetry={() => navigate({ type: 'RETRY' })}
+          onRetry={isSingleConnect ? () => navigate({ type: 'DONE' }) : () => navigate({ type: 'RETRY' })}
+          retryLabel={isSingleConnect ? 'Try again' : undefined}
           onCancel={onClose}
         />
       )
@@ -157,7 +163,7 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
       return (
         <IntegrationSuccess
           integration={view.integration}
-          onDone={() => navigate({ type: 'DONE' })}
+          onDone={isSingleConnect ? onClose : () => navigate({ type: 'DONE' })}
           onManage={() => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration: view.integration })}
         />
       )
@@ -173,7 +179,7 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
         <Error
           title="Connection failed"
           message={view.error || 'Something went wrong while connecting. Please try again.'}
-          onRetry={() => navigate({ type: 'BACK' })}
+          onRetry={isSingleConnect ? () => navigate({ type: 'DONE' }) : () => navigate({ type: 'BACK' })}
           onCancel={onClose}
         />
       )
@@ -193,6 +199,25 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
           integration={view.integration}
           onConfirm={() => navigate({ type: 'CONFIRM_INTEGRATION_DISCONNECT' })}
           onCancel={() => navigate({ type: 'BACK' })}
+        />
+      )
+    case 'provider-connect':
+      return (
+        <ProviderConnect
+          providerId={view.providerId}
+          onSubmit={() => navigate({ type: 'PROVIDER_CONNECT_SUBMIT' })}
+          onSuccess={(connectionId) => navigate({ type: 'PROVIDER_CONNECT_SUCCESS', connectionId })}
+          onError={() => navigate({ type: 'PROVIDER_CONNECT_ERROR' })}
+          onClose={onClose}
+        />
+      )
+    case 'integration-connect':
+      return (
+        <IntegrationConnect
+          provider={view.provider}
+          onConnect={(integration) => navigate({ type: 'INTEGRATION_CONNECT_START', integration })}
+          onViewDetail={(integration) => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration })}
+          onClose={onClose}
         />
       )
   }
