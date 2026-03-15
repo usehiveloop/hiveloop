@@ -35,7 +35,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-apiKeyResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_apiKeyResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -44,7 +44,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -53,7 +53,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -62,7 +62,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -82,7 +82,7 @@ export interface paths {
             /** @description API key parameters */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createAPIKeyRequest"];
+                    "application/json": components["schemas"]["internal_handler.createAPIKeyRequest"];
                 };
             };
             responses: {
@@ -92,7 +92,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["createAPIKeyResponse"];
+                        "application/json": components["schemas"]["internal_handler.createAPIKeyResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -101,7 +101,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -110,7 +110,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -119,7 +119,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -173,7 +173,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -182,7 +182,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -191,7 +191,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -200,7 +200,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -243,7 +243,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-auditEntryResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_auditEntryResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -252,7 +252,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -261,7 +261,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -270,7 +270,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -306,7 +306,7 @@ export interface paths {
             /** @description Session parameters */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createConnectSessionRequest"];
+                    "application/json": components["schemas"]["internal_handler.createConnectSessionRequest"];
                 };
             };
             responses: {
@@ -316,7 +316,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["connectSessionResponse"];
+                        "application/json": components["schemas"]["internal_handler.connectSessionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -325,7 +325,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -334,7 +334,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -343,7 +343,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -352,7 +352,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -392,7 +392,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integConnResponse"];
+                        "application/json": components["schemas"]["internal_handler.integConnResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -401,7 +401,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -410,7 +410,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -419,7 +419,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -428,7 +428,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -468,7 +468,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -477,7 +477,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -486,7 +486,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -495,7 +495,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -542,7 +542,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-credentialResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_credentialResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -551,7 +551,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -560,7 +560,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -569,7 +569,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -589,7 +589,7 @@ export interface paths {
             /** @description Credential details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createCredentialRequest"];
+                    "application/json": components["schemas"]["internal_handler.createCredentialRequest"];
                 };
             };
             responses: {
@@ -599,7 +599,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["credentialResponse"];
+                        "application/json": components["schemas"]["internal_handler.credentialResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -608,7 +608,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -617,7 +617,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -626,7 +626,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -635,7 +635,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -678,7 +678,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["credentialResponse"];
+                        "application/json": components["schemas"]["internal_handler.credentialResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -687,7 +687,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -696,7 +696,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -705,7 +705,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -714,7 +714,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -759,7 +759,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-identityResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_identityResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -768,7 +768,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -777,7 +777,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -786,7 +786,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -806,7 +806,7 @@ export interface paths {
             /** @description Identity details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createIdentityRequest"];
+                    "application/json": components["schemas"]["internal_handler.createIdentityRequest"];
                 };
             };
             responses: {
@@ -816,7 +816,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["identityResponse"];
+                        "application/json": components["schemas"]["internal_handler.identityResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -825,7 +825,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -834,7 +834,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Conflict */
@@ -843,7 +843,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -852,7 +852,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -892,7 +892,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["identityResponse"];
+                        "application/json": components["schemas"]["internal_handler.identityResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -901,7 +901,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -910,7 +910,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -919,7 +919,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -928,7 +928,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -950,7 +950,7 @@ export interface paths {
             /** @description Fields to update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["updateIdentityRequest"];
+                    "application/json": components["schemas"]["internal_handler.updateIdentityRequest"];
                 };
             };
             responses: {
@@ -960,7 +960,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["identityResponse"];
+                        "application/json": components["schemas"]["internal_handler.identityResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -969,7 +969,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -978,7 +978,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -987,7 +987,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Conflict */
@@ -996,7 +996,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1005,7 +1005,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1044,7 +1044,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1053,7 +1053,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1062,7 +1062,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1071,7 +1071,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1116,7 +1116,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-integrationResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_integrationResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1125,7 +1125,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1134,7 +1134,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1143,7 +1143,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1163,7 +1163,7 @@ export interface paths {
             /** @description Integration parameters */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createIntegrationRequest"];
+                    "application/json": components["schemas"]["internal_handler.createIntegrationRequest"];
                 };
             };
             responses: {
@@ -1173,7 +1173,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integrationResponse"];
+                        "application/json": components["schemas"]["internal_handler.integrationResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1182,7 +1182,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1191,7 +1191,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1200,7 +1200,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Bad Gateway */
@@ -1209,7 +1209,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1246,7 +1246,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integrationProviderInfo"][];
+                        "application/json": components["schemas"]["internal_handler.integrationProviderInfo"][];
                     };
                 };
             };
@@ -1288,7 +1288,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integrationResponse"];
+                        "application/json": components["schemas"]["internal_handler.integrationResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1297,7 +1297,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1306,7 +1306,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1315,7 +1315,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1324,7 +1324,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1346,7 +1346,7 @@ export interface paths {
             /** @description Fields to update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["updateIntegrationRequest"];
+                    "application/json": components["schemas"]["internal_handler.updateIntegrationRequest"];
                 };
             };
             responses: {
@@ -1356,7 +1356,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integrationResponse"];
+                        "application/json": components["schemas"]["internal_handler.integrationResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1365,7 +1365,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1374,7 +1374,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1383,7 +1383,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1392,7 +1392,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Bad Gateway */
@@ -1401,7 +1401,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1440,7 +1440,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1449,7 +1449,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1458,7 +1458,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1467,7 +1467,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Bad Gateway */
@@ -1476,7 +1476,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1520,7 +1520,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-integConnResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_integConnResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1529,7 +1529,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1538,7 +1538,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1547,7 +1547,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1556,7 +1556,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1579,7 +1579,7 @@ export interface paths {
             /** @description Connection parameters */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["integConnCreateRequest"];
+                    "application/json": components["schemas"]["internal_handler.integConnCreateRequest"];
                 };
             };
             responses: {
@@ -1589,7 +1589,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integConnResponse"];
+                        "application/json": components["schemas"]["internal_handler.integConnResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1598,7 +1598,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1607,7 +1607,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1616,7 +1616,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1625,7 +1625,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1659,7 +1659,7 @@ export interface paths {
             /** @description Organization name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createOrgRequest"];
+                    "application/json": components["schemas"]["internal_handler.createOrgRequest"];
                 };
             };
             responses: {
@@ -1669,7 +1669,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["orgResponse"];
+                        "application/json": components["schemas"]["internal_handler.orgResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1678,7 +1678,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1687,7 +1687,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1696,7 +1696,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1733,7 +1733,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["orgResponse"];
+                        "application/json": components["schemas"]["internal_handler.orgResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -1742,7 +1742,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1781,7 +1781,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["providerSummary"][];
+                        "application/json": components["schemas"]["internal_handler.providerSummary"][];
                     };
                 };
             };
@@ -1823,7 +1823,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["providerDetail"];
+                        "application/json": components["schemas"]["internal_handler.providerDetail"];
                     };
                 };
                 /** @description Not Found */
@@ -1832,7 +1832,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1874,7 +1874,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["modelSummary"][];
+                        "application/json": components["schemas"]["internal_handler.modelSummary"][];
                     };
                 };
                 /** @description Not Found */
@@ -1883,7 +1883,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1922,7 +1922,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["connectSettingsResponse"];
+                        "application/json": components["schemas"]["internal_handler.connectSettingsResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1931,7 +1931,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -1950,7 +1950,7 @@ export interface paths {
             /** @description Settings to update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["connectSettingsRequest"];
+                    "application/json": components["schemas"]["internal_handler.connectSettingsRequest"];
                 };
             };
             responses: {
@@ -1960,7 +1960,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["connectSettingsResponse"];
+                        "application/json": components["schemas"]["internal_handler.connectSettingsResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1969,7 +1969,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1978,7 +1978,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -1987,7 +1987,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2022,7 +2022,7 @@ export interface paths {
             /** @description Token minting parameters */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["mintTokenRequest"];
+                    "application/json": components["schemas"]["internal_handler.mintTokenRequest"];
                 };
             };
             responses: {
@@ -2032,7 +2032,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["mintTokenResponse"];
+                        "application/json": components["schemas"]["internal_handler.mintTokenResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2041,7 +2041,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2050,7 +2050,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2059,7 +2059,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2068,7 +2068,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2122,7 +2122,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2131,7 +2131,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2140,7 +2140,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2149,7 +2149,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2185,7 +2185,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["usageResponse"];
+                        "application/json": components["schemas"]["internal_handler.usageResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2194,7 +2194,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2238,7 +2238,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-connectionResponse"];
+                        "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_connectionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2247,7 +2247,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2256,7 +2256,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2265,7 +2265,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2285,7 +2285,7 @@ export interface paths {
             /** @description Connection details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createConnectionRequest"];
+                    "application/json": components["schemas"]["internal_handler.createConnectionRequest"];
                 };
             };
             responses: {
@@ -2295,7 +2295,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["connectionResponse"];
+                        "application/json": components["schemas"]["internal_handler.connectionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2304,7 +2304,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2313,7 +2313,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2322,7 +2322,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2331,7 +2331,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2385,7 +2385,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2394,7 +2394,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2403,7 +2403,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2412,7 +2412,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2421,7 +2421,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2473,7 +2473,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2482,7 +2482,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2491,7 +2491,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2500,7 +2500,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2509,7 +2509,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2546,7 +2546,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["widgetIntegrationResponse"][];
+                        "application/json": components["schemas"]["internal_handler.widgetIntegrationResponse"][];
                     };
                 };
                 /** @description Unauthorized */
@@ -2555,7 +2555,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2594,7 +2594,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integrationProviderInfo"][];
+                        "application/json": components["schemas"]["internal_handler.integrationProviderInfo"][];
                     };
                 };
             };
@@ -2638,7 +2638,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["connectSessionTokenResponse"];
+                        "application/json": components["schemas"]["internal_handler.connectSessionTokenResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2647,7 +2647,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2656,7 +2656,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2665,7 +2665,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2674,7 +2674,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Bad Gateway */
@@ -2683,7 +2683,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2720,7 +2720,7 @@ export interface paths {
             /** @description Connection details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createIntegrationConnectionRequest"];
+                    "application/json": components["schemas"]["internal_handler.createIntegrationConnectionRequest"];
                 };
             };
             responses: {
@@ -2730,7 +2730,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["integConnResponse"];
+                        "application/json": components["schemas"]["internal_handler.integConnResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2739,7 +2739,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2748,7 +2748,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2757,7 +2757,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2766,7 +2766,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
                 /** @description Internal Server Error */
@@ -2775,11 +2775,272 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/widget/integrations/{id}/connections/{connectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an integration connection
+         * @description Revokes (soft-deletes) an integration connection owned by the session's identity.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                    /** @description Connection ID */
+                    connectionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update connection resources
+         * @description Updates the resources configured for a connection (resource selection).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                    /** @description Connection ID */
+                    connectionId: string;
+                };
+                cookie?: never;
+            };
+            /** @description Update parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_handler.patchIntegrationConnectionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.integConnResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/widget/integrations/{id}/resources/{type}/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available resources
+         * @description Fetches available resources of a specific type from the provider API.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Nango connection ID from OAuth flow */
+                    nango_connection_id: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                    /** @description Resource type (e.g., channel, repo, folder) */
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["github_com_llmvault_llmvault_internal_resources.DiscoveryResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2812,7 +3073,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["providerSummary"][];
+                        "application/json": components["schemas"]["internal_handler.providerSummary"][];
                     };
                 };
                 /** @description Unauthorized */
@@ -2821,7 +3082,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2860,7 +3121,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["sessionInfoResponse"];
+                        "application/json": components["schemas"]["internal_handler.sessionInfoResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2869,7 +3130,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["errorResponse"];
+                        "application/json": components["schemas"]["internal_handler.errorResponse"];
                     };
                 };
             };
@@ -2893,7 +3154,7 @@ export interface components {
                 [key: string]: string[];
             };
         };
-        JSON: {
+        "github_com_llmvault_llmvault_internal_model.JSON": {
             [key: string]: unknown;
         };
         "github_com_llmvault_llmvault_internal_nango.Credentials": {
@@ -2913,19 +3174,27 @@ export interface components {
             username?: string;
             webhook_secret?: string;
         };
-        Cost: {
+        "github_com_llmvault_llmvault_internal_registry.Cost": {
             input?: number;
             output?: number;
         };
-        Limit: {
+        "github_com_llmvault_llmvault_internal_registry.Limit": {
             context?: number;
             output?: number;
         };
-        Modalities: {
+        "github_com_llmvault_llmvault_internal_registry.Modalities": {
             input?: string[];
             output?: string[];
         };
-        apiKeyResponse: {
+        "github_com_llmvault_llmvault_internal_resources.AvailableResource": {
+            id?: string;
+            name?: string;
+            type?: string;
+        };
+        "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
+            resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
+        };
+        "internal_handler.apiKeyResponse": {
             created_at?: string;
             expires_at?: string;
             id?: string;
@@ -2935,12 +3204,12 @@ export interface components {
             revoked_at?: string;
             scopes?: string[];
         };
-        apiKeyStats: {
+        "internal_handler.apiKeyStats": {
             active?: number;
             revoked?: number;
             total?: number;
         };
-        auditEntryResponse: {
+        "internal_handler.auditEntryResponse": {
             action?: string;
             created_at?: string;
             credential_id?: string;
@@ -2952,7 +3221,7 @@ export interface components {
             path?: string;
             status?: number;
         };
-        connectSessionResponse: {
+        "internal_handler.connectSessionResponse": {
             allowed_origins?: string[];
             allowed_providers?: string[];
             created_at?: string;
@@ -2962,17 +3231,17 @@ export interface components {
             identity_id?: string;
             session_token?: string;
         };
-        connectSessionTokenResponse: {
+        "internal_handler.connectSessionTokenResponse": {
             provider_config_key?: string;
             token?: string;
         };
-        connectSettingsRequest: {
+        "internal_handler.connectSettingsRequest": {
             allowed_origins?: string[];
         };
-        connectSettingsResponse: {
+        "internal_handler.connectSettingsResponse": {
             allowed_origins?: string[];
         };
-        connectionResponse: {
+        "internal_handler.connectionResponse": {
             auth_scheme?: string;
             base_url?: string;
             created_at?: string;
@@ -2981,13 +3250,13 @@ export interface components {
             provider_id?: string;
             provider_name?: string;
         };
-        createAPIKeyRequest: {
+        "internal_handler.createAPIKeyRequest": {
             /** @description Go duration, e.g. "720h" */
             expires_in?: string;
             name?: string;
             scopes?: string[];
         };
-        createAPIKeyResponse: {
+        "internal_handler.createAPIKeyResponse": {
             created_at?: string;
             expires_at?: string;
             id?: string;
@@ -2996,21 +3265,21 @@ export interface components {
             name?: string;
             scopes?: string[];
         };
-        createConnectSessionRequest: {
+        "internal_handler.createConnectSessionRequest": {
             allowed_origins?: string[];
             allowed_providers?: string[];
             external_id?: string;
             identity_id?: string;
-            metadata?: components["schemas"]["JSON"];
+            metadata?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             permissions?: string[];
             ttl?: string;
         };
-        createConnectionRequest: {
+        "internal_handler.createConnectionRequest": {
             api_key?: string;
             label?: string;
             provider_id?: string;
         };
-        createCredentialRequest: {
+        "internal_handler.createCredentialRequest": {
             api_key?: string;
             auth_scheme?: string;
             base_url?: string;
@@ -3018,29 +3287,32 @@ export interface components {
             external_id?: string;
             identity_id?: string;
             label?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
         };
-        createIdentityRequest: {
+        "internal_handler.createIdentityRequest": {
             external_id?: string;
-            meta?: components["schemas"]["JSON"];
-            ratelimits?: components["schemas"]["identityRateLimitParams"][];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
         };
-        createIntegrationConnectionRequest: {
+        "internal_handler.createIntegrationConnectionRequest": {
             nango_connection_id?: string;
+            resources?: {
+                [key: string]: string[];
+            };
         };
-        createIntegrationRequest: {
+        "internal_handler.createIntegrationRequest": {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             provider?: string;
         };
-        createOrgRequest: {
+        "internal_handler.createOrgRequest": {
             name?: string;
         };
-        credentialResponse: {
+        "internal_handler.credentialResponse": {
             auth_scheme?: string;
             base_url?: string;
             created_at?: string;
@@ -3048,7 +3320,7 @@ export interface components {
             identity_id?: string;
             label?: string;
             last_used_at?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             provider_id?: string;
             refill_amount?: number;
             refill_interval?: string;
@@ -3056,69 +3328,69 @@ export interface components {
             request_count?: number;
             revoked_at?: string;
         };
-        credentialStats: {
+        "internal_handler.credentialStats": {
             active?: number;
             revoked?: number;
             total?: number;
         };
-        dailyRequests: {
+        "internal_handler.dailyRequests": {
             count?: number;
             date?: string;
         };
-        errorResponse: {
+        "internal_handler.errorResponse": {
             error?: string;
         };
-        identityRateLimitParams: {
+        "internal_handler.identityRateLimitParams": {
             /** @description milliseconds */
             duration?: number;
             limit?: number;
             name?: string;
         };
-        identityResponse: {
+        "internal_handler.identityResponse": {
             created_at?: string;
             external_id?: string;
             id?: string;
             last_used_at?: string;
-            meta?: components["schemas"]["JSON"];
-            ratelimits?: components["schemas"]["identityRateLimitParams"][];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
             request_count?: number;
             updated_at?: string;
         };
-        identityStats: {
+        "internal_handler.identityStats": {
             total?: number;
         };
-        integConnCreateRequest: {
+        "internal_handler.integConnCreateRequest": {
             identity_id?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             nango_connection_id?: string;
         };
-        integConnResponse: {
+        "internal_handler.integConnResponse": {
             created_at?: string;
             id?: string;
             identity_id?: string;
             integration_id?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             nango_connection_id?: string;
             revoked_at?: string;
             updated_at?: string;
         };
-        integrationProviderInfo: {
+        "internal_handler.integrationProviderInfo": {
             auth_mode?: string;
             display_name?: string;
             name?: string;
         };
-        integrationResponse: {
+        "internal_handler.integrationResponse": {
             created_at?: string;
             display_name?: string;
             id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_config?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            nango_config?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             provider?: string;
             updated_at?: string;
         };
-        mintTokenRequest: {
+        "internal_handler.mintTokenRequest": {
             credential_id?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
@@ -3126,18 +3398,18 @@ export interface components {
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
-        mintTokenResponse: {
+        "internal_handler.mintTokenResponse": {
             expires_at?: string;
             jti?: string;
             token?: string;
         };
-        modelSummary: {
-            cost?: components["schemas"]["Cost"];
+        "internal_handler.modelSummary": {
+            cost?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Cost"];
             family?: string;
             id?: string;
             knowledge?: string;
-            limit?: components["schemas"]["Limit"];
-            modalities?: components["schemas"]["Modalities"];
+            limit?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Limit"];
+            modalities?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Modalities"];
             name?: string;
             open_weights?: boolean;
             reasoning?: boolean;
@@ -3146,7 +3418,7 @@ export interface components {
             structured_output?: boolean;
             tool_call?: boolean;
         };
-        orgResponse: {
+        "internal_handler.orgResponse": {
             active?: boolean;
             created_at?: string;
             id?: string;
@@ -3154,63 +3426,68 @@ export interface components {
             name?: string;
             rate_limit?: number;
         };
-        "paginatedResponse-apiKeyResponse": {
-            data?: components["schemas"]["apiKeyResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_apiKeyResponse": {
+            data?: components["schemas"]["internal_handler.apiKeyResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-auditEntryResponse": {
-            data?: components["schemas"]["auditEntryResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_auditEntryResponse": {
+            data?: components["schemas"]["internal_handler.auditEntryResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-connectionResponse": {
-            data?: components["schemas"]["connectionResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_connectionResponse": {
+            data?: components["schemas"]["internal_handler.connectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-credentialResponse": {
-            data?: components["schemas"]["credentialResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_credentialResponse": {
+            data?: components["schemas"]["internal_handler.credentialResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-identityResponse": {
-            data?: components["schemas"]["identityResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_identityResponse": {
+            data?: components["schemas"]["internal_handler.identityResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-integConnResponse": {
-            data?: components["schemas"]["integConnResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_integConnResponse": {
+            data?: components["schemas"]["internal_handler.integConnResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-integrationResponse": {
-            data?: components["schemas"]["integrationResponse"][];
+        "internal_handler.paginatedResponse-internal_handler_integrationResponse": {
+            data?: components["schemas"]["internal_handler.integrationResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        providerDetail: {
+        "internal_handler.patchIntegrationConnectionRequest": {
+            resources?: {
+                [key: string]: string[];
+            };
+        };
+        "internal_handler.providerDetail": {
             api?: string;
             doc?: string;
             id?: string;
-            models?: components["schemas"]["modelSummary"][];
+            models?: components["schemas"]["internal_handler.modelSummary"][];
             name?: string;
         };
-        providerSummary: {
+        "internal_handler.providerSummary": {
             api?: string;
             doc?: string;
             id?: string;
             model_count?: number;
             name?: string;
         };
-        requestStats: {
+        "internal_handler.requestStats": {
             last_30d?: number;
             last_7d?: number;
             today?: number;
             total?: number;
             yesterday?: number;
         };
-        sessionInfoResponse: {
+        "internal_handler.sessionInfoResponse": {
             activated_at?: string;
             allowed_providers?: string[];
             expires_at?: string;
@@ -3219,42 +3496,55 @@ export interface components {
             identity_id?: string;
             permissions?: string[];
         };
-        tokenStats: {
+        "internal_handler.tokenStats": {
             active?: number;
             expired?: number;
             revoked?: number;
             total?: number;
         };
-        topCredential: {
+        "internal_handler.topCredential": {
             id?: string;
             label?: string;
             provider_id?: string;
             request_count?: number;
         };
-        updateIdentityRequest: {
+        "internal_handler.updateIdentityRequest": {
             external_id?: string;
-            meta?: components["schemas"]["JSON"];
-            ratelimits?: components["schemas"]["identityRateLimitParams"][];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
         };
-        updateIntegrationRequest: {
+        "internal_handler.updateIntegrationRequest": {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
         };
-        usageResponse: {
-            api_keys?: components["schemas"]["apiKeyStats"];
-            credentials?: components["schemas"]["credentialStats"];
-            daily_requests?: components["schemas"]["dailyRequests"][];
-            identities?: components["schemas"]["identityStats"];
-            requests?: components["schemas"]["requestStats"];
-            tokens?: components["schemas"]["tokenStats"];
-            top_credentials?: components["schemas"]["topCredential"][];
+        "internal_handler.usageResponse": {
+            api_keys?: components["schemas"]["internal_handler.apiKeyStats"];
+            credentials?: components["schemas"]["internal_handler.credentialStats"];
+            daily_requests?: components["schemas"]["internal_handler.dailyRequests"][];
+            identities?: components["schemas"]["internal_handler.identityStats"];
+            requests?: components["schemas"]["internal_handler.requestStats"];
+            tokens?: components["schemas"]["internal_handler.tokenStats"];
+            top_credentials?: components["schemas"]["internal_handler.topCredential"][];
         };
-        widgetIntegrationResponse: {
+        "internal_handler.widgetIntegrationResponse": {
             auth_mode?: string;
+            connection_id?: string;
             display_name?: string;
             id?: string;
+            nango_connection_id?: string;
             provider?: string;
+            resources?: components["schemas"]["internal_handler.widgetResourceResponse"][];
+            selected_resources?: {
+                [key: string]: string[];
+            };
+            unique_key?: string;
+        };
+        "internal_handler.widgetResourceResponse": {
+            description?: string;
+            display_name?: string;
+            icon?: string;
+            type?: string;
         };
     };
     responses: never;

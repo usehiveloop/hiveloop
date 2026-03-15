@@ -21,6 +21,7 @@
   "scripts": {
     "generate": "openapi-typescript ../../docs/openapi.json -o src/generated/schema.d.ts",
     "build": "npm run generate && tsup",
+    "prepublish": "npm run build",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -36,5 +37,8 @@
     "tsup": "^8.4.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
