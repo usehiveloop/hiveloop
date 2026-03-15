@@ -14,7 +14,7 @@ export type View =
   | { type: 'provider-selection' }
   | { type: 'api-key-input'; providerId: string }
   | { type: 'validating'; providerId: string }
-  | { type: 'success'; providerId: string }
+  | { type: 'success'; providerId: string; connectionId: string }
   | { type: 'error'; providerId: string }
   | { type: 'connected-list' }
   | { type: 'provider-detail'; connection: Connection }

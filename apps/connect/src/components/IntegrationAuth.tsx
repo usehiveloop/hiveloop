@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { IntegrationProvider } from '../types'
 import type { Action } from '../hooks/useWidget'
 import { useNangoAuth } from '../hooks/useNangoAuth'
+import { useParentEvents } from '../hooks/useParentEvents'
 import { IntegrationProviderLogo } from './IntegrationProviderLogo'
 import { Footer } from './Footer'
 import { IconButton } from './IconButton'
@@ -15,8 +16,13 @@ interface Props {
 }
 
 export function IntegrationAuth({ integration, navigate, onBack, onClose }: Props) {
+  const { sendToParent } = useParentEvents()
   const mutation = useNangoAuth(integration.id ?? '', {
     onSuccess: () => {
+      sendToParent({
+        type: 'integration_success',
+        payload: { integrationId: integration.id ?? '', provider: integration.provider ?? '' },
+      })
       navigate({ type: 'INTEGRATION_SUCCESS' })
     },
     onError: (error) => navigate({ type: 'INTEGRATION_ERROR', error }),

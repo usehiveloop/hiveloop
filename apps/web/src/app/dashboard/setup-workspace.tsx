@@ -17,8 +17,12 @@ export function SetupWorkspace() {
   });
 
   useEffect(() => {
-    if (started.current) return;
+    if (started.current) {
+      return
+    };
+
     started.current = true;
+
     createOrg.mutate({ body: { name: "My Organization" } });
   }, [createOrg]);
 

@@ -34,18 +34,20 @@ export function UsageTierCard({
   const selected = pricingTiers[selectedIndex];
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col gap-8 border-2 border-primary bg-surface p-11">
-      <div className="absolute top-[-13px] left-1/2 -translate-x-1/2 bg-primary px-4 py-1">
+      <div className="absolute -top-3.25 left-1/2 -translate-x-1/2 bg-primary px-4 py-1">
         <span className="font-mono text-[11px] font-medium leading-3.5 tracking-[0.08em] uppercase text-white">
           Recommended
         </span>

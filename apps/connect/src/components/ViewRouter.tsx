@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import type { View } from '../types'
 import type { Action } from '../hooks/useWidget'
+import { useParentEvents } from '../hooks/useParentEvents'
 import { ProviderSelection } from './ProviderSelection'
 import { IntegrationProviderSelection } from './IntegrationProviderSelection'
 import { ApiKeyInput } from './ApiKeyInput'
@@ -25,6 +27,24 @@ interface Props {
 }
 
 export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
+  const { sendToParent } = useParentEvents()
+
+  // Send error events to parent
+  useEffect(() => {
+    if (view.type === 'error') {
+      sendToParent({
+        type: 'error',
+        payload: { code: 'connection_failed', message: 'Connection failed', providerId: view.providerId },
+      })
+    }
+    if (view.type === 'integration-error') {
+      sendToParent({
+        type: 'error',
+        payload: { code: 'integration_failed', message: view.error || 'Integration failed' },
+      })
+    }
+  }, [view, sendToParent])
+
   switch (view.type) {
     case 'provider-selection':
       return (
@@ -48,7 +68,7 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
         <ApiKeyInput
           providerId={view.providerId}
           onSubmit={() => navigate({ type: 'SUBMIT_KEY' })}
-          onSuccess={() => navigate({ type: 'CONNECTION_SUCCESS' })}
+          onSuccess={(connectionId) => navigate({ type: 'CONNECTION_SUCCESS', connectionId })}
           onError={() => navigate({ type: 'CONNECTION_ERROR' })}
           onBack={() => navigate({ type: 'BACK' })}
           onClose={onClose}
@@ -60,6 +80,7 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
       return (
         <Success
           providerId={view.providerId}
+          connectionId={view.connectionId}
           onDone={() => navigate({ type: 'DONE' })}
         />
       )

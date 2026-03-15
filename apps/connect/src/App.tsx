@@ -4,8 +4,10 @@ import { setOnUnauthorized } from './api/client'
 import { useTheme } from './hooks/useTheme'
 import { useWidget } from './hooks/useWidget'
 import { useSession } from './hooks/useSession'
+import { useParentMessaging } from './hooks/useParentMessaging'
 import { ThemeProvider } from './hooks/ThemeContext'
 import { ConnectProvider } from './hooks/ConnectContext'
+import { ParentEventProvider } from './hooks/ParentEventContext'
 import { ViewRouter } from './components/ViewRouter'
 import { AnimatedView, FadeView } from './components/AnimatedView'
 import { Error } from './components/Error'
@@ -18,7 +20,7 @@ function getInitialView(): View {
     case 'provider-selection':  return { type: 'provider-selection' }
     case 'api-key-input':       return { type: 'api-key-input', providerId: 'openai' }
     case 'validating':          return { type: 'validating', providerId: 'openai' }
-    case 'success':             return { type: 'success', providerId: 'openai' }
+    case 'success':             return { type: 'success', providerId: 'openai', connectionId: 'preview' }
     case 'error':               return { type: 'error', providerId: 'openai' }
     case 'connected-list':      return { type: 'connected-list' }
     case 'empty-state':         return { type: 'empty-state' }
@@ -37,11 +39,18 @@ function App() {
   )
   const { view, direction, canGoBack, navigate } = useWidget(getInitialView())
   const [sessionExpired, setSessionExpired] = useState(false)
+  const { sendToParent, isEmbedded } = useParentMessaging()
 
   useEffect(() => {
-    setOnUnauthorized(() => setSessionExpired(true))
+    setOnUnauthorized(() => {
+      setSessionExpired(true)
+      sendToParent({
+        type: 'error',
+        payload: { code: 'session_invalid', message: 'This session has expired or is invalid.' },
+      })
+    })
     return () => setOnUnauthorized(null)
-  }, [])
+  }, [sendToParent])
 
   const connectState = useMemo(() => {
     const sessionId = params.get('session')
@@ -57,7 +66,11 @@ function App() {
 
   const loading = needsSession && !missingSession && sessionLoading
   const sessionError = missingSession || sessionQueryError || sessionExpired
-  const onClose = () => navigate({ type: 'CANCEL' })
+
+  const onClose = () => {
+    sendToParent({ type: 'close' })
+    navigate({ type: 'CANCEL' })
+  }
 
   function renderContent() {
     if (loading) {
@@ -96,11 +109,13 @@ function App() {
       <div className="relative h-full w-full flex items-center justify-center pointer-events-none">
         <div className="connect-widget pointer-events-auto">
           <ConnectProvider sessionId={connectState.sessionId} preview={connectState.preview}>
+          <ParentEventProvider sendToParent={sendToParent} isEmbedded={isEmbedded}>
           <ThemeProvider value={resolved}>
             <AnimatePresence custom={direction}>
               {renderContent()}
             </AnimatePresence>
           </ThemeProvider>
+          </ParentEventProvider>
           </ConnectProvider>
         </div>
       </div>

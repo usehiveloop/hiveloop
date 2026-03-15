@@ -13,7 +13,7 @@ import { BackIcon, CloseIcon, EyeIcon, EyeOffIcon } from './icons'
 interface Props {
   providerId: string
   onSubmit: () => void
-  onSuccess: () => void
+  onSuccess: (connectionId: string) => void
   onError: () => void
   onBack: () => void
   onClose: () => void
@@ -32,15 +32,16 @@ export function ApiKeyInput({ providerId, onSubmit, onSuccess, onError, onBack, 
     mutationFn: async (body: { provider_id: string; api_key: string; label?: string }) => {
       if (preview) {
         await new Promise((r) => setTimeout(r, 1500))
-        return
+        return { id: 'preview' } as { id: string }
       }
       const client = createWidgetFetchClient(sessionId!)
-      await client.POST('/v1/widget/connections', { body })
+      const { data } = await client.POST('/v1/widget/connections', { body })
+      return data as { id: string }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setPending(null)
       queryClient.invalidateQueries({ queryKey: ['widget', 'connections'] })
-      onSuccess()
+      onSuccess(data?.id ?? '')
     },
     onError: () => onError(),
   })

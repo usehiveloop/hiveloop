@@ -11,7 +11,7 @@ type Action =
   | { type: 'RESOURCE_SELECTION_SKIP' }
   | { type: 'SELECT_RESOURCE_TYPE'; resourceType: string }
   | { type: 'SUBMIT_KEY' }
-  | { type: 'CONNECTION_SUCCESS' }
+  | { type: 'CONNECTION_SUCCESS'; connectionId: string }
   | { type: 'CONNECTION_ERROR' }
   | { type: 'RETRY' }
   | { type: 'DONE' }
@@ -125,7 +125,7 @@ function reducer(state: State, action: Action): State {
     case 'CONNECTION_SUCCESS': {
       const c = state.current
       if (c.type !== 'validating') return state
-      return reset({ type: 'success', providerId: c.providerId })
+      return reset({ type: 'success', providerId: c.providerId, connectionId: action.connectionId })
     }
     case 'CONNECTION_ERROR': {
       const c = state.current
