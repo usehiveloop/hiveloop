@@ -282,6 +282,9 @@ export default function IntegrationDetailPage() {
             {typeof config.webhook_url === "string" && (
               <CopyableRow label="Webhook URL" value={config.webhook_url} />
             )}
+            {typeof config.webhook_secret === "string" && (
+              <CopyableRow label="Webhook Secret" value={config.webhook_secret} />
+            )}
             {integration.created_at && (
               <div className="flex items-center justify-between gap-4">
                 <span className="text-[13px] text-dim">Created</span>

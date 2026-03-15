@@ -27,10 +27,11 @@ type Client struct {
 
 // Provider represents a Nango integration provider from the catalog.
 type Provider struct {
-	Name               string `json:"name"`
-	DisplayName        string `json:"display_name"`
-	AuthMode           string `json:"auth_mode"`
-	ClientRegistration string `json:"client_registration,omitempty"` // for MCP_OAUTH2
+	Name                    string `json:"name"`
+	DisplayName             string `json:"display_name"`
+	AuthMode                string `json:"auth_mode"`
+	ClientRegistration      string `json:"client_registration,omitempty"` // for MCP_OAUTH2
+	WebhookUserDefinedSecret bool  `json:"webhook_user_defined_secret,omitempty"`
 }
 
 // Credentials is a union type covering all Nango auth modes.
@@ -120,12 +121,7 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 		return fmt.Errorf("unmarshaling providers: %w", err)
 	}
 
-	catalog := make(map[string]Provider, len(providers))
-	for _, p := range providers {
-		catalog[p.Name] = p
-	}
-
-	// Also store raw templates for config extraction
+	// Also store raw templates for config extraction (need these before building catalog)
 	var rawProviders []map[string]any
 	if err := json.Unmarshal(b, &rawProviders); err != nil {
 		return fmt.Errorf("unmarshaling raw provider templates: %w", err)
@@ -135,6 +131,17 @@ func (c *Client) FetchProviders(ctx context.Context) error {
 		if name, ok := rp["name"].(string); ok {
 			templates[name] = rp
 		}
+	}
+
+	// Build catalog with webhook_user_defined_secret populated from templates
+	catalog := make(map[string]Provider, len(providers))
+	for _, p := range providers {
+		if tmpl, ok := templates[p.Name]; ok {
+			if wuds, ok := tmpl["webhook_user_defined_secret"].(bool); ok {
+				p.WebhookUserDefinedSecret = wuds
+			}
+		}
+		catalog[p.Name] = p
 	}
 
 	c.mu.Lock()
@@ -205,9 +212,9 @@ func (c *Client) UpdateIntegration(ctx context.Context, uniqueKey string, req Up
 }
 
 // GetIntegration fetches an integration by its unique key.
-// GET /integrations/{uniqueKey}?include=webhook
+// GET /integrations/{uniqueKey}?include=webhook,credentials
 func (c *Client) GetIntegration(ctx context.Context, uniqueKey string) (map[string]any, error) {
-	return c.doJSON(ctx, http.MethodGet, "/integrations/"+uniqueKey+"?include=webhook", nil)
+	return c.doJSON(ctx, http.MethodGet, "/integrations/"+uniqueKey+"?include=webhook,credentials", nil)
 }
 
 // DeleteIntegration removes an integration by its unique key.

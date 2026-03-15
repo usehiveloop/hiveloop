@@ -16,7 +16,7 @@ import {
 import { updateIntegration, listProviders } from "./api";
 import { credentialFieldsForAuthMode } from "./credential-config";
 import { CredentialFieldsForm } from "./credential-fields-form";
-import type { IntegrationResponse } from "./utils";
+import type { IntegrationResponse, NangoProvider } from "./utils";
 
 export function EditIntegrationDialog({
   integration,
@@ -30,8 +30,9 @@ export function EditIntegrationDialog({
   const [displayName, setDisplayName] = useState(integration.display_name);
   const [showCredentials, setShowCredentials] = useState(false);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [webhookSecret, setWebhookSecret] = useState("");
 
-  const { data: providers = [] } = useQuery({
+  const { data: providers = [] } = useQuery<NangoProvider[]>({
     queryKey: ["nango-providers"],
     queryFn: listProviders,
     staleTime: 5 * 60 * 1000,
@@ -67,6 +68,9 @@ export function EditIntegrationDialog({
           creds[f.key] = credentials[f.key];
         }
       }
+      if (webhookSecret && provider.webhook_user_defined_secret) {
+        creds.webhook_secret = webhookSecret;
+      }
       if (Object.keys(creds).length > 1) {
         body.credentials = creds;
       }
@@ -77,7 +81,8 @@ export function EditIntegrationDialog({
 
   const hasChanges =
     displayName !== integration.display_name ||
-    (showCredentials && Object.values(credentials).some((v) => v !== ""));
+    (showCredentials && Object.values(credentials).some((v) => v !== "")) ||
+    webhookSecret !== "";
 
   return (
     <DialogContent className="sm:max-w-130 gap-6 p-7" showCloseButton={false}>
@@ -172,6 +177,25 @@ export function EditIntegrationDialog({
                   idPrefix="edit-cred"
                   placeholderPrefix="Enter new"
                 />
+                {provider?.webhook_user_defined_secret && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="edit-webhook-secret" className="text-xs">
+                      Webhook Secret
+                    </Label>
+                    <Input
+                      id="edit-webhook-secret"
+                      value={webhookSecret}
+                      onChange={(e) => setWebhookSecret(e.target.value)}
+                      className="h-10 font-mono text-[13px]"
+                      placeholder={
+                        (integration.nango_config as Record<string, unknown>)
+                          ?.webhook_secret
+                          ? "Current secret set — enter new to replace"
+                          : "Paste webhook secret from provider"
+                      }
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

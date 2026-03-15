@@ -15,6 +15,7 @@ import { $api } from "@/api/client";
 import { CreateIntegrationDialog } from "./create-integration-dialog";
 import { EditIntegrationDialog } from "./edit-integration-dialog";
 import { DeleteIntegrationDialog } from "./delete-integration-dialog";
+import { IntegrationCreatedDialog } from "./integration-created-dialog";
 import { IntegrationMobileCard } from "./integration-mobile-card";
 import { ProviderLogo } from "./provider-logo";
 import { deleteIntegration } from "./api";
@@ -43,6 +44,8 @@ export default function IntegrationsPage() {
     null,
   );
   const [deleteTarget, setDeleteTarget] =
+    useState<IntegrationResponse | null>(null);
+  const [createdResult, setCreatedResult] =
     useState<IntegrationResponse | null>(null);
 
   const { data: page, isLoading } = $api.useQuery("get", "/v1/integrations", {
@@ -288,8 +291,8 @@ export default function IntegrationsPage() {
           onCancel={() => setModal("closed")}
           onSuccess={(result) => {
             queryClient.invalidateQueries({ queryKey: ["integrations"] });
-            setModal("closed");
-            router.push(`/dashboard/integrations/${result.id}`);
+            setCreatedResult(result);
+            setModal("success");
           }}
         />
       </Dialog>
@@ -338,6 +341,29 @@ export default function IntegrationsPage() {
             setDeleteTarget(null);
           }}
           onConfirm={handleDelete}
+        />
+      </Dialog>
+
+      {/* Success dialog */}
+      <Dialog
+        open={modal === "success"}
+        onOpenChange={(open) => {
+          if (!open) {
+            const id = createdResult?.id;
+            setModal("closed");
+            setCreatedResult(null);
+            if (id) router.push(`/dashboard/integrations/${id}`);
+          }
+        }}
+      >
+        <IntegrationCreatedDialog
+          result={createdResult}
+          onClose={() => {
+            const id = createdResult?.id;
+            setModal("closed");
+            setCreatedResult(null);
+            if (id) router.push(`/dashboard/integrations/${id}`);
+          }}
         />
       </Dialog>
     </>

@@ -32,6 +32,7 @@ export function CreateIntegrationDialog({
     useState<NangoProvider | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [webhookSecret, setWebhookSecret] = useState("");
 
   const credConfig = selectedProvider
     ? credentialFieldsForAuthMode(selectedProvider.auth_mode)
@@ -52,6 +53,7 @@ export function CreateIntegrationDialog({
       p.display_name || p.name.charAt(0).toUpperCase() + p.name.slice(1),
     );
     setCredentials({});
+    setWebhookSecret("");
     mutation.reset();
     setStep("configure");
   }
@@ -81,6 +83,9 @@ export function CreateIntegrationDialog({
         if (credentials[f.key]) {
           creds[f.key] = credentials[f.key];
         }
+      }
+      if (webhookSecret && selectedProvider.webhook_user_defined_secret) {
+        creds.webhook_secret = webhookSecret;
       }
       if (Object.keys(creds).length > 1) {
         body.credentials = creds;
@@ -156,6 +161,24 @@ export function CreateIntegrationDialog({
               setCredentials((prev) => ({ ...prev, [key]: value }))
             }
           />
+        )}
+
+        {selectedProvider?.webhook_user_defined_secret && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="webhook-secret" className="text-xs">
+              Webhook Secret
+            </Label>
+            <Input
+              id="webhook-secret"
+              value={webhookSecret}
+              onChange={(e) => setWebhookSecret(e.target.value)}
+              className="h-10 font-mono text-[13px]"
+              placeholder="Paste webhook secret from provider"
+            />
+            <span className="text-[11px] text-muted-foreground">
+              Found in your provider&apos;s webhook settings.
+            </span>
+          </div>
         )}
       </div>
 

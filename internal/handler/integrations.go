@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -76,6 +78,13 @@ func buildNangoConfig(integResp map[string]any, template map[string]any, callbac
 				config[key] = v
 			}
 		}
+
+		// Extract user-defined webhook_secret from credentials (for OAUTH/TBA providers)
+		if creds, ok := data["credentials"].(map[string]any); ok {
+			if ws, ok := creds["webhook_secret"].(string); ok && ws != "" {
+				config["webhook_secret"] = ws
+			}
+		}
 	}
 
 	// Extract non-sensitive fields from provider template
@@ -91,6 +100,10 @@ func buildNangoConfig(integResp map[string]any, template map[string]any, callbac
 		// Rename "credentials" to "credentials_schema" (schema only, not actual secrets)
 		if v, exists := template["credentials"]; exists {
 			config["credentials_schema"] = v
+		}
+		// Extract webhook_user_defined_secret flag
+		if v, exists := template["webhook_user_defined_secret"]; exists {
+			config["webhook_user_defined_secret"] = v
 		}
 	}
 
@@ -123,6 +136,7 @@ func validateCredentials(provider nango.Provider, creds *nango.Credentials) erro
 		if creds.ClientSecret == "" {
 			return fmt.Errorf("client_secret is required for %s auth mode", mode)
 		}
+		// webhook_secret is optional — passed through to Nango for user-defined secrets
 
 	case "APP":
 		if creds == nil {
@@ -279,6 +293,22 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	} else {
 		template, _ := h.nango.GetProviderTemplate(req.Provider)
 		nangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
+	}
+
+	// Compute auto-generated webhook_secret for APP/CUSTOM modes
+	// Nango's public API doesn't return the computed hash, so we replicate
+	// their V1 logic: SHA256(app_id + private_key + app_link)
+	if req.Credentials != nil && nangoConfig != nil {
+		if _, alreadySet := nangoConfig["webhook_secret"]; !alreadySet {
+			switch provider.AuthMode {
+			case "APP":
+				hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
+				nangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
+			case "CUSTOM":
+				hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
+				nangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
+			}
+		}
 	}
 
 	integ := model.Integration{
@@ -488,6 +518,20 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 			template, _ := h.nango.GetProviderTemplate(integ.Provider)
 			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 		}
+
+		// Compute auto-generated webhook_secret for APP/CUSTOM modes on credential rotation
+		if integ.NangoConfig != nil {
+			if _, alreadySet := integ.NangoConfig["webhook_secret"]; !alreadySet {
+				switch provider.AuthMode {
+				case "APP":
+					hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
+					integ.NangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
+				case "CUSTOM":
+					hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
+					integ.NangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
+				}
+			}
+		}
 	}
 
 	updates := map[string]any{}
@@ -576,9 +620,10 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 type integrationProviderInfo struct {
-	Name        string `json:"name"`
-	DisplayName string `json:"display_name"`
-	AuthMode    string `json:"auth_mode"`
+	Name                     string `json:"name"`
+	DisplayName              string `json:"display_name"`
+	AuthMode                 string `json:"auth_mode"`
+	WebhookUserDefinedSecret bool   `json:"webhook_user_defined_secret,omitempty"`
 }
 
 // ListProviders handles GET /v1/integrations/providers.
@@ -595,7 +640,12 @@ func (h *IntegrationHandler) ListProviders(w http.ResponseWriter, r *http.Reques
 	providers := h.nango.GetProviders()
 	resp := make([]integrationProviderInfo, len(providers))
 	for i, p := range providers {
-		resp[i] = integrationProviderInfo{Name: p.Name, DisplayName: p.DisplayName, AuthMode: p.AuthMode}
+		resp[i] = integrationProviderInfo{
+			Name:                     p.Name,
+			DisplayName:              p.DisplayName,
+			AuthMode:                 p.AuthMode,
+			WebhookUserDefinedSecret: p.WebhookUserDefinedSecret,
+		}
 	}
 	slog.Info("listed integration providers", "count", len(resp))
 	writeJSON(w, http.StatusOK, resp)
