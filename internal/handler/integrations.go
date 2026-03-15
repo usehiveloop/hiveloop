@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -30,18 +28,16 @@ func NewIntegrationHandler(db *gorm.DB, nangoClient *nango.Client) *IntegrationH
 }
 
 type createIntegrationRequest struct {
-	Provider      string             `json:"provider"`
-	DisplayName   string             `json:"display_name"`
-	Credentials   *nango.Credentials `json:"credentials,omitempty"`
-	Meta          model.JSON         `json:"meta,omitempty"`
-	WebhookSecret *string            `json:"webhook_secret,omitempty"`
+	Provider    string             `json:"provider"`
+	DisplayName string             `json:"display_name"`
+	Credentials *nango.Credentials `json:"credentials,omitempty"`
+	Meta        model.JSON         `json:"meta,omitempty"`
 }
 
 type updateIntegrationRequest struct {
-	DisplayName   *string            `json:"display_name,omitempty"`
-	Credentials   *nango.Credentials `json:"credentials,omitempty"`
-	Meta          model.JSON         `json:"meta,omitempty"`
-	WebhookSecret *string            `json:"webhook_secret,omitempty"`
+	DisplayName *string            `json:"display_name,omitempty"`
+	Credentials *nango.Credentials `json:"credentials,omitempty"`
+	Meta        model.JSON         `json:"meta,omitempty"`
 }
 
 type integrationResponse struct {
@@ -297,27 +293,6 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		nangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 	}
 
-	// Compute auto-generated webhook_secret for APP/CUSTOM modes
-	// Nango's public API doesn't return the computed hash, so we replicate
-	// their V1 logic: SHA256(app_id + private_key + app_link)
-	if req.Credentials != nil && nangoConfig != nil {
-		if _, alreadySet := nangoConfig["webhook_secret"]; !alreadySet {
-			switch provider.AuthMode {
-			case "APP":
-				hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
-				nangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
-			case "CUSTOM":
-				hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
-				nangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
-			}
-		}
-	}
-
-	// User-defined webhook_secret (top-level field, independent of credentials)
-	if req.WebhookSecret != nil && *req.WebhookSecret != "" && nangoConfig != nil {
-		nangoConfig["webhook_secret"] = *req.WebhookSecret
-	}
-
 	integ := model.Integration{
 		ID:          integID,
 		OrgID:       org.ID,
@@ -375,19 +350,23 @@ func (h *IntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lazy-populate nango_config for integrations created before config was stored
-	if len(integ.NangoConfig) == 0 {
-		nk := nangoKey(org.ID, integ.UniqueKey)
-		integResp, err := h.nango.GetIntegration(r.Context(), nk)
-		if err != nil {
-			slog.Warn("failed to lazy-fetch nango config", "error", err, "integration_id", integ.ID)
-		} else {
-			template, _ := h.nango.GetProviderTemplate(integ.Provider)
-			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
-			if err := h.db.Model(&integ).Update("nango_config", integ.NangoConfig).Error; err != nil {
-				slog.Warn("failed to persist lazy-fetched nango config", "error", err, "integration_id", integ.ID)
+	// Always fetch live from Nango to include credentials in response
+	nk := nangoKey(org.ID, integ.UniqueKey)
+	integResp, err := h.nango.GetIntegration(r.Context(), nk)
+	if err != nil {
+		slog.Warn("failed to fetch nango integration", "error", err, "integration_id", integ.ID)
+	} else {
+		template, _ := h.nango.GetProviderTemplate(integ.Provider)
+		liveConfig := buildNangoConfig(integResp, template, h.nango.CallbackURL())
+
+		// Include credentials from the live Nango response
+		if data, ok := integResp["data"].(map[string]any); ok {
+			if creds, ok := data["credentials"].(map[string]any); ok {
+				liveConfig["credentials"] = creds
 			}
 		}
+
+		integ.NangoConfig = liveConfig
 	}
 
 	writeJSON(w, http.StatusOK, toIntegrationResponse(integ))
@@ -541,27 +520,6 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
 		}
 
-		// Compute auto-generated webhook_secret for APP/CUSTOM modes on credential rotation
-		if integ.NangoConfig != nil {
-			if _, alreadySet := integ.NangoConfig["webhook_secret"]; !alreadySet {
-				switch provider.AuthMode {
-				case "APP":
-					hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
-					integ.NangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
-				case "CUSTOM":
-					hash := sha256.Sum256([]byte(req.Credentials.AppID + req.Credentials.PrivateKey + req.Credentials.AppLink))
-					integ.NangoConfig["webhook_secret"] = hex.EncodeToString(hash[:])
-				}
-			}
-		}
-	}
-
-	// User-defined webhook_secret (independent of credential rotation)
-	if req.WebhookSecret != nil && *req.WebhookSecret != "" {
-		if integ.NangoConfig == nil {
-			integ.NangoConfig = model.JSON{}
-		}
-		integ.NangoConfig["webhook_secret"] = *req.WebhookSecret
 	}
 
 	updates := map[string]any{}

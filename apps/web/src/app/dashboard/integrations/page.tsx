@@ -13,7 +13,6 @@ import { ProviderBadge } from "@/components/provider-badge";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { $api } from "@/api/client";
 import { CreateIntegrationDialog } from "./create-integration-dialog";
-import { EditIntegrationDialog } from "./edit-integration-dialog";
 import { DeleteIntegrationDialog } from "./delete-integration-dialog";
 import { IntegrationCreatedDialog } from "./integration-created-dialog";
 import { IntegrationMobileCard } from "./integration-mobile-card";
@@ -40,9 +39,6 @@ export default function IntegrationsPage() {
 
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalState>("closed");
-  const [editTarget, setEditTarget] = useState<IntegrationResponse | null>(
-    null,
-  );
   const [deleteTarget, setDeleteTarget] =
     useState<IntegrationResponse | null>(null);
   const [createdResult, setCreatedResult] =
@@ -138,17 +134,6 @@ export default function IntegrationsPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              setEditTarget(row);
-              setModal("edit");
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
             className="h-7 text-xs text-muted-foreground hover:text-destructive"
             onClick={() => {
               setDeleteTarget(row);
@@ -237,10 +222,6 @@ export default function IntegrationsPage() {
             mobileCard={(row) => (
               <IntegrationMobileCard
                 integration={row}
-                onEdit={() => {
-                  setEditTarget(row);
-                  setModal("edit");
-                }}
                 onDelete={() => {
                   setDeleteTarget(row);
                   setModal("delete-confirm");
@@ -295,32 +276,6 @@ export default function IntegrationsPage() {
             setModal("success");
           }}
         />
-      </Dialog>
-
-      {/* Edit dialog */}
-      <Dialog
-        open={modal === "edit"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setModal("closed");
-            setEditTarget(null);
-          }
-        }}
-      >
-        {editTarget && (
-          <EditIntegrationDialog
-            integration={editTarget}
-            onCancel={() => {
-              setModal("closed");
-              setEditTarget(null);
-            }}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["integrations"] });
-              setModal("closed");
-              setEditTarget(null);
-            }}
-          />
-        )}
       </Dialog>
 
       {/* Delete confirmation dialog */}

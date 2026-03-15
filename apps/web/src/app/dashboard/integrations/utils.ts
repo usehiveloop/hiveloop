@@ -10,7 +10,7 @@ export interface NangoProvider {
   webhook_user_defined_secret?: boolean;
 }
 
-export type ModalState = "closed" | "create" | "edit" | "delete-confirm" | "success";
+export type ModalState = "closed" | "create" | "delete-confirm" | "success";
 
 export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", {

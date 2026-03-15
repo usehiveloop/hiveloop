@@ -2,8 +2,6 @@ package e2e
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -738,7 +736,7 @@ func TestE2E_Integration_AppAuthMode(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// E2E: APP auth mode — auto-generated webhook_secret in nango_config
+// E2E: APP auth mode — webhook_secret returned from Nango in nango_config
 // --------------------------------------------------------------------------
 
 func TestE2E_Integration_AppWebhookSecret(t *testing.T) {
@@ -758,12 +756,8 @@ func TestE2E_Integration_AppWebhookSecret(t *testing.T) {
 		t.Fatal("no APP auth mode provider found in Nango catalog")
 	}
 
-	appID := "ws-test-12345"
-	privateKey := "-----BEGIN RSA PRIVATE KEY-----\nfake-key-for-webhook-test\n-----END RSA PRIVATE KEY-----"
-	appLink := "https://example.com/app-webhook-test"
-
-	body := fmt.Sprintf(`{"provider":%q,"display_name":"Webhook Secret Test","credentials":{"type":"APP","app_id":%q,"app_link":%q,"private_key":%q}}`,
-		appProvider, appID, appLink, privateKey)
+	body := fmt.Sprintf(`{"provider":%q,"display_name":"Webhook Secret Test","credentials":{"type":"APP","app_id":"ws-test-12345","app_link":"https://example.com/app-webhook-test","private_key":"-----BEGIN RSA PRIVATE KEY-----\nfake-key-for-webhook-test\n-----END RSA PRIVATE KEY-----"}}`,
+		appProvider)
 	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -784,15 +778,10 @@ func TestE2E_Integration_AppWebhookSecret(t *testing.T) {
 
 	webhookSecret, ok := nangoConfig["webhook_secret"].(string)
 	if !ok || webhookSecret == "" {
-		t.Fatal("expected webhook_secret to be auto-generated for APP mode")
+		t.Fatal("expected webhook_secret to be returned from Nango for APP mode")
 	}
-
-	// Verify it matches expected SHA256(app_id + private_key + app_link)
-	expectedHash := sha256.Sum256([]byte(appID + privateKey + appLink))
-	expectedSecret := hex.EncodeToString(expectedHash[:])
-
-	if webhookSecret != expectedSecret {
-		t.Fatalf("webhook_secret mismatch:\n  got:      %s\n  expected: %s", webhookSecret, expectedSecret)
+	if len(webhookSecret) != 64 {
+		t.Fatalf("expected 64-char hex SHA256 webhook_secret, got %d chars: %s", len(webhookSecret), webhookSecret)
 	}
 
 	// Verify it persists — GET should return same value
@@ -808,7 +797,7 @@ func TestE2E_Integration_AppWebhookSecret(t *testing.T) {
 	var getResp map[string]any
 	json.NewDecoder(rr.Body).Decode(&getResp)
 	getConfig := getResp["nango_config"].(map[string]any)
-	if getConfig["webhook_secret"] != expectedSecret {
+	if getConfig["webhook_secret"] != webhookSecret {
 		t.Fatalf("persisted webhook_secret doesn't match: got %v", getConfig["webhook_secret"])
 	}
 }
@@ -1068,68 +1057,6 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 	}
 	if newSecret == origSecret {
 		t.Fatal("webhook_secret should change when credentials are rotated")
-	}
-
-	// Verify new secret matches expected hash
-	expectedHash := sha256.Sum256([]byte("new-id" + newPrivateKey + "https://example.com/new"))
-	expectedSecret := hex.EncodeToString(expectedHash[:])
-	if newSecret != expectedSecret {
-		t.Fatalf("rotated webhook_secret mismatch:\n  got:      %s\n  expected: %s", newSecret, expectedSecret)
-	}
-}
-
-// --------------------------------------------------------------------------
-// E2E: Update webhook_secret without providing credentials
-// --------------------------------------------------------------------------
-
-func TestE2E_Integration_UpdateWebhookSecret_NoCreds(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	// 1. Create OAUTH2 integration (no webhook_secret initially)
-	body := `{"provider":"slack","display_name":"WS Update Test","credentials":{"type":"OAUTH2","client_id":"ws-id","client_secret":"ws-secret"}}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var createResp map[string]any
-	json.NewDecoder(rr.Body).Decode(&createResp)
-	integID := createResp["id"].(string)
-
-	// 2. Update with ONLY webhook_secret — no credentials
-	updateBody := `{"webhook_secret":"my-standalone-secret"}`
-	req = httptest.NewRequest(http.MethodPut, "/v1/integrations/"+integID, strings.NewReader(updateBody))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithOrg(req, &org)
-	rr = httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("update webhook_secret: expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	// 3. GET and verify webhook_secret is set
-	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
-	req = middleware.WithOrg(req, &org)
-	rr = httptest.NewRecorder()
-	h.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("get: expected 200, got %d", rr.Code)
-	}
-
-	var getResp map[string]any
-	json.NewDecoder(rr.Body).Decode(&getResp)
-	config := getResp["nango_config"].(map[string]any)
-
-	if config["webhook_secret"] != "my-standalone-secret" {
-		t.Fatalf("expected webhook_secret=my-standalone-secret, got %v", config["webhook_secret"])
 	}
 }
 
