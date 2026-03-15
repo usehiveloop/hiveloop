@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -315,15 +316,40 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 
 	var bodyReader io.Reader
 	var bodySize int
-	if body != nil {
+	var bodyContent string
+	bodyType := fmt.Sprintf("%T", body)
+	
+	// Use reflection to check if body is effectively nil or empty
+	// This handles typed nils (map[string]interface{}(nil)) and empty collections
+	isEmptyBody := body == nil
+	if !isEmptyBody {
+		v := reflect.ValueOf(body)
+		switch v.Kind() {
+		case reflect.Ptr, reflect.Slice, reflect.Map:
+			isEmptyBody = v.IsNil() || v.Len() == 0
+		default:
+			isEmptyBody = v.IsZero()
+		}
+	}
+	
+	logger.Debug("processing request body", "body_type", bodyType, "is_empty_body", isEmptyBody)
+	
+	if !isEmptyBody {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			logger.Error("failed to marshal request body", "error", err.Error())
+			logger.Error("failed to marshal request body", "error", err.Error(), "body_type", bodyType)
 			return nil, fmt.Errorf("marshaling proxy request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(jsonBody)
 		bodySize = len(jsonBody)
-		logger.Debug("request body prepared", "body_size_bytes", bodySize)
+		bodyContent = string(jsonBody)
+		logger.Debug("request body prepared", 
+			"body_size_bytes", bodySize, 
+			"body_content", bodyContent,
+			"body_type", bodyType,
+		)
+	} else {
+		logger.Debug("body is nil or empty, not sending body")
 	}
 
 	// Build query string
@@ -339,7 +365,10 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	fullURL := c.endpoint + path + query
 	logger.Info("sending proxy request to provider API",
 		"url", fullURL,
-		"has_body", body != nil,
+		"has_body", !isEmptyBody,
+		"body_type", bodyType,
+		"body_size", bodySize,
+		"body_content_preview", truncate(bodyContent, 500),
 	)
 
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
@@ -348,8 +377,11 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		return nil, err
 	}
 
-	if body != nil {
+	if !isEmptyBody {
 		req.Header.Set("Content-Type", "application/json")
+		logger.Debug("set Content-Type header to application/json")
+	} else {
+		logger.Debug("no body, not setting Content-Type")
 	}
 
 	// Set custom headers for the provider
@@ -366,8 +398,14 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	req.Header.Set("Authorization", "Bearer "+c.secretKey)
 	req.Header.Set("Provider-Config-Key", providerConfigKey)
 	req.Header.Set("Connection-Id", connectionID)
+	
+	logger.Debug("request headers set",
+		"authorization_set", c.secretKey != "",
+		"provider_config_key_set", providerConfigKey != "",
+		"connection_id_set", connectionID != "",
+	)
 
-	logger.Debug("executing HTTP request")
+	logger.Info("executing HTTP request to Nango proxy")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

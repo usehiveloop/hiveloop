@@ -5,15 +5,20 @@ import { createWidgetFetchClient } from '../api/client'
 
 const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.llmvault.dev'
 
+export interface ConnectionResult {
+  id: string
+  nango_connection_id: string
+}
+
 export function useNangoAuth(integrationId: string, callbacks: {
-  onSuccess: () => void
+  onSuccess: (result: ConnectionResult) => void
   onError: (error: string) => void
 }) {
   const { sessionId } = useConnect()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<ConnectionResult> => {
       if (!sessionId) {
         throw new Error('No session token available')
       }
@@ -37,14 +42,23 @@ export function useNangoAuth(integrationId: string, callbacks: {
       const result = await nango.auth(providerConfigKey, { detectClosedAuthWindow: true })
 
       // Step 3: Store the connection
-      await client.POST('/v1/widget/integrations/{id}/connections', {
+      const { data: connectionData, error } = await client.POST('/v1/widget/integrations/{id}/connections', {
         params: { path: { id: integrationId } },
         body: { nango_connection_id: result.connectionId },
       })
+
+      if (error) {
+        throw new Error(typeof error === 'string' ? error : 'Failed to create connection')
+      }
+
+      return {
+        id: connectionData?.id ?? '',
+        nango_connection_id: result.connectionId,
+      }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/integrations'] })
-      callbacks.onSuccess()
+      callbacks.onSuccess(result)
     },
     onError: (err) => {
       callbacks.onError(err instanceof Error ? err.message : 'Connection failed')

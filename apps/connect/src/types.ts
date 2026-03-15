@@ -4,6 +4,10 @@ export type Connection = components['schemas']['connectionResponse']
 
 export type IntegrationProvider = components['schemas']['widgetIntegrationResponse']
 
+export type AvailableResource = components['schemas']['github_com_llmvault_llmvault_internal_resources.AvailableResource']
+
+export type DiscoveryResult = components['schemas']['github_com_llmvault_llmvault_internal_resources.DiscoveryResult']
+
 export type View =
   | { type: 'provider-selection' }
   | { type: 'api-key-input'; providerId: string }
@@ -17,6 +21,7 @@ export type View =
   | { type: 'empty-state' }
   | { type: 'integration-selection' }
   | { type: 'integration-auth'; integration: IntegrationProvider }
+  | { type: 'integration-resource-selection'; integration: IntegrationProvider; connectionId: string; nangoConnectionId: string }
   | { type: 'integration-success'; integration: IntegrationProvider }
   | { type: 'integration-error'; integration: IntegrationProvider; error: string }
   | { type: 'integration-detail'; integration: IntegrationProvider }

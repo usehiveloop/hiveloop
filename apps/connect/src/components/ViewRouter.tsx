@@ -11,6 +11,7 @@ import { ProviderDetail } from './ProviderDetail'
 import { RevokeConfirm } from './RevokeConfirm'
 import { EmptyState } from './EmptyState'
 import { IntegrationAuth } from './IntegrationAuth'
+import { IntegrationResourceSelection } from './IntegrationResourceSelection'
 import { IntegrationDetail } from './IntegrationDetail'
 import { IntegrationDisconnectConfirm } from './IntegrationDisconnectConfirm'
 
@@ -113,6 +114,17 @@ export function ViewRouter({ view, canGoBack, navigate, onClose }: Props) {
       return (
         <IntegrationAuth
           integration={view.integration}
+          navigate={navigate}
+          onBack={canGoBack ? () => navigate({ type: 'BACK' }) : undefined}
+          onClose={onClose}
+        />
+      )
+    case 'integration-resource-selection':
+      return (
+        <IntegrationResourceSelection
+          integration={view.integration}
+          connectionId={view.connectionId}
+          nangoConnectionId={view.nangoConnectionId}
           navigate={navigate}
           onBack={canGoBack ? () => navigate({ type: 'BACK' }) : undefined}
           onClose={onClose}

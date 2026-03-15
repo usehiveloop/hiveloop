@@ -6,6 +6,9 @@ type Action =
   | { type: 'SELECT_INTEGRATION_PROVIDER'; integration: IntegrationProvider }
   | { type: 'INTEGRATION_SUCCESS' }
   | { type: 'INTEGRATION_ERROR'; error: string }
+  | { type: 'INTEGRATION_REQUIRES_RESOURCE_SELECTION'; connectionId: string; nangoConnectionId: string }
+  | { type: 'RESOURCE_SELECTION_COMPLETE' }
+  | { type: 'RESOURCE_SELECTION_SKIP' }
   | { type: 'SUBMIT_KEY' }
   | { type: 'CONNECTION_SUCCESS' }
   | { type: 'CONNECTION_ERROR' }
@@ -22,6 +25,13 @@ type Action =
   | { type: 'VIEW_INTEGRATION_DETAIL'; integration: IntegrationProvider }
   | { type: 'DISCONNECT_INTEGRATION'; integration: IntegrationProvider }
   | { type: 'CONFIRM_INTEGRATION_DISCONNECT' }
+
+export interface ResourceTypeInfo {
+  type?: string
+  display_name?: string
+  description?: string
+  icon?: string
+}
 
 type Direction = 'forward' | 'back'
 
@@ -67,13 +77,29 @@ function reducer(state: State, action: Action): State {
       return push({ type: 'integration-auth', integration: action.integration })
     case 'INTEGRATION_SUCCESS': {
       const c = state.current
-      if (c.type !== 'integration-auth') return state
+      if (c.type !== 'integration-auth' && c.type !== 'integration-resource-selection') return state
       return reset({ type: 'integration-success', integration: c.integration })
     }
     case 'INTEGRATION_ERROR': {
       const c = state.current
-      if (c.type !== 'integration-auth') return state
+      if (c.type !== 'integration-auth' && c.type !== 'integration-resource-selection') return state
       return reset({ type: 'integration-error', integration: c.integration, error: action.error })
+    }
+    case 'INTEGRATION_REQUIRES_RESOURCE_SELECTION': {
+      const c = state.current
+      if (c.type !== 'integration-auth') return state
+      return push({
+        type: 'integration-resource-selection',
+        integration: c.integration,
+        connectionId: action.connectionId,
+        nangoConnectionId: action.nangoConnectionId,
+      })
+    }
+    case 'RESOURCE_SELECTION_COMPLETE':
+    case 'RESOURCE_SELECTION_SKIP': {
+      const c = state.current
+      if (c.type !== 'integration-resource-selection') return state
+      return reset({ type: 'integration-success', integration: c.integration })
     }
     case 'SUBMIT_KEY': {
       const c = state.current

@@ -2874,6 +2874,176 @@ export interface paths {
         };
         options?: never;
         head?: never;
+        /**
+         * Update connection resources
+         * @description Updates the resources configured for a connection (resource selection).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                    /** @description Connection ID */
+                    connectionId: string;
+                };
+                cookie?: never;
+            };
+            /** @description Update parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["patchIntegrationConnectionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["integConnResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/widget/integrations/{id}/resources/{type}/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available resources
+         * @description Fetches available resources of a specific type from the provider API.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Nango connection ID from OAuth flow */
+                    nango_connection_id: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                    /** @description Resource type (e.g., channel, repo, folder) */
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["github_com_llmvault_llmvault_internal_resources.DiscoveryResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -3016,6 +3186,14 @@ export interface components {
             input?: string[];
             output?: string[];
         };
+        "github_com_llmvault_llmvault_internal_resources.AvailableResource": {
+            id?: string;
+            name?: string;
+            type?: string;
+        };
+        "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
+            resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -3121,6 +3299,9 @@ export interface components {
         };
         createIntegrationConnectionRequest: {
             nango_connection_id?: string;
+            resources?: {
+                [key: string]: string[];
+            };
         };
         createIntegrationRequest: {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
@@ -3280,6 +3461,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        patchIntegrationConnectionRequest: {
+            resources?: {
+                [key: string]: string[];
+            };
+        };
         providerDetail: {
             api?: string;
             doc?: string;
@@ -3347,6 +3533,13 @@ export interface components {
             display_name?: string;
             id?: string;
             provider?: string;
+            resources?: components["schemas"]["widgetResourceResponse"][];
+        };
+        widgetResourceResponse: {
+            description?: string;
+            display_name?: string;
+            icon?: string;
+            type?: string;
         };
     };
     responses: never;

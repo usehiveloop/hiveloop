@@ -4,6 +4,7 @@ package resources
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -113,12 +114,32 @@ func (d *Discovery) Discover(
 			"header_count", len(headers),
 			"query_param_count", len(queryParams),
 			"has_body", body != nil,
+			"body_map_empty", body != nil && len(body) == 0,
 		)
+	} else {
+		logger.Info("no request_config found, using defaults (GET, no body)")
+	}
+
+	// Log the exact body content for debugging
+	if body != nil {
+		bodyJSON, _ := json.Marshal(body)
+		logger.Debug("request body content", "body_json", string(bodyJSON), "body_len", len(body))
+	} else {
+		logger.Debug("request body is nil")
+	}
+
+	// IMPORTANT: Never send body for GET requests
+	if method == http.MethodGet && body != nil {
+		logger.Warn("GET request with non-nil body detected, forcing body to nil", "original_body", body)
+		body = nil
 	}
 
 	// Make the proxy request
 	logger.Info("making nango proxy request",
 		"action_path", resDef.ListAction,
+		"final_method", method,
+		"body_is_nil", body == nil,
+		"body_type", fmt.Sprintf("%T", body),
 	)
 
 	resp, err := d.nango.ProxyRequestWithHeaders(ctx, method, nangoProviderConfigKey, nangoConnectionID,
