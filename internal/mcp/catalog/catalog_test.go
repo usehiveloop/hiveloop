@@ -28,7 +28,7 @@ func TestResourceDef(t *testing.T) {
 			},
 		},
 		{
-			provider:     "github",
+			provider:     "github-app",
 			resourceType: "repo",
 			wantExists:   true,
 			wantDef: ResourceDef{
@@ -37,7 +37,7 @@ func TestResourceDef(t *testing.T) {
 				IDField:     "full_name",
 				NameField:   "name",
 				Icon:        "repo",
-				ListAction:  "/user/repos",
+				ListAction:  "/installation/repositories",
 			},
 		},
 		{
@@ -150,7 +150,7 @@ func TestListResourceTypes(t *testing.T) {
 			wantTypes: []string{"channel"},
 		},
 		{
-			provider:  "github",
+			provider:  "github-app",
 			wantCount: 1,
 			wantTypes: []string{"repo"},
 		},
@@ -202,7 +202,7 @@ func TestHasConfigurableResources(t *testing.T) {
 		want     bool
 	}{
 		{"slack", true},
-		{"github", true},
+		{"github-app", true},
 		{"google_drive", true},
 		{"notion", true},
 		{"linear", true},
@@ -379,14 +379,14 @@ func TestRequestConfig(t *testing.T) {
 	}
 
 	// Test GitHub repo (has RequestConfig)
-	githubRepo, ok := c.GetResourceDef("github", "repo")
+	githubRepo, ok := c.GetResourceDef("github-app", "repo")
 	if !ok {
 		t.Fatal("github repo resource not found")
 	}
 	if githubRepo.RequestConfig == nil {
 		t.Fatal("github repo RequestConfig is nil")
 	}
-	if githubRepo.ListAction != "/user/repos" {
-		t.Errorf("github repo list_action = %q, want /user/repos", githubRepo.ListAction)
+	if githubRepo.ListAction != "/installation/repositories" {
+		t.Errorf("github repo list_action = %q, want /installation/repositories", githubRepo.ListAction)
 	}
 }
