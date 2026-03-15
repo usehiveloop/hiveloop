@@ -362,7 +362,7 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 		query = "?" + strings.Join(q, "&")
 	}
 
-	fullURL := c.endpoint + path + query
+	fullURL := c.endpoint + "/proxy" + path + query
 	logger.Info("sending proxy request to provider API",
 		"url", fullURL,
 		"has_body", !isEmptyBody,
