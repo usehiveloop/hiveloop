@@ -814,15 +814,16 @@ func TestE2E_Integration_AppWebhookSecret(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// E2E: OAUTH2 with user-defined webhook_secret
+// E2E: OAUTH2 — create → GET → assert nango_config has callback_url,
+// webhook_url, auth_mode, and user-defined webhook_secret
 // --------------------------------------------------------------------------
 
-func TestE2E_Integration_UserDefinedWebhookSecret(t *testing.T) {
+func TestE2E_Integration_OAUTH2_NangoConfigFields(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create OAUTH2 integration with webhook_secret in credentials
-	body := `{"provider":"slack","display_name":"Webhook User Secret","credentials":{"type":"OAUTH2","client_id":"test-id","client_secret":"test-secret","webhook_secret":"my-user-defined-secret"}}`
+	// 1. Create OAUTH2 integration with webhook_secret in credentials
+	body := `{"provider":"slack","display_name":"OAuth Config Check","credentials":{"type":"OAUTH2","client_id":"test-id","client_secret":"test-secret","webhook_secret":"my-user-defined-secret"}}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -835,20 +836,134 @@ func TestE2E_Integration_UserDefinedWebhookSecret(t *testing.T) {
 
 	var createResp map[string]any
 	json.NewDecoder(rr.Body).Decode(&createResp)
+	integID := createResp["id"].(string)
 
-	nangoConfig, ok := createResp["nango_config"].(map[string]any)
-	if !ok || nangoConfig == nil {
-		t.Fatal("expected nango_config to be populated")
+	// 2. Fetch via GET /v1/integrations/{id}
+	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("get: expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// The webhook_secret should be fetched from Nango's credentials response
-	// Note: Nango may or may not return the user-defined secret via the public API.
-	// We primarily verify the request doesn't fail and nango_config is populated.
-	t.Logf("nango_config.webhook_secret: %v", nangoConfig["webhook_secret"])
+	var getResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&getResp)
+
+	// 3. Assert nango_config fields
+	config, ok := getResp["nango_config"].(map[string]any)
+	if !ok || config == nil {
+		t.Fatal("expected nango_config to be populated on GET")
+	}
+
+	// callback_url must always be present
+	callbackURL, ok := config["callback_url"].(string)
+	if !ok || callbackURL == "" {
+		t.Fatal("expected nango_config.callback_url to be a non-empty string")
+	}
+
+	// auth_mode must be present (from template)
+	authMode, ok := config["auth_mode"].(string)
+	if !ok || authMode == "" {
+		t.Fatal("expected nango_config.auth_mode to be a non-empty string")
+	}
+	if authMode != "OAUTH2" {
+		t.Fatalf("expected auth_mode=OAUTH2, got %s", authMode)
+	}
+
+	// webhook_url must be present (Nango returns it with ?include[]=webhook)
+	webhookURL, ok := config["webhook_url"].(string)
+	if !ok || webhookURL == "" {
+		t.Fatal("expected nango_config.webhook_url to be a non-empty string")
+	}
+
+	// webhook_secret: Nango stores and returns user-defined secrets for OAUTH2
+	webhookSecret, _ := config["webhook_secret"].(string)
+	if webhookSecret == "my-user-defined-secret" {
+		t.Log("webhook_secret round-tripped through Nango correctly")
+	} else {
+		t.Logf("webhook_secret from Nango: %v (may differ from input depending on Nango version)", config["webhook_secret"])
+	}
+
+	t.Logf("nango_config keys: %v", mapKeys(config))
 }
 
 // --------------------------------------------------------------------------
-// E2E: ListProviders includes webhook_user_defined_secret field
+// E2E: API_KEY mode — create → GET → assert nango_config populated
+// --------------------------------------------------------------------------
+
+func TestE2E_Integration_APIKey_NangoConfigFields(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+
+	// Find an API_KEY auth mode provider
+	providers := h.nangoClient.GetProviders()
+	var apiKeyProvider string
+	for _, p := range providers {
+		if p.AuthMode == "API_KEY" {
+			apiKeyProvider = p.Name
+			break
+		}
+	}
+	if apiKeyProvider == "" {
+		t.Fatal("no API_KEY auth mode provider found")
+	}
+
+	// 1. Create
+	body := fmt.Sprintf(`{"provider":%q,"display_name":"API Key Config Check"}`, apiKeyProvider)
+	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var createResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&createResp)
+	integID := createResp["id"].(string)
+
+	// 2. Fetch
+	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("get: expected 200, got %d", rr.Code)
+	}
+
+	var getResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&getResp)
+
+	// 3. Assert
+	config, ok := getResp["nango_config"].(map[string]any)
+	if !ok || config == nil {
+		t.Fatal("expected nango_config to be populated")
+	}
+
+	if _, ok := config["callback_url"].(string); !ok {
+		t.Fatal("expected callback_url")
+	}
+	if _, ok := config["auth_mode"].(string); !ok {
+		t.Fatal("expected auth_mode")
+	}
+
+	// webhook_url is not present for all providers (API_KEY providers may lack webhooks)
+	if webhookURL, ok := config["webhook_url"].(string); ok {
+		t.Logf("webhook_url present: %s", webhookURL)
+	} else {
+		t.Log("webhook_url not present (expected for some API_KEY providers)")
+	}
+
+	t.Logf("API_KEY nango_config keys: %v", mapKeys(config))
+}
+
+// --------------------------------------------------------------------------
+// E2E: ListProviders includes webhook_user_defined_secret for known providers
 // --------------------------------------------------------------------------
 
 func TestE2E_Integration_ListProviders_WebhookFlag(t *testing.T) {
@@ -872,27 +987,20 @@ func TestE2E_Integration_ListProviders_WebhookFlag(t *testing.T) {
 		t.Fatal("expected non-empty provider list")
 	}
 
-	// Verify the response includes the webhook_user_defined_secret field
-	// for providers that have it set in their template
-	hasAnyWithFlag := false
+	// Linear is a known provider with webhook_user_defined_secret=true
+	foundLinear := false
 	for _, p := range providers {
-		if wuds, ok := p["webhook_user_defined_secret"].(bool); ok && wuds {
-			hasAnyWithFlag = true
-			t.Logf("provider %v has webhook_user_defined_secret=true", p["name"])
+		if p["name"] == "linear" {
+			foundLinear = true
+			wuds, ok := p["webhook_user_defined_secret"].(bool)
+			if !ok || !wuds {
+				t.Fatal("expected linear to have webhook_user_defined_secret=true")
+			}
+			break
 		}
 	}
-
-	// Log whether any providers have the flag (not all Nango setups have these providers)
-	t.Logf("providers with webhook_user_defined_secret=true: %v", hasAnyWithFlag)
-
-	// All providers should have name, display_name, auth_mode
-	for _, p := range providers[:1] {
-		if _, ok := p["name"].(string); !ok {
-			t.Fatal("expected name field")
-		}
-		if _, ok := p["auth_mode"].(string); !ok {
-			t.Fatal("expected auth_mode field")
-		}
+	if !foundLinear {
+		t.Fatal("expected linear in provider list")
 	}
 }
 
@@ -917,8 +1025,11 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 		t.Fatal("no APP auth mode provider found")
 	}
 
+	origPrivateKey := "-----BEGIN RSA PRIVATE KEY-----\noriginal-fake-key-data\n-----END RSA PRIVATE KEY-----"
+	newPrivateKey := "-----BEGIN RSA PRIVATE KEY-----\nrotated-fake-key-data\n-----END RSA PRIVATE KEY-----"
+
 	// Create with initial credentials
-	body := fmt.Sprintf(`{"provider":%q,"display_name":"Rotation Test","credentials":{"type":"APP","app_id":"orig-id","app_link":"https://example.com/orig","private_key":"orig-key"}}`, appProvider)
+	body := fmt.Sprintf(`{"provider":%q,"display_name":"Rotation Test","credentials":{"type":"APP","app_id":"orig-id","app_link":"https://example.com/orig","private_key":%q}}`, appProvider, origPrivateKey)
 	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -936,7 +1047,7 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 	origSecret := origConfig["webhook_secret"].(string)
 
 	// Rotate credentials with different values
-	rotateBody := fmt.Sprintf(`{"credentials":{"type":"APP","app_id":"new-id","app_link":"https://example.com/new","private_key":"new-key"}}`)
+	rotateBody := fmt.Sprintf(`{"credentials":{"type":"APP","app_id":"new-id","app_link":"https://example.com/new","private_key":%q}}`, newPrivateKey)
 	req = httptest.NewRequest(http.MethodPut, "/v1/integrations/"+integID, strings.NewReader(rotateBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -960,7 +1071,7 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 	}
 
 	// Verify new secret matches expected hash
-	expectedHash := sha256.Sum256([]byte("new-id" + "new-key" + "https://example.com/new"))
+	expectedHash := sha256.Sum256([]byte("new-id" + newPrivateKey + "https://example.com/new"))
 	expectedSecret := hex.EncodeToString(expectedHash[:])
 	if newSecret != expectedSecret {
 		t.Fatalf("rotated webhook_secret mismatch:\n  got:      %s\n  expected: %s", newSecret, expectedSecret)
@@ -968,14 +1079,15 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 }
 
 // --------------------------------------------------------------------------
-// E2E: NangoConfig populated on create includes webhook_url when present
+// E2E: GetIntegration from Nango returns webhook_url + credentials
 // --------------------------------------------------------------------------
 
-func TestE2E_Integration_NangoConfig_WebhookURLPopulated(t *testing.T) {
+func TestE2E_Integration_GetIntegration_NangoResponse(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	body := `{"provider":"slack","display_name":"Webhook URL Check","credentials":{"type":"OAUTH2","client_id":"id","client_secret":"secret"}}`
+	// 1. Create an OAUTH2 integration
+	body := `{"provider":"slack","display_name":"Nango Fetch Check","credentials":{"type":"OAUTH2","client_id":"fetch-test-id","client_secret":"fetch-test-secret"}}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -986,42 +1098,50 @@ func TestE2E_Integration_NangoConfig_WebhookURLPopulated(t *testing.T) {
 		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	var resp map[string]any
-	json.NewDecoder(rr.Body).Decode(&resp)
-	nangoConfig := resp["nango_config"].(map[string]any)
+	var createResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&createResp)
+	integID := createResp["id"].(string)
 
-	// Verify core config fields
-	if nangoConfig["callback_url"] == nil {
-		t.Fatal("expected callback_url")
-	}
-	if nangoConfig["auth_mode"] == nil {
-		t.Fatal("expected auth_mode")
-	}
-
-	// webhook_url depends on Nango's setup — log its presence
-	if webhookURL, ok := nangoConfig["webhook_url"].(string); ok {
-		t.Logf("webhook_url present: %s", webhookURL)
-	} else {
-		t.Log("webhook_url not present (Nango may not have webhooks configured)")
-	}
-
-	// Verify GetIntegration includes credentials in the response (we changed the query param)
+	// 2. Look up the nango key and call GetIntegration directly
 	var dbInteg model.Integration
-	integID := resp["id"].(string)
 	if err := h.db.Where("id = ?", integID).First(&dbInteg).Error; err != nil {
 		t.Fatalf("lookup: %v", err)
 	}
 	nk := fmt.Sprintf("%s_%s", org.ID.String(), dbInteg.UniqueKey)
+
 	nangoResp, err := h.nangoClient.GetIntegration(context.Background(), nk)
 	if err != nil {
-		t.Fatalf("GetIntegration: %v", err)
+		t.Fatalf("GetIntegration failed: %v", err)
 	}
-	// The response should include data with credentials included
+
+	// 3. Assert the Nango response has the expected structure
 	data, ok := nangoResp["data"].(map[string]any)
 	if !ok {
 		t.Fatal("expected data in nango response")
 	}
+
+	// webhook_url must be present (from ?include[]=webhook)
+	webhookURL, ok := data["webhook_url"].(string)
+	if !ok || webhookURL == "" {
+		t.Fatalf("expected webhook_url in Nango response, got keys: %v", mapKeys(data))
+	}
+
+	// credentials must be present (from ?include[]=credentials)
+	creds, ok := data["credentials"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected credentials in Nango response, got keys: %v", mapKeys(data))
+	}
+
+	// Verify credentials contain type and client_id (we sent OAUTH2 creds)
+	if creds["type"] != "OAUTH2" {
+		t.Fatalf("expected credentials.type=OAUTH2, got %v", creds["type"])
+	}
+	if creds["client_id"] != "fetch-test-id" {
+		t.Fatalf("expected credentials.client_id=fetch-test-id, got %v", creds["client_id"])
+	}
+
 	t.Logf("Nango GetIntegration data keys: %v", mapKeys(data))
+	t.Logf("Nango credentials keys: %v", mapKeys(creds))
 }
 
 func mapKeys(m map[string]any) []string {

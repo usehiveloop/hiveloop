@@ -212,9 +212,9 @@ func (c *Client) UpdateIntegration(ctx context.Context, uniqueKey string, req Up
 }
 
 // GetIntegration fetches an integration by its unique key.
-// GET /integrations/{uniqueKey}?include=webhook,credentials
+// GET /integrations/{uniqueKey}?include[]=webhook&include[]=credentials
 func (c *Client) GetIntegration(ctx context.Context, uniqueKey string) (map[string]any, error) {
-	return c.doJSON(ctx, http.MethodGet, "/integrations/"+uniqueKey+"?include=webhook,credentials", nil)
+	return c.doJSON(ctx, http.MethodGet, "/integrations/"+uniqueKey+"?include[]=webhook&include[]=credentials", nil)
 }
 
 // DeleteIntegration removes an integration by its unique key.
