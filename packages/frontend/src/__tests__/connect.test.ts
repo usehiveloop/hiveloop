@@ -79,6 +79,41 @@ describe('LLMVaultConnect', () => {
       expect(url.searchParams.get('theme')).toBe('system')
     })
 
+    it('passes screen param when provided', () => {
+      connect.open({ sessionToken: 'tok_test', screen: 'connected-list' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.get('screen')).toBe('connected-list')
+    })
+
+    it('does not set screen param when omitted', () => {
+      connect.open({ sessionToken: 'tok_test' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.has('screen')).toBe(false)
+    })
+
+    it('passes preview param when true', () => {
+      connect.open({ sessionToken: 'tok_test', preview: true })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.get('preview')).toBe('true')
+    })
+
+    it('does not set preview param when omitted', () => {
+      connect.open({ sessionToken: 'tok_test' })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.has('preview')).toBe(false)
+    })
+
+    it('does not set preview param when false', () => {
+      connect.open({ sessionToken: 'tok_test', preview: false })
+      const iframe = getIframe()
+      const url = new URL(iframe.src)
+      expect(url.searchParams.has('preview')).toBe(false)
+    })
+
     it('iframe has correct styles', () => {
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()

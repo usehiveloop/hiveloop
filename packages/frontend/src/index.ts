@@ -2,6 +2,7 @@ export { LLMVaultConnect } from './connect'
 export { ConnectError } from './errors'
 export type {
   ThemeOption,
+  ConnectScreen,
   ConnectErrorCode,
   ConnectEvent,
   SuccessPayload,

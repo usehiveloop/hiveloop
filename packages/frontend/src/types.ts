@@ -1,5 +1,10 @@
 export type ThemeOption = 'light' | 'dark' | 'system'
 
+export type ConnectScreen =
+  | 'provider-selection'
+  | 'integration-selection'
+  | 'connected-list'
+
 export type ConnectErrorCode =
   | 'session_invalid'
   | 'session_expired'
@@ -36,6 +41,8 @@ export interface LLMVaultConnectConfig {
 
 export interface ConnectOpenOptions {
   sessionToken: string
+  screen?: ConnectScreen
+  preview?: boolean
   onSuccess?: (payload: SuccessPayload) => void
   onIntegrationSuccess?: (payload: IntegrationSuccessPayload) => void
   onError?: (payload: ErrorPayload) => void
