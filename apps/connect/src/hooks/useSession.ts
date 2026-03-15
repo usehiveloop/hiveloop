@@ -1,7 +1,7 @@
 import { createWidgetApi } from '../api/client'
 import type { components } from '../api/schema'
 
-export type SessionInfo = components['schemas']['sessionInfoResponse']
+export type SessionInfo = components['schemas']['internal_handler.sessionInfoResponse']
 
 export function useSession(sessionToken: string | null) {
   const widgetApi = createWidgetApi(sessionToken ?? '')

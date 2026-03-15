@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { AnimatePresence } from 'motion/react'
-import type { IntegrationProvider, AvailableResource } from '../types'
+import type { IntegrationProvider, IntegrationResource, AvailableResource } from '../types'
 import type { Action } from '../hooks/useWidget'
 import { useAvailableResources } from '../hooks/useAvailableResources'
 import { useIntegrationProviders } from '../hooks/useIntegrationProviders'
@@ -35,7 +35,7 @@ export function IntegrationResourceSelection({
 
   const { data: integrations } = useIntegrationProviders()
   const freshIntegration = useMemo(
-    () => integrations?.find((i) => i.id === integration.id),
+    () => integrations?.find((integration) => integration.id === integration.id),
     [integrations, integration.id]
   )
 
@@ -92,7 +92,7 @@ export function IntegrationResourceSelection({
 
   const selectedCount = Object.values(selectedResources).flat().length
 
-  const activeTypeInfo = resourceTypes.find((t) => t.type === activeResourceType)
+  const activeTypeInfo = resourceTypes.find((t: IntegrationResource) => t.type === activeResourceType)
 
   if (resourceTypes.length === 0) {
     return null
@@ -157,7 +157,7 @@ export function IntegrationResourceSelection({
 
           {resourceTypes.length > 1 && (
             <div className="flex gap-2 mt-4 overflow-x-auto shrink-0 pb-2">
-              {resourceTypes.map((type) => (
+              {resourceTypes.map((type: IntegrationResource) => (
                 <button
                   key={type.type ?? 'unknown'}
                   onClick={() => setActiveResourceType(type.type ?? '')}

@@ -1,10 +1,10 @@
 import type { components } from './api/schema'
 
-export type Connection = components['schemas']['connectionResponse']
+export type Connection = components['schemas']['internal_handler.connectionResponse']
 
-export type IntegrationProvider = components['schemas']['widgetIntegrationResponse']
+export type IntegrationProvider = components['schemas']['internal_handler.widgetIntegrationResponse']
 
-export type IntegrationResource = components['schemas']['widgetResourceResponse']
+export type IntegrationResource = components['schemas']['internal_handler.widgetResourceResponse']
 
 export type AvailableResource = components['schemas']['github_com_llmvault_llmvault_internal_resources.AvailableResource']
 
