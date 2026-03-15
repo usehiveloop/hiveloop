@@ -25,7 +25,7 @@ func TestE2E_Credential_Pagination(t *testing.T) {
 
 	// Create 5 credentials
 	for i := 0; i < 5; i++ {
-		body := fmt.Sprintf(`{"label":"page-cred-%d","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-page-%d"}`, i, i)
+		body := fmt.Sprintf(`{"label":"page-cred-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-page-%d"}`, i, i)
 		req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)
@@ -235,7 +235,7 @@ func TestE2E_Pagination_InvalidParams(t *testing.T) {
 
 	// Limit capped at 100
 	for i := 0; i < 3; i++ {
-		body := fmt.Sprintf(`{"label":"cap-test-%d","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-%d"}`, i, i)
+		body := fmt.Sprintf(`{"label":"cap-test-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-%d"}`, i, i)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)
@@ -396,7 +396,7 @@ func TestE2E_Identity_UsageStats(t *testing.T) {
 	}
 
 	// Create credential for identity 0 and make 2 proxy requests
-	credBody := fmt.Sprintf(`{"label":"stats-cred-0","base_url":%q,"auth_scheme":"bearer","api_key":"sk-si0","identity_id":%q}`, echoServer.URL, identIDs[0])
+	credBody := fmt.Sprintf(`{"label":"stats-cred-0","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-si0","identity_id":%q}`, echoServer.URL, identIDs[0])
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -491,7 +491,7 @@ func TestE2E_AuditEntry_IdentityID(t *testing.T) {
 	identUUID, _ := uuid.Parse(identID)
 
 	// Create credential linked to identity
-	credBody := fmt.Sprintf(`{"label":"audit-cred","base_url":%q,"auth_scheme":"bearer","api_key":"sk-audit","identity_id":%q}`, echoServer.URL, identID)
+	credBody := fmt.Sprintf(`{"label":"audit-cred","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-audit","identity_id":%q}`, echoServer.URL, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -607,7 +607,7 @@ func TestE2E_Credential_Pagination_WithFilter(t *testing.T) {
 
 	// Create 3 credentials linked to identity + 2 without
 	for i := 0; i < 3; i++ {
-		body := fmt.Sprintf(`{"label":"linked-%d","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-l-%d","identity_id":%q}`, i, i, identID)
+		body := fmt.Sprintf(`{"label":"linked-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-l-%d","identity_id":%q}`, i, i, identID)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)
@@ -619,7 +619,7 @@ func TestE2E_Credential_Pagination_WithFilter(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	for i := 0; i < 2; i++ {
-		body := fmt.Sprintf(`{"label":"unlinked-%d","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-u-%d"}`, i, i)
+		body := fmt.Sprintf(`{"label":"unlinked-%d","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-u-%d"}`, i, i)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)

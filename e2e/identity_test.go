@@ -187,7 +187,7 @@ func TestE2E_Identity_LinkCredentialByIdentityID(t *testing.T) {
 	identID := identResp["id"].(string)
 
 	// Create credential with identity_id
-	credBody := fmt.Sprintf(`{"label":"linked","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, identID)
+	credBody := fmt.Sprintf(`{"label":"linked","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -233,7 +233,7 @@ func TestE2E_Identity_AutoUpsertViaExternalID(t *testing.T) {
 	extID := fmt.Sprintf("auto_upsert_%s", uuid.New().String()[:8])
 
 	// Create credential with external_id — should auto-create identity
-	credBody := fmt.Sprintf(`{"label":"auto","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","external_id":%q}`, extID)
+	credBody := fmt.Sprintf(`{"label":"auto","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","external_id":%q}`, extID)
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -266,7 +266,7 @@ func TestE2E_Identity_AutoUpsertViaExternalID(t *testing.T) {
 	}
 
 	// Create second credential with same external_id — should reuse identity
-	credBody2 := fmt.Sprintf(`{"label":"auto2","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test2","external_id":%q}`, extID)
+	credBody2 := fmt.Sprintf(`{"label":"auto2","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test2","external_id":%q}`, extID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody2))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -367,7 +367,7 @@ func TestE2E_Credential_MetadataFiltering(t *testing.T) {
 		{"staging-openai", `,"meta":{"env":"staging","provider":"openai"}`},
 		{"prod-anthropic", `,"meta":{"env":"production","provider":"anthropic"}`},
 	} {
-		body := fmt.Sprintf(`{"label":%q,"base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test"%s}`, data.label, data.meta)
+		body := fmt.Sprintf(`{"label":%q,"provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test"%s}`, data.label, data.meta)
 		req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = middleware.WithOrg(req, &org)
@@ -443,7 +443,7 @@ func TestE2E_Identity_SharedRateLimit(t *testing.T) {
 	var credIDs []string
 	var tokens []string
 	for i := 0; i < 2; i++ {
-		credBody := fmt.Sprintf(`{"label":"rl-cred-%d","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test-%d","identity_id":%q}`,
+		credBody := fmt.Sprintf(`{"label":"rl-cred-%d","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test-%d","identity_id":%q}`,
 			i, echoServer.URL, i, identID)
 		req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 		req.Header.Set("Content-Type", "application/json")
@@ -612,7 +612,7 @@ func TestE2E_Identity_DeleteNullifiesCredentials(t *testing.T) {
 	identID := identResp["id"].(string)
 
 	// Create credential linked to identity
-	credBody := fmt.Sprintf(`{"label":"linked","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, identID)
+	credBody := fmt.Sprintf(`{"label":"linked","provider_id":"openai","base_url":"https://api.example.com","auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -670,7 +670,7 @@ func TestE2E_Identity_SharedRateLimit_LiveLLM(t *testing.T) {
 	identID := identResp["id"].(string)
 
 	// Create credential linked to identity, pointing to OpenRouter
-	credBody := fmt.Sprintf(`{"label":"live-rl","base_url":"https://openrouter.ai/api","auth_scheme":"bearer","api_key":%q,"identity_id":%q}`, apiKey, identID)
+	credBody := fmt.Sprintf(`{"label":"live-rl","provider_id":"openrouter","base_url":"https://openrouter.ai/api","auth_scheme":"bearer","api_key":%q,"identity_id":%q}`, apiKey, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -746,7 +746,7 @@ func TestE2E_Identity_RequestCaps_LiveLLM(t *testing.T) {
 	identID := identResp["id"].(string)
 
 	// Create credential with remaining=2 linked to identity
-	credBody := fmt.Sprintf(`{"label":"capped","base_url":"https://openrouter.ai/api","auth_scheme":"bearer","api_key":%q,"identity_id":%q,"remaining":2}`, apiKey, identID)
+	credBody := fmt.Sprintf(`{"label":"capped","provider_id":"openrouter","base_url":"https://openrouter.ai/api","auth_scheme":"bearer","api_key":%q,"identity_id":%q,"remaining":2}`, apiKey, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -824,7 +824,7 @@ func TestE2E_Identity_MultipleRateLimits(t *testing.T) {
 	json.NewDecoder(rr.Body).Decode(&identResp)
 	identID := identResp["id"].(string)
 
-	credBody := fmt.Sprintf(`{"label":"multi-rl","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, echoServer.URL, identID)
+	credBody := fmt.Sprintf(`{"label":"multi-rl","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, echoServer.URL, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)
@@ -897,7 +897,7 @@ func TestE2E_Identity_RateLimit_OrgIsolation(t *testing.T) {
 	identID1 := identResp["id"].(string)
 
 	// Create cred+token in org1 linked to identity
-	credBody := fmt.Sprintf(`{"label":"org1","base_url":%q,"auth_scheme":"bearer","api_key":"sk-1","identity_id":%q}`, echoServer.URL, identID1)
+	credBody := fmt.Sprintf(`{"label":"org1","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-1","identity_id":%q}`, echoServer.URL, identID1)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org1)
@@ -971,7 +971,7 @@ func TestE2E_Identity_TokenCap_WithIdentity(t *testing.T) {
 	identID := identResp["id"].(string)
 
 	// Create credential linked to identity
-	credBody := fmt.Sprintf(`{"label":"tok-cap","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, echoServer.URL, identID)
+	credBody := fmt.Sprintf(`{"label":"tok-cap","provider_id":"openai","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test","identity_id":%q}`, echoServer.URL, identID)
 	req = httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(credBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)

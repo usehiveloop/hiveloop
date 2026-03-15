@@ -151,20 +151,34 @@ function LoadingSkeleton() {
         <div className="h-7 w-48 animate-pulse bg-secondary" />
       </header>
       <div className="flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-stretch">
           <div className="flex flex-1 flex-col gap-3 sm:gap-4">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex h-[130px] animate-pulse flex-col gap-3 border border-border bg-card p-4 sm:p-5"
-              >
-                <div className="h-3 w-24 bg-secondary" />
-                <div className="h-8 w-16 bg-secondary" />
-                <div className="h-3 w-20 bg-secondary" />
-              </div>
-            ))}
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 *:flex-1">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex animate-pulse flex-col gap-3 border border-border bg-card p-4 sm:p-5"
+                >
+                  <div className="h-3 w-24 bg-secondary" />
+                  <div className="h-8 w-16 bg-secondary" />
+                  <div className="h-3 w-20 bg-secondary" />
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-1 animate-pulse flex-col gap-3 border border-border bg-card p-4 sm:p-5">
+              <div className="h-3 w-28 bg-secondary" />
+              <div className="h-4 w-full bg-secondary" />
+              <div className="h-4 w-full bg-secondary" />
+              <div className="h-4 w-3/4 bg-secondary" />
+            </div>
           </div>
-          <div className="h-64 flex-1 animate-pulse border border-border bg-card" />
+          <div className="flex flex-1 animate-pulse flex-col gap-3 border border-border bg-card p-4 sm:p-5">
+            <div className="h-3 w-24 bg-secondary" />
+            <div className="h-4 w-full bg-secondary" />
+            <div className="h-4 w-full bg-secondary" />
+            <div className="h-4 w-3/4 bg-secondary" />
+            <div className="h-4 w-full bg-secondary" />
+          </div>
         </div>
         <TableSkeleton
           columns={[
@@ -192,24 +206,34 @@ function CredentialsSection({
   const queryClient = useQueryClient();
   const [rotating, setRotating] = useState(false);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [editingWebhookSecret, setEditingWebhookSecret] = useState(false);
+  const [newWebhookSecret, setNewWebhookSecret] = useState("");
 
   const credConfig = provider
     ? credentialFieldsForAuthMode(provider.auth_mode)
     : { fields: [] };
 
+  const invalidateIntegration = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["get", "/v1/integrations/{id}"],
+    });
+
   const mutation = useMutation({
     mutationFn: (body: { credentials: Record<string, string> }) =>
       updateIntegration(integrationId, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/v1/integrations/{id}"],
-      });
+      invalidateIntegration();
       setRotating(false);
       setCredentials({});
+      setEditingWebhookSecret(false);
+      setNewWebhookSecret("");
     },
   });
 
   const creds = (config.credentials ?? {}) as Record<string, unknown>;
+  const isUserDefinedSecret = provider?.webhook_user_defined_secret === true;
+  const currentWebhookSecret =
+    typeof creds.webhook_secret === "string" ? creds.webhook_secret : null;
 
   function handleRotate() {
     if (!provider) return;
@@ -219,6 +243,26 @@ function CredentialsSection({
         body[f.key] = credentials[f.key];
       }
     }
+    if (credentials.webhook_secret) {
+      body.webhook_secret = credentials.webhook_secret;
+    }
+    mutation.mutate({ credentials: body });
+  }
+
+  function handleSaveWebhookSecret() {
+    if (!provider || !newWebhookSecret) return;
+    // Re-send existing credentials with updated webhook_secret
+    const body: Record<string, string> = { type: provider.auth_mode };
+    if (typeof creds.client_id === "string") body.client_id = creds.client_id;
+    if (typeof creds.client_secret === "string")
+      body.client_secret = creds.client_secret;
+    if (typeof creds.scopes === "string" && creds.scopes)
+      body.scopes = creds.scopes;
+    if (typeof creds.app_id === "string") body.app_id = creds.app_id;
+    if (typeof creds.app_link === "string") body.app_link = creds.app_link;
+    if (typeof creds.private_key === "string")
+      body.private_key = creds.private_key;
+    body.webhook_secret = newWebhookSecret;
     mutation.mutate({ credentials: body });
   }
 
@@ -227,14 +271,27 @@ function CredentialsSection({
     .every((f) => credentials[f.key]);
 
   return (
-    <div className="flex flex-col gap-4 border border-border bg-card p-4 sm:p-5">
+    <div className="flex flex-1 flex-col gap-4 border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-semibold uppercase tracking-wider text-dim">
           Credentials
         </span>
         {credConfig.fields.length > 0 && !rotating && (
           <button
-            onClick={() => setRotating(true)}
+            onClick={() => {
+              // Prefill with current credential values
+              const prefilled: Record<string, string> = {};
+              for (const f of credConfig.fields) {
+                if (typeof creds[f.key] === "string" && creds[f.key]) {
+                  prefilled[f.key] = creds[f.key] as string;
+                }
+              }
+              if (isUserDefinedSecret && currentWebhookSecret) {
+                prefilled.webhook_secret = currentWebhookSecret;
+              }
+              setCredentials(prefilled);
+              setRotating(true);
+            }}
             className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             <Pencil className="size-3" />
@@ -274,16 +331,85 @@ function CredentialsSection({
             <CopyableRow label="App Link" value={creds.app_link} />
           )}
           {typeof creds.private_key === "string" && (
-            <CopyableRow label="Private Key" value={creds.private_key} sensitive />
+            <CopyableRow
+              label="Private Key"
+              value={creds.private_key}
+              sensitive
+            />
           )}
-          {typeof creds.webhook_secret === "string" &&
-            creds.webhook_secret !== null && (
+
+          {/* Webhook Secret — show with inline edit for user-defined providers */}
+          {currentWebhookSecret && !editingWebhookSecret && (
+            <div className="flex items-center justify-between gap-4">
               <CopyableRow
                 label="Webhook Secret"
-                value={creds.webhook_secret as string}
+                value={currentWebhookSecret}
                 sensitive
               />
-            )}
+              {isUserDefinedSecret && (
+                <button
+                  onClick={() => {
+                    setNewWebhookSecret(currentWebhookSecret ?? "");
+                    setEditingWebhookSecret(true);
+                  }}
+                  className="shrink-0 text-dim hover:text-foreground"
+                >
+                  <Pencil className="size-3" />
+                </button>
+              )}
+            </div>
+          )}
+          {!currentWebhookSecret && isUserDefinedSecret && !editingWebhookSecret && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[13px] text-dim">Webhook Secret</span>
+              <button
+                onClick={() => {
+                  setNewWebhookSecret("");
+                  setEditingWebhookSecret(true);
+                }}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Add
+              </button>
+            </div>
+          )}
+          {editingWebhookSecret && (
+            <div className="flex flex-col gap-2 border-t border-border pt-3">
+              <Label htmlFor="edit-ws" className="text-xs">
+                Webhook Secret
+              </Label>
+              <Input
+                id="edit-ws"
+                value={newWebhookSecret}
+                onChange={(e) => setNewWebhookSecret(e.target.value)}
+                className="h-9 font-mono text-[13px]"
+                placeholder="Paste webhook secret from provider"
+                autoFocus
+              />
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingWebhookSecret(false);
+                    setNewWebhookSecret("");
+                  }}
+                  disabled={mutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveWebhookSecret}
+                  disabled={!newWebhookSecret}
+                  loading={mutation.isPending}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
           {Object.keys(creds).length === 0 && (
             <span className="text-[13px] text-muted-foreground">
               No credentials required for this provider.
@@ -301,6 +427,28 @@ function CredentialsSection({
             idPrefix="rotate-cred"
             placeholderPrefix="Enter new"
           />
+          {isUserDefinedSecret && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="rotate-webhook-secret" className="text-xs">
+                Webhook Secret
+              </Label>
+              <Input
+                id="rotate-webhook-secret"
+                value={credentials.webhook_secret ?? ""}
+                onChange={(e) =>
+                  setCredentials((prev) => ({
+                    ...prev,
+                    webhook_secret: e.target.value,
+                  }))
+                }
+                className="h-9 font-mono text-[13px]"
+                placeholder="Paste new webhook secret (optional)"
+              />
+              <span className="text-[11px] text-muted-foreground">
+                Found in your provider&apos;s webhook settings.
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-end gap-2">
             <Button
               variant="outline"
@@ -534,7 +682,7 @@ export default function IntegrationDetailPage() {
       </header>
 
       <div className="flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-stretch">
           <div className="flex flex-1 flex-col gap-3 sm:gap-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 *:flex-1">
               <StatCard
@@ -552,7 +700,7 @@ export default function IntegrationDetailPage() {
             </div>
 
             {/* Configuration */}
-            <div className="flex flex-col gap-4 border border-border bg-card p-4 sm:p-5">
+            <div className="flex flex-1 flex-col gap-4 border border-border bg-card p-4 sm:p-5">
               <span className="text-[13px] font-semibold uppercase tracking-wider text-dim">
                 Configuration
               </span>
@@ -577,7 +725,7 @@ export default function IntegrationDetailPage() {
           </div>
 
           {/* Credentials */}
-          <div className="flex-1">
+          <div className="flex flex-1 flex-col">
             <CredentialsSection
               config={config}
               provider={provider}

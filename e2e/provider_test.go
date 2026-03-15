@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -186,77 +185,6 @@ func TestE2E_Provider_Models(t *testing.T) {
 // E2E: Registry URL matching
 // --------------------------------------------------------------------------
 
-func TestE2E_Registry_URLMatching(t *testing.T) {
-	reg := registry.Global()
-
-	tests := []struct {
-		baseURL    string
-		wantID     string
-		wantMatch  bool
-	}{
-		{"https://api.openai.com/v1", "openai", true},
-		{"https://api.anthropic.com/v1", "anthropic", true},
-		{"https://openrouter.ai/api", "openrouter", true},
-		{"https://api.deepseek.com", "deepseek", true},
-		{"https://totally-unknown-provider.example.com", "", false},
-	}
-
-	for _, tt := range tests {
-		p, ok := reg.MatchByBaseURL(tt.baseURL)
-		if ok != tt.wantMatch {
-			t.Errorf("MatchByBaseURL(%q): got match=%v, want %v", tt.baseURL, ok, tt.wantMatch)
-			continue
-		}
-		if ok && p.ID != tt.wantID {
-			t.Errorf("MatchByBaseURL(%q): got %q, want %q", tt.baseURL, p.ID, tt.wantID)
-		}
-	}
-}
-
-// --------------------------------------------------------------------------
-// E2E: Credential auto-detects provider_id
-// --------------------------------------------------------------------------
-
-func TestE2E_Credential_ProviderAutoDetect(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	tests := []struct {
-		baseURL      string
-		wantProvider string
-	}{
-		{"https://api.openai.com/v1", "openai"},
-		{"https://api.anthropic.com/v1", "anthropic"},
-		{"https://openrouter.ai/api", "openrouter"},
-		{"https://api.example.com", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.baseURL, func(t *testing.T) {
-			body := fmt.Sprintf(`{"label":"test","base_url":%q,"auth_scheme":"bearer","api_key":"sk-test"}`, tt.baseURL)
-			req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-			req = middleware.WithOrg(req, &org)
-			rr := httptest.NewRecorder()
-			h.router.ServeHTTP(rr, req)
-
-			if rr.Code != http.StatusCreated {
-				t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
-			}
-
-			var resp struct {
-				ID         string `json:"id"`
-				ProviderID string `json:"provider_id"`
-			}
-			json.NewDecoder(rr.Body).Decode(&resp)
-
-			if resp.ProviderID != tt.wantProvider {
-				t.Errorf("provider_id: got %q, want %q", resp.ProviderID, tt.wantProvider)
-			}
-		})
-	}
-}
-
 // --------------------------------------------------------------------------
 // E2E: Provider list returns sorted by ID
 // --------------------------------------------------------------------------
@@ -312,8 +240,8 @@ func TestE2E_Credential_ListShowsProviderID(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Create a credential with a known provider
-	body := `{"label":"openai-test","base_url":"https://api.openai.com/v1","auth_scheme":"bearer","api_key":"sk-test"}`
+	// Create a credential with an explicit provider_id
+	body := `{"label":"openai-test","provider_id":"openai","base_url":"https://api.openai.com/v1","auth_scheme":"bearer","api_key":"sk-test"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithOrg(req, &org)

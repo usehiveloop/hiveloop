@@ -20,7 +20,6 @@ import (
 	"github.com/llmvault/llmvault/internal/registry"
 )
 
-// CredentialHandler manages credential CRUD operations.
 type CredentialHandler struct {
 	db           *gorm.DB
 	kms          *crypto.KeyWrapper
@@ -28,18 +27,18 @@ type CredentialHandler struct {
 	counter      *counter.Counter
 }
 
-// NewCredentialHandler creates a new credential handler.
 func NewCredentialHandler(db *gorm.DB, kms *crypto.KeyWrapper, cm *cache.Manager, ctr *counter.Counter) *CredentialHandler {
 	return &CredentialHandler{db: db, kms: kms, cacheManager: cm, counter: ctr}
 }
 
 type createCredentialRequest struct {
 	Label          string     `json:"label"`
+	ProviderID     string     `json:"provider_id"`
 	BaseURL        string     `json:"base_url"`
 	AuthScheme     string     `json:"auth_scheme"`
 	APIKey         string     `json:"api_key"`
 	IdentityID     *string    `json:"identity_id,omitempty"`
-	ExternalID     *string    `json:"external_id,omitempty"` // auto-upserts identity
+	ExternalID     *string    `json:"external_id,omitempty"`
 	Remaining      *int64     `json:"remaining,omitempty"`
 	RefillAmount   *int64     `json:"refill_amount,omitempty"`
 	RefillInterval *string    `json:"refill_interval,omitempty"`
@@ -90,8 +89,13 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.BaseURL == "" || req.AuthScheme == "" || req.APIKey == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "base_url, auth_scheme, and api_key are required"})
+	if req.BaseURL == "" || req.AuthScheme == "" || req.APIKey == "" || req.ProviderID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider_id, base_url, auth_scheme, and api_key are required"})
+		return
+	}
+
+	if _, ok := registry.Global().GetProvider(req.ProviderID); !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider_id %q", req.ProviderID)})
 		return
 	}
 
@@ -101,13 +105,11 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// SSRF hardening: validate BaseURL before storing
 	if err := proxy.ValidateBaseURL(req.BaseURL); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid base_url: %v", err)})
 		return
 	}
 
-	// Generate DEK, encrypt the API key, wrap the DEK via KMS
 	dek, err := crypto.GenerateDEK()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "encryption failed"})
@@ -126,12 +128,10 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Zero plaintext DEK and API key
 	for i := range dek {
 		dek[i] = 0
 	}
 
-	// Validate refill_interval if provided
 	if req.RefillInterval != nil {
 		if _, err := time.ParseDuration(*req.RefillInterval); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid refill_interval: must be a valid Go duration (e.g. 1h, 24h)"})
@@ -139,7 +139,6 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Resolve identity: explicit identity_id or auto-upsert via external_id
 	var identityID *uuid.UUID
 	if req.IdentityID != nil {
 		id, err := uuid.Parse(*req.IdentityID)
@@ -173,19 +172,13 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		identityID = &ident.ID
 	}
 
-	// Auto-detect provider from base_url
-	var providerID string
-	if p, ok := registry.Global().MatchByBaseURL(req.BaseURL); ok {
-		providerID = p.ID
-	}
-
 	cred := model.Credential{
 		ID:             uuid.New(),
 		OrgID:          org.ID,
 		Label:          req.Label,
 		BaseURL:        req.BaseURL,
 		AuthScheme:     req.AuthScheme,
-		ProviderID:     providerID,
+		ProviderID:     req.ProviderID,
 		IdentityID:     identityID,
 		EncryptedKey:   encryptedKey,
 		WrappedDEK:     wrappedDEK,
@@ -201,7 +194,7 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", providerID, "label", req.Label)
+	slog.Info("credential created", "org_id", org.ID, "credential_id", cred.ID, "provider_id", req.ProviderID, "label", req.Label)
 	if cred.IdentityID != nil {
 		slog.Info("credential linked to identity", "credential_id", cred.ID, "identity_id", *cred.IdentityID)
 	}

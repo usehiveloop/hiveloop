@@ -146,7 +146,6 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// parseJSONB parses raw JSONB bytes into a map.
 func parseJSONB(data []byte) map[string]any {
 	if len(data) == 0 {
 		return nil

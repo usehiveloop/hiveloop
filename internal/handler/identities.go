@@ -227,7 +227,6 @@ func (h *IdentityHandler) List(w http.ResponseWriter, r *http.Request) {
 		identities = identities[:limit]
 	}
 
-	// Collect identity IDs for usage stats query
 	identIDs := make([]uuid.UUID, len(identities))
 	for i, ident := range identities {
 		identIDs[i] = ident.ID
@@ -341,7 +340,6 @@ func (h *IdentityHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Replace rate limits if provided
 		if req.RateLimits != nil {
 			if err := tx.Where("identity_id = ?", ident.ID).Delete(&model.IdentityRateLimit{}).Error; err != nil {
 				return err
@@ -372,7 +370,6 @@ func (h *IdentityHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reload with updated data
 	h.db.Preload("RateLimits").Where("id = ?", ident.ID).First(&ident)
 
 	writeJSON(w, http.StatusOK, toIdentityResponse(ident))

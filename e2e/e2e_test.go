@@ -283,7 +283,7 @@ func (h *testHarness) createOrg(t *testing.T) model.Org {
 func (h *testHarness) storeCredential(t *testing.T, org model.Org, baseURL, authScheme, apiKey string) model.Credential {
 	t.Helper()
 
-	body := fmt.Sprintf(`{"label":"e2e-test","base_url":%q,"auth_scheme":%q,"api_key":%q}`,
+	body := fmt.Sprintf(`{"label":"e2e-test","provider_id":"openrouter","base_url":%q,"auth_scheme":%q,"api_key":%q}`,
 		baseURL, authScheme, apiKey)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", strings.NewReader(body))

@@ -15,14 +15,12 @@ import (
 	"github.com/llmvault/llmvault/internal/model"
 )
 
-// APIKeyHandler manages API key CRUD operations.
 type APIKeyHandler struct {
 	db           *gorm.DB
 	keyCache     *cache.APIKeyCache
 	cacheManager *cache.Manager
 }
 
-// NewAPIKeyHandler creates a new API key handler.
 func NewAPIKeyHandler(db *gorm.DB, keyCache *cache.APIKeyCache, cm *cache.Manager) *APIKeyHandler {
 	return &APIKeyHandler{db: db, keyCache: keyCache, cacheManager: cm}
 }
@@ -30,7 +28,7 @@ func NewAPIKeyHandler(db *gorm.DB, keyCache *cache.APIKeyCache, cm *cache.Manage
 type createAPIKeyRequest struct {
 	Name      string   `json:"name"`
 	Scopes    []string `json:"scopes"`
-	ExpiresIn *string  `json:"expires_in,omitempty"` // Go duration, e.g. "720h"
+	ExpiresIn *string  `json:"expires_in,omitempty"`
 }
 
 type createAPIKeyResponse struct {
@@ -250,7 +248,6 @@ func (h *APIKeyHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch the key first to get the hash for cache invalidation
 	var apiKey model.APIKey
 	if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", keyID, org.ID).First(&apiKey).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -268,10 +265,8 @@ func (h *APIKeyHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Invalidate from local cache
 	h.keyCache.Invalidate(apiKey.KeyHash)
 
-	// Publish cross-instance invalidation
 	_ = h.cacheManager.InvalidateAPIKey(r.Context(), apiKey.KeyHash)
 
 	slog.Info("api key revoked", "org_id", org.ID, "key_id", keyID)
