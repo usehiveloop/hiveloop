@@ -341,6 +341,15 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Verify API key against provider
+	verifyResult := h.reg.Verify(r.Context(), req.ProviderID, baseURL, authScheme, []byte(req.APIKey))
+	if !verifyResult.Valid {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+			"error": "api key verification failed: " + verifyResult.Error,
+		})
+		return
+	}
+
 	// Encrypt API key
 	dek, err := crypto.GenerateDEK()
 	if err != nil {

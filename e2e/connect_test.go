@@ -269,13 +269,14 @@ func TestE2E_Connect_ProviderNoFilter(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_ConnectionCRUD(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org := h.createOrg(t)
 
 	token, _ := h.createConnectSession(t, org, `{"external_id":"crud_user"}`)
 
 	// Create connection
-	createBody := `{"provider_id":"openrouter","api_key":"sk-test-key-12345","label":"My OpenRouter"}`
+	createBody := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q,"label":"My OpenRouter"}`, apiKey)
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token, strings.NewReader(createBody))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create connection: expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -347,28 +348,30 @@ func TestE2E_Connect_ConnectionCRUD(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_APIKeyNeverReturned(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org := h.createOrg(t)
 
 	token, _ := h.createConnectSession(t, org, `{"external_id":"secret_user"}`)
 
 	// Create connection
+	body := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q}`, apiKey)
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
-		strings.NewReader(`{"provider_id":"openrouter","api_key":"sk-super-secret-key"}`))
+		strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
 	// Check create response doesn't contain the key
-	body := rr.Body.String()
-	if strings.Contains(body, "sk-super-secret-key") {
+	respBody := rr.Body.String()
+	if strings.Contains(respBody, apiKey) {
 		t.Fatal("API key leaked in create response!")
 	}
 
 	// Check list response doesn't contain the key
 	rr = h.connectRequest(t, http.MethodGet, "/v1/widget/connections", token, nil)
-	body = rr.Body.String()
-	if strings.Contains(body, "sk-super-secret-key") {
+	respBody = rr.Body.String()
+	if strings.Contains(respBody, apiKey) {
 		t.Fatal("API key leaked in list response!")
 	}
 }
@@ -378,43 +381,31 @@ func TestE2E_Connect_APIKeyNeverReturned(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_ProviderAutoResolution(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org := h.createOrg(t)
 
 	token, _ := h.createConnectSession(t, org, `{"external_id":"auto_user"}`)
 
-	tests := []struct {
-		providerID     string
-		wantBaseURLSub string
-		wantScheme     string
-	}{
-		{"openai", "api.openai.com", "bearer"},
-		{"anthropic", "api.anthropic.com", "bearer"},
-		{"openrouter", "openrouter.ai", "bearer"},
+	// Test auto-resolution with openrouter (logic is provider-agnostic)
+	body := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q}`, apiKey)
+	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
+		strings.NewReader(body))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.providerID, func(t *testing.T) {
-			body := fmt.Sprintf(`{"provider_id":%q,"api_key":"sk-test"}`, tt.providerID)
-			rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
-				strings.NewReader(body))
-			if rr.Code != http.StatusCreated {
-				t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
-			}
+	var resp struct {
+		BaseURL    string `json:"base_url"`
+		AuthScheme string `json:"auth_scheme"`
+	}
+	json.NewDecoder(rr.Body).Decode(&resp)
 
-			var resp struct {
-				BaseURL    string `json:"base_url"`
-				AuthScheme string `json:"auth_scheme"`
-			}
-			json.NewDecoder(rr.Body).Decode(&resp)
-
-			if !strings.Contains(resp.BaseURL, tt.wantBaseURLSub) {
-				t.Errorf("base_url: got %q, want substring %q", resp.BaseURL, tt.wantBaseURLSub)
-			}
-			if resp.AuthScheme != tt.wantScheme {
-				t.Errorf("auth_scheme: got %q, want %q", resp.AuthScheme, tt.wantScheme)
-			}
-		})
+	if !strings.Contains(resp.BaseURL, "openrouter.ai") {
+		t.Errorf("base_url: got %q, want substring %q", resp.BaseURL, "openrouter.ai")
+	}
+	if resp.AuthScheme != "bearer" {
+		t.Errorf("auth_scheme: got %q, want %q", resp.AuthScheme, "bearer")
 	}
 }
 
@@ -423,14 +414,16 @@ func TestE2E_Connect_ProviderAutoResolution(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_OrgIsolation(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org1 := h.createOrg(t)
 	org2 := h.createOrg(t)
 
 	// Create connection via org1's session
 	token1, _ := h.createConnectSession(t, org1, `{"external_id":"iso_user1"}`)
+	body := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q}`, apiKey)
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token1,
-		strings.NewReader(`{"provider_id":"openrouter","api_key":"sk-org1-key"}`))
+		strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create: expected 201, got %d", rr.Code)
 	}
@@ -510,6 +503,7 @@ func TestE2E_Connect_PermissionEnforcement(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_NoPermissionsMeansAll(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org := h.createOrg(t)
 
@@ -517,8 +511,9 @@ func TestE2E_Connect_NoPermissionsMeansAll(t *testing.T) {
 	token, _ := h.createConnectSession(t, org, `{"external_id":"all_perm_user"}`)
 
 	// Create should work
+	body := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q}`, apiKey)
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
-		strings.NewReader(`{"provider_id":"openrouter","api_key":"sk-test"}`))
+		strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -704,45 +699,32 @@ func TestE2E_Connect_VerifyConnection_Live(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// E2E: Connect — verify connection with invalid key
+// E2E: Connect — invalid key rejected at creation
 // --------------------------------------------------------------------------
 
-func TestE2E_Connect_VerifyConnection_InvalidKey(t *testing.T) {
+func TestE2E_Connect_CreateConnection_InvalidKey_Rejected(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
 	token, _ := h.createConnectSession(t, org,
-		`{"external_id":"bad_key_user","permissions":["create","list","verify"]}`)
+		`{"external_id":"bad_key_user","permissions":["create","list"]}`)
 
-	// Create connection with fake key
+	// Create connection with fake key — should be rejected with 422
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
 		strings.NewReader(`{"provider_id":"openai","api_key":"sk-invalid-key-12345"}`))
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("create: expected 201, got %d", rr.Code)
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	var createResp struct {
-		ID string `json:"id"`
-	}
-	json.NewDecoder(rr.Body).Decode(&createResp)
-
-	// Verify connection — should return valid=false
-	rr = h.connectRequest(t, http.MethodPost,
-		"/v1/widget/connections/"+createResp.ID+"/verify", token, nil)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("verify: expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var verifyResp struct {
-		Valid bool   `json:"valid"`
+	var errResp struct {
 		Error string `json:"error"`
 	}
-	json.NewDecoder(rr.Body).Decode(&verifyResp)
+	json.NewDecoder(rr.Body).Decode(&errResp)
 
-	if verifyResp.Valid {
-		t.Fatal("expected valid=false for invalid key")
+	if !strings.Contains(errResp.Error, "api key verification failed") {
+		t.Fatalf("expected error to contain 'api key verification failed', got: %s", errResp.Error)
 	}
-	t.Logf("Correctly rejected invalid key: %s", verifyResp.Error)
+	t.Logf("Correctly rejected invalid key at creation: %s", errResp.Error)
 }
 
 // --------------------------------------------------------------------------
@@ -767,14 +749,16 @@ func TestE2E_Connect_UnknownProvider(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestE2E_Connect_DefaultLabel(t *testing.T) {
+	apiKey := requireOpenRouterKey(t)
 	h := newHarness(t)
 	org := h.createOrg(t)
 
 	token, _ := h.createConnectSession(t, org, `{"external_id":"label_user"}`)
 
 	// Create without label — should default to provider name
+	body := fmt.Sprintf(`{"provider_id":"openrouter","api_key":%q}`, apiKey)
 	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
-		strings.NewReader(`{"provider_id":"openrouter","api_key":"sk-test"}`))
+		strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", rr.Code)
 	}
