@@ -37,33 +37,47 @@ func NewConnectAPIHandler(db *gorm.DB, kms *crypto.KeyWrapper, reg *registry.Reg
 	return &ConnectAPIHandler{db: db, kms: kms, reg: reg, nango: nangoClient, catalog: cat, discovery: discovery}
 }
 
-// knownBaseURLs provides base URLs for providers that lack an API field in the registry.
+// knownBaseURLs provides base URLs for the 22 providers whose models.dev
+// registry data lacks an "api" field. Without this fallback the Connect
+// widget cannot resolve a base URL from provider_id alone.
+// Providers with dynamic/tenant-specific URLs are listed with their most
+// common public endpoint; callers that need custom endpoints should supply
+// base_url explicitly when creating credentials.
 var knownBaseURLs = map[string]string{
+	// Static endpoints
 	"openai":       "https://api.openai.com",
 	"anthropic":    "https://api.anthropic.com",
-	"google":       "https://generativelanguage.googleapis.com",
+	"cerebras":     "https://api.cerebras.ai",
+	"cohere":       "https://api.cohere.com",
+	"deepinfra":    "https://api.deepinfra.com/v1",
 	"groq":         "https://api.groq.com/openai",
 	"mistral":      "https://api.mistral.ai",
-	"cohere":       "https://api.cohere.com",
-	"fireworks-ai": "https://api.fireworks.ai/inference",
-	"togetherai":   "https://api.together.xyz",
 	"perplexity":   "https://api.perplexity.ai",
+	"togetherai":   "https://api.together.xyz",
 	"xai":          "https://api.x.ai",
-	"deepinfra":    "https://api.deepinfra.com",
-	"upstage":      "https://api.upstage.ai",
-	"friendli":     "https://api.friendli.ai",
-	"baseten":      "https://api.baseten.co",
-	"nvidia":       "https://integrate.api.nvidia.com",
-	"azure":        "https://models.inference.ai.azure.com",
-	"cerebras":     "https://inference.cerebras.ai",
-	"novita-ai":    "https://api.novita.ai",
-	"huggingface":  "https://api-inference.huggingface.co",
+	"venice":       "https://api.venice.ai/api",
+	"v0":           "https://api.v0.dev",
+	"vercel":       "https://ai-gateway.vercel.sh",
+	"google":       "https://generativelanguage.googleapis.com",
+	"gitlab":       "https://gitlab.com/api/v4/code_suggestions",
+
+	// Dynamic endpoints — default public entry points; real deployments
+	// typically require tenant-specific URLs supplied via base_url.
+	"amazon-bedrock":           "https://bedrock-runtime.us-east-1.amazonaws.com",
+	"azure":                    "https://models.inference.ai.azure.com",
+	"azure-cognitive-services": "https://eastus.api.cognitive.microsoft.com",
+	"cloudflare-ai-gateway":   "https://gateway.ai.cloudflare.com",
+	"google-vertex":           "https://us-central1-aiplatform.googleapis.com",
+	"google-vertex-anthropic": "https://us-central1-aiplatform.googleapis.com",
+	"sap-ai-core":             "https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com",
 }
 
-// knownAuthSchemes overrides the default "bearer" for providers that use different schemes.
+// knownAuthSchemes overrides the default "bearer" auth scheme for providers
+// that use a different authentication header.
 var knownAuthSchemes = map[string]string{
-	"azure":  "api-key",
-	"google": "query_param",
+	"anthropic": "x-api-key",
+	"azure":     "api-key",
+	"google":    "query_param",
 }
 
 type connectionResponse struct {
@@ -145,7 +159,6 @@ func (h *ConnectAPIHandler) ListProviders(w http.ResponseWriter, r *http.Request
 
 	allProviders := h.reg.AllProviders()
 
-	// Filter by session's allowed_providers if set
 	allowedSet := make(map[string]bool, len(sess.AllowedProviders))
 	for _, p := range sess.AllowedProviders {
 		allowedSet[p] = true
@@ -290,14 +303,12 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Validate provider exists in registry
 	provider, providerOK := h.reg.GetProvider(req.ProviderID)
 	if !providerOK {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider: " + req.ProviderID})
 		return
 	}
 
-	// Check against session's allowed_providers
 	if len(sess.AllowedProviders) > 0 {
 		allowed := false
 		for _, p := range sess.AllowedProviders {
@@ -312,7 +323,6 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Resolve base_url from provider
 	baseURL := provider.API
 	if baseURL == "" {
 		var ok bool
@@ -323,25 +333,21 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Resolve auth_scheme (default bearer)
 	authScheme := "bearer"
 	if scheme, ok := knownAuthSchemes[req.ProviderID]; ok {
 		authScheme = scheme
 	}
 
-	// SSRF validate the base_url
 	if err := proxy.ValidateBaseURL(baseURL); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid base_url: %v", err)})
 		return
 	}
 
-	// Ensure identity exists
 	if sess.IdentityID == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session has no identity linked"})
 		return
 	}
 
-	// Verify API key against provider
 	verifyResult := h.reg.Verify(r.Context(), req.ProviderID, baseURL, authScheme, []byte(req.APIKey))
 	if !verifyResult.Valid {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
@@ -350,7 +356,6 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Encrypt API key
 	dek, err := crypto.GenerateDEK()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "encryption failed"})
@@ -369,7 +374,6 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Zero plaintext DEK
 	for i := range dek {
 		dek[i] = 0
 	}
@@ -500,7 +504,6 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Decrypt the API key
 	dek, err := h.kms.Unwrap(r.Context(), cred.WrappedDEK)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "decryption failed"})
@@ -513,15 +516,12 @@ func (h *ConnectAPIHandler) VerifyConnection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Zero DEK
 	for i := range dek {
 		dek[i] = 0
 	}
 
-	// Verify the key
 	result := h.reg.Verify(r.Context(), cred.ProviderID, cred.BaseURL, cred.AuthScheme, apiKey)
 
-	// Zero API key
 	for i := range apiKey {
 		apiKey[i] = 0
 	}
@@ -572,7 +572,6 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Build a map of integration_id → connection for the current identity
 	connectionMap := make(map[uuid.UUID]model.Connection)
 	if sess.IdentityID != nil {
 		var conns []model.Connection
@@ -602,7 +601,6 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 			item.ConnectionID = &connID
 			item.NangoConnectionID = &conn.NangoConnectionID
 
-			// Extract selected resources from connection meta
 			if conn.Meta != nil {
 				if raw, exists := conn.Meta["resources"]; exists {
 					if resMap, ok := raw.(map[string]interface{}); ok {
@@ -626,7 +624,6 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 			}
 		}
 
-		// Add resource configurations from catalog
 		if resourceTypes := h.catalog.ListResourceTypes(integ.Provider); resourceTypes != nil {
 			for typeKey, resDef := range resourceTypes {
 				item.Resources = append(item.Resources, widgetResourceResponse{
@@ -700,10 +697,8 @@ func (h *ConnectAPIHandler) CreateIntegrationConnectSession(w http.ResponseWrite
 		return
 	}
 
-	// Build the org-namespaced Nango unique key
 	nangoUniqueKey := fmt.Sprintf("%s_%s", org.ID.String(), integ.UniqueKey)
 
-	// Use session external_id or identity_id as end_user for Nango
 	endUserID := sess.ExternalID
 	if endUserID == "" && sess.IdentityID != nil {
 		endUserID = sess.IdentityID.String()
@@ -815,7 +810,6 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 		"identity_id", sess.IdentityID,
 	)
 
-	// Enforce one active connection per identity per integration
 	if sess.IdentityID != nil {
 		var existing model.Connection
 		err := h.db.Where("org_id = ? AND integration_id = ? AND identity_id = ? AND revoked_at IS NULL",
@@ -829,7 +823,6 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 		}
 	}
 
-	// Verify connection exists in Nango before storing reference
 	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), integ.UniqueKey)
 	if _, err := h.nango.GetConnection(r.Context(), req.NangoConnectionID, nangoProviderConfigKey); err != nil {
 		logger.Warn("nango_connection_id not found in Nango",
@@ -929,7 +922,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 		return
 	}
 
-	// Parse integration ID
 	integUUID, err := uuid.Parse(integID)
 	if err != nil {
 		logger.Warn("invalid integration id format", "error", err.Error())
@@ -937,7 +929,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 		return
 	}
 
-	// Verify integration exists and belongs to org
 	var integ model.Integration
 	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
 		logger.Error("integration not found", "error", err.Error())
@@ -957,7 +948,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 		return
 	}
 
-	// Log resource update details
 	if len(req.Resources) > 0 {
 		totalResources := 0
 		for _, items := range req.Resources {
@@ -972,7 +962,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 		logger.Info("clearing connection resources (full access granted)")
 	}
 
-	// Look up the connection
 	var conn model.Connection
 	if err := h.db.Where("id = ? AND org_id = ? AND integration_id = ? AND identity_id = ? AND revoked_at IS NULL",
 		connID, org.ID, integ.ID, *sess.IdentityID).First(&conn).Error; err != nil {
@@ -987,7 +976,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 		"nango_connection_id", conn.NangoConnectionID,
 	)
 
-	// Update meta with resources
 	meta := conn.Meta
 	if meta == nil {
 		meta = model.JSON{}
@@ -1013,7 +1001,6 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 	writeJSON(w, http.StatusOK, toIntegConnResponse(conn))
 }
 
-// getResourceTypes returns a slice of resource type keys from the resources map.
 func getResourceTypes(resources map[string][]string) []string {
 	types := make([]string, 0, len(resources))
 	for t := range resources {
@@ -1061,7 +1048,6 @@ func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r
 		return
 	}
 
-	// Get integration ID from URL and verify it matches the connection
 	integID := chi.URLParam(r, "id")
 	if integID == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "integration id required"})
@@ -1074,7 +1060,6 @@ func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r
 		return
 	}
 
-	// Look up the connection (with its integration) to get Nango IDs
 	var conn model.Connection
 	if err := h.db.Preload("Integration").Where("id = ? AND org_id = ? AND integration_id = ? AND identity_id = ? AND revoked_at IS NULL",
 		connID, org.ID, integUUID, *sess.IdentityID).First(&conn).Error; err != nil {
@@ -1082,16 +1067,13 @@ func (h *ConnectAPIHandler) DeleteIntegrationConnection(w http.ResponseWriter, r
 		return
 	}
 
-	// Build the org-namespaced Nango provider config key
 	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
 
-	// Delete from Nango
 	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nangoProviderConfigKey); err != nil {
 		slog.Error("nango: delete connection failed, proceeding with local revocation",
 			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
 	}
 
-	// Soft-delete locally
 	now := time.Now()
 	result := h.db.Model(&model.Connection{}).
 		Where("id = ? AND revoked_at IS NULL", connID).
@@ -1178,7 +1160,6 @@ func (h *ConnectAPIHandler) ListAvailableResources(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Get integration to find provider
 	var integ model.Integration
 	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
 		logger.Error("integration not found",
@@ -1194,7 +1175,6 @@ func (h *ConnectAPIHandler) ListAvailableResources(w http.ResponseWriter, r *htt
 	)
 	logger.Info("integration found")
 
-	// Check if provider supports resource discovery
 	if !h.discovery.HasDiscovery(integ.Provider) {
 		logger.Warn("resource discovery not supported for provider")
 		writeJSON(w, http.StatusBadRequest, map[string]string{
@@ -1203,18 +1183,15 @@ func (h *ConnectAPIHandler) ListAvailableResources(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Get nango_connection_id from query param
 	if nangoConnID == "" {
 		logger.Warn("missing nango_connection_id query parameter")
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "nango_connection_id query parameter required"})
 		return
 	}
 
-	// Build provider config key
 	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), integ.UniqueKey)
 	logger = logger.With("nango_provider_config_key", nangoProviderConfigKey)
 
-	// Discover resources
 	logger.Info("starting resource discovery")
 	result, err := h.discovery.Discover(r.Context(), integ.Provider, resourceType, nangoProviderConfigKey, nangoConnID)
 	if err != nil {
@@ -1232,8 +1209,6 @@ func (h *ConnectAPIHandler) ListAvailableResources(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, result)
 }
 
-// hasPermission checks if the session has a specific permission.
-// If no permissions are set on the session, all operations are allowed.
 func hasPermission(sess *model.ConnectSession, perm string) bool {
 	if len(sess.Permissions) == 0 {
 		return true

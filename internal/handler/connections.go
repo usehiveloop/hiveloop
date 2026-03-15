@@ -16,13 +16,11 @@ import (
 	"github.com/llmvault/llmvault/internal/nango"
 )
 
-// ConnectionHandler manages connection CRUD operations.
 type ConnectionHandler struct {
 	db    *gorm.DB
 	nango *nango.Client
 }
 
-// NewConnectionHandler creates a new connection handler.
 func NewConnectionHandler(db *gorm.DB, nangoClient *nango.Client) *ConnectionHandler {
 	return &ConnectionHandler{db: db, nango: nangoClient}
 }
@@ -99,7 +97,6 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify integration exists and belongs to this org
 	var integ model.Integration
 	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -135,7 +132,7 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid identity_id"})
 			return
 		}
-		// Verify identity exists and belongs to org
+
 		var ident model.Identity
 		if err := h.db.Where("id = ? AND org_id = ?", identityUUID, org.ID).First(&ident).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -191,7 +188,6 @@ func (h *ConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify integration exists and belongs to org
 	var integ model.Integration
 	if err := h.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", integUUID, org.ID).First(&integ).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -307,7 +303,6 @@ func (h *ConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch connection with its integration to get Nango IDs
 	var conn model.Connection
 	if err := h.db.Preload("Integration").
 		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
@@ -320,14 +315,12 @@ func (h *ConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete from Nango (best-effort: log error but proceed with local revoke)
 	nangoProviderConfigKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
 	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nangoProviderConfigKey); err != nil {
 		slog.Error("nango: delete connection failed, proceeding with local revocation",
 			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
 	}
 
-	// Soft-delete locally
 	now := time.Now()
 	result := h.db.Model(&model.Connection{}).
 		Where("id = ? AND revoked_at IS NULL", connID).

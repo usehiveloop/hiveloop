@@ -13,13 +13,11 @@ import (
 	"github.com/llmvault/llmvault/internal/model"
 )
 
-// OrgHandler manages organization lifecycle operations.
 type OrgHandler struct {
 	db      *gorm.DB
 	logto   *logto.Client
 }
 
-// NewOrgHandler creates a new org handler.
 func NewOrgHandler(db *gorm.DB, logtoClient *logto.Client) *OrgHandler {
 	return &OrgHandler{db: db, logto: logtoClient}
 }

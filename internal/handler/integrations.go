@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -199,13 +200,11 @@ func validateCredentials(provider nango.Provider, creds *nango.Credentials) erro
 		}
 
 	case "BASIC", "API_KEY", "NONE", "OAUTH2_CC", "JWT", "BILL", "TWO_STEP", "SIGNATURE", "APP_STORE":
-		// These auth modes do not require credentials — credentials must be absent/nil
 		if creds != nil {
 			return fmt.Errorf("credentials must not be provided for %s auth mode", mode)
 		}
 
 	default:
-		// Unknown auth mode — allow without credentials for forward compatibility
 		if creds != nil {
 			return fmt.Errorf("credentials must not be provided for unknown auth mode %q", mode)
 		}
@@ -350,7 +349,6 @@ func (h *IntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Always fetch live from Nango to include credentials in response
 	nk := nangoKey(org.ID, integ.UniqueKey)
 	integResp, err := h.nango.GetIntegration(r.Context(), nk)
 	if err != nil {
@@ -359,9 +357,13 @@ func (h *IntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		template, _ := h.nango.GetProviderTemplate(integ.Provider)
 		liveConfig := buildNangoConfig(integResp, template, h.nango.CallbackURL())
 
-		// Include credentials from the live Nango response
 		if data, ok := integResp["data"].(map[string]any); ok {
 			if creds, ok := data["credentials"].(map[string]any); ok {
+				if pk, ok := creds["private_key"].(string); ok && pk != "" {
+					if decoded, err := base64.StdEncoding.DecodeString(pk); err == nil {
+						creds["private_key"] = string(decoded)
+					}
+				}
 				liveConfig["credentials"] = creds
 			}
 		}
@@ -487,7 +489,6 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If credentials provided, validate and push to Nango
 	if req.Credentials != nil {
 		provider, found := h.nango.GetProvider(integ.Provider)
 		if !found {
@@ -511,7 +512,6 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.Info("nango integration credentials updated", "org_id", org.ID, "integration_id", integ.ID)
 
-		// Rebuild NangoConfig after credential update (best-effort)
 		integResp, fetchErr := h.nango.GetIntegration(r.Context(), nk)
 		if fetchErr != nil {
 			slog.Warn("failed to fetch nango integration details for config rebuild", "error", fetchErr, "nango_key", nk)
@@ -540,7 +540,6 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Reload
 	h.db.Where("id = ?", integ.ID).First(&integ)
 
 	slog.Info("integration updated", "org_id", org.ID, "integration_id", integ.ID, "credentials_updated", req.Credentials != nil)
@@ -585,7 +584,6 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove from Nango
 	nk := nangoKey(org.ID, integ.UniqueKey)
 	slog.Info("deleting nango integration", "org_id", org.ID, "integration_id", integ.ID, "nango_key", nk)
 	if err := h.nango.DeleteIntegration(r.Context(), nk); err != nil {
@@ -595,7 +593,6 @@ func (h *IntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("nango integration deleted", "org_id", org.ID, "integration_id", integ.ID)
 
-	// Soft-delete
 	now := time.Now()
 	if err := h.db.Model(&integ).Update("deleted_at", now).Error; err != nil {
 		slog.Error("failed to soft-delete integration", "error", err, "org_id", org.ID, "integration_id", integ.ID)
