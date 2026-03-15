@@ -30,16 +30,18 @@ func NewIntegrationHandler(db *gorm.DB, nangoClient *nango.Client) *IntegrationH
 }
 
 type createIntegrationRequest struct {
-	Provider    string             `json:"provider"`
-	DisplayName string             `json:"display_name"`
-	Credentials *nango.Credentials `json:"credentials,omitempty"`
-	Meta        model.JSON         `json:"meta,omitempty"`
+	Provider      string             `json:"provider"`
+	DisplayName   string             `json:"display_name"`
+	Credentials   *nango.Credentials `json:"credentials,omitempty"`
+	Meta          model.JSON         `json:"meta,omitempty"`
+	WebhookSecret *string            `json:"webhook_secret,omitempty"`
 }
 
 type updateIntegrationRequest struct {
-	DisplayName *string            `json:"display_name,omitempty"`
-	Credentials *nango.Credentials `json:"credentials,omitempty"`
-	Meta        model.JSON         `json:"meta,omitempty"`
+	DisplayName   *string            `json:"display_name,omitempty"`
+	Credentials   *nango.Credentials `json:"credentials,omitempty"`
+	Meta          model.JSON         `json:"meta,omitempty"`
+	WebhookSecret *string            `json:"webhook_secret,omitempty"`
 }
 
 type integrationResponse struct {
@@ -311,6 +313,11 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// User-defined webhook_secret (top-level field, independent of credentials)
+	if req.WebhookSecret != nil && *req.WebhookSecret != "" && nangoConfig != nil {
+		nangoConfig["webhook_secret"] = *req.WebhookSecret
+	}
+
 	integ := model.Integration{
 		ID:          integID,
 		OrgID:       org.ID,
@@ -366,6 +373,21 @@ func (h *IntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get integration"})
 		return
+	}
+
+	// Lazy-populate nango_config for integrations created before config was stored
+	if len(integ.NangoConfig) == 0 {
+		nk := nangoKey(org.ID, integ.UniqueKey)
+		integResp, err := h.nango.GetIntegration(r.Context(), nk)
+		if err != nil {
+			slog.Warn("failed to lazy-fetch nango config", "error", err, "integration_id", integ.ID)
+		} else {
+			template, _ := h.nango.GetProviderTemplate(integ.Provider)
+			integ.NangoConfig = buildNangoConfig(integResp, template, h.nango.CallbackURL())
+			if err := h.db.Model(&integ).Update("nango_config", integ.NangoConfig).Error; err != nil {
+				slog.Warn("failed to persist lazy-fetched nango config", "error", err, "integration_id", integ.ID)
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, toIntegrationResponse(integ))
@@ -532,6 +554,14 @@ func (h *IntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
+
+	// User-defined webhook_secret (independent of credential rotation)
+	if req.WebhookSecret != nil && *req.WebhookSecret != "" {
+		if integ.NangoConfig == nil {
+			integ.NangoConfig = model.JSON{}
+		}
+		integ.NangoConfig["webhook_secret"] = *req.WebhookSecret
 	}
 
 	updates := map[string]any{}

@@ -70,6 +70,7 @@ export function CreateIntegrationDialog({
       provider: string;
       display_name: string;
       credentials?: Record<string, string>;
+      webhook_secret?: string;
     } = {
       provider: selectedProvider.name,
       display_name: displayName,
@@ -84,12 +85,13 @@ export function CreateIntegrationDialog({
           creds[f.key] = credentials[f.key];
         }
       }
-      if (webhookSecret && selectedProvider.webhook_user_defined_secret) {
-        creds.webhook_secret = webhookSecret;
-      }
       if (Object.keys(creds).length > 1) {
         body.credentials = creds;
       }
+    }
+
+    if (webhookSecret && selectedProvider.webhook_user_defined_secret) {
+      body.webhook_secret = webhookSecret;
     }
 
     mutation.mutate(body);

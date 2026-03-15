@@ -1079,6 +1079,132 @@ func TestE2E_Integration_AppCredentialRotation_RecomputesWebhookSecret(t *testin
 }
 
 // --------------------------------------------------------------------------
+// E2E: Update webhook_secret without providing credentials
+// --------------------------------------------------------------------------
+
+func TestE2E_Integration_UpdateWebhookSecret_NoCreds(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+
+	// 1. Create OAUTH2 integration (no webhook_secret initially)
+	body := `{"provider":"slack","display_name":"WS Update Test","credentials":{"type":"OAUTH2","client_id":"ws-id","client_secret":"ws-secret"}}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var createResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&createResp)
+	integID := createResp["id"].(string)
+
+	// 2. Update with ONLY webhook_secret — no credentials
+	updateBody := `{"webhook_secret":"my-standalone-secret"}`
+	req = httptest.NewRequest(http.MethodPut, "/v1/integrations/"+integID, strings.NewReader(updateBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update webhook_secret: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	// 3. GET and verify webhook_secret is set
+	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("get: expected 200, got %d", rr.Code)
+	}
+
+	var getResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&getResp)
+	config := getResp["nango_config"].(map[string]any)
+
+	if config["webhook_secret"] != "my-standalone-secret" {
+		t.Fatalf("expected webhook_secret=my-standalone-secret, got %v", config["webhook_secret"])
+	}
+}
+
+// --------------------------------------------------------------------------
+// E2E: GET lazy-populates nango_config for existing integrations
+// --------------------------------------------------------------------------
+
+func TestE2E_Integration_LazyPopulateNangoConfig(t *testing.T) {
+	h := newHarness(t)
+	org := h.createOrg(t)
+
+	// 1. Create integration normally (nango_config will be populated)
+	body := `{"provider":"slack","display_name":"Lazy Populate","credentials":{"type":"OAUTH2","client_id":"lp-id","client_secret":"lp-secret"}}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var createResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&createResp)
+	integID := createResp["id"].(string)
+
+	// 2. Simulate broken nango_config by NULLing it in DB
+	if err := h.db.Exec("UPDATE integrations SET nango_config = NULL WHERE id = ?", integID).Error; err != nil {
+		t.Fatalf("null nango_config: %v", err)
+	}
+
+	// 3. GET should lazy-populate nango_config from Nango
+	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("get: expected 200, got %d", rr.Code)
+	}
+
+	var getResp map[string]any
+	json.NewDecoder(rr.Body).Decode(&getResp)
+
+	config, ok := getResp["nango_config"].(map[string]any)
+	if !ok || config == nil {
+		t.Fatal("expected nango_config to be lazy-populated on GET")
+	}
+
+	if _, ok := config["callback_url"].(string); !ok {
+		t.Fatal("expected callback_url after lazy-populate")
+	}
+	if _, ok := config["auth_mode"].(string); !ok {
+		t.Fatal("expected auth_mode after lazy-populate")
+	}
+	if _, ok := config["webhook_url"].(string); !ok {
+		t.Fatal("expected webhook_url after lazy-populate")
+	}
+
+	// 4. Second GET should return from DB (already populated)
+	req = httptest.NewRequest(http.MethodGet, "/v1/integrations/"+integID, nil)
+	req = middleware.WithOrg(req, &org)
+	rr = httptest.NewRecorder()
+	h.router.ServeHTTP(rr, req)
+
+	var getResp2 map[string]any
+	json.NewDecoder(rr.Body).Decode(&getResp2)
+	config2 := getResp2["nango_config"].(map[string]any)
+	if config2["callback_url"] != config["callback_url"] {
+		t.Fatal("lazy-populated config should persist across GET calls")
+	}
+}
+
+// --------------------------------------------------------------------------
 // E2E: GetIntegration from Nango returns webhook_url + credentials
 // --------------------------------------------------------------------------
 
