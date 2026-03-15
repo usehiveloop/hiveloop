@@ -1,6 +1,6 @@
 {
   "name": "@llmvault/frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Frontend SDK for embedding the LLMVault connect widget",
   "type": "module",
   "exports": {
@@ -22,7 +22,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "example": "vite serve example"
+    "example": "vite serve example",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "@vitest/browser": "^4.1.0",

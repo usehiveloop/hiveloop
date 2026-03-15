@@ -37,6 +37,12 @@ export class LLMVaultConnect {
     const url = new URL(this.baseURL)
     url.searchParams.set('session', options.sessionToken)
     url.searchParams.set('theme', this.theme)
+    if (options.screen) {
+      url.searchParams.set('screen', options.screen)
+    }
+    if (options.preview) {
+      url.searchParams.set('preview', 'true')
+    }
     iframe.src = url.toString()
     iframe.id = 'llmvault-connect-iframe'
     iframe.style.position = 'fixed'
