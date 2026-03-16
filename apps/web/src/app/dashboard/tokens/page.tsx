@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, X, Copy, Check, CircleAlert } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,70 @@ const credentialOptions = [
   { name: "prod-gemini-flash", id: "cred_d83f…1a9e", provider: "google" },
   { name: "azure-openai-east", id: "cred_2f8d…a1b3", provider: "azure" },
   { name: "mistral-large-prod", id: "cred_5c4a…f8e7", provider: "mistral" },
+];
+
+// Mock available scopes data (will be fetched from API)
+type AvailableScopeAction = {
+  key: string;
+  display_name: string;
+  description: string;
+  resource_type?: string;
+};
+
+type AvailableScopeResourceItem = { id: string; name: string };
+type AvailableScopeResource = { display_name: string; selected: AvailableScopeResourceItem[] };
+
+type AvailableScopeConnection = {
+  connection_id: string;
+  integration_id: string;
+  provider: string;
+  display_name: string;
+  actions: AvailableScopeAction[];
+  resources?: Record<string, AvailableScopeResource>;
+};
+
+const mockAvailableScopes: AvailableScopeConnection[] = [
+  {
+    connection_id: "conn-1",
+    integration_id: "int-1",
+    provider: "slack",
+    display_name: "Slack (Engineering)",
+    actions: [
+      { key: "send_message", display_name: "Send Message", description: "Send a message to a channel", resource_type: "channel" },
+      { key: "read_messages", display_name: "Read Messages", description: "Read messages from a channel", resource_type: "channel" },
+      { key: "list_channels", display_name: "List Channels", description: "List all channels in the workspace" },
+    ],
+    resources: {
+      channel: {
+        display_name: "Channels",
+        selected: [
+          { id: "C123", name: "engineering" },
+          { id: "C456", name: "general" },
+          { id: "C789", name: "alerts" },
+        ],
+      },
+    },
+  },
+  {
+    connection_id: "conn-2",
+    integration_id: "int-2",
+    provider: "github-app",
+    display_name: "GitHub (Org)",
+    actions: [
+      { key: "list_repos", display_name: "List Repositories", description: "List repositories" },
+      { key: "list_issues", display_name: "List Issues", description: "List issues in a repository", resource_type: "repo" },
+      { key: "create_issue", display_name: "Create Issue", description: "Create an issue", resource_type: "repo" },
+    ],
+    resources: {
+      repo: {
+        display_name: "Repositories",
+        selected: [
+          { id: "org/api", name: "api" },
+          { id: "org/web", name: "web" },
+        ],
+      },
+    },
+  },
 ];
 
 const columns: DataTableColumn<Token>[] = [
@@ -123,11 +187,29 @@ function TokenMobileCard({ token }: { token: Token }) {
 
 type ModalState = "closed" | "mint" | "success";
 
+// Scope selection state
+type ScopeSelection = {
+  connectionId: string;
+  actions: string[];
+  resources: Record<string, string[]>;
+};
+
+// Minted token result
+type MintResult = {
+  token: string;
+  jti: string;
+  expiresAt: string;
+  mcpEndpoint?: string;
+  credentialName: string;
+  ttl: string;
+};
+
 export default function TokensPage() {
   const [filter, setFilter] = useState<StatusFilter>("All");
   const [search, setSearch] = useState("");
   const [credentialFilter, setCredentialFilter] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>("closed");
+  const [mintResult, setMintResult] = useState<MintResult | null>(null);
 
   const credentialNames = [...new Set(tokens.map((t) => t.credential.name))];
 
@@ -137,6 +219,11 @@ export default function TokensPage() {
     if (search && !tok.jti.toLowerCase().includes(search.toLowerCase()) && !tok.credential.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const handleMintSuccess = useCallback((result: MintResult) => {
+    setMintResult(result);
+    setModal("success");
+  }, []);
 
   return (
     <>
@@ -213,24 +300,196 @@ export default function TokensPage() {
 
       {/* Mint Token Dialog */}
       <Dialog open={modal === "mint"} onOpenChange={(open) => !open && setModal("closed")}>
-        <MintTokenForm onCancel={() => setModal("closed")} onSuccess={() => setModal("success")} />
+        <MintTokenForm onCancel={() => setModal("closed")} onSuccess={handleMintSuccess} />
       </Dialog>
 
       {/* Mint Success Dialog */}
       <Dialog open={modal === "success"} onOpenChange={(open) => !open && setModal("closed")}>
-        <MintSuccessContent onClose={() => setModal("closed")} />
+        <MintSuccessContent result={mintResult} onClose={() => setModal("closed")} />
       </Dialog>
     </>
   );
 }
 
-function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) {
+// --- Scope Selection Component ---
+
+function ScopeSelector({
+  scopes,
+  onScopesChange,
+}: {
+  scopes: ScopeSelection[];
+  onScopesChange: (scopes: ScopeSelection[]) => void;
+}) {
+  const availableConnections = mockAvailableScopes;
+  const [expandedConns, setExpandedConns] = useState<Set<string>>(new Set());
+
+  const toggleConnection = (connId: string) => {
+    const existing = scopes.find((s) => s.connectionId === connId);
+    if (existing) {
+      onScopesChange(scopes.filter((s) => s.connectionId !== connId));
+    } else {
+      const conn = availableConnections.find((c) => c.connection_id === connId);
+      if (conn) {
+        onScopesChange([...scopes, {
+          connectionId: connId,
+          actions: conn.actions.map((a) => a.key),
+          resources: {},
+        }]);
+      }
+    }
+  };
+
+  const toggleExpanded = (connId: string) => {
+    const next = new Set(expandedConns);
+    if (next.has(connId)) next.delete(connId);
+    else next.add(connId);
+    setExpandedConns(next);
+  };
+
+  const toggleAction = (connId: string, actionKey: string) => {
+    onScopesChange(scopes.map((s) => {
+      if (s.connectionId !== connId) return s;
+      const has = s.actions.includes(actionKey);
+      return { ...s, actions: has ? s.actions.filter((a) => a !== actionKey) : [...s.actions, actionKey] };
+    }));
+  };
+
+  const toggleResource = (connId: string, resourceType: string, resourceId: string) => {
+    onScopesChange(scopes.map((s) => {
+      if (s.connectionId !== connId) return s;
+      const current = s.resources[resourceType] ?? [];
+      const has = current.includes(resourceId);
+      return {
+        ...s,
+        resources: {
+          ...s.resources,
+          [resourceType]: has ? current.filter((id) => id !== resourceId) : [...current, resourceId],
+        },
+      };
+    }));
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {availableConnections.map((conn) => {
+        const isSelected = scopes.some((s) => s.connectionId === conn.connection_id);
+        const isExpanded = expandedConns.has(conn.connection_id);
+        const scopeEntry = scopes.find((s) => s.connectionId === conn.connection_id);
+
+        return (
+          <div key={conn.connection_id} className="border border-border">
+            {/* Connection header */}
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleConnection(conn.connection_id)}
+                className="size-3.5 accent-primary"
+              />
+              <button
+                onClick={() => toggleExpanded(conn.connection_id)}
+                className="flex flex-1 items-center gap-1.5 text-left"
+              >
+                {isExpanded
+                  ? <ChevronDown className="size-3.5 text-dim" />
+                  : <ChevronRight className="size-3.5 text-dim" />
+                }
+                <span className="text-[13px] font-medium text-foreground">{conn.display_name}</span>
+                <span className="text-[11px] text-dim">{conn.provider}</span>
+              </button>
+              {isSelected && (
+                <span className="text-[11px] text-muted-foreground">
+                  {scopeEntry?.actions.length ?? 0} actions
+                </span>
+              )}
+            </div>
+
+            {/* Expanded: actions + resources */}
+            {isExpanded && isSelected && (
+              <div className="border-t border-border px-3 py-2.5">
+                {/* Actions */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Actions</span>
+                  {conn.actions.map((action) => (
+                    <label key={action.key} className="flex items-center gap-2 py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={scopeEntry?.actions.includes(action.key) ?? false}
+                        onChange={() => toggleAction(conn.connection_id, action.key)}
+                        className="size-3 accent-primary"
+                      />
+                      <span className="text-[13px] text-foreground">{action.display_name}</span>
+                      <span className="text-[11px] text-dim">{action.description}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Resources */}
+                {conn.resources && Object.entries(conn.resources).map(([type, res]) => (
+                  <div key={type} className="mt-3 flex flex-col gap-1.5">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-dim">{res.display_name}</span>
+                    {res.selected.length === 0 ? (
+                      <span className="text-[11px] text-dim">No resources configured</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {res.selected.map((item) => {
+                          const isActive = scopeEntry?.resources[type]?.includes(item.id) ?? false;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => toggleResource(conn.connection_id, type, item.id)}
+                              className={`px-2 py-1 text-[12px] transition-colors ${
+                                isActive
+                                  ? "border border-primary/30 bg-primary/8 text-foreground"
+                                  : "border border-border text-muted-foreground hover:border-primary/20"
+                              }`}
+                            >
+                              {item.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {availableConnections.length === 0 && (
+        <p className="text-[13px] text-dim">No connections with available actions.</p>
+      )}
+    </div>
+  );
+}
+
+// --- Mint Token Form ---
+
+function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: (result: MintResult) => void }) {
   const [credential, setCredential] = useState(credentialOptions[0].id);
   const [ttl, setTtl] = useState("1h");
   const [remaining, setRemaining] = useState("");
   const [refillAmount, setRefillAmount] = useState("");
   const [refillInterval, setRefillInterval] = useState("");
   const [metadata, setMetadata] = useState("{ }");
+  const [scopeSelections, setScopeSelections] = useState<ScopeSelection[]>([]);
+  const [showScopes, setShowScopes] = useState(false);
+
+  const handleMint = () => {
+    // TODO: Replace with real API call
+    const credName = credentialOptions.find((c) => c.id === credential)?.name ?? "unknown";
+    const hasMCP = scopeSelections.length > 0;
+    onSuccess({
+      token: "ptok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmdfaWQiOiI5ZjJhLi4uYjRjMSIsImlhdCI6MTcxMDk1NzIwMH0.aI5ZjJh…",
+      jti: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      mcpEndpoint: hasMCP ? `https://mcp.llmvault.dev/a1b2c3d4-e5f6-7890-abcd-ef1234567890` : undefined,
+      credentialName: credName,
+      ttl,
+    });
+  };
 
   return (
     <DialogContent className="sm:max-w-130 gap-6 p-7" showCloseButton={false}>
@@ -289,6 +548,31 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
           </div>
         </div>
 
+        {/* Integration Access (Scopes) */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => setShowScopes(!showScopes)}
+            className="flex items-center gap-1.5 text-left"
+          >
+            {showScopes
+              ? <ChevronDown className="size-3.5 text-dim" />
+              : <ChevronRight className="size-3.5 text-dim" />
+            }
+            <Label className="cursor-pointer text-xs">Integration Access</Label>
+            {scopeSelections.length > 0 && (
+              <Badge variant="outline" className="ml-1 text-[10px]">{scopeSelections.length} connections</Badge>
+            )}
+          </button>
+          <span className="text-[11px] text-dim">
+            Optional. Grant this token access to integration tools via MCP.
+          </span>
+          {showScopes && (
+            <div className="mt-1">
+              <ScopeSelector scopes={scopeSelections} onScopesChange={setScopeSelections} />
+            </div>
+          )}
+        </div>
+
         {/* Metadata */}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="metadata" className="text-xs">Metadata</Label>
@@ -299,18 +583,21 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
 
       <DialogFooter className="flex-row justify-end gap-2.5 rounded-none border-t border-border bg-transparent p-0 pt-4">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={onSuccess}>Mint Token</Button>
+        <Button onClick={handleMint}>Mint Token</Button>
       </DialogFooter>
     </DialogContent>
   );
 }
 
-function MintSuccessContent({ onClose }: { onClose: () => void }) {
+// --- Mint Success Content ---
+
+function MintSuccessContent({ result, onClose }: { result: MintResult | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null);
 
-  const tokenValue = "ptok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmdfaWQiOiI5ZjJhLi4uYjRjMSIsImlhdCI6MTcxMDk1NzIwMH0.aI5ZjJh…";
+  if (!result) return null;
+
   const baseUrl = "https://api.llmvault.dev/v1/proxy";
-  const curlCommand = `curl ${baseUrl}/v1/chat/completions \\\n    -H "Authorization: Bearer ptok_eyJhbG..." \\\n    -H "Content-Type: application/json" \\\n    -d '{"model":"gpt-4o","messages":[...]}'`;
+  const curlCommand = `curl ${baseUrl}/v1/chat/completions \\\n    -H "Authorization: Bearer ${result.token.slice(0, 20)}..." \\\n    -H "Content-Type: application/json" \\\n    -d '{"model":"gpt-4o","messages":[...]}'`;
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text);
@@ -329,7 +616,7 @@ function MintSuccessContent({ onClose }: { onClose: () => void }) {
           <DialogHeader className="space-y-0.5">
             <DialogTitle className="font-mono text-lg font-semibold">Token Minted</DialogTitle>
             <DialogDescription className="text-[13px]">
-              Scoped to prod-openai-main &middot; Expires in 1 hour
+              Scoped to {result.credentialName} &middot; Expires in {result.ttl}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -348,51 +635,97 @@ function MintSuccessContent({ onClose }: { onClose: () => void }) {
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">Your Token</Label>
         <div className="flex items-center gap-2 border border-border bg-code px-3 py-3">
-          <span className="flex-1 break-all font-mono text-xs leading-4 text-foreground">{tokenValue}</span>
-          <Button size="sm" onClick={() => handleCopy(tokenValue, "token")} className="shrink-0 gap-1.5">
+          <span className="flex-1 break-all font-mono text-xs leading-4 text-foreground">{result.token}</span>
+          <Button size="sm" onClick={() => handleCopy(result.token, "token")} className="shrink-0 gap-1.5">
             {copied === "token" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             {copied === "token" ? "Copied" : "Copy"}
           </Button>
         </div>
       </div>
 
-      {/* Quick Start */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">Quick Start</Label>
-        <p className="text-[13px] leading-4.5 text-muted-foreground">
-          Point your LLM client to the proxy endpoint and authenticate with your token:
-        </p>
-        <div className="border border-border bg-code">
-          <div className="flex items-center justify-between border-b border-border px-3 py-2">
-            <span className="font-mono text-[11px] text-dim">curl</span>
-            <button onClick={() => handleCopy(curlCommand, "curl")} className="text-dim hover:text-foreground">
-              {copied === "curl" ? <Check className="size-3" /> : <Copy className="size-3" />}
-            </button>
+      {/* MCP Endpoint (shown when scopes are present) */}
+      {result.mcpEndpoint && (
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">MCP Endpoint</Label>
+          <div className="flex items-center gap-2 border border-border bg-code px-3 py-3">
+            <span className="flex-1 break-all font-mono text-xs leading-4 text-chart-2">{result.mcpEndpoint}</span>
+            <Button size="sm" onClick={() => handleCopy(result.mcpEndpoint!, "mcp")} className="shrink-0 gap-1.5">
+              {copied === "mcp" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              {copied === "mcp" ? "Copied" : "Copy"}
+            </Button>
           </div>
-          <div className="px-3 py-3">
-            <pre className="font-mono text-xs leading-5 text-muted-foreground">
+          <div className="mt-1 border border-border bg-code">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <span className="font-mono text-[11px] text-dim">claude_desktop_config.json</span>
+              <button
+                onClick={() => handleCopy(JSON.stringify({
+                  mcpServers: {
+                    llmvault: {
+                      url: result.mcpEndpoint,
+                      headers: { Authorization: `Bearer ${result.token}` },
+                    },
+                  },
+                }, null, 2), "config")}
+                className="text-dim hover:text-foreground"
+              >
+                {copied === "config" ? <Check className="size-3" /> : <Copy className="size-3" />}
+              </button>
+            </div>
+            <div className="px-3 py-3">
+              <pre className="font-mono text-xs leading-5 text-muted-foreground">
+{JSON.stringify({
+  mcpServers: {
+    llmvault: {
+      url: result.mcpEndpoint,
+      headers: { Authorization: `Bearer ${result.token.slice(0, 20)}...` },
+    },
+  },
+}, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Start (proxy) */}
+      {!result.mcpEndpoint && (
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs">Quick Start</Label>
+          <p className="text-[13px] leading-4.5 text-muted-foreground">
+            Point your LLM client to the proxy endpoint and authenticate with your token:
+          </p>
+          <div className="border border-border bg-code">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <span className="font-mono text-[11px] text-dim">curl</span>
+              <button onClick={() => handleCopy(curlCommand, "curl")} className="text-dim hover:text-foreground">
+                {copied === "curl" ? <Check className="size-3" /> : <Copy className="size-3" />}
+              </button>
+            </div>
+            <div className="px-3 py-3">
+              <pre className="font-mono text-xs leading-5 text-muted-foreground">
 {`curl ${baseUrl}/v1/chat/completions \\
-    -H "Authorization: Bearer ptok_eyJhbG..." \\
+    -H "Authorization: Bearer ${result.token.slice(0, 20)}..." \\
     -H "Content-Type: application/json" \\
     -d '{"model":"gpt-4o","messages":[...]}'`}
-            </pre>
+              </pre>
+            </div>
           </div>
-        </div>
 
-        {/* Base URL */}
-        <div className="mt-2 flex flex-col gap-1.5 border-t border-border bg-secondary/50 px-3 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-foreground">Base URL</span>
-            <span className="text-[11px] text-dim">— set this in your SDK client</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[13px] text-chart-2">{baseUrl}</span>
-            <button onClick={() => handleCopy(baseUrl, "url")} className="text-dim hover:text-foreground">
-              {copied === "url" ? <Check className="size-3" /> : <Copy className="size-3" />}
-            </button>
+          {/* Base URL */}
+          <div className="mt-2 flex flex-col gap-1.5 border-t border-border bg-secondary/50 px-3 py-2.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-foreground">Base URL</span>
+              <span className="text-[11px] text-dim">— set this in your SDK client</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[13px] text-chart-2">{baseUrl}</span>
+              <button onClick={() => handleCopy(baseUrl, "url")} className="text-dim hover:text-foreground">
+                {copied === "url" ? <Check className="size-3" /> : <Copy className="size-3" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <DialogFooter className="justify-end rounded-none border-t border-border bg-transparent p-0 pt-4">
         <Button onClick={onClose}>Done</Button>

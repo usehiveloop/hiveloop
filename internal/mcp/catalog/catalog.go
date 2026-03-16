@@ -41,12 +41,23 @@ type ProviderActions struct {
 	Actions     map[string]ActionDef  `json:"actions"`
 }
 
+// ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.
+type ExecutionConfig struct {
+	Method       string            `json:"method"`                  // HTTP method (GET, POST, etc.)
+	Path         string            `json:"path"`                    // Provider API path (via Nango proxy)
+	BodyMapping  map[string]string `json:"body_mapping,omitempty"`  // Param name → body field mapping
+	QueryMapping map[string]string `json:"query_mapping,omitempty"` // Param name → query param mapping
+	Headers      map[string]string `json:"headers,omitempty"`       // Extra provider headers
+	ResponsePath string            `json:"response_path,omitempty"` // Dot-path to extract data from response
+}
+
 // ActionDef describes a single action a provider supports.
 type ActionDef struct {
-	DisplayName  string          `json:"display_name"`
-	Description  string          `json:"description"`
-	ResourceType string          `json:"resource_type"` // e.g. "channel", "repo", "" if none
-	Parameters   json.RawMessage `json:"parameters"`    // JSON Schema
+	DisplayName  string           `json:"display_name"`
+	Description  string           `json:"description"`
+	ResourceType string           `json:"resource_type"`          // e.g. "channel", "repo", "" if none
+	Parameters   json.RawMessage  `json:"parameters"`             // JSON Schema
+	Execution    *ExecutionConfig `json:"execution,omitempty"`    // How to execute this action via Nango proxy
 }
 
 // Catalog holds all providers and their actions, indexed for fast lookup.
@@ -174,6 +185,15 @@ func (c *Catalog) HasConfigurableResources(provider string) bool {
 		return false
 	}
 	return len(p.Resources) > 0
+}
+
+// GetExecution returns the execution config for a specific provider action.
+func (c *Catalog) GetExecution(provider, actionKey string) (*ExecutionConfig, bool) {
+	action, ok := c.GetAction(provider, actionKey)
+	if !ok || action.Execution == nil {
+		return nil, false
+	}
+	return action.Execution, true
 }
 
 // ValidateResources checks that every resource type key in the resources map

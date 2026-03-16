@@ -19,6 +19,33 @@ export type MintTokenRequest = Schemas["internal_handler.mintTokenRequest"];
 export type MintTokenResponse = Schemas["internal_handler.mintTokenResponse"];
 export type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
 
+// Available scopes for token minting (used by scope selection UI)
+export interface AvailableScopeAction {
+  key: string;
+  display_name: string;
+  description: string;
+  resource_type?: string;
+}
+
+export interface AvailableScopeResourceItem {
+  id: string;
+  name: string;
+}
+
+export interface AvailableScopeResource {
+  display_name: string;
+  selected: AvailableScopeResourceItem[];
+}
+
+export interface AvailableScopeConnection {
+  connection_id: string;
+  integration_id: string;
+  provider: string;
+  display_name: string;
+  actions: AvailableScopeAction[];
+  resources?: Record<string, AvailableScopeResource>;
+}
+
 export type IdentityResponse = Schemas["internal_handler.identityResponse"];
 export type CreateIdentityRequest = Schemas["internal_handler.createIdentityRequest"];
 export type UpdateIdentityRequest = Schemas["internal_handler.updateIdentityRequest"];

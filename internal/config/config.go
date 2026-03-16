@@ -67,6 +67,10 @@ type Config struct {
 	// Nango (OAuth integration proxy)
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004
 	NangoSecretKey string `env:"NANGO_SECRET_KEY"`  // Nango secret key for API auth
+
+	// MCP Server
+	MCPPort    int    `env:"MCP_PORT" envDefault:"8081"`
+	MCPBaseURL string `env:"MCP_BASE_URL" envDefault:"http://localhost:8081"`
 }
 
 func Load() (*Config, error) {

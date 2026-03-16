@@ -191,15 +191,16 @@ func run() error {
 	slog.Info("actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
 	// 13. Handlers
+	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
 	credHandler := handler.NewCredentialHandler(database, kms, cacheManager, ctr)
-	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog)
+	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	identityHandler := handler.NewIdentityHandler(database)
 	providerHandler := handler.NewProviderHandler(reg)
 	connectSessionHandler := handler.NewConnectSessionHandler(database, reg)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(database)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
-	connectionHandler := handler.NewConnectionHandler(database, nangoClient)
+	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database, logtoClient)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
@@ -299,6 +300,7 @@ func run() error {
 				// Connection operations — scope: "integrations"
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
+					r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
 					r.Get("/connections/{id}", connectionHandler.Get)
 					r.Delete("/connections/{id}", connectionHandler.Revoke)
 				})
@@ -364,16 +366,59 @@ func run() error {
 		}
 	}()
 
-	// 16. Wait for shutdown signal
+	// 16. MCP Server (separate port)
+	mcpRouter := chi.NewRouter()
+	mcpRouter.Use(chimw.RequestID)
+	mcpRouter.Use(chimw.RealIP)
+	mcpRouter.Use(chimw.Recoverer)
+	mcpRouter.Use(middleware.RequestLog(logger))
+
+	// Streamable HTTP transport (primary)
+	mcpRouter.Route("/{jti}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Use(mcpHandler.ValidateJTIMatch)
+		r.Use(mcpHandler.ValidateHasScopes)
+		r.Handle("/*", mcpHandler.StreamableHTTPHandler())
+	})
+
+	// SSE transport (legacy compatibility)
+	mcpRouter.Route("/sse/{jti}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Use(mcpHandler.ValidateJTIMatch)
+		r.Use(mcpHandler.ValidateHasScopes)
+		r.Handle("/*", mcpHandler.SSEHandler())
+	})
+
+	mcpSrv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.MCPPort),
+		Handler:      mcpRouter,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 0, // streaming
+		IdleTimeout:  120 * time.Second,
+	}
+
+	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)
+
+	go func() {
+		slog.Info("mcp server starting", "port", cfg.MCPPort)
+		if err := mcpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("mcp server error", "error", err)
+		}
+	}()
+
+	// 17. Wait for shutdown signal
 	<-ctx.Done()
 	slog.Info("shutting down")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Drain HTTP connections
+	// Drain HTTP connections (both servers)
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown error", "error", err)
+	}
+	if err := mcpSrv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("mcp server shutdown error", "error", err)
 	}
 
 	// Flush audit buffer

@@ -30,6 +30,14 @@
           "properties": {
             "limit": { "type": "integer", "description": "Max results" }
           }
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/conversations.list",
+          "query_mapping": {
+            "limit": "limit"
+          },
+          "response_path": "channels"
         }
       },
       "read_messages": {
@@ -43,6 +51,15 @@
             "limit": { "type": "integer", "description": "Max messages" }
           },
           "required": ["channel"]
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/conversations.history",
+          "query_mapping": {
+            "channel": "channel",
+            "limit": "limit"
+          },
+          "response_path": "messages"
         }
       },
       "send_message": {
@@ -56,6 +73,14 @@
             "text": { "type": "string", "description": "Message text" }
           },
           "required": ["channel", "text"]
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/chat.postMessage",
+          "body_mapping": {
+            "channel": "channel",
+            "text": "text"
+          }
         }
       }
     }
@@ -96,6 +121,15 @@
               "description": "Sort field (created, updated, pushed, full_name)"
             }
           }
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/installation/repositories",
+          "query_mapping": {
+            "per_page": "per_page",
+            "sort": "sort"
+          },
+          "response_path": "repositories"
         }
       },
       "list_issues": {
@@ -115,6 +149,13 @@
             }
           },
           "required": ["repo"]
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/repos/{repo}/issues",
+          "query_mapping": {
+            "state": "state"
+          }
         }
       },
       "create_issue": {
@@ -132,6 +173,14 @@
             "body": { "type": "string", "description": "Issue body" }
           },
           "required": ["repo", "title"]
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/repos/{repo}/issues",
+          "body_mapping": {
+            "title": "title",
+            "body": "body"
+          }
         }
       }
     }
@@ -169,6 +218,15 @@
             "page_size": { "type": "integer", "description": "Max results" },
             "q": { "type": "string", "description": "Search query" }
           }
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/drive/v3/files",
+          "query_mapping": {
+            "pageSize": "page_size",
+            "q": "q"
+          },
+          "response_path": "files"
         }
       },
       "list_events": {
@@ -182,6 +240,13 @@
             "max_results": { "type": "integer", "description": "Max events" }
           },
           "required": ["calendar_id"]
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/calendar/v3/calendars/{calendar_id}/events",
+          "query_mapping": {
+            "maxResults": "max_results"
+          }
         }
       }
     }
@@ -245,6 +310,18 @@
             "query": { "type": "string", "description": "Search query" },
             "page_size": { "type": "integer", "description": "Max results" }
           }
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/v1/search",
+          "body_mapping": {
+            "query": "query",
+            "page_size": "page_size"
+          },
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "response_path": "results"
         }
       },
       "get_page": {
@@ -257,6 +334,13 @@
             "page_id": { "type": "string", "description": "Page ID" }
           },
           "required": ["page_id"]
+        },
+        "execution": {
+          "method": "GET",
+          "path": "/v1/pages/{page_id}",
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          }
         }
       },
       "query_database": {
@@ -270,6 +354,17 @@
             "page_size": { "type": "integer", "description": "Max results" }
           },
           "required": ["database_id"]
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/v1/databases/{database_id}/query",
+          "body_mapping": {
+            "page_size": "page_size"
+          },
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "response_path": "results"
         }
       }
     }
@@ -306,6 +401,13 @@
               "description": "Number of issues to fetch"
             }
           }
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/graphql",
+          "body_mapping": {
+            "query": "query"
+          }
         }
       },
       "create_issue": {
@@ -323,6 +425,14 @@
             }
           },
           "required": ["team_id", "title"]
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/graphql",
+          "body_mapping": {
+            "query": "query",
+            "variables": "variables"
+          }
         }
       },
       "list_projects": {
@@ -336,6 +446,13 @@
               "type": "integer",
               "description": "Number of projects to fetch"
             }
+          }
+        },
+        "execution": {
+          "method": "POST",
+          "path": "/graphql",
+          "body_mapping": {
+            "query": "query"
           }
         }
       }

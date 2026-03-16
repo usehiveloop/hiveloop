@@ -145,7 +145,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
-	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog)
+	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog, "", nil)
 	identityHandler := handler.NewIdentityHandler(db)
 
 	// Provider handler
@@ -171,7 +171,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Integration + connection handlers
 	integrationHandler := handler.NewIntegrationHandler(db, nangoClient)
-	connectionHandler := handler.NewConnectionHandler(db, nangoClient)
+	connectionHandler := handler.NewConnectionHandler(db, nangoClient, actionsCatalog)
 
 	// Management routes (no Logto auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {

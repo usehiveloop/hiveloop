@@ -130,7 +130,7 @@ func newVaultHarness(t *testing.T) *vaultTestHarness {
 
 	// Credential + token + identity handlers
 	credHandler := handler.NewCredentialHandler(db, kms, cm, ctr)
-	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog)
+	tokenHandler := handler.NewTokenHandler(db, signingKey, cm, ctr, actionsCatalog, "", nil)
 	identityHandler := handler.NewIdentityHandler(db)
 
 	// Provider handler

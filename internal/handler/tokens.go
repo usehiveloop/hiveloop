@@ -26,11 +26,18 @@ type TokenHandler struct {
 	cacheManager *cache.Manager
 	counter      *counter.Counter
 	catalog      *catalog.Catalog
+	mcpBaseURL   string
+	serverCache  MCPServerCache
+}
+
+// MCPServerCache is an interface for evicting cached MCP servers.
+type MCPServerCache interface {
+	Evict(jti string)
 }
 
 // NewTokenHandler creates a new token handler.
-func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager, ctr *counter.Counter, cat *catalog.Catalog) *TokenHandler {
-	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm, counter: ctr, catalog: cat}
+func NewTokenHandler(db *gorm.DB, signingKey []byte, cm *cache.Manager, ctr *counter.Counter, cat *catalog.Catalog, mcpBaseURL string, sc MCPServerCache) *TokenHandler {
+	return &TokenHandler{db: db, signingKey: signingKey, cacheManager: cm, counter: ctr, catalog: cat, mcpBaseURL: mcpBaseURL, serverCache: sc}
 }
 
 type mintTokenRequest struct {
@@ -44,9 +51,10 @@ type mintTokenRequest struct {
 }
 
 type mintTokenResponse struct {
-	Token     string `json:"token"`
-	ExpiresAt string `json:"expires_at"`
-	JTI       string `json:"jti"`
+	Token       string  `json:"token"`
+	ExpiresAt   string  `json:"expires_at"`
+	JTI         string  `json:"jti"`
+	MCPEndpoint *string `json:"mcp_endpoint,omitempty"`
 }
 
 const maxTokenTTL = 24 * time.Hour
@@ -188,11 +196,17 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("token minted", "org_id", org.ID, "credential_id", req.CredentialID, "jti", jti, "ttl", ttl.String(), "scopes", len(req.Scopes))
-	writeJSON(w, http.StatusCreated, mintTokenResponse{
+
+	resp := mintTokenResponse{
 		Token:     "ptok_" + tokenStr,
 		ExpiresAt: expiresAt.Format(time.RFC3339),
 		JTI:       jti,
-	})
+	}
+	if len(req.Scopes) > 0 && h.mcpBaseURL != "" {
+		ep := h.mcpBaseURL + "/" + jti
+		resp.MCPEndpoint = &ep
+	}
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 // Revoke handles DELETE /v1/tokens/{jti}.
@@ -239,6 +253,11 @@ func (h *TokenHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	// Propagate revocation through cache tiers
 	_ = h.cacheManager.InvalidateToken(r.Context(), jti, 24*time.Hour)
+
+	// Evict cached MCP server for this token
+	if h.serverCache != nil {
+		h.serverCache.Evict(jti)
+	}
 
 	slog.Info("token revoked", "org_id", org.ID, "jti", jti)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
