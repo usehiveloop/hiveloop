@@ -18,10 +18,10 @@ interface Props {
 export function IntegrationAuth({ integration, navigate, onBack, onClose }: Props) {
   const { sendToParent } = useParentEvents()
   const mutation = useNangoAuth(integration.id ?? '', {
-    onSuccess: () => {
+    onSuccess: (result) => {
       sendToParent({
         type: 'integration_success',
-        payload: { integrationId: integration.unique_key ?? '' },
+        payload: { integrationId: integration.unique_key ?? '', connectionId: result.id },
       })
       navigate({ type: 'INTEGRATION_SUCCESS' })
     },

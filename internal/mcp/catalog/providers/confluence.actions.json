@@ -1,0 +1,4496 @@
+{
+  "display_name": "Confluence",
+  "resources": {},
+  "actions": {
+    "add_content_watcher": {
+      "display_name": "Add content watcher",
+      "description": "Adds a user as a watcher to a piece of content. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a u...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "contentId": {
+            "type": "string",
+            "description": "The ID of the content to add the watcher to."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "contentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/user/watch/content/{contentId}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "add_custom_content_permissions": {
+      "display_name": "Add new custom content permission to space",
+      "description": "Adds new custom content permission to space. If the permission to be added is a group permission, the group can be identified by its group name or group id. Note: Only apps can access this REST res...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "operations": {
+            "type": "array"
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content."
+          },
+          "subject": {
+            "type": "object",
+            "description": "The user or group that the permission applies to."
+          }
+        },
+        "required": [
+          "spaceKey",
+          "operations",
+          "subject"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/space/{spaceKey}/permission/custom-content",
+        "body_mapping": {
+          "operations": "operations",
+          "subject": "subject"
+        }
+      }
+    },
+    "add_group_to_content_restriction_by_group_id": {
+      "display_name": "Add group to content restriction",
+      "description": "Adds a group to a content restriction by Group Id. That is, grant read or update permission to the group for a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required*...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The groupId of the group to add to the content restriction."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that the restriction applies to."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey",
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/byGroupId/{groupId}"
+      }
+    },
+    "add_label_watcher": {
+      "display_name": "Add label watcher",
+      "description": "Adds a user as a watcher to a label. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user: The cu...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-Atlassian-Token": {
+            "type": "string",
+            "description": "Note, you must add header when making a\nrequest, as this operation has XSRF protection."
+          },
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "labelName": {
+            "type": "string",
+            "description": "The name of the label to add the watcher to."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "labelName"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/user/watch/label/{labelName}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "add_labels_to_content": {
+      "display_name": "Add labels to content",
+      "description": "Adds labels to a piece of content. Does not modify the existing labels. Notes: - Labels can also be added when creating content ([Create content](#api-content-post)). - Labels can be updated when u...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that will have labels added to it."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/label",
+        "response_path": "results"
+      }
+    },
+    "add_labels_to_space": {
+      "display_name": "Add labels to a space",
+      "description": "Adds labels to a piece of content. Does not modify the existing labels. Notes: - Labels can also be added when creating content ([Create content](#api-content-post)). - Labels can be updated when u...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to add labels to."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/space/{spaceKey}/label",
+        "response_path": "results"
+      }
+    },
+    "add_permission_to_space": {
+      "display_name": "Add new permission to space",
+      "description": "Adds new permission to space. If the permission to be added is a group permission, the group can be identified by its group name or group id. Note: Apps cannot access this REST resource - including...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "_links": {
+            "type": "object"
+          },
+          "operation": {
+            "type": "object"
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content."
+          },
+          "subject": {
+            "type": "object",
+            "description": "The user or group that the permission applies to."
+          }
+        },
+        "required": [
+          "spaceKey",
+          "subject",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/space/{spaceKey}/permission",
+        "body_mapping": {
+          "_links": "_links",
+          "operation": "operation",
+          "subject": "subject"
+        }
+      }
+    },
+    "add_restrictions": {
+      "display_name": "Add restrictions",
+      "description": "Adds restrictions to a piece of content. Note, this does not change any existing restrictions on the content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to ed...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions (returned in response) to expand.\n\n- `restrictions.user` returns the piece of content that the restrictions are\nappli..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to add restrictions to."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/restriction",
+        "query_mapping": {
+          "expand": "expand"
+        },
+        "response_path": "results"
+      }
+    },
+    "add_space_watcher": {
+      "display_name": "Add space watcher",
+      "description": "Adds a user as a watcher to a space. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user: The cu...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-Atlassian-Token": {
+            "type": "string",
+            "description": "Note, you must add header when making a\nrequest, as this operation has XSRF protection."
+          },
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to add the watcher to."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/user/watch/space/{spaceKey}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "add_user_to_content_restriction": {
+      "display_name": "Add user to content restriction",
+      "description": "Adds a user to a content restriction. That is, grant read or update permission to the user for a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that the restriction applies to."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/user",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "add_user_to_group_by_group_id": {
+      "display_name": "Add member to group by groupId",
+      "description": "Adds a user as a member in a group represented by its groupId **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: User must be a site admin.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "description": "GroupId of the group whose membership is updated"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/group/userByGroupId",
+        "body_mapping": {
+          "accountId": "accountId"
+        },
+        "query_mapping": {
+          "groupId": "groupId"
+        }
+      }
+    },
+    "archive_pages": {
+      "display_name": "Archive pages",
+      "description": "Archives a list of pages. The pages to be archived are specified as a list of content IDs. This API accepts the archival request and returns a task ID. The archival process happens asynchronously. ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pages": {
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/archive",
+        "body_mapping": {
+          "pages": "pages"
+        }
+      }
+    },
+    "async_convert_content_body_request": {
+      "display_name": "Asynchronously convert content body",
+      "description": "Converts a content body from one format to another format asynchronously. Returns the asyncId for the asynchronous task. Supported conversions: - atlas_doc_format: editor, export_view, storage, sty...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "allowCache": {
+            "type": "boolean",
+            "description": "Controls whether conversion results are cached and reused for identical requests.\n\n- `false`: Each request creates a new conversion task, even if an identical request was made previously.\n- `true`:..."
+          },
+          "contentIdContext": {
+            "type": "string",
+            "description": "The content ID used to find the space for resolving embedded content\n(page includes, files, and links) in the content body. For example,\nif the source content contains the link `\u003cac:link\u003e\u003cri:page r..."
+          },
+          "embeddedContentRender": {
+            "type": "string",
+            "description": "Mode used for rendering embedded content, like attachments.\n\n- `current` renders the embedded content using the latest version.\n- `version-at-save` renders the embedded content using the version at..."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand and populate. Expands are dependent on the\n`to` conversion format and may be irrelevant for certain conversions (e.g. `m..."
+          },
+          "representation": {
+            "type": "string",
+            "description": "The content format type. Set the value of this property to\nthe name of the format being used, e.g. 'storage'."
+          },
+          "spaceKeyContext": {
+            "type": "string",
+            "description": "The space key used for resolving embedded content (page includes,\nfiles, and links) in the content body. For example, if the source content\ncontains the link `\u003cac:link\u003e\u003cri:page ri:content-title=\"Ex..."
+          },
+          "to": {
+            "type": "string",
+            "description": "The name of the target format for the content body."
+          },
+          "value": {
+            "type": "string",
+            "description": "The body of the content in the relevant format."
+          }
+        },
+        "required": [
+          "to",
+          "representation",
+          "value"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/contentbody/convert/async/{to}",
+        "body_mapping": {
+          "representation": "representation",
+          "value": "value"
+        },
+        "query_mapping": {
+          "allowCache": "allowCache",
+          "contentIdContext": "contentIdContext",
+          "embeddedContentRender": "embeddedContentRender",
+          "expand": "expand",
+          "spaceKeyContext": "spaceKeyContext"
+        }
+      }
+    },
+    "async_convert_content_body_response": {
+      "display_name": "Get asynchronously converted content body from the id or the current status o...",
+      "description": "Returns the content body for the corresponding `asyncId` of a completed conversion task. If the task is not completed, the task status is returned instead. Once a conversion task is completed, the ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The asyncId of the macro task to get the converted body."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/contentbody/convert/async/{id}"
+      }
+    },
+    "bulk_async_convert_content_body_request": {
+      "display_name": "Create asynchronous content body conversion tasks in bulk",
+      "description": "Asynchronously converts content bodies from one format to another format in bulk. Use the Content body REST API to get the status of conversion tasks. Note that there is a maximum limit of 10 conve...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "conversionInputs": {
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/contentbody/convert/async/bulk/tasks",
+        "body_mapping": {
+          "conversionInputs": "conversionInputs"
+        }
+      }
+    },
+    "bulk_async_convert_content_body_response": {
+      "display_name": "Get asynchronous content body conversion task result in bulk",
+      "description": "Returns the content body for the corresponding `asyncId` of a completed conversion task. If the task is not completed, the task status is returned instead. Once a conversion task is completed, the ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "ids": {
+            "type": "array",
+            "description": "The asyncIds of the conversion tasks."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/contentbody/convert/async/bulk/tasks",
+        "query_mapping": {
+          "ids": "ids"
+        }
+      }
+    },
+    "check_content_permission": {
+      "display_name": "Check content permissions",
+      "description": "Check if a user or a group can perform an operation to the specified content. The `operation` to check must be provided. The user’s account ID or the ID of the group can be provided in the `subje...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to check permissions against."
+          },
+          "operation": {
+            "type": "string",
+            "description": "The content permission operation to check."
+          },
+          "subject": {
+            "type": "object",
+            "description": "The user or group that the permission applies to."
+          }
+        },
+        "required": [
+          "id",
+          "operation",
+          "subject"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/permission/check",
+        "body_mapping": {
+          "operation": "operation",
+          "subject": "subject"
+        }
+      }
+    },
+    "copy_page": {
+      "display_name": "Copy single page",
+      "description": "Copies a single page and its associated properties, permissions, attachments, and custom contents. The `id` path parameter refers to the content ID of the page to copy. The target of the page to be...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "description": "If defined, this will replace the body of the destination page."
+          },
+          "copyAttachments": {
+            "type": "boolean",
+            "description": "If set to `true`, attachments are copied to the destination page."
+          },
+          "copyCustomContents": {
+            "type": "boolean",
+            "description": "If set to `true`, custom contents are copied to the destination page."
+          },
+          "copyLabels": {
+            "type": "boolean",
+            "description": "If set to `true`, labels are copied to the destination page."
+          },
+          "copyPermissions": {
+            "type": "boolean",
+            "description": "If set to `true`, page permissions are copied to the destination page."
+          },
+          "copyProperties": {
+            "type": "boolean",
+            "description": "If set to `true`, content properties are copied to the destination page."
+          },
+          "destination": {
+            "type": "object",
+            "description": "Defines where the page will be copied to, and can be one of the following types.\n\n  - `parent_page`: page will be copied as a child of the specified parent page\n  - `parent_content`: page will be c..."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand.\nMaximum sub-expansions allowed is `8`.\n\n- `childTypes.all` returns whether the content has attachments, comments, or ch..."
+          },
+          "id": {
+            "type": "string"
+          },
+          "pageTitle": {
+            "type": "string",
+            "description": "If defined, this will replace the title of the destination page."
+          }
+        },
+        "required": [
+          "id",
+          "destination"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/copy",
+        "body_mapping": {
+          "body": "body",
+          "copyAttachments": "copyAttachments",
+          "copyCustomContents": "copyCustomContents",
+          "copyLabels": "copyLabels",
+          "copyPermissions": "copyPermissions",
+          "copyProperties": "copyProperties",
+          "destination": "destination",
+          "pageTitle": "pageTitle"
+        },
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "copy_page_hierarchy": {
+      "display_name": "Copy page hierarchy",
+      "description": "Copy page hierarchy allows the copying of an entire hierarchy of pages and their associated properties, permissions and attachments. The id path parameter refers to the content id of the page to co...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "copyAttachments": {
+            "type": "boolean",
+            "description": "If set to `true`, attachments are copied to the destination page."
+          },
+          "copyCustomContents": {
+            "type": "boolean",
+            "description": "If set to `true`, custom contents are copied to the destination page."
+          },
+          "copyDescendants": {
+            "type": "boolean",
+            "description": "If set to `true`, descendants are copied to the destination page."
+          },
+          "copyLabels": {
+            "type": "boolean",
+            "description": "If set to `true`, labels are copied to the destination page."
+          },
+          "copyPermissions": {
+            "type": "boolean",
+            "description": "If set to `true`, page permissions are copied to the destination page."
+          },
+          "copyProperties": {
+            "type": "boolean",
+            "description": "If set to `true`, content properties are copied to the destination page."
+          },
+          "destinationPageId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "titleOptions": {
+            "type": "object",
+            "description": "Required for copying page in the same space."
+          }
+        },
+        "required": [
+          "id",
+          "destinationPageId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/pagehierarchy/copy",
+        "body_mapping": {
+          "copyAttachments": "copyAttachments",
+          "copyCustomContents": "copyCustomContents",
+          "copyDescendants": "copyDescendants",
+          "copyLabels": "copyLabels",
+          "copyPermissions": "copyPermissions",
+          "copyProperties": "copyProperties",
+          "destinationPageId": "destinationPageId",
+          "titleOptions": "titleOptions"
+        }
+      }
+    },
+    "create_audit_record": {
+      "display_name": "Create audit record",
+      "description": "Creates a record in the audit log. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Confluence Administrator' global permission.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "affectedObject": {
+            "type": "object"
+          },
+          "associatedObjects": {
+            "type": "array",
+            "description": "Objects that were associated with the event. For example, if the event\nwas a space permission change then the associated object would be the\nspace."
+          },
+          "author": {
+            "type": "object",
+            "description": "The user that actioned the event. If `author` is not specified, then all\n`author` properties will be set to null/empty, except for `type` which\nwill be set to 'user'."
+          },
+          "category": {
+            "type": "string",
+            "description": "The category of the event, which is displayed in the 'Event type' column\non the audit log in the Confluence UI."
+          },
+          "changedValues": {
+            "type": "array",
+            "description": "The values that were changed in the event."
+          },
+          "creationDate": {
+            "type": "integer",
+            "description": "The creation date-time of the audit record, as a timestamp. This is converted\nto a date-time display in the Confluence UI. If the `creationDate` is not\nspecified, then it will be set to the timesta..."
+          },
+          "description": {
+            "type": "string",
+            "description": "A long description of the event, which is displayed in the 'Description'\nfield on the audit log in the Confluence UI."
+          },
+          "remoteAddress": {
+            "type": "string",
+            "description": "The IP address of the computer where the event was initiated from."
+          },
+          "summary": {
+            "type": "string",
+            "description": "The summary of the event, which is displayed in the 'Change' column on\nthe audit log in the Confluence UI."
+          },
+          "sysAdmin": {
+            "type": "boolean",
+            "description": "Indicates whether the event was actioned by a system administrator."
+          }
+        },
+        "required": [
+          "remoteAddress"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/audit",
+        "body_mapping": {
+          "affectedObject": "affectedObject",
+          "associatedObjects": "associatedObjects",
+          "author": "author",
+          "category": "category",
+          "changedValues": "changedValues",
+          "creationDate": "creationDate",
+          "description": "description",
+          "remoteAddress": "remoteAddress",
+          "summary": "summary",
+          "sysAdmin": "sysAdmin"
+        }
+      }
+    },
+    "create_content_template": {
+      "display_name": "Create content template",
+      "description": "Creates a new content template. Note, blueprint templates cannot be created via the REST API. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Admin' permission for the space...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "description": "The body of the new content. Does not apply to attachments.\nOnly one body format should be specified as the property for\nthis object, e.g. `storage`.\n\nNote, `editor2` format is used by Atlassian on..."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the new template."
+          },
+          "labels": {
+            "type": "array",
+            "description": "Labels for the new template."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the new template."
+          },
+          "space": {
+            "type": "object",
+            "description": "The key for the space of the new template. Only applies to space templates.\nIf the spaceKey is not specified, the template will be created as a global\ntemplate."
+          },
+          "templateType": {
+            "type": "string",
+            "description": "The type of the new template. Set to `page`."
+          }
+        },
+        "required": [
+          "body",
+          "name",
+          "templateType"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/template",
+        "body_mapping": {
+          "body": "body",
+          "description": "description",
+          "labels": "labels",
+          "name": "name",
+          "space": "space",
+          "templateType": "templateType"
+        }
+      }
+    },
+    "create_group": {
+      "display_name": "Create new user group",
+      "description": "Creates a new user group. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: User must be a site admin.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/group",
+        "body_mapping": {
+          "name": "name"
+        }
+      }
+    },
+    "create_private_space": {
+      "display_name": "Create private space",
+      "description": "Creates a new space that is only visible to the creator. This method is the same as the [Create space](#api-space-post) method with permissions set to the current user only. Note, currently you can...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "This field will be used as the new identifier for the space in confluence page URLs.\nIf the property is not provided the alias will be the provided key.\nThis property is experimental and may be cha..."
+          },
+          "description": {
+            "type": "object",
+            "description": "The description of the new/updated space. Note, only the 'plain' representation\ncan be used for the description when creating or updating a space."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key for the new space. Format: See [Space\nkeys](https://confluence.atlassian.com/x/lqNMMQ). If `alias` is not provided, this is required."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the new space."
+          },
+          "permissions": {
+            "type": "array",
+            "description": "The permissions for the new space. If no permissions are provided, the\n[Confluence default space permissions](https://confluence.atlassian.com/x/UAgzKw#CreateaSpace-Spacepermissions)\nare applied. N..."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/space/_private",
+        "body_mapping": {
+          "alias": "alias",
+          "description": "description",
+          "key": "key",
+          "name": "name",
+          "permissions": "permissions"
+        }
+      }
+    },
+    "create_relationship": {
+      "display_name": "Create relationship",
+      "description": "Creates a relationship between two entities (user, space, content). The 'favourite' relationship is supported by default, but you can use this method to create any type of relationship between two ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "relationName": {
+            "type": "string",
+            "description": "The name of the relationship. This method supports the 'favourite'\n(i.e. 'save for later') relationship. You can also specify any other\nvalue for this parameter to create a custom relationship type."
+          },
+          "sourceKey": {
+            "type": "string",
+            "description": "- The identifier for the source entity:\n\n- If `sourceType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key..."
+          },
+          "sourceStatus": {
+            "type": "string",
+            "description": "The status of the source. This parameter is only used when the\n`sourceType` is 'content'."
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "The source entity type of the relationship. This must be 'user', if\nthe `relationName` is 'favourite'."
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "description": "The version of the source. This parameter is only used when the\n`sourceType` is 'content' and the `sourceStatus` is 'historical'."
+          },
+          "targetKey": {
+            "type": "string",
+            "description": "- The identifier for the target entity:\n\n- If `targetType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key..."
+          },
+          "targetStatus": {
+            "type": "string",
+            "description": "The status of the target. This parameter is only used when the\n`targetType` is 'content'."
+          },
+          "targetType": {
+            "type": "string",
+            "description": "The target entity type of the relationship. This must be 'space' or\n'content', if the `relationName` is 'favourite'."
+          },
+          "targetVersion": {
+            "type": "integer",
+            "description": "The version of the target. This parameter is only used when the\n`targetType` is 'content' and the `targetStatus` is 'historical'."
+          }
+        },
+        "required": [
+          "relationName",
+          "sourceType",
+          "sourceKey",
+          "targetType",
+          "targetKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/relation/{relationName}/from/{sourceType}/{sourceKey}/to/{targetType}/{targetKey}",
+        "query_mapping": {
+          "sourceStatus": "sourceStatus",
+          "sourceVersion": "sourceVersion",
+          "targetStatus": "targetStatus",
+          "targetVersion": "targetVersion"
+        }
+      }
+    },
+    "create_space": {
+      "display_name": "Create space",
+      "description": "Creates a new space. Note, currently you cannot set space labels when creating a space. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Create Space(s)' global permission.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "This field will be used as the new identifier for the space in confluence page URLs.\nIf the property is not provided the alias will be the provided key.\nThis property is experimental and may be cha..."
+          },
+          "description": {
+            "type": "object",
+            "description": "The description of the new/updated space. Note, only the 'plain' representation\ncan be used for the description when creating or updating a space."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key for the new space. Format: See [Space\nkeys](https://confluence.atlassian.com/x/lqNMMQ). If `alias` is not provided, this is required."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the new space."
+          },
+          "permissions": {
+            "type": "array",
+            "description": "The permissions for the new space. If no permissions are provided, the\n[Confluence default space permissions](https://confluence.atlassian.com/x/UAgzKw#CreateaSpace-Spacepermissions)\nare applied. N..."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/space",
+        "body_mapping": {
+          "alias": "alias",
+          "description": "description",
+          "key": "key",
+          "name": "name",
+          "permissions": "permissions"
+        }
+      }
+    },
+    "create_user_property": {
+      "display_name": "Create user property by key",
+      "description": "Creates a property for a user. For more information about user properties, see [Confluence entity properties] (https://developer.atlassian.com/cloud/confluence/confluence-entity-properties/). `Note...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key of the user property."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian\nproducts. For example, 384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192"
+          },
+          "value": {
+            "type": "object",
+            "description": "The value of the user property."
+          }
+        },
+        "required": [
+          "userId",
+          "key",
+          "value"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/user/{userId}/property/{key}",
+        "body_mapping": {
+          "value": "value"
+        }
+      }
+    },
+    "delete_content_version": {
+      "display_name": "Delete content version",
+      "description": "Delete a historical version. This does not delete the changes made to the content in that version, rather the changes for the deleted version are rolled up into the next version. Note, you cannot d...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the version will be deleted from."
+          },
+          "versionNumber": {
+            "type": "integer",
+            "description": "The number of the version to be deleted. The version number starts\nfrom 1 up to current version."
+          }
+        },
+        "required": [
+          "id",
+          "versionNumber"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/version/{versionNumber}"
+      }
+    },
+    "delete_label_from_space": {
+      "display_name": "Remove label from a space",
+      "description": "Remove label from a space",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the label to remove"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "The prefix of the label to remove. If not provided defaults to global."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to remove a labels from."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/space/{spaceKey}/label",
+        "query_mapping": {
+          "name": "name",
+          "prefix": "prefix"
+        }
+      }
+    },
+    "delete_page_tree": {
+      "display_name": "Delete page tree",
+      "description": "Moves a pagetree rooted at a page to the space's trash: - If the content's type is `page` and its status is `current`, it will be trashed including all its descendants. - For every other combinatio...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content which forms root of the page tree, to be deleted."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/pageTree"
+      }
+    },
+    "delete_relationship": {
+      "display_name": "Delete relationship",
+      "description": "Deletes a relationship between two entities (user, space, content). **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access the Confluence site ('Can use' global...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "relationName": {
+            "type": "string",
+            "description": "The name of the relationship."
+          },
+          "sourceKey": {
+            "type": "string",
+            "description": "- The identifier for the source entity:\n\n- If `sourceType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key..."
+          },
+          "sourceStatus": {
+            "type": "string",
+            "description": "The status of the source. This parameter is only used when the\n`sourceType` is 'content'."
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "The source entity type of the relationship. This must be 'user', if\nthe `relationName` is 'favourite'."
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "description": "The version of the source. This parameter is only used when the\n`sourceType` is 'content' and the `sourceStatus` is 'historical'."
+          },
+          "targetKey": {
+            "type": "string",
+            "description": "- The identifier for the target entity:\n\n- If `targetType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key..."
+          },
+          "targetStatus": {
+            "type": "string",
+            "description": "The status of the target. This parameter is only used when the\n`targetType` is 'content'."
+          },
+          "targetType": {
+            "type": "string",
+            "description": "The target entity type of the relationship. This must be 'space' or\n'content', if the `relationName` is 'favourite'."
+          },
+          "targetVersion": {
+            "type": "integer",
+            "description": "The version of the target. This parameter is only used when the\n`targetType` is 'content' and the `targetStatus` is 'historical'."
+          }
+        },
+        "required": [
+          "relationName",
+          "sourceType",
+          "sourceKey",
+          "targetType",
+          "targetKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/relation/{relationName}/from/{sourceType}/{sourceKey}/to/{targetType}/{targetKey}",
+        "query_mapping": {
+          "sourceStatus": "sourceStatus",
+          "sourceVersion": "sourceVersion",
+          "targetStatus": "targetStatus",
+          "targetVersion": "targetVersion"
+        }
+      }
+    },
+    "delete_restrictions": {
+      "display_name": "Delete restrictions",
+      "description": "Removes all restrictions (read and update) on a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to edit the content.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions (returned in response) to expand.\n\n- `restrictions.user` returns the piece of content that the restrictions are\nappli..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to remove restrictions from."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/restriction",
+        "query_mapping": {
+          "expand": "expand"
+        },
+        "response_path": "results"
+      }
+    },
+    "delete_space": {
+      "display_name": "Delete space",
+      "description": "Permanently deletes a space without sending it to the trash. Note, the space will be deleted in a long running task. Therefore, the space may not be deleted yet when this method has returned. Clien...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to delete."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/space/{spaceKey}"
+      }
+    },
+    "delete_user_property": {
+      "display_name": "Delete user property",
+      "description": "Deletes a property for the given user. For more information about user properties, see [Confluence entity properties](https://developer.atlassian.com/cloud/confluence/confluence-entity-properties/)...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key of the user property."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian\nproducts. For example, 384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192"
+          }
+        },
+        "required": [
+          "userId",
+          "key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/user/{userId}/property/{key}"
+      }
+    },
+    "download_attatchment": {
+      "display_name": "Get URI to download attachment",
+      "description": "Redirects the client to a URL that serves an attachment's binary data.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "attachmentId": {
+            "type": "string",
+            "description": "The ID of the attachment to download."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the attachment is attached to."
+          },
+          "status": {
+            "type": "array",
+            "description": "The statuses allowed on the retrieved attachment. If this parameter is absent, it will default to `current`."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the attachment. If this parameter is absent, the redirect URI will download the latest version of the attachment."
+          }
+        },
+        "required": [
+          "id",
+          "attachmentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/child/attachment/{attachmentId}/download",
+        "query_mapping": {
+          "status": "status",
+          "version": "version"
+        }
+      }
+    },
+    "export_audit_records": {
+      "display_name": "Export audit records",
+      "description": "Exports audit records as a CSV file or ZIP file. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Confluence Administrator' global permission.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "description": "Filters the exported results to the records on or before the `endDate`.\nThe `endDate` must be specified as [epoch time](https://www.epochconverter.com/) in milliseconds."
+          },
+          "format": {
+            "type": "string",
+            "description": "The format of the export file for the audit records."
+          },
+          "searchString": {
+            "type": "string",
+            "description": "Filters the exported results to records that have string property values\nmatching the `searchString`."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Filters the exported results to the records on or after the `startDate`.\nThe `startDate` must be specified as [epoch time](https://www.epochconverter.com/) in milliseconds."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/audit/export",
+        "query_mapping": {
+          "endDate": "endDate",
+          "format": "format",
+          "searchString": "searchString",
+          "startDate": "startDate"
+        }
+      }
+    },
+    "find_sources_for_target": {
+      "display_name": "Find source entities related to a target entity",
+      "description": "Returns all target entities that have a particular relationship to the source entity. Note, relationships are one way. For example, the following method finds all users that have a 'collaborator' r...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the response\nobject to expand.\n\n- `relationData` returns information about the relationship, such as\nwho created it and when it was created.\n-..."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of relationships to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "relationName": {
+            "type": "string",
+            "description": "The name of the relationship. This method supports relationships created via\n[Create relationship](#api-wiki-rest-api-relation-relationname-from-sourcetype-sourcekey-to-targettype-targetkey-put).\nN..."
+          },
+          "sourceStatus": {
+            "type": "string",
+            "description": "The status of the source. This parameter is only used when the\n`sourceType` is 'content'."
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "The source entity type of the relationship."
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "description": "The version of the source. This parameter is only used when the\n`sourceType` is 'content' and the `sourceStatus` is 'historical'."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned relationships."
+          },
+          "targetKey": {
+            "type": "string",
+            "description": "The identifier for the target entity:\n\n- If `targetType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key h..."
+          },
+          "targetStatus": {
+            "type": "string",
+            "description": "The status of the target. This parameter is only used when the\n`targetType` is 'content'."
+          },
+          "targetType": {
+            "type": "string",
+            "description": "The target entity type of the relationship."
+          },
+          "targetVersion": {
+            "type": "integer",
+            "description": "The version of the target. This parameter is only used when the\n`targetType` is 'content' and the `targetStatus` is 'historical'."
+          }
+        },
+        "required": [
+          "relationName",
+          "sourceType",
+          "targetType",
+          "targetKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/relation/{relationName}/to/{targetType}/{targetKey}/from/{sourceType}",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "sourceStatus": "sourceStatus",
+          "sourceVersion": "sourceVersion",
+          "start": "start",
+          "targetStatus": "targetStatus",
+          "targetVersion": "targetVersion"
+        },
+        "response_path": "results"
+      }
+    },
+    "find_target_from_source": {
+      "display_name": "Find target entities related to a source entity",
+      "description": "Returns all target entities that have a particular relationship to the source entity. Note, relationships are one way. For example, the following method finds all content that the current user has ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the response\nobject to expand.\n\n- `relationData` returns information about the relationship, such as\nwho created it and when it was created.\n-..."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of relationships to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "relationName": {
+            "type": "string",
+            "description": "The name of the relationship. This method supports relationships created via\n[Create relationship](#api-wiki-rest-api-relation-relationname-from-sourcetype-sourcekey-to-targettype-targetkey-put).\nN..."
+          },
+          "sourceKey": {
+            "type": "string",
+            "description": "The identifier for the source entity:\n\n- If `sourceType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key h..."
+          },
+          "sourceStatus": {
+            "type": "string",
+            "description": "The status of the source. This parameter is only used when the\n`sourceType` is 'content'."
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "The source entity type of the relationship."
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "description": "The version of the source. This parameter is only used when the\n`sourceType` is 'content' and the `sourceStatus` is 'historical'."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned relationships."
+          },
+          "targetStatus": {
+            "type": "string",
+            "description": "The status of the target. This parameter is only used when the\n`targetType` is 'content'."
+          },
+          "targetType": {
+            "type": "string",
+            "description": "The target entity type of the relationship."
+          },
+          "targetVersion": {
+            "type": "integer",
+            "description": "The version of the target. This parameter is only used when the\n`targetType` is 'content' and the `targetStatus` is 'historical'."
+          }
+        },
+        "required": [
+          "relationName",
+          "sourceType",
+          "sourceKey",
+          "targetType"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/relation/{relationName}/from/{sourceType}/{sourceKey}/to/{targetType}",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "sourceStatus": "sourceStatus",
+          "sourceVersion": "sourceVersion",
+          "start": "start",
+          "targetStatus": "targetStatus",
+          "targetVersion": "targetVersion"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_all_label_content": {
+      "display_name": "Get label information",
+      "description": "Returns label information and a list of contents associated with the label. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access the Confluence site ('Can use...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The number of results to be returned."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the label to query."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting offset for the results."
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of contents that are to be returned."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/label",
+        "query_mapping": {
+          "limit": "limit",
+          "name": "name",
+          "start": "start",
+          "type": "type"
+        }
+      }
+    },
+    "get_and_async_convert_macro_body_by_macro_id": {
+      "display_name": "Get macro body by macro ID and convert representation Asynchronously",
+      "description": "Returns Async Id of the conversion task which will convert the macro into a content body of the desired format. The result will be available for 5 minutes after completion of the conversion. About ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "allowCache": {
+            "type": "boolean",
+            "description": "Controls whether conversion results are cached and reused for identical requests.\n\n- `false`: Each request creates a new conversion task, even if an identical request was made previously.\n- `true`:..."
+          },
+          "embeddedContentRender": {
+            "type": "string",
+            "description": "Mode used for rendering embedded content, like attachments.\n\n- `current` renders the embedded content using the latest version.\n- `version-at-save` renders the embedded content using the version at..."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand and populate. Expands are dependent on the\n`to` conversion format and may be irrelevant for certain conversions (e.g. `m..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID for the content that contains the macro."
+          },
+          "macroId": {
+            "type": "string",
+            "description": "The ID of the macro. For apps, this is passed to the macro by the Connect/Forge framework.\nOtherwise, find the macro ID by querying the desired\ncontent and version, then expanding the body in stora..."
+          },
+          "spaceKeyContext": {
+            "type": "string",
+            "description": "The space key used for resolving embedded content (page includes,\nfiles, and links) in the content body. For example, if the source content\ncontains the link `\u003cac:link\u003e\u003cri:page ri:content-title=\"Ex..."
+          },
+          "to": {
+            "type": "string",
+            "description": "The content representation to return the macro in.\nCurrently, the following conversions are allowed:\n\n- `export_view`\n- `styled_view`\n- `view`"
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the content that contains the macro. Specifying `0` as the `version` will return\nthe macro body for the latest content version."
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "macroId",
+          "to"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/history/{version}/macro/id/{macroId}/convert/async/{to}",
+        "query_mapping": {
+          "allowCache": "allowCache",
+          "embeddedContentRender": "embeddedContentRender",
+          "expand": "expand",
+          "spaceKeyContext": "spaceKeyContext"
+        }
+      }
+    },
+    "get_and_convert_macro_body_by_macro_id": {
+      "display_name": "Get macro body by macro ID and convert the representation synchronously",
+      "description": "Returns the body of a macro in format specified in path, for the given macro ID. This includes information like the name of the macro, the body of the macro, and any macro parameters. About the mac...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "embeddedContentRender": {
+            "type": "string",
+            "description": "Mode used for rendering embedded content, like attachments.\n\n- `current` renders the embedded content using the latest version.\n- `version-at-save` renders the embedded content using the version at..."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand and populate. Expands are dependent on the\n`to` conversion format and may be irrelevant for certain conversions (e.g. `m..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID for the content that contains the macro."
+          },
+          "macroId": {
+            "type": "string",
+            "description": "The ID of the macro. This is usually passed by the app that the\nmacro is in. Otherwise, find the macro ID by querying the desired\ncontent and version, then expanding the body in storage format.\nFor..."
+          },
+          "spaceKeyContext": {
+            "type": "string",
+            "description": "The space key used for resolving embedded content (page includes,\nfiles, and links) in the content body. For example, if the source content\ncontains the link `\u003cac:link\u003e\u003cri:page ri:content-title=\"Ex..."
+          },
+          "to": {
+            "type": "string",
+            "description": "The content representation to return the macro in."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the content that contains the macro. Specifying `0` as the `version` will return\nthe macro body for the latest content version."
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "macroId",
+          "to"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/history/{version}/macro/id/{macroId}/convert/{to}",
+        "query_mapping": {
+          "embeddedContentRender": "embeddedContentRender",
+          "expand": "expand",
+          "spaceKeyContext": "spaceKeyContext"
+        }
+      }
+    },
+    "get_anonymous_user": {
+      "display_name": "Get anonymous user",
+      "description": "Returns information about how anonymous users are represented, like the profile picture and display name. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to\nexpand.\n\n  - `operations` returns the operations that the user is allowed to do."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/anonymous",
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "get_audit_records": {
+      "display_name": "Get audit records",
+      "description": "Returns all records in the audit log, optionally for a certain date range. This contains information about events like space exports, group membership changes, app installations, etc. For more info...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "description": "Filters the results to the records on or before the `endDate`.\nThe `endDate` must be specified as [epoch time](https://www.epochconverter.com/) in milliseconds."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of records to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "searchString": {
+            "type": "string",
+            "description": "Filters the results to records that have string property values\nmatching the `searchString`."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned records."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Filters the results to the records on or after the `startDate`.\nThe `startDate` must be specified as [epoch time](https://www.epochconverter.com/) in milliseconds."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/audit",
+        "query_mapping": {
+          "endDate": "endDate",
+          "limit": "limit",
+          "searchString": "searchString",
+          "start": "start",
+          "startDate": "startDate"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_audit_records_for_time_period": {
+      "display_name": "Get audit records for time period",
+      "description": "Returns records from the audit log, for a time period back from the current date. For example, you can use this method to get the last 3 months of records. This contains information about events li...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of records to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "number": {
+            "type": "integer",
+            "description": "The number of units for the time period."
+          },
+          "searchString": {
+            "type": "string",
+            "description": "Filters the results to records that have string property values\nmatching the `searchString`."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned records."
+          },
+          "units": {
+            "type": "string",
+            "description": "The unit of time that the time period is measured in."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/audit/since",
+        "query_mapping": {
+          "limit": "limit",
+          "number": "number",
+          "searchString": "searchString",
+          "start": "start",
+          "units": "units"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_available_content_states": {
+      "display_name": "Gets available content states for content.",
+      "description": "Gets content states that are available for the content to be set as. Will return all enabled Space Content States. Will only return most the 3 most recently published custom content states to match...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "id of content to get available states for"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/state/available"
+      }
+    },
+    "get_blueprint_templates": {
+      "display_name": "Get blueprint templates",
+      "description": "Returns all templates provided by blueprints. Use this method to retrieve all global blueprint templates or all blueprint templates in a space. Note, all global blueprints are inherited by each spa...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the template\nto expand.\n\n- `body` or `body.storage` returns the content of the template in storage format."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of templates to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for templates. If the `spaceKey`\nis not specified, global blueprint templates will be returned."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned templates."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/template/blueprint",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "spaceKey": "spaceKey",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_bulk_user_lookup": {
+      "display_name": "Get multiple users using ids",
+      "description": "Returns user details for the ids provided in the request. Currently this API returns a maximum of 100 results. If more than 100 account ids are passed in, then the first 100 will be returned. **[Pe...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "A list of accountId's of users to be returned."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to\nexpand.\n\n  - `operations` returns the operations that the user is allowed to do.\n  - `personalSpace` returns the user's personal s..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/bulk",
+        "query_mapping": {
+          "accountId": "accountId",
+          "expand": "expand"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_content_restriction_status_for_user": {
+      "display_name": "Get content restriction status for user",
+      "description": "Returns whether the specified content restriction applies to a user. For example, if a page with `id=123` has a `read` restriction for a user with an account ID of `384093:32b4d9w0-f6a5-3535-11a3-9...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that is restricted."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/user",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "get_content_state": {
+      "display_name": "Get content state",
+      "description": "Gets the current content state of the draft or current version of content. To specify the draft version, set the parameter status to draft, otherwise archived or current will get the relevant publi...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id of the content whose content state is of interest."
+          },
+          "status": {
+            "type": "string",
+            "description": "Set status to one of [current,draft,archived]. Default value is current."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/state",
+        "query_mapping": {
+          "status": "status"
+        }
+      }
+    },
+    "get_content_state_settings": {
+      "display_name": "Get content state settings for space",
+      "description": "Get object describing whether content states are allowed at all, if custom content states or space content states are restricted, and a list of space content states allowed for the space if they ar...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content state settings."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/state/settings"
+      }
+    },
+    "get_content_template": {
+      "display_name": "Get content template",
+      "description": "Returns a content template. This includes information about template, like the name, the space or blueprint that the template is in, the body of the template, and more. **[Permissions](https://conf...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contentTemplateId": {
+            "type": "string",
+            "description": "The ID of the content template to be returned."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the template\nto expand.\n\n- `body` or `body.storage` returns the content of the template in storage format."
+          }
+        },
+        "required": [
+          "contentTemplateId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/template/{contentTemplateId}",
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "get_content_templates": {
+      "display_name": "Get content templates",
+      "description": "Returns all content templates. Use this method to retrieve all global content templates or all content templates in a space. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: '...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the template\nto expand.\n\n- `body` or `body.storage` returns the content of the template in storage format."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of templates to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for templates. If the `spaceKey`\nis not specified, global templates will be returned."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned templates."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/template/page",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "spaceKey": "spaceKey",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_content_watch_status": {
+      "display_name": "Get content watch status",
+      "description": "Returns whether a user is watching a piece of content. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not spec...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "contentId": {
+            "type": "string",
+            "description": "The ID of the content to be queried for whether the specified user is\nwatching it."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "contentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/watch/content/{contentId}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "get_contents_with_state": {
+      "display_name": "Get content in space with given content state",
+      "description": "Returns all content that has the provided content state in a space. If the expand query parameter is used with the `body.export_view` and/or `body.styled_view` properties, then the query limit para...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand.\nOptions include: space, version, history, children, etc.\n\nEx: space,version"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return"
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content state settings."
+          },
+          "start": {
+            "type": "integer",
+            "description": "Number of result to start returning. (0 indexed)"
+          },
+          "state-id": {
+            "type": "integer",
+            "description": "The id of the content state to filter content by"
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/state/content",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "start": "start",
+          "state-id": "state-id"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_current_user": {
+      "display_name": "Get current user",
+      "description": "Returns the currently logged-in user. This includes information about the user, like the display name, userKey, account ID, profile picture, and more. **[Permissions](https://confluence.atlassian.c...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to\nexpand.\n\n  - `operations` returns the operations that the user is allowed to do.\n  - `personalSpace` returns the user's personal s..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/current",
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "get_custom_content_states": {
+      "display_name": "Get Custom Content States",
+      "description": "Get custom content states that authenticated user has created. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required** Must have user authentication.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content-states"
+      }
+    },
+    "get_global_theme": {
+      "display_name": "Get global theme",
+      "description": "Returns the globally assigned theme. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: None",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/settings/theme/selected"
+      }
+    },
+    "get_group_by_group_id": {
+      "display_name": "Get group",
+      "description": "Returns a user group for a given group id. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access the Confluence site ('Can use' global permission).",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The id of the group."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/group/by-id",
+        "query_mapping": {
+          "id": "id"
+        }
+      }
+    },
+    "get_group_members_by_group_id": {
+      "display_name": "Get group members",
+      "description": "Returns the users that are members of a group. Use updated Get group API **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access the Confluence site ('Can use' g...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to\nexpand.\n\n  - `operations` returns the operations that the user is allowed to do.\n  - `personalSpace` returns the user's personal s..."
+          },
+          "groupId": {
+            "type": "string",
+            "description": "The id of the group to be queried for its members."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of users to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "shouldReturnTotalSize": {
+            "type": "boolean",
+            "description": "Whether to include total size parameter in the results.\nNote, fetching total size property is an expensive operation; use it if your use case needs this value."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned users."
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/group/{groupId}/membersByGroupId",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "shouldReturnTotalSize": "shouldReturnTotalSize",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_group_memberships_for_user": {
+      "display_name": "Get group memberships for user",
+      "description": "Returns the groups that a user is a member of. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access the Confluence site ('Can use' global permission).",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of groups to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned groups."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/memberof",
+        "query_mapping": {
+          "accountId": "accountId",
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_groups": {
+      "display_name": "Get groups",
+      "description": "Returns all user groups. The returned groups are ordered alphabetically in ascending order by group name. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accessType": {
+            "type": "string",
+            "description": "The group permission level for which to filter results."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of groups to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned groups."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/group",
+        "query_mapping": {
+          "accessType": "accessType",
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_individual_group_restriction_status_by_group_id": {
+      "display_name": "Get content restriction status for group",
+      "description": "Returns whether the specified content restriction applies to a group. For example, if a page with `id=123` has a `read` restriction for the `123456` group id, the following request will return `tru...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The id of the group to be queried for whether the content restriction\napplies to it."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that the restriction applies to."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey",
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/byGroupId/{groupId}"
+      }
+    },
+    "get_labels_for_space": {
+      "display_name": "Get Space Labels",
+      "description": "Returns a list of labels associated with a space. Can provide a prefix as well as other filters to select different types of labels.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of labels to return per page. Note,\nthis may be restricted by fixed system limits."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Filters the results to labels with the specified prefix. If this parameter\nis not specified, then labels with any prefix will be returned.\n\n- `global` prefix is used by labels that are on content w..."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to get labels for."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned labels."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/label",
+        "query_mapping": {
+          "limit": "limit",
+          "prefix": "prefix",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_look_and_feel_settings": {
+      "display_name": "Get look and feel settings",
+      "description": "Returns the look and feel settings for the site or a single space. This includes attributes such as the color scheme, padding, and border radius. The look and feel settings for a space can be inher...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space for which the look and feel settings will be\nreturned. If this is not set, only the global look and feel settings\nare returned."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/settings/lookandfeel",
+        "query_mapping": {
+          "spaceKey": "spaceKey"
+        }
+      }
+    },
+    "get_macro_body_by_macro_id": {
+      "display_name": "Get macro body by macro ID",
+      "description": "Returns the body of a macro in storage format, for the given macro ID. This includes information like the name of the macro, the body of the macro, and any macro parameters. This method is mainly u...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID for the content that contains the macro."
+          },
+          "macroId": {
+            "type": "string",
+            "description": "The ID of the macro. This is usually passed by the app that the\nmacro is in. Otherwise, find the macro ID by querying the desired\ncontent and version, then expanding the body in storage format.\nFor..."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the content that contains the macro. Specifying `0` as the `version` will return\nthe macro body for the latest content version."
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "macroId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/history/{version}/macro/id/{macroId}"
+      }
+    },
+    "get_modules": {
+      "display_name": "Get modules",
+      "description": "Returns all modules registered dynamically by the calling app. **[Permissions](#permissions) required:** Only Connect apps can make this request.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/atlassian-connect/1/app/module/dynamic"
+      }
+    },
+    "get_privacy_unsafe_user_email": {
+      "display_name": "Get user email address",
+      "description": "Returns a user's email address regardless of the user’s profile visibility settings. For Connect apps, this API is only available to apps approved by Atlassian, according to these [guidelines](ht...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user, which uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`. Required."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/email",
+        "query_mapping": {
+          "accountId": "accountId"
+        }
+      }
+    },
+    "get_privacy_unsafe_user_email_bulk": {
+      "display_name": "Get user email addresses in batch",
+      "description": "Returns a user's email address regardless of the user’s profile visibility settings. For Connect apps, this API is only available to apps approved by Atlassian, according to these [guidelines](ht...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "array",
+            "description": "The account IDs of the users."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/email/bulk",
+        "query_mapping": {
+          "accountId": "accountId"
+        }
+      }
+    },
+    "get_relationship": {
+      "display_name": "Find relationship from source to target",
+      "description": "Find whether a particular type of relationship exists from a source entity to a target entity. Note, relationships are one way. For example, you can use this method to find whether the current user...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the response\nobject to expand.\n\n- `relationData` returns information about the relationship, such as\nwho created it and when it was created.\n-..."
+          },
+          "relationName": {
+            "type": "string",
+            "description": "The name of the relationship. This method supports the 'favourite'\n(i.e. 'save for later') relationship as well as any other relationship\ntypes created via [Create relationship](#api-wiki-rest-api-..."
+          },
+          "sourceKey": {
+            "type": "string",
+            "description": "- The identifier for the source entity:\n\n- If `sourceType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key..."
+          },
+          "sourceStatus": {
+            "type": "string",
+            "description": "The status of the source. This parameter is only used when the\n`sourceType` is 'content'."
+          },
+          "sourceType": {
+            "type": "string",
+            "description": "The source entity type of the relationship. This must be 'user', if\nthe `relationName` is 'favourite'."
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "description": "The version of the source. This parameter is only used when the\n`sourceType` is 'content' and the `sourceStatus` is 'historical'."
+          },
+          "targetKey": {
+            "type": "string",
+            "description": "The identifier for the target entity:\n\n- If `targetType` is `user`, then specify either `current` (logged-in user), the user key of the user, or\nthe account ID of the user. Note that the user key h..."
+          },
+          "targetStatus": {
+            "type": "string",
+            "description": "The status of the target. This parameter is only used when the\n`targetType` is 'content'."
+          },
+          "targetType": {
+            "type": "string",
+            "description": "The target entity type of the relationship. This must be 'space' or\n'content', if the `relationName` is 'favourite'."
+          },
+          "targetVersion": {
+            "type": "integer",
+            "description": "The version of the target. This parameter is only used when the\n`targetType` is 'content' and the `targetStatus` is 'historical'."
+          }
+        },
+        "required": [
+          "relationName",
+          "sourceType",
+          "sourceKey",
+          "targetType",
+          "targetKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/relation/{relationName}/from/{sourceType}/{sourceKey}/to/{targetType}/{targetKey}",
+        "query_mapping": {
+          "expand": "expand",
+          "sourceStatus": "sourceStatus",
+          "sourceVersion": "sourceVersion",
+          "targetStatus": "targetStatus",
+          "targetVersion": "targetVersion"
+        }
+      }
+    },
+    "get_restrictions": {
+      "display_name": "Get restrictions",
+      "description": "Returns the restrictions on a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to view the content.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions to expand. By default, the following objects are expanded:\n`restrictions.user`, `restrictions.group`.\n\n- `restriction..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to be queried for its restrictions."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of users and the maximum number of groups, in the\nreturned restrictions, to return per page. Note, this may be restricted\nby fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the users and groups in the returned restrictions."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/restriction",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_restrictions_by_operation": {
+      "display_name": "Get restrictions by operation",
+      "description": "Returns restrictions on a piece of content by operation. This method is similar to [Get restrictions](#api-content-id-restriction-get) except that the operations are properties of the return object...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions to expand.\n\n- `restrictions.user` returns the piece of content that the restrictions are\napplied to. Expanded by defa..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to be queried for its restrictions."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation",
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "get_restrictions_for_operation": {
+      "display_name": "Get restrictions for operation",
+      "description": "Returns the restictions on a piece of content for a given operation (read or update). **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to view the content.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions to expand.\n\n- `restrictions.user` returns the piece of content that the restrictions are\napplied to. Expanded by defa..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to be queried for its restrictions."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of users and the maximum number of groups, in the\nreturned restrictions, to return per page. Note, this may be restricted\nby fixed system limits."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation type of the restrictions to be returned."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the users and groups in the returned restrictions."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}",
+        "query_mapping": {
+          "expand": "expand",
+          "limit": "limit",
+          "start": "start"
+        }
+      }
+    },
+    "get_retention_period": {
+      "display_name": "Get retention period",
+      "description": "Returns the retention period for records in the audit log. The retention period is how long an audit record is kept for, from creation date until it is deleted. **[Permissions](https://confluence.a...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/audit/retention"
+      }
+    },
+    "get_space_content_states": {
+      "display_name": "Get space suggested content states",
+      "description": "Get content states that are suggested in the space. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'View' permission for the space.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content state settings."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/state"
+      }
+    },
+    "get_space_settings": {
+      "display_name": "Get space settings",
+      "description": "Returns the settings of a space. Currently only the `routeOverrideEnabled` setting can be returned. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'View' permission for the ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its settings."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/settings"
+      }
+    },
+    "get_space_theme": {
+      "display_name": "Get space theme",
+      "description": "Returns the theme selected for a space, if one is set. If no space theme is set, this means that the space is inheriting the global look and feel settings. **[Permissions required](https://confluen...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its theme."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/theme"
+      }
+    },
+    "get_system_info": {
+      "display_name": "Get system info",
+      "description": "Returns the system information for the Confluence Cloud tenant. This information is used by Atlassian. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Permission to access th...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/settings/systemInfo"
+      }
+    },
+    "get_task": {
+      "display_name": "Get long-running task",
+      "description": "Returns information about an active long-running task (e.g. space export), such as how long it has been running and the percentage of the task that has completed. **[Permissions](https://confluence...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the task."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/longtask/{id}"
+      }
+    },
+    "get_tasks": {
+      "display_name": "Get long-running tasks",
+      "description": "Returns information about all active long-running tasks (e.g. space export), such as how long each task has been running and the percentage of each task that has completed. **[Permissions](https://...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key of the tasks."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of tasks to return per page. Note, this may be\nrestricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned tasks."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/longtask",
+        "query_mapping": {
+          "key": "key",
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_theme": {
+      "display_name": "Get theme",
+      "description": "Returns a theme. This includes information about the theme name, description, and icon. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: None",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "themeKey": {
+            "type": "string",
+            "description": "The key of the theme to be returned."
+          }
+        },
+        "required": [
+          "themeKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/settings/theme/{themeKey}"
+      }
+    },
+    "get_themes": {
+      "display_name": "Get themes",
+      "description": "Returns all themes, not including the default theme. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: None",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of themes to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned themes."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/settings/theme",
+        "query_mapping": {
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_user": {
+      "display_name": "Get user",
+      "description": "Returns a user. This includes information about the user, such as the display name, account ID, profile picture, and more. The information returned may be restricted by the user's profile visibilit...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to\nexpand.\n\n  - `operations` returns the operations that the user is allowed to do.\n  - `personalSpace` returns the user's personal s..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user",
+        "query_mapping": {
+          "accountId": "accountId",
+          "expand": "expand"
+        }
+      }
+    },
+    "get_user_properties": {
+      "display_name": "Get user properties",
+      "description": "Returns the properties for a user as list of property keys. For more information about user properties, see [Confluence entity properties](https://developer.atlassian.com/cloud/confluence/confluenc...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of properties to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned properties."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account ID of the user to be queried for its properties."
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/{userId}/property",
+        "query_mapping": {
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_user_property": {
+      "display_name": "Get user property",
+      "description": "Returns the property corresponding to `key` for a user. For more information about user properties, see [Confluence entity properties](https://developer.atlassian.com/cloud/confluence/confluence-en...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key of the user property."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account ID of the user to be queried for its properties."
+          }
+        },
+        "required": [
+          "userId",
+          "key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/{userId}/property/{key}"
+      }
+    },
+    "get_viewers": {
+      "display_name": "Get viewers",
+      "description": "Get the total number of distinct viewers a piece of content has.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "description": "The ID of the content to get the viewers for."
+          },
+          "fromDate": {
+            "type": "string",
+            "description": "The number of views for the content since the date."
+          }
+        },
+        "required": [
+          "contentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/analytics/content/{contentId}/viewers",
+        "query_mapping": {
+          "fromDate": "fromDate"
+        }
+      }
+    },
+    "get_views": {
+      "display_name": "Get views",
+      "description": "Get the total number of views a piece of content has.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "description": "The ID of the content to get the views for."
+          },
+          "fromDate": {
+            "type": "string",
+            "description": "The number of views for the content since the date."
+          }
+        },
+        "required": [
+          "contentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/analytics/content/{contentId}/views",
+        "query_mapping": {
+          "fromDate": "fromDate"
+        }
+      }
+    },
+    "get_watchers_for_space": {
+      "display_name": "Get space watchers",
+      "description": "Returns a list of watchers of a space",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "string",
+            "description": "The limit of the number of items to return, this may be restricted by fixed system limits."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to get watchers."
+          },
+          "start": {
+            "type": "string",
+            "description": "The start point of the collection to return."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/space/{spaceKey}/watch",
+        "query_mapping": {
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_watches_for_page": {
+      "display_name": "Get watches for page",
+      "description": "Returns the watches for a page. A user that watches a page will receive receive notifications when the page is updated. If you want to manage watches for a page, use the following `user` methods: -...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to be queried for its watches."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of watches to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned watches."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/notification/child-created",
+        "query_mapping": {
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "get_watches_for_space": {
+      "display_name": "Get watches for space",
+      "description": "Returns all space watches for the space that the content is in. A user that watches a space will receive receive notifications when any content in the space is updated. If you want to manage watche...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to be queried for its watches."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of watches to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned watches."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/{id}/notification/created",
+        "query_mapping": {
+          "limit": "limit",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "is_watching_label": {
+      "display_name": "Get label watch status",
+      "description": "Returns whether a user is watching a label. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user:...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "labelName": {
+            "type": "string",
+            "description": "The name of the label to be queried for whether the specified user is\nwatching it."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "labelName"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/watch/label/{labelName}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "is_watching_space": {
+      "display_name": "Get space watch status",
+      "description": "Returns whether a user is watching a space. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user:...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for whether the specified user is\nwatching it."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/user/watch/space/{spaceKey}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "move_page": {
+      "display_name": "Move a page to a new location relative to a target page",
+      "description": "Move a page to a new location relative to a target page: * `before` - move the page under the same parent as the target, before the target in the list of children * `after` - move the page under th...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pageId": {
+            "type": "string",
+            "description": "The ID of the page to be moved"
+          },
+          "position": {
+            "type": "string",
+            "description": "The position to move the page to relative to the target page:\n* `before` - move the page under the same parent as the target, before the target in the list of children\n* `after` - move the page und..."
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The ID of the target page for this operation"
+          }
+        },
+        "required": [
+          "pageId",
+          "position",
+          "targetId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{pageId}/move/{position}/{targetId}"
+      }
+    },
+    "publish_legacy_draft": {
+      "display_name": "Publish legacy draft",
+      "description": "Publishes a legacy draft of a page created from a blueprint. Legacy drafts will eventually be removed in favor of shared drafts. For now, this method works the same as [Publish shared draft](#api-c...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "ancestors": {
+            "type": "array",
+            "description": "The new ancestor (i.e. parent page) for the content. If you have\nspecified an ancestor, you must also specify a `space` property\nin the request body for the space that the ancestor is in.\n\nNote, if..."
+          },
+          "draftId": {
+            "type": "string",
+            "description": "The ID of the draft page that was created from a blueprint.\nYou can find the `draftId` in the Confluence application by\nopening the draft page and checking the page URL."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand.\n\n- `childTypes.all` returns whether the content has attachments, comments, or child pages/whiteboards.\nUse this if you ..."
+          },
+          "space": {
+            "type": "object",
+            "description": "The space for the content."
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the content to be updated, i.e. the draft. This is set\nto 'draft' by default, so you shouldn't need to specify it."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the content. If you don't want to change the title,\nset this to the current title of the draft."
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of content. Set this to `page`."
+          },
+          "version": {
+            "type": "object",
+            "description": "The version for the new content."
+          }
+        },
+        "required": [
+          "draftId",
+          "title",
+          "type",
+          "version"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/blueprint/instance/{draftId}",
+        "body_mapping": {
+          "ancestors": "ancestors",
+          "space": "space",
+          "title": "title",
+          "type": "type",
+          "version": "version"
+        },
+        "query_mapping": {
+          "expand": "expand",
+          "status": "status"
+        }
+      }
+    },
+    "publish_shared_draft": {
+      "display_name": "Publish shared draft",
+      "description": "Publishes a shared draft of a page created from a blueprint. By default, the following objects are expanded: `body.storage`, `history`, `space`, `version`, `ancestors`. **[Permissions](https://conf...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "ancestors": {
+            "type": "array",
+            "description": "The new ancestor (i.e. parent page) for the content. If you have\nspecified an ancestor, you must also specify a `space` property\nin the request body for the space that the ancestor is in.\n\nNote, if..."
+          },
+          "draftId": {
+            "type": "string",
+            "description": "The ID of the draft page that was created from a blueprint.\nYou can find the `draftId` in the Confluence application by\nopening the draft page and checking the page URL."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand.\n\n- `childTypes.all` returns whether the content has attachments, comments, or child pages/whiteboards.\nUse this if you ..."
+          },
+          "space": {
+            "type": "object",
+            "description": "The space for the content."
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the content to be updated, i.e. the draft. This is set\nto 'draft' by default, so you shouldn't need to specify it."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the content. If you don't want to change the title,\nset this to the current title of the draft."
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of content. Set this to `page`."
+          },
+          "version": {
+            "type": "object",
+            "description": "The version for the new content."
+          }
+        },
+        "required": [
+          "draftId",
+          "title",
+          "type",
+          "version"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/blueprint/instance/{draftId}",
+        "body_mapping": {
+          "ancestors": "ancestors",
+          "space": "space",
+          "title": "title",
+          "type": "type",
+          "version": "version"
+        },
+        "query_mapping": {
+          "expand": "expand",
+          "status": "status"
+        }
+      }
+    },
+    "register_modules": {
+      "display_name": "Register modules",
+      "description": "Registers a list of modules. For the list of modules that support dynamic registration, see [Dynamic modules](https://developer.atlassian.com/cloud/confluence/dynamic-modules/). **[Permissions](#pe...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/atlassian-connect/1/app/module/dynamic"
+      }
+    },
+    "remove_content_state": {
+      "display_name": "Removes the content state of a content and publishes a new version.",
+      "description": "Removes the content state of the content specified and creates a new version (publishes the content without changing the body) of the content with the new status. **[Permissions](https://confluence...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The Id of the content whose content state is to be set."
+          },
+          "status": {
+            "type": "string",
+            "description": "status of content state from which to delete state. Can be draft or archived"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/state",
+        "query_mapping": {
+          "status": "status"
+        }
+      }
+    },
+    "remove_content_watcher": {
+      "display_name": "Remove content watcher",
+      "description": "Removes a user as a watcher from a piece of content. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specif...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-Atlassian-Token": {
+            "type": "string",
+            "description": "Note, you must add header when making a\nrequest, as this operation has XSRF protection."
+          },
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "contentId": {
+            "type": "string",
+            "description": "The ID of the content to remove the watcher from."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "contentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/user/watch/content/{contentId}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "remove_group_by_id": {
+      "display_name": "Delete user group",
+      "description": "Delete user group. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: User must be a site admin.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Id of the group to delete."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/group/by-id",
+        "query_mapping": {
+          "id": "id"
+        }
+      }
+    },
+    "remove_group_from_content_restriction": {
+      "display_name": "Remove group from content restriction",
+      "description": "Removes a group from a content restriction. That is, remove read or update permission for the group for a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Pe...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The id of the group to remove from the content restriction."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that the restriction applies to."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey",
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/byGroupId/{groupId}"
+      }
+    },
+    "remove_label_from_content": {
+      "display_name": "Remove label from content",
+      "description": "Removes a label from a piece of content. Labels can't be deleted from archived content. This is similar to [Remove label from content using query parameter](#api-content-id-label-delete) except tha...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the label will be removed from."
+          },
+          "label": {
+            "type": "string",
+            "description": "The name of the label to be removed."
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/label/{label}"
+      }
+    },
+    "remove_label_from_content_using_query_parameter": {
+      "display_name": "Remove label from content using query parameter",
+      "description": "Removes a label from a piece of content. Labels can't be deleted from archived content. This is similar to [Remove label from content](#api-content-id-label-label-delete) except that the label name...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the label will be removed from."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the label to be removed."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/label",
+        "query_mapping": {
+          "name": "name"
+        }
+      }
+    },
+    "remove_label_watcher": {
+      "display_name": "Remove label watcher",
+      "description": "Removes a user as a watcher from a label. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user: T...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "labelName": {
+            "type": "string",
+            "description": "The name of the label to remove the watcher from."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "labelName"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/user/watch/label/{labelName}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "remove_member_from_group_by_group_id": {
+      "display_name": "Remove member from group using group id",
+      "description": "Remove user as a member from a group. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: User must be a site admin.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "groupId": {
+            "type": "string",
+            "description": "Id of the group whose membership is updated."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/group/userByGroupId",
+        "query_mapping": {
+          "accountId": "accountId",
+          "groupId": "groupId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "remove_modules": {
+      "display_name": "Remove modules",
+      "description": "Remove all or a list of modules registered by the calling app. **[Permissions](#permissions) required:** Only Connect apps can make this request.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "moduleKey": {
+            "type": "array",
+            "description": "The key of the module to remove. To include multiple module keys, provide multiple copies of this parameter.\nFor example, `moduleKey=dynamic-attachment-entity-property\u0026moduleKey=dynamic-select-fiel..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/atlassian-connect/1/app/module/dynamic",
+        "query_mapping": {
+          "moduleKey": "moduleKey"
+        }
+      }
+    },
+    "remove_permission": {
+      "display_name": "Remove a space permission",
+      "description": "Removes a space permission. Note that removing Read Space permission for a user or group will remove all the space permissions for that user or group. Note: Apps cannot access this REST resource - ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Id of the permission to be deleted."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to be queried for its content."
+          }
+        },
+        "required": [
+          "spaceKey",
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/space/{spaceKey}/permission/{id}"
+      }
+    },
+    "remove_space_watch": {
+      "display_name": "Remove space watch",
+      "description": "Removes a user as a watcher from a space. Choose the user by doing one of the following: - Specify a user via a query parameter: Use the `accountId` to identify the user. - Do not specify a user: T...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to remove the watcher from."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/user/watch/space/{spaceKey}",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "remove_template": {
+      "display_name": "Remove template",
+      "description": "Deletes a template. This results in different actions depending on the type of template: - If the template is a content template, it is deleted. - If the template is a modified space-level blueprin...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contentTemplateId": {
+            "type": "string",
+            "description": "The ID of the template to be deleted."
+          }
+        },
+        "required": [
+          "contentTemplateId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/template/{contentTemplateId}"
+      }
+    },
+    "remove_user_from_content_restriction": {
+      "display_name": "Remove user from content restriction",
+      "description": "Removes a group from a content restriction. That is, remove read or update permission for the group for a piece of content. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: Pe...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the restriction applies to."
+          },
+          "key": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "The operation that the restriction applies to."
+          },
+          "username": {
+            "type": "string",
+            "description": "This parameter is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-mi..."
+          }
+        },
+        "required": [
+          "id",
+          "operationKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/content/{id}/restriction/byOperation/{operationKey}/user",
+        "query_mapping": {
+          "accountId": "accountId",
+          "key": "key",
+          "username": "username"
+        }
+      }
+    },
+    "reset_look_and_feel_settings": {
+      "display_name": "Reset look and feel settings",
+      "description": "Resets the custom look and feel settings for the site or a single space. This changes the values of the custom settings to be the same as the default settings. It does not change which settings (de...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space for which the look and feel settings will be\nreset. If this is not set, the global look and feel settings will\nbe reset."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/settings/lookandfeel/custom",
+        "query_mapping": {
+          "spaceKey": "spaceKey"
+        }
+      }
+    },
+    "reset_space_theme": {
+      "display_name": "Reset space theme",
+      "description": "Resets the space theme. This means that the space will inherit the global look and feel settings **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Admin' permission for the sp...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to reset the theme for."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/wiki/rest/api/space/{spaceKey}/theme"
+      }
+    },
+    "restore_content_version": {
+      "display_name": "Restore content version",
+      "description": "Restores a historical version to be the latest version. That is, a new version is created with the content of the historical version. **[Permissions](https://confluence.atlassian.com/x/_AozKw) requ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand. By default, the `content`\nobject is expanded.\n\n- `collaborators` returns the users that collaborated on the version.\n- ..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content for which the history will be restored."
+          },
+          "operationKey": {
+            "type": "string",
+            "description": "Set to 'restore'."
+          },
+          "params": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "operationKey",
+          "params"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/content/{id}/version",
+        "body_mapping": {
+          "operationKey": "operationKey",
+          "params": "params"
+        },
+        "query_mapping": {
+          "expand": "expand"
+        }
+      }
+    },
+    "search_by_cql": {
+      "display_name": "Search content",
+      "description": "Searches for content using the [Confluence Query Language (CQL)](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/). **Note that CQL input queries submitted through the...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "_": {
+            "type": "integer"
+          },
+          "cql": {
+            "type": "string",
+            "description": "The CQL query to be used for the search. See\n[Advanced Searching using CQL](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/)\nfor instructions on how to build a CQL qu..."
+          },
+          "cqlcontext": {
+            "type": "string",
+            "description": "The space, content, and content status to execute the search\nagainst.\n\n- `spaceKey` Key of the space to search against. Optional.\n- `contentId` ID of the content to search against. Optional. Must b..."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pointer to a set of search results, returned as part of the `next` or `prev` URL from the previous search call."
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "The excerpt strategy to apply to the result"
+          },
+          "excludeCurrentSpaces": {
+            "type": "boolean",
+            "description": "Whether to exclude current spaces and only show archived spaces."
+          },
+          "expand": {
+            "type": "array"
+          },
+          "includeArchivedSpaces": {
+            "type": "boolean",
+            "description": "Whether to include content from archived spaces in the results."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of content objects to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "next": {
+            "type": "boolean"
+          },
+          "prev": {
+            "type": "boolean"
+          },
+          "sitePermissionTypeFilter": {
+            "type": "string",
+            "description": "Filters users by permission type. Use `none` to default to licensed users, `externalCollaborator`\nfor external/guest users, and `all` to include all permission types."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The start point of the collection to return"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/search",
+        "query_mapping": {
+          "_": "_",
+          "cql": "cql",
+          "cqlcontext": "cqlcontext",
+          "cursor": "cursor",
+          "excerpt": "excerpt",
+          "excludeCurrentSpaces": "excludeCurrentSpaces",
+          "expand": "expand",
+          "includeArchivedSpaces": "includeArchivedSpaces",
+          "limit": "limit",
+          "next": "next",
+          "prev": "prev",
+          "sitePermissionTypeFilter": "sitePermissionTypeFilter",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "search_content_by_cql": {
+      "display_name": "Search content by CQL",
+      "description": "Returns the list of content that matches a Confluence Query Language (CQL) query. For information on CQL, see: [Advanced searching using CQL](https://developer.atlassian.com/cloud/confluence/advanc...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cql": {
+            "type": "string",
+            "description": "The CQL string that is used to find the requested content."
+          },
+          "cqlcontext": {
+            "type": "string",
+            "description": "The space, content, and content status to execute the search against.\nSpecify this as an object with the following properties:\n\n- `spaceKey` Key of the space to search against. Optional.\n- `content..."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pointer to a set of search results, returned as part of the `next` or `prev` URL from the previous search call."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content to expand.\n\n- `childTypes.all` returns whether the content has attachments, comments, or child pages/whiteboards.\nUse this if you ..."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of content objects to return per page.\nNote, this may be restricted by fixed system limits."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/content/search",
+        "query_mapping": {
+          "cql": "cql",
+          "cqlcontext": "cqlcontext",
+          "cursor": "cursor",
+          "expand": "expand",
+          "limit": "limit"
+        },
+        "response_path": "results"
+      }
+    },
+    "search_groups": {
+      "display_name": "Search groups by partial query",
+      "description": "Get search results of groups by partial query provided.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of groups to return per page.\nNote, this is restricted to a maximum limit of 200 groups."
+          },
+          "query": {
+            "type": "string",
+            "description": "the search term used to query results."
+          },
+          "shouldReturnTotalSize": {
+            "type": "boolean",
+            "description": "Whether to include total size parameter in the results.\nNote, fetching total size property is an expensive operation; use it if your use case needs this value."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned groups."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/group/picker",
+        "query_mapping": {
+          "limit": "limit",
+          "query": "query",
+          "shouldReturnTotalSize": "shouldReturnTotalSize",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "search_user": {
+      "display_name": "Search users",
+      "description": "Searches for users using user-specific queries from the [Confluence Query Language (CQL)](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/). Note that CQL input querie...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cql": {
+            "type": "string",
+            "description": "The CQL query to be used for the search. See\n[Advanced Searching using CQL](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/)\nfor instructions on how to build a CQL qu..."
+          },
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the user to expand.\n\n- `operations` returns the operations for the user, which are used\nwhen setting permissions.\n- `personalSpace` returns th..."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of user objects to return per page.\nNote, this may be restricted by fixed system limits."
+          },
+          "sitePermissionTypeFilter": {
+            "type": "string",
+            "description": "Filters users by permission type. Use `none` to default to licensed users, `externalCollaborator`\nfor external/guest users, and `all` to include all permission types."
+          },
+          "start": {
+            "type": "integer",
+            "description": "The starting index of the returned users."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/wiki/rest/api/search/user",
+        "query_mapping": {
+          "cql": "cql",
+          "expand": "expand",
+          "limit": "limit",
+          "sitePermissionTypeFilter": "sitePermissionTypeFilter",
+          "start": "start"
+        },
+        "response_path": "results"
+      }
+    },
+    "set_content_state": {
+      "display_name": "Set the content state of a content and publishes a new version of the content.",
+      "description": "Sets the content state of the content specified and creates a new version (publishes the content without changing the body) of the content with the new state. You may pass in either an id of a stat...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "Color of state. Must be in 6 digit hex form (#FFFFFF). The default colors offered in the UI are:\n #ff7452 (red),\n #2684ff (blue),\n #ffc400 (yellow),\n #57d9a3 (green), and\n #8777d9 (purple)"
+          },
+          "id": {
+            "type": "string",
+            "description": "The Id of the content whose content state is to be set."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of content state. Maximum 20 characters."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of content onto which state will be placed. If draft, then draft state will change.\nIf current, state will be placed onto a new version of the content with same body as previous version."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{id}/state",
+        "body_mapping": {
+          "color": "color",
+          "name": "name"
+        },
+        "query_mapping": {
+          "status": "status"
+        }
+      }
+    },
+    "set_retention_period": {
+      "display_name": "Set retention period",
+      "description": "Sets the retention period for records in the audit log. The retention period can be set to a maximum of 1 year. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Confluence Ad...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "description": "The number of units for the retention period."
+          },
+          "units": {
+            "type": "string",
+            "description": "The unit of time that the retention period is measured in."
+          }
+        },
+        "required": [
+          "number",
+          "units"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/audit/retention",
+        "body_mapping": {
+          "number": "number",
+          "units": "units"
+        }
+      }
+    },
+    "set_space_theme": {
+      "display_name": "Set space theme",
+      "description": "Sets the theme for a space. Note, if you want to reset the space theme to the default Confluence theme, use the 'Reset space theme' method instead of this method. **[Permissions](https://confluence...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to set the theme for."
+          },
+          "themeKey": {
+            "type": "string",
+            "description": "The key of the theme to be set as the space theme."
+          }
+        },
+        "required": [
+          "spaceKey",
+          "themeKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/space/{spaceKey}/theme",
+        "body_mapping": {
+          "themeKey": "themeKey"
+        }
+      }
+    },
+    "update_attachment_properties": {
+      "display_name": "Update attachment properties",
+      "description": "Updates the attachment properties, i.e. the non-binary data of an attachment like the filename, media-type, comment, and parent container. **[Permissions](https://confluence.atlassian.com/x/_AozKw)...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "attachmentId": {
+            "type": "string",
+            "description": "The ID of the attachment to update."
+          },
+          "container": {
+            "type": "object",
+            "description": "Container for content. This can be either a space (containing a page or blogpost)\nor a page/blog post (containing an attachment or comment)"
+          },
+          "extensions": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content that the attachment is attached to."
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "Set this to \"attachment\""
+          },
+          "version": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "attachmentId",
+          "type",
+          "version"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{id}/child/attachment/{attachmentId}",
+        "body_mapping": {
+          "container": "container",
+          "extensions": "extensions",
+          "metadata": "metadata",
+          "status": "status",
+          "title": "title",
+          "type": "type",
+          "version": "version"
+        }
+      }
+    },
+    "update_content_template": {
+      "display_name": "Update content template",
+      "description": "Updates a content template. Note, blueprint templates cannot be updated via the REST API. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Admin' permission for the space to ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "description": "The body of the new content. Does not apply to attachments.\nOnly one body format should be specified as the property for\nthis object, e.g. `storage`.\n\nNote, `editor2` format is used by Atlassian on..."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the template."
+          },
+          "labels": {
+            "type": "array",
+            "description": "Labels for the template."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the template. Set to the current `name` if this field is\nnot being updated."
+          },
+          "space": {
+            "type": "object",
+            "description": "The key for the space of the template. Required if the template is a\nspace template. Set this to the current `space.key`."
+          },
+          "templateId": {
+            "type": "string",
+            "description": "The ID of the template being updated."
+          },
+          "templateType": {
+            "type": "string",
+            "description": "The type of the template. Set to `page`."
+          }
+        },
+        "required": [
+          "body",
+          "name",
+          "templateId",
+          "templateType"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/template",
+        "body_mapping": {
+          "body": "body",
+          "description": "description",
+          "labels": "labels",
+          "name": "name",
+          "space": "space",
+          "templateId": "templateId",
+          "templateType": "templateType"
+        }
+      }
+    },
+    "update_look_and_feel": {
+      "display_name": "Select look and feel settings",
+      "description": "Sets the look and feel settings to the default (global) settings, the custom settings, or the current theme's settings for a space. The custom and theme settings can only be selected if there is al...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lookAndFeelType": {
+            "type": "string"
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space for which the look and feel settings will be\nset."
+          }
+        },
+        "required": [
+          "lookAndFeelType",
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/settings/lookandfeel",
+        "body_mapping": {
+          "lookAndFeelType": "lookAndFeelType",
+          "spaceKey": "spaceKey"
+        }
+      }
+    },
+    "update_look_and_feel_settings": {
+      "display_name": "Update look and feel settings",
+      "description": "Updates the look and feel settings for the site or for a single space. If custom settings exist, they are updated. If no custom settings exist, then a set of custom settings is created. Note, if a ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "bordersAndDividers": {
+            "type": "object"
+          },
+          "content": {
+            "type": "object"
+          },
+          "header": {
+            "type": "object"
+          },
+          "headings": {
+            "type": "object"
+          },
+          "horizontalHeader": {
+            "type": "object"
+          },
+          "links": {
+            "type": "object"
+          },
+          "menus": {
+            "type": "object"
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space for which the look and feel settings will be\nupdated. If this is not set, the global look and feel settings will\nbe updated."
+          },
+          "spaceReference": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "bordersAndDividers",
+          "content",
+          "header",
+          "headings",
+          "links",
+          "menus"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/wiki/rest/api/settings/lookandfeel/custom",
+        "body_mapping": {
+          "bordersAndDividers": "bordersAndDividers",
+          "content": "content",
+          "header": "header",
+          "headings": "headings",
+          "horizontalHeader": "horizontalHeader",
+          "links": "links",
+          "menus": "menus",
+          "spaceReference": "spaceReference"
+        },
+        "query_mapping": {
+          "spaceKey": "spaceKey"
+        }
+      }
+    },
+    "update_restrictions": {
+      "display_name": "Update restrictions",
+      "description": "Updates restrictions for a piece of content. This removes the existing restrictions and replaces them with the restrictions in the request. **[Permissions](https://confluence.atlassian.com/x/_AozKw...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "expand": {
+            "type": "array",
+            "description": "A multi-value parameter indicating which properties of the content\nrestrictions (returned in response) to expand.\n\n- `restrictions.user` returns the piece of content that the restrictions are\nappli..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the content to update restrictions for."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/content/{id}/restriction",
+        "query_mapping": {
+          "expand": "expand"
+        },
+        "response_path": "results"
+      }
+    },
+    "update_space": {
+      "display_name": "Update space",
+      "description": "Updates the name, description, or homepage of a space. - For security reasons, permissions cannot be updated via the API and must be changed via the user interface instead. - Currently you cannot s...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "object",
+            "description": "The description of the new/updated space. Note, only the 'plain' representation\ncan be used for the description when creating or updating a space."
+          },
+          "homepage": {
+            "type": "object",
+            "description": "The updated homepage for this space"
+          },
+          "name": {
+            "type": "string",
+            "description": "The updated name of the space."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space to update."
+          },
+          "status": {
+            "type": "string",
+            "description": "The updated status for this space."
+          },
+          "type": {
+            "type": "string",
+            "description": "The updated type for this space."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/space/{spaceKey}",
+        "body_mapping": {
+          "description": "description",
+          "homepage": "homepage",
+          "name": "name",
+          "status": "status",
+          "type": "type"
+        }
+      }
+    },
+    "update_space_settings": {
+      "display_name": "Update space settings",
+      "description": "Updates the settings for a space. Currently only the `routeOverrideEnabled` setting can be updated. **[Permissions](https://confluence.atlassian.com/x/_AozKw) required**: 'Admin' permission for the...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "routeOverrideEnabled": {
+            "type": "boolean",
+            "description": "Defines whether an override for the space home should be used. This is\nused in conjunction with a space theme provided by an app. For\nexample, if this property is set to true, a theme can display a..."
+          },
+          "spaceKey": {
+            "type": "string",
+            "description": "The key of the space whose settings will be updated."
+          }
+        },
+        "required": [
+          "spaceKey"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/space/{spaceKey}/settings",
+        "body_mapping": {
+          "routeOverrideEnabled": "routeOverrideEnabled"
+        }
+      }
+    },
+    "update_user_property": {
+      "display_name": "Update user property",
+      "description": "Updates a property for the given user. Note, you cannot update the key of a user property, only the value. For more information about user properties, see [Confluence entity properties](https://dev...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key of the user property."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account ID of the user. The accountId uniquely identifies the user across all Atlassian\nproducts. For example, 384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192"
+          },
+          "value": {
+            "type": "object",
+            "description": "The value of the user property."
+          }
+        },
+        "required": [
+          "userId",
+          "key",
+          "value"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/wiki/rest/api/user/{userId}/property/{key}",
+        "body_mapping": {
+          "value": "value"
+        }
+      }
+    }
+  }
+}

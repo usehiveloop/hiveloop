@@ -1,0 +1,6416 @@
+{
+  "display_name": "Discord",
+  "resources": {},
+  "actions": {
+    "add_group_dm_user": {
+      "display_name": "Add Group Dm User",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "nick": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/recipients/{user_id}",
+        "body_mapping": {
+          "access_token": "access_token",
+          "nick": "nick"
+        }
+      }
+    },
+    "add_guild_member": {
+      "display_name": "Add Guild Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "deaf": {
+            "type": "boolean"
+          },
+          "flags": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "mute": {
+            "type": "boolean"
+          },
+          "nick": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id",
+          "access_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "body_mapping": {
+          "access_token": "access_token",
+          "deaf": "deaf",
+          "flags": "flags",
+          "mute": "mute",
+          "nick": "nick",
+          "roles": "roles"
+        }
+      }
+    },
+    "add_guild_member_role": {
+      "display_name": "Add Guild Member Role",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id",
+          "role_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+      }
+    },
+    "add_lobby_member": {
+      "display_name": "Add Lobby Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "flags": {
+            "type": "string"
+          },
+          "lobby_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/lobbies/{lobby_id}/members/{user_id}",
+        "body_mapping": {
+          "flags": "flags",
+          "metadata": "metadata"
+        }
+      }
+    },
+    "add_my_message_reaction": {
+      "display_name": "Add My Message Reaction",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "emoji_name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+      }
+    },
+    "add_thread_member": {
+      "display_name": "Add Thread Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/thread-members/{user_id}"
+      }
+    },
+    "applications_get_activity_instance": {
+      "display_name": "Applications Get Activity Instance",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "instance_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/activity-instances/{instance_id}"
+      }
+    },
+    "ban_user_from_guild": {
+      "display_name": "Ban User From Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "delete_message_days": {
+            "type": "integer"
+          },
+          "delete_message_seconds": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/guilds/{guild_id}/bans/{user_id}",
+        "body_mapping": {
+          "delete_message_days": "delete_message_days",
+          "delete_message_seconds": "delete_message_seconds"
+        }
+      }
+    },
+    "bot_partner_sdk_token": {
+      "display_name": "Bot Partner Sdk Token",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "external_user_id": {
+            "type": "string"
+          },
+          "preferred_global_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "external_user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/partner-sdk/token/bot",
+        "body_mapping": {
+          "external_user_id": "external_user_id",
+          "preferred_global_name": "preferred_global_name"
+        }
+      }
+    },
+    "bot_partner_sdk_unmerge_provisional_account": {
+      "display_name": "Bot Partner Sdk Unmerge Provisional Account",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "external_user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "external_user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/partner-sdk/provisional-accounts/unmerge/bot",
+        "body_mapping": {
+          "external_user_id": "external_user_id"
+        }
+      }
+    },
+    "bulk_ban_users_from_guild": {
+      "display_name": "Bulk Ban Users From Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "delete_message_seconds": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "user_ids": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_ids"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/bulk-ban",
+        "body_mapping": {
+          "delete_message_seconds": "delete_message_seconds",
+          "user_ids": "user_ids"
+        }
+      }
+    },
+    "bulk_delete_messages": {
+      "display_name": "Bulk Delete Messages",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel_id",
+          "messages"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/bulk-delete",
+        "body_mapping": {
+          "messages": "messages"
+        }
+      }
+    },
+    "bulk_set_application_commands": {
+      "display_name": "Bulk Set Application Commands",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/applications/{application_id}/commands"
+      }
+    },
+    "bulk_set_guild_application_commands": {
+      "display_name": "Bulk Set Guild Application Commands",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands"
+      }
+    },
+    "bulk_update_guild_channels": {
+      "display_name": "Bulk Update Guild Channels",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/channels"
+      }
+    },
+    "bulk_update_guild_roles": {
+      "display_name": "Bulk Update Guild Roles",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/roles"
+      }
+    },
+    "bulk_update_lobby_members": {
+      "display_name": "Bulk Update Lobby Members",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/lobbies/{lobby_id}/members/bulk"
+      }
+    },
+    "consume_entitlement": {
+      "display_name": "Consume Entitlement",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "entitlement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "entitlement_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/applications/{application_id}/entitlements/{entitlement_id}/consume"
+      }
+    },
+    "create_application_command": {
+      "display_name": "Create Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "contexts": {
+            "type": "array"
+          },
+          "default_member_permissions": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_localizations": {
+            "type": "object"
+          },
+          "dm_permission": {
+            "type": "boolean"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "integration_types": {
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_localizations": {
+            "type": "object"
+          },
+          "options": {
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/applications/{application_id}/commands",
+        "body_mapping": {
+          "contexts": "contexts",
+          "default_member_permissions": "default_member_permissions",
+          "description": "description",
+          "description_localizations": "description_localizations",
+          "dm_permission": "dm_permission",
+          "handler": "handler",
+          "integration_types": "integration_types",
+          "name": "name",
+          "name_localizations": "name_localizations",
+          "options": "options",
+          "type": "type"
+        }
+      }
+    },
+    "create_application_emoji": {
+      "display_name": "Create Application Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "name",
+          "image"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/applications/{application_id}/emojis",
+        "body_mapping": {
+          "image": "image",
+          "name": "name"
+        }
+      }
+    },
+    "create_auto_moderation_rule": {
+      "display_name": "Create Auto Moderation Rule",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/auto-moderation/rules"
+      }
+    },
+    "create_dm": {
+      "display_name": "Create Dm",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "access_tokens": {
+            "type": "array"
+          },
+          "nicks": {
+            "type": "object"
+          },
+          "recipient_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/users/@me/channels",
+        "body_mapping": {
+          "access_tokens": "access_tokens",
+          "nicks": "nicks",
+          "recipient_id": "recipient_id"
+        }
+      }
+    },
+    "create_entitlement": {
+      "display_name": "Create Entitlement",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "owner_type": {
+            "type": "integer"
+          },
+          "sku_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "sku_id",
+          "owner_id",
+          "owner_type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/applications/{application_id}/entitlements",
+        "body_mapping": {
+          "owner_id": "owner_id",
+          "owner_type": "owner_type",
+          "sku_id": "sku_id"
+        }
+      }
+    },
+    "create_guild_application_command": {
+      "display_name": "Create Guild Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "contexts": {
+            "type": "array"
+          },
+          "default_member_permissions": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_localizations": {
+            "type": "object"
+          },
+          "dm_permission": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "integration_types": {
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_localizations": {
+            "type": "object"
+          },
+          "options": {
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands",
+        "body_mapping": {
+          "contexts": "contexts",
+          "default_member_permissions": "default_member_permissions",
+          "description": "description",
+          "description_localizations": "description_localizations",
+          "dm_permission": "dm_permission",
+          "handler": "handler",
+          "integration_types": "integration_types",
+          "name": "name",
+          "name_localizations": "name_localizations",
+          "options": "options",
+          "type": "type"
+        }
+      }
+    },
+    "create_guild_channel": {
+      "display_name": "Create Guild Channel",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "available_tags": {
+            "type": "array"
+          },
+          "bitrate": {
+            "type": "integer"
+          },
+          "default_auto_archive_duration": {
+            "type": "string"
+          },
+          "default_forum_layout": {
+            "type": "string"
+          },
+          "default_reaction_emoji": {
+            "type": "string"
+          },
+          "default_sort_order": {
+            "type": "string"
+          },
+          "default_tag_setting": {
+            "type": "string"
+          },
+          "default_thread_rate_limit_per_user": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nsfw": {
+            "type": "boolean"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "permission_overwrites": {
+            "type": "array"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "rate_limit_per_user": {
+            "type": "integer"
+          },
+          "rtc_region": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "user_limit": {
+            "type": "integer"
+          },
+          "video_quality_mode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/channels",
+        "body_mapping": {
+          "available_tags": "available_tags",
+          "bitrate": "bitrate",
+          "default_auto_archive_duration": "default_auto_archive_duration",
+          "default_forum_layout": "default_forum_layout",
+          "default_reaction_emoji": "default_reaction_emoji",
+          "default_sort_order": "default_sort_order",
+          "default_tag_setting": "default_tag_setting",
+          "default_thread_rate_limit_per_user": "default_thread_rate_limit_per_user",
+          "name": "name",
+          "nsfw": "nsfw",
+          "parent_id": "parent_id",
+          "permission_overwrites": "permission_overwrites",
+          "position": "position",
+          "rate_limit_per_user": "rate_limit_per_user",
+          "rtc_region": "rtc_region",
+          "topic": "topic",
+          "type": "type",
+          "user_limit": "user_limit",
+          "video_quality_mode": "video_quality_mode"
+        }
+      }
+    },
+    "create_guild_emoji": {
+      "display_name": "Create Guild Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "guild_id",
+          "name",
+          "image"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/emojis",
+        "body_mapping": {
+          "image": "image",
+          "name": "name",
+          "roles": "roles"
+        }
+      }
+    },
+    "create_guild_role": {
+      "display_name": "Create Guild Role",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "color": {
+            "type": "integer"
+          },
+          "colors": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "hoist": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "mentionable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "integer"
+          },
+          "unicode_emoji": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/roles",
+        "body_mapping": {
+          "color": "color",
+          "colors": "colors",
+          "hoist": "hoist",
+          "icon": "icon",
+          "mentionable": "mentionable",
+          "name": "name",
+          "permissions": "permissions",
+          "unicode_emoji": "unicode_emoji"
+        }
+      }
+    },
+    "create_guild_scheduled_event": {
+      "display_name": "Create Guild Scheduled Event",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/scheduled-events"
+      }
+    },
+    "create_guild_soundboard_sound": {
+      "display_name": "Create Guild Soundboard Sound",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "emoji_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sound": {
+            "type": "string"
+          },
+          "volume": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "guild_id",
+          "name",
+          "sound"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/soundboard-sounds",
+        "body_mapping": {
+          "emoji_id": "emoji_id",
+          "emoji_name": "emoji_name",
+          "name": "name",
+          "sound": "sound",
+          "volume": "volume"
+        }
+      }
+    },
+    "create_guild_template": {
+      "display_name": "Create Guild Template",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/templates",
+        "body_mapping": {
+          "description": "description",
+          "name": "name"
+        }
+      }
+    },
+    "create_linked_lobby_guild_invite_for_self": {
+      "display_name": "Create Linked Lobby Guild Invite For Self",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/lobbies/{lobby_id}/members/@me/invites"
+      }
+    },
+    "create_linked_lobby_guild_invite_for_user": {
+      "display_name": "Create Linked Lobby Guild Invite For User",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/lobbies/{lobby_id}/members/{user_id}/invites"
+      }
+    },
+    "create_lobby": {
+      "display_name": "Create Lobby",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "flags": {
+            "type": "string"
+          },
+          "idle_timeout_seconds": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "array"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "override_event_webhooks_url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/lobbies",
+        "body_mapping": {
+          "flags": "flags",
+          "idle_timeout_seconds": "idle_timeout_seconds",
+          "members": "members",
+          "metadata": "metadata",
+          "override_event_webhooks_url": "override_event_webhooks_url"
+        }
+      }
+    },
+    "create_or_join_lobby": {
+      "display_name": "Create Or Join Lobby",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "flags": {
+            "type": "string"
+          },
+          "idle_timeout_seconds": {
+            "type": "integer"
+          },
+          "lobby_metadata": {
+            "type": "object"
+          },
+          "member_metadata": {
+            "type": "object"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/lobbies",
+        "body_mapping": {
+          "flags": "flags",
+          "idle_timeout_seconds": "idle_timeout_seconds",
+          "lobby_metadata": "lobby_metadata",
+          "member_metadata": "member_metadata",
+          "secret": "secret"
+        }
+      }
+    },
+    "create_pin": {
+      "display_name": "Create Pin",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/messages/pins/{message_id}"
+      }
+    },
+    "create_stage_instance": {
+      "display_name": "Create Stage Instance",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          },
+          "privacy_level": {
+            "type": "string"
+          },
+          "send_start_notification": {
+            "type": "boolean"
+          },
+          "topic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/stage-instances",
+        "body_mapping": {
+          "channel_id": "channel_id",
+          "guild_scheduled_event_id": "guild_scheduled_event_id",
+          "privacy_level": "privacy_level",
+          "send_start_notification": "send_start_notification",
+          "topic": "topic"
+        }
+      }
+    },
+    "create_thread_from_message": {
+      "display_name": "Create Thread From Message",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "auto_archive_duration": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rate_limit_per_user": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/{message_id}/threads",
+        "body_mapping": {
+          "auto_archive_duration": "auto_archive_duration",
+          "name": "name",
+          "rate_limit_per_user": "rate_limit_per_user"
+        }
+      }
+    },
+    "create_webhook": {
+      "display_name": "Create Webhook",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/webhooks",
+        "body_mapping": {
+          "avatar": "avatar",
+          "name": "name"
+        }
+      }
+    },
+    "crosspost_message": {
+      "display_name": "Crosspost Message",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
+      }
+    },
+    "delete_all_message_reactions": {
+      "display_name": "Delete All Message Reactions",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions"
+      }
+    },
+    "delete_all_message_reactions_by_emoji": {
+      "display_name": "Delete All Message Reactions By Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "emoji_name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}"
+      }
+    },
+    "delete_application_command": {
+      "display_name": "Delete Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/applications/{application_id}/commands/{command_id}"
+      }
+    },
+    "delete_application_emoji": {
+      "display_name": "Delete Application Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "emoji_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/applications/{application_id}/emojis/{emoji_id}"
+      }
+    },
+    "delete_application_user_role_connection": {
+      "display_name": "Delete Application User Role Connection",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/users/@me/applications/{application_id}/role-connection"
+      }
+    },
+    "delete_auto_moderation_rule": {
+      "display_name": "Delete Auto Moderation Rule",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "rule_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}"
+      }
+    },
+    "delete_channel": {
+      "display_name": "Delete Channel",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}"
+      }
+    },
+    "delete_channel_permission_overwrite": {
+      "display_name": "Delete Channel Permission Overwrite",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "overwrite_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "overwrite_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/permissions/{overwrite_id}"
+      }
+    },
+    "delete_entitlement": {
+      "display_name": "Delete Entitlement",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "entitlement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "entitlement_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/applications/{application_id}/entitlements/{entitlement_id}"
+      }
+    },
+    "delete_group_dm_user": {
+      "display_name": "Delete Group Dm User",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/recipients/{user_id}"
+      }
+    },
+    "delete_guild_application_command": {
+      "display_name": "Delete Guild Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}"
+      }
+    },
+    "delete_guild_emoji": {
+      "display_name": "Delete Guild Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "emoji_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/emojis/{emoji_id}"
+      }
+    },
+    "delete_guild_integration": {
+      "display_name": "Delete Guild Integration",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "integration_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "integration_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/integrations/{integration_id}"
+      }
+    },
+    "delete_guild_member": {
+      "display_name": "Delete Guild Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/members/{user_id}"
+      }
+    },
+    "delete_guild_member_role": {
+      "display_name": "Delete Guild Member Role",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id",
+          "role_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+      }
+    },
+    "delete_guild_role": {
+      "display_name": "Delete Guild Role",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "role_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      }
+    },
+    "delete_guild_scheduled_event": {
+      "display_name": "Delete Guild Scheduled Event",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "guild_scheduled_event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}"
+      }
+    },
+    "delete_guild_soundboard_sound": {
+      "display_name": "Delete Guild Soundboard Sound",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "sound_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sound_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}"
+      }
+    },
+    "delete_guild_sticker": {
+      "display_name": "Delete Guild Sticker",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "sticker_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sticker_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/stickers/{sticker_id}"
+      }
+    },
+    "delete_guild_template": {
+      "display_name": "Delete Guild Template",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/templates/{code}"
+      }
+    },
+    "delete_lobby_member": {
+      "display_name": "Delete Lobby Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/lobbies/{lobby_id}/members/{user_id}"
+      }
+    },
+    "delete_message": {
+      "display_name": "Delete Message",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/{message_id}"
+      }
+    },
+    "delete_my_message_reaction": {
+      "display_name": "Delete My Message Reaction",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "emoji_name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+      }
+    },
+    "delete_original_webhook_message": {
+      "display_name": "Delete Original Webhook Message",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "thread_id": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/webhooks/{webhook_id}/{webhook_token}/messages/@original",
+        "query_mapping": {
+          "thread_id": "thread_id"
+        }
+      }
+    },
+    "delete_pin": {
+      "display_name": "Delete Pin",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/pins/{message_id}"
+      }
+    },
+    "delete_stage_instance": {
+      "display_name": "Delete Stage Instance",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/stage-instances/{channel_id}"
+      }
+    },
+    "delete_thread_member": {
+      "display_name": "Delete Thread Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/thread-members/{user_id}"
+      }
+    },
+    "delete_user_message_reaction": {
+      "display_name": "Delete User Message Reaction",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "emoji_name",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/{user_id}"
+      }
+    },
+    "delete_webhook": {
+      "display_name": "Delete Webhook",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/webhooks/{webhook_id}"
+      }
+    },
+    "delete_webhook_by_token": {
+      "display_name": "Delete Webhook By Token",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/webhooks/{webhook_id}/{webhook_token}"
+      }
+    },
+    "delete_webhook_message": {
+      "display_name": "Delete Webhook Message",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "message_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}",
+        "query_mapping": {
+          "thread_id": "thread_id"
+        }
+      }
+    },
+    "deprecated_create_pin": {
+      "display_name": "Deprecated Create Pin",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/pins/{message_id}"
+      }
+    },
+    "deprecated_delete_pin": {
+      "display_name": "Deprecated Delete Pin",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/pins/{message_id}"
+      }
+    },
+    "deprecated_list_pins": {
+      "display_name": "Deprecated List Pins",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/pins"
+      }
+    },
+    "edit_lobby": {
+      "display_name": "Edit Lobby",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "flags": {
+            "type": "string"
+          },
+          "idle_timeout_seconds": {
+            "type": "integer"
+          },
+          "lobby_id": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "override_event_webhooks_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/lobbies/{lobby_id}",
+        "body_mapping": {
+          "flags": "flags",
+          "idle_timeout_seconds": "idle_timeout_seconds",
+          "members": "members",
+          "metadata": "metadata",
+          "override_event_webhooks_url": "override_event_webhooks_url"
+        }
+      }
+    },
+    "edit_lobby_channel_link": {
+      "display_name": "Edit Lobby Channel Link",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/lobbies/{lobby_id}/channel-linking",
+        "body_mapping": {
+          "channel_id": "channel_id"
+        }
+      }
+    },
+    "execute_github_compatible_webhook": {
+      "display_name": "Execute Github Compatible Webhook",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "check_run": {
+            "type": "string"
+          },
+          "check_suite": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "commits": {
+            "type": "array"
+          },
+          "compare": {
+            "type": "string"
+          },
+          "discussion": {
+            "type": "string"
+          },
+          "forced": {
+            "type": "boolean"
+          },
+          "forkee": {
+            "type": "string"
+          },
+          "head_commit": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "member": {
+            "type": "string"
+          },
+          "pull_request": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "ref_type": {
+            "type": "string"
+          },
+          "release": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "review": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "object"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "wait": {
+            "type": "boolean"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token",
+          "sender"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/webhooks/{webhook_id}/{webhook_token}/github",
+        "body_mapping": {
+          "action": "action",
+          "answer": "answer",
+          "check_run": "check_run",
+          "check_suite": "check_suite",
+          "comment": "comment",
+          "commits": "commits",
+          "compare": "compare",
+          "discussion": "discussion",
+          "forced": "forced",
+          "forkee": "forkee",
+          "head_commit": "head_commit",
+          "issue": "issue",
+          "member": "member",
+          "pull_request": "pull_request",
+          "ref": "ref",
+          "ref_type": "ref_type",
+          "release": "release",
+          "repository": "repository",
+          "review": "review",
+          "sender": "sender"
+        },
+        "query_mapping": {
+          "thread_id": "thread_id",
+          "wait": "wait"
+        }
+      }
+    },
+    "follow_channel": {
+      "display_name": "Follow Channel",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "webhook_channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "webhook_channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/followers",
+        "body_mapping": {
+          "webhook_channel_id": "webhook_channel_id"
+        }
+      }
+    },
+    "get_active_guild_threads": {
+      "display_name": "Get Active Guild Threads",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/threads/active"
+      }
+    },
+    "get_answer_voters": {
+      "display_name": "Get Answer Voters",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "answer_id": {
+            "type": "integer"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "answer_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/polls/{message_id}/answers/{answer_id}",
+        "query_mapping": {
+          "after": "after",
+          "limit": "limit"
+        }
+      }
+    },
+    "get_application": {
+      "display_name": "Get Application",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}"
+      }
+    },
+    "get_application_command": {
+      "display_name": "Get Application Command",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/commands/{command_id}"
+      }
+    },
+    "get_application_emoji": {
+      "display_name": "Get Application Emoji",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "emoji_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/emojis/{emoji_id}"
+      }
+    },
+    "get_application_role_connections_metadata": {
+      "display_name": "Get Application Role Connections Metadata",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/role-connections/metadata"
+      }
+    },
+    "get_application_user_role_connection": {
+      "display_name": "Get Application User Role Connection",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me/applications/{application_id}/role-connection"
+      }
+    },
+    "get_auto_moderation_rule": {
+      "display_name": "Get Auto Moderation Rule",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "rule_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}"
+      }
+    },
+    "get_bot_gateway": {
+      "display_name": "Get Bot Gateway",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/gateway/bot"
+      }
+    },
+    "get_channel": {
+      "display_name": "Get Channel",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}"
+      }
+    },
+    "get_current_user_application_entitlements": {
+      "display_name": "Get Current User Application Entitlements",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "exclude_consumed": {
+            "type": "boolean"
+          },
+          "sku_ids": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me/applications/{application_id}/entitlements",
+        "query_mapping": {
+          "exclude_consumed": "exclude_consumed",
+          "sku_ids": "sku_ids"
+        }
+      }
+    },
+    "get_entitlement": {
+      "display_name": "Get Entitlement",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "entitlement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "entitlement_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/entitlements/{entitlement_id}"
+      }
+    },
+    "get_entitlements": {
+      "display_name": "Get Entitlements",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "application_id": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "exclude_deleted": {
+            "type": "boolean"
+          },
+          "exclude_ended": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "only_active": {
+            "type": "boolean"
+          },
+          "sku_ids": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/entitlements",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "exclude_deleted": "exclude_deleted",
+          "exclude_ended": "exclude_ended",
+          "guild_id": "guild_id",
+          "limit": "limit",
+          "only_active": "only_active",
+          "sku_ids": "sku_ids",
+          "user_id": "user_id"
+        }
+      }
+    },
+    "get_gateway": {
+      "display_name": "Get Gateway",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/gateway"
+      }
+    },
+    "get_guild": {
+      "display_name": "Get Guild",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "with_counts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}",
+        "query_mapping": {
+          "with_counts": "with_counts"
+        }
+      }
+    },
+    "get_guild_application_command": {
+      "display_name": "Get Guild Application Command",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}"
+      }
+    },
+    "get_guild_application_command_permissions": {
+      "display_name": "Get Guild Application Command Permissions",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions"
+      }
+    },
+    "get_guild_ban": {
+      "display_name": "Get Guild Ban",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/bans/{user_id}"
+      }
+    },
+    "get_guild_emoji": {
+      "display_name": "Get Guild Emoji",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "emoji_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/emojis/{emoji_id}"
+      }
+    },
+    "get_guild_member": {
+      "display_name": "Get Guild Member",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/members/{user_id}"
+      }
+    },
+    "get_guild_new_member_welcome": {
+      "display_name": "Get Guild New Member Welcome",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/new-member-welcome"
+      }
+    },
+    "get_guild_preview": {
+      "display_name": "Get Guild Preview",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/preview"
+      }
+    },
+    "get_guild_role": {
+      "display_name": "Get Guild Role",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "role_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      }
+    },
+    "get_guild_scheduled_event": {
+      "display_name": "Get Guild Scheduled Event",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          },
+          "with_user_count": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "guild_id",
+          "guild_scheduled_event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
+        "query_mapping": {
+          "with_user_count": "with_user_count"
+        }
+      }
+    },
+    "get_guild_soundboard_sound": {
+      "display_name": "Get Guild Soundboard Sound",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "sound_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sound_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}"
+      }
+    },
+    "get_guild_sticker": {
+      "display_name": "Get Guild Sticker",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "sticker_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sticker_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/stickers/{sticker_id}"
+      }
+    },
+    "get_guild_template": {
+      "display_name": "Get Guild Template",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/templates/{code}"
+      }
+    },
+    "get_guild_vanity_url": {
+      "display_name": "Get Guild Vanity Url",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/vanity-url"
+      }
+    },
+    "get_guild_webhooks": {
+      "display_name": "Get Guild Webhooks",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/webhooks"
+      }
+    },
+    "get_guild_welcome_screen": {
+      "display_name": "Get Guild Welcome Screen",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/welcome-screen"
+      }
+    },
+    "get_guild_widget": {
+      "display_name": "Get Guild Widget",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/widget.json"
+      }
+    },
+    "get_guild_widget_png": {
+      "display_name": "Get Guild Widget Png",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "style": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/widget.png",
+        "query_mapping": {
+          "style": "style"
+        }
+      }
+    },
+    "get_guild_widget_settings": {
+      "display_name": "Get Guild Widget Settings",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/widget"
+      }
+    },
+    "get_guilds_onboarding": {
+      "display_name": "Get Guilds Onboarding",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/onboarding"
+      }
+    },
+    "get_invite_target_users": {
+      "display_name": "Get Invite Target Users",
+      "description": "Get the target users for an invite.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/invites/{code}/target-users"
+      }
+    },
+    "get_invite_target_users_job_status": {
+      "display_name": "Get Invite Target Users Job Status",
+      "description": "Get the target users job status for an invite.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/invites/{code}/target-users/job-status"
+      }
+    },
+    "get_lobby": {
+      "display_name": "Get Lobby",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/lobbies/{lobby_id}"
+      }
+    },
+    "get_lobby_messages": {
+      "display_name": "Get Lobby Messages",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/lobbies/{lobby_id}/messages",
+        "query_mapping": {
+          "limit": "limit"
+        }
+      }
+    },
+    "get_message": {
+      "display_name": "Get Message",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/messages/{message_id}"
+      }
+    },
+    "get_my_application": {
+      "display_name": "Get My Application",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/@me"
+      }
+    },
+    "get_my_guild_member": {
+      "display_name": "Get My Guild Member",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me/guilds/{guild_id}/member"
+      }
+    },
+    "get_my_oauth2_application": {
+      "display_name": "Get My Oauth2 Application",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/oauth2/applications/@me"
+      }
+    },
+    "get_my_oauth2_authorization": {
+      "display_name": "Get My Oauth2 Authorization",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/oauth2/@me"
+      }
+    },
+    "get_my_user": {
+      "display_name": "Get My User",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me"
+      }
+    },
+    "get_openid_connect_userinfo": {
+      "display_name": "Get Openid Connect Userinfo",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/oauth2/userinfo"
+      }
+    },
+    "get_original_webhook_message": {
+      "display_name": "Get Original Webhook Message",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "thread_id": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/webhooks/{webhook_id}/{webhook_token}/messages/@original",
+        "query_mapping": {
+          "thread_id": "thread_id"
+        }
+      }
+    },
+    "get_public_keys": {
+      "display_name": "Get Public Keys",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/oauth2/keys"
+      }
+    },
+    "get_self_voice_state": {
+      "display_name": "Get Self Voice State",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/voice-states/@me"
+      }
+    },
+    "get_soundboard_default_sounds": {
+      "display_name": "Get Soundboard Default Sounds",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/soundboard-default-sounds"
+      }
+    },
+    "get_stage_instance": {
+      "display_name": "Get Stage Instance",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/stage-instances/{channel_id}"
+      }
+    },
+    "get_sticker": {
+      "display_name": "Get Sticker",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "sticker_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sticker_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/stickers/{sticker_id}"
+      }
+    },
+    "get_sticker_pack": {
+      "display_name": "Get Sticker Pack",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pack_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pack_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/sticker-packs/{pack_id}"
+      }
+    },
+    "get_thread_member": {
+      "display_name": "Get Thread Member",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "with_member": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/thread-members/{user_id}",
+        "query_mapping": {
+          "with_member": "with_member"
+        }
+      }
+    },
+    "get_user": {
+      "display_name": "Get User",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/{user_id}"
+      }
+    },
+    "get_voice_state": {
+      "display_name": "Get Voice State",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/voice-states/{user_id}"
+      }
+    },
+    "get_webhook": {
+      "display_name": "Get Webhook",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/webhooks/{webhook_id}"
+      }
+    },
+    "get_webhook_by_token": {
+      "display_name": "Get Webhook By Token",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/webhooks/{webhook_id}/{webhook_token}"
+      }
+    },
+    "get_webhook_message": {
+      "display_name": "Get Webhook Message",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "message_id": {
+            "type": "string"
+          },
+          "thread_id": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}",
+        "query_mapping": {
+          "thread_id": "thread_id"
+        }
+      }
+    },
+    "guild_role_member_counts": {
+      "display_name": "Guild Role Member Counts",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/roles/member-counts"
+      }
+    },
+    "invite_resolve": {
+      "display_name": "Invite Resolve",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          },
+          "with_counts": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/invites/{code}",
+        "query_mapping": {
+          "guild_scheduled_event_id": "guild_scheduled_event_id",
+          "with_counts": "with_counts"
+        }
+      }
+    },
+    "invite_revoke": {
+      "display_name": "Invite Revoke",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/invites/{code}"
+      }
+    },
+    "join_thread": {
+      "display_name": "Join Thread",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/thread-members/@me"
+      }
+    },
+    "leave_guild": {
+      "display_name": "Leave Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/users/@me/guilds/{guild_id}"
+      }
+    },
+    "leave_lobby": {
+      "display_name": "Leave Lobby",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "lobby_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lobby_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/lobbies/{lobby_id}/members/@me"
+      }
+    },
+    "leave_thread": {
+      "display_name": "Leave Thread",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/channels/{channel_id}/thread-members/@me"
+      }
+    },
+    "list_application_commands": {
+      "display_name": "List Application Commands",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "with_localizations": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/commands",
+        "query_mapping": {
+          "with_localizations": "with_localizations"
+        }
+      }
+    },
+    "list_application_emojis": {
+      "display_name": "List Application Emojis",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/emojis",
+        "response_path": "items"
+      }
+    },
+    "list_auto_moderation_rules": {
+      "display_name": "List Auto Moderation Rules",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/auto-moderation/rules"
+      }
+    },
+    "list_channel_invites": {
+      "display_name": "List Channel Invites",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/invites"
+      }
+    },
+    "list_channel_webhooks": {
+      "display_name": "List Channel Webhooks",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/webhooks"
+      }
+    },
+    "list_guild_application_command_permissions": {
+      "display_name": "List Guild Application Command Permissions",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/permissions"
+      }
+    },
+    "list_guild_application_commands": {
+      "display_name": "List Guild Application Commands",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "with_localizations": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands",
+        "query_mapping": {
+          "with_localizations": "with_localizations"
+        }
+      }
+    },
+    "list_guild_audit_log_entries": {
+      "display_name": "List Guild Audit Log Entries",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action_type": {
+            "type": "integer"
+          },
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/audit-logs",
+        "query_mapping": {
+          "action_type": "action_type",
+          "after": "after",
+          "before": "before",
+          "limit": "limit",
+          "target_id": "target_id",
+          "user_id": "user_id"
+        }
+      }
+    },
+    "list_guild_bans": {
+      "display_name": "List Guild Bans",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/bans",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_guild_channels": {
+      "display_name": "List Guild Channels",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/channels"
+      }
+    },
+    "list_guild_emojis": {
+      "display_name": "List Guild Emojis",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/emojis"
+      }
+    },
+    "list_guild_integrations": {
+      "display_name": "List Guild Integrations",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/integrations"
+      }
+    },
+    "list_guild_invites": {
+      "display_name": "List Guild Invites",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/invites"
+      }
+    },
+    "list_guild_members": {
+      "display_name": "List Guild Members",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/members",
+        "query_mapping": {
+          "after": "after",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_guild_roles": {
+      "display_name": "List Guild Roles",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/roles"
+      }
+    },
+    "list_guild_scheduled_event_users": {
+      "display_name": "List Guild Scheduled Event Users",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "with_member": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "guild_id",
+          "guild_scheduled_event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "limit": "limit",
+          "with_member": "with_member"
+        }
+      }
+    },
+    "list_guild_scheduled_events": {
+      "display_name": "List Guild Scheduled Events",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "with_user_count": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/scheduled-events",
+        "query_mapping": {
+          "with_user_count": "with_user_count"
+        }
+      }
+    },
+    "list_guild_soundboard_sounds": {
+      "display_name": "List Guild Soundboard Sounds",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/soundboard-sounds",
+        "response_path": "items"
+      }
+    },
+    "list_guild_stickers": {
+      "display_name": "List Guild Stickers",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/stickers"
+      }
+    },
+    "list_guild_templates": {
+      "display_name": "List Guild Templates",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/templates"
+      }
+    },
+    "list_guild_voice_regions": {
+      "display_name": "List Guild Voice Regions",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/regions"
+      }
+    },
+    "list_message_reactions_by_emoji": {
+      "display_name": "List Message Reactions By Emoji",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id",
+          "emoji_name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}",
+        "query_mapping": {
+          "after": "after",
+          "limit": "limit",
+          "type": "type"
+        }
+      }
+    },
+    "list_messages": {
+      "display_name": "List Messages",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "around": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/messages",
+        "query_mapping": {
+          "after": "after",
+          "around": "around",
+          "before": "before",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_my_connections": {
+      "display_name": "List My Connections",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me/connections"
+      }
+    },
+    "list_my_guilds": {
+      "display_name": "List My Guilds",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "with_counts": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/users/@me/guilds",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "limit": "limit",
+          "with_counts": "with_counts"
+        }
+      }
+    },
+    "list_my_private_archived_threads": {
+      "display_name": "List My Private Archived Threads",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/users/@me/threads/archived/private",
+        "query_mapping": {
+          "before": "before",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_pins": {
+      "display_name": "List Pins",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/messages/pins",
+        "query_mapping": {
+          "before": "before",
+          "limit": "limit"
+        },
+        "response_path": "items"
+      }
+    },
+    "list_private_archived_threads": {
+      "display_name": "List Private Archived Threads",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/threads/archived/private",
+        "query_mapping": {
+          "before": "before",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_public_archived_threads": {
+      "display_name": "List Public Archived Threads",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "before": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/threads/archived/public",
+        "query_mapping": {
+          "before": "before",
+          "limit": "limit"
+        }
+      }
+    },
+    "list_sticker_packs": {
+      "display_name": "List Sticker Packs",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/sticker-packs"
+      }
+    },
+    "list_thread_members": {
+      "display_name": "List Thread Members",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "with_member": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/thread-members",
+        "query_mapping": {
+          "after": "after",
+          "limit": "limit",
+          "with_member": "with_member"
+        }
+      }
+    },
+    "list_voice_regions": {
+      "display_name": "List Voice Regions",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/voice/regions"
+      }
+    },
+    "partner_sdk_token": {
+      "display_name": "Partner Sdk Token",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "external_auth_token": {
+            "type": "string"
+          },
+          "external_auth_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "external_auth_token",
+          "external_auth_type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/partner-sdk/token",
+        "body_mapping": {
+          "client_id": "client_id",
+          "client_secret": "client_secret",
+          "external_auth_token": "external_auth_token",
+          "external_auth_type": "external_auth_type"
+        }
+      }
+    },
+    "partner_sdk_unmerge_provisional_account": {
+      "display_name": "Partner Sdk Unmerge Provisional Account",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "external_auth_token": {
+            "type": "string"
+          },
+          "external_auth_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "external_auth_token",
+          "external_auth_type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/partner-sdk/provisional-accounts/unmerge",
+        "body_mapping": {
+          "client_id": "client_id",
+          "client_secret": "client_secret",
+          "external_auth_token": "external_auth_token",
+          "external_auth_type": "external_auth_type"
+        }
+      }
+    },
+    "poll_expire": {
+      "display_name": "Poll Expire",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "message_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/polls/{message_id}/expire"
+      }
+    },
+    "preview_prune_guild": {
+      "display_name": "Preview Prune Guild",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "include_roles": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/prune",
+        "query_mapping": {
+          "days": "days",
+          "include_roles": "include_roles"
+        }
+      }
+    },
+    "prune_guild": {
+      "display_name": "Prune Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "compute_prune_count": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "include_roles": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/guilds/{guild_id}/prune",
+        "body_mapping": {
+          "compute_prune_count": "compute_prune_count",
+          "days": "days",
+          "include_roles": "include_roles"
+        }
+      }
+    },
+    "put_guilds_onboarding": {
+      "display_name": "Put Guilds Onboarding",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "default_channel_ids": {
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "prompts": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/guilds/{guild_id}/onboarding",
+        "body_mapping": {
+          "default_channel_ids": "default_channel_ids",
+          "enabled": "enabled",
+          "mode": "mode",
+          "prompts": "prompts"
+        }
+      }
+    },
+    "search_guild_members": {
+      "display_name": "Search Guild Members",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/members/search",
+        "query_mapping": {
+          "limit": "limit",
+          "query": "query"
+        }
+      }
+    },
+    "send_soundboard_sound": {
+      "display_name": "Send Soundboard Sound",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "sound_id": {
+            "type": "string"
+          },
+          "source_guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "sound_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/send-soundboard-sound",
+        "body_mapping": {
+          "sound_id": "sound_id",
+          "source_guild_id": "source_guild_id"
+        }
+      }
+    },
+    "set_channel_permission_overwrite": {
+      "display_name": "Set Channel Permission Overwrite",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "allow": {
+            "type": "integer"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "deny": {
+            "type": "integer"
+          },
+          "overwrite_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id",
+          "overwrite_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/channels/{channel_id}/permissions/{overwrite_id}",
+        "body_mapping": {
+          "allow": "allow",
+          "deny": "deny",
+          "type": "type"
+        }
+      }
+    },
+    "set_guild_application_command_permissions": {
+      "display_name": "Set Guild Application Command Permissions",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions",
+        "body_mapping": {
+          "permissions": "permissions"
+        }
+      }
+    },
+    "sync_guild_template": {
+      "display_name": "Sync Guild Template",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/guilds/{guild_id}/templates/{code}"
+      }
+    },
+    "thread_search": {
+      "display_name": "Thread Search",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "max_id": {
+            "type": "string"
+          },
+          "min_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "slop": {
+            "type": "integer"
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "tag_setting": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/channels/{channel_id}/threads/search",
+        "query_mapping": {
+          "archived": "archived",
+          "limit": "limit",
+          "max_id": "max_id",
+          "min_id": "min_id",
+          "name": "name",
+          "offset": "offset",
+          "slop": "slop",
+          "sort_by": "sort_by",
+          "sort_order": "sort_order",
+          "tag": "tag",
+          "tag_setting": "tag_setting"
+        }
+      }
+    },
+    "trigger_typing_indicator": {
+      "display_name": "Trigger Typing Indicator",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/channels/{channel_id}/typing"
+      }
+    },
+    "unban_user_from_guild": {
+      "display_name": "Unban User From Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/bans/{user_id}"
+      }
+    },
+    "update_application": {
+      "display_name": "Update Application",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "cover_image": {
+            "type": "string"
+          },
+          "custom_install_url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object"
+          },
+          "explicit_content_filter": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "integer"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "install_params": {
+            "type": "string"
+          },
+          "integration_types_config": {
+            "type": "object"
+          },
+          "interactions_endpoint_url": {
+            "type": "string"
+          },
+          "max_participants": {
+            "type": "integer"
+          },
+          "role_connections_verification_url": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/applications/{application_id}",
+        "body_mapping": {
+          "cover_image": "cover_image",
+          "custom_install_url": "custom_install_url",
+          "description": "description",
+          "explicit_content_filter": "explicit_content_filter",
+          "flags": "flags",
+          "icon": "icon",
+          "install_params": "install_params",
+          "integration_types_config": "integration_types_config",
+          "interactions_endpoint_url": "interactions_endpoint_url",
+          "max_participants": "max_participants",
+          "role_connections_verification_url": "role_connections_verification_url",
+          "tags": "tags",
+          "team_id": "team_id",
+          "type": "type"
+        }
+      }
+    },
+    "update_application_command": {
+      "display_name": "Update Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "contexts": {
+            "type": "array"
+          },
+          "default_member_permissions": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_localizations": {
+            "type": "object"
+          },
+          "dm_permission": {
+            "type": "boolean"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "integration_types": {
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_localizations": {
+            "type": "object"
+          },
+          "options": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "application_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/applications/{application_id}/commands/{command_id}",
+        "body_mapping": {
+          "contexts": "contexts",
+          "default_member_permissions": "default_member_permissions",
+          "description": "description",
+          "description_localizations": "description_localizations",
+          "dm_permission": "dm_permission",
+          "handler": "handler",
+          "integration_types": "integration_types",
+          "name": "name",
+          "name_localizations": "name_localizations",
+          "options": "options"
+        }
+      }
+    },
+    "update_application_emoji": {
+      "display_name": "Update Application Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "emoji_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/applications/{application_id}/emojis/{emoji_id}",
+        "body_mapping": {
+          "name": "name"
+        }
+      }
+    },
+    "update_application_role_connections_metadata": {
+      "display_name": "Update Application Role Connections Metadata",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/applications/{application_id}/role-connections/metadata"
+      }
+    },
+    "update_application_user_role_connection": {
+      "display_name": "Update Application User Role Connection",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "platform_name": {
+            "type": "string"
+          },
+          "platform_username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/users/@me/applications/{application_id}/role-connection",
+        "body_mapping": {
+          "metadata": "metadata",
+          "platform_name": "platform_name",
+          "platform_username": "platform_username"
+        }
+      }
+    },
+    "update_auto_moderation_rule": {
+      "display_name": "Update Auto Moderation Rule",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "rule_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "rule_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}"
+      }
+    },
+    "update_channel": {
+      "display_name": "Update Channel",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/channels/{channel_id}"
+      }
+    },
+    "update_guild": {
+      "display_name": "Update Guild",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "afk_channel_id": {
+            "type": "string"
+          },
+          "afk_timeout": {
+            "type": "string"
+          },
+          "banner": {
+            "type": "string"
+          },
+          "default_message_notifications": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "discovery_splash": {
+            "type": "string"
+          },
+          "explicit_content_filter": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "home_header": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preferred_locale": {
+            "type": "string"
+          },
+          "premium_progress_bar_enabled": {
+            "type": "boolean"
+          },
+          "public_updates_channel_id": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "rules_channel_id": {
+            "type": "string"
+          },
+          "safety_alerts_channel_id": {
+            "type": "string"
+          },
+          "splash": {
+            "type": "string"
+          },
+          "system_channel_flags": {
+            "type": "integer"
+          },
+          "system_channel_id": {
+            "type": "string"
+          },
+          "verification_level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}",
+        "body_mapping": {
+          "afk_channel_id": "afk_channel_id",
+          "afk_timeout": "afk_timeout",
+          "banner": "banner",
+          "default_message_notifications": "default_message_notifications",
+          "description": "description",
+          "discovery_splash": "discovery_splash",
+          "explicit_content_filter": "explicit_content_filter",
+          "features": "features",
+          "home_header": "home_header",
+          "icon": "icon",
+          "name": "name",
+          "preferred_locale": "preferred_locale",
+          "premium_progress_bar_enabled": "premium_progress_bar_enabled",
+          "public_updates_channel_id": "public_updates_channel_id",
+          "region": "region",
+          "rules_channel_id": "rules_channel_id",
+          "safety_alerts_channel_id": "safety_alerts_channel_id",
+          "splash": "splash",
+          "system_channel_flags": "system_channel_flags",
+          "system_channel_id": "system_channel_id",
+          "verification_level": "verification_level"
+        }
+      }
+    },
+    "update_guild_application_command": {
+      "display_name": "Update Guild Application Command",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "application_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string"
+          },
+          "contexts": {
+            "type": "array"
+          },
+          "default_member_permissions": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_localizations": {
+            "type": "object"
+          },
+          "dm_permission": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "integration_types": {
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_localizations": {
+            "type": "object"
+          },
+          "options": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "application_id",
+          "guild_id",
+          "command_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}",
+        "body_mapping": {
+          "contexts": "contexts",
+          "default_member_permissions": "default_member_permissions",
+          "description": "description",
+          "description_localizations": "description_localizations",
+          "dm_permission": "dm_permission",
+          "handler": "handler",
+          "integration_types": "integration_types",
+          "name": "name",
+          "name_localizations": "name_localizations",
+          "options": "options"
+        }
+      }
+    },
+    "update_guild_emoji": {
+      "display_name": "Update Guild Emoji",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "emoji_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "guild_id",
+          "emoji_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+        "body_mapping": {
+          "name": "name",
+          "roles": "roles"
+        }
+      }
+    },
+    "update_guild_member": {
+      "display_name": "Update Guild Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "communication_disabled_until": {
+            "type": "string"
+          },
+          "deaf": {
+            "type": "boolean"
+          },
+          "flags": {
+            "type": "integer"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "mute": {
+            "type": "boolean"
+          },
+          "nick": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "body_mapping": {
+          "channel_id": "channel_id",
+          "communication_disabled_until": "communication_disabled_until",
+          "deaf": "deaf",
+          "flags": "flags",
+          "mute": "mute",
+          "nick": "nick",
+          "roles": "roles"
+        }
+      }
+    },
+    "update_guild_role": {
+      "display_name": "Update Guild Role",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "color": {
+            "type": "integer"
+          },
+          "colors": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "hoist": {
+            "type": "boolean"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "mentionable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "integer"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "unicode_emoji": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "role_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/roles/{role_id}",
+        "body_mapping": {
+          "color": "color",
+          "colors": "colors",
+          "hoist": "hoist",
+          "icon": "icon",
+          "mentionable": "mentionable",
+          "name": "name",
+          "permissions": "permissions",
+          "unicode_emoji": "unicode_emoji"
+        }
+      }
+    },
+    "update_guild_scheduled_event": {
+      "display_name": "Update Guild Scheduled Event",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "guild_id": {
+            "type": "string"
+          },
+          "guild_scheduled_event_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "guild_scheduled_event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}"
+      }
+    },
+    "update_guild_soundboard_sound": {
+      "display_name": "Update Guild Soundboard Sound",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "emoji_id": {
+            "type": "string"
+          },
+          "emoji_name": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sound_id": {
+            "type": "string"
+          },
+          "volume": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sound_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+        "body_mapping": {
+          "emoji_id": "emoji_id",
+          "emoji_name": "emoji_name",
+          "name": "name",
+          "volume": "volume"
+        }
+      }
+    },
+    "update_guild_sticker": {
+      "display_name": "Update Guild Sticker",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sticker_id": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "sticker_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+        "body_mapping": {
+          "description": "description",
+          "name": "name",
+          "tags": "tags"
+        }
+      }
+    },
+    "update_guild_template": {
+      "display_name": "Update Guild Template",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "code"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/templates/{code}",
+        "body_mapping": {
+          "description": "description",
+          "name": "name"
+        }
+      }
+    },
+    "update_guild_welcome_screen": {
+      "display_name": "Update Guild Welcome Screen",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "welcome_channels": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/welcome-screen",
+        "body_mapping": {
+          "description": "description",
+          "enabled": "enabled",
+          "welcome_channels": "welcome_channels"
+        }
+      }
+    },
+    "update_guild_widget_settings": {
+      "display_name": "Update Guild Widget Settings",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "guild_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/widget",
+        "body_mapping": {
+          "channel_id": "channel_id",
+          "enabled": "enabled"
+        }
+      }
+    },
+    "update_my_application": {
+      "display_name": "Update My Application",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cover_image": {
+            "type": "string"
+          },
+          "custom_install_url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object"
+          },
+          "explicit_content_filter": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "integer"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "install_params": {
+            "type": "string"
+          },
+          "integration_types_config": {
+            "type": "object"
+          },
+          "interactions_endpoint_url": {
+            "type": "string"
+          },
+          "max_participants": {
+            "type": "integer"
+          },
+          "role_connections_verification_url": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/applications/@me",
+        "body_mapping": {
+          "cover_image": "cover_image",
+          "custom_install_url": "custom_install_url",
+          "description": "description",
+          "explicit_content_filter": "explicit_content_filter",
+          "flags": "flags",
+          "icon": "icon",
+          "install_params": "install_params",
+          "integration_types_config": "integration_types_config",
+          "interactions_endpoint_url": "interactions_endpoint_url",
+          "max_participants": "max_participants",
+          "role_connections_verification_url": "role_connections_verification_url",
+          "tags": "tags",
+          "team_id": "team_id",
+          "type": "type"
+        }
+      }
+    },
+    "update_my_guild_member": {
+      "display_name": "Update My Guild Member",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "banner": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "nick": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/@me",
+        "body_mapping": {
+          "avatar": "avatar",
+          "banner": "banner",
+          "bio": "bio",
+          "nick": "nick"
+        }
+      }
+    },
+    "update_my_user": {
+      "display_name": "Update My User",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "banner": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/users/@me",
+        "body_mapping": {
+          "avatar": "avatar",
+          "banner": "banner",
+          "username": "username"
+        }
+      }
+    },
+    "update_self_voice_state": {
+      "display_name": "Update Self Voice State",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "request_to_speak_timestamp": {
+            "type": "string"
+          },
+          "suppress": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/voice-states/@me",
+        "body_mapping": {
+          "channel_id": "channel_id",
+          "request_to_speak_timestamp": "request_to_speak_timestamp",
+          "suppress": "suppress"
+        }
+      }
+    },
+    "update_stage_instance": {
+      "display_name": "Update Stage Instance",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "privacy_level": {
+            "type": "integer"
+          },
+          "topic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/stage-instances/{channel_id}",
+        "body_mapping": {
+          "privacy_level": "privacy_level",
+          "topic": "topic"
+        }
+      }
+    },
+    "update_voice_state": {
+      "display_name": "Update Voice State",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "suppress": {
+            "type": "boolean"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/voice-states/{user_id}",
+        "body_mapping": {
+          "channel_id": "channel_id",
+          "suppress": "suppress"
+        }
+      }
+    },
+    "update_webhook": {
+      "display_name": "Update Webhook",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/webhooks/{webhook_id}",
+        "body_mapping": {
+          "avatar": "avatar",
+          "channel_id": "channel_id",
+          "name": "name"
+        }
+      }
+    },
+    "update_webhook_by_token": {
+      "display_name": "Update Webhook By Token",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "webhook_id": {
+            "type": "string"
+          },
+          "webhook_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "webhook_token"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/webhooks/{webhook_id}/{webhook_token}",
+        "body_mapping": {
+          "avatar": "avatar",
+          "name": "name"
+        }
+      }
+    }
+  }
+}

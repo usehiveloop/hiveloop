@@ -1,0 +1,4743 @@
+{
+  "display_name": "Zoom",
+  "resources": {},
+  "actions": {
+    "account": {
+      "display_name": "Retrieve a sub account",
+      "description": "Retrieve a sub account under the master account. \u003caside\u003eYour account must be a master account and have this privilege to read sub accounts. Zoom only assigns this privilege to trusted partners\u003c/asi...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts/{accountId}"
+      }
+    },
+    "account_billing": {
+      "display_name": "Retrieve billing information for a sub account",
+      "description": "Retrieve billing information for a sub account under the master account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts/{accountId}/billing"
+      }
+    },
+    "account_billing_update": {
+      "display_name": "Update billing information for a sub account",
+      "description": "Update billing information for a sub account under the master account \u003caside\u003eOnly for the sub account which is a paid account and paid by master account\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "address": {
+            "type": "string",
+            "description": "Billing Contact's address"
+          },
+          "apt": {
+            "type": "string",
+            "description": "Billing Contact's apartment/suite"
+          },
+          "city": {
+            "type": "string",
+            "description": "Billing Contact's city"
+          },
+          "country": {
+            "type": "string",
+            "description": "Billing Contact's country"
+          },
+          "email": {
+            "type": "string",
+            "description": "Billing Contact's email address"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "Billing Contact's first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "Billing Contact's last name"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "Billing Contact's phone number"
+          },
+          "state": {
+            "type": "string",
+            "description": "Billing Contact's state"
+          },
+          "zip": {
+            "type": "string",
+            "description": "Billing Contact's zip/postal code"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/accounts/{accountId}/billing",
+        "body_mapping": {
+          "address": "address",
+          "apt": "apt",
+          "city": "city",
+          "country": "country",
+          "email": "email",
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "phone_number": "phone_number",
+          "state": "state",
+          "zip": "zip"
+        }
+      }
+    },
+    "account_create": {
+      "display_name": "Create a sub account",
+      "description": "Create a sub account under the master account. \u003caside\u003eYour account must be a master account and have this privilege to create sub account. Zoom only assigns this privilege to trusted partners. The ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User's email address"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User's last name"
+          },
+          "options": {
+            "type": "object",
+            "description": "Account options object"
+          },
+          "password": {
+            "type": "string",
+            "description": "User's password"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "password"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/accounts",
+        "body_mapping": {
+          "email": "email",
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "options": "options",
+          "password": "password"
+        }
+      }
+    },
+    "account_disassociate": {
+      "display_name": "Disassociate an account",
+      "description": "Disassociate a sub account from the master account. This will leave the account intact but the sub account will not longer be associated with the master account.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/accounts/{accountId}"
+      }
+    },
+    "account_managed_domain": {
+      "display_name": "Retrieve a sub account's managed domains",
+      "description": "Retrieve a sub account's managed domains under the master account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts/{accountId}/managed_domains"
+      }
+    },
+    "account_options_update": {
+      "display_name": "Update a sub account's options",
+      "description": "Update a sub account's options under the master account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "meeting_connectors": {
+            "type": "string",
+            "description": "Meeting Connector, multiple values separated by comma"
+          },
+          "pay_mode": {
+            "type": "string",
+            "description": "Payee"
+          },
+          "room_connectors": {
+            "type": "string",
+            "description": "Virtual Room Connector, multiple value separated by comma"
+          },
+          "share_mc": {
+            "type": "boolean",
+            "description": "Enable Share Meeting Connector"
+          },
+          "share_rc": {
+            "type": "boolean",
+            "description": "Enable Share Virtual Room Connector"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/accounts/{accountId}/options",
+        "body_mapping": {
+          "meeting_connectors": "meeting_connectors",
+          "pay_mode": "pay_mode",
+          "room_connectors": "room_connectors",
+          "share_mc": "share_mc",
+          "share_rc": "share_rc"
+        }
+      }
+    },
+    "account_plan_addon_create": {
+      "display_name": "Add an additional plan for sub account",
+      "description": "Add an additional plan for sub account \u003caside\u003eCan only add an Additional plan for the sub account which is a paid account and paid by master account\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "hosts": {
+            "type": "integer",
+            "description": "Account plan number of hosts"
+          },
+          "type": {
+            "type": "string",
+            "description": "Account \u003ca href=\"#plans\"\u003eplan type\u003c/a\u003e"
+          }
+        },
+        "required": [
+          "accountId",
+          "type",
+          "hosts"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/accounts/{accountId}/plans/addons",
+        "body_mapping": {
+          "hosts": "hosts",
+          "type": "type"
+        }
+      }
+    },
+    "account_plan_addon_update": {
+      "display_name": "Update an additional plan for sub account",
+      "description": "Update an additional plan for sub account\u003caside\u003eCan only update an Additional plan for the sub account which is a paid account and paid by master account\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "hosts": {
+            "type": "integer",
+            "description": "Account plan number of hosts"
+          },
+          "type": {
+            "type": "string",
+            "description": "Account \u003ca href=\"#plans\"\u003eplan type\u003c/a\u003e"
+          }
+        },
+        "required": [
+          "accountId",
+          "type",
+          "hosts"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/accounts/{accountId}/plans/addons",
+        "body_mapping": {
+          "hosts": "hosts",
+          "type": "type"
+        }
+      }
+    },
+    "account_plan_base_update": {
+      "display_name": "Update a base plan for a sub account",
+      "description": "Update a base plan for a sub account \u003caside\u003eCan only update a base plan for the sub account which is a paid account and paid by master account\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "hosts": {
+            "type": "integer",
+            "description": "Account base plan number of hosts. For a Pro Plan, please select a value between 1 and 9. For a Business Plan, please select a value between 10 and 49. For a Education Plan, please select a value b..."
+          },
+          "type": {
+            "type": "string",
+            "description": "Account base \u003ca href=\"#plans\"\u003eplan type\u003c/a\u003e"
+          }
+        },
+        "required": [
+          "accountId",
+          "type",
+          "hosts"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/accounts/{accountId}/plans/base",
+        "body_mapping": {
+          "hosts": "hosts",
+          "type": "type"
+        }
+      }
+    },
+    "account_plan_create": {
+      "display_name": "Subscribe plans for a sub account",
+      "description": "Subscribe plans for a sub account of the master account \u003caside\u003eCan only subscribe plans for the sub account which is a free account and paid by master account\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/accounts/{accountId}/plans"
+      }
+    },
+    "account_plans": {
+      "display_name": "Retrieve plan information for a sub account",
+      "description": "Retrieve plan information for a sub account under the master account \u003caside\u003eOnly for the sub account which is paid by master account\u003c/aside\u003e",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts/{accountId}/plans"
+      }
+    },
+    "account_settings": {
+      "display_name": "Retrieve a sub account's settings",
+      "description": "Retrieve a sub account's settings under the master account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts/{accountId}/settings"
+      }
+    },
+    "account_settings_update": {
+      "display_name": "Update a sub account's settings",
+      "description": "Update a sub account's settings under the master account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The account ID"
+          },
+          "email_notification": {
+            "type": "object",
+            "description": "Account Settings: Notification"
+          },
+          "feature": {
+            "type": "object",
+            "description": "Account Settings: Feature"
+          },
+          "in_meeting": {
+            "type": "object",
+            "description": "Account Settings: In Meeting"
+          },
+          "integration": {
+            "type": "object",
+            "description": "Account Settings: Integration"
+          },
+          "recording": {
+            "type": "object",
+            "description": "Account Settings: Recording"
+          },
+          "schedule_meting": {
+            "type": "object",
+            "description": "Account Settings: Schedule Meeting"
+          },
+          "security": {
+            "type": "object",
+            "description": "Account Settings: Security"
+          },
+          "telephony": {
+            "type": "object",
+            "description": "Account Settings: Telephony"
+          },
+          "zoom_rooms": {
+            "type": "object",
+            "description": "Account Settings: Zoom Rooms"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/accounts/{accountId}/settings",
+        "body_mapping": {
+          "email_notification": "email_notification",
+          "feature": "feature",
+          "in_meeting": "in_meeting",
+          "integration": "integration",
+          "recording": "recording",
+          "schedule_meting": "schedule_meting",
+          "security": "security",
+          "telephony": "telephony",
+          "zoom_rooms": "zoom_rooms"
+        }
+      }
+    },
+    "accounts": {
+      "display_name": "List sub accounts",
+      "description": "List all the sub accounts under the master account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/accounts",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "dashboard_crc": {
+      "display_name": "Retrieve CRC Port Usage",
+      "description": "Get CRC Port usage hour by hour for a specified time period \u003caside class='notice'\u003eWe will report a maximum of one month. For example, if \"from\" is set to \"2017-08-05\" and \"to\" is \"2017-10-10\" we wi...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/crc",
+        "query_mapping": {
+          "from": "from",
+          "to": "to"
+        }
+      }
+    },
+    "dashboard_im": {
+      "display_name": "Retrieve IM",
+      "description": "Retrieve metrics of Zoom IM",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/im",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to"
+        }
+      }
+    },
+    "dashboard_meeting_detail": {
+      "display_name": "Retrieve meeting detail",
+      "description": "Retrieve live or past meetings detail",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings/{meetingId}",
+        "query_mapping": {
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_meeting_participant_qos": {
+      "display_name": "Retrieve meeting participant QOS",
+      "description": "Retrieve live or past meetings participant quality of service",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "participantId": {
+            "type": "string",
+            "description": "Participant ID"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "required": [
+          "meetingId",
+          "participantId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings/{meetingId}/participants/{participantId}/qos",
+        "query_mapping": {
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_meeting_participant_share": {
+      "display_name": "Retrieve sharing/recording details of meeting participant",
+      "description": "Retrieve sharing/recording details of live or past meetings participant",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings/{meetingId}/participants/sharing",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_meeting_participants": {
+      "display_name": "Retrieve meeting participants",
+      "description": "Retrieve live or past meetings participants",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings/{meetingId}/participants",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_meeting_participants_qos": {
+      "display_name": "List meeting participants QOS",
+      "description": "Retrieve list of live or past meetings participants quality of service",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Number of items returned per page"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings/{meetingId}/participants/qos",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_meetings": {
+      "display_name": "List meetings",
+      "description": "List live meetings or past meetings for a specified period",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/meetings",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinar_detail": {
+      "display_name": "Retrieve webinar detail",
+      "description": "Retrieve live or past webinars detail",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars/{webinarId}",
+        "query_mapping": {
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinar_participant_qos": {
+      "display_name": "Retrieve webinar participant QOS",
+      "description": "Retrieve live or past webinar participant quality of service",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "participantId": {
+            "type": "string",
+            "description": "Participant ID"
+          },
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId",
+          "participantId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars/{webinarId}/participants/{participantId}/qos",
+        "query_mapping": {
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinar_participant_share": {
+      "display_name": "Retrieve sharing/recording details of webinar participant",
+      "description": "Retrieve sharing/recording details of live or past webinar participant",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars/{webinarId}/participants/sharing",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinar_participants": {
+      "display_name": "Retrieve webinar participants",
+      "description": "Retrieve live or past webinar participants",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars/{webinarId}/participants",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinar_participants_qos": {
+      "display_name": "List webinar participant QOS",
+      "description": "Retrieve list of live or past webinar participants quality of service",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Number of items returned per page"
+          },
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars/{webinarId}/participants/qos",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_webinars": {
+      "display_name": "List webinars",
+      "description": "List live webinars or past webinars for a specified period",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "type": {
+            "type": "string",
+            "description": "The webinar type"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/webinars",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to",
+          "type": "type"
+        }
+      }
+    },
+    "dashboard_zoom_room": {
+      "display_name": "Retrieve Zoom Room",
+      "description": "Retrieve zoom room on account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "zoomroomId": {
+            "type": "string",
+            "description": "The Zoom Room ID"
+          }
+        },
+        "required": [
+          "zoomroomId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/zoomrooms/{zoomroomId}",
+        "query_mapping": {
+          "from": "from",
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "to": "to"
+        }
+      }
+    },
+    "dashboard_zoom_rooms": {
+      "display_name": "List Zoom Rooms",
+      "description": "List all zoom rooms on account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/metrics/zoomrooms",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "device_create": {
+      "display_name": "Create a H.323/SIP Device",
+      "description": "Create a H.323/SIP Device on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "encryption": {
+            "type": "string",
+            "description": "Device encryption"
+          },
+          "ip": {
+            "type": "string",
+            "description": "Device Ip"
+          },
+          "name": {
+            "type": "string",
+            "description": "Device name"
+          },
+          "protocol": {
+            "type": "string",
+            "description": "Device protocol"
+          }
+        },
+        "required": [
+          "name",
+          "protocol",
+          "ip",
+          "encryption"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/h323/devices",
+        "body_mapping": {
+          "encryption": "encryption",
+          "ip": "ip",
+          "name": "name",
+          "protocol": "protocol"
+        }
+      }
+    },
+    "device_delete": {
+      "display_name": "Delete a H.323/SIP Device",
+      "description": "Delete a H.323/SIP Device on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "description": "The device ID"
+          }
+        },
+        "required": [
+          "deviceId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/h323/devices/{deviceId}"
+      }
+    },
+    "device_list": {
+      "display_name": "List H.323/SIP Devices.",
+      "description": "List H.323/SIP Devices on your Zoom account.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/h323/devices"
+      }
+    },
+    "device_update": {
+      "display_name": "Update a H.323/SIP Device",
+      "description": "Update a H.323/SIP Device on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "description": "The device ID"
+          },
+          "encryption": {
+            "type": "string",
+            "description": "Device encryption"
+          },
+          "ip": {
+            "type": "string",
+            "description": "Device Ip"
+          },
+          "name": {
+            "type": "string",
+            "description": "Device name"
+          },
+          "protocol": {
+            "type": "string",
+            "description": "Device protocol"
+          }
+        },
+        "required": [
+          "deviceId",
+          "name",
+          "protocol",
+          "ip",
+          "encryption"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/h323/devices/{deviceId}",
+        "body_mapping": {
+          "encryption": "encryption",
+          "ip": "ip",
+          "name": "name",
+          "protocol": "protocol"
+        }
+      }
+    },
+    "group": {
+      "display_name": "Retrieve a group",
+      "description": "Retrieve a group under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/groups/{groupId}"
+      }
+    },
+    "group_create": {
+      "display_name": "Create a group",
+      "description": "Create a group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Group name"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/groups",
+        "body_mapping": {
+          "name": "name"
+        }
+      }
+    },
+    "group_delete": {
+      "display_name": "Delete a group",
+      "description": "Delete a group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/groups/{groupId}"
+      }
+    },
+    "group_members": {
+      "display_name": "List a group's members",
+      "description": "List a group's members under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/groups/{groupId}/members",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "group_members_create": {
+      "display_name": "Add group members",
+      "description": "Add members to a group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "members": {
+            "type": "array",
+            "description": "List of Group members"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/groups/{groupId}/members",
+        "body_mapping": {
+          "members": "members"
+        }
+      }
+    },
+    "group_members_delete": {
+      "display_name": "Delete a group member",
+      "description": "Delete a member from a group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "memberId": {
+            "type": "string",
+            "description": "The member ID"
+          }
+        },
+        "required": [
+          "groupId",
+          "memberId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/groups/{groupId}/members/{memberId}"
+      }
+    },
+    "group_update": {
+      "display_name": "Update a group",
+      "description": "Update a group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Group name. Must be unique in one account. Character length is less than 128."
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/groups/{groupId}",
+        "body_mapping": {
+          "name": "name"
+        }
+      }
+    },
+    "groups": {
+      "display_name": "List groups",
+      "description": "List groups under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/groups"
+      }
+    },
+    "im_chat_messages": {
+      "display_name": "Retrieve IM Chat messages",
+      "description": "Retrieve IM Chat messages for a specified period \u003caside\u003eThis API only supports oauth2.\u003c/aside\u003e",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "IM Chat Session ID"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/im/chat/sessions/{sessionId}",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to"
+        }
+      }
+    },
+    "im_chat_sessions": {
+      "display_name": "Retrieve IM Chat sessions",
+      "description": "Retrieve IM Chat sessions for a specified period \u003caside\u003eThis API only supports oauth2.\u003c/aside\u003e",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/im/chat/sessions",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to"
+        }
+      }
+    },
+    "im_group": {
+      "display_name": "Retrieve an IM Group",
+      "description": "Retrieve an IM Group under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/im/groups/{groupId}"
+      }
+    },
+    "im_group_create": {
+      "display_name": "Create an IM Group",
+      "description": "Create a IM Group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Group name, must be unique in one account"
+          },
+          "search_by_account": {
+            "type": "boolean",
+            "description": "Members can search others under same account"
+          },
+          "search_by_domain": {
+            "type": "boolean",
+            "description": "Members can search others in the same email domain"
+          },
+          "search_by_ma_account": {
+            "type": "boolean",
+            "description": "Members can search others under same master account, including all sub accounts"
+          },
+          "type": {
+            "type": "string",
+            "description": "IM Group type"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/im/groups",
+        "body_mapping": {
+          "name": "name",
+          "search_by_account": "search_by_account",
+          "search_by_domain": "search_by_domain",
+          "search_by_ma_account": "search_by_ma_account",
+          "type": "type"
+        }
+      }
+    },
+    "im_group_delete": {
+      "display_name": "Delete an IM Group",
+      "description": "Delete an IM Group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/im/groups/{groupId}"
+      }
+    },
+    "im_group_members": {
+      "display_name": "List an IM Group's members",
+      "description": "List an IM Group's members under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/im/groups/{groupId}/members",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "im_group_members_create": {
+      "display_name": "Add IM Group members",
+      "description": "Add members to an IM Group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "members": {
+            "type": "array",
+            "description": "List of IM Group members"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/im/groups/{groupId}/members",
+        "body_mapping": {
+          "members": "members"
+        }
+      }
+    },
+    "im_group_members_delete": {
+      "display_name": "Delete an IM Group member",
+      "description": "Delete a member from an IM Group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "memberId": {
+            "type": "string",
+            "description": "The member ID"
+          }
+        },
+        "required": [
+          "groupId",
+          "memberId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/im/groups/{groupId}/members/{memberId}"
+      }
+    },
+    "im_group_update": {
+      "display_name": "Update an IM Group",
+      "description": "Update an IM Group under your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "The group ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Group name, must be unique in one account"
+          },
+          "search_by_account": {
+            "type": "boolean",
+            "description": "Members can search others under same account"
+          },
+          "search_by_domain": {
+            "type": "boolean",
+            "description": "Members can search others in the same email domain"
+          },
+          "search_by_ma_account": {
+            "type": "boolean",
+            "description": "Members can search others under same master account, including all sub accounts"
+          },
+          "type": {
+            "type": "string",
+            "description": "IM Group type"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/im/groups/{groupId}",
+        "body_mapping": {
+          "name": "name",
+          "search_by_account": "search_by_account",
+          "search_by_domain": "search_by_domain",
+          "search_by_ma_account": "search_by_ma_account",
+          "type": "type"
+        }
+      }
+    },
+    "im_groups": {
+      "display_name": "List IM Groups",
+      "description": "List IM groups under your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/im/groups"
+      }
+    },
+    "meeting": {
+      "display_name": "Retrieve a meeting",
+      "description": "Retrieve a meeting's details",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}"
+      }
+    },
+    "meeting_create": {
+      "display_name": "Create a meeting",
+      "description": "Create a meeting for a user \u003caside\u003eThe expiration time of start_url is two hours. But for API users, the expiration time is 90 days.\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users/{userId}/meetings"
+      }
+    },
+    "meeting_delete": {
+      "display_name": "Delete a meeting",
+      "description": "Delete a meeting",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/meetings/{meetingId}",
+        "query_mapping": {
+          "occurrence_id": "occurrence_id"
+        }
+      }
+    },
+    "meeting_invitation": {
+      "display_name": "Retrieve meeting invitation",
+      "description": "Retrieve a meeting invitation",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/invitation"
+      }
+    },
+    "meeting_live_stream_status_update": {
+      "display_name": "Update a meeting live stream status",
+      "description": "Update a meeting's live stream status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Action"
+          },
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "settings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/meetings/{meetingId}/livestream/status",
+        "body_mapping": {
+          "action": "action",
+          "settings": "settings"
+        }
+      }
+    },
+    "meeting_live_stream_update": {
+      "display_name": "Update a meeting live stream",
+      "description": "Update a meeting's live stream",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "page_url": {
+            "type": "string",
+            "description": "View URL."
+          },
+          "stream_key": {
+            "type": "string",
+            "description": "Stream name/key."
+          },
+          "stream_url": {
+            "type": "string",
+            "description": "Server URL."
+          }
+        },
+        "required": [
+          "meetingId",
+          "stream_url",
+          "stream_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/meetings/{meetingId}/livestream",
+        "body_mapping": {
+          "page_url": "page_url",
+          "stream_key": "stream_key",
+          "stream_url": "stream_url"
+        }
+      }
+    },
+    "meeting_poll_create": {
+      "display_name": "Create a meeting's poll",
+      "description": "Create a poll for a meeting",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/meetings/{meetingId}/polls"
+      }
+    },
+    "meeting_poll_delete": {
+      "display_name": "Delete a meeting's Poll",
+      "description": "Delete a meeting's Poll",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          }
+        },
+        "required": [
+          "meetingId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/meetings/{meetingId}/polls/{pollId}"
+      }
+    },
+    "meeting_poll_get": {
+      "display_name": "Retrieve a meeting's poll",
+      "description": "Retrieve a meeting's poll",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          }
+        },
+        "required": [
+          "meetingId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/polls/{pollId}"
+      }
+    },
+    "meeting_poll_update": {
+      "display_name": "Update a meeting's poll",
+      "description": "Update a meeting's poll",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          }
+        },
+        "required": [
+          "meetingId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/meetings/{meetingId}/polls/{pollId}"
+      }
+    },
+    "meeting_polls": {
+      "display_name": "List a meeting's polls ",
+      "description": "List polls of a meeting",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/polls"
+      }
+    },
+    "meeting_registrant_create": {
+      "display_name": "Add a meeting registrant",
+      "description": "Register a participant for a meeting",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "occurrence_ids": {
+            "type": "string",
+            "description": "Occurrence IDs. You can find these with the meeting get API. Multiple values separated by comma."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/meetings/{meetingId}/registrants",
+        "query_mapping": {
+          "occurrence_ids": "occurrence_ids"
+        }
+      }
+    },
+    "meeting_registrant_status": {
+      "display_name": "Update a meeting registrant's status",
+      "description": "Update a meeting registrant's status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          },
+          "registrants": {
+            "type": "array",
+            "description": "List of registrants"
+          }
+        },
+        "required": [
+          "meetingId",
+          "action"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/meetings/{meetingId}/registrants/status",
+        "body_mapping": {
+          "action": "action",
+          "registrants": "registrants"
+        },
+        "query_mapping": {
+          "occurrence_id": "occurrence_id"
+        }
+      }
+    },
+    "meeting_registrants": {
+      "display_name": "List a meeting's registrants",
+      "description": "List registrants of a meeting",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          },
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "status": {
+            "type": "string",
+            "description": "The registrant status"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/registrants",
+        "query_mapping": {
+          "occurrence_id": "occurrence_id",
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "status": "status"
+        }
+      }
+    },
+    "meeting_status": {
+      "display_name": "Update a meeting's status",
+      "description": "Update a meeting's status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/meetings/{meetingId}/status",
+        "body_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "meeting_update": {
+      "display_name": "Update a meeting",
+      "description": "Update a meeting's details",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/meetings/{meetingId}"
+      }
+    },
+    "meetings": {
+      "display_name": "List meetings",
+      "description": "List meetings for a user",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "type": {
+            "type": "string",
+            "description": "The meeting type"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/meetings",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "type": "type"
+        }
+      }
+    },
+    "past_meeting_details": {
+      "display_name": "Retrieve past meeting details",
+      "description": "Retrieve ended meeting details",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingUUID": {
+            "type": "string",
+            "description": "The meeting UUID."
+          }
+        },
+        "required": [
+          "meetingUUID"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/past_meetings/{meetingUUID}"
+      }
+    },
+    "past_meeting_participants": {
+      "display_name": "Retrieve past meeting participants",
+      "description": "Retrieve ended meeting participants",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingUUID": {
+            "type": "string",
+            "description": "The meeting UUID."
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "required": [
+          "meetingUUID"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/past_meetings/{meetingUUID}/participants",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "past_meetings": {
+      "display_name": "List of ended meeting instances",
+      "description": "List of ended meeting instances",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "integer",
+            "description": "The meeting ID"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/past_meetings/{meetingId}/instances"
+      }
+    },
+    "past_webinars": {
+      "display_name": "List of ended webinar instances",
+      "description": "List of ended webinar instances",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/past_webinars/{webinarId}/instances"
+      }
+    },
+    "recording_delete": {
+      "display_name": "Delete a meeting's recordings",
+      "description": "Delete a meeting's recordings",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The recording delete action"
+          },
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/meetings/{meetingId}/recordings",
+        "query_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "recording_delete_one": {
+      "display_name": "Delete one meeting recording file",
+      "description": "Delete one meeting recording file",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The recording delete action"
+          },
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "The recording ID"
+          }
+        },
+        "required": [
+          "meetingId",
+          "recordingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/meetings/{meetingId}/recordings/{recordingId}",
+        "query_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "recording_get": {
+      "display_name": "Retrieve a meeting’s all recordings",
+      "description": "Retrieve a meeting’s all recordings",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/recordings"
+      }
+    },
+    "recording_setting_update": {
+      "display_name": "Retrieve a meeting recording's settings",
+      "description": "Retrieve a meeting recording's settings",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/meetings/{meetingId}/recordings/settings"
+      }
+    },
+    "recording_settings_update": {
+      "display_name": "Update a meeting recording's settings",
+      "description": "Update a meeting recording's settings",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "approval_type": {
+            "type": "integer",
+            "description": "Approval type"
+          },
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "on_demand": {
+            "type": "boolean",
+            "description": "Registration required"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password protect"
+          },
+          "send_email_to_host": {
+            "type": "boolean",
+            "description": "Send an email to host when someone registers"
+          },
+          "share_recording": {
+            "type": "string",
+            "description": "Determine if the meeting recording is shared"
+          },
+          "show_social_share_buttons": {
+            "type": "boolean",
+            "description": "Show social share buttons on registration page"
+          },
+          "viewer_download": {
+            "type": "boolean",
+            "description": "Host video"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/meetings/{meetingId}/recordings/settings",
+        "body_mapping": {
+          "approval_type": "approval_type",
+          "on_demand": "on_demand",
+          "password": "password",
+          "send_email_to_host": "send_email_to_host",
+          "share_recording": "share_recording",
+          "show_social_share_buttons": "show_social_share_buttons",
+          "viewer_download": "viewer_download"
+        }
+      }
+    },
+    "recording_status_update": {
+      "display_name": "Recover a meeting's recordings",
+      "description": "Recover a meeting's recordings",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/meetings/{meetingId}/recordings/status",
+        "body_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "recording_status_update_one": {
+      "display_name": "Recover a single recording",
+      "description": "Recover a single recording",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "The recording ID"
+          }
+        },
+        "required": [
+          "meetingId",
+          "recordingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/meetings/{meetingId}/recordings/{recordingId}/status",
+        "body_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "recordings_list": {
+      "display_name": "List all the recordings",
+      "description": "List all the recordings",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "mc": {
+            "type": "string",
+            "description": "Query mc "
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "trash": {
+            "type": "boolean",
+            "description": "Query trash "
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/recordings",
+        "query_mapping": {
+          "from": "from",
+          "mc": "mc",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to",
+          "trash": "trash"
+        }
+      }
+    },
+    "report_cloud_recording": {
+      "display_name": "Retrieve cloud recording usage report",
+      "description": "Retrieve cloud recording usage report for a specified period. You can only get cloud recording reports for the most recent period of 6 months. The date gap between from and to dates should be small...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/cloud_recording",
+        "query_mapping": {
+          "from": "from",
+          "to": "to"
+        }
+      }
+    },
+    "report_daily": {
+      "display_name": "Retrieve daily report",
+      "description": "Retrieve daily report for one month, can only get daily report for recent 6 months",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "month": {
+            "type": "integer",
+            "description": "Month for this report"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year for this report"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/daily",
+        "query_mapping": {
+          "month": "month",
+          "year": "year"
+        }
+      }
+    },
+    "report_meeting_details": {
+      "display_name": "Retrieve meeting details report",
+      "description": "Retrieve ended meeting details report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/meetings/{meetingId}"
+      }
+    },
+    "report_meeting_participants": {
+      "display_name": "Retrieve meeting participants report",
+      "description": "Retrieve ended meeting participants report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/meetings/{meetingId}/participants",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "report_meeting_polls": {
+      "display_name": "Retrieve meeting polls report",
+      "description": "Retrieve ended meeting polls report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "meetingId": {
+            "type": "string",
+            "description": "The meeting ID or meeting UUID. If given meeting ID, will take the last meeting instance."
+          }
+        },
+        "required": [
+          "meetingId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/meetings/{meetingId}/polls"
+      }
+    },
+    "report_meetings": {
+      "display_name": "Retrieve meetings report",
+      "description": "Retrieve ended meetings report for a specified period",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/users/{userId}/meetings",
+        "query_mapping": {
+          "from": "from",
+          "next_page_token": "next_page_token",
+          "page_size": "page_size",
+          "to": "to"
+        }
+      }
+    },
+    "report_telephone": {
+      "display_name": "Retrieve telephone report",
+      "description": "Retrieve telephone report for a specified period \u003caside\u003eToll Report option would be removed.\u003c/aside\u003e.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "type": {
+            "type": "string",
+            "description": "Audio type"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/telephone",
+        "query_mapping": {
+          "from": "from",
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "to": "to",
+          "type": "type"
+        }
+      }
+    },
+    "report_users": {
+      "display_name": "Retrieve hosts report",
+      "description": "Retrieve active or inactive hosts report for a specified period",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start Date"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "to": {
+            "type": "string",
+            "description": "End Date"
+          },
+          "type": {
+            "type": "string",
+            "description": "Active hosts or inactive hosts"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/users",
+        "query_mapping": {
+          "from": "from",
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "to": "to",
+          "type": "type"
+        }
+      }
+    },
+    "report_webinar_details": {
+      "display_name": "Retrieve webinar details report",
+      "description": "Retrieve ended webinar details report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/webinars/{webinarId}"
+      }
+    },
+    "report_webinar_participants": {
+      "display_name": "Retrieve webinar participants report",
+      "description": "Retrieve ended webinar participants report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "next_page_token": {
+            "type": "string",
+            "description": "Next page token is used to paginate through large result sets. A next page token will be returned whenever the set of available results exceed the current page size. The expiration period for this ..."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/webinars/{webinarId}/participants",
+        "query_mapping": {
+          "next_page_token": "next_page_token",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "report_webinar_polls": {
+      "display_name": "Retrieve webinar polls report",
+      "description": "Retrieve ended webinar polls report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/webinars/{webinarId}/polls"
+      }
+    },
+    "report_webinar_qa": {
+      "display_name": "Retrieve webinar Q\u0026A report",
+      "description": "Retrieve ended webinar Q\u0026A report",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "string",
+            "description": "The webinar ID or webinar UUID. If given webinar ID, will take the last webinar instance."
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/report/webinars/{webinarId}/qa"
+      }
+    },
+    "trackingfield_create": {
+      "display_name": "Create a Tracking Field",
+      "description": "Create a Tracking Field on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Tracking Field Name"
+          },
+          "recommended_values": {
+            "type": "array",
+            "description": "Array of recommended values"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Tracking Field Required"
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Tracking Field Visible"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/v2/tracking_fields",
+        "body_mapping": {
+          "field": "field",
+          "recommended_values": "recommended_values",
+          "required": "required",
+          "visible": "visible"
+        }
+      }
+    },
+    "trackingfield_delete": {
+      "display_name": "Delete a Tracking Field",
+      "description": "Delete a Tracking Field on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "fieldId": {
+            "type": "string",
+            "description": "The Tracking Field ID"
+          }
+        },
+        "required": [
+          "fieldId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/v2/tracking_fields/{fieldId}"
+      }
+    },
+    "trackingfield_get": {
+      "display_name": "Retrieve a tracking field",
+      "description": "Retrieve a tracking field",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "fieldId": {
+            "type": "string",
+            "description": "The Tracking Field ID"
+          }
+        },
+        "required": [
+          "fieldId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/v2/tracking_fields/{fieldId}"
+      }
+    },
+    "trackingfield_list": {
+      "display_name": "List Tracking Fields.",
+      "description": "List Tracking Fields on your Zoom account.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/v2/tracking_fields"
+      }
+    },
+    "trackingfield_update": {
+      "display_name": "Update a Tracking Field",
+      "description": "Update a Tracking Field on your Zoom account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Tracking Field Name"
+          },
+          "fieldId": {
+            "type": "string",
+            "description": "The Tracking Field ID"
+          },
+          "recommended_values": {
+            "type": "array",
+            "description": "Array of recommended values"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Tracking Field Required"
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Tracking Field Visible"
+          }
+        },
+        "required": [
+          "fieldId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/v2/tracking_fields/{fieldId}",
+        "body_mapping": {
+          "field": "field",
+          "recommended_values": "recommended_values",
+          "required": "required",
+          "visible": "visible"
+        }
+      }
+    },
+    "tsp": {
+      "display_name": "Retrieve account's TSP information",
+      "description": "Retrieve TSP information on account level",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/tsp"
+      }
+    },
+    "tsp_update": {
+      "display_name": "Update account's TSP information",
+      "description": "Update TSP information on account level",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "enable": {
+            "type": "boolean",
+            "description": "Enable 3rd party audio conferencing for account users"
+          },
+          "tsp_provider": {
+            "type": "string",
+            "description": "3rd party audio conferencing provider"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/tsp",
+        "body_mapping": {
+          "enable": "enable",
+          "tsp_provider": "tsp_provider"
+        }
+      }
+    },
+    "user": {
+      "display_name": "Retrieve a user",
+      "description": "Retrieve a user on your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "login_type": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}",
+        "query_mapping": {
+          "login_type": "login_type"
+        }
+      }
+    },
+    "user_assistant_create": {
+      "display_name": "Add assistants",
+      "description": "Add assistants to a user",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "assistants": {
+            "type": "array",
+            "description": "List of User's assistants"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users/{userId}/assistants",
+        "body_mapping": {
+          "assistants": "assistants"
+        }
+      }
+    },
+    "user_assistant_delete": {
+      "display_name": "Delete a user's assistant",
+      "description": "Delete one of a user's assistants",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "assistantId": {
+            "type": "string",
+            "description": "Assistant's ID"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "assistantId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/assistants/{assistantId}"
+      }
+    },
+    "user_assistants": {
+      "display_name": "List a user's assistants",
+      "description": "List a user's assistants",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/assistants"
+      }
+    },
+    "user_assistants_delete": {
+      "display_name": "Delete a user's assistants",
+      "description": "Delete all of a user'sassitants",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/assistants"
+      }
+    },
+    "user_create": {
+      "display_name": "Create a user",
+      "description": "Create a user on your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Specify how to create the new user"
+          },
+          "user_info": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users",
+        "body_mapping": {
+          "action": "action",
+          "user_info": "user_info"
+        }
+      }
+    },
+    "user_delete": {
+      "display_name": "Delete a user",
+      "description": "Delete a user on your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Delete action type"
+          },
+          "transfer_email": {
+            "type": "string",
+            "description": "Transfer email"
+          },
+          "transfer_meeting": {
+            "type": "boolean",
+            "description": "Transfer meeting"
+          },
+          "transfer_recording": {
+            "type": "boolean",
+            "description": "Transfer recording"
+          },
+          "transfer_webinar": {
+            "type": "boolean",
+            "description": "Transfer webinar"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}",
+        "query_mapping": {
+          "action": "action",
+          "transfer_email": "transfer_email",
+          "transfer_meeting": "transfer_meeting",
+          "transfer_recording": "transfer_recording",
+          "transfer_webinar": "transfer_webinar"
+        }
+      }
+    },
+    "user_email": {
+      "display_name": "Check a user's email",
+      "description": "Check if the user email exists",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Zoom work email"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/email",
+        "query_mapping": {
+          "email": "email"
+        }
+      }
+    },
+    "user_email_update": {
+      "display_name": "Update a user's email",
+      "description": "Update a user's email",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User’s email. Character length is less than 128."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "email"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/users/{userId}/email",
+        "body_mapping": {
+          "email": "email"
+        }
+      }
+    },
+    "user_pa_cs": {
+      "display_name": "List user's PAC accounts",
+      "description": "List user's PAC accounts",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/pac"
+      }
+    },
+    "user_password": {
+      "display_name": "Update a user's password",
+      "description": "Update a user's password",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "User’s password. Character length is less than 32,"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "password"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/users/{userId}/password",
+        "body_mapping": {
+          "password": "password"
+        }
+      }
+    },
+    "user_permission": {
+      "display_name": "Retrieve a user's permissions",
+      "description": "Retrieve a user's permissions",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/permissions"
+      }
+    },
+    "user_picture": {
+      "display_name": "Upload a user's picture",
+      "description": "Upload a user's profile picture",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users/{userId}/picture"
+      }
+    },
+    "user_scheduler_delete": {
+      "display_name": "Delete a user's scheduler",
+      "description": "Delete one of a user's schedulers",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "schedulerId": {
+            "type": "string",
+            "description": "Scheduler's ID"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "schedulerId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/schedulers/{schedulerId}"
+      }
+    },
+    "user_schedulers": {
+      "display_name": "List a user's schedulers",
+      "description": "List a user's schedulers",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/schedulers"
+      }
+    },
+    "user_schedulers_delete": {
+      "display_name": "Delete a user's schedulers",
+      "description": "Delete all of a user'schedulers",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/schedulers"
+      }
+    },
+    "user_settings": {
+      "display_name": "Retrieve a user's settings",
+      "description": "Retrieve a user's settings",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "login_type": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/settings",
+        "query_mapping": {
+          "login_type": "login_type"
+        }
+      }
+    },
+    "user_settings_update": {
+      "display_name": "Update a user's settings",
+      "description": "Update a user's settings",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "email_notification": {
+            "type": "object"
+          },
+          "feature": {
+            "type": "object"
+          },
+          "in_meeting": {
+            "type": "object"
+          },
+          "recording": {
+            "type": "object"
+          },
+          "schedule_meeting": {
+            "type": "object"
+          },
+          "telephony": {
+            "type": "object"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/users/{userId}/settings",
+        "body_mapping": {
+          "email_notification": "email_notification",
+          "feature": "feature",
+          "in_meeting": "in_meeting",
+          "recording": "recording",
+          "schedule_meeting": "schedule_meeting",
+          "telephony": "telephony"
+        }
+      }
+    },
+    "user_sso_token_delete": {
+      "display_name": "Revoke a user's SSO token",
+      "description": "Revoke a user's SSO token",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/token"
+      }
+    },
+    "user_status": {
+      "display_name": "Update a user's status",
+      "description": "Update a user's status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The action type"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "action"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/users/{userId}/status",
+        "body_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "user_token": {
+      "display_name": "Retrieve a user's token",
+      "description": "Retrieve a user's token",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "User token type"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/token",
+        "query_mapping": {
+          "type": "type"
+        }
+      }
+    },
+    "user_ts_ps": {
+      "display_name": "List user's TSP accounts",
+      "description": "List user's TSP accounts",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/tsp"
+      }
+    },
+    "user_tsp": {
+      "display_name": "Retrieve a user's TSP account",
+      "description": "Retrieve a user's TSP account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "tspId": {
+            "type": "string",
+            "description": "TSP account index"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "tspId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/tsp/{tspId}"
+      }
+    },
+    "user_tsp_create": {
+      "display_name": "Add a user's TSP account",
+      "description": "Add a user's TSP account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "conference_code": {
+            "type": "string",
+            "description": "Conference code, numeric value, length is less than 16."
+          },
+          "dial_in_numbers": {
+            "type": "array",
+            "description": "List of Dial In Numbers"
+          },
+          "leader_pin": {
+            "type": "string",
+            "description": "Leader PIN, numeric value, length is less than 16."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "conference_code",
+          "leader_pin"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users/{userId}/tsp",
+        "body_mapping": {
+          "conference_code": "conference_code",
+          "dial_in_numbers": "dial_in_numbers",
+          "leader_pin": "leader_pin"
+        }
+      }
+    },
+    "user_tsp_delete": {
+      "display_name": "Delete a user's TSP account",
+      "description": "Delete a user's TSP account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "tspId": {
+            "type": "string",
+            "description": "TSP account index"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "tspId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/users/{userId}/tsp/{tspId}"
+      }
+    },
+    "user_tsp_update": {
+      "display_name": "Update a TSP account",
+      "description": "Update a user's TSP account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "conference_code": {
+            "type": "string",
+            "description": "Conference code, numeric value, length is less than 16."
+          },
+          "dial_in_numbers": {
+            "type": "array",
+            "description": "List of Dial In Numbers"
+          },
+          "leader_pin": {
+            "type": "string",
+            "description": "Leader PIN, numeric value, length is less than 16."
+          },
+          "tspId": {
+            "type": "string",
+            "description": "TSP account index"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId",
+          "tspId",
+          "conference_code",
+          "leader_pin"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/users/{userId}/tsp/{tspId}",
+        "body_mapping": {
+          "conference_code": "conference_code",
+          "dial_in_numbers": "dial_in_numbers",
+          "leader_pin": "leader_pin"
+        }
+      }
+    },
+    "user_update": {
+      "display_name": "Update a user",
+      "description": "Update a user on your account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cms_user_id": {
+            "type": "string",
+            "description": "Kaltura User Id"
+          },
+          "dept": {
+            "type": "string",
+            "description": "Department for user profile, use for report"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User's first name. Cannot contain more than 5 Chinese words."
+          },
+          "host_key": {
+            "type": "string",
+            "description": "Host Key, should be 6-digit number"
+          },
+          "language": {
+            "type": "string",
+            "description": "language"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User's last name. Cannot contain more than 5 Chinese words."
+          },
+          "pmi": {
+            "type": "string",
+            "description": "Personal Meeting ID,length must be 10"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "The time zone id for user profile. For this parameter value please refer to the id value in [timezone](#timezones) list."
+          },
+          "type": {
+            "type": "integer",
+            "description": "User's type"
+          },
+          "use_pmi": {
+            "type": "boolean",
+            "description": "Use Personal Meeting ID for instant meetings."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          },
+          "vanity_name": {
+            "type": "string",
+            "description": "Personal meeting room name"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/users/{userId}",
+        "body_mapping": {
+          "cms_user_id": "cms_user_id",
+          "dept": "dept",
+          "first_name": "first_name",
+          "host_key": "host_key",
+          "language": "language",
+          "last_name": "last_name",
+          "pmi": "pmi",
+          "timezone": "timezone",
+          "type": "type",
+          "use_pmi": "use_pmi",
+          "vanity_name": "vanity_name"
+        }
+      }
+    },
+    "user_vanity_name": {
+      "display_name": "Check a user's personal meeting room name",
+      "description": "Check if the user's personal meeting room name exists",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "vanity_name": {
+            "type": "string",
+            "description": "Personal meeting room name"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/vanity_name",
+        "query_mapping": {
+          "vanity_name": "vanity_name"
+        }
+      }
+    },
+    "user_zpk": {
+      "display_name": "Verify a user's zpk (Deprecated",
+      "description": "Check if the zpk is expired. The zpk is used to authenticate a user.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "zpk": {
+            "type": "string",
+            "description": "User zpk"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/zpk",
+        "query_mapping": {
+          "zpk": "zpk"
+        }
+      }
+    },
+    "users": {
+      "display_name": "List Users",
+      "description": "List users on your account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "status": {
+            "type": "string",
+            "description": "User status"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "status": "status"
+        }
+      }
+    },
+    "webhook": {
+      "display_name": "Retrieve a webhook",
+      "description": "Retrieve a webhook",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhookId": {
+            "type": "string",
+            "description": "The webhook ID"
+          }
+        },
+        "required": [
+          "webhookId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webhooks/{webhookId}"
+      }
+    },
+    "webhook_create": {
+      "display_name": "Create a webhook",
+      "description": "Create a webhook for a account",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "auth_password": {
+            "type": "string",
+            "description": "Webhook auth password"
+          },
+          "auth_user": {
+            "type": "string",
+            "description": "Webhook auth user name"
+          },
+          "events": {
+            "type": "array",
+            "description": "List of events objects."
+          },
+          "url": {
+            "type": "string",
+            "description": "Webhook endpoint"
+          }
+        },
+        "required": [
+          "url",
+          "auth_user",
+          "auth_password",
+          "events"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/webhooks",
+        "body_mapping": {
+          "auth_password": "auth_password",
+          "auth_user": "auth_user",
+          "events": "events",
+          "url": "url"
+        }
+      }
+    },
+    "webhook_delete": {
+      "display_name": "Delete a webhook",
+      "description": "Delete a webhook",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhookId": {
+            "type": "string",
+            "description": "The webhook ID"
+          }
+        },
+        "required": [
+          "webhookId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webhooks/{webhookId}"
+      }
+    },
+    "webhook_switch": {
+      "display_name": "Switch webhook version",
+      "description": "Switch webhook version",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/webhooks/options",
+        "body_mapping": {
+          "version": "version"
+        }
+      }
+    },
+    "webhook_update": {
+      "display_name": "Update a webhook",
+      "description": "Update a webhook",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "auth_password": {
+            "type": "string",
+            "description": "Webhook auth password"
+          },
+          "auth_user": {
+            "type": "string",
+            "description": "Webhook auth user name"
+          },
+          "events": {
+            "type": "array",
+            "description": "List of events objects"
+          },
+          "url": {
+            "type": "string",
+            "description": "Webhook endpoint"
+          },
+          "webhookId": {
+            "type": "string",
+            "description": "The webhook ID"
+          }
+        },
+        "required": [
+          "webhookId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/webhooks/{webhookId}",
+        "body_mapping": {
+          "auth_password": "auth_password",
+          "auth_user": "auth_user",
+          "events": "events",
+          "url": "url"
+        }
+      }
+    },
+    "webhooks": {
+      "display_name": "List webhooks",
+      "description": "List webhooks for a account",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webhooks"
+      }
+    },
+    "webinar": {
+      "display_name": "Retrieve a webinar",
+      "description": "Retrieve a webinar",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webinars/{webinarId}"
+      }
+    },
+    "webinar_create": {
+      "display_name": "Create a webinar",
+      "description": "Create a webinar for a user \u003caside\u003eThe expiration time of start_url is two hours. But for API users, the expiration time is 90 days.\u003c/aside\u003e",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/users/{userId}/webinars"
+      }
+    },
+    "webinar_delete": {
+      "display_name": "Delete a webinar",
+      "description": "Delete a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webinars/{webinarId}",
+        "query_mapping": {
+          "occurrence_id": "occurrence_id"
+        }
+      }
+    },
+    "webinar_panelist_create": {
+      "display_name": "Add a webinar panelist",
+      "description": "Add panelist to webinar",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "panelists": {
+            "type": "array",
+            "description": "List of Panelist objects"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/webinars/{webinarId}/panelists",
+        "body_mapping": {
+          "panelists": "panelists"
+        }
+      }
+    },
+    "webinar_panelist_delete": {
+      "display_name": "Remove a webinar panelist",
+      "description": "Remove a panelist from a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "panelistId": {
+            "type": "integer",
+            "description": "The panelist ID"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId",
+          "panelistId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webinars/{webinarId}/panelists/{panelistId}"
+      }
+    },
+    "webinar_panelists": {
+      "display_name": "List a webinar's panelists",
+      "description": "List panelists for a webinar",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webinars/{webinarId}/panelists"
+      }
+    },
+    "webinar_panelists_delete": {
+      "display_name": "Remove a webinar's panelists",
+      "description": "Remove all panelists from a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webinars/{webinarId}/panelists"
+      }
+    },
+    "webinar_poll_create": {
+      "display_name": "Create a webinar's poll",
+      "description": "Create a poll for a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/webinars/{webinarId}/polls"
+      }
+    },
+    "webinar_poll_delete": {
+      "display_name": "Delete a webinar's Poll",
+      "description": "Delete a webinar's Poll",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webinars/{webinarId}/polls/{pollId}"
+      }
+    },
+    "webinar_poll_get": {
+      "display_name": "Retrieve a webinar's poll",
+      "description": "Retrieve a webinar's poll",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webinars/{webinarId}/polls/{pollId}"
+      }
+    },
+    "webinar_poll_update": {
+      "display_name": "Update a webinar's poll",
+      "description": "Update a webinar's poll",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pollId": {
+            "type": "string",
+            "description": "The poll ID"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId",
+          "pollId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/webinars/{webinarId}/polls/{pollId}"
+      }
+    },
+    "webinar_polls": {
+      "display_name": "List a webinar's polls ",
+      "description": "List polls of a webinar",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webinars/{webinarId}/polls"
+      }
+    },
+    "webinar_registrant_create": {
+      "display_name": "Add a webinar registrant",
+      "description": "Add a registrant for a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "occurrence_ids": {
+            "type": "string",
+            "description": "Occurrence IDs, could get this value from Webinar Get API. Multiple value separated by comma."
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/webinars/{webinarId}/registrants",
+        "query_mapping": {
+          "occurrence_ids": "occurrence_ids"
+        }
+      }
+    },
+    "webinar_registrant_status": {
+      "display_name": "Update a webinar registrant's status",
+      "description": "Update a webinar registrant's status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          },
+          "registrants": {
+            "type": "array",
+            "description": "List of registrants"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId",
+          "action"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/webinars/{webinarId}/registrants/status",
+        "body_mapping": {
+          "action": "action",
+          "registrants": "registrants"
+        },
+        "query_mapping": {
+          "occurrence_id": "occurrence_id"
+        }
+      }
+    },
+    "webinar_registrants": {
+      "display_name": "List a webinar's registrants",
+      "description": "List registrants for a webinar",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "occurrence_id": {
+            "type": "string",
+            "description": "The meeting occurrence ID"
+          },
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "status": {
+            "type": "string",
+            "description": "The registrant status"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webinars/{webinarId}/registrants",
+        "query_mapping": {
+          "occurrence_id": "occurrence_id",
+          "page_number": "page_number",
+          "page_size": "page_size",
+          "status": "status"
+        }
+      }
+    },
+    "webinar_status": {
+      "display_name": "Update a webinar's status",
+      "description": "Update a webinar's status",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/webinars/{webinarId}/status",
+        "body_mapping": {
+          "action": "action"
+        }
+      }
+    },
+    "webinar_update": {
+      "display_name": "Update a webinar",
+      "description": "Update a webinar",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webinarId": {
+            "type": "integer",
+            "description": "The webinar ID"
+          }
+        },
+        "required": [
+          "webinarId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/v2/webinars/{webinarId}"
+      }
+    },
+    "webinars": {
+      "display_name": "List webinars",
+      "description": "List webinars for a user",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number of returned records"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of records returned within a single API call"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID or email address"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/users/{userId}/webinars",
+        "query_mapping": {
+          "page_number": "page_number",
+          "page_size": "page_size"
+        }
+      }
+    }
+  }
+}

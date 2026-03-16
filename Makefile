@@ -8,9 +8,17 @@ IMAGE   ?= llmvault/llmvault
 fetch-models:
 	go run ./cmd/fetchmodels
 
-# Fetch Nango provider catalog and write internal/mcp/catalog/actions.json
-fetch-actions:
-	go run ./cmd/fetchactions
+# Generate provider action files from API specs (OpenAPI 3.x, OpenAPI 2.0, GraphQL)
+fetch-actions: fetch-actions-oas3 fetch-actions-oas2 fetch-actions-graphql
+
+fetch-actions-oas3:
+	go run ./cmd/fetchactions-oas3
+
+fetch-actions-oas2:
+	go run ./cmd/fetchactions-oas2
+
+fetch-actions-graphql:
+	go run ./cmd/fetchactions-graphql
 
 # Regenerate OpenAPI spec from handler annotations (Swagger 2.0 → OpenAPI 3.0, clean schema names)
 openapi:

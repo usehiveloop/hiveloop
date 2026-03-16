@@ -28,6 +28,7 @@ export interface SuccessPayload {
 
 export interface IntegrationSuccessPayload {
   integrationId: string
+  connectionId: string
 }
 
 export interface ResourceSelectionPayload {

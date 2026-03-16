@@ -7,7 +7,6 @@ const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integ
 
 export interface ConnectionResult {
   id: string
-  nango_connection_id: string
 }
 
 export function useNangoAuth(integrationId: string, callbacks: {
@@ -25,7 +24,6 @@ export function useNangoAuth(integrationId: string, callbacks: {
 
       const client = createWidgetFetchClient(sessionId)
 
-      // Step 1: Get connect session token
       const { data: sessionData } = await client.POST(
         '/v1/widget/integrations/{id}/connect-session',
         { params: { path: { id: integrationId } } }
@@ -37,11 +35,9 @@ export function useNangoAuth(integrationId: string, callbacks: {
         throw new Error('Failed to create connect session')
       }
 
-      // Step 2: Initialize Nango and trigger auth
       const nango = new Nango({ connectSessionToken: token, host: INTEGRATIONS_API })
       const result = await nango.auth(providerConfigKey, { detectClosedAuthWindow: true })
 
-      // Step 3: Store the connection
       const { data: connectionData, error } = await client.POST('/v1/widget/integrations/{id}/connections', {
         params: { path: { id: integrationId } },
         body: { nango_connection_id: result.connectionId },
@@ -53,7 +49,6 @@ export function useNangoAuth(integrationId: string, callbacks: {
 
       return {
         id: connectionData?.id ?? '',
-        nango_connection_id: result.connectionId,
       }
     },
     onSuccess: async (result) => {
