@@ -276,7 +276,7 @@ describe('LLMVaultConnect', () => {
       const onIntegrationSuccess = vi.fn()
       connect.open({ sessionToken: 'tok_test', onIntegrationSuccess })
 
-      const payload = { integrationId: 'int_456', provider: 'anthropic' }
+      const payload = { integrationId: 'int_456' }
       dispatchMessage({ type: 'integration_success', payload })
 
       expect(onIntegrationSuccess).toHaveBeenCalledOnce()
@@ -287,7 +287,7 @@ describe('LLMVaultConnect', () => {
       const onResourceSelection = vi.fn()
       connect.open({ sessionToken: 'tok_test', onResourceSelection })
 
-      const payload = { integrationId: 'int_789', provider: 'slack', resources: { channels: ['C001', 'C002'] } }
+      const payload = { integrationId: 'int_789', resources: { channels: ['C001', 'C002'] } }
       dispatchMessage({ type: 'resource_selection', payload })
 
       expect(onResourceSelection).toHaveBeenCalledOnce()
@@ -325,11 +325,11 @@ describe('LLMVaultConnect', () => {
       dispatchMessage({ type: 'success', payload: { providerId: 'p', connectionId: 'c' } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'success', payload: { providerId: 'p', connectionId: 'c' } })
 
-      dispatchMessage({ type: 'integration_success', payload: { integrationId: 'i', provider: 'pr' } })
-      expect(onEvent).toHaveBeenCalledWith({ type: 'integration_success', payload: { integrationId: 'i', provider: 'pr' } })
+      dispatchMessage({ type: 'integration_success', payload: { integrationId: 'i' } })
+      expect(onEvent).toHaveBeenCalledWith({ type: 'integration_success', payload: { integrationId: 'i' } })
 
-      dispatchMessage({ type: 'resource_selection', payload: { integrationId: 'i', provider: 'pr', resources: { repos: ['r1'] } } })
-      expect(onEvent).toHaveBeenCalledWith({ type: 'resource_selection', payload: { integrationId: 'i', provider: 'pr', resources: { repos: ['r1'] } } })
+      dispatchMessage({ type: 'resource_selection', payload: { integrationId: 'i', resources: { repos: ['r1'] } } })
+      expect(onEvent).toHaveBeenCalledWith({ type: 'resource_selection', payload: { integrationId: 'i', resources: { repos: ['r1'] } } })
 
       dispatchMessage({ type: 'error', payload: { code: 'unknown_error', message: 'err' } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'error', payload: { code: 'unknown_error', message: 'err' } })

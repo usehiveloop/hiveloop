@@ -21,7 +21,7 @@ export function IntegrationAuth({ integration, navigate, onBack, onClose }: Prop
     onSuccess: () => {
       sendToParent({
         type: 'integration_success',
-        payload: { integrationId: integration.id ?? '', provider: integration.provider ?? '' },
+        payload: { integrationId: integration.unique_key ?? '' },
       })
       navigate({ type: 'INTEGRATION_SUCCESS' })
     },

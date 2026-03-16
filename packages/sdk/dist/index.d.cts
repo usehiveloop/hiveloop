@@ -10,7 +10,7 @@ interface components {
                 [key: string]: string[];
             };
         };
-        "github_com_llmvault_llmvault_internal_model.JSON": {
+        JSON: {
             [key: string]: unknown;
         };
         "github_com_llmvault_llmvault_internal_nango.Credentials": {
@@ -30,15 +30,15 @@ interface components {
             username?: string;
             webhook_secret?: string;
         };
-        "github_com_llmvault_llmvault_internal_registry.Cost": {
+        Cost: {
             input?: number;
             output?: number;
         };
-        "github_com_llmvault_llmvault_internal_registry.Limit": {
+        Limit: {
             context?: number;
             output?: number;
         };
-        "github_com_llmvault_llmvault_internal_registry.Modalities": {
+        Modalities: {
             input?: string[];
             output?: string[];
         };
@@ -50,7 +50,7 @@ interface components {
         "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
             resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
         };
-        "internal_handler.apiKeyResponse": {
+        apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
             id?: string;
@@ -60,12 +60,12 @@ interface components {
             revoked_at?: string;
             scopes?: string[];
         };
-        "internal_handler.apiKeyStats": {
+        apiKeyStats: {
             active?: number;
             revoked?: number;
             total?: number;
         };
-        "internal_handler.auditEntryResponse": {
+        auditEntryResponse: {
             action?: string;
             created_at?: string;
             credential_id?: string;
@@ -77,9 +77,33 @@ interface components {
             path?: string;
             status?: number;
         };
-        "internal_handler.connectSessionResponse": {
+        availableScopeAction: {
+            description?: string;
+            display_name?: string;
+            key?: string;
+            resource_type?: string;
+        };
+        availableScopeConnection: {
+            actions?: components["schemas"]["availableScopeAction"][];
+            connection_id?: string;
+            display_name?: string;
+            integration_id?: string;
+            provider?: string;
+            resources?: {
+                [key: string]: components["schemas"]["availableScopeResource"];
+            };
+        };
+        availableScopeResource: {
+            display_name?: string;
+            selected?: components["schemas"]["availableScopeResourceItem"][];
+        };
+        availableScopeResourceItem: {
+            id?: string;
+            name?: string;
+        };
+        connectSessionResponse: {
+            allowed_integrations?: string[];
             allowed_origins?: string[];
-            allowed_providers?: string[];
             created_at?: string;
             expires_at?: string;
             external_id?: string;
@@ -87,17 +111,17 @@ interface components {
             identity_id?: string;
             session_token?: string;
         };
-        "internal_handler.connectSessionTokenResponse": {
+        connectSessionTokenResponse: {
             provider_config_key?: string;
             token?: string;
         };
-        "internal_handler.connectSettingsRequest": {
+        connectSettingsRequest: {
             allowed_origins?: string[];
         };
-        "internal_handler.connectSettingsResponse": {
+        connectSettingsResponse: {
             allowed_origins?: string[];
         };
-        "internal_handler.connectionResponse": {
+        connectionResponse: {
             auth_scheme?: string;
             base_url?: string;
             created_at?: string;
@@ -106,13 +130,12 @@ interface components {
             provider_id?: string;
             provider_name?: string;
         };
-        "internal_handler.createAPIKeyRequest": {
-            /** @description Go duration, e.g. "720h" */
+        createAPIKeyRequest: {
             expires_in?: string;
             name?: string;
             scopes?: string[];
         };
-        "internal_handler.createAPIKeyResponse": {
+        createAPIKeyResponse: {
             created_at?: string;
             expires_at?: string;
             id?: string;
@@ -121,54 +144,54 @@ interface components {
             name?: string;
             scopes?: string[];
         };
-        "internal_handler.createConnectSessionRequest": {
+        createConnectSessionRequest: {
+            allowed_integrations?: string[];
             allowed_origins?: string[];
-            allowed_providers?: string[];
             external_id?: string;
             identity_id?: string;
-            metadata?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            metadata?: components["schemas"]["JSON"];
             permissions?: string[];
             ttl?: string;
         };
-        "internal_handler.createConnectionRequest": {
+        createConnectionRequest: {
             api_key?: string;
             label?: string;
             provider_id?: string;
         };
-        "internal_handler.createCredentialRequest": {
+        createCredentialRequest: {
             api_key?: string;
             auth_scheme?: string;
             base_url?: string;
-            /** @description auto-upserts identity */
             external_id?: string;
             identity_id?: string;
             label?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
+            provider_id?: string;
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
         };
-        "internal_handler.createIdentityRequest": {
+        createIdentityRequest: {
             external_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
-        "internal_handler.createIntegrationConnectionRequest": {
+        createIntegrationConnectionRequest: {
             nango_connection_id?: string;
             resources?: {
                 [key: string]: string[];
             };
         };
-        "internal_handler.createIntegrationRequest": {
+        createIntegrationRequest: {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             provider?: string;
         };
-        "internal_handler.createOrgRequest": {
+        createOrgRequest: {
             name?: string;
         };
-        "internal_handler.credentialResponse": {
+        credentialResponse: {
             auth_scheme?: string;
             base_url?: string;
             created_at?: string;
@@ -176,7 +199,7 @@ interface components {
             identity_id?: string;
             label?: string;
             last_used_at?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             provider_id?: string;
             refill_amount?: number;
             refill_interval?: string;
@@ -184,69 +207,71 @@ interface components {
             request_count?: number;
             revoked_at?: string;
         };
-        "internal_handler.credentialStats": {
+        credentialStats: {
             active?: number;
             revoked?: number;
             total?: number;
         };
-        "internal_handler.dailyRequests": {
+        dailyRequests: {
             count?: number;
             date?: string;
         };
-        "internal_handler.errorResponse": {
+        errorResponse: {
             error?: string;
         };
-        "internal_handler.identityRateLimitParams": {
+        identityRateLimitParams: {
             /** @description milliseconds */
             duration?: number;
             limit?: number;
             name?: string;
         };
-        "internal_handler.identityResponse": {
+        identityResponse: {
             created_at?: string;
             external_id?: string;
             id?: string;
             last_used_at?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: components["schemas"]["identityRateLimitParams"][];
             request_count?: number;
             updated_at?: string;
         };
-        "internal_handler.identityStats": {
+        identityStats: {
             total?: number;
         };
-        "internal_handler.integConnCreateRequest": {
+        integConnCreateRequest: {
             identity_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
         };
-        "internal_handler.integConnResponse": {
+        integConnResponse: {
             created_at?: string;
             id?: string;
             identity_id?: string;
             integration_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
             revoked_at?: string;
             updated_at?: string;
         };
-        "internal_handler.integrationProviderInfo": {
+        integrationProviderInfo: {
             auth_mode?: string;
             display_name?: string;
             name?: string;
+            webhook_user_defined_secret?: boolean;
         };
-        "internal_handler.integrationResponse": {
+        integrationResponse: {
             created_at?: string;
             display_name?: string;
             id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            nango_config?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["JSON"];
             provider?: string;
+            unique_key?: string;
             updated_at?: string;
         };
-        "internal_handler.mintTokenRequest": {
+        mintTokenRequest: {
             credential_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
@@ -254,18 +279,19 @@ interface components {
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
-        "internal_handler.mintTokenResponse": {
+        mintTokenResponse: {
             expires_at?: string;
             jti?: string;
+            mcp_endpoint?: string;
             token?: string;
         };
-        "internal_handler.modelSummary": {
-            cost?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Cost"];
+        modelSummary: {
+            cost?: components["schemas"]["Cost"];
             family?: string;
             id?: string;
             knowledge?: string;
-            limit?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Limit"];
-            modalities?: components["schemas"]["github_com_llmvault_llmvault_internal_registry.Modalities"];
+            limit?: components["schemas"]["Limit"];
+            modalities?: components["schemas"]["Modalities"];
             name?: string;
             open_weights?: boolean;
             reasoning?: boolean;
@@ -274,7 +300,7 @@ interface components {
             structured_output?: boolean;
             tool_call?: boolean;
         };
-        "internal_handler.orgResponse": {
+        orgResponse: {
             active?: boolean;
             created_at?: string;
             id?: string;
@@ -282,121 +308,121 @@ interface components {
             name?: string;
             rate_limit?: number;
         };
-        "internal_handler.paginatedResponse-internal_handler_apiKeyResponse": {
-            data?: components["schemas"]["internal_handler.apiKeyResponse"][];
+        "paginatedResponse-apiKeyResponse": {
+            data?: components["schemas"]["apiKeyResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_auditEntryResponse": {
-            data?: components["schemas"]["internal_handler.auditEntryResponse"][];
+        "paginatedResponse-auditEntryResponse": {
+            data?: components["schemas"]["auditEntryResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_connectionResponse": {
-            data?: components["schemas"]["internal_handler.connectionResponse"][];
+        "paginatedResponse-connectionResponse": {
+            data?: components["schemas"]["connectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_credentialResponse": {
-            data?: components["schemas"]["internal_handler.credentialResponse"][];
+        "paginatedResponse-credentialResponse": {
+            data?: components["schemas"]["credentialResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_identityResponse": {
-            data?: components["schemas"]["internal_handler.identityResponse"][];
+        "paginatedResponse-identityResponse": {
+            data?: components["schemas"]["identityResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_integConnResponse": {
-            data?: components["schemas"]["internal_handler.integConnResponse"][];
+        "paginatedResponse-integConnResponse": {
+            data?: components["schemas"]["integConnResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.paginatedResponse-internal_handler_integrationResponse": {
-            data?: components["schemas"]["internal_handler.integrationResponse"][];
+        "paginatedResponse-integrationResponse": {
+            data?: components["schemas"]["integrationResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "internal_handler.patchIntegrationConnectionRequest": {
+        patchIntegrationConnectionRequest: {
             resources?: {
                 [key: string]: string[];
             };
         };
-        "internal_handler.providerDetail": {
+        providerDetail: {
             api?: string;
             doc?: string;
             id?: string;
-            models?: components["schemas"]["internal_handler.modelSummary"][];
+            models?: components["schemas"]["modelSummary"][];
             name?: string;
         };
-        "internal_handler.providerSummary": {
+        providerSummary: {
             api?: string;
             doc?: string;
             id?: string;
             model_count?: number;
             name?: string;
         };
-        "internal_handler.requestStats": {
+        requestStats: {
             last_30d?: number;
             last_7d?: number;
             today?: number;
             total?: number;
             yesterday?: number;
         };
-        "internal_handler.sessionInfoResponse": {
+        sessionInfoResponse: {
             activated_at?: string;
-            allowed_providers?: string[];
+            allowed_integrations?: string[];
             expires_at?: string;
             external_id?: string;
             id?: string;
             identity_id?: string;
             permissions?: string[];
         };
-        "internal_handler.tokenStats": {
+        tokenStats: {
             active?: number;
             expired?: number;
             revoked?: number;
             total?: number;
         };
-        "internal_handler.topCredential": {
+        topCredential: {
             id?: string;
             label?: string;
             provider_id?: string;
             request_count?: number;
         };
-        "internal_handler.updateIdentityRequest": {
+        updateIdentityRequest: {
             external_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
-        "internal_handler.updateIntegrationRequest": {
+        updateIntegrationRequest: {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
         };
-        "internal_handler.usageResponse": {
-            api_keys?: components["schemas"]["internal_handler.apiKeyStats"];
-            credentials?: components["schemas"]["internal_handler.credentialStats"];
-            daily_requests?: components["schemas"]["internal_handler.dailyRequests"][];
-            identities?: components["schemas"]["internal_handler.identityStats"];
-            requests?: components["schemas"]["internal_handler.requestStats"];
-            tokens?: components["schemas"]["internal_handler.tokenStats"];
-            top_credentials?: components["schemas"]["internal_handler.topCredential"][];
+        usageResponse: {
+            api_keys?: components["schemas"]["apiKeyStats"];
+            credentials?: components["schemas"]["credentialStats"];
+            daily_requests?: components["schemas"]["dailyRequests"][];
+            identities?: components["schemas"]["identityStats"];
+            requests?: components["schemas"]["requestStats"];
+            tokens?: components["schemas"]["tokenStats"];
+            top_credentials?: components["schemas"]["topCredential"][];
         };
-        "internal_handler.widgetIntegrationResponse": {
+        widgetIntegrationResponse: {
             auth_mode?: string;
             connection_id?: string;
             display_name?: string;
             id?: string;
             nango_connection_id?: string;
             provider?: string;
-            resources?: components["schemas"]["internal_handler.widgetResourceResponse"][];
+            resources?: components["schemas"]["widgetResourceResponse"][];
             selected_resources?: {
                 [key: string]: string[];
             };
             unique_key?: string;
         };
-        "internal_handler.widgetResourceResponse": {
+        widgetResourceResponse: {
             description?: string;
             display_name?: string;
             icon?: string;
@@ -415,42 +441,64 @@ interface LLMVaultConfig {
     baseUrl?: string;
 }
 type Schemas = components["schemas"];
-type ApiKeyResponse = Schemas["internal_handler.apiKeyResponse"];
-type CreateAPIKeyRequest = Schemas["internal_handler.createAPIKeyRequest"];
-type CreateAPIKeyResponse = Schemas["internal_handler.createAPIKeyResponse"];
-type CredentialResponse = Schemas["internal_handler.credentialResponse"];
-type CreateCredentialRequest = Schemas["internal_handler.createCredentialRequest"];
-type MintTokenRequest = Schemas["internal_handler.mintTokenRequest"];
-type MintTokenResponse = Schemas["internal_handler.mintTokenResponse"];
+type ApiKeyResponse = Schemas["apiKeyResponse"];
+type CreateAPIKeyRequest = Schemas["createAPIKeyRequest"];
+type CreateAPIKeyResponse = Schemas["createAPIKeyResponse"];
+type CredentialResponse = Schemas["credentialResponse"];
+type CreateCredentialRequest = Schemas["createCredentialRequest"];
+type MintTokenRequest = Schemas["mintTokenRequest"];
+type MintTokenResponse = Schemas["mintTokenResponse"];
 type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
-type IdentityResponse = Schemas["internal_handler.identityResponse"];
-type CreateIdentityRequest = Schemas["internal_handler.createIdentityRequest"];
-type UpdateIdentityRequest = Schemas["internal_handler.updateIdentityRequest"];
-type IdentityRateLimitParams = Schemas["internal_handler.identityRateLimitParams"];
-type ConnectSessionResponse = Schemas["internal_handler.connectSessionResponse"];
-type CreateConnectSessionRequest = Schemas["internal_handler.createConnectSessionRequest"];
-type ConnectSettingsRequest = Schemas["internal_handler.connectSettingsRequest"];
-type ConnectSettingsResponse = Schemas["internal_handler.connectSettingsResponse"];
-type IntegrationResponse = Schemas["internal_handler.integrationResponse"];
-type CreateIntegrationRequest = Schemas["internal_handler.createIntegrationRequest"];
-type UpdateIntegrationRequest = Schemas["internal_handler.updateIntegrationRequest"];
+interface AvailableScopeAction {
+    key: string;
+    display_name: string;
+    description: string;
+    resource_type?: string;
+}
+interface AvailableScopeResourceItem {
+    id: string;
+    name: string;
+}
+interface AvailableScopeResource {
+    display_name: string;
+    selected: AvailableScopeResourceItem[];
+}
+interface AvailableScopeConnection {
+    connection_id: string;
+    integration_id: string;
+    provider: string;
+    display_name: string;
+    actions: AvailableScopeAction[];
+    resources?: Record<string, AvailableScopeResource>;
+}
+type IdentityResponse = Schemas["identityResponse"];
+type CreateIdentityRequest = Schemas["createIdentityRequest"];
+type UpdateIdentityRequest = Schemas["updateIdentityRequest"];
+type IdentityRateLimitParams = Schemas["identityRateLimitParams"];
+type ConnectSessionResponse = Schemas["connectSessionResponse"];
+type CreateConnectSessionRequest = Schemas["createConnectSessionRequest"];
+type ConnectSettingsRequest = Schemas["connectSettingsRequest"];
+type ConnectSettingsResponse = Schemas["connectSettingsResponse"];
+type IntegrationResponse = Schemas["integrationResponse"];
+type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
+type UpdateIntegrationRequest = Schemas["updateIntegrationRequest"];
 type NangoCredentials = Schemas["github_com_llmvault_llmvault_internal_nango.Credentials"];
-type IntegConnResponse = Schemas["internal_handler.integConnResponse"];
-type IntegConnCreateRequest = Schemas["internal_handler.integConnCreateRequest"];
-type UsageResponse = Schemas["internal_handler.usageResponse"];
-type AuditEntryResponse = Schemas["internal_handler.auditEntryResponse"];
-type OrgResponse = Schemas["internal_handler.orgResponse"];
-type ProviderSummary = Schemas["internal_handler.providerSummary"];
-type ProviderDetail = Schemas["internal_handler.providerDetail"];
-type ModelSummary = Schemas["internal_handler.modelSummary"];
-type PaginatedApiKeys = Schemas["internal_handler.paginatedResponse-internal_handler_apiKeyResponse"];
-type PaginatedCredentials = Schemas["internal_handler.paginatedResponse-internal_handler_credentialResponse"];
-type PaginatedIdentities = Schemas["internal_handler.paginatedResponse-internal_handler_identityResponse"];
-type PaginatedAuditEntries = Schemas["internal_handler.paginatedResponse-internal_handler_auditEntryResponse"];
-type PaginatedIntegrations = Schemas["internal_handler.paginatedResponse-internal_handler_integrationResponse"];
-type PaginatedIntegConns = Schemas["internal_handler.paginatedResponse-internal_handler_integConnResponse"];
-type ErrorResponse = Schemas["internal_handler.errorResponse"];
-type JSON = Schemas["github_com_llmvault_llmvault_internal_model.JSON"];
+type IntegConnResponse = Schemas["integConnResponse"];
+type IntegConnCreateRequest = Schemas["integConnCreateRequest"];
+type UsageResponse = Schemas["usageResponse"];
+type AuditEntryResponse = Schemas["auditEntryResponse"];
+type OrgResponse = Schemas["orgResponse"];
+type ProviderSummary = Schemas["providerSummary"];
+type ProviderDetail = Schemas["providerDetail"];
+type ModelSummary = Schemas["modelSummary"];
+type PaginatedApiKeys = Schemas["paginatedResponse-apiKeyResponse"];
+type PaginatedCredentials = Schemas["paginatedResponse-credentialResponse"];
+type PaginatedIdentities = Schemas["paginatedResponse-identityResponse"];
+type PaginatedAuditEntries = Schemas["paginatedResponse-auditEntryResponse"];
+type PaginatedIntegrations = Schemas["paginatedResponse-integrationResponse"];
+type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"];
+type ErrorResponse = Schemas["errorResponse"];
+type JSON = Schemas["JSON"];
 
 type ApiClient = ReturnType<typeof openapi_fetch__default<paths>>;
 declare class BaseResource {
@@ -468,7 +516,7 @@ declare class ApiKeysResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.createAPIKeyRequest"];
+                "application/json": components["schemas"]["createAPIKeyRequest"];
             };
         };
         responses: {
@@ -477,7 +525,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.createAPIKeyResponse"];
+                    "application/json": components["schemas"]["createAPIKeyResponse"];
                 };
             };
             400: {
@@ -485,7 +533,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -493,7 +541,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -501,7 +549,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -532,7 +580,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_apiKeyResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-apiKeyResponse"];
                 };
             };
             400: {
@@ -540,7 +588,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -548,7 +596,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -556,7 +604,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -594,7 +642,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -602,7 +650,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -610,7 +658,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -618,7 +666,7 @@ declare class ApiKeysResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -641,7 +689,7 @@ declare class CredentialsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.createCredentialRequest"];
+                "application/json": components["schemas"]["createCredentialRequest"];
             };
         };
         responses: {
@@ -650,7 +698,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.credentialResponse"];
+                    "application/json": components["schemas"]["credentialResponse"];
                 };
             };
             400: {
@@ -658,7 +706,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -666,7 +714,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -674,7 +722,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -682,7 +730,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -694,7 +742,8 @@ declare class CredentialsResource extends BaseResource {
             external_id?: string;
             identity_id?: string;
             label?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
+            provider_id?: string;
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
@@ -726,7 +775,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_credentialResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-credentialResponse"];
                 };
             };
             400: {
@@ -734,7 +783,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -742,7 +791,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -750,7 +799,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -781,7 +830,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.credentialResponse"];
+                    "application/json": components["schemas"]["credentialResponse"];
                 };
             };
             400: {
@@ -789,7 +838,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -797,7 +846,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -805,7 +854,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -813,7 +862,7 @@ declare class CredentialsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -836,7 +885,7 @@ declare class TokensResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.mintTokenRequest"];
+                "application/json": components["schemas"]["mintTokenRequest"];
             };
         };
         responses: {
@@ -845,7 +894,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.mintTokenResponse"];
+                    "application/json": components["schemas"]["mintTokenResponse"];
                 };
             };
             400: {
@@ -853,7 +902,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -861,7 +910,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -869,7 +918,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -877,14 +926,14 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
     }, {
         body: {
             credential_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
@@ -918,7 +967,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -926,7 +975,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -934,7 +983,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -942,7 +991,7 @@ declare class TokensResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -965,7 +1014,7 @@ declare class IdentitiesResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.createIdentityRequest"];
+                "application/json": components["schemas"]["createIdentityRequest"];
             };
         };
         responses: {
@@ -974,7 +1023,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.identityResponse"];
+                    "application/json": components["schemas"]["identityResponse"];
                 };
             };
             400: {
@@ -982,7 +1031,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -990,7 +1039,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             409: {
@@ -998,7 +1047,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1006,15 +1055,15 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
     }, {
         body: {
             external_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
     }, `${string}/${string}`>>;
     list(query?: {
@@ -1041,7 +1090,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_identityResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-identityResponse"];
                 };
             };
             400: {
@@ -1049,7 +1098,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1057,7 +1106,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1065,7 +1114,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1095,7 +1144,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.identityResponse"];
+                    "application/json": components["schemas"]["identityResponse"];
                 };
             };
             400: {
@@ -1103,7 +1152,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1111,7 +1160,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1119,7 +1168,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1127,7 +1176,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1149,7 +1198,7 @@ declare class IdentitiesResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.updateIdentityRequest"];
+                "application/json": components["schemas"]["updateIdentityRequest"];
             };
         };
         responses: {
@@ -1158,7 +1207,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.identityResponse"];
+                    "application/json": components["schemas"]["identityResponse"];
                 };
             };
             400: {
@@ -1166,7 +1215,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1174,7 +1223,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1182,7 +1231,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             409: {
@@ -1190,7 +1239,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1198,7 +1247,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1210,8 +1259,8 @@ declare class IdentitiesResource extends BaseResource {
         };
         body: {
             external_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
-            ratelimits?: components["schemas"]["internal_handler.identityRateLimitParams"][];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
     }, `${string}/${string}`>>;
     delete(id: string): Promise<openapi_fetch.FetchResponse<{
@@ -1240,7 +1289,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1248,7 +1297,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1256,7 +1305,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1264,7 +1313,7 @@ declare class IdentitiesResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1287,7 +1336,7 @@ declare class ConnectSessionsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.createConnectSessionRequest"];
+                "application/json": components["schemas"]["createConnectSessionRequest"];
             };
         };
         responses: {
@@ -1296,7 +1345,7 @@ declare class ConnectSessionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.connectSessionResponse"];
+                    "application/json": components["schemas"]["connectSessionResponse"];
                 };
             };
             400: {
@@ -1304,7 +1353,7 @@ declare class ConnectSessionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1312,7 +1361,7 @@ declare class ConnectSessionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1320,7 +1369,7 @@ declare class ConnectSessionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1328,17 +1377,17 @@ declare class ConnectSessionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
     }, {
         body: {
+            allowed_integrations?: string[];
             allowed_origins?: string[];
-            allowed_providers?: string[];
             external_id?: string;
             identity_id?: string;
-            metadata?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            metadata?: components["schemas"]["JSON"];
             permissions?: string[];
             ttl?: string;
         };
@@ -1359,7 +1408,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.connectSettingsResponse"];
+                    "application/json": components["schemas"]["connectSettingsResponse"];
                 };
             };
             401: {
@@ -1367,7 +1416,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1385,7 +1434,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.connectSettingsResponse"];
+                    "application/json": components["schemas"]["connectSettingsResponse"];
                 };
             };
             401: {
@@ -1393,7 +1442,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1407,7 +1456,7 @@ declare class ConnectSettingsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.connectSettingsRequest"];
+                "application/json": components["schemas"]["connectSettingsRequest"];
             };
         };
         responses: {
@@ -1416,7 +1465,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.connectSettingsResponse"];
+                    "application/json": components["schemas"]["connectSettingsResponse"];
                 };
             };
             400: {
@@ -1424,7 +1473,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1432,7 +1481,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1440,7 +1489,7 @@ declare class ConnectSettingsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1466,7 +1515,7 @@ declare class IntegrationsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.createIntegrationRequest"];
+                "application/json": components["schemas"]["createIntegrationRequest"];
             };
         };
         responses: {
@@ -1475,7 +1524,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integrationResponse"];
+                    "application/json": components["schemas"]["integrationResponse"];
                 };
             };
             400: {
@@ -1483,7 +1532,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1491,7 +1540,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1499,7 +1548,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             502: {
@@ -1507,7 +1556,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1515,7 +1564,7 @@ declare class IntegrationsResource extends BaseResource {
         body: {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             provider?: string;
         };
     }, `${string}/${string}`>>;
@@ -1543,7 +1592,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_integrationResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-integrationResponse"];
                 };
             };
             400: {
@@ -1551,7 +1600,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1559,7 +1608,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1567,7 +1616,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1597,7 +1646,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integrationResponse"];
+                    "application/json": components["schemas"]["integrationResponse"];
                 };
             };
             400: {
@@ -1605,7 +1654,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1613,7 +1662,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1621,7 +1670,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1629,7 +1678,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1651,7 +1700,7 @@ declare class IntegrationsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.updateIntegrationRequest"];
+                "application/json": components["schemas"]["updateIntegrationRequest"];
             };
         };
         responses: {
@@ -1660,7 +1709,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integrationResponse"];
+                    "application/json": components["schemas"]["integrationResponse"];
                 };
             };
             400: {
@@ -1668,7 +1717,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1676,7 +1725,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1684,7 +1733,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1692,7 +1741,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             502: {
@@ -1700,7 +1749,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1713,7 +1762,7 @@ declare class IntegrationsResource extends BaseResource {
         body: {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
         };
     }, `${string}/${string}`>>;
     delete(id: string): Promise<openapi_fetch.FetchResponse<{
@@ -1742,7 +1791,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1750,7 +1799,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1758,7 +1807,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1766,7 +1815,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             502: {
@@ -1774,7 +1823,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1799,7 +1848,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integrationProviderInfo"][];
+                    "application/json": components["schemas"]["integrationProviderInfo"][];
                 };
             };
         };
@@ -1817,7 +1866,7 @@ declare class IntegrationsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integrationProviderInfo"][];
+                    "application/json": components["schemas"]["integrationProviderInfo"][];
                 };
             };
         };
@@ -1825,6 +1874,7 @@ declare class IntegrationsResource extends BaseResource {
 }
 
 declare class ConnectionsResource extends BaseResource {
+    availableScopes(): Promise<AvailableScopeConnection[]>;
     create(integrationId: string, body: IntegConnCreateRequest): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -1836,7 +1886,7 @@ declare class ConnectionsResource extends BaseResource {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["internal_handler.integConnCreateRequest"];
+                "application/json": components["schemas"]["integConnCreateRequest"];
             };
         };
         responses: {
@@ -1845,7 +1895,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integConnResponse"];
+                    "application/json": components["schemas"]["integConnResponse"];
                 };
             };
             400: {
@@ -1853,7 +1903,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1861,7 +1911,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1869,7 +1919,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1877,7 +1927,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1889,7 +1939,7 @@ declare class ConnectionsResource extends BaseResource {
         };
         body: {
             identity_id?: string;
-            meta?: components["schemas"]["github_com_llmvault_llmvault_internal_model.JSON"];
+            meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
         };
     }, `${string}/${string}`>>;
@@ -1915,7 +1965,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_integConnResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-integConnResponse"];
                 };
             };
             400: {
@@ -1923,7 +1973,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1931,7 +1981,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -1939,7 +1989,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -1947,7 +1997,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -1978,7 +2028,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.integConnResponse"];
+                    "application/json": components["schemas"]["integConnResponse"];
                 };
             };
             400: {
@@ -1986,7 +2036,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -1994,7 +2044,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -2002,7 +2052,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -2010,7 +2060,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2047,7 +2097,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -2055,7 +2105,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             404: {
@@ -2063,7 +2113,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -2071,7 +2121,7 @@ declare class ConnectionsResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2099,7 +2149,7 @@ declare class UsageResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.usageResponse"];
+                    "application/json": components["schemas"]["usageResponse"];
                 };
             };
             403: {
@@ -2107,7 +2157,7 @@ declare class UsageResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2125,7 +2175,7 @@ declare class UsageResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.usageResponse"];
+                    "application/json": components["schemas"]["usageResponse"];
                 };
             };
             403: {
@@ -2133,7 +2183,7 @@ declare class UsageResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2163,7 +2213,7 @@ declare class AuditResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.paginatedResponse-internal_handler_auditEntryResponse"];
+                    "application/json": components["schemas"]["paginatedResponse-auditEntryResponse"];
                 };
             };
             400: {
@@ -2171,7 +2221,7 @@ declare class AuditResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             401: {
@@ -2179,7 +2229,7 @@ declare class AuditResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
             500: {
@@ -2187,7 +2237,7 @@ declare class AuditResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2217,7 +2267,7 @@ declare class OrgResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.orgResponse"];
+                    "application/json": components["schemas"]["orgResponse"];
                 };
             };
             403: {
@@ -2225,7 +2275,7 @@ declare class OrgResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2243,7 +2293,7 @@ declare class OrgResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.orgResponse"];
+                    "application/json": components["schemas"]["orgResponse"];
                 };
             };
             403: {
@@ -2251,7 +2301,7 @@ declare class OrgResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2273,7 +2323,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.providerSummary"][];
+                    "application/json": components["schemas"]["providerSummary"][];
                 };
             };
         };
@@ -2291,7 +2341,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.providerSummary"][];
+                    "application/json": components["schemas"]["providerSummary"][];
                 };
             };
         };
@@ -2312,7 +2362,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.providerDetail"];
+                    "application/json": components["schemas"]["providerDetail"];
                 };
             };
             404: {
@@ -2320,7 +2370,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2347,7 +2397,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.modelSummary"][];
+                    "application/json": components["schemas"]["modelSummary"][];
                 };
             };
             404: {
@@ -2355,7 +2405,7 @@ declare class ProvidersResource extends BaseResource {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["internal_handler.errorResponse"];
+                    "application/json": components["schemas"]["errorResponse"];
                 };
             };
         };
@@ -2383,4 +2433,4 @@ declare class LLMVault {
     constructor(config: LLMVaultConfig);
 }
 
-export { type ApiKeyResponse, type AuditEntryResponse, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type ProviderDetail, type ProviderSummary, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };
+export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type ProviderDetail, type ProviderSummary, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };

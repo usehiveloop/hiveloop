@@ -28,12 +28,10 @@ export interface SuccessPayload {
 
 export interface IntegrationSuccessPayload {
   integrationId: string
-  provider: string
 }
 
 export interface ResourceSelectionPayload {
   integrationId: string
-  provider: string
   resources: Record<string, string[]>
 }
 

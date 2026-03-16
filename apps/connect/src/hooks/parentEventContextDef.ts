@@ -2,8 +2,8 @@ import { createContext } from 'react'
 
 export type ConnectEvent =
   | { type: 'success'; payload: { providerId: string; connectionId: string } }
-  | { type: 'integration_success'; payload: { integrationId: string; provider: string } }
-  | { type: 'resource_selection'; payload: { integrationId: string; provider: string; resources: Record<string, string[]> } }
+  | { type: 'integration_success'; payload: { integrationId: string } }
+  | { type: 'resource_selection'; payload: { integrationId: string; resources: Record<string, string[]> } }
   | { type: 'error'; payload: { code: string; message: string; providerId?: string } }
   | { type: 'close' }
 

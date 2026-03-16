@@ -167,6 +167,10 @@ var IntegrationsResource = class extends BaseResource {
 
 // src/resources/connections.ts
 var ConnectionsResource = class extends BaseResource {
+  async availableScopes() {
+    const { data } = await this.client.GET("/v1/connections/available-scopes", {});
+    return data ?? [];
+  }
   create(integrationId, body) {
     return this.client.POST("/v1/integrations/{id}/connections", {
       params: { path: { id: integrationId } },

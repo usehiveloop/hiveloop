@@ -69,8 +69,7 @@ export function IntegrationResourceSelection({
       sendToParent({
         type: 'resource_selection',
         payload: {
-          integrationId: integration.id ?? '',
-          provider: integration.provider ?? '',
+          integrationId: integration.unique_key ?? '',
           resources: selectedResources,
         },
       })
