@@ -314,6 +314,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/connections/available-scopes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns active connections enriched with their available actions from the catalog.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "List available scopes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.availableScopeConnection"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/connections/{id}": {
             "get": {
                 "security": [
@@ -2556,7 +2596,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns providers available to the current session, filtered by allowed_providers.",
+                "description": "Returns all LLM providers available in the registry.",
                 "produces": [
                     "application/json"
                 ],
@@ -2834,16 +2874,87 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.availableScopeAction": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.availableScopeConnection": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.availableScopeAction"
+                    }
+                },
+                "connection_id": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "integration_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "resources": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/internal_handler.availableScopeResource"
+                    }
+                }
+            }
+        },
+        "internal_handler.availableScopeResource": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "selected": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.availableScopeResourceItem"
+                    }
+                }
+            }
+        },
+        "internal_handler.availableScopeResourceItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.connectSessionResponse": {
             "type": "object",
             "properties": {
-                "allowed_origins": {
+                "allowed_integrations": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "allowed_providers": {
+                "allowed_origins": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2932,7 +3043,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "expires_in": {
-                    "description": "Go duration, e.g. \"720h\"",
                     "type": "string"
                 },
                 "name": {
@@ -2978,13 +3088,13 @@ const docTemplate = `{
         "internal_handler.createConnectSessionRequest": {
             "type": "object",
             "properties": {
-                "allowed_origins": {
+                "allowed_integrations": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "allowed_providers": {
+                "allowed_origins": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -3037,7 +3147,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "external_id": {
-                    "description": "auto-upserts identity",
                     "type": "string"
                 },
                 "identity_id": {
@@ -3048,6 +3157,9 @@ const docTemplate = `{
                 },
                 "meta": {
                     "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                },
+                "provider_id": {
+                    "type": "string"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -3308,6 +3420,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "webhook_user_defined_secret": {
+                    "type": "boolean"
                 }
             }
         },
@@ -3330,6 +3445,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
                 },
                 "provider": {
+                    "type": "string"
+                },
+                "unique_key": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -3374,6 +3492,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "jti": {
+                    "type": "string"
+                },
+                "mcp_endpoint": {
                     "type": "string"
                 },
                 "token": {
@@ -3650,7 +3771,7 @@ const docTemplate = `{
                 "activated_at": {
                     "type": "string"
                 },
-                "allowed_providers": {
+                "allowed_integrations": {
                     "type": "array",
                     "items": {
                         "type": "string"

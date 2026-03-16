@@ -206,40 +206,6 @@ func TestE2E_ConnectSession_OriginValidation(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// E2E: Connect provider catalog filtering
-// --------------------------------------------------------------------------
-
-func TestE2E_Connect_ProviderFiltering(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	token, _ := h.createConnectSession(t, org,
-		`{"external_id":"provider_user","allowed_providers":["openai","anthropic"]}`)
-
-	rr := h.connectRequest(t, http.MethodGet, "/v1/widget/providers", token, nil)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-
-	var providers []struct {
-		ID string `json:"id"`
-	}
-	json.NewDecoder(rr.Body).Decode(&providers)
-
-	if len(providers) != 2 {
-		t.Fatalf("expected 2 providers, got %d", len(providers))
-	}
-
-	ids := map[string]bool{}
-	for _, p := range providers {
-		ids[p.ID] = true
-	}
-	if !ids["openai"] || !ids["anthropic"] {
-		t.Errorf("expected openai and anthropic, got %v", ids)
-	}
-}
-
-// --------------------------------------------------------------------------
 // E2E: Connect provider catalog — no filter returns all
 // --------------------------------------------------------------------------
 
@@ -516,26 +482,6 @@ func TestE2E_Connect_NoPermissionsMeansAll(t *testing.T) {
 		strings.NewReader(body))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-// --------------------------------------------------------------------------
-// E2E: Connect — disallowed provider rejected
-// --------------------------------------------------------------------------
-
-func TestE2E_Connect_DisallowedProvider(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	// Only allow openai
-	token, _ := h.createConnectSession(t, org,
-		`{"external_id":"restricted_user","allowed_providers":["openai"]}`)
-
-	// Try to create anthropic connection
-	rr := h.connectRequest(t, http.MethodPost, "/v1/widget/connections", token,
-		strings.NewReader(`{"provider_id":"anthropic","api_key":"sk-test"}`))
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for disallowed provider, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 

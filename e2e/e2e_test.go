@@ -153,7 +153,7 @@ func newHarness(t *testing.T) *testHarness {
 	providerHandler := handler.NewProviderHandler(reg)
 
 	// Connect handlers
-	connectSessionHandler := handler.NewConnectSessionHandler(db, reg)
+	connectSessionHandler := handler.NewConnectSessionHandler(db)
 	// Nango client (REQUIRED — matches server startup behavior)
 	nangoEndpoint := envOr("NANGO_ENDPOINT", "")
 	nangoSecretKey := envOr("NANGO_SECRET_KEY", "")

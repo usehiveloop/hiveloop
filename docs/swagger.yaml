@@ -143,13 +143,59 @@ definitions:
       status:
         type: integer
     type: object
+  internal_handler.availableScopeAction:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      key:
+        type: string
+      resource_type:
+        type: string
+    type: object
+  internal_handler.availableScopeConnection:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/internal_handler.availableScopeAction'
+        type: array
+      connection_id:
+        type: string
+      display_name:
+        type: string
+      integration_id:
+        type: string
+      provider:
+        type: string
+      resources:
+        additionalProperties:
+          $ref: '#/definitions/internal_handler.availableScopeResource'
+        type: object
+    type: object
+  internal_handler.availableScopeResource:
+    properties:
+      display_name:
+        type: string
+      selected:
+        items:
+          $ref: '#/definitions/internal_handler.availableScopeResourceItem'
+        type: array
+    type: object
+  internal_handler.availableScopeResourceItem:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   internal_handler.connectSessionResponse:
     properties:
-      allowed_origins:
+      allowed_integrations:
         items:
           type: string
         type: array
-      allowed_providers:
+      allowed_origins:
         items:
           type: string
         type: array
@@ -207,7 +253,6 @@ definitions:
   internal_handler.createAPIKeyRequest:
     properties:
       expires_in:
-        description: Go duration, e.g. "720h"
         type: string
       name:
         type: string
@@ -237,11 +282,11 @@ definitions:
     type: object
   internal_handler.createConnectSessionRequest:
     properties:
-      allowed_origins:
+      allowed_integrations:
         items:
           type: string
         type: array
-      allowed_providers:
+      allowed_origins:
         items:
           type: string
         type: array
@@ -276,7 +321,6 @@ definitions:
       base_url:
         type: string
       external_id:
-        description: auto-upserts identity
         type: string
       identity_id:
         type: string
@@ -284,6 +328,8 @@ definitions:
         type: string
       meta:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      provider_id:
+        type: string
       refill_amount:
         type: integer
       refill_interval:
@@ -453,6 +499,8 @@ definitions:
         type: string
       name:
         type: string
+      webhook_user_defined_secret:
+        type: boolean
     type: object
   internal_handler.integrationResponse:
     properties:
@@ -467,6 +515,8 @@ definitions:
       nango_config:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       provider:
+        type: string
+      unique_key:
         type: string
       updated_at:
         type: string
@@ -496,6 +546,8 @@ definitions:
       expires_at:
         type: string
       jti:
+        type: string
+      mcp_endpoint:
         type: string
       token:
         type: string
@@ -675,7 +727,7 @@ definitions:
     properties:
       activated_at:
         type: string
-      allowed_providers:
+      allowed_integrations:
         items:
           type: string
         type: array
@@ -1066,6 +1118,32 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a connection
+      tags:
+      - connections
+  /v1/connections/available-scopes:
+    get:
+      description: Returns active connections enriched with their available actions
+        from the catalog.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.availableScopeConnection'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available scopes
       tags:
       - connections
   /v1/credentials:
@@ -2433,8 +2511,7 @@ paths:
       - integrations
   /v1/widget/providers:
     get:
-      description: Returns providers available to the current session, filtered by
-        allowed_providers.
+      description: Returns all LLM providers available in the registry.
       produces:
       - application/json
       responses:

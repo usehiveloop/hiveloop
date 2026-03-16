@@ -196,7 +196,7 @@ func run() error {
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	identityHandler := handler.NewIdentityHandler(database)
 	providerHandler := handler.NewProviderHandler(reg)
-	connectSessionHandler := handler.NewConnectSessionHandler(database, reg)
+	connectSessionHandler := handler.NewConnectSessionHandler(database)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(database)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)

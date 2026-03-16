@@ -12,41 +12,39 @@ import (
 
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/registry"
 )
 
 // ConnectSessionHandler manages connect session creation.
 type ConnectSessionHandler struct {
-	db  *gorm.DB
-	reg *registry.Registry
+	db *gorm.DB
 }
 
 // NewConnectSessionHandler creates a new connect session handler.
-func NewConnectSessionHandler(db *gorm.DB, reg *registry.Registry) *ConnectSessionHandler {
-	return &ConnectSessionHandler{db: db, reg: reg}
+func NewConnectSessionHandler(db *gorm.DB) *ConnectSessionHandler {
+	return &ConnectSessionHandler{db: db}
 }
 
 const maxSessionTTL = 30 * time.Minute
 
 type createConnectSessionRequest struct {
-	IdentityID       *string    `json:"identity_id,omitempty"`
-	ExternalID       *string    `json:"external_id,omitempty"`
-	AllowedProviders []string   `json:"allowed_providers,omitempty"`
-	Permissions      []string   `json:"permissions,omitempty"`
-	AllowedOrigins   []string   `json:"allowed_origins,omitempty"`
-	Metadata         model.JSON `json:"metadata,omitempty"`
-	TTL              string     `json:"ttl,omitempty"`
+	IdentityID          *string    `json:"identity_id,omitempty"`
+	ExternalID          *string    `json:"external_id,omitempty"`
+	AllowedIntegrations []string   `json:"allowed_integrations,omitempty"`
+	Permissions         []string   `json:"permissions,omitempty"`
+	AllowedOrigins      []string   `json:"allowed_origins,omitempty"`
+	Metadata            model.JSON `json:"metadata,omitempty"`
+	TTL                 string     `json:"ttl,omitempty"`
 }
 
 type connectSessionResponse struct {
-	ID               string   `json:"id"`
-	SessionToken     string   `json:"session_token"`
-	IdentityID       *string  `json:"identity_id,omitempty"`
-	ExternalID       string   `json:"external_id,omitempty"`
-	AllowedProviders []string `json:"allowed_providers,omitempty"`
-	AllowedOrigins   []string `json:"allowed_origins,omitempty"`
-	ExpiresAt        string   `json:"expires_at"`
-	CreatedAt        string   `json:"created_at"`
+	ID                  string   `json:"id"`
+	SessionToken        string   `json:"session_token"`
+	IdentityID          *string  `json:"identity_id,omitempty"`
+	ExternalID          string   `json:"external_id,omitempty"`
+	AllowedIntegrations []string `json:"allowed_integrations,omitempty"`
+	AllowedOrigins      []string `json:"allowed_origins,omitempty"`
+	ExpiresAt           string   `json:"expires_at"`
+	CreatedAt           string   `json:"created_at"`
 }
 
 // Create handles POST /v1/connect/sessions.
@@ -95,7 +93,7 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ttl = parsed
 	}
 
-	if len(req.AllowedProviders) > 0 {
+	if len(req.AllowedIntegrations) > 0 {
 		var integrations []model.Integration
 		if err := h.db.Where("org_id = ? AND deleted_at IS NULL", org.ID).Select("unique_key").Find(&integrations).Error; err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check integrations"})
@@ -106,10 +104,9 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 			integKeys[integ.UniqueKey] = true
 		}
 
-		for _, pid := range req.AllowedProviders {
-			_, inRegistry := h.reg.GetProvider(pid)
-			if !inRegistry && !integKeys[pid] {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider: " + pid})
+		for _, key := range req.AllowedIntegrations {
+			if !integKeys[key] {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown integration: " + key})
 				return
 			}
 		}
@@ -203,7 +200,7 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		IdentityID:       identityID,
 		ExternalID:       externalID,
 		SessionToken:     sessionToken,
-		AllowedProviders: pq.StringArray(req.AllowedProviders),
+		AllowedIntegrations: pq.StringArray(req.AllowedIntegrations),
 		Permissions:      pq.StringArray(req.Permissions),
 		AllowedOrigins:   pq.StringArray(req.AllowedOrigins),
 		Metadata:         req.Metadata,
@@ -219,7 +216,7 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ID:               sess.ID.String(),
 		SessionToken:     sess.SessionToken,
 		ExternalID:       sess.ExternalID,
-		AllowedProviders: req.AllowedProviders,
+		AllowedIntegrations: req.AllowedIntegrations,
 		AllowedOrigins:   req.AllowedOrigins,
 		ExpiresAt:        sess.ExpiresAt.Format(time.RFC3339),
 		CreatedAt:        sess.CreatedAt.Format(time.RFC3339),
