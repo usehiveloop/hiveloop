@@ -3,7 +3,7 @@ import type { IntegConnCreateRequest, AvailableScopeConnection } from "../types.
 
 export class ConnectionsResource extends BaseResource {
   async availableScopes(): Promise<AvailableScopeConnection[]> {
-    const { data } = await this.client.GET("/v1/connections/available-scopes" as any, {});
+    const { data } = await this.client.GET("/v1/connections/available-scopes", {});
     return (data as unknown as AvailableScopeConnection[]) ?? [];
   }
 
