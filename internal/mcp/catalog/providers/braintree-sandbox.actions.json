@@ -1,0 +1,2515 @@
+{
+  "display_name": "Braintree",
+  "resources": {},
+  "actions": {
+    "accept_dispute": {
+      "display_name": "Accept Dispute",
+      "description": "Accepts a dispute and returns a payload that includes the dispute that was accepted. Only disputes with a status of OPEN can be accepted.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "acceptDispute"
+      }
+    },
+    "apple_pay_registered_domains": {
+      "display_name": "Apple Pay Registered Domains",
+      "description": "Retrieves a list of domains registered with Apple for Apple Pay.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "applePayRegisteredDomains"
+      }
+    },
+    "authorize_credit_card": {
+      "display_name": "Authorize Credit Card",
+      "description": "Authorize a credit card of any origin and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "authorizeCreditCard"
+      }
+    },
+    "authorize_in_store_credit_card": {
+      "display_name": "Authorize In Store Credit Card",
+      "description": "Authorize an in-store credit card and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "authorizeInStoreCreditCard"
+      }
+    },
+    "authorize_pay_pal_account": {
+      "display_name": "Authorize Pay Pal Account",
+      "description": "Authorize an eligible PayPal account and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "authorizePayPalAccount"
+      }
+    },
+    "authorize_payment_method": {
+      "display_name": "Authorize Payment Method",
+      "description": "Authorize an eligible payment method and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "authorizePaymentMethod"
+      }
+    },
+    "authorize_venmo_account": {
+      "display_name": "Authorize Venmo Account",
+      "description": "Authorize an eligible Venmo account and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "authorizeVenmoAccount"
+      }
+    },
+    "capture_transaction": {
+      "display_name": "Capture Transaction",
+      "description": "Capture an authorized transaction and return a payload that includes details of the transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "captureTransaction"
+      }
+    },
+    "charge_credit_card": {
+      "display_name": "Charge Credit Card",
+      "description": "Charge a credit card of any origin and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargeCreditCard"
+      }
+    },
+    "charge_in_store_credit_card": {
+      "display_name": "Charge In Store Credit Card",
+      "description": "Charge an in-store credit card and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargeInStoreCreditCard"
+      }
+    },
+    "charge_pay_pal_account": {
+      "display_name": "Charge Pay Pal Account",
+      "description": "Charge a PayPal account and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargePayPalAccount"
+      }
+    },
+    "charge_payment_method": {
+      "display_name": "Charge Payment Method",
+      "description": "Charge any payment method and return a payload that includes details of the resulting transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargePaymentMethod"
+      }
+    },
+    "charge_us_bank_account": {
+      "display_name": "Charge Us Bank Account",
+      "description": "Charge a US bank account and return a payload that includes details of the resulting transaction. See https://developers.braintreepayments.com/guides/ach/configuration for information on eligibilit...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargeUsBankAccount"
+      }
+    },
+    "charge_venmo_account": {
+      "display_name": "Charge Venmo Account",
+      "description": "Charge a Venmo account and return a payload that includes details of the resulting transaction. See https://articles.braintreepayments.com/guides/payment-methods/venmo for information on eligibilit...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "chargeVenmoAccount"
+      }
+    },
+    "client_configuration": {
+      "display_name": "Client Configuration",
+      "description": "The client-side environment and payment method configuration.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "clientConfiguration"
+      }
+    },
+    "confirm_micro_transfer_amounts": {
+      "display_name": "Confirm Micro Transfer Amounts",
+      "description": "Confirm micro-transfer amounts initiated by vaultUsBankAccount or verifyUsBankAccount, completing the verification process for a US Bank Account via micro-transfer.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "confirmMicroTransferAmounts"
+      }
+    },
+    "create_apple_pay_web_session": {
+      "display_name": "Create Apple Pay Web Session",
+      "description": "Creates an Apple Pay web session for domain validation.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createApplePayWebSession"
+      }
+    },
+    "create_client_token": {
+      "display_name": "Create Client Token",
+      "description": "Create a client token that can be used to initialize a client in order to tokenize payment information.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createClientToken"
+      }
+    },
+    "create_customer": {
+      "display_name": "Create Customer",
+      "description": "Create a customer for storing individual customer information and/or grouping transactions and multi-use payment methods.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createCustomer"
+      }
+    },
+    "create_dispute_file_evidence": {
+      "display_name": "Create Dispute File Evidence",
+      "description": "Uploads an evidence file and associates it with a dispute. **Note:**: file upload requires a special request format. See the ['Uploading Files' integration guide](https://graphql.braintreepayments....",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createDisputeFileEvidence"
+      }
+    },
+    "create_dispute_text_evidence": {
+      "display_name": "Create Dispute Text Evidence",
+      "description": "Creates text evidence to a dispute and returns a payload that includes the evidence that was created. Only disputes with a status of OPEN can have text evidence created for them.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createDisputeTextEvidence"
+      }
+    },
+    "create_in_store_location": {
+      "display_name": "Create In Store Location",
+      "description": "Creates a new In-Store Location to associate Readers.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createInStoreLocation"
+      }
+    },
+    "create_local_payment_context": {
+      "display_name": "Create Local Payment Context",
+      "description": "Creates a local payment context. Your account must be enabled to use this feature.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createLocalPaymentContext"
+      }
+    },
+    "create_non_instant_local_payment_context": {
+      "display_name": "Create Non Instant Local Payment Context",
+      "description": "Creates a non-instant local payment context. Your account must be enabled to use this feature.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createNonInstantLocalPaymentContext"
+      }
+    },
+    "create_o_auth_client_secret": {
+      "display_name": "Create O Auth Client Secret",
+      "description": "Create an OAuth client secret. To call this mutation you must obtain an OAuth Access Token with scope MANAGE_OAUTH_CLIENT_SECRETS, the associated merchant must have [IP or hostname restrictions](ht...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createOAuthClientSecret"
+      }
+    },
+    "create_offline_declined_transaction": {
+      "display_name": "Create Offline Declined Transaction",
+      "description": "Create an EMV chip declined transaction and return a payload that includes details of the created transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createOfflineDeclinedTransaction"
+      }
+    },
+    "create_pay_pal_billing_agreement": {
+      "display_name": "Create Pay Pal Billing Agreement",
+      "description": "Set up a PayPal Billing Agreement Token for approval by a PayPal user.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createPayPalBillingAgreement"
+      }
+    },
+    "create_pay_pal_one_time_payment": {
+      "display_name": "Create Pay Pal One Time Payment",
+      "description": "Set up a PayPal One-Time Payment for approval by a PayPal user. See [documentation](https://developer.paypal.com/braintree/docs/guides/paypal/checkout-with-paypal) for more information. Your accoun...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createPayPalOneTimePayment"
+      }
+    },
+    "create_transaction_package_tracking": {
+      "display_name": "Create Transaction Package Tracking",
+      "description": "Creates a package tracker record for Pay with PayPal transactions. Your account must be enabled to use this feature.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createTransactionPackageTracking"
+      }
+    },
+    "create_transaction_risk_context": {
+      "display_name": "Create Transaction Risk Context",
+      "description": "Create a transaction context for risk assessment purposes.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createTransactionRiskContext"
+      }
+    },
+    "create_universal_access_token": {
+      "display_name": "Create Universal Access Token",
+      "description": "Create a PayPal access token that can be used to make additional API calls or initialize a client.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createUniversalAccessToken"
+      }
+    },
+    "create_venmo_payment_context": {
+      "display_name": "Create Venmo Payment Context",
+      "description": "Create a Venmo payment context.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "createVenmoPaymentContext"
+      }
+    },
+    "delete_customer": {
+      "display_name": "Delete Customer",
+      "description": "Delete a customer, breaking association between any of the customer's transactions. Will not delete if the customer has existing payment methods.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deleteCustomer"
+      }
+    },
+    "delete_dispute_evidence": {
+      "display_name": "Delete Dispute Evidence",
+      "description": "Deletes evidence from a dispute.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deleteDisputeEvidence"
+      }
+    },
+    "delete_in_store_location": {
+      "display_name": "Delete In Store Location",
+      "description": "Delete an In-Store Location.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deleteInStoreLocation"
+      }
+    },
+    "delete_o_auth_client_secret": {
+      "display_name": "Delete O Auth Client Secret",
+      "description": "Delete a disabled OAuth client secret. To call this mutation you must obtain an OAuth Access Token with scope MANAGE_OAUTH_CLIENT_SECRETS, the associated merchant must have [IP or hostname restrict...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deleteOAuthClientSecret"
+      }
+    },
+    "delete_payment_method_from_single_use_token": {
+      "display_name": "Delete Payment Method From Single Use Token",
+      "description": "Delete a payment method referenced by a single-use token.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deletePaymentMethodFromSingleUseToken"
+      }
+    },
+    "delete_payment_method_from_vault": {
+      "display_name": "Delete Payment Method From Vault",
+      "description": "Delete a multi-use payment method from the vault.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "deletePaymentMethodFromVault"
+      }
+    },
+    "disable_o_auth_client_secret": {
+      "display_name": "Disable O Auth Client Secret",
+      "description": "Disable an OAuth client secret. To call this mutation you must obtain an OAuth Access Token with scope MANAGE_OAUTH_CLIENT_SECRETS, the associated merchant must have [IP or hostname restrictions](h...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "disableOAuthClientSecret"
+      }
+    },
+    "evaluate_transaction_risk": {
+      "display_name": "Evaluate Transaction Risk",
+      "description": "Evaluates the risk of a transaction and return a payload that includes details of the risk evaluation.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "evaluateTransactionRisk"
+      }
+    },
+    "finalize_dispute": {
+      "display_name": "Finalize Dispute",
+      "description": "Finalizes a dispute and returns a payload that includes the dispute that was finalized. Only disputes with a status of OPEN can be finalized.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "finalizeDispute"
+      }
+    },
+    "generate_edit_funding_instrument_url": {
+      "display_name": "Generate Edit Funding Instrument Url",
+      "description": "Generates an edit funding instrument URL.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "generateEditFundingInstrumentUrl"
+      }
+    },
+    "generate_exchange_rate_quote": {
+      "display_name": "Generate Exchange Rate Quote",
+      "description": "Generate a customized currency exchange rate quote for items on a merchant's page. This allows merchants to advertise products in their customer's currency. Your account must be enabled to use this...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "generateExchangeRateQuote"
+      }
+    },
+    "id_from_legacy_id": {
+      "display_name": "Id From Legacy Id",
+      "description": "Get a GraphQL ID from a legacy ID that was returned from an SDK or a legacyId field. Does not verify existence except for payment methods.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "legacyId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "legacyId",
+          "type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "idFromLegacyId"
+      }
+    },
+    "in_store_locations": {
+      "display_name": "In Store Locations",
+      "description": "Retrieve a paginated list of all in-store locations.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "first": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "inStoreLocations"
+      }
+    },
+    "pair_in_store_reader": {
+      "display_name": "Pair In Store Reader",
+      "description": "Pairs a Reader to an account and In-Store Location.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "pairInStoreReader"
+      }
+    },
+    "partial_capture_transaction": {
+      "display_name": "Partial Capture Transaction",
+      "description": "Partially capture funds from a transaction that was successfully authorized and return a payload that includes a new transaction with information about the capture. This is available for [Venmo](ht...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "partialCaptureTransaction"
+      }
+    },
+    "paypal_billing_agreement_details": {
+      "display_name": "Paypal Billing Agreement Details",
+      "description": "Returns the details of the billing agreement.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "paypalBillingAgreementDetails"
+      }
+    },
+    "paypal_order_details": {
+      "display_name": "Paypal Order Details",
+      "description": "Returns the details of the PayPal order.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "paypalOrderDetails"
+      }
+    },
+    "perform_three_d_secure_lookup": {
+      "display_name": "Perform Three D Secure Lookup",
+      "description": "Attempt to perform 3D Secure Authentication on credit card payment method. This may consume the payment method and return a new single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "performThreeDSecureLookup"
+      }
+    },
+    "ping": {
+      "display_name": "Ping",
+      "description": "Returns the literal string 'pong'.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "ping"
+      }
+    },
+    "ping_in_store_reader": {
+      "display_name": "Ping In Store Reader",
+      "description": "Triggers a beep on a connected Reader and returns the Reader information or an error if unable to ping the device.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "readerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "readerId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "pingInStoreReader"
+      }
+    },
+    "refund_credit_card": {
+      "display_name": "Refund Credit Card",
+      "description": "Create a detached refund (unassociated with any previous Braintree payment) to a credit card and return a payload that includes details of the refund. We have previously referred to this as issuing...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "refundCreditCard"
+      }
+    },
+    "refund_in_store_credit_card": {
+      "display_name": "Refund In Store Credit Card",
+      "description": "Create a detached refund (unassociated with any previous Braintree payment) to an in-store credit card and return a payload that includes details of the refund.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "refundInStoreCreditCard"
+      }
+    },
+    "refund_transaction": {
+      "display_name": "Refund Transaction",
+      "description": "Refund a settled transaction and return a payload that includes details of the refund.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "refundTransaction"
+      }
+    },
+    "refund_us_bank_account": {
+      "display_name": "Refund Us Bank Account",
+      "description": "Create a detached refund (unassociated with any previous Braintree payment) to a US Bank Account and return a payload that includes details of the refund. We have previously referred to this as iss...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "refundUsBankAccount"
+      }
+    },
+    "register_apple_pay_domains": {
+      "display_name": "Register Apple Pay Domains",
+      "description": "Registers one or more domains for Apple Pay.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "registerApplePayDomains"
+      }
+    },
+    "report": {
+      "display_name": "Report",
+      "description": "A collection of the available reports. Each field on the `Report` type is a different report that can be queried with its own input parameters.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "report"
+      }
+    },
+    "request_amount_prompt_from_in_store_reader": {
+      "display_name": "Request Amount Prompt From In Store Reader",
+      "description": "Request an in-store reader to display an amount prompt. Only supported on payment application versions \u003e= 5.2.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestAmountPromptFromInStoreReader"
+      }
+    },
+    "request_authorize_from_in_store_reader": {
+      "display_name": "Request Authorize From In Store Reader",
+      "description": "Request an in-store reader to begin the authorize flow. Only supported on payment application versions \u003e= 5.1.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestAuthorizeFromInStoreReader"
+      }
+    },
+    "request_cancel_from_in_store_reader": {
+      "display_name": "Request Cancel From In Store Reader",
+      "description": "Request an in-store reader to cancel the charge flow.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestCancelFromInStoreReader"
+      }
+    },
+    "request_charge_from_in_store_reader": {
+      "display_name": "Request Charge From In Store Reader",
+      "description": "Request an in-store reader to begin the charge flow.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestChargeFromInStoreReader"
+      }
+    },
+    "request_confirmation_prompt_from_in_store_reader": {
+      "display_name": "Request Confirmation Prompt From In Store Reader",
+      "description": "Request an in-store reader to display a confirmation prompt. Only supported on payment application versions \u003e= 3.3.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestConfirmationPromptFromInStoreReader"
+      }
+    },
+    "request_firmware_update_from_in_store_reader": {
+      "display_name": "Request Firmware Update From In Store Reader",
+      "description": "Request an in-store reader to update to the latest version of software.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestFirmwareUpdateFromInStoreReader"
+      }
+    },
+    "request_item_display_from_in_store_reader": {
+      "display_name": "Request Item Display From In Store Reader",
+      "description": "Request an in-store reader to display line items.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestItemDisplayFromInStoreReader"
+      }
+    },
+    "request_multi_choice_single_select_prompt_from_in_store_reader": {
+      "display_name": "Request Multi Choice Single Select Prompt From In Store Reader",
+      "description": "Request an in-store reader to display a multi-choice single-select prompt. Only supported on payment application versions \u003e= 5.4.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestMultiChoiceSingleSelectPromptFromInStoreReader"
+      }
+    },
+    "request_non_pci_card_data_from_in_store_reader": {
+      "display_name": "Request Non Pci Card Data From In Store Reader",
+      "description": "Request an in-store reader to collect non [PCI-scoped](https://www.braintreepayments.com/blog/understanding-pci-dss-compliance) card data. Only supported on payment application versions \u003e= 5.2.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestNonPciCardDataFromInStoreReader"
+      }
+    },
+    "request_print_from_in_store_reader": {
+      "display_name": "Request Print From In Store Reader",
+      "description": "Request an in-store reader to print content. Only supported on the Verifone V400m device using payment application version \u003e= 5.5.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestPrintFromInStoreReader"
+      }
+    },
+    "request_refund_from_in_store_reader": {
+      "display_name": "Request Refund From In Store Reader",
+      "description": "Request an in-store reader to start an unreferenced refund flow.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestRefundFromInStoreReader"
+      }
+    },
+    "request_signature_prompt_from_in_store_reader": {
+      "display_name": "Request Signature Prompt From In Store Reader",
+      "description": "Request an in-store reader to display a signature prompt. Only supported on payment application versions \u003e= 3.3.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestSignaturePromptFromInStoreReader"
+      }
+    },
+    "request_text_display_from_in_store_reader": {
+      "display_name": "Request Text Display From In Store Reader",
+      "description": "Request an in-store reader to display text.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestTextDisplayFromInStoreReader"
+      }
+    },
+    "request_text_prompt_from_in_store_reader": {
+      "display_name": "Request Text Prompt From In Store Reader",
+      "description": "Request an in-store reader to display a text prompt. Only supported on payment application versions \u003e= 5.2.0.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestTextPromptFromInStoreReader"
+      }
+    },
+    "request_vault_from_in_store_reader": {
+      "display_name": "Request Vault From In Store Reader",
+      "description": "Request an in-store reader to vault a payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "requestVaultFromInStoreReader"
+      }
+    },
+    "reverse_emv_transaction": {
+      "display_name": "Reverse Emv Transaction",
+      "description": "Reverse an EMV card declined transaction and return a payload that includes the voided transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "reverseEmvTransaction"
+      }
+    },
+    "reverse_refund": {
+      "display_name": "Reverse Refund",
+      "description": "Reverse a refund and return a payload that includes voided refund.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "reverseRefund"
+      }
+    },
+    "reverse_transaction": {
+      "display_name": "Reverse Transaction",
+      "description": "Reverse a transaction and return a payload that includes either the voided transaction or a refund.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "reverseTransaction"
+      }
+    },
+    "sandbox_settle_transaction": {
+      "display_name": "Sandbox Settle Transaction",
+      "description": "Force a transaction to settle in the sandbox environment. Generates an error elsewhere.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "sandboxSettleTransaction"
+      }
+    },
+    "search": {
+      "display_name": "Search",
+      "description": "A collection of the available searches. Each field on the `Search` type is a different search that can be queried with its own input parameters.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "search"
+      }
+    },
+    "tokenize_apple_pay_card": {
+      "display_name": "Tokenize Apple Pay Card",
+      "description": "Tokenize Apple Pay card fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeApplePayCard"
+      }
+    },
+    "tokenize_credit_card": {
+      "display_name": "Tokenize Credit Card",
+      "description": "Tokenize credit card fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeCreditCard"
+      }
+    },
+    "tokenize_custom_actions_payment_method": {
+      "display_name": "Tokenize Custom Actions Payment Method",
+      "description": "Tokenize Custom Actions fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeCustomActionsPaymentMethod"
+      }
+    },
+    "tokenize_cvv": {
+      "display_name": "Tokenize Cvv",
+      "description": "Tokenize a credit card's CVV and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeCvv"
+      }
+    },
+    "tokenize_emv_card": {
+      "display_name": "Tokenize Emv Card",
+      "description": "Tokenize EMV credit card fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeEmvCard"
+      }
+    },
+    "tokenize_magstripe_card": {
+      "display_name": "Tokenize Magstripe Card",
+      "description": "Tokenize magstripe credit card fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeMagstripeCard"
+      }
+    },
+    "tokenize_network_token": {
+      "display_name": "Tokenize Network Token",
+      "description": "Tokenize a network tokenized payment instrument and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeNetworkToken"
+      }
+    },
+    "tokenize_pay_pal_billing_agreement": {
+      "display_name": "Tokenize Pay Pal Billing Agreement",
+      "description": "Tokenize PayPal account and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizePayPalBillingAgreement"
+      }
+    },
+    "tokenize_pay_pal_one_time_payment": {
+      "display_name": "Tokenize Pay Pal One Time Payment",
+      "description": "Tokenize PayPal One-Time Payment and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizePayPalOneTimePayment"
+      }
+    },
+    "tokenize_samsung_pay_card": {
+      "display_name": "Tokenize Samsung Pay Card",
+      "description": "Tokenize Samsung Pay card fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeSamsungPayCard"
+      }
+    },
+    "tokenize_us_bank_account": {
+      "display_name": "Tokenize Us Bank Account",
+      "description": "Tokenize US bank account fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeUsBankAccount"
+      }
+    },
+    "tokenize_us_bank_login": {
+      "display_name": "Tokenize Us Bank Login",
+      "description": "Tokenize US bank login fields and return a payload that includes a single-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "tokenizeUsBankLogin"
+      }
+    },
+    "unregister_apple_pay_domain": {
+      "display_name": "Unregister Apple Pay Domain",
+      "description": "Unregisters a domain from Apple Pay.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "unregisterApplePayDomain"
+      }
+    },
+    "update_credit_card_billing_address": {
+      "display_name": "Update Credit Card Billing Address",
+      "description": "Set a new billing address for a multi-use credit card payment method. By default, this mutation will also verify the card with the new billing address before updating.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateCreditCardBillingAddress"
+      }
+    },
+    "update_credit_card_cardholder_name": {
+      "display_name": "Update Credit Card Cardholder Name",
+      "description": "Set a new cardholder name for a multi-use credit card payment method. By default, this mutation will also verify the card with the new cardholder name before updating.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateCreditCardCardholderName"
+      }
+    },
+    "update_credit_card_expiration_date": {
+      "display_name": "Update Credit Card Expiration Date",
+      "description": "Set a new expiration date for a multi-use credit card payment method. By default, this mutation will also verify the card with the new expiration date before updating.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateCreditCardExpirationDate"
+      }
+    },
+    "update_custom_fields": {
+      "display_name": "Update Custom Fields",
+      "description": "Update custom fields on a transaction or refund. Custom fields are [defined in the Control Panel](https://articles.braintreepayments.com/control-panel/custom-fields#store-and-pass-back-fields).",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateCustomFields"
+      }
+    },
+    "update_customer": {
+      "display_name": "Update Customer",
+      "description": "Update a customer's information.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateCustomer"
+      }
+    },
+    "update_emv_capture_data": {
+      "display_name": "Update Emv Capture Data",
+      "description": "Updates EMV data necessary to capture an EMV contact transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateEmvCaptureData"
+      }
+    },
+    "update_in_store_location": {
+      "display_name": "Update In Store Location",
+      "description": "Updates an In-Store Location.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateInStoreLocation"
+      }
+    },
+    "update_in_store_reader": {
+      "display_name": "Update In Store Reader",
+      "description": "Updates an In-Store Reader.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateInStoreReader"
+      }
+    },
+    "update_pay_pal_one_time_payment": {
+      "display_name": "Update Pay Pal One Time Payment",
+      "description": "Update a PayPal one-time payment with revised amount, line items, and shipping details.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updatePayPalOneTimePayment"
+      }
+    },
+    "update_transaction_amount": {
+      "display_name": "Update Transaction Amount",
+      "description": "Updates the authorization amount of the transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateTransactionAmount"
+      }
+    },
+    "update_transaction_custom_fields": {
+      "display_name": "Update Transaction Custom Fields",
+      "description": "Update custom fields on a transaction. Custom fields are [defined in the Control Panel](https://articles.braintreepayments.com/control-panel/custom-fields#store-and-pass-back-fields).",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "updateTransactionCustomFields"
+      }
+    },
+    "vault_credit_card": {
+      "display_name": "Vault Credit Card",
+      "description": "Vault payment information from a single-use credit card and return a payload that includes a new multi-use payment method. By default, this mutation will also verify the card before vaulting.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "vaultCreditCard"
+      }
+    },
+    "vault_pay_pal_billing_agreement": {
+      "display_name": "Vault Pay Pal Billing Agreement",
+      "description": "Vault an existing PayPal Billing Agreement that was not created through Braintree. Only use this mutation if you need to import PayPal Billing Agreements from an existing PayPal integration into yo...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "vaultPayPalBillingAgreement"
+      }
+    },
+    "vault_payment_method": {
+      "display_name": "Vault Payment Method",
+      "description": "Vault payment information from a single-use payment method and return a payload that includes a new multi-use payment method. When vaulting a credit card, by default, this mutation will also verify...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "vaultPaymentMethod"
+      }
+    },
+    "vault_us_bank_account": {
+      "display_name": "Vault Us Bank Account",
+      "description": "Vault payment information from a single-use US bank account payment method and return a payload that includes a new multi-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "vaultUsBankAccount"
+      }
+    },
+    "verify_credit_card": {
+      "display_name": "Verify Credit Card",
+      "description": "Run a verification on a multi-use credit card payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "verifyCreditCard"
+      }
+    },
+    "verify_payment_method": {
+      "display_name": "Verify Payment Method",
+      "description": "Run a verification on a multi-use payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "verifyPaymentMethod"
+      }
+    },
+    "verify_us_bank_account": {
+      "display_name": "Verify Us Bank Account",
+      "description": "Run a verification on a multi-use US bank account payment method.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "verifyUsBankAccount"
+      }
+    },
+    "viewer": {
+      "display_name": "Viewer",
+      "description": "The currently authenticated viewer.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "viewer"
+      }
+    },
+    "void_transaction": {
+      "display_name": "Void Transaction",
+      "description": "Void a transaction and return a payload that includes details of the voided transaction.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "voidTransaction"
+      }
+    }
+  }
+}

@@ -1,18 +1,20 @@
 // Package catalog provides an embedded actions catalog for integration providers.
-// The JSON is embedded at build time via go:embed and parsed once at init,
-// giving O(1) provider/action lookups and zero network latency.
+// Each provider's JSON is stored as a separate file under providers/ and embedded
+// at build time via go:embed, giving O(1) provider/action lookups and zero network latency.
 package catalog
 
 import (
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"sort"
+	"strings"
 	"sync"
 )
 
-//go:embed actions.json
-var actionsJSON []byte
+//go:embed providers/*.actions.json
+var providersFS embed.FS
 
 // RequestConfig defines custom request configuration for resource discovery.
 type RequestConfig struct {
@@ -25,20 +27,20 @@ type RequestConfig struct {
 
 // ResourceDef describes a resource type that can be configured for a provider.
 type ResourceDef struct {
-	DisplayName   string          `json:"display_name"`
-	Description   string          `json:"description"`
-	IDField       string          `json:"id_field"`
-	NameField     string          `json:"name_field"`
-	Icon          string          `json:"icon,omitempty"`
-	ListAction    string          `json:"list_action"`
-	RequestConfig *RequestConfig  `json:"request_config,omitempty"` // Optional request customization
+	DisplayName   string         `json:"display_name"`
+	Description   string         `json:"description"`
+	IDField       string         `json:"id_field"`
+	NameField     string         `json:"name_field"`
+	Icon          string         `json:"icon,omitempty"`
+	ListAction    string         `json:"list_action"`
+	RequestConfig *RequestConfig `json:"request_config,omitempty"` // Optional request customization
 }
 
 // ProviderActions describes a provider and its available actions.
 type ProviderActions struct {
-	DisplayName string                `json:"display_name"`
+	DisplayName string                 `json:"display_name"`
 	Resources   map[string]ResourceDef `json:"resources"`
-	Actions     map[string]ActionDef  `json:"actions"`
+	Actions     map[string]ActionDef   `json:"actions"`
 }
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.
@@ -51,13 +53,20 @@ type ExecutionConfig struct {
 	ResponsePath string            `json:"response_path,omitempty"` // Dot-path to extract data from response
 }
 
+// Access type constants.
+const (
+	AccessRead  = "read"
+	AccessWrite = "write"
+)
+
 // ActionDef describes a single action a provider supports.
 type ActionDef struct {
 	DisplayName  string           `json:"display_name"`
 	Description  string           `json:"description"`
-	ResourceType string           `json:"resource_type"`          // e.g. "channel", "repo", "" if none
-	Parameters   json.RawMessage  `json:"parameters"`             // JSON Schema
-	Execution    *ExecutionConfig `json:"execution,omitempty"`    // How to execute this action via Nango proxy
+	Access       string           `json:"access"`              // "read" or "write"
+	ResourceType string           `json:"resource_type"`       // e.g. "channel", "repo", "" if none
+	Parameters   json.RawMessage  `json:"parameters"`          // JSON Schema
+	Execution    *ExecutionConfig `json:"execution,omitempty"` // How to execute this action via Nango proxy
 }
 
 // Catalog holds all providers and their actions, indexed for fast lookup.
@@ -70,27 +79,48 @@ var (
 	initOnce      sync.Once
 )
 
-// Global returns the singleton catalog, parsing the embedded JSON on first call.
+// Global returns the singleton catalog, parsing the embedded provider files on first call.
 func Global() *Catalog {
 	initOnce.Do(func() {
-		globalCatalog = mustParse(actionsJSON)
+		globalCatalog = mustParse()
 	})
 	return globalCatalog
 }
 
-func mustParse(data []byte) *Catalog {
-	var providers map[string]ProviderActions
-	if err := json.Unmarshal(data, &providers); err != nil {
-		panic("catalog: failed to parse embedded actions.json: " + err.Error())
+func mustParse() *Catalog {
+	c := &Catalog{
+		providers: make(map[string]*ProviderActions),
 	}
 
-	c := &Catalog{
-		providers: make(map[string]*ProviderActions, len(providers)),
+	entries, err := fs.ReadDir(providersFS, "providers")
+	if err != nil {
+		panic("catalog: failed to read embedded providers directory: " + err.Error())
 	}
-	for name := range providers {
-		p := providers[name]
-		c.providers[name] = &p
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".actions.json") {
+			continue
+		}
+
+		providerKey := strings.TrimSuffix(name, ".actions.json")
+
+		data, err := fs.ReadFile(providersFS, "providers/"+name)
+		if err != nil {
+			panic("catalog: failed to read " + name + ": " + err.Error())
+		}
+
+		var pa ProviderActions
+		if err := json.Unmarshal(data, &pa); err != nil {
+			panic("catalog: failed to parse " + name + ": " + err.Error())
+		}
+
+		c.providers[providerKey] = &pa
 	}
+
 	return c
 }
 

@@ -236,7 +236,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:      "valid resources",
 			provider:  "slack",
-			actions:   []string{"read_messages", "send_message"},
+			actions:   []string{"conversations_history", "chat_post_message"},
 			requested: map[string][]string{"channel": {"C123", "C456"}},
 			allowed:   map[string][]string{"channel": {"C123", "C456", "C789"}},
 			wantErr:   false,
@@ -244,7 +244,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:            "resource not in allowed list",
 			provider:        "slack",
-			actions:         []string{"read_messages"},
+			actions:         []string{"conversations_history"},
 			requested:       map[string][]string{"channel": {"C123", "C999"}},
 			allowed:         map[string][]string{"channel": {"C123", "C456"}},
 			wantErr:         true,
@@ -253,7 +253,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:            "resource type not valid for actions",
 			provider:        "slack",
-			actions:         []string{"list_channels"},
+			actions:         []string{"api_test"},
 			requested:       map[string][]string{"channel": {"C123"}},
 			allowed:         map[string][]string{"channel": {"C123"}},
 			wantErr:         true,
@@ -262,7 +262,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:      "empty resources",
 			provider:  "slack",
-			actions:   []string{"read_messages"},
+			actions:   []string{"conversations_history"},
 			requested: map[string][]string{},
 			allowed:   map[string][]string{"channel": {"C123"}},
 			wantErr:   false,
@@ -270,7 +270,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:      "nil allowed resources means no restrictions",
 			provider:  "slack",
-			actions:   []string{"read_messages"},
+			actions:   []string{"conversations_history"},
 			requested: map[string][]string{"channel": {"C123"}},
 			allowed:   nil,
 			wantErr:   false,
@@ -278,7 +278,7 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		{
 			name:      "github repos",
 			provider:  "github-app",
-			actions:   []string{"list_issues", "create_issue"},
+			actions:   []string{"issues_list", "issues_create"},
 			requested: map[string][]string{"repo": {"owner/repo1"}},
 			allowed:   map[string][]string{"repo": {"owner/repo1", "owner/repo2"}},
 			wantErr:   false,

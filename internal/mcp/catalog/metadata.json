@@ -1,0 +1,228 @@
+{
+  "github": {
+    "display_name": "GitHub",
+    "resources": {
+      "repo": {
+        "display_name": "Repositories",
+        "description": "GitHub repositories the AI can access",
+        "id_field": "full_name",
+        "name_field": "name",
+        "icon": "repo",
+        "list_action": "/installation/repositories",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "per_page": "100"
+          },
+          "response_path": "repositories"
+        }
+      }
+    }
+  },
+  "slack": {
+    "display_name": "Slack",
+    "resources": {
+      "channel": {
+        "display_name": "Channels",
+        "description": "Slack channels the AI can access",
+        "id_field": "id",
+        "name_field": "name_normalized",
+        "icon": "hash",
+        "list_action": "/conversations.list",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "types": "public_channel,private_channel",
+            "exclude_archived": "true",
+            "limit": "1000"
+          },
+          "response_path": "channels"
+        }
+      }
+    }
+  },
+  "google_drive": {
+    "display_name": "Google Drive",
+    "resources": {
+      "folder": {
+        "display_name": "Folders",
+        "description": "Folders the AI can access files within",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "folder",
+        "list_action": "/drive/v3/files",
+        "request_config": {
+          "method": "GET",
+          "query_params": {
+            "q": "mimeType='application/vnd.google-apps.folder' and trashed=false",
+            "spaces": "drive",
+            "fields": "files(id,name)",
+            "pageSize": "100"
+          },
+          "response_path": "files"
+        }
+      }
+    }
+  },
+  "notion": {
+    "display_name": "Notion",
+    "resources": {
+      "page": {
+        "display_name": "Pages",
+        "description": "Notion pages the AI can access",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "page",
+        "list_action": "/v1/search",
+        "request_config": {
+          "method": "POST",
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "body_template": {
+            "filter": {
+              "value": "page",
+              "property": "object"
+            },
+            "page_size": 100
+          },
+          "response_path": "results"
+        }
+      },
+      "database": {
+        "display_name": "Databases",
+        "description": "Notion databases the AI can query",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "database",
+        "list_action": "/v1/search",
+        "request_config": {
+          "method": "POST",
+          "headers": {
+            "Notion-Version": "2022-06-28"
+          },
+          "body_template": {
+            "filter": {
+              "value": "database",
+              "property": "object"
+            },
+            "page_size": 100
+          },
+          "response_path": "results"
+        }
+      }
+    }
+  },
+  "linear": {
+    "display_name": "Linear",
+    "resources": {
+      "team": {
+        "display_name": "Teams",
+        "description": "Linear teams the AI can create issues in",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "team",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ teams { nodes { id name key description } } }"
+          },
+          "response_path": "data.teams.nodes"
+        }
+      }
+    }
+  },
+  "jira": {
+    "display_name": "Jira",
+    "resources": {}
+  },
+  "confluence": {
+    "display_name": "Confluence",
+    "resources": {}
+  },
+  "asana": {
+    "display_name": "Asana",
+    "resources": {}
+  },
+  "stripe": {
+    "display_name": "Stripe",
+    "resources": {}
+  },
+  "figma": {
+    "display_name": "Figma",
+    "resources": {}
+  },
+  "discord": {
+    "display_name": "Discord",
+    "resources": {}
+  },
+  "twilio": {
+    "display_name": "Twilio",
+    "resources": {}
+  },
+  "pagerduty": {
+    "display_name": "PagerDuty",
+    "resources": {}
+  },
+  "sentry": {
+    "display_name": "Sentry",
+    "resources": {}
+  },
+  "intercom": {
+    "display_name": "Intercom",
+    "resources": {}
+  },
+  "hubspot": {
+    "display_name": "HubSpot",
+    "resources": {}
+  },
+  "box": {
+    "display_name": "Box",
+    "resources": {}
+  },
+  "cloudflare": {
+    "display_name": "Cloudflare",
+    "resources": {}
+  },
+  "microsoft": {
+    "display_name": "Microsoft",
+    "resources": {}
+  },
+  "vercel": {
+    "display_name": "Vercel",
+    "resources": {}
+  },
+  "zoom": {
+    "display_name": "Zoom",
+    "resources": {}
+  },
+  "shopify": {
+    "display_name": "Shopify",
+    "resources": {}
+  },
+  "gitlab": {
+    "display_name": "GitLab",
+    "resources": {}
+  },
+  "monday": {
+    "display_name": "Monday.com",
+    "resources": {}
+  },
+  "contentful": {
+    "display_name": "Contentful",
+    "resources": {}
+  },
+  "braintree": {
+    "display_name": "Braintree",
+    "resources": {}
+  },
+  "salesforce": {
+    "display_name": "Salesforce",
+    "resources": {}
+  },
+  "zendesk": {
+    "display_name": "Zendesk",
+    "resources": {}
+  }
+}

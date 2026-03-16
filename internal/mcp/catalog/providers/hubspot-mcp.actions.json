@@ -1,0 +1,453 @@
+{
+  "display_name": "HubSpot",
+  "resources": {},
+  "actions": {
+    "delete_crm_v3_objects_contacts_contact_id_archive": {
+      "display_name": "Archive a contact",
+      "description": "Delete a contact by ID. Deleted contacts can be restored within 90 days of deletion. Learn more about the [data impacted by contact deletions](https://knowledge.hubspot.com/privacy-and-consent/unde...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contactId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/crm/v3/objects/contacts/{contactId}"
+      }
+    },
+    "get_crm_v3_objects_contacts_contact_id_get_by_id": {
+      "display_name": "Retrieve a contact",
+      "description": "Retrieve a contact by its ID (`contactId`) or by a unique property (`idProperty`). You can specify what is returned using the `properties` query parameter.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "archived": {
+            "type": "boolean",
+            "description": "Whether to return only results that have been archived."
+          },
+          "associations": {
+            "type": "array",
+            "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored."
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "idProperty": {
+            "type": "string",
+            "description": "The name of a property whose values are unique for this object type"
+          },
+          "properties": {
+            "type": "array",
+            "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored."
+          },
+          "propertiesWithHistory": {
+            "type": "array",
+            "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be igno..."
+          }
+        },
+        "required": [
+          "contactId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/crm/v3/objects/contacts/{contactId}",
+        "query_mapping": {
+          "archived": "archived",
+          "associations": "associations",
+          "idProperty": "idProperty",
+          "properties": "properties",
+          "propertiesWithHistory": "propertiesWithHistory"
+        }
+      }
+    },
+    "get_crm_v3_objects_contacts_get_page": {
+      "display_name": "Retrieve contacts",
+      "description": "Retrieve all contacts, using query parameters to specify the information that gets returned.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string",
+            "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results."
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Whether to return only results that have been archived."
+          },
+          "associations": {
+            "type": "array",
+            "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of results to display per page."
+          },
+          "properties": {
+            "type": "array",
+            "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored."
+          },
+          "propertiesWithHistory": {
+            "type": "array",
+            "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be igno..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/crm/v3/objects/contacts",
+        "query_mapping": {
+          "after": "after",
+          "archived": "archived",
+          "associations": "associations",
+          "limit": "limit",
+          "properties": "properties",
+          "propertiesWithHistory": "propertiesWithHistory"
+        },
+        "response_path": "results"
+      }
+    },
+    "patch_crm_v3_objects_contacts_contact_id_update": {
+      "display_name": "Update a contact",
+      "description": "Update an existing contact, identified by ID or email/unique property value. To identify a contact by ID, include the ID in the request URL path. To identify a contact by their email or other uniqu...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contactId": {
+            "type": "string"
+          },
+          "idProperty": {
+            "type": "string",
+            "description": "The name of a property whose values are unique for this object type"
+          },
+          "properties": {
+            "type": "object",
+            "description": "Key value pairs representing the properties of the object."
+          }
+        },
+        "required": [
+          "contactId",
+          "properties"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/crm/v3/objects/contacts/{contactId}",
+        "body_mapping": {
+          "properties": "properties"
+        },
+        "query_mapping": {
+          "idProperty": "idProperty"
+        }
+      }
+    },
+    "post_crm_v3_objects_contacts_batch_archive_archive": {
+      "display_name": "Archive a batch of contacts",
+      "description": "Archive a batch of contacts by ID. Archived contacts can be restored within 90 days of deletion. Learn more about the [data impacted by contact deletions](https://knowledge.hubspot.com/privacy-and-...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "inputs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "inputs"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/batch/archive",
+        "body_mapping": {
+          "inputs": "inputs"
+        }
+      }
+    },
+    "post_crm_v3_objects_contacts_batch_create_create": {
+      "display_name": "Create a batch of contacts",
+      "description": "Create a batch of contacts. The `inputs` array can contain a `properties` object to define property values for each record, along with an `associations` array to define [associations](https://devel...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "inputs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "inputs"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/batch/create",
+        "body_mapping": {
+          "inputs": "inputs"
+        },
+        "response_path": "results"
+      }
+    },
+    "post_crm_v3_objects_contacts_batch_read_read": {
+      "display_name": "Retrieve a batch of contacts",
+      "description": "Retrieve a batch of contacts by ID (`contactId`) or unique property value (`idProperty`).",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "archived": {
+            "type": "boolean",
+            "description": "Whether to return only results that have been archived."
+          },
+          "idProperty": {
+            "type": "string",
+            "description": "When using a custom unique value property to retrieve records, the name of the property. Do not include this parameter if retrieving by record ID."
+          },
+          "inputs": {
+            "type": "array"
+          },
+          "properties": {
+            "type": "array",
+            "description": "Key-value pairs for setting properties for the new object."
+          },
+          "propertiesWithHistory": {
+            "type": "array",
+            "description": "Key-value pairs for setting properties for the new object and their histories."
+          }
+        },
+        "required": [
+          "inputs",
+          "properties",
+          "propertiesWithHistory"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/batch/read",
+        "body_mapping": {
+          "idProperty": "idProperty",
+          "inputs": "inputs",
+          "properties": "properties",
+          "propertiesWithHistory": "propertiesWithHistory"
+        },
+        "query_mapping": {
+          "archived": "archived"
+        },
+        "response_path": "results"
+      }
+    },
+    "post_crm_v3_objects_contacts_batch_update_update": {
+      "display_name": "Update a batch of contacts",
+      "description": "Update a batch of contacts by ID (`contactId`) or unique property value (`idProperty`). Provided property values will be overwritten. Read-only and non-existent properties will result in an error. ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "inputs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "inputs"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/batch/update",
+        "body_mapping": {
+          "inputs": "inputs"
+        },
+        "response_path": "results"
+      }
+    },
+    "post_crm_v3_objects_contacts_batch_upsert_upsert": {
+      "display_name": "Create or update a batch of contacts",
+      "description": "Upsert a batch of contacts. The `inputs` array can contain a `properties` object to define property values for each record.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "inputs": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "inputs"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/batch/upsert",
+        "body_mapping": {
+          "inputs": "inputs"
+        },
+        "response_path": "results"
+      }
+    },
+    "post_crm_v3_objects_contacts_create": {
+      "display_name": "Create a contact",
+      "description": "Create a single contact. Include a `properties` object to define [property values](https://developers.hubspot.com/docs/guides/api/crm/properties) for the contact, along with an `associations` array...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "associations": {
+            "type": "array"
+          },
+          "properties": {
+            "type": "object",
+            "description": "Key-value pairs for setting properties for the new object."
+          }
+        },
+        "required": [
+          "associations",
+          "properties"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts",
+        "body_mapping": {
+          "associations": "associations",
+          "properties": "properties"
+        }
+      }
+    },
+    "post_crm_v3_objects_contacts_gdpr_delete_purge": {
+      "display_name": "Permanently delete a contact (GDPR-compliant)",
+      "description": "Permanently delete a contact and all associated content to follow GDPR. Use optional property `idProperty` set to `email` to identify contact by email address. If email address is not found, the em...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "idProperty": {
+            "type": "string",
+            "description": "The name of a property whose values are unique for this object. An alternative to identifying a contact by ID."
+          },
+          "objectId": {
+            "type": "string",
+            "description": "The ID of the contact to permanently delete."
+          }
+        },
+        "required": [
+          "objectId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/gdpr-delete",
+        "body_mapping": {
+          "idProperty": "idProperty",
+          "objectId": "objectId"
+        }
+      }
+    },
+    "post_crm_v3_objects_contacts_merge_merge": {
+      "display_name": "Merge two contacts",
+      "description": "Merge two contact records. Learn more about [merging records](https://knowledge.hubspot.com/records/merge-records).",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "objectIdToMerge": {
+            "type": "string",
+            "description": "The object ID of the record that the merge will not set as the current value after the merge."
+          },
+          "primaryObjectId": {
+            "type": "string",
+            "description": "The object ID of the record that the merge will generally set as the current value after the merge."
+          }
+        },
+        "required": [
+          "objectIdToMerge",
+          "primaryObjectId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/merge",
+        "body_mapping": {
+          "objectIdToMerge": "objectIdToMerge",
+          "primaryObjectId": "primaryObjectId"
+        }
+      }
+    },
+    "post_crm_v3_objects_contacts_search_do_search": {
+      "display_name": "Search for contacts",
+      "description": "Search for contacts by filtering on properties, searching through associations, and sorting results. Learn more about [CRM search](https://developers.hubspot.com/docs/guides/api/crm/search#make-a-s...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string",
+            "description": "A paging cursor token for retrieving subsequent pages."
+          },
+          "filterGroups": {
+            "type": "array",
+            "description": "Up to 6 groups of filters defining additional query criteria."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum results to return, up to 200 objects."
+          },
+          "properties": {
+            "type": "array",
+            "description": "A list of property names to include in the response."
+          },
+          "query": {
+            "type": "string",
+            "description": "The search query string, up to 3000 characters."
+          },
+          "sorts": {
+            "type": "array",
+            "description": "Specifies sorting order based on object properties."
+          }
+        },
+        "required": [
+          "after",
+          "filterGroups",
+          "limit",
+          "properties",
+          "sorts"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/crm/v3/objects/contacts/search",
+        "body_mapping": {
+          "after": "after",
+          "filterGroups": "filterGroups",
+          "limit": "limit",
+          "properties": "properties",
+          "query": "query",
+          "sorts": "sorts"
+        },
+        "response_path": "results"
+      }
+    }
+  }
+}

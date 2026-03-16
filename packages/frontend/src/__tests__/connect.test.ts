@@ -276,7 +276,7 @@ describe('LLMVaultConnect', () => {
       const onIntegrationSuccess = vi.fn()
       connect.open({ sessionToken: 'tok_test', onIntegrationSuccess })
 
-      const payload = { integrationId: 'int_456' }
+      const payload = { integrationId: 'int_456', connectionId: 'conn_789' }
       dispatchMessage({ type: 'integration_success', payload })
 
       expect(onIntegrationSuccess).toHaveBeenCalledOnce()
@@ -325,8 +325,8 @@ describe('LLMVaultConnect', () => {
       dispatchMessage({ type: 'success', payload: { providerId: 'p', connectionId: 'c' } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'success', payload: { providerId: 'p', connectionId: 'c' } })
 
-      dispatchMessage({ type: 'integration_success', payload: { integrationId: 'i' } })
-      expect(onEvent).toHaveBeenCalledWith({ type: 'integration_success', payload: { integrationId: 'i' } })
+      dispatchMessage({ type: 'integration_success', payload: { integrationId: 'i', connectionId: 'c2' } })
+      expect(onEvent).toHaveBeenCalledWith({ type: 'integration_success', payload: { integrationId: 'i', connectionId: 'c2' } })
 
       dispatchMessage({ type: 'resource_selection', payload: { integrationId: 'i', resources: { repos: ['r1'] } } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'resource_selection', payload: { integrationId: 'i', resources: { repos: ['r1'] } } })

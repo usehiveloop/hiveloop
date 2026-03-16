@@ -226,6 +226,12 @@ func run() error {
 	r.Get("/v1/providers/{id}", providerHandler.Get)
 	r.Get("/v1/providers/{id}/models", providerHandler.Models)
 
+	// Integration actions discovery (no auth — used by frontend)
+	actionsHandler := handler.NewActionsHandler(actionsCatalog)
+	r.Get("/v1/integrations", actionsHandler.ListIntegrations)
+	r.Get("/v1/integrations/{id}", actionsHandler.GetIntegration)
+	r.Get("/v1/integrations/{id}/actions", actionsHandler.ListActions)
+
 	// Org-authenticated routes (Logto JWT or API Key) — credential & token management
 	if cfg.LogtoEndpoint != "" && cfg.LogtoAudience != "" {
 		logtoIssuer := cfg.LogtoEndpoint + "/oidc"

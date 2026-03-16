@@ -1,0 +1,5094 @@
+{
+  "display_name": "Intercom",
+  "resources": {},
+  "actions": {
+    "archive_contact": {
+      "display_name": "Archive contact",
+      "description": "You can archive a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "contact_id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/archive"
+      }
+    },
+    "attach_contact_to_a_company": {
+      "display_name": "Attach a Contact to a Company",
+      "description": "You can attach a company to a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/companies",
+        "body_mapping": {
+          "id": "id"
+        }
+      }
+    },
+    "attach_contact_to_conversation": {
+      "display_name": "Attach a contact to a conversation",
+      "description": "You can add participants who are contacts to a conversation, on behalf of either another contact or an admin. {% admonition type=\"warning\" name=\"Contacts without an email\" %} If you add a contact v...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The `id` of the admin who is adding the new participant."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "The identifier for the conversation as given by Intercom."
+          },
+          "customer": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/{conversation_id}/customers",
+        "body_mapping": {
+          "admin_id": "admin_id",
+          "customer": "customer"
+        }
+      }
+    },
+    "attach_subscription_type_to_contact": {
+      "display_name": "Add subscription to a contact",
+      "description": "You can add a specific subscription to a contact. In Intercom, we have two different subscription types based on user consent - opt-out and opt-in: 1.Attaching a contact to an opt-out subscription ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "consent_type": {
+            "type": "string",
+            "description": "The consent_type of a subscription, opt_out or opt_in."
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the subscription which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id",
+          "consent_type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/subscriptions",
+        "body_mapping": {
+          "consent_type": "consent_type",
+          "id": "id"
+        }
+      }
+    },
+    "attach_tag_to_contact": {
+      "display_name": "Add tag to a contact",
+      "description": "You can tag a specific contact. This will return a tag object for the tag that was added to the contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the tag which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/tags",
+        "body_mapping": {
+          "id": "id"
+        }
+      }
+    },
+    "attach_tag_to_conversation": {
+      "display_name": "Add tag to a conversation",
+      "description": "You can tag a specific conversation. This will return a tag object for the tag that was added to the conversation.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The unique identifier for the admin which is given by Intercom."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "conversation_id"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the tag which is given by Intercom"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "id",
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/{conversation_id}/tags",
+        "body_mapping": {
+          "admin_id": "admin_id",
+          "id": "id"
+        }
+      }
+    },
+    "attach_tag_to_ticket": {
+      "display_name": "Add tag to a ticket",
+      "description": "You can tag a specific ticket. This will return a tag object for the tag that was added to the ticket.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The unique identifier for the admin which is given by Intercom."
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the tag which is given by Intercom"
+          },
+          "ticket_id": {
+            "type": "string",
+            "description": "ticket_id"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "id",
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tickets/{ticket_id}/tags",
+        "body_mapping": {
+          "admin_id": "admin_id",
+          "id": "id"
+        }
+      }
+    },
+    "block_contact": {
+      "display_name": "Block contact",
+      "description": "Block a single contact.\u003cbr\u003e**Note:** conversations of the contact will also be archived during the process.\u003cbr\u003eMore details in [FAQ How do I block Inbox spam?](https://www.intercom.com/help/en/arti...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "contact_id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/block"
+      }
+    },
+    "cancel_data_export": {
+      "display_name": "Cancel content data export",
+      "description": "You can cancel your job",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "job_identifier": {
+            "type": "string",
+            "description": "job_identifier"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/export/cancel/{job_identifier}"
+      }
+    },
+    "collect_fin_voice_call_by_external_id": {
+      "display_name": "Collect Fin Voice call by external ID",
+      "description": "Retrieve information about a Fin Voice call using the external call identifier.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "external_id": {
+            "type": "string",
+            "description": "The external call identifier from the call provider"
+          }
+        },
+        "required": [
+          "external_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/fin_voice/external_id/{external_id}"
+      }
+    },
+    "collect_fin_voice_call_by_id": {
+      "display_name": "Collect Fin Voice call by ID",
+      "description": "Retrieve information about a Fin Voice call using the external reference ID.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The external reference ID"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/fin_voice/collect/{id}"
+      }
+    },
+    "collect_fin_voice_call_by_phone_number": {
+      "display_name": "Collect Fin Voice call by phone number",
+      "description": "Retrieve information about a Fin Voice call using the phone number. Returns the most recent matched call for the given phone number, ordered by creation date.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "Phone number in E.164 format"
+          }
+        },
+        "required": [
+          "phone_number"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/fin_voice/phone_number/{phone_number}"
+      }
+    },
+    "collect_fin_voice_calls_by_conversation_id": {
+      "display_name": "Collect Fin Voice calls by conversation ID",
+      "description": "Retrieve information about Fin Voice calls associated with a conversation. Returns all matched calls for the given conversation ID. A conversation may have multiple associated calls.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "description": "The Intercom conversation identifier"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/fin_voice/conversation/{conversation_id}"
+      }
+    },
+    "convert_conversation_to_ticket": {
+      "display_name": "Convert a conversation to a ticket",
+      "description": "You can convert a conversation to a ticket.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "The attributes set on the ticket. When setting the default title and description attributes, the attribute keys that should be used are `_default_title_` and `_default_description_`. When setting t..."
+          },
+          "conversation_id": {
+            "type": "integer",
+            "description": "The id of the conversation to target"
+          },
+          "ticket_type_id": {
+            "type": "string",
+            "description": "The ID of the type of ticket you want to convert the conversation to"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "ticket_type_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/{conversation_id}/convert",
+        "body_mapping": {
+          "attributes": "attributes",
+          "ticket_type_id": "ticket_type_id"
+        }
+      }
+    },
+    "convert_visitor": {
+      "display_name": "Convert a visitor",
+      "description": "You can merge a Visitor to a Contact of role type `lead` or `user`. \u003e 📘 What happens upon a visitor being converted? \u003e \u003e If the User exists, then the Visitor will be merged into it, the Visitor ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "Represents the role of the Contact model. Accepts `lead` or `user`."
+          },
+          "user": {
+            "type": "object",
+            "description": "The unique identifiers retained after converting or merging."
+          },
+          "visitor": {
+            "type": "object",
+            "description": "The unique identifiers to convert a single Visitor."
+          }
+        },
+        "required": [
+          "type",
+          "user",
+          "visitor"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/visitors/convert",
+        "body_mapping": {
+          "type": "type",
+          "user": "user",
+          "visitor": "visitor"
+        }
+      }
+    },
+    "create_article": {
+      "display_name": "Create an article",
+      "description": "You can create a new article by making a POST request to `https://api.intercom.io/articles`. \u003e 📘 Tags cannot be managed via the Articles API \u003e \u003e Article tags are read-only in responses. To creat...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer",
+            "description": "The id of the author of the article. For multilingual articles, this will be the id of the author of the default language's content. Must be a teammate on the help center's workspace."
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the article. For multilingual articles, this will be the body of the default language's content."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the article. For multilingual articles, this will be the description of the default language's content."
+          },
+          "parent_id": {
+            "type": "integer",
+            "description": "The id of the article's parent collection or section. An article without this field stands alone."
+          },
+          "parent_type": {
+            "type": "string",
+            "description": "The type of parent, which can either be a `collection` or `section`."
+          },
+          "state": {
+            "type": "string",
+            "description": "Whether the article will be `published` or will be a `draft`. Defaults to draft. For multilingual articles, this will be the state of the default language's content."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the article.For multilingual articles, this will be the title of the default language's content."
+          },
+          "translated_content": {
+            "type": "object",
+            "description": "The Translated Content of an Article. The keys are the locale codes and the values are the translated content of the article."
+          }
+        },
+        "required": [
+          "title",
+          "author_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/articles",
+        "body_mapping": {
+          "author_id": "author_id",
+          "body": "body",
+          "description": "description",
+          "parent_id": "parent_id",
+          "parent_type": "parent_type",
+          "state": "state",
+          "title": "title",
+          "translated_content": "translated_content"
+        }
+      }
+    },
+    "create_collection": {
+      "display_name": "Create a collection",
+      "description": "You can create a new collection by making a POST request to `https://api.intercom.io/help_center/collections.`",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the collection. For multilingual collections, this will be the description of the default language's content."
+          },
+          "help_center_id": {
+            "type": "integer",
+            "description": "The id of the help center where the collection will be created. If `null` then it will be created in the default help center."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the collection. For multilingual collections, this will be the name of the default language's content."
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "The id of the parent collection. If `null` then it will be created as the first level collection."
+          },
+          "translated_content": {
+            "type": "object",
+            "description": "The Translated Content of an Group. The keys are the locale codes and the values are the translated content of the Group."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/help_center/collections",
+        "body_mapping": {
+          "description": "description",
+          "help_center_id": "help_center_id",
+          "name": "name",
+          "parent_id": "parent_id",
+          "translated_content": "translated_content"
+        }
+      }
+    },
+    "create_contact": {
+      "display_name": "Create contact",
+      "description": "You can create a new contact (ie. user or lead).",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts"
+      }
+    },
+    "create_content_import_source": {
+      "display_name": "Create a content import source",
+      "description": "You can create a new content import source by sending a POST request to this endpoint.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the content import source."
+          },
+          "sync_behavior": {
+            "type": "string",
+            "description": "If you intend to create or update External Pages via the API, this should be set to `api`."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the content import source."
+          }
+        },
+        "required": [
+          "sync_behavior",
+          "url"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/ai/content_import_sources",
+        "body_mapping": {
+          "status": "status",
+          "sync_behavior": "sync_behavior",
+          "url": "url"
+        }
+      }
+    },
+    "create_conversation": {
+      "display_name": "Creates a conversation",
+      "description": "You can create a conversation that has been initiated by a contact (ie. user or lead). The conversation can be an in-app message only. {% admonition type=\"info\" name=\"Sending for visitors\" %} You c...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the message. HTML is not supported."
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "The time the conversation was created as a UTC Unix timestamp. If not provided, the current time will be used. This field is only recommneded for migrating past conversations from another source in..."
+          },
+          "from": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "from",
+          "body"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations",
+        "body_mapping": {
+          "body": "body",
+          "created_at": "created_at",
+          "from": "from"
+        }
+      }
+    },
+    "create_custom_object_instances": {
+      "display_name": "Create or Update a Custom Object Instance",
+      "description": "Create or update a custom object instance",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "The custom attributes which are set for the Custom Object instance."
+          },
+          "custom_object_type_identifier": {
+            "type": "string",
+            "description": "The unique identifier of the custom object type that defines the structure of the custom object instance."
+          },
+          "external_created_at": {
+            "type": "integer",
+            "description": "The time when the Custom Object instance was created in the external system it originated from."
+          },
+          "external_id": {
+            "type": "string",
+            "description": "A unique identifier for the Custom Object instance in the external system it originated from."
+          },
+          "external_updated_at": {
+            "type": "integer",
+            "description": "The time when the Custom Object instance was last updated in the external system it originated from."
+          }
+        },
+        "required": [
+          "custom_object_type_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/custom_object_instances/{custom_object_type_identifier}",
+        "body_mapping": {
+          "custom_attributes": "custom_attributes",
+          "external_created_at": "external_created_at",
+          "external_id": "external_id",
+          "external_updated_at": "external_updated_at"
+        }
+      }
+    },
+    "create_data_attribute": {
+      "display_name": "Create a data attribute",
+      "description": "You can create a data attributes for a `contact` or a `company`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "The readable description you see in the UI for the attribute."
+          },
+          "messenger_writable": {
+            "type": "boolean",
+            "description": "Can this attribute be updated by the Messenger"
+          },
+          "model": {
+            "type": "string",
+            "description": "The model that the data attribute belongs to."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the data attribute."
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/data_attributes",
+        "body_mapping": {
+          "description": "description",
+          "messenger_writable": "messenger_writable",
+          "model": "model",
+          "name": "name"
+        }
+      }
+    },
+    "create_data_event": {
+      "display_name": "Submit a data event",
+      "description": "You will need an Access Token that has write permissions to send Events. Once you have a key you can submit events via POST to the Events resource, which is located at https://api.intercom.io/event...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "The time the event occurred as a UTC Unix timestamp"
+          },
+          "email": {
+            "type": "string",
+            "description": "An email address for your user. An email should only be used where your application uses email to uniquely identify users."
+          },
+          "event_name": {
+            "type": "string",
+            "description": "The name of the event that occurred. This is presented to your App's admins when filtering and creating segments - a good event name is typically a past tense 'verb-noun' combination, to improve re..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the contact (lead or user) which is given by Intercom."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional metadata about the event."
+          },
+          "user_id": {
+            "type": "string",
+            "description": "Your identifier for the user."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/events",
+        "body_mapping": {
+          "created_at": "created_at",
+          "email": "email",
+          "event_name": "event_name",
+          "id": "id",
+          "metadata": "metadata",
+          "user_id": "user_id"
+        }
+      }
+    },
+    "create_data_export": {
+      "display_name": "Create content data export",
+      "description": "To create your export job, you need to send a `POST` request to the export endpoint `https://api.intercom.io/export/content/data`. The only parameters you need to provide are the range of dates tha...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "created_at_after": {
+            "type": "integer",
+            "description": "The start date that you request data for. It must be formatted as a unix timestamp."
+          },
+          "created_at_before": {
+            "type": "integer",
+            "description": "The end date that you request data for. It must be formatted as a unix timestamp."
+          }
+        },
+        "required": [
+          "created_at_after",
+          "created_at_before"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/export/content/data",
+        "body_mapping": {
+          "created_at_after": "created_at_after",
+          "created_at_before": "created_at_before"
+        }
+      }
+    },
+    "create_external_page": {
+      "display_name": "Create an external page (or update an external page by external ID)",
+      "description": "You can create a new external page by sending a POST request to this endpoint. If an external page already exists with the specified source_id and external_id, it will be updated instead.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "ai_agent_availability": {
+            "type": "boolean",
+            "description": "Whether the external page should be used to answer questions by AI Agent. Will not default when updating an existing external page."
+          },
+          "ai_copilot_availability": {
+            "type": "boolean",
+            "description": "Whether the external page should be used to answer questions by AI Copilot. Will not default when updating an existing external page."
+          },
+          "external_id": {
+            "type": "string",
+            "description": "The identifier for the external page which was given by the source. Must be unique for the source."
+          },
+          "html": {
+            "type": "string",
+            "description": "The body of the external page in HTML."
+          },
+          "locale": {
+            "type": "string",
+            "description": "Always en"
+          },
+          "source_id": {
+            "type": "integer",
+            "description": "The unique identifier for the source of the external page which was given by Intercom. Every external page must be associated with a Content Import Source which represents the place it comes from a..."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the external page."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the external page. This will be used by Fin to link end users to the page it based its answer on. When a URL is not present, Fin will not reference the source."
+          }
+        },
+        "required": [
+          "title",
+          "html",
+          "locale",
+          "source_id",
+          "external_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/ai/external_pages",
+        "body_mapping": {
+          "ai_agent_availability": "ai_agent_availability",
+          "ai_copilot_availability": "ai_copilot_availability",
+          "external_id": "external_id",
+          "html": "html",
+          "locale": "locale",
+          "source_id": "source_id",
+          "title": "title",
+          "url": "url"
+        }
+      }
+    },
+    "create_internal_article": {
+      "display_name": "Create an internal article",
+      "description": "You can create a new internal article by making a POST request to `https://api.intercom.io/internal_articles`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer",
+            "description": "The id of the author of the article."
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the article."
+          },
+          "owner_id": {
+            "type": "integer",
+            "description": "The id of the owner of the article."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the article."
+          }
+        },
+        "required": [
+          "title",
+          "owner_id",
+          "author_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/internal_articles",
+        "body_mapping": {
+          "author_id": "author_id",
+          "body": "body",
+          "owner_id": "owner_id",
+          "title": "title"
+        }
+      }
+    },
+    "create_message": {
+      "display_name": "Create a message",
+      "description": "You can create a message that has been initiated by an admin. The conversation can be either an in-app message or an email. \u003e 🚧 Sending for visitors \u003e \u003e There can be a short delay between when a...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "bcc": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the message. HTML and plaintext are supported."
+          },
+          "cc": {
+            "type": "string"
+          },
+          "create_conversation_without_contact_reply": {
+            "type": "boolean",
+            "description": "Whether a conversation should be opened in the inbox for the message without the contact replying. Defaults to false if not provided."
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "The time the message was created. If not provided, the current time will be used."
+          },
+          "from": {
+            "type": "object",
+            "description": "The sender of the message. If not provided, the default sender will be used."
+          },
+          "message_type": {
+            "type": "string",
+            "description": "The kind of message being created. Values: `in_app` or `email`."
+          },
+          "subject": {
+            "type": "string",
+            "description": "The title of the email."
+          },
+          "template": {
+            "type": "string",
+            "description": "The style of the outgoing message. Possible values `plain` or `personal`."
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/messages",
+        "body_mapping": {
+          "bcc": "bcc",
+          "body": "body",
+          "cc": "cc",
+          "create_conversation_without_contact_reply": "create_conversation_without_contact_reply",
+          "created_at": "created_at",
+          "from": "from",
+          "message_type": "message_type",
+          "subject": "subject",
+          "template": "template",
+          "to": "to"
+        }
+      }
+    },
+    "create_news_item": {
+      "display_name": "Create a news item",
+      "description": "You can create a news item",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "The news item body, which may contain HTML."
+          },
+          "deliver_silently": {
+            "type": "boolean",
+            "description": "When set to `true`, the news item will appear in the messenger newsfeed without showing a notification badge."
+          },
+          "labels": {
+            "type": "array",
+            "description": "Label names displayed to users to categorize the news item."
+          },
+          "newsfeed_assignments": {
+            "type": "array",
+            "description": "A list of newsfeed_assignments to assign to the specified newsfeed."
+          },
+          "reactions": {
+            "type": "array",
+            "description": "Ordered list of emoji reactions to the news item. When empty, reactions are disabled."
+          },
+          "sender_id": {
+            "type": "integer",
+            "description": "The id of the sender of the news item. Must be a teammate on the workspace."
+          },
+          "state": {
+            "type": "string",
+            "description": "News items will not be visible to your users in the assigned newsfeeds until they are set live."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the news item."
+          }
+        },
+        "required": [
+          "title",
+          "sender_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/news/news_items",
+        "body_mapping": {
+          "body": "body",
+          "deliver_silently": "deliver_silently",
+          "labels": "labels",
+          "newsfeed_assignments": "newsfeed_assignments",
+          "reactions": "reactions",
+          "sender_id": "sender_id",
+          "state": "state",
+          "title": "title"
+        }
+      }
+    },
+    "create_note": {
+      "display_name": "Create a note",
+      "description": "You can add a note to a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The unique identifier of a given admin."
+          },
+          "body": {
+            "type": "string",
+            "description": "The text of the note."
+          },
+          "contact_id": {
+            "type": "integer",
+            "description": "The unique identifier of a given contact."
+          }
+        },
+        "required": [
+          "contact_id",
+          "body"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/notes",
+        "body_mapping": {
+          "admin_id": "admin_id",
+          "body": "body"
+        }
+      }
+    },
+    "create_or_update_company": {
+      "display_name": "Create or Update a company",
+      "description": "You can create or update a company. Companies will be only visible in Intercom when there is at least one associated user. Companies are looked up via `company_id` in a `POST` request, if not found...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The company id you have defined for the company. Can't be updated"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "A hash of key/value pairs containing any other data about the company you want Intercom to store."
+          },
+          "industry": {
+            "type": "string",
+            "description": "The industry that this company operates in."
+          },
+          "monthly_spend": {
+            "type": "integer",
+            "description": "How much revenue the company generates for your business. Note that this will truncate floats. i.e. it only allow for whole integers, 155.98 will be truncated to 155. Note that this has an upper li..."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the Company"
+          },
+          "plan": {
+            "type": "string",
+            "description": "The name of the plan you have associated with the company."
+          },
+          "remote_created_at": {
+            "type": "integer",
+            "description": "The time the company was created by you."
+          },
+          "size": {
+            "type": "integer",
+            "description": "The number of employees in this company."
+          },
+          "website": {
+            "type": "string",
+            "description": "The URL for this company's website. Please note that the value specified here is not validated. Accepts any string."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/companies",
+        "body_mapping": {
+          "company_id": "company_id",
+          "custom_attributes": "custom_attributes",
+          "industry": "industry",
+          "monthly_spend": "monthly_spend",
+          "name": "name",
+          "plan": "plan",
+          "remote_created_at": "remote_created_at",
+          "size": "size",
+          "website": "website"
+        }
+      }
+    },
+    "create_phone_switch": {
+      "display_name": "Create a phone Switch",
+      "description": "You can use the API to deflect phone calls to the Intercom Messenger. Calling this endpoint will send an SMS with a link to the Messenger to the phone number specified. If custom attributes are spe...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "An object containing the different custom attributes associated to the conversation as key-value pairs. For relationship attributes the value will be a list of custom object instance models."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number in E.164 format, that will receive the SMS to continue the conversation in the Messenger."
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/phone_call_redirects",
+        "body_mapping": {
+          "custom_attributes": "custom_attributes",
+          "phone": "phone"
+        }
+      }
+    },
+    "create_tag": {
+      "display_name": "Create or update a tag, Tag or untag companies, Tag contacts",
+      "description": "You can use this endpoint to perform the following operations: **1. Create a new tag:** You can create a new tag by passing in the tag name as specified in \"Create or Update Tag Request Payload\" de...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tags"
+      }
+    },
+    "create_ticket": {
+      "display_name": "Create a ticket",
+      "description": "You can create a new ticket.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "skip_notifications": {
+            "type": "boolean",
+            "description": "Option to disable notifications when a Ticket is created."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tickets",
+        "body_mapping": {
+          "skip_notifications": "skip_notifications"
+        }
+      }
+    },
+    "create_ticket_type": {
+      "display_name": "Create a ticket type",
+      "description": "You can create a new ticket type. \u003e 📘 Creating ticket types. \u003e \u003e Every ticket type will be created with two default attributes: _default_title_ and _default_description_. \u003e For the `icon` proper...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of the Ticket Type."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the ticket type."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon of the ticket type."
+          },
+          "is_internal": {
+            "type": "boolean",
+            "description": "Whether the tickets associated with this ticket type are intended for internal use only or will be shared with customers. This is currently a limited attribute."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the ticket type."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/ticket_types",
+        "body_mapping": {
+          "category": "category",
+          "description": "description",
+          "icon": "icon",
+          "is_internal": "is_internal",
+          "name": "name"
+        }
+      }
+    },
+    "create_ticket_type_attribute": {
+      "display_name": "Create a new attribute for a ticket type",
+      "description": "You can create a new attribute for a ticket type.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "allow_multiple_values": {
+            "type": "boolean",
+            "description": "Whether the attribute allows multiple files to be attached to it (only applicable to file attributes)"
+          },
+          "data_type": {
+            "type": "string",
+            "description": "The data type of the attribute"
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the attribute presented to the teammate or contact"
+          },
+          "list_items": {
+            "type": "string",
+            "description": "A comma delimited list of items for the attribute value (only applicable to list attributes)"
+          },
+          "multiline": {
+            "type": "boolean",
+            "description": "Whether the attribute allows multiple lines of text (only applicable to string attributes)"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the ticket type attribute"
+          },
+          "required_to_create": {
+            "type": "boolean",
+            "description": "Whether the attribute is required to be filled in when teammates are creating the ticket in Inbox."
+          },
+          "required_to_create_for_contacts": {
+            "type": "boolean",
+            "description": "Whether the attribute is required to be filled in when contacts are creating the ticket in Messenger."
+          },
+          "ticket_type_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket type which is given by Intercom."
+          },
+          "visible_on_create": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible to teammates when creating a ticket in Inbox."
+          },
+          "visible_to_contacts": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible to contacts when creating a ticket in Messenger."
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "name",
+          "description",
+          "data_type"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/ticket_types/{ticket_type_id}/attributes",
+        "body_mapping": {
+          "allow_multiple_values": "allow_multiple_values",
+          "data_type": "data_type",
+          "description": "description",
+          "list_items": "list_items",
+          "multiline": "multiline",
+          "name": "name",
+          "required_to_create": "required_to_create",
+          "required_to_create_for_contacts": "required_to_create_for_contacts",
+          "visible_on_create": "visible_on_create",
+          "visible_to_contacts": "visible_to_contacts"
+        }
+      }
+    },
+    "data_event_summaries": {
+      "display_name": "Create event summaries",
+      "description": "Create event summaries for a user. Event summaries are used to track the number of times an event has occurred, the first time it occurred and the last time it occurred.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "event_summaries": {
+            "type": "object",
+            "description": "A list of event summaries for the user. Each event summary should contain the event name, the time the event occurred, and the number of times the event occurred. The event name should be a past te..."
+          },
+          "user_id": {
+            "type": "string",
+            "description": "Your identifier for the user."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/events/summaries",
+        "body_mapping": {
+          "event_summaries": "event_summaries",
+          "user_id": "user_id"
+        }
+      }
+    },
+    "delete_article": {
+      "display_name": "Delete an article",
+      "description": "You can delete a single article by making a DELETE request to `https://api.intercom.io/articles/\u003cid\u003e`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the article which is given by Intercom."
+          }
+        },
+        "required": [
+          "article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/articles/{article_id}"
+      }
+    },
+    "delete_collection": {
+      "display_name": "Delete a collection",
+      "description": "You can delete a single collection by making a DELETE request to `https://api.intercom.io/collections/\u003cid\u003e`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "collection_id": {
+            "type": "integer",
+            "description": "The unique identifier for the collection which is given by Intercom."
+          }
+        },
+        "required": [
+          "collection_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/help_center/collections/{collection_id}"
+      }
+    },
+    "delete_company": {
+      "display_name": "Delete a company",
+      "description": "You can delete a single company.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/companies/{company_id}"
+      }
+    },
+    "delete_contact": {
+      "display_name": "Delete a contact",
+      "description": "You can delete a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "contact_id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/contacts/{contact_id}"
+      }
+    },
+    "delete_content_import_source": {
+      "display_name": "Delete a content import source",
+      "description": "You can delete a content import source by making a DELETE request this endpoint. This will also delete all external pages that were imported from this source.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string",
+            "description": "The unique identifier for the content import source which is given by Intercom."
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/ai/content_import_sources/{source_id}"
+      }
+    },
+    "delete_conversation": {
+      "display_name": "Delete a conversation",
+      "description": "{% admonition type=\"warning\" name=\"Irreversible operation\" %} Deleting a conversation is permanent and cannot be reversed. {% /admonition %} Deleting a conversation permanently removes it from the ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "integer",
+            "description": "id"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/conversations/{conversation_id}"
+      }
+    },
+    "delete_custom_object_instances_by_external_id": {
+      "display_name": "Delete a Custom Object Instance by ID",
+      "description": "Delete a single Custom Object instance using the Intercom defined id.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_object_instance_id": {
+            "type": "string",
+            "description": "The Intercom defined id of the custom object instance"
+          },
+          "custom_object_type_identifier": {
+            "type": "string",
+            "description": "The unique identifier of the custom object type that defines the structure of the custom object instance."
+          }
+        },
+        "required": [
+          "custom_object_instance_id",
+          "custom_object_type_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/custom_object_instances/{custom_object_type_identifier}/{custom_object_instance_id}"
+      }
+    },
+    "delete_custom_object_instances_by_id": {
+      "display_name": "Delete a Custom Object Instance by External ID",
+      "description": "Delete a single Custom Object instance by external_id.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_object_type_identifier": {
+            "type": "string",
+            "description": "The unique identifier of the custom object type that defines the structure of the custom object instance."
+          },
+          "external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_object_type_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/custom_object_instances/{custom_object_type_identifier}",
+        "query_mapping": {
+          "external_id": "external_id"
+        }
+      }
+    },
+    "delete_external_page": {
+      "display_name": "Delete an external page",
+      "description": "Sending a DELETE request for an external page will remove it from the content library UI and from being used for AI answers.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string",
+            "description": "The unique identifier for the external page which is given by Intercom."
+          }
+        },
+        "required": [
+          "page_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/ai/external_pages/{page_id}"
+      }
+    },
+    "delete_internal_article": {
+      "display_name": "Delete an internal article",
+      "description": "You can delete a single internal article by making a DELETE request to `https://api.intercom.io/internal_articles/\u003cid\u003e`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "internal_article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the internal article which is given by Intercom."
+          }
+        },
+        "required": [
+          "internal_article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/internal_articles/{internal_article_id}"
+      }
+    },
+    "delete_news_item": {
+      "display_name": "Delete a news item",
+      "description": "You can delete a single news item.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "news_item_id": {
+            "type": "integer",
+            "description": "The unique identifier for the news item which is given by Intercom."
+          }
+        },
+        "required": [
+          "news_item_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/news/news_items/{news_item_id}"
+      }
+    },
+    "delete_tag": {
+      "display_name": "Delete tag",
+      "description": "You can delete the details of tags that are on the workspace by passing in the id.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "The unique identifier of a given tag"
+          }
+        },
+        "required": [
+          "tag_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/tags/{tag_id}"
+      }
+    },
+    "delete_ticket": {
+      "display_name": "Delete a ticket",
+      "description": "{% admonition type=\"warning\" name=\"Irreversible operation\" %} Deleting a ticket is permanent and cannot be reversed. {% /admonition %} Deleting a ticket permanently removes it from the inbox. All s...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket which is given by Intercom.\n{% admonition type=\"info\" name=\"Not the Inbox ticket ID\" %}\nThis is the internal `id` field from the API response, not the `ticket_i..."
+          }
+        },
+        "required": [
+          "ticket_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/tickets/{ticket_id}"
+      }
+    },
+    "detach_contact_from_a_company": {
+      "display_name": "Detach a contact from a company",
+      "description": "You can detach a company from a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/contacts/{contact_id}/companies/{company_id}"
+      }
+    },
+    "detach_contact_from_conversation": {
+      "display_name": "Detach a contact from a group conversation",
+      "description": "You can add participants who are contacts to a conversation, on behalf of either another contact or an admin. {% admonition type=\"warning\" name=\"Contacts without an email\" %} If you add a contact v...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The `id` of the admin who is performing the action."
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The identifier for the contact as given by Intercom."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "The identifier for the conversation as given by Intercom."
+          }
+        },
+        "required": [
+          "conversation_id",
+          "contact_id",
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/conversations/{conversation_id}/customers/{contact_id}",
+        "body_mapping": {
+          "admin_id": "admin_id"
+        }
+      }
+    },
+    "detach_subscription_type_to_contact": {
+      "display_name": "Remove subscription from a contact",
+      "description": "You can remove a specific subscription from a contact. This will return a subscription type model for the subscription type that was removed from the contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          },
+          "subscription_id": {
+            "type": "string",
+            "description": "The unique identifier for the subscription type which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "subscription_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/contacts/{contact_id}/subscriptions/{subscription_id}"
+      }
+    },
+    "detach_tag_from_contact": {
+      "display_name": "Remove tag from a contact",
+      "description": "You can remove tag from a specific contact. This will return a tag object for the tag that was removed from the contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "The unique identifier for the tag which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id",
+          "tag_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/contacts/{contact_id}/tags/{tag_id}"
+      }
+    },
+    "detach_tag_from_conversation": {
+      "display_name": "Remove tag from a conversation",
+      "description": "You can remove tag from a specific conversation. This will return a tag object for the tag that was removed from the conversation.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The unique identifier for the admin which is given by Intercom."
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "conversation_id"
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "tag_id"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "tag_id",
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/conversations/{conversation_id}/tags/{tag_id}",
+        "body_mapping": {
+          "admin_id": "admin_id"
+        }
+      }
+    },
+    "detach_tag_from_ticket": {
+      "display_name": "Remove tag from a ticket",
+      "description": "You can remove tag from a specific ticket. This will return a tag object for the tag that was removed from the ticket.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "string",
+            "description": "The unique identifier for the admin which is given by Intercom."
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "The unique identifier for the tag which is given by Intercom"
+          },
+          "ticket_id": {
+            "type": "string",
+            "description": "ticket_id"
+          }
+        },
+        "required": [
+          "ticket_id",
+          "tag_id",
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/tickets/{ticket_id}/tags/{tag_id}",
+        "body_mapping": {
+          "admin_id": "admin_id"
+        }
+      }
+    },
+    "download_data_export": {
+      "display_name": "Download content data export",
+      "description": "When a job has a status of complete, and thus a filled download_url, you can download your data by hitting that provided URL, formatted like so: https://api.intercom.io/download/content/data/xyz123...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "job_identifier": {
+            "type": "string",
+            "description": "job_identifier"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/download/content/data/{job_identifier}"
+      }
+    },
+    "enqueue_create_ticket": {
+      "display_name": "Enqueue create ticket",
+      "description": "Enqueues ticket creation for asynchronous processing, returning if the job was enqueued successfully to be processed. We attempt to perform a best-effort validation on inputs before tasks are enque...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "skip_notifications": {
+            "type": "boolean",
+            "description": "Option to disable notifications when a Ticket is created."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tickets/enqueue",
+        "body_mapping": {
+          "skip_notifications": "skip_notifications"
+        }
+      }
+    },
+    "export_workflow": {
+      "display_name": "Export a workflow",
+      "description": "Export a workflow configuration by its ID. This endpoint returns the complete workflow definition including its steps, targeting rules, and attributes. This endpoint is designed for EU Data Act com...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the workflow"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/export/workflows/{id}"
+      }
+    },
+    "find_tag": {
+      "display_name": "Find a specific tag",
+      "description": "You can fetch the details of tags that are on the workspace by their id. This will return a tag object.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "The unique identifier of a given tag"
+          }
+        },
+        "required": [
+          "tag_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/tags/{tag_id}"
+      }
+    },
+    "get_content_import_source": {
+      "display_name": "Retrieve a content import source",
+      "description": "Retrieve a content import source",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string",
+            "description": "The unique identifier for the content import source which is given by Intercom."
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ai/content_import_sources/{source_id}"
+      }
+    },
+    "get_custom_object_instances_by_external_id": {
+      "display_name": "Get Custom Object Instance by External ID",
+      "description": "Fetch a Custom Object Instance by external_id.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_object_type_identifier": {
+            "type": "string",
+            "description": "The unique identifier of the custom object type that defines the structure of the custom object instance."
+          },
+          "external_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "custom_object_type_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/custom_object_instances/{custom_object_type_identifier}",
+        "query_mapping": {
+          "external_id": "external_id"
+        }
+      }
+    },
+    "get_custom_object_instances_by_id": {
+      "display_name": "Get Custom Object Instance by ID",
+      "description": "Fetch a Custom Object Instance by id.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_object_instance_id": {
+            "type": "string",
+            "description": "The id or external_id of the custom object instance"
+          },
+          "custom_object_type_identifier": {
+            "type": "string",
+            "description": "The unique identifier of the custom object type that defines the structure of the custom object instance."
+          }
+        },
+        "required": [
+          "custom_object_instance_id",
+          "custom_object_type_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/custom_object_instances/{custom_object_type_identifier}/{custom_object_instance_id}"
+      }
+    },
+    "get_data_export": {
+      "display_name": "Show content data export",
+      "description": "You can view the status of your job by sending a `GET` request to the URL `https://api.intercom.io/export/content/data/{job_identifier}` - the `{job_identifier}` is the value returned in the respon...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "job_identifier": {
+            "type": "string",
+            "description": "job_identifier"
+          }
+        },
+        "required": [
+          "job_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/export/content/data/{job_identifier}"
+      }
+    },
+    "get_download_reporting_data_job_identifier": {
+      "display_name": "Download completed export job data",
+      "description": "Download the data from a completed reporting data export job. \u003e Octet header required \u003e \u003e You will have to specify the header Accept: `application/octet-stream` when hitting this endpoint.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Accept": {
+            "type": "string",
+            "description": "Required header for downloading the export file"
+          },
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "app_id": {
+            "type": "string"
+          },
+          "job_identifier": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/download/reporting_data/{job_identifier}",
+        "query_mapping": {
+          "app_id": "app_id",
+          "job_identifier": "job_identifier"
+        }
+      }
+    },
+    "get_export_reporting_data_get_datasets": {
+      "display_name": "List available datasets and attributes",
+      "description": "List available datasets and attributes",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/export/reporting_data/get_datasets",
+        "response_path": "data"
+      }
+    },
+    "get_export_reporting_data_job_identifier": {
+      "display_name": "Get export job status",
+      "description": "Get export job status",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "app_id": {
+            "type": "string",
+            "description": "The Intercom defined code of the workspace the company is associated to."
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "job_identifier": {
+            "type": "string",
+            "description": "Unique identifier of the job."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/export/reporting_data/{job_identifier}",
+        "query_mapping": {
+          "app_id": "app_id",
+          "client_id": "client_id",
+          "job_identifier": "job_identifier"
+        }
+      }
+    },
+    "get_external_page": {
+      "display_name": "Retrieve an external page",
+      "description": "You can retrieve an external page.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "page_id": {
+            "type": "string",
+            "description": "The unique identifier for the external page which is given by Intercom."
+          }
+        },
+        "required": [
+          "page_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ai/external_pages/{page_id}"
+      }
+    },
+    "get_ip_allowlist": {
+      "display_name": "Get IP allowlist settings",
+      "description": "Retrieve the current IP allowlist configuration for the workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ip_allowlist"
+      }
+    },
+    "get_ticket": {
+      "display_name": "Retrieve a ticket",
+      "description": "You can fetch the details of a single ticket.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket which is given by Intercom.\n{% admonition type=\"info\" name=\"Not the Inbox ticket ID\" %}\nThis is the internal `id` field from the API response, not the `ticket_i..."
+          }
+        },
+        "required": [
+          "ticket_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/tickets/{ticket_id}"
+      }
+    },
+    "get_ticket_type": {
+      "display_name": "Retrieve a ticket type",
+      "description": "You can fetch the details of a single ticket type.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "ticket_type_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket type which is given by Intercom."
+          }
+        },
+        "required": [
+          "ticket_type_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ticket_types/{ticket_type_id}"
+      }
+    },
+    "identify_admin": {
+      "display_name": "Identify an admin",
+      "description": "You can view the currently authorised admin along with the embedded app object (a \"workspace\" in legacy terminology). \u003e 🚧 Single Sign On \u003e \u003e If you are building a custom \"Log in with Intercom\" f...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/me"
+      }
+    },
+    "jobs_status": {
+      "display_name": "Retrieve job status",
+      "description": "Retrieve the status of job execution.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string",
+            "description": "The unique identifier for the job which is given by Intercom"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/jobs/status/{job_id}"
+      }
+    },
+    "lis_data_attributes": {
+      "display_name": "List all data attributes",
+      "description": "You can fetch a list of all data attributes belonging to a workspace for contacts, companies or conversations.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "include_archived": {
+            "type": "boolean",
+            "description": "Include archived attributes in the list. By default we return only non archived data attributes."
+          },
+          "model": {
+            "type": "string",
+            "description": "Specify the data attribute model to return."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/data_attributes",
+        "query_mapping": {
+          "include_archived": "include_archived",
+          "model": "model"
+        },
+        "response_path": "data"
+      }
+    },
+    "lis_data_events": {
+      "display_name": "List all data events",
+      "description": "\u003e 🚧 \u003e \u003e Please note that you can only 'list' events that are less than 90 days old. Event counts and summaries will still include your events older than 90 days but you cannot 'list' these event...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "object"
+          },
+          "summary": {
+            "type": "boolean",
+            "description": "summary flag"
+          },
+          "type": {
+            "type": "string",
+            "description": "The value must be user"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/events",
+        "query_mapping": {
+          "filter": "filter",
+          "summary": "summary",
+          "type": "type"
+        }
+      }
+    },
+    "list_activity_logs": {
+      "display_name": "List all activity logs",
+      "description": "You can get a log of activities by all admins in an app.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "created_at_after": {
+            "type": "string",
+            "description": "The start date that you request data for. It must be formatted as a UNIX timestamp."
+          },
+          "created_at_before": {
+            "type": "string",
+            "description": "The end date that you request data for. It must be formatted as a UNIX timestamp."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/admins/activity_logs",
+        "query_mapping": {
+          "created_at_after": "created_at_after",
+          "created_at_before": "created_at_before"
+        }
+      }
+    },
+    "list_admins": {
+      "display_name": "List all admins",
+      "description": "You can fetch a list of admins for a given workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/admins"
+      }
+    },
+    "list_all_collections": {
+      "display_name": "List all collections",
+      "description": "You can fetch a list of all collections by making a GET request to `https://api.intercom.io/help_center/collections`. Collections will be returned in descending order on the `updated_at` attribute....",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/help_center/collections",
+        "response_path": "data"
+      }
+    },
+    "list_all_companies": {
+      "display_name": "List all companies",
+      "description": "You can list companies. The company list is sorted by the `last_request_at` field and by default is ordered descending, most recently requested first. Note that the API does not include companies w...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "order": {
+            "type": "string",
+            "description": "`asc` or `desc`. Return the companies in ascending or descending order. Defaults to desc"
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page of results to fetch. Defaults to first page"
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "How many results to return per page. Defaults to 15"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/companies/list",
+        "query_mapping": {
+          "order": "order",
+          "page": "page",
+          "per_page": "per_page"
+        },
+        "response_path": "data"
+      }
+    },
+    "list_articles": {
+      "display_name": "List all articles",
+      "description": "You can fetch a list of all articles by making a GET request to `https://api.intercom.io/articles`. \u003e 📘 How are the articles sorted and ordered? \u003e \u003e Articles will be returned in descending order...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/articles",
+        "response_path": "data"
+      }
+    },
+    "list_attached_contacts": {
+      "display_name": "List attached contacts",
+      "description": "You can fetch a list of all contacts that belong to a company.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies/{company_id}/contacts",
+        "response_path": "data"
+      }
+    },
+    "list_attached_segments_for_companies": {
+      "display_name": "List attached segments for companies",
+      "description": "You can fetch a list of all segments that belong to a company.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies/{company_id}/segments",
+        "response_path": "data"
+      }
+    },
+    "list_away_status_reasons": {
+      "display_name": "List all away status reasons",
+      "description": "Returns a list of all away status reasons configured for the workspace, including deleted ones.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/away_status_reasons"
+      }
+    },
+    "list_brands": {
+      "display_name": "List all brands",
+      "description": "Retrieves all brands for the workspace, including the default brand. The default brand id always matches the workspace",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/brands",
+        "response_path": "data"
+      }
+    },
+    "list_calls": {
+      "display_name": "List all calls",
+      "description": "Retrieve a paginated list of calls.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page of results to fetch. Defaults to first page"
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "How many results to display per page. Defaults to 25. Max 25."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/calls",
+        "query_mapping": {
+          "page": "page",
+          "per_page": "per_page"
+        },
+        "response_path": "data"
+      }
+    },
+    "list_calls_with_transcripts": {
+      "display_name": "List calls with transcripts",
+      "description": "Retrieve calls by a list of conversation ids and include transcripts when available. A maximum of 20 `conversation_ids` can be provided. If none are provided or more than 20 are provided, a 400 err...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "conversation_ids": {
+            "type": "array",
+            "description": "A list of conversation ids to fetch calls for. Maximum 20."
+          }
+        },
+        "required": [
+          "conversation_ids"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/calls/search",
+        "body_mapping": {
+          "conversation_ids": "conversation_ids"
+        },
+        "response_path": "data"
+      }
+    },
+    "list_companies_for_a_contact": {
+      "display_name": "List attached companies for contact",
+      "description": "You can fetch a list of companies that are associated to a contact.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}/companies"
+      }
+    },
+    "list_company_notes": {
+      "display_name": "List all company notes",
+      "description": "You can fetch a list of notes that are associated to a company.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies/{company_id}/notes",
+        "response_path": "data"
+      }
+    },
+    "list_contacts": {
+      "display_name": "List all contacts",
+      "description": "You can fetch a list of all contacts (ie. users or leads) in your workspace. {% admonition type=\"warning\" name=\"Pagination\" %} You can use pagination to limit the number of results returned. The de...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts",
+        "response_path": "data"
+      }
+    },
+    "list_content_import_sources": {
+      "display_name": "List content import sources",
+      "description": "You can retrieve a list of all content import sources for a workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ai/content_import_sources",
+        "response_path": "data"
+      }
+    },
+    "list_conversations": {
+      "display_name": "List all conversations",
+      "description": "You can fetch a list of all conversations. You can optionally request the result page size and the cursor to start after to fetch the result. {% admonition type=\"warning\" name=\"Pagination\" %} You c...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "How many results per page"
+          },
+          "starting_after": {
+            "type": "string",
+            "description": "String used to get the next page of conversations."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/conversations",
+        "query_mapping": {
+          "per_page": "per_page",
+          "starting_after": "starting_after"
+        }
+      }
+    },
+    "list_emails": {
+      "display_name": "List all email settings",
+      "description": "Lists all sender email address settings for the workspace",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/emails",
+        "response_path": "data"
+      }
+    },
+    "list_external_pages": {
+      "display_name": "List external pages",
+      "description": "You can retrieve a list of all external pages for a workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ai/external_pages",
+        "response_path": "data"
+      }
+    },
+    "list_help_centers": {
+      "display_name": "List all Help Centers",
+      "description": "You can list all Help Centers by making a GET request to `https://api.intercom.io/help_center/help_centers`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/help_center/help_centers",
+        "response_path": "data"
+      }
+    },
+    "list_internal_articles": {
+      "display_name": "List all articles",
+      "description": "You can fetch a list of all internal articles by making a GET request to `https://api.intercom.io/internal_articles`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/internal_articles",
+        "response_path": "data"
+      }
+    },
+    "list_live_newsfeed_items": {
+      "display_name": "List all live newsfeed items",
+      "description": "You can fetch a list of all news items that are live on a given newsfeed",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "newsfeed_id": {
+            "type": "string",
+            "description": "The unique identifier for the news feed item which is given by Intercom."
+          }
+        },
+        "required": [
+          "newsfeed_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/news/newsfeeds/{newsfeed_id}/items",
+        "response_path": "data"
+      }
+    },
+    "list_news_items": {
+      "display_name": "List all news items",
+      "description": "You can fetch a list of all news items",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/news/news_items",
+        "response_path": "data"
+      }
+    },
+    "list_newsfeeds": {
+      "display_name": "List all newsfeeds",
+      "description": "You can fetch a list of all newsfeeds",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/news/newsfeeds",
+        "response_path": "data"
+      }
+    },
+    "list_notes": {
+      "display_name": "List all notes",
+      "description": "You can fetch a list of notes that are associated to a contact.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier of a contact."
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}/notes",
+        "response_path": "data"
+      }
+    },
+    "list_segments": {
+      "display_name": "List all segments",
+      "description": "You can fetch a list of all segments.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "include_count": {
+            "type": "boolean",
+            "description": "It includes the count of contacts that belong to each segment."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/segments",
+        "query_mapping": {
+          "include_count": "include_count"
+        }
+      }
+    },
+    "list_segments_for_a_contact": {
+      "display_name": "List attached segments for contact",
+      "description": "You can fetch a list of segments that are associated to a contact.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}/segments",
+        "response_path": "data"
+      }
+    },
+    "list_subscription_types": {
+      "display_name": "List subscription types",
+      "description": "You can list all subscription types. A list of subscription type objects will be returned.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/subscription_types",
+        "response_path": "data"
+      }
+    },
+    "list_subscriptions_for_a_contact": {
+      "display_name": "List subscriptions for a contact",
+      "description": "You can fetch a list of subscription types that are attached to a contact. These can be subscriptions that a user has 'opted-in' to or has 'opted-out' from, depending on the subscription type. This...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}/subscriptions",
+        "response_path": "data"
+      }
+    },
+    "list_tags": {
+      "display_name": "List all tags",
+      "description": "You can fetch a list of all tags for a given workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/tags",
+        "response_path": "data"
+      }
+    },
+    "list_tags_for_a_contact": {
+      "display_name": "List tags attached to a contact",
+      "description": "You can fetch a list of all tags that are attached to a specific contact.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "The unique identifier for the contact which is given by Intercom"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}/tags",
+        "response_path": "data"
+      }
+    },
+    "list_teams": {
+      "display_name": "List all teams",
+      "description": "This will return a list of team objects for the App.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/teams"
+      }
+    },
+    "list_ticket_states": {
+      "display_name": "List all ticket states",
+      "description": "You can get a list of all ticket states for a workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ticket_states",
+        "response_path": "data"
+      }
+    },
+    "list_ticket_types": {
+      "display_name": "List all ticket types",
+      "description": "You can get a list of all ticket types for a workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/ticket_types",
+        "response_path": "data"
+      }
+    },
+    "manage_conversation": {
+      "display_name": "Manage a conversation",
+      "description": "For managing conversations you can: - Close a conversation - Snooze a conversation to reopen on a future date - Open a conversation which is `snoozed` or `closed` - Assign a conversation to an admi...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "The identifier for the conversation as given by Intercom."
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/{conversation_id}/parts"
+      }
+    },
+    "merge_contact": {
+      "display_name": "Merge a lead and a user",
+      "description": "You can merge a contact with a `role` of `lead` into a contact with a `role` of `user`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "description": "The unique identifier for the contact to merge away from. Must be a lead."
+          },
+          "into": {
+            "type": "string",
+            "description": "The unique identifier for the contact to merge into. Must be a user."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/merge",
+        "body_mapping": {
+          "from": "from",
+          "into": "into"
+        }
+      }
+    },
+    "notify_attribute_collected": {
+      "display_name": "Notify Intercom of an attribute collector response in a custom channel conver...",
+      "description": "Notifies Intercom that a user provided a response to an attribute collector in your custom channel/platform. This allows Intercom to process the attribute and trigger any relevant workflow automati...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/custom_channel_events/notify_attribute_collected"
+      }
+    },
+    "notify_new_conversation": {
+      "display_name": "Notify Intercom of a new conversation created in a custom channel",
+      "description": "Notifies Intercom that a new conversation was created in your custom channel/platform. This triggers conversation creation and workflow automations within Intercom for your custom channel integrati...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contact": {
+            "type": "object"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "Unique identifier for the event."
+          },
+          "external_conversation_id": {
+            "type": "string",
+            "description": "Identifier for the conversation in your application."
+          }
+        },
+        "required": [
+          "event_id",
+          "external_conversation_id",
+          "contact"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/custom_channel_events/notify_new_conversation",
+        "body_mapping": {
+          "contact": "contact",
+          "event_id": "event_id",
+          "external_conversation_id": "external_conversation_id"
+        }
+      }
+    },
+    "notify_new_message": {
+      "display_name": "Notify Intercom of a new message in a custom channel conversation",
+      "description": "Notifies Intercom that a new message was sent in a conversation on your custom channel/platform. This allows Intercom to process the message and trigger any relevant workflow automations. \u003e **Note:...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/custom_channel_events/notify_new_message"
+      }
+    },
+    "notify_quick_reply_selected": {
+      "display_name": "Notify Intercom of a quick reply response in a custom channel conversation",
+      "description": "Notifies Intercom that a user selected a quick reply option in your custom channel/platform. This allows Intercom to process the response and trigger any relevant workflow automations. \u003e **Note:** ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/custom_channel_events/notify_quick_reply_selected"
+      }
+    },
+    "post_export_reporting_data_enqueue": {
+      "display_name": "Enqueue a new reporting data export job",
+      "description": "Enqueue a new reporting data export job",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "attribute_ids": {
+            "type": "array"
+          },
+          "dataset_id": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "integer"
+          },
+          "start_time": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "attribute_ids",
+          "start_time",
+          "end_time"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/export/reporting_data/enqueue",
+        "body_mapping": {
+          "attribute_ids": "attribute_ids",
+          "dataset_id": "dataset_id",
+          "end_time": "end_time",
+          "start_time": "start_time"
+        }
+      }
+    },
+    "redact_conversation": {
+      "display_name": "Redact a conversation part",
+      "description": "You can redact a conversation part or the source message of a conversation (as seen in the source object). {% admonition type=\"info\" name=\"Redacting parts and messages\" %} If you are redacting a co...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/redact"
+      }
+    },
+    "register_fin_voice_call": {
+      "display_name": "Register a Fin Voice call",
+      "description": "Register a Fin Voice call with Intercom. This endpoint creates an external reference that links an external call identifier to an Intercom call and conversation. The call can be from different sour...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "call_id": {
+            "type": "string",
+            "description": "External call identifier from the call provider"
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional metadata about the call"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "Phone number in E.164 format for the call"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source of the call. Can be \"five9\", \"zoom_phone\", or defaults to \"aws_connect\""
+          }
+        },
+        "required": [
+          "phone_number",
+          "call_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/fin_voice/register",
+        "body_mapping": {
+          "call_id": "call_id",
+          "data": "data",
+          "phone_number": "phone_number",
+          "source": "source"
+        }
+      }
+    },
+    "reply_conversation": {
+      "display_name": "Reply to a conversation",
+      "description": "You can reply to a conversation with a message from an admin or on behalf of a contact, or with a note for admins.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string",
+            "description": "The Intercom provisioned identifier for the conversation or the string \"last\" to reply to the last part of the conversation"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/{conversation_id}/reply"
+      }
+    },
+    "reply_ticket": {
+      "display_name": "Reply to a ticket",
+      "description": "You can reply to a ticket with a message from an admin or on behalf of a contact, or with a note for admins.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "skip_notifications": {
+            "type": "boolean",
+            "description": "Option to disable notifications when replying to a Ticket."
+          },
+          "ticket_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tickets/{ticket_id}/reply",
+        "body_mapping": {
+          "skip_notifications": "skip_notifications"
+        }
+      }
+    },
+    "retrieve_a_company_by_id": {
+      "display_name": "Retrieve a company by ID",
+      "description": "You can fetch a single company.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies/{company_id}"
+      }
+    },
+    "retrieve_admin": {
+      "display_name": "Retrieve an admin",
+      "description": "You can retrieve the details of a single admin.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "integer",
+            "description": "The unique identifier of a given admin"
+          }
+        },
+        "required": [
+          "admin_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/admins/{admin_id}"
+      }
+    },
+    "retrieve_article": {
+      "display_name": "Retrieve an article",
+      "description": "You can fetch the details of a single article by making a GET request to `https://api.intercom.io/articles/\u003cid\u003e`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the article which is given by Intercom."
+          }
+        },
+        "required": [
+          "article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/articles/{article_id}"
+      }
+    },
+    "retrieve_brand": {
+      "display_name": "Retrieve a brand",
+      "description": "Fetches a specific brand by its unique identifier",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the brand"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/brands/{id}"
+      }
+    },
+    "retrieve_collection": {
+      "display_name": "Retrieve a collection",
+      "description": "You can fetch the details of a single collection by making a GET request to `https://api.intercom.io/help_center/collections/\u003cid\u003e`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "collection_id": {
+            "type": "integer",
+            "description": "The unique identifier for the collection which is given by Intercom."
+          }
+        },
+        "required": [
+          "collection_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/help_center/collections/{collection_id}"
+      }
+    },
+    "retrieve_company": {
+      "display_name": "Retrieve companies",
+      "description": "You can fetch a single company by passing in `company_id` or `name`. `https://api.intercom.io/companies?name={name}` `https://api.intercom.io/companies?company_id={company_id}` You can fetch all co...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The `company_id` of the company to filter by."
+          },
+          "name": {
+            "type": "string",
+            "description": "The `name` of the company to filter by."
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page of results to fetch. Defaults to first page"
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "How many results to display per page. Defaults to 15"
+          },
+          "segment_id": {
+            "type": "string",
+            "description": "The `segment_id` of the company to filter by."
+          },
+          "tag_id": {
+            "type": "string",
+            "description": "The `tag_id` of the company to filter by."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies",
+        "query_mapping": {
+          "company_id": "company_id",
+          "name": "name",
+          "page": "page",
+          "per_page": "per_page",
+          "segment_id": "segment_id",
+          "tag_id": "tag_id"
+        },
+        "response_path": "data"
+      }
+    },
+    "retrieve_conversation": {
+      "display_name": "Retrieve a conversation",
+      "description": "You can fetch the details of a single conversation. This will return a single Conversation model with all its conversation parts. {% admonition type=\"warning\" name=\"Hard limit of 500 parts\" %} The ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "integer",
+            "description": "The id of the conversation to target"
+          },
+          "display_as": {
+            "type": "string",
+            "description": "Set to plaintext to retrieve conversation messages in plain text."
+          },
+          "include_translations": {
+            "type": "boolean",
+            "description": "If set to true, conversation parts will be translated to the detected language of the conversation."
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/conversations/{conversation_id}",
+        "query_mapping": {
+          "display_as": "display_as",
+          "include_translations": "include_translations"
+        }
+      }
+    },
+    "retrieve_email": {
+      "display_name": "Retrieve an email setting",
+      "description": "Fetches a specific email setting by its unique identifier",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the email setting"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/emails/{id}"
+      }
+    },
+    "retrieve_help_center": {
+      "display_name": "Retrieve a Help Center",
+      "description": "You can fetch the details of a single Help Center by making a GET request to `https://api.intercom.io/help_center/help_center/\u003cid\u003e`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "help_center_id": {
+            "type": "integer",
+            "description": "The unique identifier for the collection which is given by Intercom."
+          }
+        },
+        "required": [
+          "help_center_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/help_center/help_centers/{help_center_id}"
+      }
+    },
+    "retrieve_internal_article": {
+      "display_name": "Retrieve an internal article",
+      "description": "You can fetch the details of a single internal article by making a GET request to `https://api.intercom.io/internal_articles/\u003cid\u003e`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "internal_article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the article which is given by Intercom."
+          }
+        },
+        "required": [
+          "internal_article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/internal_articles/{internal_article_id}"
+      }
+    },
+    "retrieve_news_item": {
+      "display_name": "Retrieve a news item",
+      "description": "You can fetch the details of a single news item.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "news_item_id": {
+            "type": "integer",
+            "description": "The unique identifier for the news item which is given by Intercom."
+          }
+        },
+        "required": [
+          "news_item_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/news/news_items/{news_item_id}"
+      }
+    },
+    "retrieve_newsfeed": {
+      "display_name": "Retrieve a newsfeed",
+      "description": "You can fetch the details of a single newsfeed",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "newsfeed_id": {
+            "type": "string",
+            "description": "The unique identifier for the news feed item which is given by Intercom."
+          }
+        },
+        "required": [
+          "newsfeed_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/news/newsfeeds/{newsfeed_id}"
+      }
+    },
+    "retrieve_note": {
+      "display_name": "Retrieve a note",
+      "description": "You can fetch the details of a single note.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "note_id": {
+            "type": "integer",
+            "description": "The unique identifier of a given note"
+          }
+        },
+        "required": [
+          "note_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/notes/{note_id}"
+      }
+    },
+    "retrieve_segment": {
+      "display_name": "Retrieve a segment",
+      "description": "You can fetch the details of a single segment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "segment_id": {
+            "type": "string",
+            "description": "The unique identified of a given segment."
+          }
+        },
+        "required": [
+          "segment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/segments/{segment_id}"
+      }
+    },
+    "retrieve_team": {
+      "display_name": "Retrieve a team",
+      "description": "You can fetch the details of a single team, containing an array of admins that belong to this team.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "The unique identifier of a given team."
+          }
+        },
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/teams/{team_id}"
+      }
+    },
+    "retrieve_visitor_with_user_id": {
+      "display_name": "Retrieve a visitor with User ID",
+      "description": "You can fetch the details of a single visitor.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The user_id of the Visitor you want to retrieve."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/visitors",
+        "query_mapping": {
+          "user_id": "user_id"
+        }
+      }
+    },
+    "scroll_over_all_companies": {
+      "display_name": "Scroll over all companies",
+      "description": "The `list all companies` functionality does not work well for huge datasets, and can result in errors and performance problems when paging deeply. The Scroll API provides an efficient mechanism for...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "scroll_param": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/companies/scroll",
+        "query_mapping": {
+          "scroll_param": "scroll_param"
+        },
+        "response_path": "data"
+      }
+    },
+    "search_articles": {
+      "display_name": "Search for articles",
+      "description": "You can search for articles by making a GET request to `https://api.intercom.io/articles/search`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "help_center_id": {
+            "type": "integer",
+            "description": "The ID of the Help Center to search in."
+          },
+          "highlight": {
+            "type": "boolean",
+            "description": "Return a highlighted version of the matching content within your articles. Refer to the response schema for more details."
+          },
+          "phrase": {
+            "type": "string",
+            "description": "The phrase within your articles to search for."
+          },
+          "state": {
+            "type": "string",
+            "description": "The state of the Articles returned. One of `published`, `draft` or `all`."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/articles/search",
+        "query_mapping": {
+          "help_center_id": "help_center_id",
+          "highlight": "highlight",
+          "phrase": "phrase",
+          "state": "state"
+        }
+      }
+    },
+    "search_contacts": {
+      "display_name": "Search contacts",
+      "description": "You can search for multiple contacts by the value of their attributes in order to fetch exactly who you want. To search for contacts, you need to send a `POST` request to `https://api.intercom.io/c...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "pagination": {
+            "type": "object"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/search",
+        "body_mapping": {
+          "pagination": "pagination",
+          "query": "query"
+        },
+        "response_path": "data"
+      }
+    },
+    "search_conversations": {
+      "display_name": "Search conversations",
+      "description": "You can search for multiple conversations by the value of their attributes in order to fetch exactly which ones you want. To search for conversations, you need to send a `POST` request to `https://...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "pagination": {
+            "type": "object"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/conversations/search",
+        "body_mapping": {
+          "pagination": "pagination",
+          "query": "query"
+        }
+      }
+    },
+    "search_internal_articles": {
+      "display_name": "Search for internal articles",
+      "description": "You can search for internal articles by making a GET request to `https://api.intercom.io/internal_articles/search`.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "The ID of the folder to search in."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/internal_articles/search",
+        "query_mapping": {
+          "folder_id": "folder_id"
+        }
+      }
+    },
+    "search_tickets": {
+      "display_name": "Search tickets",
+      "description": "You can search for multiple tickets by the value of their attributes in order to fetch exactly which ones you want. To search for tickets, you send a `POST` request to `https://api.intercom.io/tick...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "pagination": {
+            "type": "object"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/tickets/search",
+        "body_mapping": {
+          "pagination": "pagination",
+          "query": "query"
+        }
+      }
+    },
+    "set_away_admin": {
+      "display_name": "Set an admin to away",
+      "description": "You can set an Admin as away for the Inbox.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "integer",
+            "description": "The unique identifier of a given admin"
+          },
+          "away_mode_enabled": {
+            "type": "boolean",
+            "description": "Set to \"true\" to change the status of the admin to away."
+          },
+          "away_mode_reassign": {
+            "type": "boolean",
+            "description": "Set to \"true\" to assign any new conversation replies to your default inbox."
+          },
+          "away_status_reason_id": {
+            "type": "integer",
+            "description": "The unique identifier of the away status reason"
+          }
+        },
+        "required": [
+          "admin_id",
+          "away_mode_enabled",
+          "away_mode_reassign"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/admins/{admin_id}/away",
+        "body_mapping": {
+          "away_mode_enabled": "away_mode_enabled",
+          "away_mode_reassign": "away_mode_reassign",
+          "away_status_reason_id": "away_status_reason_id"
+        }
+      }
+    },
+    "show_call": {
+      "display_name": "Get a call",
+      "description": "Retrieve a single call by id.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string",
+            "description": "The id of the call to retrieve"
+          }
+        },
+        "required": [
+          "call_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/calls/{call_id}"
+      }
+    },
+    "show_call_recording": {
+      "display_name": "Get call recording by call id",
+      "description": "Redirects to a signed URL for the call's recording if it exists.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string",
+            "description": "The id of the call"
+          }
+        },
+        "required": [
+          "call_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/calls/{call_id}/recording"
+      }
+    },
+    "show_call_transcript": {
+      "display_name": "Get call transcript by call id",
+      "description": "Returns the transcript for the specified call as a downloadable text file.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "call_id": {
+            "type": "string",
+            "description": "The id of the call"
+          }
+        },
+        "required": [
+          "call_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/calls/{call_id}/transcript"
+      }
+    },
+    "show_contact": {
+      "display_name": "Get a contact",
+      "description": "You can fetch the details of a single contact.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "contact_id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/{contact_id}"
+      }
+    },
+    "show_contact_by_external_id": {
+      "display_name": "Get a contact by External ID",
+      "description": "You can fetch the details of a single contact by external ID. Note that this endpoint only supports users and not leads.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string",
+            "description": "The external ID of the user that you want to retrieve"
+          }
+        },
+        "required": [
+          "external_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/contacts/find_by_external_id/{external_id}"
+      }
+    },
+    "unarchive_contact": {
+      "display_name": "Unarchive contact",
+      "description": "You can unarchive a single contact.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "contact_id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/contacts/{contact_id}/unarchive"
+      }
+    },
+    "update_article": {
+      "display_name": "Update an article",
+      "description": "You can update the details of a single article by making a PUT request to `https://api.intercom.io/articles/\u003cid\u003e`. \u003e 📘 Tags cannot be managed via the Articles API \u003e \u003e Article tags are read-only ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the article which is given by Intercom."
+          },
+          "author_id": {
+            "type": "integer",
+            "description": "The id of the author of the article. For multilingual articles, this will be the id of the author of the default language's content. Must be a teammate on the help center's workspace."
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the article. For multilingual articles, this will be the body of the default language's content."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the article. For multilingual articles, this will be the description of the default language's content."
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "The id of the article's parent collection or section. An article without this field stands alone."
+          },
+          "parent_type": {
+            "type": "string",
+            "description": "The type of parent, which can either be a `collection` or `section`."
+          },
+          "state": {
+            "type": "string",
+            "description": "Whether the article will be `published` or will be a `draft`. Defaults to draft. For multilingual articles, this will be the state of the default language's content."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the article.For multilingual articles, this will be the title of the default language's content."
+          },
+          "translated_content": {
+            "type": "object",
+            "description": "The Translated Content of an Article. The keys are the locale codes and the values are the translated content of the article."
+          }
+        },
+        "required": [
+          "article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/articles/{article_id}",
+        "body_mapping": {
+          "author_id": "author_id",
+          "body": "body",
+          "description": "description",
+          "parent_id": "parent_id",
+          "parent_type": "parent_type",
+          "state": "state",
+          "title": "title",
+          "translated_content": "translated_content"
+        }
+      }
+    },
+    "update_collection": {
+      "display_name": "Update a collection",
+      "description": "You can update the details of a single collection by making a PUT request to `https://api.intercom.io/collections/\u003cid\u003e`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "collection_id": {
+            "type": "integer",
+            "description": "The unique identifier for the collection which is given by Intercom."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the collection. For multilingual collections, this will be the description of the default language's content."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the collection. For multilingual collections, this will be the name of the default language's content."
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "The id of the parent collection. If `null` then it will be updated as the first level collection."
+          },
+          "translated_content": {
+            "type": "object",
+            "description": "The Translated Content of an Group. The keys are the locale codes and the values are the translated content of the Group."
+          }
+        },
+        "required": [
+          "collection_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/help_center/collections/{collection_id}",
+        "body_mapping": {
+          "description": "description",
+          "name": "name",
+          "parent_id": "parent_id",
+          "translated_content": "translated_content"
+        }
+      }
+    },
+    "update_company": {
+      "display_name": "Update a company",
+      "description": "You can update a single company using the Intercom provisioned `id`. {% admonition type=\"warning\" name=\"Using `company_id`\" %} When updating a company it is not possible to update `company_id`. Thi...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The unique identifier for the company which is given by Intercom"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "A hash of key/value pairs containing any other data about the company you want Intercom to store."
+          },
+          "industry": {
+            "type": "string",
+            "description": "The industry that this company operates in."
+          },
+          "monthly_spend": {
+            "type": "integer",
+            "description": "How much revenue the company generates for your business. Note that this will truncate floats. i.e. it only allow for whole integers, 155.98 will be truncated to 155. Note that this has an upper li..."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the Company"
+          },
+          "plan": {
+            "type": "string",
+            "description": "The name of the plan you have associated with the company."
+          },
+          "size": {
+            "type": "integer",
+            "description": "The number of employees in this company."
+          },
+          "website": {
+            "type": "string",
+            "description": "The URL for this company's website. Please note that the value specified here is not validated. Accepts any string."
+          }
+        },
+        "required": [
+          "company_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/companies/{company_id}",
+        "body_mapping": {
+          "custom_attributes": "custom_attributes",
+          "industry": "industry",
+          "monthly_spend": "monthly_spend",
+          "name": "name",
+          "plan": "plan",
+          "size": "size",
+          "website": "website"
+        }
+      }
+    },
+    "update_contact": {
+      "display_name": "Update a contact",
+      "description": "You can update an existing contact (ie. user or lead). {% admonition type=\"info\" %} This endpoint handles both **contact updates** and **custom object associations**. See _`update a contact with an...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "id"
+          }
+        },
+        "required": [
+          "contact_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/contacts/{contact_id}"
+      }
+    },
+    "update_content_import_source": {
+      "display_name": "Update a content import source",
+      "description": "You can update an existing content import source.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string",
+            "description": "The unique identifier for the content import source which is given by Intercom."
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the content import source."
+          },
+          "sync_behavior": {
+            "type": "string",
+            "description": "If you intend to create or update External Pages via the API, this should be set to `api`. You can not change the value to or from api."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the content import source. This may only be different from the existing value if the sync behavior is API."
+          }
+        },
+        "required": [
+          "source_id",
+          "sync_behavior",
+          "url"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/ai/content_import_sources/{source_id}",
+        "body_mapping": {
+          "status": "status",
+          "sync_behavior": "sync_behavior",
+          "url": "url"
+        }
+      }
+    },
+    "update_conversation": {
+      "display_name": "Update a conversation",
+      "description": "You can update an existing conversation. {% admonition type=\"info\" name=\"Replying and other actions\" %} If you want to reply to a coveration or take an action such as assign, unassign, open, close ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string",
+            "description": "The ID of the company that the conversation is associated with. The unique identifier for the company which is given by Intercom. Set to nil to remove company."
+          },
+          "conversation_id": {
+            "type": "integer",
+            "description": "The id of the conversation to target"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "An object containing the different custom attributes associated to the conversation as key-value pairs. For relationship attributes the value will be a list of custom object instance models."
+          },
+          "display_as": {
+            "type": "string",
+            "description": "Set to plaintext to retrieve conversation messages in plain text."
+          },
+          "read": {
+            "type": "boolean",
+            "description": "Mark a conversation as read within Intercom."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title given to the conversation"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/conversations/{conversation_id}",
+        "body_mapping": {
+          "company_id": "company_id",
+          "custom_attributes": "custom_attributes",
+          "read": "read",
+          "title": "title"
+        },
+        "query_mapping": {
+          "display_as": "display_as"
+        }
+      }
+    },
+    "update_data_attribute": {
+      "display_name": "Update a data attribute",
+      "description": "You can update a data attribute. \u003e 🚧 Updating the data type is not possible \u003e \u003e It is currently a dangerous action to execute changing a data attribute's type via the API. You will need to updat...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Whether the attribute is to be archived or not."
+          },
+          "data_attribute_id": {
+            "type": "integer",
+            "description": "The data attribute id"
+          },
+          "description": {
+            "type": "string",
+            "description": "The readable description you see in the UI for the attribute."
+          },
+          "messenger_writable": {
+            "type": "boolean",
+            "description": "Can this attribute be updated by the Messenger"
+          }
+        },
+        "required": [
+          "data_attribute_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/data_attributes/{data_attribute_id}",
+        "body_mapping": {
+          "archived": "archived",
+          "description": "description",
+          "messenger_writable": "messenger_writable"
+        }
+      }
+    },
+    "update_external_page": {
+      "display_name": "Update an external page",
+      "description": "You can update an existing external page (if it was created via the API).",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string",
+            "description": "The identifier for the external page which was given by the source. Must be unique for the source."
+          },
+          "fin_availability": {
+            "type": "boolean",
+            "description": "Whether the external page should be used to answer questions by Fin."
+          },
+          "html": {
+            "type": "string",
+            "description": "The body of the external page in HTML."
+          },
+          "locale": {
+            "type": "string",
+            "description": "Always en"
+          },
+          "page_id": {
+            "type": "string",
+            "description": "The unique identifier for the external page which is given by Intercom."
+          },
+          "source_id": {
+            "type": "integer",
+            "description": "The unique identifier for the source of the external page which was given by Intercom. Every external page must be associated with a Content Import Source which represents the place it comes from a..."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the external page."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the external page. This will be used by Fin to link end users to the page it based its answer on."
+          }
+        },
+        "required": [
+          "page_id",
+          "title",
+          "html",
+          "url",
+          "locale",
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/ai/external_pages/{page_id}",
+        "body_mapping": {
+          "external_id": "external_id",
+          "fin_availability": "fin_availability",
+          "html": "html",
+          "locale": "locale",
+          "source_id": "source_id",
+          "title": "title",
+          "url": "url"
+        }
+      }
+    },
+    "update_internal_article": {
+      "display_name": "Update an internal article",
+      "description": "You can update the details of a single internal article by making a PUT request to `https://api.intercom.io/internal_articles/\u003cid\u003e`.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer",
+            "description": "The id of the author of the article."
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the article."
+          },
+          "internal_article_id": {
+            "type": "integer",
+            "description": "The unique identifier for the internal article which is given by Intercom."
+          },
+          "owner_id": {
+            "type": "integer",
+            "description": "The id of the author of the article."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the article."
+          }
+        },
+        "required": [
+          "internal_article_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/internal_articles/{internal_article_id}",
+        "body_mapping": {
+          "author_id": "author_id",
+          "body": "body",
+          "owner_id": "owner_id",
+          "title": "title"
+        }
+      }
+    },
+    "update_ip_allowlist": {
+      "display_name": "Update IP allowlist settings",
+      "description": "Update the IP allowlist configuration for the workspace. {% admonition type=\"warning\" name=\"Lockout Protection\" %} The API will reject updates that would lock out the caller's IP address. Ensure yo...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the IP allowlist is enabled for the workspace."
+          },
+          "ip_allowlist": {
+            "type": "array",
+            "description": "List of allowed IP addresses and/or IP ranges in CIDR notation.\nExamples:\n- Single IP: `192.168.0.1`\n- IP range: `192.168.0.1/24` (allows 192.168.0.0 - 192.168.0.255)\n"
+          },
+          "type": {
+            "type": "string",
+            "description": "String representing the object's type. Always has the value `ip_allowlist`."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/ip_allowlist",
+        "body_mapping": {
+          "enabled": "enabled",
+          "ip_allowlist": "ip_allowlist",
+          "type": "type"
+        }
+      }
+    },
+    "update_news_item": {
+      "display_name": "Update a news item",
+      "description": "Update a news item",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "The news item body, which may contain HTML."
+          },
+          "deliver_silently": {
+            "type": "boolean",
+            "description": "When set to `true`, the news item will appear in the messenger newsfeed without showing a notification badge."
+          },
+          "labels": {
+            "type": "array",
+            "description": "Label names displayed to users to categorize the news item."
+          },
+          "news_item_id": {
+            "type": "integer",
+            "description": "The unique identifier for the news item which is given by Intercom."
+          },
+          "newsfeed_assignments": {
+            "type": "array",
+            "description": "A list of newsfeed_assignments to assign to the specified newsfeed."
+          },
+          "reactions": {
+            "type": "array",
+            "description": "Ordered list of emoji reactions to the news item. When empty, reactions are disabled."
+          },
+          "sender_id": {
+            "type": "integer",
+            "description": "The id of the sender of the news item. Must be a teammate on the workspace."
+          },
+          "state": {
+            "type": "string",
+            "description": "News items will not be visible to your users in the assigned newsfeeds until they are set live."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the news item."
+          }
+        },
+        "required": [
+          "news_item_id",
+          "title",
+          "sender_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/news/news_items/{news_item_id}",
+        "body_mapping": {
+          "body": "body",
+          "deliver_silently": "deliver_silently",
+          "labels": "labels",
+          "newsfeed_assignments": "newsfeed_assignments",
+          "reactions": "reactions",
+          "sender_id": "sender_id",
+          "state": "state",
+          "title": "title"
+        }
+      }
+    },
+    "update_ticket": {
+      "display_name": "Update a ticket",
+      "description": "You can update a ticket.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "skip_notifications": {
+            "type": "boolean",
+            "description": "Option to disable notifications when a Ticket is updated."
+          },
+          "ticket_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket which is given by Intercom.\n{% admonition type=\"info\" name=\"Not the Inbox ticket ID\" %}\nThis is the internal `id` field from the API response, not the `ticket_i..."
+          }
+        },
+        "required": [
+          "ticket_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/tickets/{ticket_id}",
+        "body_mapping": {
+          "skip_notifications": "skip_notifications"
+        }
+      }
+    },
+    "update_ticket_type": {
+      "display_name": "Update a ticket type",
+      "description": "You can update a ticket type. \u003e 📘 Updating a ticket type. \u003e \u003e For the `icon` propery, use an emoji from [Twemoji Cheatsheet](https://twemoji-cheatsheet.vercel.app/)",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The archived status of the ticket type."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of the Ticket Type."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the ticket type."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon of the ticket type."
+          },
+          "is_internal": {
+            "type": "boolean",
+            "description": "Whether the tickets associated with this ticket type are intended for internal use only or will be shared with customers. This is currently a limited attribute."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the ticket type."
+          },
+          "ticket_type_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket type which is given by Intercom."
+          }
+        },
+        "required": [
+          "ticket_type_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/ticket_types/{ticket_type_id}",
+        "body_mapping": {
+          "archived": "archived",
+          "category": "category",
+          "description": "description",
+          "icon": "icon",
+          "is_internal": "is_internal",
+          "name": "name"
+        }
+      }
+    },
+    "update_ticket_type_attribute": {
+      "display_name": "Update an existing attribute for a ticket type",
+      "description": "You can update an existing attribute for a ticket type.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "allow_multiple_values": {
+            "type": "boolean",
+            "description": "Whether the attribute allows multiple files to be attached to it (only applicable to file attributes)"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Whether the attribute should be archived and not shown during creation of the ticket (it will still be present on previously created tickets)"
+          },
+          "attribute_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket type attribute which is given by Intercom."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the attribute presented to the teammate or contact"
+          },
+          "list_items": {
+            "type": "string",
+            "description": "A comma delimited list of items for the attribute value (only applicable to list attributes)"
+          },
+          "multiline": {
+            "type": "boolean",
+            "description": "Whether the attribute allows multiple lines of text (only applicable to string attributes)"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the ticket type attribute"
+          },
+          "required_to_create": {
+            "type": "boolean",
+            "description": "Whether the attribute is required to be filled in when teammates are creating the ticket in Inbox."
+          },
+          "required_to_create_for_contacts": {
+            "type": "boolean",
+            "description": "Whether the attribute is required to be filled in when contacts are creating the ticket in Messenger."
+          },
+          "ticket_type_id": {
+            "type": "string",
+            "description": "The unique identifier for the ticket type which is given by Intercom."
+          },
+          "visible_on_create": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible to teammates when creating a ticket in Inbox."
+          },
+          "visible_to_contacts": {
+            "type": "boolean",
+            "description": "Whether the attribute is visible to contacts when creating a ticket in Messenger."
+          }
+        },
+        "required": [
+          "ticket_type_id",
+          "attribute_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/ticket_types/{ticket_type_id}/attributes/{attribute_id}",
+        "body_mapping": {
+          "allow_multiple_values": "allow_multiple_values",
+          "archived": "archived",
+          "description": "description",
+          "list_items": "list_items",
+          "multiline": "multiline",
+          "name": "name",
+          "required_to_create": "required_to_create",
+          "required_to_create_for_contacts": "required_to_create_for_contacts",
+          "visible_on_create": "visible_on_create",
+          "visible_to_contacts": "visible_to_contacts"
+        }
+      }
+    },
+    "update_visitor": {
+      "display_name": "Update a visitor",
+      "description": "Sending a PUT request to `/visitors` will result in an update of an existing Visitor. **Option 1.** You can update a visitor by passing in the `user_id` of the visitor in the Request body. **Option...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Intercom-Version": {
+            "type": "string"
+          },
+          "custom_attributes": {
+            "type": "object",
+            "description": "The custom attributes which are set for the visitor."
+          },
+          "id": {
+            "type": "string",
+            "description": "A unique identified for the visitor which is given by Intercom."
+          },
+          "name": {
+            "type": "string",
+            "description": "The visitor's name."
+          },
+          "user_id": {
+            "type": "string",
+            "description": "A unique identified for the visitor which is given by you."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/visitors",
+        "body_mapping": {
+          "custom_attributes": "custom_attributes",
+          "id": "id",
+          "name": "name",
+          "user_id": "user_id"
+        }
+      }
+    }
+  }
+}

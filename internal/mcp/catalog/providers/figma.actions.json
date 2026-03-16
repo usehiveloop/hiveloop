@@ -1,0 +1,1509 @@
+{
+  "display_name": "Figma",
+  "resources": {},
+  "actions": {
+    "delete_comment": {
+      "display_name": "Delete a comment",
+      "description": "Deletes a specific comment. Only the person who made the comment is allowed to delete it.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "Comment id of comment to delete"
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to delete comment from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v1/files/{file_key}/comments/{comment_id}"
+      }
+    },
+    "delete_comment_reaction": {
+      "display_name": "Delete a reaction",
+      "description": "Deletes a specific comment reaction. Only the person who made the reaction is allowed to delete it.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "ID of comment to delete reaction from."
+          },
+          "emoji": {
+            "type": "string"
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to delete comment reaction from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v1/files/{file_key}/comments/{comment_id}/reactions",
+        "query_mapping": {
+          "emoji": "emoji"
+        }
+      }
+    },
+    "delete_dev_resource": {
+      "display_name": "Delete dev resource",
+      "description": "Delete a dev resource from a file",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "dev_resource_id": {
+            "type": "string",
+            "description": "The id of the dev resource to delete."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "The file to delete the dev resource from. This must be a main file key, not a branch key."
+          }
+        },
+        "required": [
+          "file_key",
+          "dev_resource_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v1/files/{file_key}/dev_resources/{dev_resource_id}"
+      }
+    },
+    "delete_webhook": {
+      "display_name": "Delete a webhook",
+      "description": "Deletes the specified webhook. This operation cannot be reversed.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string",
+            "description": "ID of webhook to delete"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v2/webhooks/{webhook_id}"
+      }
+    },
+    "get_activity_logs": {
+      "display_name": "Get activity logs",
+      "description": "Returns a list of activity log events",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "end_time": {
+            "type": "number",
+            "description": "Unix timestamp of the most recent event to include. This param defaults to the current timestamp if unspecified."
+          },
+          "events": {
+            "type": "string",
+            "description": "Event type(s) to include in the response. Can have multiple values separated by comma. All events are returned by default."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of events to return. This param defaults to 1000 if unspecified."
+          },
+          "order": {
+            "type": "string",
+            "description": "Event order by timestamp. This param can be either \"asc\" (default) or \"desc\"."
+          },
+          "start_time": {
+            "type": "number",
+            "description": "Unix timestamp of the least recent event to include. This param defaults to one year ago if unspecified."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/activity_logs",
+        "query_mapping": {
+          "end_time": "end_time",
+          "events": "events",
+          "limit": "limit",
+          "order": "order",
+          "start_time": "start_time"
+        }
+      }
+    },
+    "get_comment_reactions": {
+      "display_name": "Get reactions for a comment",
+      "description": "Gets a paginated list of reactions left on the comment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "ID of comment to get reactions from."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination, retrieved from the response of the previous call."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to get comment containing reactions from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/comments/{comment_id}/reactions",
+        "query_mapping": {
+          "cursor": "cursor"
+        }
+      }
+    },
+    "get_comments": {
+      "display_name": "Get comments in a file",
+      "description": "Gets a list of comments left on the file.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "as_md": {
+            "type": "boolean",
+            "description": "If enabled, will return comments as their markdown equivalents when applicable."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to get comments from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/comments",
+        "query_mapping": {
+          "as_md": "as_md"
+        }
+      }
+    },
+    "get_component": {
+      "display_name": "Get component",
+      "description": "Get metadata on a component by key.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The unique identifier of the component."
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/components/{key}"
+      }
+    },
+    "get_component_set": {
+      "display_name": "Get component set",
+      "description": "Get metadata on a published component set by key.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The unique identifier of the component set."
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/component_sets/{key}"
+      }
+    },
+    "get_dev_resources": {
+      "display_name": "Get dev resources",
+      "description": "Get dev resources in a file",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "The file to get the dev resources from. This must be a main file key, not a branch key."
+          },
+          "node_ids": {
+            "type": "string",
+            "description": "Comma separated list of nodes that you care about in the document. If specified, only dev resources attached to these nodes will be returned. If not specified, all dev resources in the file will be..."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/dev_resources",
+        "query_mapping": {
+          "node_ids": "node_ids"
+        }
+      }
+    },
+    "get_file": {
+      "display_name": "Get file JSON",
+      "description": "Returns the document identified by `file_key` as a JSON object. The file key can be parsed from any Figma file url: `https://www.figma.com/file/{file_key}/{title}`. The `document` property contains...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "branch_data": {
+            "type": "boolean",
+            "description": "Returns branch metadata for the requested file. If the file is a branch, the main file's key will be included in the returned response. If the file has branches, their metadata will be included in ..."
+          },
+          "depth": {
+            "type": "number",
+            "description": "Positive integer representing how deep into the document tree to traverse. For example, setting this to 1 returns only Pages, setting it to 2 returns Pages and all top level objects on each page. N..."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to export JSON from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "geometry": {
+            "type": "string",
+            "description": "Set to \"paths\" to export vector data."
+          },
+          "ids": {
+            "type": "string",
+            "description": "Comma separated list of nodes that you care about in the document. If specified, only a subset of the document will be returned corresponding to the nodes listed, their children, and everything bet..."
+          },
+          "plugin_data": {
+            "type": "string",
+            "description": "A comma separated list of plugin IDs and/or the string \"shared\". Any data present in the document written by those plugins will be included in the result in the `pluginData` and `sharedPluginData` ..."
+          },
+          "version": {
+            "type": "string",
+            "description": "A specific version ID to get. Omitting this will get the current version of the file."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}",
+        "query_mapping": {
+          "branch_data": "branch_data",
+          "depth": "depth",
+          "geometry": "geometry",
+          "ids": "ids",
+          "plugin_data": "plugin_data",
+          "version": "version"
+        }
+      }
+    },
+    "get_file_component_sets": {
+      "display_name": "Get file component sets",
+      "description": "Get a list of published component sets within a file library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to list component sets from. This must be a main file key, not a branch key, as it is not possible to publish from branches."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/component_sets"
+      }
+    },
+    "get_file_components": {
+      "display_name": "Get file components",
+      "description": "Get a list of published components within a file library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to list components from. This must be a main file key, not a branch key, as it is not possible to publish from branches."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/components"
+      }
+    },
+    "get_file_meta": {
+      "display_name": "Get file metadata",
+      "description": "Get file metadata",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to get metadata for. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/meta"
+      }
+    },
+    "get_file_nodes": {
+      "display_name": "Get file JSON for specific nodes",
+      "description": "Returns the nodes referenced to by `ids` as a JSON object. The nodes are retrieved from the Figma file referenced to by `file_key`. The node ID and file key can be parsed from any Figma node url: `...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "depth": {
+            "type": "number",
+            "description": "Positive integer representing how deep into the node tree to traverse. For example, setting this to 1 will return only the children directly underneath the desired nodes. Not setting this parameter..."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to export JSON from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "geometry": {
+            "type": "string",
+            "description": "Set to \"paths\" to export vector data."
+          },
+          "ids": {
+            "type": "string",
+            "description": "A comma separated list of node IDs to retrieve and convert."
+          },
+          "plugin_data": {
+            "type": "string",
+            "description": "A comma separated list of plugin IDs and/or the string \"shared\". Any data present in the document written by those plugins will be included in the result in the `pluginData` and `sharedPluginData` ..."
+          },
+          "version": {
+            "type": "string",
+            "description": "A specific version ID to get. Omitting this will get the current version of the file."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/nodes",
+        "query_mapping": {
+          "depth": "depth",
+          "geometry": "geometry",
+          "ids": "ids",
+          "plugin_data": "plugin_data",
+          "version": "version"
+        }
+      }
+    },
+    "get_file_styles": {
+      "display_name": "Get file styles",
+      "description": "Get a list of published styles within a file library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to list styles from. This must be a main file key, not a branch key, as it is not possible to publish from branches."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/styles"
+      }
+    },
+    "get_file_versions": {
+      "display_name": "Get versions of a file",
+      "description": "This endpoint fetches the version history of a file, allowing you to see the progression of a file over time. You can then use this information to render a specific version of the file, via another...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "number",
+            "description": "A version ID for one of the versions in the history. Gets versions after this ID. Used for paginating. If the response is not paginated, this property is not included."
+          },
+          "before": {
+            "type": "number",
+            "description": "A version ID for one of the versions in the history. Gets versions before this ID. Used for paginating. If the response is not paginated, this link returns the same data in the current response."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to get version history from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "page_size": {
+            "type": "number",
+            "description": "The number of items returned in a page of the response. If not included, `page_size` is `30`."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/versions",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "get_image_fills": {
+      "display_name": "Get image fills",
+      "description": "Returns download links for all images present in image fills in a document. Image fills are how Figma represents any user supplied images. When you drag an image into Figma, we create a rectangle w...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to get image URLs from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/images"
+      }
+    },
+    "get_images": {
+      "display_name": "Render images of file nodes",
+      "description": "Renders images from a file. If no error occurs, `\"images\"` will be populated with a map from node IDs to URLs of the rendered images, and `\"status\"` will be omitted. The image assets will expire af...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "contents_only": {
+            "type": "boolean",
+            "description": "Whether content that overlaps the node should be excluded from rendering. Passing false (i.e., rendering overlaps) may increase processing time, since more of the document must be included in rende..."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to export images from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "format": {
+            "type": "string",
+            "description": "A string enum for the image output format."
+          },
+          "ids": {
+            "type": "string",
+            "description": "A comma separated list of node IDs to render."
+          },
+          "scale": {
+            "type": "number",
+            "description": "A number between 0.01 and 4, the image scaling factor."
+          },
+          "svg_include_id": {
+            "type": "boolean",
+            "description": "Whether to include id attributes for all SVG elements. Adds the layer name to the `id` attribute of an svg element."
+          },
+          "svg_include_node_id": {
+            "type": "boolean",
+            "description": "Whether to include node id attributes for all SVG elements. Adds the node id to a `data-node-id` attribute of an svg element."
+          },
+          "svg_outline_text": {
+            "type": "boolean",
+            "description": "Whether text elements are rendered as outlines (vector paths) or as `\u003ctext\u003e` elements in SVGs.\n\nRendering text elements as outlines guarantees that the text looks exactly the same in the SVG as it ..."
+          },
+          "svg_simplify_stroke": {
+            "type": "boolean",
+            "description": "Whether to simplify inside/outside strokes and use stroke attribute if possible instead of `\u003cmask\u003e`."
+          },
+          "use_absolute_bounds": {
+            "type": "boolean",
+            "description": "Use the full dimensions of the node regardless of whether or not it is cropped or the space around it is empty. Use this to export text nodes without cropping."
+          },
+          "version": {
+            "type": "string",
+            "description": "A specific version ID to get. Omitting this will get the current version of the file."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/images/{file_key}",
+        "query_mapping": {
+          "contents_only": "contents_only",
+          "format": "format",
+          "ids": "ids",
+          "scale": "scale",
+          "svg_include_id": "svg_include_id",
+          "svg_include_node_id": "svg_include_node_id",
+          "svg_outline_text": "svg_outline_text",
+          "svg_simplify_stroke": "svg_simplify_stroke",
+          "use_absolute_bounds": "use_absolute_bounds",
+          "version": "version"
+        }
+      }
+    },
+    "get_library_analytics_component_actions": {
+      "display_name": "Get library analytics component action data.",
+      "description": "Returns a list of library analytics component actions data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "end_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the latest week to include. Dates are rounded forward to the nearest end of a week. Defaults to the latest computed week."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the earliest week to include. Dates are rounded back to the nearest start of a week. Defaults to one year prior."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/component/actions",
+        "query_mapping": {
+          "cursor": "cursor",
+          "end_date": "end_date",
+          "group_by": "group_by",
+          "start_date": "start_date"
+        }
+      }
+    },
+    "get_library_analytics_component_usages": {
+      "display_name": "Get library analytics component usage data.",
+      "description": "Returns a list of library analytics component usage data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/component/usages",
+        "query_mapping": {
+          "cursor": "cursor",
+          "group_by": "group_by"
+        }
+      }
+    },
+    "get_library_analytics_style_actions": {
+      "display_name": "Get library analytics style action data.",
+      "description": "Returns a list of library analytics style actions data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "end_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the latest week to include. Dates are rounded forward to the nearest end of a week. Defaults to the latest computed week."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the earliest week to include. Dates are rounded back to the nearest start of a week. Defaults to one year prior."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/style/actions",
+        "query_mapping": {
+          "cursor": "cursor",
+          "end_date": "end_date",
+          "group_by": "group_by",
+          "start_date": "start_date"
+        }
+      }
+    },
+    "get_library_analytics_style_usages": {
+      "display_name": "Get library analytics style usage data.",
+      "description": "Returns a list of library analytics style usage data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/style/usages",
+        "query_mapping": {
+          "cursor": "cursor",
+          "group_by": "group_by"
+        }
+      }
+    },
+    "get_library_analytics_variable_actions": {
+      "display_name": "Get library analytics variable action data.",
+      "description": "Returns a list of library analytics variable actions data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "end_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the latest week to include. Dates are rounded forward to the nearest end of a week. Defaults to the latest computed week."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "ISO 8601 date string (YYYY-MM-DD) of the earliest week to include. Dates are rounded back to the nearest start of a week. Defaults to one year prior."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/variable/actions",
+        "query_mapping": {
+          "cursor": "cursor",
+          "end_date": "end_date",
+          "group_by": "group_by",
+          "start_date": "start_date"
+        }
+      }
+    },
+    "get_library_analytics_variable_usages": {
+      "display_name": "Get library analytics variable usage data.",
+      "description": "Returns a list of library analytics variable usage data broken down by the requested dimension.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor indicating what page of data to fetch. Obtained from prior API call."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File key of the library to fetch analytics data for."
+          },
+          "group_by": {
+            "type": "string",
+            "description": "A dimension to group returned analytics data by."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/analytics/libraries/{file_key}/variable/usages",
+        "query_mapping": {
+          "cursor": "cursor",
+          "group_by": "group_by"
+        }
+      }
+    },
+    "get_local_variables": {
+      "display_name": "Get local variables",
+      "description": "**This API is available to full members of Enterprise orgs.** The `GET /v1/files/:file_key/variables/local` endpoint lets you enumerate local variables created in the file and remote variables used...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to get variables from. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/variables/local"
+      }
+    },
+    "get_me": {
+      "display_name": "Get current user",
+      "description": "Returns the user information for the currently authenticated user.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/me"
+      }
+    },
+    "get_payments": {
+      "display_name": "Get payments",
+      "description": "There are two methods to query for a user's payment information on a plugin, widget, or Community file. The first method, using plugin payment tokens, is typically used when making queries from a p...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "community_file_id": {
+            "type": "string",
+            "description": "The ID of the Community file to query a user's payment information on. You can get the Community file ID from the file's Community page (look for the number after \"file/\" in the URL). Provide exact..."
+          },
+          "plugin_id": {
+            "type": "string",
+            "description": "The ID of the plugin to query a user's payment information on. You can get the plugin ID from the plugin's manifest, or from the plugin's Community page (look for the number after \"plugin/\" in the ..."
+          },
+          "plugin_payment_token": {
+            "type": "string",
+            "description": "Short-lived token returned from \"getPluginPaymentTokenAsync\" in the plugin payments API and used to authenticate to this endpoint. Read more about generating this token through \"Calling the Payment..."
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user to query payment information about. You can get the user ID by having the user OAuth2 to the Figma REST API."
+          },
+          "widget_id": {
+            "type": "string",
+            "description": "The ID of the widget to query a user's payment information on. You can get the widget ID from the widget's manifest, or from the widget's Community page (look for the number after \"widget/\" in the ..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/payments",
+        "query_mapping": {
+          "community_file_id": "community_file_id",
+          "plugin_id": "plugin_id",
+          "plugin_payment_token": "plugin_payment_token",
+          "user_id": "user_id",
+          "widget_id": "widget_id"
+        }
+      }
+    },
+    "get_project_files": {
+      "display_name": "Get files in a project",
+      "description": "Get a list of all the Files within the specified project.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "branch_data": {
+            "type": "boolean",
+            "description": "Returns branch metadata in the response for each main file with a branch inside the project."
+          },
+          "project_id": {
+            "type": "string",
+            "description": "ID of the project to list files from"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/projects/{project_id}/files",
+        "query_mapping": {
+          "branch_data": "branch_data"
+        }
+      }
+    },
+    "get_published_variables": {
+      "display_name": "Get published variables",
+      "description": "**This API is available to full members of Enterprise orgs.** The `GET /v1/files/:file_key/variables/published` endpoint returns the variables that are published from the given file. The response f...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to get variables from. This must be a main file key, not a branch key, as it is not possible to publish from branches."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/files/{file_key}/variables/published"
+      }
+    },
+    "get_style": {
+      "display_name": "Get style",
+      "description": "Get metadata on a style by key.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The unique identifier of the style."
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/styles/{key}"
+      }
+    },
+    "get_team_component_sets": {
+      "display_name": "Get team component sets",
+      "description": "Get a paginated list of published component sets within a team library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "number",
+            "description": "Cursor indicating which id after which to start retrieving component sets for. Exclusive with before. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "before": {
+            "type": "number",
+            "description": "Cursor indicating which id before which to start retrieving component sets for. Exclusive with after. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Number of items to return in a paged list of results. Defaults to 30."
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Id of the team to list component sets from."
+          }
+        },
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/teams/{team_id}/component_sets",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "get_team_components": {
+      "display_name": "Get team components",
+      "description": "Get a paginated list of published components within a team library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "number",
+            "description": "Cursor indicating which id after which to start retrieving components for. Exclusive with before. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "before": {
+            "type": "number",
+            "description": "Cursor indicating which id before which to start retrieving components for. Exclusive with after. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Number of items to return in a paged list of results. Defaults to 30. Maximum of 1000."
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Id of the team to list components from."
+          }
+        },
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/teams/{team_id}/components",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "get_team_projects": {
+      "display_name": "Get projects in a team",
+      "description": "You can use this endpoint to get a list of all the Projects within the specified team. This will only return projects visible to the authenticated user or owner of the developer token. Note: it is ...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "team_id": {
+            "type": "string",
+            "description": "ID of the team to list projects from"
+          }
+        },
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/teams/{team_id}/projects"
+      }
+    },
+    "get_team_styles": {
+      "display_name": "Get team styles",
+      "description": "Get a paginated list of published styles within a team library.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "number",
+            "description": "Cursor indicating which id after which to start retrieving styles for. Exclusive with before. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "before": {
+            "type": "number",
+            "description": "Cursor indicating which id before which to start retrieving styles for. Exclusive with after. The cursor value is an internally tracked integer that doesn't correspond to any Ids."
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Number of items to return in a paged list of results. Defaults to 30."
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Id of the team to list styles from."
+          }
+        },
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/teams/{team_id}/styles",
+        "query_mapping": {
+          "after": "after",
+          "before": "before",
+          "page_size": "page_size"
+        }
+      }
+    },
+    "get_webhook": {
+      "display_name": "Get a webhook",
+      "description": "Get a webhook by ID.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string",
+            "description": "ID of webhook to get"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webhooks/{webhook_id}"
+      }
+    },
+    "get_webhook_requests": {
+      "display_name": "Get webhook requests",
+      "description": "Returns all webhook requests sent within the last week. Useful for debugging.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "webhook_id": {
+            "type": "string",
+            "description": "The id of the webhook subscription you want to see events from"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webhooks/{webhook_id}/requests"
+      }
+    },
+    "get_webhooks": {
+      "display_name": "Get webhooks by context or plan",
+      "description": "Returns a list of webhooks corresponding to the context or plan provided, if they exist. For plan, the webhooks for all contexts that you have access to will be returned, and theresponse is paginated",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Context to create the resource on. Should be \"team\", \"project\", or \"file\"."
+          },
+          "context_id": {
+            "type": "string",
+            "description": "The id of the context that you want to get attached webhooks for. If you're using context_id, you cannot use plan_api_id."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "If you're using plan_api_id, this is the cursor to use for pagination. If you're using context or context_id, this parameter is ignored. Provide the next_page or prev_page value from the previous r..."
+          },
+          "plan_api_id": {
+            "type": "string",
+            "description": "The id of your plan. Use this to get all webhooks for all contexts you have access to. If you're using plan_api_id, you cannot use context or context_id. When you use plan_api_id, the response is p..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v2/webhooks",
+        "query_mapping": {
+          "context": "context",
+          "context_id": "context_id",
+          "cursor": "cursor",
+          "plan_api_id": "plan_api_id"
+        }
+      }
+    },
+    "post_comment": {
+      "display_name": "Add a comment to a file",
+      "description": "Posts a new comment on the file.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "client_meta": {
+            "type": "string",
+            "description": "The position where to place the comment."
+          },
+          "comment_id": {
+            "type": "string",
+            "description": "The ID of the comment to reply to, if any. This must be a root comment. You cannot reply to other replies (a comment that has a parent_id)."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to add comments in. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "message": {
+            "type": "string",
+            "description": "The text contents of the comment to post."
+          }
+        },
+        "required": [
+          "file_key",
+          "message"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v1/files/{file_key}/comments",
+        "body_mapping": {
+          "client_meta": "client_meta",
+          "comment_id": "comment_id",
+          "message": "message"
+        }
+      }
+    },
+    "post_comment_reaction": {
+      "display_name": "Add a reaction to a comment",
+      "description": "Posts a new comment reaction on a file comment.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "ID of comment to react to."
+          },
+          "emoji": {
+            "type": "string",
+            "description": "The emoji type of reaction as shortcode (e.g. `:heart:`, `:+1::skin-tone-2:`). The list of accepted emoji shortcodes can be found in [this file](https://raw.githubusercontent.com/missive/emoji-mart..."
+          },
+          "file_key": {
+            "type": "string",
+            "description": "File to post comment reactions to. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          }
+        },
+        "required": [
+          "file_key",
+          "comment_id",
+          "emoji"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v1/files/{file_key}/comments/{comment_id}/reactions",
+        "body_mapping": {
+          "emoji": "emoji"
+        }
+      }
+    },
+    "post_dev_resources": {
+      "display_name": "Create dev resources",
+      "description": "Bulk create dev resources across multiple files. Dev resources that are successfully created will show up in the links_created array in the response. If there are any dev resources that cannot be c...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "dev_resources": {
+            "type": "array",
+            "description": "An array of dev resources."
+          }
+        },
+        "required": [
+          "dev_resources"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v1/dev_resources",
+        "body_mapping": {
+          "dev_resources": "dev_resources"
+        }
+      }
+    },
+    "post_variables": {
+      "display_name": "Create/modify/delete variables",
+      "description": "**This API is available to full members of Enterprise orgs with Editor seats.** The `POST /v1/files/:file_key/variables` endpoint lets you bulk create, update, and delete variables and variable col...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "file_key": {
+            "type": "string",
+            "description": "File to modify variables in. This can be a file key or branch key. Use `GET /v1/files/:key` with the `branch_data` query param to get the branch key."
+          },
+          "variableCollections": {
+            "type": "array",
+            "description": "For creating, updating, and deleting variable collections."
+          },
+          "variableModeValues": {
+            "type": "array",
+            "description": "For setting a specific value, given a variable and a mode."
+          },
+          "variableModes": {
+            "type": "array",
+            "description": "For creating, updating, and deleting modes within variable collections."
+          },
+          "variables": {
+            "type": "array",
+            "description": "For creating, updating, and deleting variables."
+          }
+        },
+        "required": [
+          "file_key"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v1/files/{file_key}/variables",
+        "body_mapping": {
+          "variableCollections": "variableCollections",
+          "variableModeValues": "variableModeValues",
+          "variableModes": "variableModes",
+          "variables": "variables"
+        }
+      }
+    },
+    "post_webhook": {
+      "display_name": "Create a webhook",
+      "description": "Create a new webhook which will call the specified endpoint when the event triggers. By default, this webhook will automatically send a PING event to the endpoint when it is created. If this behavi...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Context to create the webhook for. Must be \"team\", \"project\", or \"file\"."
+          },
+          "context_id": {
+            "type": "string",
+            "description": "The id of the context you want to receive updates about."
+          },
+          "description": {
+            "type": "string",
+            "description": "User provided description or name for the webhook. Max length 150 characters."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "The HTTP endpoint that will receive a POST request when the event triggers. Max length 2048 characters."
+          },
+          "event_type": {
+            "type": "string",
+            "description": "An enum representing the possible events that a webhook can subscribe to"
+          },
+          "passcode": {
+            "type": "string",
+            "description": "String that will be passed back to your webhook endpoint to verify that it is being called by Figma. Max length 100 characters."
+          },
+          "status": {
+            "type": "string",
+            "description": "An enum representing the possible statuses you can set a webhook to:\n- `ACTIVE`: The webhook is healthy and receive all events\n- `PAUSED`: The webhook is paused and will not receive any events"
+          },
+          "team_id": {
+            "type": "string",
+            "description": "Team id to receive updates about. This is deprecated, use 'context' and 'context_id' instead."
+          }
+        },
+        "required": [
+          "event_type",
+          "endpoint",
+          "passcode",
+          "context",
+          "context_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v2/webhooks",
+        "body_mapping": {
+          "context": "context",
+          "context_id": "context_id",
+          "description": "description",
+          "endpoint": "endpoint",
+          "event_type": "event_type",
+          "passcode": "passcode",
+          "status": "status",
+          "team_id": "team_id"
+        }
+      }
+    },
+    "put_dev_resources": {
+      "display_name": "Update dev resources",
+      "description": "Bulk update dev resources across multiple files. Ids for dev resources that are successfully updated will show up in the `links_updated` array in the response. If there are any dev resources that c...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "dev_resources": {
+            "type": "array",
+            "description": "An array of dev resources."
+          }
+        },
+        "required": [
+          "dev_resources"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v1/dev_resources",
+        "body_mapping": {
+          "dev_resources": "dev_resources"
+        }
+      }
+    },
+    "put_webhook": {
+      "display_name": "Update a webhook",
+      "description": "Update a webhook by ID.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "User provided description or name for the webhook. Max length 150 characters."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "The HTTP endpoint that will receive a POST request when the event triggers. Max length 2048 characters."
+          },
+          "event_type": {
+            "type": "string",
+            "description": "An enum representing the possible events that a webhook can subscribe to"
+          },
+          "passcode": {
+            "type": "string",
+            "description": "String that will be passed back to your webhook endpoint to verify that it is being called by Figma. Max length 100 characters."
+          },
+          "status": {
+            "type": "string",
+            "description": "An enum representing the possible statuses you can set a webhook to:\n- `ACTIVE`: The webhook is healthy and receive all events\n- `PAUSED`: The webhook is paused and will not receive any events"
+          },
+          "webhook_id": {
+            "type": "string",
+            "description": "ID of webhook to update"
+          }
+        },
+        "required": [
+          "webhook_id",
+          "event_type",
+          "endpoint",
+          "passcode"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v2/webhooks/{webhook_id}",
+        "body_mapping": {
+          "description": "description",
+          "endpoint": "endpoint",
+          "event_type": "event_type",
+          "passcode": "passcode",
+          "status": "status"
+        }
+      }
+    }
+  }
+}
