@@ -283,6 +283,17 @@ describe('LLMVaultConnect', () => {
       expect(onIntegrationSuccess).toHaveBeenCalledWith(payload)
     })
 
+    it('calls onResourceSelection callback with correct payload', () => {
+      const onResourceSelection = vi.fn()
+      connect.open({ sessionToken: 'tok_test', onResourceSelection })
+
+      const payload = { integrationId: 'int_789', provider: 'slack', resources: { channels: ['C001', 'C002'] } }
+      dispatchMessage({ type: 'resource_selection', payload })
+
+      expect(onResourceSelection).toHaveBeenCalledOnce()
+      expect(onResourceSelection).toHaveBeenCalledWith(payload)
+    })
+
     it('calls onError callback with correct payload', () => {
       const onError = vi.fn()
       connect.open({ sessionToken: 'tok_test', onError })
@@ -317,10 +328,13 @@ describe('LLMVaultConnect', () => {
       dispatchMessage({ type: 'integration_success', payload: { integrationId: 'i', provider: 'pr' } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'integration_success', payload: { integrationId: 'i', provider: 'pr' } })
 
+      dispatchMessage({ type: 'resource_selection', payload: { integrationId: 'i', provider: 'pr', resources: { repos: ['r1'] } } })
+      expect(onEvent).toHaveBeenCalledWith({ type: 'resource_selection', payload: { integrationId: 'i', provider: 'pr', resources: { repos: ['r1'] } } })
+
       dispatchMessage({ type: 'error', payload: { code: 'unknown_error', message: 'err' } })
       expect(onEvent).toHaveBeenCalledWith({ type: 'error', payload: { code: 'unknown_error', message: 'err' } })
 
-      expect(onEvent).toHaveBeenCalledTimes(3)
+      expect(onEvent).toHaveBeenCalledTimes(4)
     })
 
     it('does not call onEvent for unrecognized event types', () => {

@@ -95,11 +95,23 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ttl = parsed
 	}
 
-	// Validate allowed_providers against registry
-	for _, pid := range req.AllowedProviders {
-		if _, ok := h.reg.GetProvider(pid); !ok {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider: " + pid})
+	if len(req.AllowedProviders) > 0 {
+		var integrations []model.Integration
+		if err := h.db.Where("org_id = ? AND deleted_at IS NULL", org.ID).Select("unique_key").Find(&integrations).Error; err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to check integrations"})
 			return
+		}
+		integKeys := make(map[string]bool, len(integrations))
+		for _, integ := range integrations {
+			integKeys[integ.UniqueKey] = true
+		}
+
+		for _, pid := range req.AllowedProviders {
+			_, inRegistry := h.reg.GetProvider(pid)
+			if !inRegistry && !integKeys[pid] {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider: " + pid})
+				return
+			}
 		}
 	}
 

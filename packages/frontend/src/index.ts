@@ -7,6 +7,7 @@ export type {
   ConnectEvent,
   SuccessPayload,
   IntegrationSuccessPayload,
+  ResourceSelectionPayload,
   ErrorPayload,
   LLMVaultConnectConfig,
   ConnectOpenOptions,

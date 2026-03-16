@@ -5,6 +5,7 @@ import type { Action } from '../hooks/useWidget'
 import { useAvailableResources } from '../hooks/useAvailableResources'
 import { useIntegrationProviders } from '../hooks/useIntegrationProviders'
 import { useUpdateConnectionResources } from '../hooks/useUpdateConnectionResources'
+import { useParentEvents } from '../hooks/useParentEvents'
 import { IntegrationResourceSelectionLogo } from './IntegrationResourceSelectionLogo'
 import { FadeView } from './AnimatedView'
 import { Error as ErrorScreen } from './Error'
@@ -31,6 +32,7 @@ export function IntegrationResourceSelection({
   onBack,
   onClose,
 }: Props) {
+  const { sendToParent } = useParentEvents()
   const resourceTypes = integration.resources ?? []
 
   const { data: integrations } = useIntegrationProviders()
@@ -63,7 +65,17 @@ export function IntegrationResourceSelection({
   )
 
   const updateMutation = useUpdateConnectionResources(connectionId, integration.id ?? '', {
-    onSuccess: () => navigate({ type: 'RESOURCE_SELECTION_COMPLETE' }),
+    onSuccess: () => {
+      sendToParent({
+        type: 'resource_selection',
+        payload: {
+          integrationId: integration.id ?? '',
+          provider: integration.provider ?? '',
+          resources: selectedResources,
+        },
+      })
+      navigate({ type: 'RESOURCE_SELECTION_COMPLETE' })
+    },
     onError: () => {},
   })
 
