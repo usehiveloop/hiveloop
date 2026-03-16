@@ -14,7 +14,7 @@ export const mockSession = {
   id: 'sess-001',
   identity_id: 'ident-001',
   external_id: 'user-ext-1',
-  allowed_providers: [],
+  allowed_integrations: [],
   permissions: [],
   expires_at: new Date(Date.now() + 3600_000).toISOString(),
 }

@@ -97,13 +97,13 @@ type createConnectionRequest struct {
 }
 
 type sessionInfoResponse struct {
-	ID               string   `json:"id"`
-	IdentityID       *string  `json:"identity_id,omitempty"`
-	ExternalID       string   `json:"external_id,omitempty"`
-	AllowedProviders []string `json:"allowed_providers,omitempty"`
-	Permissions      []string `json:"permissions,omitempty"`
-	ActivatedAt      *string  `json:"activated_at,omitempty"`
-	ExpiresAt        string   `json:"expires_at"`
+	ID                  string   `json:"id"`
+	IdentityID          *string  `json:"identity_id,omitempty"`
+	ExternalID          string   `json:"external_id,omitempty"`
+	AllowedIntegrations []string `json:"allowed_integrations,omitempty"`
+	Permissions         []string `json:"permissions,omitempty"`
+	ActivatedAt         *string  `json:"activated_at,omitempty"`
+	ExpiresAt           string   `json:"expires_at"`
 }
 
 // SessionInfo handles GET /v1/widget/session.
@@ -125,7 +125,7 @@ func (h *ConnectAPIHandler) SessionInfo(w http.ResponseWriter, r *http.Request) 
 	resp := sessionInfoResponse{
 		ID:               sess.ID.String(),
 		ExternalID:       sess.ExternalID,
-		AllowedProviders: sess.AllowedProviders,
+		AllowedIntegrations: sess.AllowedIntegrations,
 		Permissions:      sess.Permissions,
 		ExpiresAt:        sess.ExpiresAt.Format(time.RFC3339),
 	}
@@ -143,7 +143,7 @@ func (h *ConnectAPIHandler) SessionInfo(w http.ResponseWriter, r *http.Request) 
 
 // ListProviders handles GET /v1/widget/providers.
 // @Summary List providers for widget
-// @Description Returns providers available to the current session, filtered by allowed_providers.
+// @Description Returns all LLM providers available in the registry.
 // @Tags widget
 // @Produce json
 // @Success 200 {array} providerSummary
@@ -151,24 +151,10 @@ func (h *ConnectAPIHandler) SessionInfo(w http.ResponseWriter, r *http.Request) 
 // @Security BearerAuth
 // @Router /v1/widget/providers [get]
 func (h *ConnectAPIHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
-	sess, ok := middleware.ConnectSessionFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing session"})
-		return
-	}
-
 	allProviders := h.reg.AllProviders()
-
-	allowedSet := make(map[string]bool, len(sess.AllowedProviders))
-	for _, p := range sess.AllowedProviders {
-		allowedSet[p] = true
-	}
 
 	var result []providerSummary
 	for _, p := range allProviders {
-		if len(allowedSet) > 0 && !allowedSet[p.ID] {
-			continue
-		}
 		result = append(result, providerSummary{
 			ID:         p.ID,
 			Name:       p.Name,
@@ -307,20 +293,6 @@ func (h *ConnectAPIHandler) CreateConnection(w http.ResponseWriter, r *http.Requ
 	if !providerOK {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown provider: " + req.ProviderID})
 		return
-	}
-
-	if len(sess.AllowedProviders) > 0 {
-		allowed := false
-		for _, p := range sess.AllowedProviders {
-			if p == req.ProviderID {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			writeJSON(w, http.StatusForbidden, map[string]string{"error": "provider not allowed for this session"})
-			return
-		}
 	}
 
 	baseURL := provider.API
@@ -567,7 +539,11 @@ func (h *ConnectAPIHandler) ListIntegrations(w http.ResponseWriter, r *http.Requ
 	org, _ := middleware.OrgFromContext(r.Context())
 
 	var integrations []model.Integration
-	if err := h.db.Where("org_id = ? AND deleted_at IS NULL", org.ID).Find(&integrations).Error; err != nil {
+	q := h.db.Where("org_id = ? AND deleted_at IS NULL", org.ID)
+	if len(sess.AllowedIntegrations) > 0 {
+		q = q.Where("unique_key IN ?", []string(sess.AllowedIntegrations))
+	}
+	if err := q.Find(&integrations).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list integrations"})
 		return
 	}

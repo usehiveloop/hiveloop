@@ -19,7 +19,7 @@ type ConnectSession struct {
 	Identity         *Identity      `gorm:"foreignKey:IdentityID;constraint:OnDelete:SET NULL"`
 	ExternalID       string         `gorm:"column:external_id;default:''"`
 	SessionToken     string         `gorm:"not null;uniqueIndex"`
-	AllowedProviders pq.StringArray `gorm:"type:text[]"`
+	AllowedIntegrations pq.StringArray `gorm:"type:text[];column:allowed_integrations"`
 	Permissions      pq.StringArray `gorm:"type:text[]"`
 	AllowedOrigins   pq.StringArray `gorm:"type:text[]"`
 	Metadata         JSON           `gorm:"type:jsonb;default:'{}'"`

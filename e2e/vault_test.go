@@ -138,7 +138,7 @@ func newVaultHarness(t *testing.T) *vaultTestHarness {
 	providerHandler := handler.NewProviderHandler(reg)
 
 	// Connect handlers
-	connectSessionHandler := handler.NewConnectSessionHandler(db, reg)
+	connectSessionHandler := handler.NewConnectSessionHandler(db)
 	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nil, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(db)
 
