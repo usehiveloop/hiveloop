@@ -2,7 +2,7 @@ import { $api, createWidgetApi } from '../api/client'
 import type { components } from '../api/schema'
 import { useConnect } from './useConnect'
 
-export type ProviderSummary = components['schemas']['internal_handler.providerSummary']
+export type ProviderSummary = components['schemas']['providerSummary']
 
 export function useProviders() {
   const { sessionId, preview } = useConnect()
