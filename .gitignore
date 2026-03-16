@@ -14,3 +14,7 @@ strix_runs/
 .agents/
 .claude/
 .env.*
+
+fetchactions-graphql
+fetchactions-oas2
+fetchactions-oas3
