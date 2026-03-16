@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { setOnUnauthorized } from './api/client'
 import { useTheme } from './hooks/useTheme'
+import { useThemeOverrides } from './hooks/useThemeOverrides'
 import { useWidget } from './hooks/useWidget'
 import { useSession } from './hooks/useSession'
 import { useParentMessaging } from './hooks/useParentMessaging'
@@ -36,6 +37,8 @@ function getInitialView(): View {
 }
 
 function App() {
+  useThemeOverrides()
+
   const params = new URLSearchParams(window.location.search)
   const { resolved } = useTheme(
     (params.get('theme') as 'light' | 'dark') || 'system'

@@ -2836,6 +2836,7 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["JSON"];
             provider?: string;
+            unique_key?: string;
             updated_at?: string;
         };
         mintTokenRequest: {

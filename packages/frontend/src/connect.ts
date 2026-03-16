@@ -79,6 +79,9 @@ export class LLMVaultConnect {
         case 'integration_success':
           this.options?.onIntegrationSuccess?.(connectEvent.payload)
           break
+        case 'resource_selection':
+          this.options?.onResourceSelection?.(connectEvent.payload)
+          break
         case 'error':
           this.options?.onError?.(connectEvent.payload)
           break

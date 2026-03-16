@@ -1,6 +1,6 @@
 {
   "name": "@llmvault/frontend",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Frontend SDK for embedding the LLMVault connect widget",
   "type": "module",
   "exports": {

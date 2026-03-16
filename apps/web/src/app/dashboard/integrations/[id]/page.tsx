@@ -515,8 +515,6 @@ export default function IntegrationDetailPage() {
     },
   );
 
-  console.log({integration})
-
   const nameMutation = useMutation({
     mutationFn: (displayName: string) =>
       updateIntegration(id, { display_name: displayName }),
@@ -720,6 +718,7 @@ export default function IntegrationDetailPage() {
                   </div>
                 )}
                 <CopyableRow label="ID" value={integration.id ?? ""} />
+                <CopyableRow label="Unique Key" value={integration.unique_key ?? ""} />
               </div>
             </div>
           </div>

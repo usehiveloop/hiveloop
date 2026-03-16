@@ -17,6 +17,7 @@ export type ConnectErrorCode =
 export type ConnectEvent =
   | { type: 'success'; payload: SuccessPayload }
   | { type: 'integration_success'; payload: IntegrationSuccessPayload }
+  | { type: 'resource_selection'; payload: ResourceSelectionPayload }
   | { type: 'error'; payload: ErrorPayload }
   | { type: 'close' }
 
@@ -28,6 +29,12 @@ export interface SuccessPayload {
 export interface IntegrationSuccessPayload {
   integrationId: string
   provider: string
+}
+
+export interface ResourceSelectionPayload {
+  integrationId: string
+  provider: string
+  resources: Record<string, string[]>
 }
 
 export interface ErrorPayload {
@@ -49,6 +56,7 @@ export interface ConnectOpenOptions {
   preview?: boolean
   onSuccess?: (payload: SuccessPayload) => void
   onIntegrationSuccess?: (payload: IntegrationSuccessPayload) => void
+  onResourceSelection?: (payload: ResourceSelectionPayload) => void
   onError?: (payload: ErrorPayload) => void
   onClose?: () => void
   onEvent?: (event: ConnectEvent) => void
