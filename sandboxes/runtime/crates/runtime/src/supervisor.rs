@@ -251,9 +251,8 @@ impl AgentSupervisor {
         let tool_executors = state.tool_registry.snapshot();
 
         // Build a no-tools retry agent for recovering from empty responses
-        let retry_agent = Arc::new(
-            build_agent(&def, vec![]).expect("no-tools agent build should not fail"),
-        );
+        let retry_agent =
+            Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
 
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
@@ -617,9 +616,8 @@ impl AgentSupervisor {
         let tool_executors = state.tool_registry.snapshot();
 
         // Build a no-tools retry agent for recovering from empty responses
-        let retry_agent = Arc::new(
-            build_agent(&def, vec![]).expect("no-tools agent build should not fail"),
-        );
+        let retry_agent =
+            Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
 
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
@@ -687,11 +685,7 @@ impl AgentSupervisor {
     /// Rebuilds the `BridgeAgent` with the new key and swaps it in-place so
     /// both existing and new conversations pick up the rotated key on their
     /// next LLM turn. No drain, no cancellation.
-    pub fn update_agent_api_key(
-        &self,
-        agent_id: &str,
-        api_key: String,
-    ) -> Result<(), BridgeError> {
+    pub fn update_agent_api_key(&self, agent_id: &str, api_key: String) -> Result<(), BridgeError> {
         let state = self
             .agent_map
             .get(agent_id)

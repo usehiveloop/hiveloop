@@ -10,14 +10,10 @@ use crate::tool_hook::ToolCallEmitter;
 // ---------------------------------------------------------------------------
 // Per-provider completion-model type aliases
 // ---------------------------------------------------------------------------
-type OpenAIModel =
-    <rig::providers::openai::CompletionsClient as CompletionClient>::CompletionModel;
-type AnthropicModel =
-    <rig::providers::anthropic::Client as CompletionClient>::CompletionModel;
-type GeminiModel =
-    <rig::providers::gemini::Client as CompletionClient>::CompletionModel;
-type CohereModel =
-    <rig::providers::cohere::Client as CompletionClient>::CompletionModel;
+type OpenAIModel = <rig::providers::openai::CompletionsClient as CompletionClient>::CompletionModel;
+type AnthropicModel = <rig::providers::anthropic::Client as CompletionClient>::CompletionModel;
+type GeminiModel = <rig::providers::gemini::Client as CompletionClient>::CompletionModel;
+type CohereModel = <rig::providers::cohere::Client as CompletionClient>::CompletionModel;
 
 // ---------------------------------------------------------------------------
 // BridgeAgent — enum over all supported provider agents
@@ -279,9 +275,9 @@ fn build_anthropic_client(
     if let Some(ref base_url) = config.base_url {
         builder = builder.base_url(base_url);
     }
-    builder
-        .build()
-        .map_err(|e| BridgeError::ProviderError(format!("failed to create Anthropic client: {}", e)))
+    builder.build().map_err(|e| {
+        BridgeError::ProviderError(format!("failed to create Anthropic client: {}", e))
+    })
 }
 
 fn build_gemini_client(

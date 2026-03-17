@@ -844,14 +844,9 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        let tool_action = PromptHook::<TestModel>::on_tool_call(
-            &emitter,
-            "test_tool",
-            None,
-            "internal_1",
-            "{}",
-        )
-        .await;
+        let tool_action =
+            PromptHook::<TestModel>::on_tool_call(&emitter, "test_tool", None, "internal_1", "{}")
+                .await;
         assert_eq!(tool_action, ToolCallHookAction::Continue);
 
         let result_action = PromptHook::<TestModel>::on_tool_result(

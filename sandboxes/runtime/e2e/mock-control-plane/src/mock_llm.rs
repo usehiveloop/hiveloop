@@ -301,7 +301,10 @@ pub async fn chat_completions(
 }
 
 fn build_text_response(user_message: &str, auth_header: &str) -> ChatCompletionResponse {
-    let content = format!("Mock LLM response to: {} [auth:{}]", user_message, auth_header);
+    let content = format!(
+        "Mock LLM response to: {} [auth:{}]",
+        user_message, auth_header
+    );
     ChatCompletionResponse {
         id: format!("chatcmpl-{}", uuid::Uuid::new_v4()),
         object: "chat.completion".to_string(),

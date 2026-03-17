@@ -119,6 +119,7 @@ The server starts on **port 8080** by default.
 | POST | `/push/agents` | Bulk load agents |
 | PUT | `/push/agents/{agent_id}` | Upsert a single agent |
 | DELETE | `/push/agents/{agent_id}` | Remove an agent |
+| PATCH | `/push/agents/{agent_id}/api-key` | Rotate an agent's LLM API key at runtime (no drain) |
 | POST | `/push/agents/{agent_id}/conversations` | Hydrate conversation history |
 | POST | `/push/diff` | Apply incremental agent diffs |
 
@@ -147,7 +148,24 @@ The `/conversations/{conv_id}/stream` endpoint emits these Server-Sent Events:
 
 ## Supported LLM Providers
 
-OpenAI, Anthropic, Google, Groq, DeepSeek, Mistral, Cohere, xAI, Together AI, Fireworks AI, Ollama, and custom providers. Provider and API key are configured per-agent via the control plane.
+Bridge supports native and OpenAI-compatible providers. Native providers use each vendor's own API format and auth mechanism; OpenAI-compatible providers use the `/chat/completions` format with a custom `base_url`.
+
+| Provider | Type | Notes |
+|----------|------|-------|
+| Anthropic | Native | `x-api-key` auth, `/v1/messages` endpoint |
+| Google Gemini | Native | API key as query param, Gemini content format |
+| Cohere | Native | Bearer auth, `/v2/chat` endpoint |
+| OpenAI | OpenAI-compatible | `base_url` required |
+| Groq | OpenAI-compatible | |
+| DeepSeek | OpenAI-compatible | |
+| Mistral | OpenAI-compatible | |
+| xAI | OpenAI-compatible | |
+| Together AI | OpenAI-compatible | |
+| Fireworks AI | OpenAI-compatible | |
+| Ollama | OpenAI-compatible | |
+| Custom | OpenAI-compatible | |
+
+Provider, model, API key, and `base_url` are configured per-agent via the control plane. OpenAI-compatible providers require `base_url` in the agent definition. Native providers (Anthropic, Gemini, Cohere) use their default endpoints if `base_url` is omitted.
 
 ## Development
 
@@ -158,9 +176,20 @@ make fmt           # Format code
 make lint          # Run clippy
 make test          # Run unit tests
 make test-e2e      # Run end-to-end tests
-make test-all      # Run everything (requires FIREWORKS_API_KEY)
+make test-all      # Run everything (requires API keys below)
 make setup-lsp     # Install LSP servers for integration tests
 ```
+
+### E2E Test API Keys
+
+The end-to-end tests make real LLM calls. Set these environment variables (or add them to `.env`):
+
+| Variable | Required for |
+|----------|-------------|
+| `FIREWORKS_API_KEY` | OpenAI-compatible provider tests |
+| `ANTHROPIC_API_KEY` | Anthropic native provider test |
+| `GEMINI_API_KEY` | Gemini native provider test |
+| `COHERE_API_KEY` | Cohere native provider test |
 
 ## Project Structure
 

@@ -100,7 +100,8 @@ pub async fn maybe_compact(
         version: None,
         updated_at: None,
     };
-    let summarizer = providers::create_agent(&config.summary_provider, vec![], preamble, &summarizer_def)?;
+    let summarizer =
+        providers::create_agent(&config.summary_provider, vec![], preamble, &summarizer_def)?;
 
     // Serialize head into readable text for the summarizer
     let input = serialize_history_for_summary(head);

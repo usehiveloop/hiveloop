@@ -208,8 +208,8 @@ pub async fn run_conversation(params: ConversationParams) {
 
                     // Fire webhook
                     if let Some(ref wh) = webhook_ctx {
-                        wh.dispatcher.dispatch(
-                            webhooks::events::conversation_compacted(
+                        wh.dispatcher
+                            .dispatch(webhooks::events::conversation_compacted(
                                 &agent_id,
                                 &conversation_id,
                                 json!({
@@ -220,8 +220,7 @@ pub async fn run_conversation(params: ConversationParams) {
                                 }),
                                 &wh.url,
                                 &wh.secret,
-                            ),
-                        );
+                            ));
                     }
                 }
                 Ok(None) => {} // under budget, no compaction needed
@@ -511,7 +510,11 @@ pub async fn run_conversation(params: ConversationParams) {
                             };
                             let fut = async {
                                 agent_clone
-                                    .prompt_with_hook(&cont_prompt, &mut history_for_continuation, emitter)
+                                    .prompt_with_hook(
+                                        &cont_prompt,
+                                        &mut history_for_continuation,
+                                        emitter,
+                                    )
                                     .await
                             };
                             let result = match agent_context_clone {

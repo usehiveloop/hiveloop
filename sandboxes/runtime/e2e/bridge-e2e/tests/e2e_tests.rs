@@ -976,4 +976,3 @@ async fn test_cohere_native_provider() {
         "Cohere agent should return a non-empty response"
     );
 }
-

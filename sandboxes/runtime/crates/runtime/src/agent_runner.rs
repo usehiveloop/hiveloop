@@ -152,12 +152,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
         // Compact subagent history if configured
         if let Some(ref config) = self.compaction_config {
-            if let Ok(Some(result)) =
-                crate::compaction::maybe_compact(&history, config).await
-            {
+            if let Ok(Some(result)) = crate::compaction::maybe_compact(&history, config).await {
                 history = result.compacted_history;
-                self.session_store
-                    .save(task_id.clone(), history.clone());
+                self.session_store.save(task_id.clone(), history.clone());
             }
         }
 
@@ -223,12 +220,9 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
         // Compact subagent history if configured
         if let Some(ref config) = compaction_config {
-            if let Ok(Some(result)) =
-                crate::compaction::maybe_compact(&history, config).await
-            {
+            if let Ok(Some(result)) = crate::compaction::maybe_compact(&history, config).await {
                 history = result.compacted_history;
-                self.session_store
-                    .save(task_id.clone(), history.clone());
+                self.session_store.save(task_id.clone(), history.clone());
             }
         }
 

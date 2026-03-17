@@ -353,10 +353,7 @@ mod tests {
             "post_compaction_tokens": 15000
         });
         let payload = conversation_compacted(AGENT, CONV, data.clone(), URL, SECRET);
-        assert_eq!(
-            payload.event_type,
-            WebhookEventType::ConversationCompacted
-        );
+        assert_eq!(payload.event_type, WebhookEventType::ConversationCompacted);
         assert_eq!(payload.agent_id, AGENT);
         assert_eq!(payload.conversation_id, CONV);
         assert_eq!(payload.data, data);

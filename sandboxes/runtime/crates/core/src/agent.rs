@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(agent.id, "agent_anthropic");
         assert_eq!(agent.name, "Anthropic Agent");
         assert_eq!(agent.provider.provider_type, ProviderType::Anthropic);
-        assert_eq!(agent.provider.model, "claude-sonnet-4-20250514");
+        assert_eq!(agent.provider.model, "claude-haiku-4-5-20251001");
         assert_eq!(agent.config.max_tokens, Some(4096));
         assert_eq!(agent.config.temperature, Some(0.7));
     }
@@ -246,7 +246,7 @@ mod tests {
 
         assert_eq!(agent.id, "agent_gemini");
         assert_eq!(agent.provider.provider_type, ProviderType::Google);
-        assert_eq!(agent.provider.model, "gemini-2.0-flash");
+        assert_eq!(agent.provider.model, "gemini-2.5-flash");
     }
 
     #[test]
@@ -257,7 +257,7 @@ mod tests {
 
         assert_eq!(agent.id, "agent_cohere");
         assert_eq!(agent.provider.provider_type, ProviderType::Cohere);
-        assert_eq!(agent.provider.model, "command-r-plus");
+        assert_eq!(agent.provider.model, "command-a-03-2025");
     }
 
     #[test]

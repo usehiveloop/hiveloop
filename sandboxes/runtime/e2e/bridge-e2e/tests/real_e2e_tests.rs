@@ -1497,7 +1497,9 @@ async fn test_compaction_triggers_and_fires_webhook() {
     assert_eq!(entry.agent_id(), Some("compaction-agent"));
     assert_eq!(entry.conversation_id(), Some(conv_id.as_str()));
 
-    let data = entry.data().expect("conversation_compacted should have data");
+    let data = entry
+        .data()
+        .expect("conversation_compacted should have data");
     assert!(
         data.get("summary")
             .and_then(|v| v.as_str())
@@ -1541,5 +1543,8 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .expect("end_conversation failed");
     assert_eq!(end_resp.status().as_u16(), 200);
 
-    eprintln!("[compaction] test passed — compaction triggered with pre={} post={}", pre, post);
+    eprintln!(
+        "[compaction] test passed — compaction triggered with pre={} post={}",
+        pre, post
+    );
 }
