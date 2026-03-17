@@ -112,7 +112,7 @@ pub async fn maybe_compact(
 
     // Build compacted history: summary as user message + tail
     let mut compacted = Vec::with_capacity(1 + tail.len());
-    compacted.push(Message::user(&format!(
+    compacted.push(Message::user(format!(
         "[Conversation Summary]\n{}",
         summary_text
     )));

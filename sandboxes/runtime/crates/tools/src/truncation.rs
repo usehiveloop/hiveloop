@@ -177,7 +177,7 @@ mod tests {
     fn test_truncate_exceeds_byte_limit() {
         // Create content that exceeds 50KB
         let big_line = "x".repeat(1000);
-        let lines: Vec<&str> = std::iter::repeat(big_line.as_str()).take(100).collect();
+        let lines: Vec<&str> = std::iter::repeat_n(big_line.as_str(), 100).collect();
         let text = lines.join("\n"); // ~100KB
         let result = truncate_output(&text, MAX_LINES, MAX_BYTES);
         assert!(result.truncated);

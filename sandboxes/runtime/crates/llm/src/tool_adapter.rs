@@ -331,7 +331,7 @@ mod tests {
         tools::builtin::register_builtin_tools(&mut registry);
 
         for (name, _desc) in registry.list() {
-            if let Some(executor) = registry.get(&name) {
+            if let Some(executor) = registry.get(name) {
                 let mut schema = executor.parameters_schema();
                 let had_defs = schema.get("definitions").is_some() || schema.get("$defs").is_some();
 

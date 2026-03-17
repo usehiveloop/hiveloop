@@ -646,7 +646,7 @@ mod tests {
     async fn test_read_binary_file_error() {
         let dir = tempfile::tempdir().expect("create temp dir");
         let file_path = dir.path().join("data.bin");
-        std::fs::write(&file_path, &[0x00, 0x01, 0x02]).expect("write");
+        std::fs::write(&file_path, [0x00, 0x01, 0x02]).expect("write");
 
         let tool = ReadTool::new();
         let args = serde_json::json!({
@@ -745,7 +745,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("create temp dir");
         let file_path = dir.path().join("test.png");
         // Write some binary data with a null byte to trigger binary detection
-        std::fs::write(&file_path, &[0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D, 0x0A]).expect("write");
+        std::fs::write(&file_path, [0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D, 0x0A]).expect("write");
 
         let tool = ReadTool::new();
         let args = serde_json::json!({

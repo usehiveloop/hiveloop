@@ -505,9 +505,9 @@ mod serde_roundtrip_tests {
 
     #[test]
     fn role_all_variants_roundtrip() {
-        let roles = vec![Role::User, Role::Assistant, Role::System, Role::Tool];
+        let roles = [Role::User, Role::Assistant, Role::System, Role::Tool];
 
-        let expected_json = vec!["\"user\"", "\"assistant\"", "\"system\"", "\"tool\""];
+        let expected_json = ["\"user\"", "\"assistant\"", "\"system\"", "\"tool\""];
 
         for (role, expected) in roles.iter().zip(expected_json.iter()) {
             let json = serde_json::to_string(role).expect("serialize Role");

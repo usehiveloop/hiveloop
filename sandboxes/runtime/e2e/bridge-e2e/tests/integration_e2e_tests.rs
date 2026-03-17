@@ -84,7 +84,7 @@ async fn test_integration_tool_allow_executes_immediately() {
         .collect();
 
     assert!(
-        tool_starts.iter().any(|t| *t == "github__list_issues"),
+        tool_starts.contains(&"github__list_issues"),
         "expected github__list_issues tool call, got {:?}",
         tool_starts
     );
@@ -153,9 +153,7 @@ async fn test_integration_tool_allow_mailchimp() {
         .collect();
 
     assert!(
-        tool_starts
-            .iter()
-            .any(|t| *t == "mailchimp__create_campaign"),
+        tool_starts.contains(&"mailchimp__create_campaign"),
         "expected mailchimp__create_campaign tool call, got {:?}",
         tool_starts
     );
@@ -209,7 +207,7 @@ async fn test_integration_tool_require_approval_approve() {
 
     // Connect SSE before sending message
     let bridge_url = harness.bridge_url();
-    let stream = SseStream::connect(&bridge_url, &conv_id)
+    let stream = SseStream::connect(bridge_url, &conv_id)
         .await
         .expect("SSE connect failed");
 
@@ -304,7 +302,7 @@ async fn test_integration_tool_require_approval_deny() {
         .to_string();
 
     let bridge_url = harness.bridge_url();
-    let stream = SseStream::connect(&bridge_url, &conv_id)
+    let stream = SseStream::connect(bridge_url, &conv_id)
         .await
         .expect("SSE connect failed");
 

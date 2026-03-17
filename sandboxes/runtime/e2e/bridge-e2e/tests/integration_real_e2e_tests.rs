@@ -148,7 +148,7 @@ async fn test_real_llm_integration_allow_executes() {
     eprintln!("[test] tools called: {:?}", tool_starts);
 
     assert!(
-        tool_starts.iter().any(|t| *t == "github__list_issues"),
+        tool_starts.contains(&"github__list_issues"),
         "expected github__list_issues tool call, got {:?}",
         tool_starts
     );
@@ -219,9 +219,7 @@ async fn test_real_llm_integration_allow_mailchimp() {
     eprintln!("[test] tools called: {:?}", tool_starts);
 
     assert!(
-        tool_starts
-            .iter()
-            .any(|t| *t == "mailchimp__create_campaign"),
+        tool_starts.contains(&"mailchimp__create_campaign"),
         "expected mailchimp__create_campaign tool call, got {:?}",
         tool_starts
     );
@@ -452,9 +450,7 @@ async fn test_real_llm_integration_deny_tool_not_exposed() {
     eprintln!("[test] tools called: {:?}", tool_starts);
 
     assert!(
-        !tool_starts
-            .iter()
-            .any(|t| *t == "github__delete_repository"),
+        !tool_starts.contains(&"github__delete_repository"),
         "github__delete_repository should NEVER be called (deny permission), but got {:?}",
         tool_starts
     );
@@ -508,7 +504,7 @@ async fn test_real_llm_integration_natural_language_routing() {
 
     // The LLM should route this to github__list_issues
     assert!(
-        tool_starts.iter().any(|t| *t == "github__list_issues"),
+        tool_starts.contains(&"github__list_issues"),
         "expected LLM to call github__list_issues from natural language, got {:?}",
         tool_starts
     );
