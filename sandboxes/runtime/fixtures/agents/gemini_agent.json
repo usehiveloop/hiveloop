@@ -1,0 +1,18 @@
+{
+  "id": "agent_gemini",
+  "name": "Gemini Agent",
+  "system_prompt": "You are a helpful assistant powered by Gemini.",
+  "provider": {
+    "provider_type": "google",
+    "model": "gemini-2.5-flash",
+    "api_key": "PLACEHOLDER_GEMINI_API_KEY"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "permissions": {},
+  "config": {
+    "max_tokens": 4096,
+    "temperature": 0.7
+  }
+}

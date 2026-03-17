@@ -1,0 +1,19 @@
+{
+  "id": "agent_anthropic",
+  "name": "Anthropic Agent",
+  "system_prompt": "You are a helpful assistant powered by Claude.",
+  "provider": {
+    "provider_type": "anthropic",
+    "model": "claude-haiku-4-5-20251001",
+    "api_key": "PLACEHOLDER_ANTHROPIC_API_KEY",
+    "base_url": "https://api.anthropic.com"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "permissions": {},
+  "config": {
+    "max_tokens": 4096,
+    "temperature": 0.7
+  }
+}

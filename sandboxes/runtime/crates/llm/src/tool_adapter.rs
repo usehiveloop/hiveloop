@@ -78,6 +78,8 @@ fn flatten_schema(schema: &mut Value) {
     }
     // Simplify oneOf/anyOf/allOf enum patterns throughout
     simplify_enums(schema);
+    // Ensure every property node has a valid `type` — required by Gemini's API
+    ensure_types(schema);
 }
 
 /// Extract `definitions` or `$defs` from the schema root.
@@ -207,6 +209,63 @@ fn simplify_enums(value: &mut Value) {
         Value::Array(arr) => {
             for v in arr.iter_mut() {
                 simplify_enums(v);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Recursively ensure every schema node has a valid `type` field.
+/// Gemini's API rejects schemas with missing or empty-string types.
+fn ensure_types(value: &mut Value) {
+    ensure_types_inner(value, false);
+}
+
+fn ensure_types_inner(value: &mut Value, is_schema_position: bool) {
+    match value {
+        Value::Object(obj) => {
+            // Fix empty-string type
+            if obj.get("type") == Some(&Value::String(String::new())) {
+                obj.remove("type");
+            }
+
+            // Infer type from structure if missing
+            if !obj.contains_key("type") {
+                if obj.contains_key("properties") {
+                    obj.insert("type".to_string(), Value::String("object".to_string()));
+                } else if obj.contains_key("items") {
+                    obj.insert("type".to_string(), Value::String("array".to_string()));
+                } else if obj.contains_key("enum") {
+                    obj.insert("type".to_string(), Value::String("string".to_string()));
+                } else if is_schema_position {
+                    // A leaf node in a schema position (under `properties` or `items`)
+                    // with no type — default to string.
+                    obj.insert("type".to_string(), Value::String("string".to_string()));
+                }
+            }
+
+            // Recurse into `properties` values — each is a schema position
+            if let Some(Value::Object(props)) = obj.get_mut("properties") {
+                for v in props.values_mut() {
+                    ensure_types_inner(v, true);
+                }
+            }
+
+            // `items` is a schema position
+            if let Some(items) = obj.get_mut("items") {
+                ensure_types_inner(items, true);
+            }
+
+            // Recurse into other values (non-schema positions)
+            for (key, v) in obj.iter_mut() {
+                if key != "properties" && key != "items" {
+                    ensure_types_inner(v, false);
+                }
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                ensure_types_inner(v, is_schema_position);
             }
         }
         _ => {}

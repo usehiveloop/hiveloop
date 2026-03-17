@@ -225,19 +225,39 @@ mod tests {
     }
 
     #[test]
-    fn parse_multi_provider_fixture() {
-        let json = load_fixture("fixtures/agents/multi_provider.json");
+    fn parse_anthropic_agent_fixture() {
+        let json = load_fixture("fixtures/agents/anthropic_agent.json");
         let agent: AgentDefinition =
-            serde_json::from_str(&json).expect("multi_provider.json should deserialize");
+            serde_json::from_str(&json).expect("anthropic_agent.json should deserialize");
 
         assert_eq!(agent.id, "agent_anthropic");
         assert_eq!(agent.name, "Anthropic Agent");
         assert_eq!(agent.provider.provider_type, ProviderType::Anthropic);
         assert_eq!(agent.provider.model, "claude-sonnet-4-20250514");
-        assert!(agent.provider.base_url.is_some());
-        assert_eq!(agent.config.max_tokens, Some(8192));
-        assert_eq!(agent.config.temperature, Some(0.5));
-        assert!(agent.config.max_turns.is_none());
+        assert_eq!(agent.config.max_tokens, Some(4096));
+        assert_eq!(agent.config.temperature, Some(0.7));
+    }
+
+    #[test]
+    fn parse_gemini_agent_fixture() {
+        let json = load_fixture("fixtures/agents/gemini_agent.json");
+        let agent: AgentDefinition =
+            serde_json::from_str(&json).expect("gemini_agent.json should deserialize");
+
+        assert_eq!(agent.id, "agent_gemini");
+        assert_eq!(agent.provider.provider_type, ProviderType::Google);
+        assert_eq!(agent.provider.model, "gemini-2.0-flash");
+    }
+
+    #[test]
+    fn parse_cohere_agent_fixture() {
+        let json = load_fixture("fixtures/agents/cohere_agent.json");
+        let agent: AgentDefinition =
+            serde_json::from_str(&json).expect("cohere_agent.json should deserialize");
+
+        assert_eq!(agent.id, "agent_cohere");
+        assert_eq!(agent.provider.provider_type, ProviderType::Cohere);
+        assert_eq!(agent.provider.model, "command-r-plus");
     }
 
     #[test]

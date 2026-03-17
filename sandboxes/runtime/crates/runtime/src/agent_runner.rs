@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use dashmap::DashMap;
 use llm::{BridgeAgent, SseEvent, ToolCallEmitter};
-use rig::completion::Prompt;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -184,7 +183,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             result = async {
                 tokio::time::timeout(
                     FOREGROUND_TIMEOUT,
-                    agent.prompt(&prompt_owned).with_history(&mut history).with_hook(emitter),
+                    agent.prompt_standard_with_hook(&prompt_owned, &mut history, emitter),
                 ).await
             } => {
                 match result {
@@ -286,7 +285,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                         result = async {
                             tokio::time::timeout(
                                 BACKGROUND_TIMEOUT,
-                                agent.prompt(&prompt_owned).with_history(&mut history).with_hook(emitter),
+                                agent.prompt_standard_with_hook(&prompt_owned, &mut history, emitter),
                             ).await
                         } => {
                             match result {

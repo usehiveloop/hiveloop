@@ -1,7 +1,6 @@
 use bridge_core::agent::CompactionConfig;
 use bridge_core::BridgeError;
-use llm::create_agent_builder;
-use rig::completion::Prompt;
+use llm::providers;
 use rig::message::{AssistantContent, Message, UserContent};
 use tracing::debug;
 
@@ -82,13 +81,31 @@ pub async fn maybe_compact(
         .as_deref()
         .unwrap_or(DEFAULT_SUMMARY_PROMPT);
 
-    let builder = create_agent_builder(&config.summary_provider)?;
-    let summarizer = builder.preamble(preamble).build();
+    // Build a minimal agent definition for the summarizer
+    let summarizer_def = bridge_core::agent::AgentDefinition {
+        id: String::new(),
+        name: String::new(),
+        description: None,
+        system_prompt: preamble.to_string(),
+        provider: config.summary_provider.clone(),
+        tools: vec![],
+        mcp_servers: vec![],
+        skills: vec![],
+        integrations: vec![],
+        config: bridge_core::agent::AgentConfig::default(),
+        subagents: vec![],
+        permissions: std::collections::HashMap::new(),
+        webhook_url: None,
+        webhook_secret: None,
+        version: None,
+        updated_at: None,
+    };
+    let summarizer = providers::create_agent(&config.summary_provider, vec![], preamble, &summarizer_def)?;
 
     // Serialize head into readable text for the summarizer
     let input = serialize_history_for_summary(head);
     let summary_text = summarizer
-        .prompt(&input)
+        .prompt_simple(&input)
         .await
         .map_err(|e| BridgeError::ProviderError(format!("compaction summarizer error: {}", e)))?;
 

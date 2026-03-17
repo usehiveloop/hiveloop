@@ -86,6 +86,17 @@ async fn main() {
                                 .replace("PLACEHOLDER_LOG_PATH", &log_path.to_string_lossy());
                         }
 
+                        // Replace provider API keys from environment variables
+                        if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+                            contents = contents.replace("PLACEHOLDER_ANTHROPIC_API_KEY", &key);
+                        }
+                        if let Ok(key) = std::env::var("GEMINI_API_KEY") {
+                            contents = contents.replace("PLACEHOLDER_GEMINI_API_KEY", &key);
+                        }
+                        if let Ok(key) = std::env::var("COHERE_API_KEY") {
+                            contents = contents.replace("PLACEHOLDER_COHERE_API_KEY", &key);
+                        }
+
                         match serde_json::from_str::<bridge_core::AgentDefinition>(&contents) {
                             Ok(agent) => {
                                 mock_store.create_agent(agent.clone());

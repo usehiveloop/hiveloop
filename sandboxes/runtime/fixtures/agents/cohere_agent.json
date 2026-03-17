@@ -1,0 +1,18 @@
+{
+  "id": "agent_cohere",
+  "name": "Cohere Agent",
+  "system_prompt": "You are a helpful assistant powered by Cohere.",
+  "provider": {
+    "provider_type": "cohere",
+    "model": "command-a-03-2025",
+    "api_key": "PLACEHOLDER_COHERE_API_KEY"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "permissions": {},
+  "config": {
+    "max_tokens": 4096,
+    "temperature": 0.7
+  }
+}

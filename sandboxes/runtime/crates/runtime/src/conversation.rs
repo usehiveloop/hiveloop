@@ -2,7 +2,6 @@ use bridge_core::conversation::{Message, Role};
 use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
 use llm::{PermissionManager, SseEvent, TokenUsage};
-use rig::completion::Prompt;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, RwLock};
@@ -292,10 +291,7 @@ pub async fn run_conversation(params: ConversationParams) {
             };
             let fut = async {
                 agent_clone
-                    .prompt(&user_text_clone)
-                    .extended_details()
-                    .with_history(&mut history_clone)
-                    .with_hook(emitter)
+                    .prompt_with_hook(&user_text_clone, &mut history_clone, emitter)
                     .await
             };
 
@@ -515,10 +511,7 @@ pub async fn run_conversation(params: ConversationParams) {
                             };
                             let fut = async {
                                 agent_clone
-                                    .prompt(&cont_prompt)
-                                    .extended_details()
-                                    .with_history(&mut history_for_continuation)
-                                    .with_hook(emitter)
+                                    .prompt_with_hook(&cont_prompt, &mut history_for_continuation, emitter)
                                     .await
                             };
                             let result = match agent_context_clone {
@@ -568,10 +561,10 @@ pub async fn run_conversation(params: ConversationParams) {
                             "continuation did not produce text, retrying with no-tools agent with enriched history"
                         );
                         match retry_agent
-                            .prompt(
+                            .prompt_with_history(
                                 "Please provide a text response summarizing what you found or did.",
+                                &mut enriched_history,
                             )
-                            .with_history(&mut enriched_history)
                             .await
                         {
                             Ok(resp) if !resp.is_empty() => {

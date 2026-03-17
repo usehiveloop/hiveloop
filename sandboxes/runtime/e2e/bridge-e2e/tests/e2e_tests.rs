@@ -874,3 +874,106 @@ async fn test_webhook_end_conversation() {
     assert_eq!(ended[0].agent_id(), Some("agent_simple"));
 }
 
+// ============================================================================
+// Native provider tests (require real API keys)
+// ============================================================================
+
+/// Test that the Anthropic native provider can create a conversation and get a response.
+/// Requires ANTHROPIC_API_KEY environment variable.
+#[tokio::test]
+async fn test_anthropic_native_provider() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let resp = harness
+        .create_conversation("agent_anthropic")
+        .await
+        .expect("create_conversation failed");
+    assert_eq!(resp.status().as_u16(), 201);
+
+    let body: serde_json::Value = resp.json().await.expect("failed to parse body");
+    let conv_id = body["conversation_id"].as_str().unwrap();
+
+    harness
+        .send_message(conv_id, "Reply with exactly: hello from claude")
+        .await
+        .expect("send_message failed");
+
+    let (_events, text) = harness
+        .stream_sse_until_done(conv_id, Duration::from_secs(30))
+        .await
+        .expect("stream_sse_until_done failed");
+
+    assert!(
+        !text.is_empty(),
+        "Anthropic agent should return a non-empty response"
+    );
+}
+
+/// Test that the Gemini native provider can create a conversation and get a response.
+/// Requires GEMINI_API_KEY environment variable.
+#[tokio::test]
+async fn test_gemini_native_provider() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let resp = harness
+        .create_conversation("agent_gemini")
+        .await
+        .expect("create_conversation failed");
+    assert_eq!(resp.status().as_u16(), 201);
+
+    let body: serde_json::Value = resp.json().await.expect("failed to parse body");
+    let conv_id = body["conversation_id"].as_str().unwrap();
+
+    harness
+        .send_message(conv_id, "Reply with exactly: hello from gemini")
+        .await
+        .expect("send_message failed");
+
+    let (_events, text) = harness
+        .stream_sse_until_done(conv_id, Duration::from_secs(30))
+        .await
+        .expect("stream_sse_until_done failed");
+
+    assert!(
+        !text.is_empty(),
+        "Gemini agent should return a non-empty response"
+    );
+}
+
+/// Test that the Cohere native provider can create a conversation and get a response.
+/// Requires COHERE_API_KEY environment variable.
+#[tokio::test]
+async fn test_cohere_native_provider() {
+    let harness = TestHarness::start()
+        .await
+        .expect("failed to start test harness");
+
+    let resp = harness
+        .create_conversation("agent_cohere")
+        .await
+        .expect("create_conversation failed");
+    assert_eq!(resp.status().as_u16(), 201);
+
+    let body: serde_json::Value = resp.json().await.expect("failed to parse body");
+    let conv_id = body["conversation_id"].as_str().unwrap();
+
+    harness
+        .send_message(conv_id, "Reply with exactly: hello from cohere")
+        .await
+        .expect("send_message failed");
+
+    let (_events, text) = harness
+        .stream_sse_until_done(conv_id, Duration::from_secs(30))
+        .await
+        .expect("stream_sse_until_done failed");
+
+    assert!(
+        !text.is_empty(),
+        "Cohere agent should return a non-empty response"
+    );
+}
+

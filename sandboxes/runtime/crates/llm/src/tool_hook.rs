@@ -742,7 +742,9 @@ impl ToolCallEmitter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BridgeCompletionModel;
+    use rig::prelude::CompletionClient;
+    type TestModel =
+        <rig::providers::openai::CompletionsClient as CompletionClient>::CompletionModel;
 
     #[tokio::test]
     async fn test_emitter_sends_tool_call_start() {
@@ -759,7 +761,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "web_search",
             Some("call_123".to_string()),
@@ -800,7 +802,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_result(
+        let action = PromptHook::<TestModel>::on_tool_result(
             &emitter,
             "web_search",
             Some("call_123".to_string()),
@@ -842,7 +844,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        let tool_action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let tool_action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "test_tool",
             None,
@@ -852,7 +854,7 @@ mod tests {
         .await;
         assert_eq!(tool_action, ToolCallHookAction::Continue);
 
-        let result_action = PromptHook::<BridgeCompletionModel>::on_tool_result(
+        let result_action = PromptHook::<TestModel>::on_tool_result(
             &emitter,
             "test_tool",
             None,
@@ -879,7 +881,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        PromptHook::<BridgeCompletionModel>::on_tool_call(
+        PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "my_tool",
             None, // no tool_call_id
@@ -912,7 +914,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        PromptHook::<BridgeCompletionModel>::on_tool_call(
+        PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "my_tool",
             Some("call_1".to_string()),
@@ -988,7 +990,7 @@ mod tests {
 
         let action = AGENT_CONTEXT
             .scope(ctx, async {
-                PromptHook::<BridgeCompletionModel>::on_tool_call(
+                PromptHook::<TestModel>::on_tool_call(
                     &emitter,
                     "bash",
                     Some("call_bg".to_string()),
@@ -1060,7 +1062,7 @@ mod tests {
         };
 
         // bash without background: true should Continue normally
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "bash",
             Some("call_fg".to_string()),
@@ -1132,7 +1134,7 @@ mod tests {
 
         let action = AGENT_CONTEXT
             .scope(ctx, async {
-                PromptHook::<BridgeCompletionModel>::on_tool_call(
+                PromptHook::<TestModel>::on_tool_call(
                     &emitter,
                     "agent",
                     Some("call_agent".to_string()),
@@ -1203,7 +1205,7 @@ mod tests {
             agent_permissions: HashMap::new(),
         };
 
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "bassh",
             Some("call_typo".to_string()),
@@ -1255,7 +1257,7 @@ mod tests {
         };
 
         // Known tool should pass through
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "bash",
             Some("call_ok".to_string()),
@@ -1283,7 +1285,7 @@ mod tests {
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "anything_goes",
             Some("call_any".to_string()),
@@ -1336,7 +1338,7 @@ mod tests {
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             "Bash",
             Some("call_case".to_string()),
@@ -1410,7 +1412,7 @@ mod tests {
         };
 
         // " bash" (leading space) should auto-repair to "bash"
-        let action = PromptHook::<BridgeCompletionModel>::on_tool_call(
+        let action = PromptHook::<TestModel>::on_tool_call(
             &emitter,
             " bash",
             Some("call_ws".to_string()),
