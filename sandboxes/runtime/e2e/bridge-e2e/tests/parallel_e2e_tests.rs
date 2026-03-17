@@ -28,7 +28,7 @@ echo "content of file 1" > /tmp/parallel_test/file1.txt && \
 echo "content of file 2" > /tmp/parallel_test/file2.txt && \
 echo "content of file 3" > /tmp/parallel_test/file3.txt
 "#;
-    
+
     let turn = harness
         .converse(
             "agent_mock_llm",
@@ -68,10 +68,10 @@ echo "content of file 3" > /tmp/parallel_test/file3.txt
     );
 
     // Verify batch tool was called
-    let batch_called = turn
-        .sse_events
-        .iter()
-        .any(|e| e.event_type == "tool_call_start" && e.data.get("name").and_then(|n| n.as_str()) == Some("batch"));
+    let batch_called = turn.sse_events.iter().any(|e| {
+        e.event_type == "tool_call_start"
+            && e.data.get("name").and_then(|n| n.as_str()) == Some("batch")
+    });
     assert!(batch_called, "batch tool should have been called");
 }
 
@@ -83,7 +83,7 @@ async fn test_background_subagents_run_in_parallel() {
         .expect("failed to start test harness");
 
     let start = Instant::now();
-    
+
     // Spawn two background subagents (using agent_delegator fixture which has explorer subagent)
     let turn = harness
         .converse(
@@ -123,7 +123,7 @@ async fn test_foreground_subagent_blocks() {
         .expect("failed to start test harness");
 
     let start = Instant::now();
-    
+
     // Use foreground subagent (default mode)
     let turn = harness
         .converse(
@@ -182,7 +182,7 @@ async fn test_gap_no_join_for_multiple_background_tasks() {
     // may struggle to wait for all three. This test captures current behavior.
     eprintln!("GAP DOCUMENTATION: Response when asked to join multiple background tasks:");
     eprintln!("{}", turn.response_text);
-    
+
     // The test passes — it documents current behavior, even if suboptimal
     assert!(!turn.response_text.is_empty(), "should have some response");
 }
@@ -211,13 +211,16 @@ async fn test_gap_cannot_batch_agent_tool() {
     // Document the behavior — batch tool should reject agent calls
     eprintln!("GAP DOCUMENTATION: Response when trying to batch agent tool:");
     eprintln!("{}", turn.response_text);
-    
+
     // Likely contains error about external tools not being batchable
     let has_error = turn.sse_events.iter().any(|e| {
-        e.event_type == "tool_call_result" && 
-        e.data.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false)
+        e.event_type == "tool_call_result"
+            && e.data
+                .get("is_error")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
     });
-    
+
     if has_error {
         eprintln!("CONFIRMED: Batch tool rejects agent calls (as expected with current design)");
     }
@@ -232,7 +235,7 @@ async fn test_gap_no_parallel_spawn_and_wait() {
         .expect("failed to start test harness");
 
     let start = Instant::now();
-    
+
     // Sequential foreground subagents (current workaround)
     let turn = harness
         .converse(
@@ -249,10 +252,13 @@ async fn test_gap_no_parallel_spawn_and_wait() {
         .expect("sequential execution failed");
 
     let sequential_time = start.elapsed();
-    
-    eprintln!("GAP DOCUMENTATION: Sequential subagent execution took {:?}", sequential_time);
+
+    eprintln!(
+        "GAP DOCUMENTATION: Sequential subagent execution took {:?}",
+        sequential_time
+    );
     eprintln!("With parallel execution, this could be ~3x faster");
-    
+
     // Test passes — documents current sequential limitation
     assert!(!turn.response_text.is_empty(), "should have results");
 }
@@ -284,7 +290,7 @@ async fn test_gap_no_concurrency_limits() {
 
     eprintln!("GAP DOCUMENTATION: System allowed spawning 5 concurrent background subagents");
     eprintln!("There is currently no max_concurrent limit");
-    
+
     // Should have spawned all 5
     assert!(!turn.response_text.is_empty(), "should have response");
 }
@@ -305,7 +311,7 @@ async fn benchmark_batch_vs_sequential_reads() {
 mkdir -p /tmp/bench_test && \
 for i in {1..5}; do echo "file $i content" > /tmp/bench_test/file$i.txt; done
 "#;
-    
+
     let _ = harness
         .converse(
             "agent_mock_llm",
@@ -344,9 +350,18 @@ for i in {1..5}; do echo "file $i content" > /tmp/bench_test/file$i.txt; done
     eprintln!("\n=== BATCH VS SEQUENTIAL PERFORMANCE ===");
     eprintln!("Batch time: {:?}", batch_time);
     eprintln!("Sequential time: {:?}", seq_time);
-    eprintln!("Speedup: {:.2}x", seq_time.as_secs_f64() / batch_time.as_secs_f64());
+    eprintln!(
+        "Speedup: {:.2}x",
+        seq_time.as_secs_f64() / batch_time.as_secs_f64()
+    );
 
     // Both should succeed
-    assert!(!batch_turn.response_text.is_empty(), "batch should return results");
-    assert!(!seq_turn.response_text.is_empty(), "sequential should return results");
+    assert!(
+        !batch_turn.response_text.is_empty(),
+        "batch should return results"
+    );
+    assert!(
+        !seq_turn.response_text.is_empty(),
+        "sequential should return results"
+    );
 }

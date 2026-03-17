@@ -4,9 +4,8 @@ use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::mpsc;
 
-use crate::agent::{AgentContext, AgentTaskHandle, AgentTaskNotification, SubAgentRunner, AGENT_CONTEXT};
+use crate::agent::AGENT_CONTEXT;
 use crate::ToolExecutor;
 
 /// A single subagent task specification.
@@ -165,9 +164,9 @@ impl ToolExecutor for ParallelAgentTool {
         for task in args.tasks.clone() {
             let runner = ctx.runner.clone();
             let limiter = limiter.clone();
-            let notification_tx = ctx.notification_tx.clone();
-            let depth = ctx.depth + 1;
-            let max_depth = ctx.max_depth;
+            let _notification_tx = ctx.notification_tx.clone();
+            let _depth = ctx.depth + 1;
+            let _max_depth = ctx.max_depth;
 
             let handle = tokio::spawn(async move {
                 // Acquire permit (blocks if at max concurrency)
@@ -175,7 +174,9 @@ impl ToolExecutor for ParallelAgentTool {
 
                 // Run the subagent
                 let result = tokio::time::timeout(timeout, async {
-                    runner.run_foreground(&task.subagent, &task.prompt, None).await
+                    runner
+                        .run_foreground(&task.subagent, &task.prompt, None)
+                        .await
                 })
                 .await;
 
@@ -248,8 +249,10 @@ impl ToolExecutor for ParallelAgentTool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::{AgentContext, AgentTaskHandle, SubAgentRunner};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
+    use tokio::sync::mpsc;
 
     struct MockRunner {
         call_count: AtomicUsize,
@@ -274,7 +277,7 @@ mod tests {
         ) -> Result<crate::agent::AgentTaskResult, String> {
             let count = self.call_count.fetch_add(1, Ordering::SeqCst);
             self.call_order.lock().unwrap().push(subagent.to_string());
-            
+
             // Simulate work
             if self.delay_ms > 0 {
                 tokio::time::sleep(tokio::time::Duration::from_millis(self.delay_ms)).await;
@@ -365,7 +368,7 @@ mod tests {
         let elapsed = start.elapsed();
 
         assert!(result.is_ok(), "Result: {:?}", result);
-        
+
         // Should complete in ~100ms (parallel), not ~300ms (sequential)
         assert!(
             elapsed < std::time::Duration::from_millis(250),
@@ -401,7 +404,7 @@ mod tests {
         let elapsed = start.elapsed();
 
         assert!(result.is_ok());
-        
+
         // With 4 tasks, 50ms each, max 2 concurrent:
         // Batch 1: tasks 1&2 (50ms)
         // Batch 2: tasks 3&4 (50ms)
@@ -428,7 +431,7 @@ mod tests {
                 delay_ms: 0,
             }),
             notification_tx: tx,
-            depth: 3,  // At max depth
+            depth: 3, // At max depth
             max_depth: 3,
         };
 
@@ -538,6 +541,10 @@ mod tests {
         assert!(result.is_ok());
         let parsed: ParallelAgentResult = serde_json::from_str(&result.unwrap()).unwrap();
         assert_eq!(parsed.failed, 1);
-        assert!(parsed.results[0].error.as_ref().unwrap().contains("Timeout"));
+        assert!(parsed.results[0]
+            .error
+            .as_ref()
+            .unwrap()
+            .contains("Timeout"));
     }
 }

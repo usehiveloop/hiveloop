@@ -262,16 +262,19 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             ));
             // Pass task_registry to nested runner if available
             let nested_runner = if let Some(registry) = task_registry.clone() {
-                Arc::new(ConversationSubAgentRunner::new(
-                    nested_runner.subagents.clone(),
-                    nested_runner.session_store.clone(),
-                    nested_runner.notification_tx.clone(),
-                    nested_runner.cancel.clone(),
-                    nested_runner.sse_tx.clone(),
-                    nested_runner.conversation_id.clone(),
-                    nested_runner.depth,
-                    nested_runner.max_depth,
-                ).with_task_registry(registry))
+                Arc::new(
+                    ConversationSubAgentRunner::new(
+                        nested_runner.subagents.clone(),
+                        nested_runner.session_store.clone(),
+                        nested_runner.notification_tx.clone(),
+                        nested_runner.cancel.clone(),
+                        nested_runner.sse_tx.clone(),
+                        nested_runner.conversation_id.clone(),
+                        nested_runner.depth,
+                        nested_runner.max_depth,
+                    )
+                    .with_task_registry(registry),
+                )
             } else {
                 nested_runner
             };

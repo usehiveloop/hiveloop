@@ -84,10 +84,7 @@ impl TaskRegistry {
     }
 
     /// Register interest in a task. Returns immediately if already completed.
-    pub fn register(
-        &self,
-        task_id: String,
-    ) -> Option<oneshot::Receiver<TaskResult>> {
+    pub fn register(&self, task_id: String) -> Option<oneshot::Receiver<TaskResult>> {
         // Check if already completed
         if let Some(result) = self.completed.get(&task_id) {
             let (tx, rx) = oneshot::channel();
@@ -97,10 +94,7 @@ impl TaskRegistry {
 
         // Register as pending
         let (tx, rx) = oneshot::channel();
-        self.pending
-            .entry(task_id)
-            .or_insert_with(Vec::new)
-            .push(tx);
+        self.pending.entry(task_id).or_default().push(tx);
         Some(rx)
     }
 
@@ -227,7 +221,7 @@ impl ToolExecutor for JoinTool {
 
         for (task_id, rx) in receivers {
             let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-            
+
             match tokio::time::timeout(remaining, rx).await {
                 Ok(Ok(result)) => results.push(result),
                 Ok(Err(_)) => results.push(TaskResult {
@@ -272,14 +266,14 @@ mod tests {
     #[test]
     fn test_registry_complete_before_register() {
         let registry = TaskRegistry::new();
-        
+
         // Complete a task
         registry.complete("task-1".to_string(), Ok("output".to_string()));
-        
+
         // Register for it - should get immediate result
         let mut rx = registry.register("task-1".to_string()).unwrap();
         let result = rx.try_recv().unwrap();
-        
+
         assert_eq!(result.task_id, "task-1");
         assert_eq!(result.status, "completed");
         assert_eq!(result.output, Some("output".to_string()));
@@ -288,18 +282,18 @@ mod tests {
     #[test]
     fn test_registry_multiple_waiters() {
         let registry = Arc::new(TaskRegistry::new());
-        
+
         // Multiple registrations for same task
         let mut rx1 = registry.register("task-1".to_string()).unwrap();
         let mut rx2 = registry.register("task-1".to_string()).unwrap();
-        
+
         // Complete once
         registry.complete("task-1".to_string(), Ok("shared output".to_string()));
-        
+
         // Both should get the result
         let result1 = rx1.try_recv().unwrap();
         let result2 = rx2.try_recv().unwrap();
-        
+
         assert_eq!(result1.output, Some("shared output".to_string()));
         assert_eq!(result2.output, Some("shared output".to_string()));
     }
@@ -308,12 +302,12 @@ mod tests {
     async fn test_join_tool_empty_task_ids() {
         let registry = Arc::new(TaskRegistry::new());
         let tool = JoinTool::new(registry);
-        
+
         let args = serde_json::json!({
             "task_ids": [],
             "timeout_secs": 10
         });
-        
+
         let result = tool.execute(args).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("No task_ids"));
@@ -323,18 +317,18 @@ mod tests {
     async fn test_join_tool_already_completed() {
         let registry = Arc::new(TaskRegistry::new());
         let tool = JoinTool::new(registry.clone());
-        
+
         // Pre-complete a task
         registry.complete("task-1".to_string(), Ok("done".to_string()));
-        
+
         let args = serde_json::json!({
             "task_ids": ["task-1"],
             "timeout_secs": 10
         });
-        
+
         let result = tool.execute(args).await.unwrap();
         let parsed: JoinResult = serde_json::from_str(&result).unwrap();
-        
+
         assert_eq!(parsed.total, 1);
         assert_eq!(parsed.succeeded, 1);
         assert!(parsed.all_succeeded);

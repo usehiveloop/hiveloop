@@ -441,8 +441,11 @@ mod tests {
         let elapsed = start.elapsed();
 
         assert!(result.is_ok());
-        assert!(elapsed >= tokio::time::Duration::from_millis(100), 
-            "foreground should block for at least 100ms, got {:?}", elapsed);
+        assert!(
+            elapsed >= tokio::time::Duration::from_millis(100),
+            "foreground should block for at least 100ms, got {:?}",
+            elapsed
+        );
         assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
     }
 
@@ -510,10 +513,13 @@ mod tests {
         let elapsed = start.elapsed();
 
         assert!(result.is_ok());
-        assert!(elapsed < tokio::time::Duration::from_millis(50),
-            "background should return immediately, got {:?}", elapsed);
+        assert!(
+            elapsed < tokio::time::Duration::from_millis(50),
+            "background should return immediately, got {:?}",
+            elapsed
+        );
         assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
-        
+
         let output = result.unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["task_id"], "bg-delayed-456");
