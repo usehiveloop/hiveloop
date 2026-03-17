@@ -161,7 +161,7 @@ mod tests {
         assert_eq!(agent.provider.provider_type, ProviderType::OpenAI);
         assert_eq!(agent.provider.model, "gpt-4o");
         assert_eq!(agent.provider.api_key, "test-key");
-        assert!(agent.provider.base_url.is_none());
+        assert!(agent.provider.base_url.is_some());
         assert!(agent.tools.is_empty());
         assert!(agent.mcp_servers.is_empty());
         assert!(agent.skills.is_empty());
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(agent.name, "Anthropic Agent");
         assert_eq!(agent.provider.provider_type, ProviderType::Anthropic);
         assert_eq!(agent.provider.model, "claude-sonnet-4-20250514");
-        assert!(agent.provider.base_url.is_none());
+        assert!(agent.provider.base_url.is_some());
         assert_eq!(agent.config.max_tokens, Some(8192));
         assert_eq!(agent.config.temperature, Some(0.5));
         assert!(agent.config.max_turns.is_none());

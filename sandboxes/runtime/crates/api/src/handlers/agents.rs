@@ -37,11 +37,12 @@ pub async fn get_agent(
         .get_agent(&agent_id)
         .ok_or_else(|| BridgeError::AgentNotFound(agent_id.clone()))?;
 
+    let def = agent.definition.read().unwrap();
     Ok(Json(json!({
-        "id": agent.definition.id,
-        "name": agent.definition.name,
-        "system_prompt": agent.definition.system_prompt,
-        "version": agent.definition.version,
+        "id": def.id,
+        "name": def.name,
+        "system_prompt": def.system_prompt,
+        "version": def.version,
         "active_conversations": agent.active_conversation_count(),
     })))
 }

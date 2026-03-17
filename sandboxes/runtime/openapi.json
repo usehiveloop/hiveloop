@@ -664,6 +664,17 @@
         "type": "object",
         "description": "Configuration options for an agent.",
         "properties": {
+          "compaction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CompactionConfig",
+                "description": "Conversation compaction configuration"
+              }
+            ]
+          },
           "json_schema": {
             "description": "JSON schema for structured output"
           },
@@ -934,6 +945,38 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "CompactionConfig": {
+        "type": "object",
+        "description": "Configuration for conversation compaction (history summarization).",
+        "required": [
+          "summary_provider"
+        ],
+        "properties": {
+          "summary_prompt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom system prompt for the summarization call. Uses a default if None."
+          },
+          "summary_provider": {
+            "$ref": "#/components/schemas/ProviderConfig",
+            "description": "Provider config for the summarization model (required — defined by control plane)."
+          },
+          "tail_messages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of recent messages to preserve verbatim after compaction.",
+            "minimum": 0
+          },
+          "token_budget": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Token budget. Compaction triggers when estimated tokens exceed this.",
+            "minimum": 0
           }
         }
       },

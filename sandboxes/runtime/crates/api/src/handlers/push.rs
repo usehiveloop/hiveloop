@@ -76,7 +76,7 @@ pub async fn upsert_agent(
     // Check if agent already exists
     if let Some(existing) = state.supervisor.get_agent(&agent_id) {
         // Same version → no-op
-        if existing.version() == agent.version.as_deref() {
+        if existing.version().as_deref() == agent.version.as_deref() {
             return Ok((StatusCode::OK, Json(json!({"status": "unchanged"}))));
         }
         // Different version → update
@@ -163,6 +163,36 @@ pub async fn hydrate_conversations(
     }
 
     Ok((StatusCode::OK, Json(json!({"hydrated": count}))))
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct UpdateApiKeyRequest {
+    pub api_key: String,
+}
+
+/// PATCH /push/agents/{agent_id}/api-key — rotate an agent's LLM API key at runtime.
+#[cfg_attr(feature = "openapi", utoipa::path(
+    patch,
+    path = "/push/agents/{agent_id}/api-key",
+    params(("agent_id" = String, Path, description = "Agent identifier")),
+    request_body = UpdateApiKeyRequest,
+    security(("bearer" = [])),
+    responses(
+        (status = 200, description = "API key updated", body = serde_json::Value),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Agent not found")
+    )
+))]
+pub async fn update_agent_api_key(
+    State(state): State<AppState>,
+    Path(agent_id): Path<String>,
+    Json(body): Json<UpdateApiKeyRequest>,
+) -> Result<Json<serde_json::Value>, BridgeError> {
+    state
+        .supervisor
+        .update_agent_api_key(&agent_id, body.api_key)?;
+    Ok(Json(json!({"status": "updated"})))
 }
 
 /// POST /push/diff — apply a diff of agent changes.

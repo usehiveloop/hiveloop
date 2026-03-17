@@ -243,7 +243,7 @@ mod tests {
                 provider_type: bridge_core::provider::ProviderType::OpenAI,
                 model: "gpt-4o-mini".to_string(),
                 api_key: "test".to_string(),
-                base_url: None,
+                base_url: Some("https://api.openai.com/v1".to_string()),
             },
         };
 

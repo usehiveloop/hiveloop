@@ -75,7 +75,7 @@ mod tests {
                 provider_type: ProviderType::OpenAI,
                 model: "gpt-4o".to_string(),
                 api_key: "test-key".to_string(),
-                base_url: None,
+                base_url: Some("https://api.openai.com/v1".to_string()),
             },
             tools: vec![],
             mcp_servers: vec![],
@@ -115,7 +115,7 @@ mod tests {
         assert!(result.is_ok());
 
         let current = map.get("agent1").expect("agent should exist");
-        assert_eq!(current.version(), Some("v2"));
+        assert_eq!(current.version().as_deref(), Some("v2"));
     }
 
     #[tokio::test]

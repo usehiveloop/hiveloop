@@ -5,7 +5,8 @@
   "provider": {
     "provider_type": "anthropic",
     "model": "claude-sonnet-4-20250514",
-    "api_key": "test-anthropic-key"
+    "api_key": "test-anthropic-key",
+    "base_url": "PLACEHOLDER_MOCK_LLM_URL"
   },
   "tools": [],
   "mcp_servers": [],

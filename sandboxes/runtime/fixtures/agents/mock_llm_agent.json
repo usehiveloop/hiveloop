@@ -1,0 +1,20 @@
+{
+  "id": "agent_mock_llm",
+  "name": "Mock LLM Agent",
+  "system_prompt": "You are a helpful assistant.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "mock-model",
+    "api_key": "test-key",
+    "base_url": "PLACEHOLDER_MOCK_LLM_URL"
+  },
+  "tools": [],
+  "mcp_servers": [],
+  "skills": [],
+  "permissions": {},
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 20,
+    "temperature": 0.7
+  }
+}

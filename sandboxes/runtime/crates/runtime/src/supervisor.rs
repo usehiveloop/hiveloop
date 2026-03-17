@@ -211,16 +211,17 @@ impl AgentSupervisor {
         state.conversations.insert(conv_id.clone(), handle);
 
         // Spawn the conversation task
-        let agent = Arc::new(state.rig_agent.clone());
+        let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
         let metrics = state.metrics.clone();
         let cancel = state.cancel.clone();
-        let max_turns = state.definition.config.max_turns;
+        let def = state.definition.read().unwrap();
+        let max_turns = def.config.max_turns;
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
 
         // Build agent context for subagent tool
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
-        let subagent_compaction = state.definition.config.compaction.clone();
+        let subagent_compaction = def.config.compaction.clone();
         let runner = Arc::new(
             ConversationSubAgentRunner::new(
                 state.subagents.clone(),
@@ -251,13 +252,14 @@ impl AgentSupervisor {
 
         // Build a no-tools retry agent for recovering from empty responses
         let retry_agent = Arc::new(
-            build_agent(&state.definition, vec![]).expect("no-tools agent build should not fail"),
+            build_agent(&def, vec![]).expect("no-tools agent build should not fail"),
         );
 
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
-        let agent_permissions = state.definition.permissions.clone();
-        let compaction_config = state.definition.config.compaction.clone();
+        let agent_permissions = def.permissions.clone();
+        let compaction_config = def.config.compaction.clone();
+        drop(def); // release read lock before spawning
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -576,15 +578,16 @@ impl AgentSupervisor {
         let initial_history = crate::conversation::convert_messages(&record.messages);
 
         // Spawn the conversation task (same setup as create_conversation)
-        let agent = Arc::new(state.rig_agent.clone());
+        let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
         let metrics = state.metrics.clone();
         let cancel = state.cancel.clone();
-        let max_turns = state.definition.config.max_turns;
+        let def = state.definition.read().unwrap();
+        let max_turns = def.config.max_turns;
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
 
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
-        let subagent_compaction = state.definition.config.compaction.clone();
+        let subagent_compaction = def.config.compaction.clone();
         let runner = Arc::new(
             ConversationSubAgentRunner::new(
                 state.subagents.clone(),
@@ -615,13 +618,14 @@ impl AgentSupervisor {
 
         // Build a no-tools retry agent for recovering from empty responses
         let retry_agent = Arc::new(
-            build_agent(&state.definition, vec![]).expect("no-tools agent build should not fail"),
+            build_agent(&def, vec![]).expect("no-tools agent build should not fail"),
         );
 
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
-        let agent_permissions = state.definition.permissions.clone();
-        let compaction_config = state.definition.config.compaction.clone();
+        let agent_permissions = def.permissions.clone();
+        let compaction_config = def.config.compaction.clone();
+        drop(def); // release read lock before spawning
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -676,6 +680,43 @@ impl AgentSupervisor {
         }
 
         info!("all agents shut down");
+    }
+
+    /// Update the API key for an agent at runtime.
+    ///
+    /// Rebuilds the `BridgeAgent` with the new key and swaps it in-place so
+    /// both existing and new conversations pick up the rotated key on their
+    /// next LLM turn. No drain, no cancellation.
+    pub fn update_agent_api_key(
+        &self,
+        agent_id: &str,
+        api_key: String,
+    ) -> Result<(), BridgeError> {
+        let state = self
+            .agent_map
+            .get(agent_id)
+            .ok_or_else(|| BridgeError::AgentNotFound(agent_id.to_string()))?;
+
+        // Clone current definition and update the API key
+        let mut updated_def = state.definition.read().unwrap().clone();
+        updated_def.provider.api_key = api_key;
+
+        // Rebuild the agent with existing tools
+        let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = state
+            .tool_registry
+            .list()
+            .iter()
+            .filter_map(|(name, _)| state.tool_registry.get(name))
+            .collect();
+        let dynamic_tools: Vec<DynamicTool> = adapt_tools(all_executors)?;
+        let new_agent = build_agent(&updated_def, dynamic_tools)?;
+
+        // Swap in the new agent — all conversations sharing this Arc see the new agent on next turn
+        *state.rig_agent.write().unwrap() = new_agent;
+        *state.definition.write().unwrap() = updated_def;
+
+        info!(agent_id = agent_id, "agent API key updated");
+        Ok(())
     }
 
     /// Collect metrics from all agents.

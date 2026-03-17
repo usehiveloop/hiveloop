@@ -42,9 +42,9 @@ impl AgentMap {
             .map(|entry| {
                 let state = entry.value();
                 AgentSummary {
-                    id: state.definition.id.clone(),
-                    name: state.definition.name.clone(),
-                    version: state.definition.version.clone(),
+                    id: state.id(),
+                    name: state.name(),
+                    version: state.version(),
                 }
             })
             .collect()
@@ -90,7 +90,7 @@ mod tests {
                 provider_type: ProviderType::OpenAI,
                 model: "gpt-4o".to_string(),
                 api_key: "test-key".to_string(),
-                base_url: None,
+                base_url: Some("https://api.openai.com/v1".to_string()),
             },
             tools: vec![],
             mcp_servers: vec![],

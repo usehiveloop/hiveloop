@@ -2,7 +2,7 @@ use bridge_core::conversation::Message;
 use bridge_core::{AgentDefinition, AgentMetrics};
 use dashmap::DashMap;
 use llm::BridgeAgent;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -28,10 +28,10 @@ pub struct ConversationHandle {
 /// Holds the agent's definition, LLM client, tool registry, active conversations,
 /// metrics, and lifecycle management primitives.
 pub struct AgentState {
-    /// The agent definition from the control plane.
-    pub definition: AgentDefinition,
-    /// The built rig-core agent for LLM interactions.
-    pub rig_agent: BridgeAgent,
+    /// The agent definition from the control plane (behind RwLock for API key rotation).
+    pub definition: RwLock<AgentDefinition>,
+    /// The built rig-core agent for LLM interactions (behind RwLock for API key rotation).
+    pub rig_agent: Arc<RwLock<BridgeAgent>>,
     /// Registry of all available tools (built-in + MCP).
     pub tool_registry: ToolRegistry,
     /// Active conversation handles, keyed by conversation ID.
@@ -57,8 +57,8 @@ impl AgentState {
         subagents: Arc<DashMap<String, SubAgentEntry>>,
     ) -> Self {
         Self {
-            definition,
-            rig_agent,
+            definition: RwLock::new(definition),
+            rig_agent: Arc::new(RwLock::new(rig_agent)),
             tool_registry,
             conversations: DashMap::new(),
             cancel: CancellationToken::new(),
@@ -70,18 +70,18 @@ impl AgentState {
     }
 
     /// Get the agent's ID.
-    pub fn id(&self) -> &str {
-        &self.definition.id
+    pub fn id(&self) -> String {
+        self.definition.read().unwrap().id.clone()
     }
 
     /// Get the agent's name.
-    pub fn name(&self) -> &str {
-        &self.definition.name
+    pub fn name(&self) -> String {
+        self.definition.read().unwrap().name.clone()
     }
 
     /// Get the agent's version.
-    pub fn version(&self) -> Option<&str> {
-        self.definition.version.as_deref()
+    pub fn version(&self) -> Option<String> {
+        self.definition.read().unwrap().version.clone()
     }
 
     /// Check if this agent has an active conversation with the given ID.

@@ -1571,6 +1571,24 @@ impl TestHarness {
         Ok(resp)
     }
 
+    /// PATCH /push/agents/{agent_id}/api-key — rotate an agent's API key at runtime.
+    pub async fn patch_agent_api_key(
+        &self,
+        agent_id: &str,
+        api_key: &str,
+    ) -> Result<reqwest::Response> {
+        self.client
+            .patch(format!(
+                "{}/push/agents/{}/api-key",
+                self.bridge_base_url, agent_id
+            ))
+            .header("authorization", "Bearer e2e-test-key")
+            .json(&serde_json::json!({"api_key": api_key}))
+            .send()
+            .await
+            .context("PATCH api-key request failed")
+    }
+
     // ---- Mock Control Plane helpers ----
 
     /// POST /agents on the mock control plane — add a new agent definition.
@@ -2121,6 +2139,25 @@ impl SseStream {
             {
                 let events = self.events.lock().unwrap();
                 if events.iter().any(|e| e.event_type == "done") {
+                    return events.clone();
+                }
+            }
+            if Instant::now() >= deadline {
+                let events = self.events.lock().unwrap();
+                return events.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
+
+    /// Wait until N "done" events have appeared, or timeout. Returns all collected events.
+    pub async fn wait_for_done_count(&self, count: usize, timeout: Duration) -> Vec<SseEvent> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            {
+                let events = self.events.lock().unwrap();
+                let done_count = events.iter().filter(|e| e.event_type == "done").count();
+                if done_count >= count {
                     return events.clone();
                 }
             }

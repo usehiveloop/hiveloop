@@ -203,7 +203,15 @@ fn extract_agent_trigger(message: &str) -> Option<(String, String)> {
 }
 
 /// POST /v1/chat/completions — mock LLM endpoint.
-pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl IntoResponse {
+pub async fn chat_completions(
+    headers: axum::http::HeaderMap,
+    Json(req): Json<ChatCompletionRequest>,
+) -> impl IntoResponse {
+    let auth_header = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("none");
+
     let last_user_message = req
         .messages
         .iter()
@@ -218,9 +226,14 @@ pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl In
 
     if has_tool_result {
         if req.stream {
-            return stream_response(last_user_message, false, &req.tools).into_response();
+            return stream_response(last_user_message, false, &req.tools, auth_header)
+                .into_response();
         }
-        return (StatusCode::OK, Json(build_text_response(last_user_message))).into_response();
+        return (
+            StatusCode::OK,
+            Json(build_text_response(last_user_message, auth_header)),
+        )
+            .into_response();
     }
 
     // Check for integration tool trigger: use_integration:INTEGRATION:ACTION
@@ -273,21 +286,22 @@ pub async fn chat_completions(Json(req): Json<ChatCompletionRequest>) -> impl In
         !req.tools.is_empty() && last_user_message.to_lowercase().contains("use_tool");
 
     if req.stream {
-        return stream_response(last_user_message, should_call_tool, &req.tools).into_response();
+        return stream_response(last_user_message, should_call_tool, &req.tools, auth_header)
+            .into_response();
     }
 
     // Non-streaming response
     let response = if should_call_tool {
         build_tool_call_response(&req.tools)
     } else {
-        build_text_response(last_user_message)
+        build_text_response(last_user_message, auth_header)
     };
 
     (StatusCode::OK, Json(response)).into_response()
 }
 
-fn build_text_response(user_message: &str) -> ChatCompletionResponse {
-    let content = format!("Mock LLM response to: {}", user_message);
+fn build_text_response(user_message: &str, auth_header: &str) -> ChatCompletionResponse {
+    let content = format!("Mock LLM response to: {} [auth:{}]", user_message, auth_header);
     ChatCompletionResponse {
         id: format!("chatcmpl-{}", uuid::Uuid::new_v4()),
         object: "chat.completion".to_string(),
@@ -440,11 +454,15 @@ fn stream_response(
     user_message: &str,
     should_call_tool: bool,
     tools: &[serde_json::Value],
+    auth_header: &str,
 ) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
     let content = if should_call_tool {
         None
     } else {
-        Some(format!("Mock LLM response to: {}", user_message))
+        Some(format!(
+            "Mock LLM response to: {} [auth:{}]",
+            user_message, auth_header
+        ))
     };
 
     let tool_name = if should_call_tool {

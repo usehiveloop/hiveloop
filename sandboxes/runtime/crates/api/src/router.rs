@@ -1,5 +1,5 @@
 use axum::middleware as axum_mw;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -18,6 +18,10 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/push/agents/{agent_id}/conversations",
             post(push::hydrate_conversations),
+        )
+        .route(
+            "/push/agents/{agent_id}/api-key",
+            patch(push::update_agent_api_key),
         )
         .route("/push/diff", post(push::push_diff))
         .layer(axum_mw::from_fn_with_state(state.clone(), bearer_auth));
