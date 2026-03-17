@@ -1,0 +1,42 @@
+Wait for multiple background subagent tasks to complete.
+
+Use this tool when you have spawned one or more background subagents using the agent tool with background: true, and you want to wait for them to finish and collect their results.
+
+The join tool blocks until all specified tasks complete (or the timeout is reached). It returns the combined results from all tasks, including success/failure status and outputs.
+
+## When to use Join
+
+- After spawning multiple background subagents to work in parallel
+- When you need to synchronize and collect results from async tasks
+- To check the status of long-running background operations
+
+## Parameters
+
+- task_ids: Array of task ID strings returned by background agent calls
+- timeout_secs: Maximum time to wait (default: 300 seconds / 5 minutes)
+
+## Example Workflow
+
+1. Spawn background tasks:
+   - agent(background: true, subagent: "explorer", prompt: "Find all API routes")
+   - agent(background: true, subagent: "explorer", prompt: "Find all tests") 
+   - Returns: task_id "task-abc-123" and "task-def-456"
+
+2. Wait for completion:
+   - join(task_ids: ["task-abc-123", "task-def-456"])
+   - Returns: Combined results from both tasks
+
+## Response Format
+
+The tool returns a JSON object with:
+- completed: Array of task results (task_id, status, output/error)
+- all_succeeded: Boolean indicating if all tasks completed successfully
+- total: Total number of tasks
+- succeeded: Count of successful tasks
+- failed: Count of failed tasks
+
+## Notes
+
+- Tasks that are already completed when join is called return immediately
+- Tasks that don't exist return "not_found" status
+- If timeout is reached, pending tasks return "timeout" status

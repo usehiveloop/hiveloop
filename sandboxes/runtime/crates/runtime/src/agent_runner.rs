@@ -9,6 +9,7 @@ use tools::agent::{
     AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
     AGENT_CONTEXT,
 };
+use tools::join::TaskRegistry;
 use tracing::debug;
 
 /// Timeout for a foreground subagent chat call.
@@ -81,6 +82,7 @@ pub struct ConversationSubAgentRunner {
     depth: usize,
     max_depth: usize,
     compaction_config: Option<bridge_core::agent::CompactionConfig>,
+    task_registry: Option<Arc<TaskRegistry>>,
 }
 
 impl ConversationSubAgentRunner {
@@ -105,12 +107,19 @@ impl ConversationSubAgentRunner {
             depth,
             max_depth,
             compaction_config: None,
+            task_registry: None,
         }
     }
 
     /// Set the compaction configuration for subagent sessions.
     pub fn with_compaction(mut self, config: Option<bridge_core::agent::CompactionConfig>) -> Self {
         self.compaction_config = config;
+        self
+    }
+
+    /// Set the task registry for tracking background subagent tasks.
+    pub fn with_task_registry(mut self, registry: Arc<TaskRegistry>) -> Self {
+        self.task_registry = Some(registry);
         self
     }
 
@@ -236,6 +245,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let conversation_id = self.conversation_id.clone();
         let depth = self.depth;
         let max_depth = self.max_depth;
+        let task_registry = self.task_registry.clone();
 
         tokio::spawn(async move {
             let emitter_conv_id = conversation_id.clone();
@@ -250,6 +260,21 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 depth + 1,
                 max_depth,
             ));
+            // Pass task_registry to nested runner if available
+            let nested_runner = if let Some(registry) = task_registry.clone() {
+                Arc::new(ConversationSubAgentRunner::new(
+                    nested_runner.subagents.clone(),
+                    nested_runner.session_store.clone(),
+                    nested_runner.notification_tx.clone(),
+                    nested_runner.cancel.clone(),
+                    nested_runner.sse_tx.clone(),
+                    nested_runner.conversation_id.clone(),
+                    nested_runner.depth,
+                    nested_runner.max_depth,
+                ).with_task_registry(registry))
+            } else {
+                nested_runner
+            };
             let nested_ctx = AgentContext {
                 runner: nested_runner,
                 notification_tx: notification_tx.clone(),
@@ -294,6 +319,11 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
             // Save history
             session_store.save(task_id_clone.clone(), history);
+
+            // Mark task as complete in registry (for join tool)
+            if let Some(registry) = task_registry {
+                registry.complete(task_id_clone.clone(), result.clone());
+            }
 
             // Send notification
             let notification = AgentTaskNotification {

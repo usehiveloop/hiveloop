@@ -379,4 +379,144 @@ mod tests {
         let desc = AgentTool::build_description(&[]);
         assert!(desc.contains("(none)"));
     }
+
+    #[tokio::test]
+    async fn test_foreground_blocks_until_complete() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::time::Instant;
+
+        static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        struct DelayedMockRunner;
+
+        #[async_trait]
+        impl SubAgentRunner for DelayedMockRunner {
+            fn available_subagents(&self) -> Vec<(String, String)> {
+                vec![("coder".to_string(), "A coding agent".to_string())]
+            }
+
+            async fn run_foreground(
+                &self,
+                _subagent: &str,
+                _prompt: &str,
+                _task_id: Option<&str>,
+            ) -> Result<AgentTaskResult, String> {
+                CALL_COUNT.fetch_add(1, Ordering::SeqCst);
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                Ok(AgentTaskResult {
+                    task_id: "delayed-task-123".to_string(),
+                    output: "delayed result".to_string(),
+                })
+            }
+
+            async fn run_background(
+                &self,
+                _subagent: &str,
+                _prompt: &str,
+                _description: &str,
+            ) -> Result<AgentTaskHandle, String> {
+                unreachable!("background should not be called in this test")
+            }
+        }
+
+        let (tx, _rx) = mpsc::channel(16);
+        let ctx = AgentContext {
+            runner: Arc::new(DelayedMockRunner),
+            notification_tx: tx,
+            depth: 0,
+            max_depth: 3,
+        };
+
+        let tool = AgentTool::new();
+        let args = serde_json::json!({
+            "description": "delayed task",
+            "prompt": "do something slow",
+            "subagent": "coder"
+        });
+
+        let start = Instant::now();
+        let result = AGENT_CONTEXT
+            .scope(ctx, async { tool.execute(args).await })
+            .await;
+        let elapsed = start.elapsed();
+
+        assert!(result.is_ok());
+        assert!(elapsed >= tokio::time::Duration::from_millis(100), 
+            "foreground should block for at least 100ms, got {:?}", elapsed);
+        assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn test_background_returns_immediately() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::time::Instant;
+
+        static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        struct DelayedMockRunner;
+
+        #[async_trait]
+        impl SubAgentRunner for DelayedMockRunner {
+            fn available_subagents(&self) -> Vec<(String, String)> {
+                vec![("coder".to_string(), "A coding agent".to_string())]
+            }
+
+            async fn run_foreground(
+                &self,
+                _subagent: &str,
+                _prompt: &str,
+                _task_id: Option<&str>,
+            ) -> Result<AgentTaskResult, String> {
+                unreachable!("foreground should not be called in this test")
+            }
+
+            async fn run_background(
+                &self,
+                _subagent: &str,
+                _prompt: &str,
+                _description: &str,
+            ) -> Result<AgentTaskHandle, String> {
+                CALL_COUNT.fetch_add(1, Ordering::SeqCst);
+                // Simulate slow operation that continues after return
+                tokio::spawn(async {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+                });
+                Ok(AgentTaskHandle {
+                    task_id: "bg-delayed-456".to_string(),
+                })
+            }
+        }
+
+        let (tx, _rx) = mpsc::channel(16);
+        let ctx = AgentContext {
+            runner: Arc::new(DelayedMockRunner),
+            notification_tx: tx,
+            depth: 0,
+            max_depth: 3,
+        };
+
+        let tool = AgentTool::new();
+        let args = serde_json::json!({
+            "description": "background task",
+            "prompt": "do something slow in background",
+            "subagent": "coder",
+            "background": true
+        });
+
+        let start = Instant::now();
+        let result = AGENT_CONTEXT
+            .scope(ctx, async { tool.execute(args).await })
+            .await;
+        let elapsed = start.elapsed();
+
+        assert!(result.is_ok());
+        assert!(elapsed < tokio::time::Duration::from_millis(50),
+            "background should return immediately, got {:?}", elapsed);
+        assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
+        
+        let output = result.unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["task_id"], "bg-delayed-456");
+        assert_eq!(parsed["status"], "running");
+    }
 }

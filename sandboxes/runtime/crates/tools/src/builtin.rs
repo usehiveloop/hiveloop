@@ -97,6 +97,9 @@ pub fn register_builtin_tools_with_lsp(
     // Agent tool — subagent invocation (uses task_local for context)
     registry.register(Arc::new(crate::agent::AgentTool::new()));
 
+    // Parallel agent tool — spawn multiple subagents concurrently
+    registry.register(Arc::new(crate::parallel_agent::ParallelAgentTool::new()));
+
     // Batch tool — registered last with a snapshot of all other tools
     let tool_snapshot = registry.snapshot();
     registry.register(Arc::new(crate::batch::BatchTool::new(tool_snapshot)));

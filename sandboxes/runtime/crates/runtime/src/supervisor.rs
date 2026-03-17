@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
+use tools::join::TaskRegistry;
 use tools::ToolRegistry;
 use tracing::{error, info};
 use webhooks::WebhookContext;
@@ -130,6 +131,12 @@ impl AgentSupervisor {
             )));
         }
 
+        // Create task registry for tracking background subagent tasks
+        let task_registry = Arc::new(TaskRegistry::new());
+
+        // Register join tool for waiting on background tasks
+        tool_registry.register(Arc::new(tools::join::JoinTool::new(task_registry.clone())));
+
         // Register integration tools and inject their permissions
         let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
             .unwrap_or_else(|_| "http://localhost:3000".to_string());
@@ -166,6 +173,7 @@ impl AgentSupervisor {
             rig_agent,
             tool_registry,
             subagent_map,
+            task_registry,
         ));
         self.agent_map.insert(agent_id.clone(), state);
 
@@ -233,7 +241,8 @@ impl AgentSupervisor {
                 0, // depth
                 3, // max_depth
             )
-            .with_compaction(subagent_compaction),
+            .with_compaction(subagent_compaction)
+            .with_task_registry(state.task_registry.clone()),
         );
         let agent_context = AgentContext {
             runner,
@@ -475,6 +484,12 @@ impl AgentSupervisor {
             )));
         }
 
+        // Create task registry for tracking background subagent tasks
+        let task_registry = Arc::new(TaskRegistry::new());
+
+        // Register join tool for waiting on background tasks
+        tool_registry.register(Arc::new(tools::join::JoinTool::new(task_registry.clone())));
+
         // Register integration tools and inject their permissions
         let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
             .unwrap_or_else(|_| "http://localhost:3000".to_string());
@@ -508,6 +523,7 @@ impl AgentSupervisor {
             rig_agent,
             tool_registry,
             subagent_map,
+            task_registry,
         )))
     }
 
@@ -598,7 +614,8 @@ impl AgentSupervisor {
                 0,
                 3,
             )
-            .with_compaction(subagent_compaction),
+            .with_compaction(subagent_compaction)
+            .with_task_registry(state.task_registry.clone()),
         );
         let agent_context = AgentContext {
             runner,

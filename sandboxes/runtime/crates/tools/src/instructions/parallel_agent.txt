@@ -1,0 +1,79 @@
+Spawn multiple subagents in parallel and wait for all to complete.
+
+Use this tool when you have independent tasks that can run concurrently. Instead of spawning subagents sequentially (which adds latency), this tool runs them in parallel up to a configurable limit.
+
+## When to use Parallel Agent
+
+- Analyzing multiple files or directories simultaneously
+- Running independent code reviews on different modules
+- Performing multiple searches in parallel
+- Any workload that can be divided into independent subtasks
+
+## When NOT to use Parallel Agent
+
+- When tasks depend on each other's results (use sequential agent calls)
+- For simple file reads (use batch tool instead)
+- When you need fine-grained control over execution order
+
+## Parameters
+
+- tasks: Array of subagent task specifications
+  - description: Short (3-5 word) description of the task
+  - prompt: Detailed instructions for the subagent
+  - subagent: Which subagent to use (must be available)
+- max_concurrent: Maximum parallel executions (default: 5, max: 25)
+- timeout_secs: Timeout per task (default: 300 seconds)
+
+## Concurrency Control
+
+The max_concurrent parameter prevents overwhelming the system:
+- Default: 5 tasks run simultaneously
+- Additional tasks queue until slots are available
+- Adjust based on task complexity and resource limits
+
+## Example Usage
+
+Spawn 3 explorers in parallel to analyze different parts of the codebase:
+
+parallel_agent(
+  max_concurrent: 3,
+  tasks: [
+    {
+      description: "Find API routes",
+      subagent: "explorer",
+      prompt: "Find all API route definitions in src/routes/"
+    },
+    {
+      description: "Find middleware",
+      subagent: "explorer", 
+      prompt: "Find all middleware definitions in src/middleware/"
+    },
+    {
+      description: "Find tests",
+      subagent: "explorer",
+      prompt: "Find all test files related to API routes"
+    }
+  ]
+)
+
+## Response Format
+
+Returns a JSON object with:
+- results: Array of task results (description, status, output/error, elapsed time)
+- all_succeeded: Boolean
+- total: Total tasks
+- succeeded: Successful count
+- failed: Failed count
+- elapsed_secs: Total wall-clock time
+
+## Performance Tips
+
+- Use max_concurrent to limit resource usage for heavy tasks
+- Parallel agent has overhead; for < 100ms tasks, batch may be faster
+- Ideal for tasks that take 1-30 seconds each
+
+## Limits
+
+- Maximum 25 tasks per call
+- Respects subagent depth limits (max_depth: 3)
+- Each task runs in isolation with no shared context
