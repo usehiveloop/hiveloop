@@ -38,6 +38,9 @@ enum ToolCommands {
         /// Output as JSON
         #[arg(long, default_value_t = true)]
         json: bool,
+        /// Show only read-only tools (tools that don't modify state)
+        #[arg(long)]
+        read_only: bool,
     },
 }
 
@@ -47,6 +50,8 @@ struct ToolInfo {
     name: String,
     description: String,
     category: String,
+    #[serde(skip)]
+    is_read_only: bool,
     parameters: serde_json::Value,
 }
 
@@ -64,38 +69,45 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn handle_tools_command(action: Option<ToolCommands>) -> anyhow::Result<()> {
-    let action = action.unwrap_or(ToolCommands::List { json: true });
+    let action = action.unwrap_or(ToolCommands::List { json: true, read_only: false });
 
     match action {
-        ToolCommands::List { json: _ } => {
-            let tools = get_tools_info()?;
+        ToolCommands::List { json: _, read_only } => {
+            let tools = get_tools_info(read_only)?;
             println!("{}", serde_json::to_string_pretty(&tools)?);
             Ok(())
         }
     }
 }
 
-fn get_tools_info() -> anyhow::Result<Vec<ToolInfo>> {
+fn get_tools_info(filter_read_only: bool) -> anyhow::Result<Vec<ToolInfo>> {
     use tools::{register_builtin_tools, ToolExecutor, ToolRegistry};
 
     let mut registry = ToolRegistry::new();
     register_builtin_tools(&mut registry);
 
-    let tools: Vec<ToolInfo> = registry
+    let mut tools: Vec<ToolInfo> = registry
         .snapshot()
         .values()
         .map(|tool| {
-            // Infer category from tool name
-            let category = categorize_tool(tool.name());
+            let name = tool.name();
+            let category = categorize_tool(name);
+            let is_read_only = is_read_only_tool(name);
             
             ToolInfo {
-                name: tool.name().to_string(),
+                name: name.to_string(),
                 description: tool.description().to_string(),
                 category,
+                is_read_only,
                 parameters: tool.parameters_schema(),
             }
         })
         .collect();
+
+    // Filter to read-only tools if requested
+    if filter_read_only {
+        tools.retain(|t| t.is_read_only);
+    }
 
     Ok(tools)
 }
@@ -112,6 +124,14 @@ fn categorize_tool(name: &str) -> String {
         "skill" => "skill".to_string(),
         _ => "other".to_string(),
     }
+}
+
+/// Check if a tool is read-only (doesn't modify state)
+fn is_read_only_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "Read" | "Grep" | "Glob" | "LS" | "web_fetch" | "todoread"
+    )
 }
 
 async fn run_server() -> anyhow::Result<()> {
