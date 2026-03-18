@@ -6,6 +6,7 @@ pub mod conversation;
 pub mod drain;
 pub mod permission_manager;
 pub mod supervisor;
+pub mod system_reminder;
 pub mod token_tracker;
 
 pub use agent_map::AgentMap;

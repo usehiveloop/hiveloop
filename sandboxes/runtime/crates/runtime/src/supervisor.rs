@@ -267,7 +267,12 @@ impl AgentSupervisor {
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
+        let skills = def.skills.clone();
         drop(def); // release read lock before spawning
+
+        // Build system reminder with available skills
+        let system_reminder = crate::system_reminder::create_reminder_with_skills(&skills);
+
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -290,6 +295,7 @@ impl AgentSupervisor {
                 permission_manager,
                 agent_permissions,
                 compaction_config,
+                system_reminder,
             })
             .await;
         });
@@ -640,7 +646,12 @@ impl AgentSupervisor {
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
+        let skills = def.skills.clone();
         drop(def); // release read lock before spawning
+
+        // Build system reminder with available skills
+        let system_reminder = crate::system_reminder::create_reminder_with_skills(&skills);
+
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -663,6 +674,7 @@ impl AgentSupervisor {
                 permission_manager,
                 agent_permissions,
                 compaction_config,
+                system_reminder,
             })
             .await;
         });

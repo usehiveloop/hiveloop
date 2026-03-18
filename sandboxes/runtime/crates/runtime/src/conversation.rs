@@ -75,6 +75,8 @@ pub struct ConversationParams {
     pub agent_permissions: HashMap<String, ToolPermission>,
     /// Optional compaction configuration for history summarization.
     pub compaction_config: Option<bridge_core::agent::CompactionConfig>,
+    /// System reminder markdown to inject before every user message.
+    pub system_reminder: String,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -108,6 +110,7 @@ pub async fn run_conversation(params: ConversationParams) {
         permission_manager,
         agent_permissions,
         compaction_config,
+        system_reminder,
     } = params;
 
     info!(
@@ -175,17 +178,19 @@ pub async fn run_conversation(params: ConversationParams) {
         }
 
         // Build the user text from the incoming message
-        let user_text = match incoming {
-            IncomingMessage::User(ref msg) => extract_text_content(msg),
+        let user_text: String = match &incoming {
+            IncomingMessage::User(msg) => extract_text_content(msg),
             IncomingMessage::BackgroundComplete(notif) => {
-                let output_text = match notif.output {
-                    Ok(output) => output,
+                let task_id = notif.task_id.clone();
+                let description = notif.description.clone();
+                let output_text = match &notif.output {
+                    Ok(output) => output.clone(),
                     Err(error) => format!("[ERROR] {}", error),
                 };
                 format!(
                     "[Background Agent Task Completed]\ntask_id: {}\ndescription: {}\n\n<task_result>\n{}\n</task_result>",
-                    notif.task_id,
-                    notif.description,
+                    task_id,
+                    description,
                     output_text,
                 )
             }
@@ -230,7 +235,14 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         }
 
-        history.push(rig::message::Message::user(&user_text));
+        // Prepend system reminder if present
+        let final_user_text = if system_reminder.is_empty() {
+            user_text.clone()
+        } else {
+            format!("{}\n\n{}", system_reminder, user_text)
+        };
+
+        history.push(rig::message::Message::user(&final_user_text));
 
         // Signal response starting
         let _ = sse_tx
@@ -1147,5 +1159,35 @@ mod tests {
             rig_messages[6],
             rig::message::Message::User { .. }
         ));
+    }
+
+    #[test]
+    fn test_system_reminder_prepended_to_user_message() {
+        // This test verifies that the system reminder is prepended to user messages
+        // The actual prepending happens in run_conversation, but we can test the formatting logic
+        let system_reminder = "<system-reminder>\n\n# System Reminders\n\n## Available skills\n\nThe following skills are available for use with the Skill tool:\n\n- **Code Review** - Reviews code\n\n</system-reminder>";
+        let user_text = "Please review this code";
+
+        let final_text = format!("{}\n\n{}", system_reminder, user_text);
+
+        assert!(final_text.contains("<system-reminder>"));
+        assert!(final_text.contains("</system-reminder>"));
+        assert!(final_text.contains(user_text));
+        assert!(final_text.starts_with("<system-reminder>"));
+    }
+
+    #[test]
+    fn test_empty_system_reminder_skipped() {
+        // When system_reminder is empty, user text should be used as-is
+        let system_reminder = "";
+        let user_text = "Hello";
+
+        let final_text = if system_reminder.is_empty() {
+            user_text.to_string()
+        } else {
+            format!("{}\n\n{}", system_reminder, user_text)
+        };
+
+        assert_eq!(final_text, user_text);
     }
 }
