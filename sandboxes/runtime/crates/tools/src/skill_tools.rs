@@ -10,6 +10,10 @@ use crate::ToolExecutor;
 pub struct SkillToolArgs {
     /// The name of the skill to load (matches skill id or title, case-insensitive).
     pub name: String,
+    /// Optional arguments/parameters for the skill.
+    /// These will be substituted into the skill content where {{args}} appears.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<String>,
 }
 
 /// A tool that loads domain-specific skill instructions by name.
@@ -52,10 +56,24 @@ impl ToolExecutor for SkillTool {
             .find(|s| s.id.to_lowercase() == query || s.title.to_lowercase() == query);
 
         match skill {
-            Some(s) => Ok(format!(
-                "<skill_content name=\"{}\" title=\"{}\">\n{}\n</skill_content>",
-                s.id, s.title, s.content
-            )),
+            Some(s) => {
+                // Substitute {{args}} template variable if args provided
+                let content = if let Some(ref skill_args) = args.args {
+                    if s.content.contains("{{args}}") {
+                        s.content.replace("{{args}}", skill_args)
+                    } else {
+                        // If no {{args}} placeholder but args provided, append them
+                        format!("{}\n\nArguments: {}", s.content, skill_args)
+                    }
+                } else {
+                    s.content.clone()
+                };
+
+                Ok(format!(
+                    "<skill_content name=\"{}\" title=\"{}\">\n{}\n</skill_content>",
+                    s.id, s.title, content
+                ))
+            }
             None => {
                 let available: Vec<&str> = self.skills.iter().map(|s| s.title.as_str()).collect();
                 Err(format!(
@@ -83,12 +101,14 @@ mod tests {
                 title: "Code Review".to_string(),
                 description: "Reviews code for quality and best practices".to_string(),
                 content: "You are a code review expert.\n\n## Guidelines\n- Check for bugs\n- Suggest improvements".to_string(),
+                parameters_schema: None,
             },
             SkillDefinition {
                 id: "pr-summary".to_string(),
                 title: "PR Summary".to_string(),
                 description: "Summarizes pull requests concisely".to_string(),
                 content: "You are a PR summarizer.\n\nCreate a concise summary of the changes.".to_string(),
+                parameters_schema: None,
             },
         ]
     }
@@ -156,5 +176,85 @@ mod tests {
         let result = tool.execute(args).await.expect("execute");
 
         assert!(result.contains("You are a PR summarizer"));
+    }
+
+    #[tokio::test]
+    async fn execute_with_args_substitutes_template() {
+        let skills = vec![SkillDefinition {
+            id: "commit".to_string(),
+            title: "Commit".to_string(),
+            description: "Writes commit messages".to_string(),
+            content: "Write a commit message for: {{args}}".to_string(),
+            parameters_schema: None,
+        }];
+        let tool = SkillTool::new(skills);
+        let args = serde_json::json!({
+            "name": "commit",
+            "args": "fix the login bug"
+        });
+        let result = tool.execute(args).await.expect("execute");
+
+        assert!(result.contains("<skill_content"));
+        assert!(result.contains("Write a commit message for: fix the login bug"));
+        // Template variable should be substituted
+        assert!(!result.contains("{{args}}"));
+    }
+
+    #[tokio::test]
+    async fn execute_with_args_no_template_appends_args() {
+        let skills = vec![SkillDefinition {
+            id: "review".to_string(),
+            title: "Review".to_string(),
+            description: "Reviews code".to_string(),
+            content: "You are a code reviewer. Review the code.".to_string(),
+            parameters_schema: None,
+        }];
+        let tool = SkillTool::new(skills);
+        let args = serde_json::json!({
+            "name": "review",
+            "args": "PR #123"
+        });
+        let result = tool.execute(args).await.expect("execute");
+
+        assert!(result.contains("You are a code reviewer. Review the code."));
+        assert!(result.contains("Arguments: PR #123"));
+    }
+
+    #[tokio::test]
+    async fn execute_without_args_ignores_template() {
+        let skills = vec![SkillDefinition {
+            id: "commit".to_string(),
+            title: "Commit".to_string(),
+            description: "Writes commit messages".to_string(),
+            content: "Write a commit message for: {{args}}".to_string(),
+            parameters_schema: None,
+        }];
+        let tool = SkillTool::new(skills);
+        let args = serde_json::json!({ "name": "commit" });
+        let result = tool.execute(args).await.expect("execute");
+
+        // When no args provided, {{args}} remains in content (or skill should handle it)
+        assert!(result.contains("Write a commit message for: {{args}}"));
+    }
+
+    #[tokio::test]
+    async fn execute_with_empty_args_string() {
+        let skills = vec![SkillDefinition {
+            id: "commit".to_string(),
+            title: "Commit".to_string(),
+            description: "Writes commit messages".to_string(),
+            content: "Write a commit message for: {{args}}".to_string(),
+            parameters_schema: None,
+        }];
+        let tool = SkillTool::new(skills);
+        let args = serde_json::json!({
+            "name": "commit",
+            "args": ""
+        });
+        let result = tool.execute(args).await.expect("execute");
+
+        // Empty string should still substitute (removes the placeholder)
+        assert!(result.contains("Write a commit message for: "));
+        assert!(!result.contains("{{args}}"));
     }
 }
