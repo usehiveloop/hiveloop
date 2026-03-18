@@ -1,5 +1,6 @@
 use anyhow::Context;
 use bridge_core::RuntimeConfig;
+use clap::{Parser, Subcommand};
 use figment::providers::{Env, Format, Serialized, Toml};
 use figment::Figment;
 use lsp::LspManager;
@@ -11,8 +12,109 @@ use tokio_util::sync::CancellationToken;
 use tracing::info;
 use webhooks::{WebhookContext, WebhookDispatcher};
 
+/// Bridge - AI Agent Runtime
+#[derive(Parser)]
+#[command(name = "bridge")]
+#[command(about = "AI Agent Runtime with tool execution and MCP support")]
+#[command(version = "0.3.0")]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// List available tools
+    Tools {
+        #[command(subcommand)]
+        action: Option<ToolCommands>,
+    },
+}
+
+#[derive(Subcommand)]
+enum ToolCommands {
+    /// List all available tools
+    List {
+        /// Output as JSON
+        #[arg(long, default_value_t = true)]
+        json: bool,
+    },
+}
+
+/// Tool information for JSON output
+#[derive(serde::Serialize)]
+struct ToolInfo {
+    name: String,
+    description: String,
+    category: String,
+    parameters: serde_json::Value,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Some(Commands::Tools { action }) => {
+            handle_tools_command(action).await?;
+            Ok(())
+        }
+        None => run_server().await,
+    }
+}
+
+async fn handle_tools_command(action: Option<ToolCommands>) -> anyhow::Result<()> {
+    let action = action.unwrap_or(ToolCommands::List { json: true });
+
+    match action {
+        ToolCommands::List { json: _ } => {
+            let tools = get_tools_info()?;
+            println!("{}", serde_json::to_string_pretty(&tools)?);
+            Ok(())
+        }
+    }
+}
+
+fn get_tools_info() -> anyhow::Result<Vec<ToolInfo>> {
+    use tools::{register_builtin_tools, ToolExecutor, ToolRegistry};
+
+    let mut registry = ToolRegistry::new();
+    register_builtin_tools(&mut registry);
+
+    let tools: Vec<ToolInfo> = registry
+        .snapshot()
+        .values()
+        .map(|tool| {
+            // Infer category from tool name
+            let category = categorize_tool(tool.name());
+            
+            ToolInfo {
+                name: tool.name().to_string(),
+                description: tool.description().to_string(),
+                category,
+                parameters: tool.parameters_schema(),
+            }
+        })
+        .collect();
+
+    Ok(tools)
+}
+
+fn categorize_tool(name: &str) -> String {
+    match name {
+        "bash" | "agent" | "parallel_agent" | "join" | "Batch" => "action".to_string(),
+        "Read" | "write" | "edit" | "apply_patch" | "LS" | "Glob" | "Grep" => {
+            "filesystem".to_string()
+        }
+        "web_fetch" | "WebSearch" => "web".to_string(),
+        "TodoWrite" | "TodoRead" => "task".to_string(),
+        "lsp" => "code".to_string(),
+        "skill" => "skill".to_string(),
+        _ => "other".to_string(),
+    }
+}
+
+async fn run_server() -> anyhow::Result<()> {
     // Load configuration from config.toml and environment variables
     let config: RuntimeConfig = Figment::from(Serialized::defaults(RuntimeConfig::default()))
         .merge(Toml::file("config.toml"))

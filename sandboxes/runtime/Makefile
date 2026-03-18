@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi clean
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi tools tools-debug clean
 
 # --- Build ---
 
@@ -68,6 +68,14 @@ setup-lsp: ## Install LSP servers for integration tests
 
 openapi: ## Generate OpenAPI v3 spec (openapi.json)
 	cargo run -p bridge --features openapi --bin gen-openapi
+
+# --- CLI ---
+
+tools: ## List available tools (JSON format)
+	./target/release/bridge tools list --json
+
+tools-debug: ## List available tools using debug build
+	cargo run -p bridge --bin bridge -- tools list --json
 
 # --- Clean ---
 

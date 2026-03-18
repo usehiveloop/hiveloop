@@ -79,6 +79,8 @@ data: [DONE]
 }
 ```
 
+**Note:** `base_url` is required for custom providers.
+
 ---
 
 ## Example: Proxy to Another Bridge
@@ -114,6 +116,19 @@ Use vLLM or text-generation-inference:
   }
 }
 ```
+
+---
+
+## Schema Handling
+
+Bridge automatically flattens JSON schemas for compatibility with custom providers:
+
+- Resolves `$ref` references by inlining definitions
+- Removes schemars-specific keys (`$schema`, `title`, `definitions`)
+- Simplifies `oneOf`/`anyOf`/`allOf` enum patterns
+- Ensures all properties have valid `type` fields
+
+This ensures tool schemas work with providers that have strict schema requirements.
 
 ---
 
@@ -226,6 +241,19 @@ Error response format:
   }
 }
 ```
+
+---
+
+## Tool Support
+
+For providers that support function calling/tool use, Bridge will:
+
+1. Send tool definitions in the OpenAI format
+2. Receive tool calls from the model
+3. Execute tools and return results
+4. Continue the conversation
+
+If your provider doesn't support tools, set `"tools": []` in the agent configuration.
 
 ---
 

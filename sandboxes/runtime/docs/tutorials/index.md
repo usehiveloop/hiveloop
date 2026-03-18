@@ -34,8 +34,58 @@ Make sure you have:
 - Bridge installed and running
 - An API key from an AI provider
 - `curl` or similar for testing
+- For integration tutorials: a control plane configured with the required integrations
 
 Need help? Start with [Getting Started](../getting-started/index.md).
+
+---
+
+## Important Notes
+
+### Tool Names Are Case-Sensitive
+
+When specifying tools in your agent definitions, use the exact tool names:
+
+| Correct | Incorrect |
+|---------|-----------|
+| `Read` | `read` |
+| `Grep` | `grep` |
+| `Glob` | `glob` |
+| `write` | `Write` |
+| `edit` | `Edit` |
+| `bash` | `Bash` |
+| `LS` | `ls` |
+| `web_search` | `web-search` |
+
+See [Tools Reference](../tools-reference/index.md) for the complete list.
+
+### Integrations Require Control Plane Support
+
+Integration actions are forwarded to your control plane at:
+```
+{control_plane_url}/integrations/{integration_name}/actions/{action_name}
+```
+
+Make sure your control plane implements the required integration endpoints.
+
+### Approval API Format
+
+When approving tool calls, use the correct JSON format:
+
+```bash
+# Bulk approval
+curl -X POST http://localhost:8080/agents/{agent_id}/conversations/{conv_id}/approvals \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request_ids": ["req-abc123", "req-def456"],
+    "decision": "approve"
+  }'
+
+# Single approval
+curl -X POST http://localhost:8080/agents/{agent_id}/conversations/{conv_id}/approvals/{request_id} \
+  -H "Content-Type: application/json" \
+  -d '{"decision": "approve"}'
+```
 
 ---
 

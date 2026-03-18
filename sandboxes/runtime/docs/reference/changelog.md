@@ -4,6 +4,24 @@ Changes to Bridge.
 
 ---
 
+## v0.3.0 (2026-03-18)
+
+### Added
+
+- **CLI Interface** — Bridge now has a command-line interface
+  - `bridge tools list --json` — List all available tools with schemas
+  - `make tools` — Makefile command to list tools
+- **Complete Documentation** — 56 pages of fully audited documentation
+
+### Documentation
+
+- Fixed all tool names, API formats, and event names
+- Added comprehensive limits and constraints documentation
+- Fixed webhook HMAC signature documentation
+- Added missing LLM provider guides (Google, Cohere)
+
+---
+
 ## v0.2.0 (2026-03-17)
 
 ### Added

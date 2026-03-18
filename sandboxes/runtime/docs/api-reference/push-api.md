@@ -12,6 +12,8 @@ All push endpoints require a bearer token:
 Authorization: Bearer {BRIDGE_CONTROL_PLANE_API_KEY}
 ```
 
+Missing or invalid tokens return **401 Unauthorized** with error code `unauthorized`.
+
 See [Authentication](authentication.md).
 
 ---
@@ -26,55 +28,76 @@ Push multiple agents at once. Use this on startup.
 POST /push/agents
 ```
 
-### Body
+### Request Body
 
-```json
-{
-  "agents": [
-    {
-      "id": "support-agent",
-      "name": "Customer Support",
-      "system_prompt": "You are a helpful support agent...",
-      "provider": {
-        "provider_type": "anthropic",
-        "model": "claude-sonnet-4-20250514",
-        "api_key": "<anthropic-api-key>"
-      },
-      "tools": [],
-      "skills": [],
-      "integrations": [],
-      "config": {
-        "max_tokens": 2048,
-        "max_turns": 50
-      },
-      "version": "1"
-    }
-  ]
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agents` | array | Yes | List of agent definitions |
+
+#### Agent Definition Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique agent identifier |
+| `name` | string | Yes | Human-readable name |
+| `system_prompt` | string | Yes | System prompt for the agent |
+| `provider` | object | Yes | LLM provider configuration |
+| `provider.provider_type` | string | Yes | Provider: `open_ai`, `anthropic`, `google`, `groq`, `deep_seek`, `mistral`, `cohere`, `x_ai`, `together`, `fireworks`, `ollama`, `custom` |
+| `provider.model` | string | Yes | Model identifier (e.g., `gpt-4o`, `claude-sonnet-4-20250514`) |
+| `provider.api_key` | string | Yes | API key for authentication |
+| `provider.base_url` | string | No | Optional custom endpoint URL |
+| `description` | string | No | Description for subagent documentation |
+| `tools` | array | No | Agent-defined tools (default: `[]`) |
+| `tools[].name` | string | Yes | Tool name |
+| `tools[].description` | string | Yes | Tool description |
+| `tools[].parameters_schema` | object | Yes | JSON Schema for parameters |
+| `mcp_servers` | array | No | MCP server connections (default: `[]`) |
+| `mcp_servers[].name` | string | Yes | Server name |
+| `mcp_servers[].transport` | object | Yes | Transport configuration |
+| `skills` | array | No | Available skills (default: `[]`) |
+| `integrations` | array | No | External integrations (default: `[]`) |
+| `config` | object | No | Agent configuration |
+| `config.max_tokens` | number | No | Maximum tokens for LLM response |
+| `config.max_turns` | number | No | Maximum conversation turns |
+| `config.temperature` | number | No | Temperature for LLM sampling (0-1) |
+| `config.json_schema` | object | No | JSON schema for structured output |
+| `config.rate_limit_rpm` | number | No | Rate limit in requests per minute |
+| `config.compaction` | object | No | Conversation compaction config |
+| `permissions` | object | No | Per-tool permission overrides (default: `{}`) |
+| `webhook_url` | string | No | Webhook URL for event delivery |
+| `webhook_secret` | string | No | Webhook secret for HMAC signing |
+| `version` | string | No | Version for change detection |
+| `updated_at` | string | No | Last updated timestamp |
+| `subagents` | array | No | Nested subagent definitions (default: `[]`) |
 
 ### Response
 
+**200 OK**
 ```json
 {
-  "loaded": 1,
-  "errors": []
+  "loaded": 2
 }
 ```
 
-### Fields
+### Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `loaded` | number | How many agents were loaded |
-| `errors` | array | Any errors (empty on success) |
+| `loaded` | number | Number of agents received in the request |
 
 ### Behavior
 
-- New agents are created
-- Existing agents with different versions are updated (drain + replace)
-- Existing agents with same version are unchanged
-- Errors for one agent don't affect others
+- Loads all agents immediately
+- **No version comparison** — existing agents are overwritten unconditionally
+- For version-aware updates, use `PUT /push/agents/{agent_id}` or `POST /push/diff`
+- Errors for individual agents are logged by Bridge but not returned in the response
+- Returns `200 OK` as long as the request body is valid JSON
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 401 | `unauthorized` | Invalid or missing bearer token |
 
 ### Example
 
@@ -84,8 +107,17 @@ curl -X POST http://localhost:8080/push/agents \
   -H "Content-Type: application/json" \
   -d '{
     "agents": [
-      {"id": "agent1", "version": "1", ...},
-      {"id": "agent2", "version": "3", ...}
+      {
+        "id": "agent1",
+        "name": "Agent One",
+        "system_prompt": "You are helpful...",
+        "provider": {
+          "provider_type": "open_ai",
+          "model": "gpt-4o",
+          "api_key": "<provider-api-key>"
+        },
+        "version": "1"
+      }
     ]
   }'
 ```
@@ -102,26 +134,39 @@ Create or update a single agent.
 PUT /push/agents/{agent_id}
 ```
 
-### Body
+### Request Body
 
-Same as an agent in the bulk endpoint.
+Same fields as an agent in the bulk endpoint. The `id` in the body must match the `agent_id` path parameter.
 
 ### Responses
 
-**Created** — `201 Created`
+**201 Created** — Agent was newly created
 ```json
-{"status": "created"}
+{
+  "status": "created"
+}
 ```
 
-**Updated** — `200 OK`
+**200 OK** — Agent was updated (version changed)
 ```json
-{"status": "updated"}
+{
+  "status": "updated"
+}
 ```
 
-**Unchanged** — `200 OK`
+**200 OK** — Agent unchanged (same version)
 ```json
-{"status": "unchanged"}
+{
+  "status": "unchanged"
+}
 ```
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 400 | `invalid_request` | Path agent_id doesn't match body id |
+| 401 | `unauthorized` | Invalid or missing bearer token |
 
 ### Example
 
@@ -132,8 +177,12 @@ curl -X PUT http://localhost:8080/push/agents/my-agent \
   -d '{
     "id": "my-agent",
     "name": "My Agent",
-    "system_prompt": "...",
-    "provider": {...},
+    "system_prompt": "You are helpful...",
+    "provider": {
+      "provider_type": "anthropic",
+      "model": "claude-sonnet-4-20250514",
+      "api_key": "<anthropic-api-key>"
+    },
     "version": "2"
   }'
 ```
@@ -152,9 +201,10 @@ DELETE /push/agents/{agent_id}
 
 ### Response
 
+**200 OK**
 ```json
 {
-  "status": "deleted"
+  "status": "removed"
 }
 ```
 
@@ -165,11 +215,12 @@ DELETE /push/agents/{agent_id}
 - New conversations are rejected
 - Agent removed when all conversations end
 
-### Errors
+### Error Responses
 
-| Status | Code | Meaning |
-|--------|------|---------|
-| 404 | `AGENT_NOT_FOUND` | Agent doesn't exist |
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 401 | `unauthorized` | Invalid or missing bearer token |
+| 404 | `agent_not_found` | Agent doesn't exist |
 
 ### Example
 
@@ -180,9 +231,9 @@ curl -X DELETE http://localhost:8080/push/agents/my-agent \
 
 ---
 
-## Hydrate Conversation
+## Hydrate Conversations
 
-Restore a conversation with existing message history.
+Restore conversations with existing message history.
 
 ### Request
 
@@ -190,40 +241,41 @@ Restore a conversation with existing message history.
 POST /push/agents/{agent_id}/conversations
 ```
 
-### Body
-
-```json
-{
-  "conversation_id": "conv-existing-123",
-  "user_id": "user-456",
-  "messages": [
-    {"role": "user", "content": "Hello"},
-    {"role": "assistant", "content": "Hi there!"},
-    {"role": "user", "content": "Help me with something"}
-  ],
-  "metadata": {
-    "restored": true
-  }
-}
-```
-
-### Fields
+### Request Body
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `conversation_id` | string | Yes | Existing conversation ID |
-| `user_id` | string | No | User identifier |
-| `messages` | array | Yes | Message history |
-| `metadata` | object | No | Arbitrary metadata |
+| `conversations` | array | Yes | List of conversation records to hydrate |
+| `conversations[].id` | string | Yes | Conversation ID |
+| `conversations[].agent_id` | string | Yes | Agent ID |
+| `conversations[].user_id` | string | No | User identifier |
+| `conversations[].messages` | array | Yes | Message history |
+| `conversations[].messages[].role` | string | Yes | `user`, `assistant`, or `system` |
+| `conversations[].messages[].content` | string/array | Yes | Message content |
+| `conversations[].metadata` | object | No | Arbitrary metadata |
 
 ### Response
 
+**200 OK**
 ```json
 {
-  "conversation_id": "conv-existing-123",
-  "status": "hydrated"
+  "hydrated": 3
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hydrated` | number | Number of conversations hydrated |
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 401 | `unauthorized` | Invalid or missing bearer token |
+| 404 | `agent_not_found` | Agent doesn't exist |
+| 409 | `conflict` | Agent has active conversations |
 
 ### Use Cases
 
@@ -238,9 +290,17 @@ curl -X POST http://localhost:8080/push/agents/my-agent/conversations \
   -H "Authorization: Bearer <bridge-control-plane-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
-    "conversation_id": "conv-123",
-    "messages": [
-      {"role": "user", "content": "Hello"}
+    "conversations": [
+      {
+        "id": "conv-123",
+        "agent_id": "my-agent",
+        "user_id": "user-456",
+        "messages": [
+          {"role": "user", "content": "Hello"},
+          {"role": "assistant", "content": "Hi there!"}
+        ],
+        "metadata": {"restored": true}
+      }
     ]
   }'
 ```
@@ -257,7 +317,11 @@ Update an agent's API key without draining.
 PATCH /push/agents/{agent_id}/api-key
 ```
 
-### Body
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `api_key` | string | Yes | New API key |
 
 ```json
 {
@@ -267,6 +331,7 @@ PATCH /push/agents/{agent_id}/api-key
 
 ### Response
 
+**200 OK**
 ```json
 {
   "status": "updated"
@@ -278,6 +343,13 @@ PATCH /push/agents/{agent_id}/api-key
 - Immediate update, no draining
 - Active conversations continue with new key
 - Useful for key rotation on compromised keys
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 401 | `unauthorized` | Invalid or missing bearer token |
+| 404 | `agent_not_found` | Agent doesn't exist |
 
 ### Example
 
@@ -292,7 +364,7 @@ curl -X PATCH http://localhost:8080/push/agents/my-agent/api-key \
 
 ## Apply Diff Update
 
-Apply incremental changes to agents.
+Apply incremental changes to agents (add, update, remove).
 
 ### Request
 
@@ -300,34 +372,74 @@ Apply incremental changes to agents.
 POST /push/diff
 ```
 
-### Body
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `added` | array | No | List of new agent definitions to add |
+| `updated` | array | No | List of agent definitions to update |
+| `removed` | array | No | List of agent IDs to remove |
 
 ```json
 {
-  "updates": [
+  "added": [],
+  "updated": [
     {
-      "agent_id": "agent1",
-      "updates": {
-        "system_prompt": "Updated prompt..."
+      "id": "agent1",
+      "name": "Updated Agent",
+      "system_prompt": "Updated prompt...",
+      "provider": {
+        "provider_type": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "api_key": "<anthropic-api-key>"
       }
     }
   ],
-  "new_version": "2"
+  "removed": ["old-agent-id"]
 }
 ```
 
 ### Response
 
+**200 OK**
 ```json
 {
-  "updated": ["agent1"],
-  "errors": []
+  "added": 0,
+  "updated": 1,
+  "removed": 1
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `added` | number | Number of agents added |
+| `updated` | number | Number of agents updated |
+| `removed` | number | Number of agents removed |
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 401 | `unauthorized` | Invalid or missing bearer token |
 
 ### Use Case
 
 Update many agents at once (e.g., changing a shared prompt template).
+
+### Example
+
+```bash
+curl -X POST http://localhost:8080/push/diff \
+  -H "Authorization: Bearer <bridge-control-plane-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "added": [],
+    "updated": [{"id": "agent1", "name": "Updated", ...}],
+    "removed": ["agent-to-delete"]
+  }'
+```
 
 ---
 

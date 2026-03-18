@@ -16,55 +16,190 @@ An agent is a complete AI configuration. Think of it as a job description for an
     "model": "claude-sonnet-4-20250514",
     "api_key": "<anthropic-api-key>"
   },
-  "tools": ["read", "edit", "bash"],
+  "tools": [{"name": "read", "description": "...", "parameters_schema": {}}],
   "mcp_servers": [...],
   "skills": [...],
   "integrations": [...],
   "config": {
     "max_tokens": 4096,
     "max_turns": 50,
-    "temperature": 0.2
+    "temperature": 0.2,
+    "compaction": {
+      "token_budget": 100000,
+      "tail_messages": 10,
+      "summary_provider": { ... }
+    }
   },
   "subagents": [...],
-  "permissions": {...},
-  "version": "3"
+  "permissions": {"bash": "require_approval"},
+  "version": "3",
+  "webhook_url": "https://...",
+  "webhook_secret": "<webhook-secret>"
 }
 ```
 
 ### Core Fields
 
-| Field | What it does |
-|-------|--------------|
-| `id` | Unique identifier. Used in URLs like `/agents/{id}/conversations` |
-| `name` | Human-readable name, shown in UIs |
-| `system_prompt` | Instructions given to the AI at the start of every conversation |
-| `provider` | Which AI model to use and how to connect to it |
-| `version` | String you control. Changing it triggers an agent update |
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `id` | **Yes** | string | Unique identifier. Used in URLs like `/agents/{id}/conversations` |
+| `name` | **Yes** | string | Human-readable name, shown in UIs |
+| `system_prompt` | **Yes** | string | Instructions given to the AI at the start of every conversation |
+| `provider` | **Yes** | object | LLM provider configuration (see below) |
+| `description` | No | string | Human-readable description. Used in tool documentation when this agent is a subagent |
+| `version` | No | string | String you control. Changing it triggers an agent update |
+| `updated_at` | No | string | Last updated timestamp for change detection |
+
+### Provider Configuration
+
+The `provider` object is required and has the following fields:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `provider_type` | **Yes** | string | LLM provider type. See valid values below |
+| `model` | **Yes** | string | Model identifier (e.g., "gpt-4o", "claude-sonnet-4-20250514") |
+| `api_key` | **Yes** | string | API key for authentication |
+| `base_url` | No | string | Optional custom endpoint URL |
+
+#### Valid Provider Types
+
+| Value | Description | Aliases Accepted |
+|-------|-------------|------------------|
+| `open_ai` | OpenAI (GPT-4o, etc.) | `openai`, `open_ai` |
+| `anthropic` | Anthropic (Claude, etc.) | `anthropic` |
+| `google` | Google (Gemini, etc.) | `google` |
+| `groq` | Groq | `groq` |
+| `deep_seek` | DeepSeek | `deepseek`, `deep_seek` |
+| `mistral` | Mistral | `mistral` |
+| `cohere` | Cohere | `cohere` |
+| `x_ai` | xAI (Grok, etc.) | `xai`, `x_ai` |
+| `together` | Together AI | `together` |
+| `fireworks` | Fireworks AI | `fireworks` |
+| `ollama` | Ollama (local models) | `ollama` |
+| `custom` | Custom provider with custom base URL | `custom` |
 
 ### Capabilities
 
-| Field | What it does |
-|-------|--------------|
-| `tools` | List of built-in tools the agent can use |
-| `mcp_servers` | External MCP servers to connect to |
-| `skills` | Reusable prompt templates the agent can invoke |
-| `integrations` | External service integrations |
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `tools` | No | array | List of built-in tools the agent can use. Empty array means all built-in tools available |
+| `mcp_servers` | No | array | External MCP servers to connect to |
+| `skills` | No | array | Reusable prompt templates the agent can invoke |
+| `integrations` | No | array | External service integrations |
+| `subagents` | No | array | Child agents this agent can spawn |
+
+#### Tool Definition
+
+Each tool in the `tools` array requires:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `name` | **Yes** | string | Unique name of the tool |
+| `description` | **Yes** | string | Human-readable description of what the tool does |
+| `parameters_schema` | **Yes** | object | JSON Schema for the tool's parameters |
+
+#### MCP Server Definition
+
+Each MCP server in the `mcp_servers` array requires:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `name` | **Yes** | string | Name of the MCP server |
+| `transport` | **Yes** | object | Transport configuration (see below) |
+
+**MCP Transport Types:**
+
+1. **Stdio Transport** (`type: "stdio"`):
+   - `command` (required): Command to execute
+   - `args` (optional): Array of command arguments
+   - `env` (optional): Map of environment variables
+
+2. **Streamable HTTP Transport** (`type: "streamable_http"`):
+   - `url` (required): Server URL
+   - `headers` (optional): Map of additional HTTP headers
+
+#### Skill Definition
+
+Each skill in the `skills` array requires:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `id` | **Yes** | string | Unique identifier for the skill |
+| `title` | **Yes** | string | Human-readable title |
+| `description` | **Yes** | string | Description of what the skill does |
+| `content` | **Yes** | string | Full skill prompt/instructions content |
+| `parameters_schema` | No | object | Optional JSON Schema for structured parameters |
+
+#### Integration Definition
+
+Each integration in the `integrations` array requires:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `name` | **Yes** | string | Integration identifier (e.g., "github", "slack") |
+| `description` | **Yes** | string | Human-readable description |
+| `actions` | **Yes** | array | Available actions within this integration |
+
+Each action in `actions` requires:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `name` | **Yes** | string | Action identifier (e.g., "create_pull_request") |
+| `description` | **Yes** | string | Human-readable description |
+| `parameters_schema` | **Yes** | object | JSON Schema for the action's parameters |
+| `permission` | **Yes** | string | Permission level: `allow`, `deny`, or `require_approval` |
 
 ### Configuration
 
-| Field | What it does |
-|-------|--------------|
-| `config.max_tokens` | Maximum tokens per response |
-| `config.max_turns` | Maximum back-and-forth exchanges before compaction |
-| `config.temperature` | Randomness (0 = deterministic, 1 = creative) |
-| `config.compaction` | How to summarize old conversation history |
+The `config` object supports the following optional fields:
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| `max_tokens` | integer | Maximum tokens for LLM response | `>= 0` |
+| `max_turns` | integer | Maximum back-and-forth exchanges before compaction | `>= 0` |
+| `temperature` | number | Randomness (0 = deterministic, 1 = creative) | No explicit range |
+| `json_schema` | object | JSON schema for structured output | Valid JSON Schema |
+| `rate_limit_rpm` | integer | Rate limit in requests per minute | `>= 0` |
+| `compaction` | object | Conversation compaction configuration | See below |
+
+#### Compaction Configuration
+
+When `compaction` is specified, it controls how conversation history is summarized:
+
+| Field | Required | Type | Description | Default |
+|-------|----------|------|-------------|---------|
+| `token_budget` | No | integer | Token threshold to trigger compaction | `100000` |
+| `tail_messages` | No | integer | Recent messages to preserve after compaction | `10` |
+| `summary_prompt` | No | string | Custom system prompt for summarization | Built-in default |
+| `summary_provider` | **Yes** | object | Provider config for the summarization model | - |
 
 ### Permissions
 
-| Field | What it does |
-|-------|--------------|
-| `permissions` | Map of tool names to permission levels |
-| `subagents` | Child agents this agent can spawn |
+The `permissions` object maps tool names to permission levels. Tools not listed default to `allow`.
+
+| Permission Value | Behavior |
+|------------------|----------|
+| `allow` | Execute immediately without approval |
+| `deny` | Block execution and return an error to the LLM |
+| `require_approval` | Pause execution and wait for user approval via HTTP |
+
+Example:
+```json
+{
+  "permissions": {
+    "bash": "require_approval",
+    "write": "require_approval",
+    "read": "allow"
+  }
+}
+```
+
+### Webhooks
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `webhook_url` | No | string | URL for event delivery |
+| `webhook_secret` | No | string | Secret for HMAC signing of webhook payloads |
 
 ---
 
@@ -98,6 +233,8 @@ The `version` field controls updates:
 - **Same version** → No change (idempotent)
 - **Different version** → Drain and replace
 
+The version is a simple string with no format constraints. Any change to the version string triggers an update.
+
 Example:
 
 ```bash
@@ -125,13 +262,38 @@ When you update an agent, Bridge doesn't just kill active conversations. It:
 3. Routes new conversations to the new version
 4. Removes the old version when all conversations complete
 
-You can configure the drain timeout:
+**Drain timeout:** 60 seconds (hardcoded)
 
-```toml
-drain_timeout_secs = 60  # Wait up to 60 seconds before forcing shutdown
+If the timeout is reached, old conversations are forcefully dropped:
+```
+warn: drain timeout reached, forcing shutdown
 ```
 
 During draining, both versions run simultaneously.
+
+---
+
+## System Limits and Constraints
+
+### Subagent Depth
+- **Maximum nesting depth:** 3 levels
+- Attempting to spawn deeper results in error: "Maximum subagent depth (3) reached"
+
+### Timeouts
+- **Agent chat timeout:** 180 seconds per LLM call
+- **Drain timeout:** 60 seconds during agent updates
+
+### Parallel Agent Tool
+- **Maximum tasks per call:** 25
+
+### No Hard Limits On
+The following have no explicit maximums in the code (practical limits apply):
+- Number of tools per agent
+- Number of skills per agent  
+- Number of integrations per agent
+- Number of subagents per agent
+- Number of MCP servers per agent
+- String field lengths (id, name, system_prompt, etc.)
 
 ---
 
@@ -197,12 +359,20 @@ Agents can spawn other agents for specialized tasks:
   "id": "parent-agent",
   "subagents": [
     {
+      "id": "code-reviewer-v2",
       "name": "code_reviewer",
-      "agent_id": "code-reviewer-v2"
+      "description": "Code review specialist",
+      "system_prompt": "You are a code reviewer...",
+      "provider": { ... },
+      "config": { "max_turns": 10 }
     },
     {
+      "id": "test-agent-v1",
       "name": "test_writer",
-      "agent_id": "test-agent-v1"
+      "description": "Test writing specialist",
+      "system_prompt": "You write tests...",
+      "provider": { ... },
+      "config": { "max_turns": 10 }
     }
   ]
 }
@@ -219,6 +389,12 @@ The parent can call `spawn_agent` to delegate work:
   }
 }
 ```
+
+Subagents:
+- Inherit parent's integration tools with the same permissions
+- Get built-in tools but no MCP servers (to prevent unbounded recursion)
+- Have their own `config` for max_turns, etc.
+- Must include `description` for tool documentation
 
 ---
 

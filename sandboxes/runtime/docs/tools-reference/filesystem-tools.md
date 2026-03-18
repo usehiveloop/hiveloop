@@ -12,9 +12,24 @@ Read the contents of a file.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `path` | string | Yes | Path to the file |
-| `offset` | number | No | Start reading from this line (0-indexed) |
-| `limit` | number | No | Read at most this many lines |
+| `path` | string | Yes | Absolute path to the file |
+| `offset` | number | No | Line number to start reading from (1-indexed) |
+| `limit` | number | No | Maximum lines to read (default: 2000) |
+
+### Limits
+
+- **Maximum file size**: 50KB (files larger than this are truncated)
+- **Maximum line length**: 2000 characters (longer lines are truncated with `...`)
+- **Default line limit**: 2000 lines per request
+- **Line numbering**: Output includes line numbers (e.g., `1: content`)
+
+### Encoding & File Types
+
+- **Text files**: UTF-8 encoding only
+- **Binary files**: Rejected with an error (use `bash` tool for binary inspection)
+- **Image files** (png, jpg, jpeg, gif, webp, bmp, ico): Returned as base64-encoded JSON
+- **PDF files**: Returned as base64-encoded JSON
+- **SVG files**: Treated as text (not images)
 
 ### Example
 
@@ -31,18 +46,16 @@ Read the contents of a file.
 
 ```json
 {
-  "success": true,
-  "result": "# Project Name\n\nThis is a project.\n",
-  "metadata": {
-    "line_count": 3,
-    "size_bytes": 35
-  }
+  "content": "1: # Project Name\n2: \n3: This is a project.\n",
+  "total_lines": 3,
+  "lines_read": 3,
+  "truncated": false
 }
 ```
 
 ### Reading Partial Files
 
-Read lines 10-20:
+Read lines 10-20 (offset is 1-indexed):
 
 ```json
 {
@@ -55,13 +68,28 @@ Read lines 10-20:
 }
 ```
 
+### Reading Directories
+
+When `path` is a directory, returns a paginated list of entries:
+
+```json
+{
+  "name": "read",
+  "arguments": {
+    "path": "/home/user/project/src"
+  }
+}
+```
+
 ### Common Errors
 
 | Error | Cause |
 |-------|-------|
-| `File not found` | Path doesn't exist |
+| `File not found` | Path doesn't exist (suggests similar filenames if available) |
 | `Permission denied` | Can't read file |
-| `Is a directory` | Path is a directory |
+| `Is a directory` | Note: Directories are actually listed, not rejected |
+| `Binary file detected` | Binary file detected by content analysis or extension |
+| `file_path must be an absolute path` | Relative paths are not allowed |
 
 ---
 
@@ -73,8 +101,15 @@ Create a new file or overwrite an existing file.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `path` | string | Yes | Path to create/overwrite |
+| `path` | string | Yes | Absolute path to create/overwrite |
 | `content` | string | Yes | File contents |
+
+### Behavior
+
+- **Atomicity**: NOT atomic — writes directly to the target file
+- **Parent directories**: Created automatically if they don't exist
+- **Staleness check**: For existing files, the file must have been read first to prevent overwriting unseen changes
+- **File locking**: Concurrent writes to the same file are serialized
 
 ### Example
 
@@ -92,8 +127,11 @@ Create a new file or overwrite an existing file.
 
 ```json
 {
-  "success": true,
-  "result": "File written: /home/user/project/config.json"
+  "path": "/home/user/project/config.json",
+  "bytes_written": 23,
+  "created": true,
+  "diff": null,
+  "diagnostics": null
 }
 ```
 
@@ -101,22 +139,52 @@ Create a new file or overwrite an existing file.
 
 | Error | Cause |
 |-------|-------|
-| `Directory not found` | Parent directory doesn't exist |
+| `filePath must be an absolute path` | Relative paths are not allowed |
+| `File has been modified` | Staleness check failed — file changed since last read |
 | `Permission denied` | Can't write to location |
 
 ---
 
 ## edit
 
-Make targeted changes to a file.
+Make targeted changes to a file using fuzzy matching.
 
 ### Parameters
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `path` | string | Yes | Path to edit |
+| `path` | string | Yes | Absolute path to edit |
 | `old_string` | string | Yes | Text to find and replace |
-| `new_string` | string | Yes | Replacement text |
+| `new_string` | string | Yes | Replacement text (must differ from old_string) |
+| `replace_all` | boolean | No | If true, replace all occurrences (default: false) |
+
+### Matching Behavior
+
+The edit tool uses a chain of **9 matching strategies** (first match wins):
+
+1. **Simple** — Exact string match
+2. **LineTrimmed** — Trim each line before matching
+3. **BlockAnchor** — Levenshtein-based fuzzy block matching (60% similarity threshold)
+4. **WhitespaceNormalized** — Collapse all whitespace to single spaces
+5. **IndentationFlexible** — Strip leading whitespace, match, then reindent
+6. **EscapeNormalized** — Normalize escape sequences (`\n`, `\t`, etc.)
+7. **TrimmedBoundary** — Trim first/last lines of old_string and match inner content
+8. **ContextAware** — Use surrounding context lines to locate block
+9. **MultiOccurrence** — When multiple matches exist, picks the first occurrence
+
+### Line Ending Normalization
+
+CRLF (`\r\n`) and CR (`\r`) line endings are automatically normalized to LF (`\n`) before matching.
+
+### Special Case: Empty old_string
+
+When `old_string` is empty:
+- If file doesn't exist: Creates a new file with `new_string` content
+- If file exists: Appends `new_string` to the end of the file
+
+### Replace All Mode
+
+Set `replace_all: true` to replace all occurrences of `old_string`. By default, only the first match is replaced (unless multiple matches prevent unique identification).
 
 ### Example
 
@@ -135,27 +203,64 @@ Make targeted changes to a file.
 
 ```json
 {
-  "success": true,
-  "result": "File edited: /home/user/project/config.json"
+  "path": "/home/user/project/config.json",
+  "old_content_snippet": "\"version\": \"1.0.0\"",
+  "new_content_snippet": "\"version\": \"1.1.0\"",
+  "replacements_made": 1,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "diff": "...",
+  "diagnostics": null
 }
 ```
 
-### When to Use edit vs write
+### Common Errors
 
-- **edit** — Change specific lines, preserve rest of file
-- **write** — Replace entire file contents
+| Error | Cause |
+|-------|-------|
+| `oldString and newString are identical` | No change requested |
+| `oldString not found in file content` | Text could not be matched by any strategy |
+| `Found multiple matches for oldString` | Multiple matches and no `replace_all` flag |
+| `File has been modified` | Staleness check failed — file changed since last read |
 
 ---
 
 ## ls
 
-List directory contents.
+List directory contents with tree-like formatting.
 
 ### Parameters
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `path` | string | Yes | Directory to list |
+| `path` | string | Yes | Absolute path to directory |
+
+### Limits
+
+- **Maximum entries**: 100 (truncated if more exist)
+
+### Default Ignored Patterns
+
+The following directories are automatically excluded:
+
+```
+node_modules, __pycache__, .git, dist, build, target, vendor,
+bin, obj, .idea, .vscode, .zig-cache, zig-out, .coverage,
+coverage, tmp, temp, .cache, cache, logs, .venv, venv, env
+```
+
+Additionally, `.gitignore` patterns are respected.
+
+### Output Format
+
+Tree-like output with 2-space indentation:
+
+```
+src/
+  main.rs
+  lib.rs
+Cargo.toml
+```
 
 ### Example
 
@@ -172,27 +277,51 @@ List directory contents.
 
 ```json
 {
-  "success": true,
-  "result": [
-    { "name": "src", "type": "directory" },
-    { "name": "README.md", "type": "file", "size": 1024 },
-    { "name": "package.json", "type": "file", "size": 512 }
-  ]
+  "output": "src/\n  main.rs\nREADME.md\n",
+  "total_entries": 3,
+  "truncated": false
 }
 ```
+
+### Common Errors
+
+| Error | Cause |
+|-------|-------|
+| `Path does not exist` | Directory doesn't exist |
+| `Not a directory` | Path is a file, not a directory |
 
 ---
 
 ## glob
 
-Find files matching a pattern.
+Find files matching a glob pattern.
 
 ### Parameters
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `pattern` | string | Yes | Glob pattern (e.g., `**/*.js`) |
-| `path` | string | No | Starting directory (default: `.`) |
+| `path` | string | No | Starting directory (default: current working directory) |
+
+### Limits
+
+- **Maximum results**: 1000 files (truncated if more match)
+
+### Pattern Syntax
+
+Uses standard glob pattern matching:
+
+| Pattern | Matches |
+|---------|---------|
+| `*` | Any characters except `/` |
+| `**` | Any characters including `/` (recursive) |
+| `?` | Any single character |
+| `{a,b}` | Either `a` or `b` |
+| `[abc]` | Any character in the set |
+
+### Sort Order
+
+Results are sorted by modification time (newest first).
 
 ### Example
 
@@ -210,32 +339,32 @@ Find files matching a pattern.
 
 ```json
 {
-  "success": true,
-  "result": [
-    "/home/user/project/src/utils.test.js",
-    "/home/user/project/src/components/Button.test.js"
-  ]
+  "files": [
+    {
+      "path": "/home/user/project/src/components/Button.test.js",
+      "modified": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total_matches": 1,
+  "truncated": false
 }
 ```
 
-### Pattern Syntax
+### Common Errors
 
-| Pattern | Matches |
-|---------|---------|
-| `*.js` | All `.js` files in current directory |
-| `**/*.js` | All `.js` files recursively |
-| `src/**/*` | All files under `src/` |
-| `*.{js,ts}` | All `.js` and `.ts` files |
+| Error | Cause |
+|-------|-------|
+| `Invalid glob pattern` | Pattern syntax error |
+| `Path does not exist` | Search directory doesn't exist |
 
 ---
 
 ## Security
 
-Filesystem tools respect the working directory. Agents can only access:
+**Note**: Path sandboxing is currently **disabled**. Filesystem tools can access:
 
-- The configured working directory
-- Subdirectories of that directory
-- Not parent directories (`../`)
+- Any path on the host filesystem
+- No restrictions on parent directory access (`../`)
 
 Configure the working directory via:
 
@@ -246,5 +375,5 @@ Configure the working directory via:
 
 ## See Also
 
-- [bash](bash-tool.md) — For complex file operations
+- [bash](bash-tool.md) — For complex file operations and binary file inspection
 - [grep](search-tools.md) — Search file contents

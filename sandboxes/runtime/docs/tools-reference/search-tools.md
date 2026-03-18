@@ -77,14 +77,24 @@ Search files with regular expressions.
 
 ## web_search
 
-Search the web.
+Search the web. **Note: This tool requires configuration and will only be available if properly set up.**
+
+### Prerequisites
+
+The `web_search` tool requires the `SEARCH_ENDPOINT` environment variable to be set. Without it, the tool will not be registered and will be unavailable.
+
+```bash
+# Required environment variable
+export SEARCH_ENDPOINT="https://your-search-api.com/search"
+```
+
+The endpoint must accept POST requests with a JSON body containing `{ "q": "search query" }` and return results in Serper API format.
 
 ### Parameters
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `query` | string | Yes | Search query |
-| `num_results` | number | No | Max results (default: 5) |
+| `query` | string | Yes | Search query string |
 
 ### Example
 
@@ -92,8 +102,7 @@ Search the web.
 {
   "name": "web_search",
   "arguments": {
-    "query": "Rust async await tutorial",
-    "num_results": 3
+    "query": "Rust async await tutorial"
   }
 }
 ```
@@ -107,14 +116,38 @@ Search the web.
     {
       "title": "Asynchronous Programming in Rust",
       "url": "https://rust-lang.github.io/async-book/",
-      "snippet": "Asynchronous programming in Rust..."
+      "snippet": "Asynchronous programming in Rust...",
+      "position": 1
     },
     {
       "title": "Rust Async/Await",
       "url": "https://example.com/rust-async",
-      "snippet": "Learn how to use async/await..."
+      "snippet": "Learn how to use async/await...",
+      "position": 2
     }
   ]
+}
+```
+
+### Response Format
+
+The search endpoint must return a JSON response in Serper format:
+
+```json
+{
+  "organic": [
+    {
+      "title": "Result Title",
+      "link": "https://example.com",
+      "snippet": "Result description...",
+      "position": 1
+    }
+  ],
+  "knowledgeGraph": {
+    "title": "Knowledge Graph Title",
+    "description": "Description...",
+    "attributes": { "key": "value" }
+  }
 }
 ```
 
@@ -124,6 +157,13 @@ Search the web.
 - Find examples
 - Research topics
 - Check current information
+
+### Limitations & Behavior
+
+- **15-second timeout** per search request
+- **Retry logic**: Automatically retries on server errors (5xx) or request failures with exponential backoff (3 attempts, 500ms-5s delay)
+- Returns knowledge graph data (when available) as the first result with `position: 0`
+- If the endpoint returns an error, the tool will fail with the HTTP status code and response body
 
 ---
 

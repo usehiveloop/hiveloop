@@ -10,11 +10,11 @@ Create a `Dockerfile`:
 
 ```dockerfile
 # Build stage
-FROM rust:1.75 as builder
+FROM rust:1.82 as builder
 
 WORKDIR /app
 COPY . .
-RUN cargo build --release
+RUN cargo build --release -p bridge
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -37,6 +37,13 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["bridge"]
 ```
 
+**Notes:**
+- Uses `rust:1.82` for building (match your MSRV)
+- Runtime image: `debian:bookworm-slim` (~30MB base)
+- Installs `ca-certificates` for HTTPS and `curl` for health checks
+- Runs as `nobody` user for security
+- Health check hits `/health` endpoint every 30s
+
 ---
 
 ## Build
@@ -56,6 +63,7 @@ docker run -d \
   -e BRIDGE_CONTROL_PLANE_API_KEY="<bridge-control-plane-api-key>" \
   -e BRIDGE_LOG_FORMAT="json" \
   -e BRIDGE_WEBHOOK_URL="https://api.example.com/webhooks" \
+  -e BRIDGE_DRAIN_TIMEOUT_SECS="60" \
   --restart unless-stopped \
   bridge:latest
 ```
@@ -79,6 +87,7 @@ services:
       - BRIDGE_LOG_FORMAT=json
       - BRIDGE_LOG_LEVEL=info
       - BRIDGE_WEBHOOK_URL=${WEBHOOK_URL}
+      - BRIDGE_DRAIN_TIMEOUT_SECS=60
     volumes:
       - ./config.toml:/app/config.toml:ro
     healthcheck:
@@ -86,12 +95,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: '2'
           memory: 2G
+        reservations:
+          cpus: '500m'
+          memory: 512M
 ```
 
 Create `.env`:
@@ -106,6 +119,11 @@ Run:
 ```bash
 docker-compose up -d
 ```
+
+**Resource limits:**
+- CPU: 2 cores limit, 0.5 cores reserved
+- Memory: 2GB limit, 512MB reserved
+- Adjust based on your agent workload
 
 ---
 
@@ -146,7 +164,7 @@ services:
 
 ## Secrets Management
 
-Use Docker secrets (Swarm mode):
+Use Docker secrets with an entrypoint script:
 
 ```yaml
 version: "3.8"
@@ -158,6 +176,10 @@ services:
       - bridge_api_key
     environment:
       - BRIDGE_CONTROL_PLANE_API_KEY_FILE=/run/secrets/bridge_api_key
+    entrypoint: ["sh", "-c"]
+    command: >
+      'export BRIDGE_CONTROL_PLANE_API_KEY=$$(cat /run/secrets/bridge_api_key) &&
+       exec bridge'
 
 secrets:
   bridge_api_key:
@@ -169,6 +191,28 @@ Create the secret:
 ```bash
 echo "<bridge-control-plane-api-key>" | docker secret create bridge_api_key -
 ```
+
+**Note:** Bridge does not natively support the `_FILE` suffix pattern. The entrypoint script reads the secret file and exports it as the environment variable.
+
+---
+
+## Graceful Shutdown
+
+Bridge handles SIGTERM for graceful shutdown:
+
+```yaml
+services:
+  bridge:
+    image: bridge:latest
+    stop_signal: SIGTERM
+    stop_grace_period: 90s  # Should be > DRAIN_TIMEOUT_SECS
+```
+
+On shutdown:
+1. Container receives SIGTERM
+2. Bridge stops accepting new connections
+3. Waits up to `DRAIN_TIMEOUT_SECS` (default: 60s) for active conversations
+4. Exits cleanly
 
 ---
 
@@ -186,6 +230,18 @@ With JSON format, pipe to jq:
 docker logs bridge 2>&1 | jq .
 ```
 
+Configure log rotation:
+
+```yaml
+services:
+  bridge:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+```
+
 ---
 
 ## Updates
@@ -199,7 +255,7 @@ git pull
 # Rebuild
 docker-compose build
 
-# Restart
+# Restart with graceful shutdown
 docker-compose up -d
 ```
 

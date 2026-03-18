@@ -39,14 +39,14 @@ Create `code-review-agent.json`:
         "model": "claude-sonnet-4-20250514",
         "api_key": "YOUR_API_KEY"
       },
-      "tools": ["read", "glob", "grep"],
+      "tools": ["Read", "Glob", "Grep"],
       "mcp_servers": [
         {
           "name": "filesystem",
           "transport": {
             "type": "stdio",
             "command": "npx",
-            "args": ["@modelcontextprotocol/server-filesystem", "/home/user/projects"]
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
           }
         }
       ],
@@ -97,12 +97,21 @@ Create a conversation and ask for a review:
 curl -X POST http://localhost:8080/agents/code-reviewer/conversations \
   -H "Content-Type: application/json" \
   -d '{"user_id": "dev-123"}'
+```
 
-# Request review
+Connect to the stream:
+
+```bash
+curl -N http://localhost:8080/conversations/CONV_ID/stream \
+  -H "Accept: text/event-stream"
+```
+
+Request review:
+
+```bash
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
   -d '{
-    "role": "user",
     "content": "Please review /home/user/projects/myapp/src/auth.js"
   }'
 ```
@@ -119,7 +128,6 @@ Ask for a broader review:
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
   -d '{
-    "role": "user",
     "content": "Review all JavaScript files in /home/user/projects/myapp/src for security issues"
   }'
 ```
@@ -134,7 +142,6 @@ Ask the agent to focus on security:
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
   -d '{
-    "role": "user",
     "content": "Use the security-review skill on /home/user/projects/myapp/src/api.js"
   }'
 ```
@@ -163,4 +170,5 @@ curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
 
 - [MCP](../core-concepts/mcp.md)
 - [Skills](../core-concepts/skills.md)
-- [spawn_agent](../tools-reference/agent-tools.md)
+- [Agent Tools](../tools-reference/agent-tools.md)
+- [Filesystem Tools](../tools-reference/filesystem-tools.md)

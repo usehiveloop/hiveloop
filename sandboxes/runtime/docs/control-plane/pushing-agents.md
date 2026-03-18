@@ -82,29 +82,40 @@ See [Agents](../core-concepts/agents.md) for field details.
 
 ## Versioning
 
-The `version` field controls updates:
+The `version` field controls updates for single-agent operations:
 
 ```javascript
-// Version 1
-await pushAgent({ id: 'my-agent', version: '1', ... });
-// Result: created
+// Version 1 - created
+await fetch('/push/agents/my-agent', {
+  method: 'PUT',
+  body: JSON.stringify({ id: 'my-agent', version: '1', ... })
+});
+// Result: 201 Created, { "status": "created" }
 
-// Same version again — no change
-await pushAgent({ id: 'my-agent', version: '1', ... });
-// Result: unchanged
+// Same version again — no change (idempotent)
+await fetch('/push/agents/my-agent', {
+  method: 'PUT',
+  body: JSON.stringify({ id: 'my-agent', version: '1', ... })
+});
+// Result: 200 OK, { "status": "unchanged" }
 
-// New version — triggers update
-await pushAgent({ id: 'my-agent', version: '2', ... });
-// Result: updated (drain + replace)
+// New version — triggers update with drain
+await fetch('/push/agents/my-agent', {
+  method: 'PUT',
+  body: JSON.stringify({ id: 'my-agent', version: '2', ... })
+});
+// Result: 200 OK, { "status": "updated" }
 ```
 
-Version strings are opaque to Bridge. Use semver, dates, or build numbers — whatever works for you.
+**Important**: Version comparison uses simple string equality. `version: "1.0"` and `version: "1.00"` are treated as different versions. Both agents having `version: null` or both having the same string value counts as "same version".
+
+**Note**: Bulk push (`POST /push/agents`) does NOT perform version comparison. It loads all agents immediately, overwriting any existing agents with the same ID.
 
 ---
 
 ## Bulk vs Single
 
-### Bulk Push (Recommended)
+### Bulk Push (Recommended for Startup)
 
 Push all agents at once:
 
@@ -117,14 +128,20 @@ await fetch('http://bridge/push/agents', {
 });
 ```
 
+**Behavior:**
+- Loads all agents immediately
+- Overwrites existing agents with the same ID (no version check)
+- Returns `{ "loaded": 3 }` with the count of agents received
+- Errors for individual agents are logged by Bridge, not returned in the response
+
 Good for:
 - Startup initialization
-- Bulk updates
-- Sync operations
+- Initial bulk load
+- When you want to ensure all agents are replaced
 
-### Single Push
+### Single Push (Upsert)
 
-Update one agent:
+Update one agent with version-aware behavior:
 
 ```javascript
 await fetch('http://bridge/push/agents/my-agent', {
@@ -133,15 +150,77 @@ await fetch('http://bridge/push/agents/my-agent', {
 });
 ```
 
+**Behavior:**
+- Creates new agent if it doesn't exist (returns `201 Created`)
+- Returns `200 OK` with `{"status": "unchanged"}` if version matches
+- Returns `200 OK` with `{"status": "updated"}` if version differs (performs drain + replace)
+- Returns `400 Bad Request` if path `agent_id` doesn't match body `id`
+
 Good for:
 - Individual agent updates
 - Admin UI operations
+- When you need version-aware updates
+
+### Remove Agent
+
+Delete an agent from Bridge:
+
+```javascript
+await fetch('http://bridge/push/agents/my-agent', {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${BRIDGE_API_KEY}` }
+});
+// Result: { "status": "removed" }
+```
+
+**Behavior:**
+- Returns `404` if agent doesn't exist
+- Cancels the agent's cancellation token
+- Waits for active conversations to complete
+- Disconnects MCP servers
+- Removes agent from the map
+
+---
+
+## Update Behavior (Drain and Replace)
+
+When an agent is updated (via PUT with different version, or DELETE), Bridge performs a graceful transition:
+
+1. **Cancel** the old agent's token (signals conversations to stop)
+2. **Close** the task tracker (no new conversations can start)
+3. **Wait** for in-flight conversations to complete (60 second timeout)
+4. **Force** replacement if timeout is reached
+5. **Swap** in the new agent state
+
+This ensures active conversations have a chance to complete before the agent is replaced.
 
 ---
 
 ## Handling Failures
 
-Partial failures don't block:
+### Authentication Errors
+
+All push endpoints return `401 Unauthorized` with error code `unauthorized` for missing or invalid bearer tokens.
+
+### Validation Errors
+
+Single upsert returns `400 Bad Request` with error code `invalid_request` if the path `agent_id` doesn't match the body `id`:
+
+```javascript
+const response = await fetch('http://bridge/push/agents/foo', {
+  method: 'PUT',
+  body: JSON.stringify({ id: 'bar', ... }) // Mismatch!
+});
+// Result: 400, { "error": { "code": "invalid_request", "message": "..." } }
+```
+
+### Not Found Errors
+
+DELETE and hydrate endpoints return `404 Not Found` with error code `agent_not_found` if the agent doesn't exist.
+
+### Bulk Push Limitations
+
+**Important**: Bulk push (`POST /push/agents`) does NOT return per-agent errors in the response. Failures are logged by Bridge but the response only contains the count:
 
 ```javascript
 const response = await fetch('http://bridge/push/agents', {
@@ -150,10 +229,11 @@ const response = await fetch('http://bridge/push/agents', {
 });
 
 const result = await response.json();
-// { loaded: 1, errors: [{ agent_id: 'bad', error: '...' }] }
+// { "loaded": 2 } — even if one agent failed to load!
+// Check Bridge logs for actual errors
 ```
 
-Always check the `errors` array and handle appropriately.
+For per-agent error handling, use single upsert (`PUT /push/agents/{id}`) or diff updates (`POST /push/diff`).
 
 ---
 
@@ -247,9 +327,32 @@ if (environment === 'production') {
 }
 ```
 
+### Use Versioned Updates for Production
+
+For production updates, use single upsert or diff updates to benefit from version-aware behavior:
+
+```javascript
+// Good: version-aware, graceful drain
+await fetch(`/push/agents/${agent.id}`, {
+  method: 'PUT',
+  body: JSON.stringify(agent)
+});
+
+// Or use diff for batch updates
+await fetch('/push/diff', {
+  method: 'POST',
+  body: JSON.stringify({
+    added: [newAgent],
+    updated: [changedAgent],
+    removed: [oldAgentId]
+  })
+});
+```
+
 ---
 
 ## See Also
 
 - [Push API](../api-reference/push-api.md) — Complete API reference
+- [Diff Updates](diff-updates.md) — Incremental updates
 - [Agents](../core-concepts/agents.md) — Agent concepts

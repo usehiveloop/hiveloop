@@ -19,7 +19,7 @@ A customer support agent that can:
 
 - Bridge running locally
 - An API key (Anthropic or OpenAI-compatible)
-- A mock order API (we'll use webhook.site for testing)
+- A control plane that provides store API integration endpoints
 
 ---
 
@@ -44,26 +44,22 @@ Create `support-agent.json`:
         {
           "name": "store_api",
           "description": "Access to store order data",
-          "base_url": "https://webhook.site/YOUR-UNIQUE-ID",
           "actions": [
             {
               "name": "get_order",
               "description": "Get order details by order ID",
-              "method": "GET",
-              "path": "/orders/{order_id}",
               "parameters_schema": {
                 "type": "object",
                 "properties": {
                   "order_id": { "type": "string" }
                 },
                 "required": ["order_id"]
-              }
+              },
+              "permission": "allow"
             },
             {
               "name": "process_refund",
               "description": "Process a refund for an order",
-              "method": "POST",
-              "path": "/refunds",
               "parameters_schema": {
                 "type": "object",
                 "properties": {
@@ -88,7 +84,7 @@ Create `support-agent.json`:
 }
 ```
 
-Replace `YOUR_API_KEY` and get a webhook.site URL for testing.
+Replace `YOUR_API_KEY` and ensure your control plane provides the `store_api` integration at `/integrations/store_api/actions/{action_name}`.
 
 ---
 
@@ -115,21 +111,22 @@ curl -X POST http://localhost:8080/agents/support-agent/conversations \
   -d '{"user_id": "user-123"}'
 ```
 
+Connect to the stream (run this in a separate terminal before sending messages):
+
+```bash
+curl -N http://localhost:8080/conversations/CONV_ID/stream \
+  -H "Accept: text/event-stream"
+```
+
 Send a message:
 
 ```bash
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
-  -d '{"role": "user", "content": "What's the status of order ORD-123?"}'
+  -d '{"content": "What'"'"'s the status of order ORD-123?"}'
 ```
 
-Watch the stream:
-
-```bash
-curl -N http://localhost:8080/conversations/CONV_ID/stream
-```
-
-Check webhook.site — you should see a request to `/orders/ORD-123`.
+Watch the stream for the agent's response. The agent will call the `store_api__get_order` integration action.
 
 ---
 
@@ -140,20 +137,37 @@ Send a refund request:
 ```bash
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
-  -d '{"role": "user", "content": "I want a refund for order ORD-123"}'
+  -d '{"content": "I want a refund for order ORD-123"}'
 ```
 
 The agent will:
 1. Ask for a reason
-2. Call `process_refund` (requires approval)
+2. Call `store_api__process_refund` (requires approval)
 3. Pause for your approval
 
-Approve it:
+List pending approvals:
+
+```bash
+curl http://localhost:8080/agents/support-agent/conversations/CONV_ID/approvals
+```
+
+Approve all pending requests:
 
 ```bash
 curl -X POST http://localhost:8080/agents/support-agent/conversations/CONV_ID/approvals \
   -H "Content-Type: application/json" \
-  -d '{"action": "approve_all"}'
+  -d '{
+    "request_ids": ["req-abc123"],
+    "decision": "approve"
+  }'
+```
+
+Or approve a specific request:
+
+```bash
+curl -X POST http://localhost:8080/agents/support-agent/conversations/CONV_ID/approvals/req-abc123 \
+  -H "Content-Type: application/json" \
+  -d '{"decision": "approve"}'
 ```
 
 ---
@@ -169,13 +183,13 @@ See the full `support-agent.json` above.
 - Creating agents with integration tools
 - Using `require_approval` for sensitive actions
 - Setting up agent personality with system prompts
-- Testing with webhook.site
+- Handling tool approval workflows
 
 ---
 
 ## Next Steps
 
-- Connect to your real order API
+- Connect to your real order API via the control plane
 - Add more actions (update shipping, cancel orders)
 - Set up webhook handling to save conversation history
 - Deploy to production
@@ -186,3 +200,4 @@ See the full `support-agent.json` above.
 
 - [Integration Tools](../tools-reference/custom-tools.md)
 - [Handling Webhooks](../control-plane/handling-webhooks.md)
+- [Agents API](../api-reference/agents-api.md) — Approval endpoints

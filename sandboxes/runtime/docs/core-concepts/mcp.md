@@ -23,10 +23,11 @@ Bridge ◄──MCP──► Filesystem Server
 ## How It Works
 
 1. You configure an MCP server in your agent definition
-2. Bridge connects to the server on startup
+2. Bridge connects to the server on agent startup
 3. The server advertises its tools
-4. Bridge exposes those tools to the agent
-5. When the agent uses a tool, Bridge forwards the call to the server
+4. Bridge registers those tools alongside built-in tools
+5. When the agent uses a tool, Bridge forwards the call to the MCP server
+6. MCP server responses are extracted and returned to the agent
 
 ---
 
@@ -80,18 +81,36 @@ Runs a local command and communicates over stdin/stdout:
 }
 ```
 
-#### HTTP
-Connects to a remote server over HTTP:
+**Fields:**
+- `command` (required) — The executable to run
+- `args` (optional) — Array of command-line arguments
+- `env` (optional) — Environment variables to set for the process
+
+#### streamable_http
+Connects to a remote server over HTTP using the MCP streamable HTTP transport:
 
 ```json
 {
-  "type": "http",
+  "type": "streamable_http",
   "url": "https://mcp.example.com/tools",
   "headers": {
     "Authorization": "Bearer <bridge-control-plane-api-key>"
   }
 }
 ```
+
+**Fields:**
+- `url` (required) — The MCP server endpoint URL
+- `headers` (optional) — Additional HTTP headers to include in requests
+
+**Transport Differences:**
+
+| Feature | stdio | streamable_http |
+|---------|-------|-----------------|
+| Use case | Local tools | Remote services |
+| Process lifecycle | Bridge spawns & manages | External server manages |
+| Network required | No | Yes |
+| Latency | Lower | Higher (network) |
 
 ---
 
@@ -140,28 +159,104 @@ You can use both together:
 
 ---
 
-## Tool Namespacing
+## Tool Discovery
 
-MCP tools are namespaced by server name:
+When an agent loads, Bridge connects to all configured MCP servers and discovers their available tools. This happens:
+
+- **Once per agent** — When the agent is first loaded or updated
+- **Before conversations start** — Tools must be discovered before any conversation begins
+- **Independently per agent** — Each agent has its own MCP connections
+
+If an MCP server fails to connect or list tools, Bridge logs the error and continues loading the agent without that server's tools. Other MCP servers and built-in tools remain available.
+
+---
+
+## Connection Lifecycle
 
 ```
-filesystem__read_file    # From "filesystem" server
-warehouse__run_query     # From "warehouse" server
+Agent Load
+    │
+    ▼
+Connect to MCP servers ──► Connection failed ──► Log error, continue
+    │
+    ▼
+List tools from each server
+    │
+    ▼
+Register tools in ToolRegistry
+    │
+    ▼
+Agent ready for conversations
+    │
+    ▼
+Tool call ──► Forward to MCP server ──► Return result
+    │
+    ▼
+Agent removed / updated
+    │
+    ▼
+Disconnect all MCP servers
 ```
 
-The agent sees these names and can call them like any other tool.
+**Key behaviors:**
+- Connections are established at agent load time, not per conversation
+- All agent conversations share the same MCP connections
+- Connections are closed when the agent is removed or updated
+- There is no automatic reconnection if an MCP server crashes during operation
 
 ---
 
 ## Error Handling
 
-If an MCP server crashes or becomes unavailable:
+### Connection Failures
 
-- Active tool calls fail with an error
-- Bridge logs the disconnection
-- The agent receives the error and can decide what to tell the user
+If an MCP server fails to connect during agent startup:
+- The error is logged
+- The agent continues to load without that server's tools
+- Other MCP servers and built-in tools work normally
 
-Restart Bridge to reconnect to MCP servers.
+### Tool Call Failures
+
+If an MCP server crashes or becomes unavailable during a tool call:
+- The tool call fails with an error message
+- The error is returned to the agent
+- The agent can decide how to handle the failure
+
+**Example error message:**
+```
+mcp error: failed to call tool 'read_file' on 'filesystem': <underlying error>
+```
+
+### Recovery
+
+To reconnect to MCP servers after a failure:
+- **Agent update** — The control plane pushes an agent update, which triggers reconnection
+- **Bridge restart** — Restarting Bridge reloads all agents and reconnects to MCP servers
+
+---
+
+## Tool Names
+
+MCP tools are registered with their original names as provided by the MCP server. Bridge does not add prefixes or namespaces to tool names.
+
+**Example:**
+- An MCP server provides a tool named `read_file`
+- The agent sees and calls it as `read_file`
+
+**Avoiding Name Conflicts:**
+If an MCP tool has the same name as a built-in tool:
+- The MCP tool registration may conflict
+- It is recommended to configure MCP servers with unique tool names
+
+---
+
+## Limits
+
+| Resource | Limit | Notes |
+|----------|-------|-------|
+| MCP servers per agent | No hard limit | Limited by system resources |
+| Concurrent connections | Per-agent | Each agent has isolated connections |
+| Tool count | No hard limit | Limited by LLM context window |
 
 ---
 
@@ -230,11 +325,12 @@ export BRIDGE_LOG_LEVEL=debug
 ./bridge
 ```
 
-Look for lines like:
+Look for log lines like:
 
 ```
-DEBUG mcp::connection > Sending request to filesystem: {...}
-DEBUG mcp::connection > Received response: {...}
+INFO mcp::manager > connected to MCP server agent_id="my-agent" server="filesystem"
+INFO mcp::manager > discovered MCP tools agent_id="my-agent" server="filesystem" tool_count=5
+ERROR mcp::manager > failed to connect to MCP server agent_id="my-agent" server="bad-server" error="..."
 ```
 
 ---

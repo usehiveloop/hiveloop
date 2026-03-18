@@ -1,6 +1,10 @@
 # Quickstart
 
-Let's run your first agent. This takes about 5 minutes.
+Let's run your first agent. This tutorial takes about 5 minutes once Bridge is built.
+
+**Prerequisites:**
+- Bridge built from source (see [Installation](installation.md)) — first build takes 5-10 minutes
+- An API key from an AI provider (Anthropic, OpenAI, etc.)
 
 ---
 

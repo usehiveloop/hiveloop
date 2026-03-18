@@ -14,6 +14,8 @@ cargo build --release
 
 The binary is at `target/release/bridge`.
 
+**Binary size:** ~10 MB (release build with optimizations)
+
 ---
 
 ## Run
@@ -27,9 +29,14 @@ export BRIDGE_CONTROL_PLANE_API_KEY="<bridge-control-plane-api-key>"
 
 ### With Config File
 
+Bridge looks for `config.toml` in the working directory:
+
 ```bash
-./bridge --config /etc/bridge/config.toml
+cd /etc/bridge
+./bridge
 ```
+
+Or use environment variables (which override config file values):
 
 ### All Options
 
@@ -39,9 +46,47 @@ export BRIDGE_LISTEN_ADDR="0.0.0.0:8080"
 export BRIDGE_LOG_LEVEL="info"
 export BRIDGE_LOG_FORMAT="json"
 export BRIDGE_WEBHOOK_URL="https://api.example.com/webhooks"
-export BRIDGE_DRAIN_TIMEOUT_SECS="120"
+export BRIDGE_DRAIN_TIMEOUT_SECS="60"
 
 ./bridge
+```
+
+---
+
+## CLI Commands
+
+Bridge includes a CLI for inspecting and managing the runtime:
+
+### List Available Tools
+
+```bash
+./bridge tools list --json
+```
+
+Outputs a JSON array of all built-in tools with their schemas:
+
+```json
+[
+  {
+    "name": "Read",
+    "description": "Reads a file from the local filesystem...",
+    "category": "filesystem",
+    "parameters": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "filePath": { "type": "string" }
+      },
+      "required": ["filePath"]
+    }
+  }
+]
+```
+
+### View Help
+
+```bash
+./bridge --help
+./bridge tools --help
 ```
 
 ---
@@ -64,6 +109,7 @@ Environment="BRIDGE_CONTROL_PLANE_API_KEY=<bridge-control-plane-api-key>"
 Environment="BRIDGE_LOG_FORMAT=json"
 Environment="BRIDGE_LOG_LEVEL=info"
 Environment="BRIDGE_WEBHOOK_URL=https://api.example.com/webhooks"
+Environment="BRIDGE_DRAIN_TIMEOUT_SECS=60"
 
 ExecStart=/usr/local/bin/bridge
 ExecStop=/bin/kill -SIGTERM $MAINPID
@@ -174,22 +220,35 @@ Response:
 
 ```json
 {
-  "status": "healthy",
-  "uptime_seconds": 3600
+  "status": "ok",
+  "uptime_secs": 3600
 }
 ```
 
 Use this for load balancer health checks.
 
+**Note:** The `status` field is `"ok"` when healthy. The `uptime_secs` field shows seconds since startup.
+
 ---
 
 ## Graceful Shutdown
 
-Bridge handles SIGTERM gracefully:
+Bridge handles SIGTERM and SIGINT gracefully:
 
 1. Stops accepting new connections
-2. Waits for active conversations to finish (up to `DRAIN_TIMEOUT_SECS`)
-3. Exits
+2. Signals cancellation to all running conversations
+3. Waits for active conversations to finish (up to `DRAIN_TIMEOUT_SECS`, default: 60s)
+4. Disconnects MCP servers
+5. Shuts down LSP servers (if enabled)
+6. Exits
+
+Configure the drain timeout:
+
+```bash
+export BRIDGE_DRAIN_TIMEOUT_SECS=120  # Wait up to 2 minutes
+```
+
+**Systemd integration:** Set `TimeoutStopSec` to at least `DRAIN_TIMEOUT_SECS + 10` seconds to allow for cleanup.
 
 ---
 

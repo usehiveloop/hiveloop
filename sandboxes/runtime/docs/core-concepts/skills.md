@@ -52,14 +52,38 @@ Skills are defined in your agent configuration:
 |-------|---------|
 | `id` | Unique identifier (used when invoking) |
 | `title` | Human-readable name |
-| `description` | What the skill does (shown to the AI) |
-| `content` | The actual prompt content |
+| `description` | What the skill does (shown to the AI in system reminders) |
+| `content` | The actual prompt content (only revealed when skill is invoked) |
+| `parameters_schema` | Reserved for future structured parameters support |
+
+---
+
+## How Skills Appear in System Prompts
+
+When an agent has skills defined, Bridge injects a **system reminder** before every user message:
+
+```xml
+<system-reminder>
+
+# System Reminders
+
+## Available skills
+
+The following skills are available for use with the Skill tool:
+
+- **Write Commit Message** - Write clear, conventional commit messages from git diffs
+- **Code Review** - Review code for bugs, security issues, and style
+
+</system-reminder>
+```
+
+**Important:** The system reminder only shows the **title** and **description** of each skill. The actual `content` remains hidden until the skill is explicitly invoked. This helps the AI know what skills are available without consuming context window tokens for skill content that may not be needed.
 
 ---
 
 ## Using Skills
 
-Agents use the `skill` tool to invoke a skill:
+Agents use the `skill` tool to invoke a skill. This is a **blocking requirement** — when a skill matches the user's request, the agent must invoke the skill tool BEFORE generating any other response.
 
 ```json
 {
@@ -71,7 +95,25 @@ Agents use the `skill` tool to invoke a skill:
 }
 ```
 
-The `skill` tool loads the skill content and makes it available to the agent.
+The skill tool loads the skill content and returns it wrapped in XML tags:
+
+```xml
+<skill_content name="commit" title="Write Commit Message">
+You are an expert at writing commit messages. Given a git diff, write a commit message that follows the Conventional Commits format. Be concise but descriptive.
+</skill_content>
+```
+
+---
+
+## Skill Matching
+
+The skill tool matches by **ID or title** (case-insensitive):
+
+| Query | Matches skill with... |
+|-------|----------------------|
+| `"commit"` | id: `commit` or title: `Commit` |
+| `"Code Review"` | id: `code-review` or title: `Code Review` |
+| `"PR-SUMMARY"` | id: `pr-summary` or title: `PR Summary` |
 
 ---
 
@@ -106,7 +148,7 @@ Write a commit message for these changes: Fixed the login bug where users couldn
 
 ### Skills Without Placeholders
 
-If a skill doesn't have `{{args}}`, the args are appended:
+If a skill doesn't have `{{args}}`, the args are appended with an "Arguments:" prefix:
 
 ```json
 {
@@ -120,8 +162,40 @@ With args `"Review this function"`, the content becomes:
 ```
 You are a code reviewer.
 
-Additional context: Review this function
+Arguments: Review this function
 ```
+
+### Without Args
+
+If no args are provided, the skill content is returned unchanged (including any `{{args}}` placeholders).
+
+---
+
+## Error Handling
+
+### Skill Not Found
+
+If an agent tries to use a skill that doesn't exist, the tool returns an error:
+
+```
+Skill 'unknown-skill' not found. Available skills: [Code Review, Commit]
+```
+
+The error includes the list of available skill titles to help identify the correct skill name.
+
+### No Skills Defined
+
+The skill tool is **only registered if the agent has at least one skill defined**. Agents without skills cannot use this tool.
+
+---
+
+## Maximum Number of Skills
+
+There is **no enforced maximum** number of skills per agent. However:
+
+- All skill titles and descriptions appear in every system reminder
+- A very large number of skills will consume significant context window tokens
+- Keep the list focused on skills the agent actually needs
 
 ---
 
@@ -160,6 +234,8 @@ Skills are useful when:
 ```json
 {
   "id": "refactor",
+  "title": "Refactor Code",
+  "description": "Refactor code while preserving behavior",
   "content": "You are an expert at refactoring. When refactoring code: 1) Preserve existing behavior, 2) Improve readability, 3) Add comments for complex logic, 4) Keep functions under 50 lines. Explain your changes."
 }
 ```
@@ -168,41 +244,32 @@ Skills are useful when:
 
 ## Skill Discovery
 
-The AI knows about available skills through tool descriptions. When you define skills, Bridge automatically creates descriptions for the `skill` tool:
+The AI knows about available skills through the system reminder that appears before every user message. The reminder includes:
 
-```
-skill(name: string, args?: string)
+- The skill title (for matching when the user requests it)
+- The skill description (to help the AI understand when to use it)
 
-Available skills:
-- commit: Write clear, conventional commit messages
-- review: Review code for bugs and security issues  
-- refactor: Improve code structure and readability
-```
-
-The AI uses these descriptions to decide which skill to invoke.
+Additionally, the skill tool's description includes instructions on how to invoke skills and handle "slash command" syntax (e.g., `/commit`, `/review`).
 
 ---
 
-## Advanced: Skill Parameters (Future)
+## Important Behavior Notes
 
-Skills will support structured parameters in a future release:
+### Blocking Requirement
 
-```json
-{
-  "id": "commit",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "type": { "enum": ["feat", "fix", "docs", "style"] },
-      "scope": { "type": "string" },
-      "breaking": { "type": "boolean" }
-    }
-  },
-  "content": "Write a {{type}} commit..."
-}
-```
+When a skill matches the user's request, invoking the skill tool is a **blocking requirement**. The agent must call the skill tool BEFORE generating any text response about the task.
 
-For now, use the `args` string parameter.
+### Skill Content is Hidden Until Invoked
+
+The actual skill content is **not** shown in the system reminder. It is only revealed when the skill tool is invoked. This:
+
+- Keeps the context window clean
+- Prevents the AI from "pretending" to use a skill without actually calling the tool
+- Allows skills to be large without impacting every conversation turn
+
+### Already Running Detection
+
+The skill tool instructions warn agents not to invoke a skill that is already running. If the conversation already contains a `<skill_content>` tag from a previous invocation in the current turn, the agent should follow those instructions directly instead of calling the tool again.
 
 ---
 
@@ -240,6 +307,14 @@ Here's an agent with skills for different modes:
 ```
 
 The agent can switch modes by using different skills.
+
+---
+
+## Future: Structured Parameters
+
+The `parameters_schema` field in skill definitions is reserved for future support of structured parameters (JSON Schema). Currently, skills only support the simple `args` string parameter.
+
+For now, use the `args` string parameter and `{{args}}` template substitution.
 
 ---
 

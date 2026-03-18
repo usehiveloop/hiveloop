@@ -118,6 +118,15 @@ Add tools to an agent definition:
 
 The agent can only use tools you explicitly list.
 
+### Maximum Tools Per Agent
+
+There is no hard limit on the total number of tools an agent can have, but specific tools have batch limits:
+
+| Context | Limit | Behavior When Exceeded |
+|---------|-------|------------------------|
+| `batch` tool | 25 tools | Excess tools are discarded with error |
+| `parallel_agent` tool | 25 tasks | Returns error: "Maximum 25 tasks allowed" |
+
 ---
 
 ## Permission Levels
@@ -158,6 +167,15 @@ For integration tools, define permissions per action:
 }
 ```
 
+### Permission Inheritance
+
+Subagents automatically inherit integration tools from their parent agent with the same permission levels. This ensures consistent access control across the agent hierarchy.
+
+**Important notes:**
+- Subagents cannot spawn other subagents (prevents unbounded recursion)
+- Integration actions with `deny` permission are never exposed to the LLM
+- Non-`allow` integration permissions are automatically injected into the agent's permissions map
+
 ---
 
 ## Tool Approvals
@@ -197,6 +215,113 @@ Or on failure:
 ```
 
 The agent sees these results and decides what to tell the user.
+
+---
+
+## Tool Name Format
+
+### Case Sensitivity
+
+Tool names are **case-insensitive**. The following all refer to the same tool:
+- `read`
+- `Read`
+- `READ`
+
+### Integration Tool Naming
+
+Integration tools follow a specific naming convention:
+
+```
+{integration}__{action}
+```
+
+For example: `github__create_pull_request`, `slack__send_message`
+
+The double underscore (`__`) separates the integration name from the action name.
+
+### Tool Name Suggestions
+
+If an agent calls a non-existent tool, Bridge suggests the closest match using Levenshtein distance (similarity > 0.4):
+
+```
+Unknown tool 'bassh'. Did you mean 'bash'? Available tools: [bash, read, edit, ...]
+```
+
+---
+
+## Tool Timeouts
+
+Different tools have different timeout behaviors:
+
+| Tool | Default Timeout | Maximum | Notes |
+|------|-----------------|---------|-------|
+| `bash` | 120s (2 min) | 600s (10 min) | Configurable per command |
+| `web_fetch` | 30s | — | 10 redirect limit |
+| `web_search` | 15s | — | — |
+| Integration tools | 30s | — | 3 retries with exponential backoff |
+| Foreground subagent | 120s | — | — |
+| Background subagent | 300s (5 min) | — | — |
+| `join` tool | 300s (5 min) | — | Configurable |
+| `parallel_agent` | 300s (5 min) | — | Per-task timeout |
+
+### Timeout Behavior
+
+- **Bash**: Kills process tree on timeout (prevents orphaned children)
+- **Integration tools**: Retry on 5xx server errors, fail fast on 4xx client errors
+- **Subagents**: Returns "timeout" status with error message
+
+---
+
+## JSON Schema Limitations
+
+Bridge processes tool parameter schemas to ensure compatibility with various LLM providers:
+
+### Schema Flattening
+
+Schemas are automatically flattened to:
+- Inline `$ref` references (resolves `#/definitions/` and `#/$defs/`)
+- Remove schemars-specific keys (`$schema`, `title`, `definitions`, `$defs`)
+- Simplify `oneOf`/`anyOf`/`allOf` patterns
+
+### Type Enforcement
+
+Every schema node must have a valid `type` field (required by Gemini's API):
+- Missing types are inferred from structure (`properties` → `object`, `items` → `array`)
+- Empty string types are removed
+- Enum fields default to `string` type
+
+### Best Practices
+
+- Avoid deeply nested `$ref` chains
+- Use simple types where possible
+- Test schemas with `flatten_schema()` to verify compatibility
+
+---
+
+## Output Limits and Truncation
+
+Tool output is automatically limited to prevent context overflow:
+
+| Limit | Value | Behavior |
+|-------|-------|----------|
+| Max lines | 2,000 | Truncates with notice |
+| Max bytes | 50 KB | Persists full output to disk |
+| Max line length | 2,000 chars | Truncates long lines |
+
+When output exceeds limits:
+1. Content is truncated (head or tail based on tool)
+2. Full output is saved to temp file (`/tmp/bridge_tool_output/`)
+3. Response includes path to full output
+4. Files older than 7 days are auto-cleaned
+
+### Tool-Specific Limits
+
+| Tool | Limit |
+|------|-------|
+| `read` | 2,000 lines, 50 KB |
+| `bash` | 50 KB (spills to disk) |
+| `web_fetch` | 50,000 chars content, 5 MB response size |
+| `batch` | Aggregated results truncated to 50 KB |
 
 ---
 

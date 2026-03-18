@@ -6,11 +6,11 @@ Deploy Bridge to production.
 
 ## Deployment Options
 
-| Method | Best For |
-|--------|----------|
-| [Binary](binary-deployment.md) | Single server, simple setup |
-| [Docker](docker-deployment.md) | Containers, consistent environments |
-| [Kubernetes](kubernetes.md) | Orchestrated, scalable deployments |
+| Method | Best For | Binary Size |
+|--------|----------|-------------|
+| [Binary](binary-deployment.md) | Single server, simple setup | ~10 MB |
+| [Docker](docker-deployment.md) | Containers, consistent environments | ~30 MB base + binary |
+| [Kubernetes](kubernetes.md) | Orchestrated, scalable deployments | Same as Docker |
 
 ---
 
@@ -30,13 +30,14 @@ Before deploying to production:
 
 - [ ] Set `BRIDGE_LOG_FORMAT=json` for parsing
 - [ ] Set `BRIDGE_LOG_LEVEL=info` (or `warn`)
-- [ ] Configure `BRIDGE_DRAIN_TIMEOUT_SECS`
-- [ ] Set `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` limit
+- [ ] Configure `BRIDGE_DRAIN_TIMEOUT_SECS` (default: 60s)
+- [ ] Set `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` limit if needed
+- [ ] Configure `BRIDGE_LISTEN_ADDR` (default: `0.0.0.0:8080`)
 
 ### Monitoring
 
-- [ ] Health check endpoint configured
-- [ ] Metrics collection set up
+- [ ] Health check endpoint (`/health`) configured
+- [ ] Metrics collection (`/metrics`) set up
 - [ ] Log aggregation configured
 - [ ] Alerting for errors
 
@@ -46,6 +47,43 @@ Before deploying to production:
 - [ ] Handle webhooks for persistence
 - [ ] Backup strategy for control plane data
 - [ ] Runbook for common issues
+
+---
+
+## Configuration Reference
+
+Bridge can be configured via:
+
+1. **Config file:** `config.toml` in working directory
+2. **Environment variables:** Prefixed with `BRIDGE_`
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BRIDGE_CONTROL_PLANE_URL` | `""` | Control plane API URL |
+| `BRIDGE_CONTROL_PLANE_API_KEY` | `""` | API key for authentication |
+| `BRIDGE_LISTEN_ADDR` | `0.0.0.0:8080` | HTTP listen address |
+| `BRIDGE_DRAIN_TIMEOUT_SECS` | `60` | Graceful shutdown timeout |
+| `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | unlimited | Per-agent conversation limit |
+| `BRIDGE_LOG_LEVEL` | `info` | Log level (trace/debug/info/warn/error) |
+| `BRIDGE_LOG_FORMAT` | `text` | Log format: `text` or `json` |
+| `BRIDGE_WEBHOOK_URL` | none | Webhook endpoint URL |
+
+### Config File Example
+
+```toml
+control_plane_url = "https://api.example.com"
+control_plane_api_key = "<bridge-control-plane-api-key>"
+listen_addr = "0.0.0.0:8080"
+drain_timeout_secs = 60
+log_level = "info"
+log_format = "json"
+webhook_url = "https://hooks.example.com/events"
+
+[lsp]
+rust = { command = ["rust-analyzer"], extensions = ["rs"] }
+```
 
 ---
 
@@ -77,6 +115,32 @@ Requirements:
 - Shared webhook endpoint
 
 Good for: High availability, horizontal scaling
+
+---
+
+## Health and Metrics
+
+### Health Endpoint
+
+```bash
+curl http://localhost:8080/health
+```
+
+Returns:
+```json
+{
+  "status": "ok",
+  "uptime_secs": 3600
+}
+```
+
+### Metrics Endpoint
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+Returns JSON with per-agent and global metrics. See [Monitoring](monitoring.md) for details.
 
 ---
 

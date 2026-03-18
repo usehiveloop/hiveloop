@@ -30,5 +30,6 @@ pub use agent::{
     AgentContext, AgentTaskNotification, AgentToolParams, SubAgentRunner, AGENT_CONTEXT,
 };
 pub use boundary::ProjectBoundary;
+pub use builtin::register_builtin_tools;
 pub use file_tracker::FileTracker;
 pub use registry::{ToolExecutor, ToolRegistry};

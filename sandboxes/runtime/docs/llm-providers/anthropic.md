@@ -73,7 +73,7 @@ Check [Anthropic's docs](https://docs.anthropic.com) for the latest models.
 
 ## Rate Limits
 
-Anthropic enforces rate limits:
+Anthropic enforces rate limits based on your account tier:
 
 | Tier | Requests/min | Tokens/min |
 |------|--------------|------------|
@@ -85,6 +85,16 @@ Check your limits in the Anthropic console.
 
 ---
 
+## Tool Support
+
+Claude models have excellent tool support. Bridge automatically:
+
+- Flattens JSON schemas for compatibility
+- Ensures all schema properties have valid types
+- Handles tool name auto-repair (normalization, case-insensitive matching)
+
+---
+
 ## Troubleshooting
 
 ### 401 Unauthorized
@@ -92,7 +102,7 @@ Check your limits in the Anthropic console.
 Your API key is invalid or expired:
 
 ```
-ERROR: Anthropic API returned 401
+ERROR: Provider returned 401
 ```
 
 Fix: Generate a new key in the Anthropic console.
@@ -102,7 +112,7 @@ Fix: Generate a new key in the Anthropic console.
 You've hit the rate limit:
 
 ```
-ERROR: Anthropic API returned 429
+ERROR: Provider returned 429
 ```
 
 Fix: Wait a moment and retry, or upgrade your Anthropic plan.
@@ -112,10 +122,19 @@ Fix: Wait a moment and retry, or upgrade your Anthropic plan.
 Anthropic's servers are busy:
 
 ```
-ERROR: Anthropic API returned 529
+ERROR: Provider returned 529
 ```
 
-Fix: Retry with exponential backoff.
+Fix: Retry with exponential backoff. Bridge does not automatically retry.
+
+### Empty Response After Tool Calls
+
+If Claude returns an empty response after using tools, Bridge will:
+1. Attempt a continuation prompt (1 attempt)
+2. Fall back to a no-tools retry agent
+3. Return a fallback message if all recovery fails
+
+This is handled automatically and requires no configuration.
 
 ---
 
@@ -128,6 +147,7 @@ For long conversations, use a cheaper model for compaction:
   "config": {
     "compaction": {
       "token_budget": 80000,
+      "tail_messages": 10,
       "summary_provider": {
         "provider_type": "anthropic",
         "model": "claude-haiku-4-5-20251001",

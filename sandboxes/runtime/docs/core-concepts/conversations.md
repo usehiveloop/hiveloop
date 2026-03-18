@@ -142,6 +142,55 @@ Check state via webhooks or by reconnecting to the stream.
 
 ---
 
+## Conversation Limits
+
+### Turn Limits (`max_turns`)
+
+Configure the maximum number of back-and-forth exchanges per conversation:
+
+```json
+{
+  "config": {
+    "max_turns": 50
+  }
+}
+```
+
+| Attribute | Value |
+|-----------|-------|
+| **Type** | `Option<u32>` |
+| **Default** | `null` (unlimited) |
+| **When exceeded** | Conversation ends with `max_turns_exceeded` error |
+
+When `max_turns` is reached:
+1. An `error` SSE event with code `max_turns_exceeded` is sent
+2. A `turn_completed` event is sent  
+3. The conversation ends gracefully
+4. Webhook events are dispatched (if configured)
+
+### Response Timeout
+
+Each agent turn has a timeout to prevent hung conversations:
+
+| Attribute | Value |
+|-----------|-------|
+| **Timeout** | 180 seconds (3 minutes) |
+| **Applies to** | Each `agent.chat()` call including internal tool loops |
+| **Exception** | Disabled when any tool has `require_approval` permission |
+| **On timeout** | `agent_timeout` error is sent, turn ends |
+
+### Empty Response Recovery
+
+If the agent returns an empty response, Bridge attempts recovery:
+
+| Attribute | Value |
+|-----------|-------|
+| **Max continuations** | 1 attempt with the main agent |
+| **Fallback** | No-tools agent retry with enriched history |
+| **Final fallback** | Static message: "I completed the requested tasks using the available tools." |
+
+---
+
 ## Message History
 
 Bridge maintains the full message history for each conversation. This history:
@@ -150,23 +199,9 @@ Bridge maintains the full message history for each conversation. This history:
 - Includes user messages and assistant responses
 - Can include tool results (shown to the AI as context)
 
-### History Limits
+### History Compaction
 
-Two limits control history:
-
-1. **`max_turns`** — Maximum number of back-and-forth exchanges
-   - Default: 50
-   - When reached, the conversation ends
-
-2. **`compaction`** — Summarize old history to save tokens
-   - When token budget exceeded, old messages are summarized
-   - Keeps recent messages (configured by `tail_messages`)
-
----
-
-## Compaction Explained
-
-Long conversations get expensive (more tokens = more cost, more latency). Compaction helps:
+Long conversations get expensive (more tokens = more cost, more latency). Compaction summarizes old history to save tokens:
 
 ```
 Before compaction (100 messages):
@@ -182,7 +217,7 @@ Configure compaction per agent:
 {
   "config": {
     "compaction": {
-      "token_budget": 80000,
+      "token_budget": 100000,
       "tail_messages": 10,
       "summary_provider": {
         "provider_type": "anthropic",
@@ -194,9 +229,66 @@ Configure compaction per agent:
 }
 ```
 
-- **token_budget** — When history exceeds this, compact it
-- **tail_messages** — Keep this many recent messages untouched
-- **summary_provider** — Cheaper model to create the summary
+### Compaction Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `token_budget` | `u32` | 100,000 | Trigger compaction when estimated tokens exceed this |
+| `tail_messages` | `u32` | 10 | Keep this many recent messages untouched after compaction |
+| `summary_provider` | `ProviderConfig` | **required** | Cheaper model to create the summary |
+| `summary_prompt` | `Option<String>` | built-in | Custom system prompt for summarization |
+
+### Token Estimation
+
+Tokens are estimated using:
+- **Encoder**: tiktoken `cl100k_base`
+- **Overhead**: +4 tokens per message for framing
+- **Content**: All message text, tool calls, and tool results
+
+### Split Boundary Alignment
+
+When compacting, the split point is adjusted so the tail starts at a **user message**, not in the middle of an assistant/tool-result exchange. This preserves conversation coherence.
+
+### Compaction Webhook Event
+
+When compaction occurs, a `conversation_compacted` webhook is dispatched with:
+
+```json
+{
+  "summary": "User asked to refactor auth module...",
+  "messages_compacted": 35,
+  "pre_compaction_tokens": 120000,
+  "post_compaction_tokens": 15000
+}
+```
+
+---
+
+## Subagent Depth Limits
+
+When agents spawn subagents, depth is limited to prevent unbounded recursion:
+
+| Attribute | Value |
+|-----------|-------|
+| **Maximum depth** | 3 levels |
+| **Applies to** | `Agent`, `ParallelAgent`, `Bash` tools |
+| **On exceed** | Error: "Maximum subagent depth (3) reached" |
+
+The depth counter increments for each nested subagent call.
+
+---
+
+## Channel Capacities
+
+Internal channels have bounded capacities for backpressure:
+
+| Channel | Capacity | Purpose |
+|---------|----------|---------|
+| Message queue | 32 | User messages to conversation |
+| SSE events | 256 | Streaming events to clients |
+| Notifications | 64 | Background task completions |
+
+When channels are full, backpressure applies to prevent memory exhaustion.
 
 ---
 

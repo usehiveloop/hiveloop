@@ -13,22 +13,26 @@ These endpoints are public:
 - `GET /health`
 - `GET /metrics`
 - `GET /agents`
-- `GET /agents/{id}`
-- `POST /agents/{id}/conversations`
-- `POST /conversations/{id}/messages`
-- `GET /conversations/{id}/stream`
-- `DELETE /conversations/{id}`
+- `GET /agents/{agent_id}`
+- `POST /agents/{agent_id}/conversations`
+- `POST /conversations/{conv_id}/messages`
+- `GET /conversations/{conv_id}/stream`
+- `DELETE /conversations/{conv_id}`
+- `POST /conversations/{conv_id}/abort`
+- `GET /agents/{agent_id}/conversations/{conv_id}/approvals`
+- `POST /agents/{agent_id}/conversations/{conv_id}/approvals`
+- `POST /agents/{agent_id}/conversations/{conv_id}/approvals/{request_id}`
 
 ### Bearer Token Required
 
 These endpoints require authentication:
 
 - `POST /push/agents`
-- `PUT /push/agents/{id}`
-- `DELETE /push/agents/{id}`
-- `POST /push/agents/{id}/conversations`
+- `PUT /push/agents/{agent_id}`
+- `DELETE /push/agents/{agent_id}`
+- `POST /push/agents/{agent_id}/conversations`
 - `POST /push/diff`
-- `PATCH /push/agents/{id}/api-key`
+- `PATCH /push/agents/{agent_id}/api-key`
 
 ---
 
@@ -64,13 +68,13 @@ Authorization: Bearer {your-token}
 
 ## Authentication Errors
 
-### Missing Token
+### Missing or Invalid Authorization Header
 
 ```json
 {
   "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Missing authorization header"
+    "code": "unauthorized",
+    "message": "unauthorized: missing or invalid authorization header"
   }
 }
 ```
@@ -82,8 +86,8 @@ Status: `401 Unauthorized`
 ```json
 {
   "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid API key"
+    "code": "unauthorized",
+    "message": "unauthorized: invalid token"
   }
 }
 ```
@@ -144,6 +148,23 @@ There will be a brief window where the old and new tokens are both valid (during
 ## Multiple Control Planes
 
 Bridge only supports one control plane key. If you need multiple control planes to push agents, run separate Bridge instances.
+
+---
+
+## Implementation Details
+
+### Header Validation
+
+The middleware:
+1. Reads the `authorization` header (case-insensitive)
+2. Verifies it starts with `Bearer ` (case-sensitive)
+3. Extracts the token after the space
+4. Compares it to the configured `BRIDGE_CONTROL_PLANE_API_KEY`
+5. Returns 401 if any check fails
+
+### Token Comparison
+
+Tokens are compared using exact string equality. The comparison is done in constant time to prevent timing attacks.
 
 ---
 

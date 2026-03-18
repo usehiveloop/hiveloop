@@ -1,6 +1,6 @@
 # Agents API
 
-List agents and get agent details.
+List agents and get agent details. All endpoints return JSON responses.
 
 ---
 
@@ -18,6 +18,7 @@ No authentication required.
 
 ### Response
 
+**200 OK**
 ```json
 {
   "agents": [
@@ -35,14 +36,14 @@ No authentication required.
 }
 ```
 
-### Fields
+### Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `agents` | array | List of agent summaries |
 | `agents[].id` | string | Agent ID |
 | `agents[].name` | string | Human-readable name |
-| `agents[].version` | string | Current version |
+| `agents[].version` | string \| null | Current version (if set) |
 
 ### Example
 
@@ -64,44 +65,32 @@ GET /agents/{agent_id}
 
 ### Response
 
+**200 OK**
 ```json
 {
   "id": "code-reviewer",
   "name": "Code Reviewer",
   "system_prompt": "You are a senior engineer...",
-  "provider": {
-    "provider_type": "anthropic",
-    "model": "claude-sonnet-4-20250514"
-  },
-  "tools": ["read", "edit", "grep"],
-  "mcp_servers": [],
-  "skills": [],
-  "integrations": [],
-  "config": {
-    "max_tokens": 4096,
-    "max_turns": 50,
-    "temperature": 0.2
-  },
   "version": "3",
-  "created_at": "2026-01-15T10:30:00Z",
-  "updated_at": "2026-01-15T14:22:00Z"
+  "active_conversations": 5
 }
 ```
 
-### Fields
-
-Most fields match the agent definition you pushed. Additional fields:
+### Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `created_at` | string | When first pushed (ISO 8601) |
-| `updated_at` | string | When last updated (ISO 8601) |
+| `id` | string | Agent identifier |
+| `name` | string | Human-readable name |
+| `system_prompt` | string | System prompt for the agent |
+| `version` | string \| null | Current version (if set) |
+| `active_conversations` | number | Number of active conversations for this agent |
 
-### Errors
+### Error Responses
 
-| Status | Code | Meaning |
-|--------|------|---------|
-| 404 | `AGENT_NOT_FOUND` | Agent doesn't exist |
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 404 | `agent_not_found` | Agent with the specified ID does not exist |
 
 ### Example
 
@@ -123,30 +112,37 @@ GET /agents/{agent_id}/conversations/{conversation_id}/approvals
 
 ### Response
 
+**200 OK**
 ```json
-{
-  "approvals": [
-    {
-      "request_id": "req-abc123",
-      "tool_name": "bash",
-      "arguments": {
-        "command": "rm -rf /important/data"
-      },
-      "requested_at": "2026-01-15T10:35:00Z"
-    }
-  ]
-}
+[
+  {
+    "id": "req-abc123",
+    "agent_id": "code-reviewer",
+    "conversation_id": "conv-123",
+    "tool_name": "bash",
+    "tool_call_id": "call_123",
+    "arguments": {
+      "command": "rm -rf /important/data"
+    },
+    "status": "pending",
+    "created_at": "2026-01-15T10:35:00Z"
+  }
+]
 ```
 
-### Fields
+### Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `approvals` | array | Pending approval requests |
-| `approvals[].request_id` | string | ID for resolving |
-| `approvals[].tool_name` | string | Tool being called |
-| `approvals[].arguments` | object | Tool arguments |
-| `approvals[].requested_at` | string | When requested |
+| `[]` | array | List of pending approval requests |
+| `[].id` | string | Unique approval request ID |
+| `[].agent_id` | string | Agent that initiated the tool call |
+| `[].conversation_id` | string | Conversation where the tool call occurred |
+| `[].tool_name` | string | Name of the tool being called |
+| `[].tool_call_id` | string | LLM's tool call ID |
+| `[].arguments` | object | Tool arguments |
+| `[].status` | string | Current status: `pending`, `approved`, or `denied` |
+| `[].created_at` | string | When the request was created (ISO 8601) |
 
 ### Example
 
@@ -166,36 +162,34 @@ Approve or deny a tool call.
 POST /agents/{agent_id}/conversations/{conversation_id}/approvals/{request_id}
 ```
 
-### Body
-
-```json
-{
-  "approved": true,
-  "reason": "User confirmed deletion"
-}
-```
-
-### Fields
+### Request Body
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `approved` | boolean | Yes | `true` to approve, `false` to deny |
-| `reason` | string | No | Optional reason for audit logs |
-
-### Response
+| `decision` | string | Yes | `"approve"` or `"deny"` |
 
 ```json
 {
-  "status": "resolved"
+  "decision": "approve"
 }
 ```
 
-### Errors
+### Response
 
-| Status | Code | Meaning |
-|--------|------|---------|
-| 404 | `APPROVAL_NOT_FOUND` | Request ID doesn't exist |
-| 409 | `ALREADY_RESOLVED` | Already approved/denied |
+**200 OK**
+```json
+{
+  "status": "resolved",
+  "request_id": "req-abc123"
+}
+```
+
+### Error Responses
+
+| Status | Error Code | Description |
+|--------|------------|-------------|
+| 404 | `conversation_not_found` | Conversation doesn't exist |
+| 404 | (empty body) | Approval request ID doesn't exist |
 
 ### Example
 
@@ -203,12 +197,12 @@ POST /agents/{agent_id}/conversations/{conversation_id}/approvals/{request_id}
 # Approve
 curl -X POST http://localhost:8080/agents/code-reviewer/conversations/conv-123/approvals/req-abc123 \
   -H "Content-Type: application/json" \
-  -d '{"approved": true}'
+  -d '{"decision": "approve"}'
 
 # Deny
 curl -X POST http://localhost:8080/agents/code-reviewer/conversations/conv-123/approvals/req-abc123 \
   -H "Content-Type: application/json" \
-  -d '{"approved": false, "reason": "Too dangerous"}'
+  -d '{"decision": "deny"}'
 ```
 
 ---
@@ -223,43 +217,46 @@ Resolve multiple approvals at once.
 POST /agents/{agent_id}/conversations/{conversation_id}/approvals
 ```
 
-### Body
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `request_ids` | array | Yes | List of approval request IDs to resolve |
+| `decision` | string | Yes | `"approve"` or `"deny"` |
 
 ```json
 {
-  "action": "approve_all"
-}
-```
-
-Or:
-
-```json
-{
-  "action": "deny_all",
-  "reason": "User cancelled operation"
+  "request_ids": ["req-abc123", "req-def456"],
+  "decision": "approve"
 }
 ```
 
 ### Response
 
+**200 OK**
 ```json
 {
-  "resolved": 3
+  "resolved": ["req-abc123", "req-def456"],
+  "not_found": []
 }
 ```
 
-### Fields
+### Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `resolved` | number | How many approvals were resolved |
+| `resolved` | array | List of request IDs that were successfully resolved |
+| `not_found` | array | List of request IDs that were not found |
 
 ### Example
 
 ```bash
 curl -X POST http://localhost:8080/agents/code-reviewer/conversations/conv-123/approvals \
   -H "Content-Type: application/json" \
-  -d '{"action": "approve_all"}'
+  -d '{
+    "request_ids": ["req-abc123", "req-def456"],
+    "decision": "approve"
+  }'
 ```
 
 ---

@@ -21,6 +21,7 @@ An agent that can:
 - Bridge running locally
 - GitHub API token
 - Local git repository
+- Control plane configured with GitHub integration endpoints
 
 ---
 
@@ -40,22 +41,15 @@ An agent that can:
         "model": "claude-sonnet-4-20250514",
         "api_key": "YOUR_API_KEY"
       },
-      "tools": ["read", "write", "edit", "bash"],
+      "tools": ["Read", "write", "edit", "bash"],
       "integrations": [
         {
           "name": "github",
           "description": "GitHub API integration",
-          "base_url": "https://api.github.com",
-          "headers": {
-            "Authorization": "token YOUR_GITHUB_TOKEN",
-            "Accept": "application/vnd.github.v3+json"
-          },
           "actions": [
             {
               "name": "create_pull_request",
               "description": "Create a pull request",
-              "method": "POST",
-              "path": "/repos/{owner}/{repo}/pulls",
               "parameters_schema": {
                 "type": "object",
                 "properties": {
@@ -87,7 +81,7 @@ An agent that can:
 }
 ```
 
-Replace `YOUR_API_KEY` and `YOUR_GITHUB_TOKEN`.
+Replace `YOUR_API_KEY`. The GitHub integration is provided by your control plane at `/integrations/github/actions/{action_name}`.
 
 ---
 
@@ -110,11 +104,21 @@ Create a conversation and ask for a change:
 curl -X POST http://localhost:8080/agents/github-assistant/conversations \
   -H "Content-Type: application/json" \
   -d '{"user_id": "dev-123"}'
+```
 
+Connect to the stream:
+
+```bash
+curl -N http://localhost:8080/conversations/CONV_ID/stream \
+  -H "Accept: text/event-stream"
+```
+
+Send the request:
+
+```bash
 curl -X POST http://localhost:8080/conversations/CONV_ID/messages \
   -H "Content-Type: application/json" \
   -d '{
-    "role": "user",
     "content": "Add a README to /home/user/projects/myapp. The project is a task manager built with React."
   }'
 ```
@@ -129,21 +133,39 @@ The agent will:
 
 ## Step 4: Approve Actions
 
+List pending approvals:
+
+```bash
+curl http://localhost:8080/agents/github-assistant/conversations/CONV_ID/approvals
+```
+
 Approve the bash commands:
 
 ```bash
 curl -X POST http://localhost:8080/agents/github-assistant/conversations/CONV_ID/approvals \
   -H "Content-Type: application/json" \
-  -d '{"action": "approve_all"}'
+  -d '{
+    "request_ids": ["req-bash-123"],
+    "decision": "approve"
+  }'
 ```
 
-Then approve the PR creation.
+Then approve the PR creation:
+
+```bash
+curl -X POST http://localhost:8080/agents/github-assistant/conversations/CONV_ID/approvals \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request_ids": ["req-github-456"],
+    "decision": "approve"
+  }'
+```
 
 ---
 
 ## What You Learned
 
-- Integrating with GitHub API
+- Integrating with GitHub via control plane
 - Using bash tool with approvals
 - Creating integration tools
 - Building a complete workflow
@@ -163,3 +185,4 @@ Then approve the PR creation.
 
 - [Integration Tools](../tools-reference/custom-tools.md)
 - [bash tool](../tools-reference/bash-tool.md)
+- [Agents API](../api-reference/agents-api.md) — Approval endpoints

@@ -4,6 +4,28 @@ This guide walks you through building Bridge from source.
 
 ---
 
+## Requirements
+
+### Supported Platforms
+
+Bridge is officially supported and tested on:
+
+| Platform | Architecture | Notes |
+|----------|--------------|-------|
+| Linux | x86_64 | GNU libc |
+| Linux | aarch64 | ARM64, GNU libc |
+| macOS | x86_64 | Intel |
+| macOS | aarch64 | Apple Silicon (M1/M2/M3) |
+
+### System Dependencies
+
+- **Rust**: Latest stable toolchain (1.70+ recommended)
+- **C compiler**: Required for linking (usually available by default)
+  - Linux: `gcc` or `clang`
+  - macOS: Xcode Command Line Tools
+
+---
+
 ## Step 1: Install Rust
 
 If you don't have Rust installed, get it from [rustup.rs](https://rustup.rs):
@@ -22,7 +44,7 @@ Verify the installation:
 
 ```bash
 rustc --version
-# Should show something like: rustc 1.75.0 (...
+# Should show 1.70.0 or higher
 ```
 
 ---
@@ -52,17 +74,33 @@ make build-release
 
 The binary will be at `target/release/bridge` (or `target/debug/bridge` for debug builds).
 
+### Build Time & Binary Size
+
+| Build Type | Time (cached) | Binary Size |
+|------------|---------------|-------------|
+| Debug (`make build`) | ~10-30s | ~50-100 MB |
+| Release (`make build-release`) | ~50s | ~10 MB |
+
+**Note**: First build includes dependency compilation and may take 5-10 minutes depending on your system. Subsequent builds are much faster.
+
 ---
 
 ## Step 4: Verify the Build
 
-Check that the binary works:
+Check that the binary exists and works:
 
 ```bash
+# Check the binary exists
+ls -la ./target/release/bridge
+
+# View CLI help
 ./target/release/bridge --help
+
+# List available tools
+./target/release/bridge tools list --json
 ```
 
-You should see help output showing available commands and options.
+You should see the help output and a JSON list of available tools.
 
 ---
 

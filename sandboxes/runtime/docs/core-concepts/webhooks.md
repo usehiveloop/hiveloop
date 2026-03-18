@@ -65,34 +65,37 @@ Bridge sends these event types:
 
 ### Conversation Events
 
-| Event | When it fires |
-|-------|---------------|
-| `conversation.created` | New conversation started |
-| `conversation.message` | New message in conversation |
-| `conversation.ended` | Conversation ended |
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Conversation Created | `conversation_created` | New conversation started | `{}` |
+| Message Received | `message_received` | User message received | `content: string` |
+| Conversation Ended | `conversation_ended` | Conversation ended | `{}` |
+| Conversation Compacted | `conversation_compacted` | History was summarized | `summary`, `messages_compacted`, `pre_compaction_tokens`, `post_compaction_tokens` |
 
-### Message Events
+### Response Events
 
-| Event | When it fires |
-|-------|---------------|
-| `message.started` | Assistant started responding |
-| `message.completed` | Assistant finished responding |
-| `message.error` | Error during generation |
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Response Started | `response_started` | Assistant started responding | `{}` |
+| Response Chunk | `response_chunk` | Streaming chunk generated | `delta: string` |
+| Response Completed | `response_completed` | Assistant finished responding | `input_tokens`, `output_tokens`, `full_response` |
+| Turn Completed | `turn_completed` | Turn/stream completed | `{}` |
 
 ### Tool Events
 
-| Event | When it fires |
-|-------|---------------|
-| `tool.called` | Tool was invoked |
-| `tool.completed` | Tool finished executing |
-| `tool.approval_requested` | Tool needs user approval |
-| `tool.approval_resolved` | User approved/denied tool |
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Tool Call Started | `tool_call_started` | Tool was invoked | `tool_name`, `arguments` |
+| Tool Call Completed | `tool_call_completed` | Tool finished executing | `tool_name`, `result`, `is_error` |
+| Tool Approval Required | `tool_approval_required` | Tool needs user approval | `request_id`, `tool_name`, `tool_call_id`, `arguments` |
+| Tool Approval Resolved | `tool_approval_resolved` | User approved/denied tool | `request_id`, `decision` ("approve" or "deny") |
 
-### Token Usage
+### Other Events
 
-| Event | When it fires |
-|-------|---------------|
-| `tokens.used` | After each turn with token count |
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Todo Updated | `todo_updated` | Todo list updated | `todos: array` |
+| Agent Error | `agent_error` | Error occurred | `code`, `message` |
 
 ---
 
@@ -100,54 +103,82 @@ Bridge sends these event types:
 
 ```json
 {
-  "event_id": "evt-abc123",
-  "event_type": "conversation.message",
+  "event_type": "response_completed",
   "timestamp": "2026-01-15T10:30:00Z",
   "agent_id": "my-agent",
   "conversation_id": "conv-def456",
   "data": {
-    "message": {
-      "role": "assistant",
-      "content": "Hello! How can I help?"
-    }
-  }
+    "input_tokens": 150,
+    "output_tokens": 42,
+    "full_response": "Hello! How can I help?"
+  },
+  "webhook_url": "https://api.yourservice.com/webhooks/bridge",
+  "webhook_secret": "<webhook-secret>"
 }
 ```
 
 ### Common Fields
 
-| Field | Description |
-|-------|-------------|
-| `event_id` | Unique ID for this event (use for deduplication) |
-| `event_type` | What happened |
-| `timestamp` | When it happened (ISO 8601) |
-| `agent_id` | Which agent |
-| `conversation_id` | Which conversation |
-| `data` | Event-specific data |
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_type` | string | Event type in snake_case |
+| `timestamp` | string | ISO 8601 timestamp (UTC) |
+| `agent_id` | string | Agent identifier |
+| `conversation_id` | string | Conversation identifier |
+| `data` | object | Event-specific data (varies by event type) |
+| `webhook_url` | string | Target webhook URL |
+| `webhook_secret` | string | Secret used for signing |
+
+**Note:** There is no `event_id` field. Use the combination of `timestamp`, `conversation_id`, and `event_type` for deduplication if needed.
 
 ---
 
 ## Verifying Webhooks
 
-Bridge signs webhooks with HMAC-SHA256. Verify the signature to ensure the webhook came from Bridge:
+Bridge signs webhooks with HMAC-SHA256. The signature is computed over the message format: `{timestamp}.{payload}` where timestamp is Unix seconds and payload is the raw JSON body.
+
+### Headers
+
+| Header | Description |
+|--------|-------------|
+| `X-Webhook-Signature` | Base64-encoded HMAC-SHA256 signature |
+| `X-Webhook-Timestamp` | Unix timestamp (seconds) used for signing |
 
 ### Python Example
 
 ```python
 import hmac
 import hashlib
+import base64
 
-def verify_webhook(payload: bytes, signature: str, secret: str) -> bool:
+def verify_webhook(payload: bytes, signature: str, secret: str, timestamp: str) -> bool:
+    """
+    Verify webhook signature.
+    
+    Args:
+        payload: Raw request body bytes
+        signature: Value from X-Webhook-Signature header (base64)
+        secret: Webhook secret
+        timestamp: Value from X-Webhook-Timestamp header
+    """
+    # Message format: {timestamp}.{payload}
+    message = f"{timestamp}.".encode() + payload
+    
+    # Compute expected signature
     expected = hmac.new(
         secret.encode(),
-        payload,
+        message,
         hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(f"sha256={expected}", signature)
+    ).digest()
+    expected_b64 = base64.b64encode(expected).decode()
+    
+    # Constant-time comparison
+    return hmac.compare_digest(expected_b64, signature)
 
 # In your webhook handler:
-signature = request.headers.get("X-Bridge-Signature")
-if not verify_webhook(request.body, signature, WEBHOOK_SECRET):
+signature = request.headers.get("X-Webhook-Signature")
+timestamp = request.headers.get("X-Webhook-Timestamp")
+if not verify_webhook(request.body, signature, WEBHOOK_SECRET, timestamp):
     raise ValueError("Invalid signature")
 ```
 
@@ -156,22 +187,27 @@ if not verify_webhook(request.body, signature, WEBHOOK_SECRET):
 ```javascript
 const crypto = require('crypto');
 
-function verifyWebhook(payload, signature, secret) {
+function verifyWebhook(payload, signature, secret, timestamp) {
+  // Message format: {timestamp}.{payload}
+  const message = timestamp + '.' + payload;
+  
   const expected = crypto
     .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
-  return signature === `sha256=${expected}`;
+    .update(message)
+    .digest('base64');
+  
+  return signature === expected;
+}
+
+// In your webhook handler:
+const signature = req.headers['x-webhook-signature'];
+const timestamp = req.headers['x-webhook-timestamp'];
+const payload = req.body; // raw body bytes/string
+
+if (!verifyWebhook(payload, signature, WEBHOOK_SECRET, timestamp)) {
+  return res.status(401).json({ error: 'Invalid signature' });
 }
 ```
-
-### Headers
-
-| Header | Description |
-|--------|-------------|
-| `X-Bridge-Signature` | HMAC-SHA256 signature |
-| `X-Bridge-Event-ID` | Same as `event_id` in body |
-| `X-Bridge-Event-Type` | Same as `event_type` in body |
 
 ---
 
@@ -191,14 +227,17 @@ async def handle_webhook(request):
 
 ### Handle Duplicates
 
-Use `event_id` to deduplicate:
+Bridge may send the same event multiple times during retries. Use a combination of fields to deduplicate:
 
 ```python
-if await db.events.find_one({"event_id": event["event_id"]}):
+# Create a unique key from timestamp + conversation_id + event_type
+event_key = f"{event['timestamp']}:{event['conversation_id']}:{event['event_type']}"
+
+if await db.events.find_one({"event_key": event_key}):
     return  # Already processed
 
 await process_event(event)
-await db.events.insert_one({"event_id": event["event_id"]})
+await db.events.insert_one({"event_key": event_key})
 ```
 
 ### Handle Retries
@@ -212,26 +251,34 @@ Bridge retries on these status codes:
 It does NOT retry on:
 
 - 2xx (success)
-- 4xx (client errors, except 408/429)
+- 4xx (client errors)
 
 ---
 
 ## Retry Behavior
 
-Bridge retries failed webhooks with exponential backoff:
+Bridge retries failed webhooks with exponential backoff and jitter:
 
-1. Immediately
-2. After 1 second
-3. After 2 seconds
-4. After 4 seconds
-5. After 8 seconds
-6. After 16 seconds
-7. After 32 seconds
-8. After 64 seconds
-9. After 128 seconds
-10. After 256 seconds (then stops)
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | ~1 second (with jitter) |
+| 3 | ~2 seconds (with jitter) |
+| 4 | ~4 seconds (with jitter) |
+| 5 | ~8 seconds (with jitter) |
 
-Events that permanently fail are logged but not retried indefinitely.
+**Configuration:**
+- **Max retries**: 5 attempts total
+- **Request timeout**: 10 seconds
+- **Backoff type**: Exponential with random jitter
+
+Events that permanently fail (all 5 attempts exhausted) are logged and dropped. There is no dead letter queue.
+
+---
+
+## Event Ordering
+
+Bridge does **not** guarantee strict ordering of webhook deliveries. Events are sent as they occur, and retries can cause out-of-order delivery. Use the `timestamp` field to order events chronologically if needed.
 
 ---
 
@@ -240,33 +287,48 @@ Events that permanently fail are logged but not retried indefinitely.
 ### Saving Conversation History
 
 ```python
-if event["event_type"] == "conversation.message":
+if event["event_type"] == "response_completed":
     await db.messages.insert_one({
         "conversation_id": event["conversation_id"],
-        "message": event["data"]["message"],
+        "response": event["data"]["full_response"],
+        "input_tokens": event["data"]["input_tokens"],
+        "output_tokens": event["data"]["output_tokens"],
         "timestamp": event["timestamp"]
     })
 ```
 
-### Tracking Token Usage
+### Tracking Tool Usage
 
 ```python
-if event["event_type"] == "tokens.used":
-    await db.usage.insert_one({
-        "agent_id": event["agent_id"],
-        "input_tokens": event["data"]["input_tokens"],
-        "output_tokens": event["data"]["output_tokens"],
-        "cost": event["data"]["cost"]
+if event["event_type"] == "tool_call_completed":
+    await db.tool_calls.insert_one({
+        "conversation_id": event["conversation_id"],
+        "tool_name": event["data"]["tool_name"],
+        "result": event["data"]["result"],
+        "is_error": event["data"]["is_error"],
+        "timestamp": event["timestamp"]
+    })
+```
+
+### Handling Errors
+
+```python
+if event["event_type"] == "agent_error":
+    await db.errors.insert_one({
+        "conversation_id": event["conversation_id"],
+        "code": event["data"]["code"],
+        "message": event["data"]["message"],
+        "timestamp": event["timestamp"]
     })
 ```
 
 ### Updating User Interface
 
 ```python
-if event["event_type"] == "message.completed":
+if event["event_type"] == "response_chunk":
     await websocket.broadcast(event["conversation_id"], {
-        "type": "message",
-        "content": event["data"]["message"]["content"]
+        "type": "chunk",
+        "delta": event["data"]["delta"]
     })
 ```
 
@@ -307,6 +369,7 @@ Use webhook.site or similar to inspect payloads:
 | Timeout | Respond 200 immediately, process async |
 | SSL errors | Use valid certificates |
 | Missing signatures | Set `webhook_secret` in agent config |
+| Signature verification fails | Ensure you're using `{timestamp}.{payload}` format with base64 encoding |
 
 ---
 

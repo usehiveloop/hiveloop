@@ -9,9 +9,18 @@ Receive and process events from Bridge.
 Create an HTTP endpoint that accepts POST requests:
 
 ```javascript
-app.post('/webhooks/bridge', express.json(), async (req, res) => {
-  // Process the event
-  await handleWebhook(req.body);
+app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (req, res) => {
+  // Verify signature before processing
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+  
+  if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // Parse and process the event
+  const event = JSON.parse(req.body);
+  await queue.add(event);
   
   // Acknowledge quickly
   res.json({ status: 'ok' });
@@ -23,7 +32,8 @@ Configure the URL in your agent:
 ```json
 {
   "id": "my-agent",
-  "webhook_url": "https://your-api.com/webhooks/bridge"
+  "webhook_url": "https://your-api.com/webhooks/bridge",
+  "webhook_secret": "<webhook-secret>"
 }
 ```
 
@@ -35,30 +45,205 @@ Every webhook has this format:
 
 ```json
 {
-  "event_id": "evt-abc123",
-  "event_type": "conversation.message",
+  "event_type": "response_completed",
   "timestamp": "2026-01-15T10:30:00Z",
   "agent_id": "my-agent",
   "conversation_id": "conv-def456",
   "data": {
-    "message": {
-      "role": "assistant",
-      "content": "Hello!"
-    }
-  }
+    "input_tokens": 150,
+    "output_tokens": 42,
+    "full_response": "Hello! How can I help?"
+  },
+  "webhook_url": "https://your-api.com/webhooks/bridge",
+  "webhook_secret": "<webhook-secret>"
 }
 ```
 
 ### Common Fields
 
-| Field | Description |
-|-------|-------------|
-| `event_id` | Unique ID (use for deduplication) |
-| `event_type` | What happened |
-| `timestamp` | When it happened |
-| `agent_id` | Which agent |
-| `conversation_id` | Which conversation |
-| `data` | Event-specific data |
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_type` | string | Event type in snake_case (e.g., `message_received`, `tool_call_completed`) |
+| `timestamp` | string | ISO 8601 timestamp in UTC |
+| `agent_id` | string | Which agent triggered the event |
+| `conversation_id` | string | Which conversation |
+| `data` | object | Event-specific data (see below) |
+
+**Note:** There is no `event_id` field. For deduplication, use a combination of `timestamp`, `conversation_id`, and `event_type`.
+
+---
+
+## Event Types Reference
+
+### Conversation Events
+
+#### `conversation_created`
+```json
+{
+  "event_type": "conversation_created",
+  "data": {}
+}
+```
+
+#### `message_received`
+```json
+{
+  "event_type": "message_received",
+  "data": {
+    "content": "Hello, can you help me?"
+  }
+}
+```
+
+#### `conversation_ended`
+```json
+{
+  "event_type": "conversation_ended",
+  "data": {}
+}
+```
+
+#### `conversation_compacted`
+Sent when conversation history is summarized to reduce token usage.
+```json
+{
+  "event_type": "conversation_compacted",
+  "data": {
+    "summary": "User asked about authentication...",
+    "messages_compacted": 35,
+    "pre_compaction_tokens": 120000,
+    "post_compaction_tokens": 15000
+  }
+}
+```
+
+### Response Events
+
+#### `response_started`
+Sent when the assistant begins generating a response.
+```json
+{
+  "event_type": "response_started",
+  "data": {}
+}
+```
+
+#### `response_chunk`
+Sent for each streaming chunk (if streaming is enabled).
+```json
+{
+  "event_type": "response_chunk",
+  "data": {
+    "delta": "partial text"
+  }
+}
+```
+
+#### `response_completed`
+Sent when the assistant finishes responding.
+```json
+{
+  "event_type": "response_completed",
+  "data": {
+    "input_tokens": 150,
+    "output_tokens": 42,
+    "full_response": "Complete response text"
+  }
+}
+```
+
+#### `turn_completed`
+Sent at the end of each turn (after `response_completed` or errors).
+```json
+{
+  "event_type": "turn_completed",
+  "data": {}
+}
+```
+
+### Tool Events
+
+#### `tool_call_started`
+```json
+{
+  "event_type": "tool_call_started",
+  "data": {
+    "tool_name": "bash",
+    "arguments": { "command": "ls -la" }
+  }
+}
+```
+
+#### `tool_call_completed`
+```json
+{
+  "event_type": "tool_call_completed",
+  "data": {
+    "tool_name": "bash",
+    "result": "file1.txt file2.txt",
+    "is_error": false
+  }
+}
+```
+
+#### `tool_approval_required`
+Sent when a tool with `require_approval` permission is called.
+```json
+{
+  "event_type": "tool_approval_required",
+  "data": {
+    "request_id": "req-abc123",
+    "tool_name": "bash",
+    "tool_call_id": "call_123",
+    "arguments": { "command": "rm -rf /" }
+  }
+}
+```
+
+#### `tool_approval_resolved`
+Sent when a tool approval is approved or denied.
+```json
+{
+  "event_type": "tool_approval_resolved",
+  "data": {
+    "request_id": "req-abc123",
+    "decision": "approve"
+  }
+}
+```
+
+### Other Events
+
+#### `todo_updated`
+Sent when the todo list is modified via the `todowrite` tool.
+```json
+{
+  "event_type": "todo_updated",
+  "data": {
+    "todos": [
+      { "id": "1", "content": "Task 1", "status": "in_progress", "priority": "high" }
+    ]
+  }
+}
+```
+
+#### `agent_error`
+Sent when an error occurs during agent execution.
+```json
+{
+  "event_type": "agent_error",
+  "data": {
+    "code": "agent_timeout",
+    "message": "agent chat timed out after 180s"
+  }
+}
+```
+
+Common error codes:
+- `max_turns_exceeded` — Maximum number of turns reached
+- `aborted` — Turn was aborted by user
+- `agent_timeout` — Agent response timed out
+- `agent_error` — General agent error
 
 ---
 
@@ -68,8 +253,16 @@ The most common webhook handler saves events:
 
 ```javascript
 async function handleWebhook(event) {
+  // Create unique key for deduplication
+  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
+  
+  // Check for duplicates
+  const exists = await db.events.findOne({ event_key: eventKey });
+  if (exists) return;
+  
+  // Save the event
   await db.events.insert({
-    event_id: event.event_id,
+    event_key: eventKey,
     type: event.event_type,
     agent_id: event.agent_id,
     conversation_id: event.conversation_id,
@@ -86,26 +279,28 @@ async function handleWebhook(event) {
 ### Save Messages
 
 ```javascript
-if (event.event_type === 'conversation.message') {
+if (event.event_type === 'response_completed') {
   await db.messages.insert({
     conversation_id: event.conversation_id,
-    role: event.data.message.role,
-    content: event.data.message.content,
+    role: 'assistant',
+    content: event.data.full_response,
+    input_tokens: event.data.input_tokens,
+    output_tokens: event.data.output_tokens,
     created_at: event.timestamp
   });
 }
 ```
 
-### Track Token Usage
+### Track Tool Usage
 
 ```javascript
-if (event.event_type === 'tokens.used') {
-  await db.usage.insert({
+if (event.event_type === 'tool_call_completed') {
+  await db.tool_calls.insert({
     conversation_id: event.conversation_id,
     agent_id: event.agent_id,
-    input_tokens: event.data.input_tokens,
-    output_tokens: event.data.output_tokens,
-    cost: event.data.cost,
+    tool_name: event.data.tool_name,
+    result: event.data.result,
+    is_error: event.data.is_error,
     timestamp: event.timestamp
   });
 }
@@ -114,7 +309,7 @@ if (event.event_type === 'tokens.used') {
 ### Update Conversation Status
 
 ```javascript
-if (event.event_type === 'conversation.ended') {
+if (event.event_type === 'conversation_ended') {
   await db.conversations.update(
     { id: event.conversation_id },
     { status: 'ended', ended_at: event.timestamp }
@@ -122,68 +317,145 @@ if (event.event_type === 'conversation.ended') {
 }
 ```
 
+### Handle Streaming Chunks
+
+```javascript
+if (event.event_type === 'response_chunk') {
+  // Stream to connected clients via WebSocket
+  await websocket.broadcast(event.conversation_id, {
+    type: 'chunk',
+    delta: event.data.delta
+  });
+}
+```
+
 ---
 
 ## Verifying Signatures
 
-Always verify webhooks came from Bridge:
+**Critical:** Always verify webhooks came from Bridge. The signature is computed as:
+
+```
+HMAC-SHA256("{timestamp}.{payload}", secret)
+```
+
+The result is **base64-encoded** (not hex).
+
+### JavaScript/Node.js
 
 ```javascript
 const crypto = require('crypto');
 
-function verifyWebhook(payload, signature, secret) {
+function verifyWebhook(payload, signature, secret, timestamp) {
+  // payload should be the raw body (Buffer or string)
+  const message = timestamp + '.' + payload;
+  
   const expected = crypto
     .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
-    .digest('hex');
+    .update(message)
+    .digest('base64');
   
-  return signature === `sha256=${expected}`;
+  // Use timing-safe comparison
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
 }
 
-app.post('/webhooks/bridge', (req, res) => {
-  const signature = req.headers['x-bridge-signature'];
+app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
   
-  if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET)) {
+  if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
   
   // Process webhook...
+  const event = JSON.parse(req.body);
+  handleWebhook(event);
+  
+  res.json({ status: 'ok' });
 });
+```
+
+### Python
+
+```python
+import hmac
+import hashlib
+import base64
+
+def verify_webhook(payload: bytes, signature: str, secret: str, timestamp: str) -> bool:
+    # Message format: {timestamp}.{payload}
+    message = f"{timestamp}.".encode() + payload
+    
+    expected = hmac.new(
+        secret.encode(),
+        message,
+        hashlib.sha256
+    ).digest()
+    expected_b64 = base64.b64encode(expected).decode()
+    
+    return hmac.compare_digest(expected_b64, signature)
+
+@app.post('/webhooks/bridge')
+async def handle_webhook(request):
+    signature = request.headers.get('X-Webhook-Signature')
+    timestamp = request.headers.get('X-Webhook-Timestamp')
+    body = await request.body()
+    
+    if not verify_webhook(body, signature, WEBHOOK_SECRET, timestamp):
+        raise HTTPException(status_code=401, detail='Invalid signature')
+    
+    event = json.loads(body)
+    await process_event(event)
+    return {'status': 'ok'}
 ```
 
 ---
 
 ## Deduplication
 
-Bridge may send the same event multiple times (retries). Use `event_id` to deduplicate:
+Bridge may send the same event multiple times (retries). Since there is no `event_id`, use a composite key:
 
 ```javascript
 async function handleWebhook(event) {
-  // Check if already processed
-  const exists = await db.events.findOne({
-    event_id: event.event_id
-  });
+  // Create unique identifier
+  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
   
+  // Check if already processed
+  const exists = await db.events.findOne({ event_key: eventKey });
   if (exists) {
     return; // Already handled
   }
   
   // Process and save
   await processEvent(event);
-  await db.events.insert({ event_id: event.event_id });
+  await db.events.insert({ event_key: eventKey, processed_at: new Date() });
 }
 ```
+
+**Note:** Events within the same millisecond for the same conversation and type are considered duplicates.
 
 ---
 
 ## Quick Response
 
-Respond within seconds to avoid retries:
+Respond within 10 seconds (the request timeout) to avoid retries:
 
 ```javascript
-app.post('/webhooks/bridge', async (req, res) => {
-  // Queue for processing
-  await queue.add(req.body);
+app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (req, res) => {
+  // Verify signature first
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+  
+  if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // Queue for processing (don't await the actual work)
+  const event = JSON.parse(req.body);
+  queue.add(event); // Fire and forget
   
   // Respond immediately
   res.json({ status: 'ok' });
@@ -199,30 +471,57 @@ queue.process(async (job) => {
 
 ## Error Handling
 
-Return 200 for successful receipt, error codes for actual problems:
+Return appropriate status codes:
 
-| Status | When to use |
-|--------|-------------|
-| 200 | Received and will process |
-| 400 | Payload malformed (won't retry) |
-| 401 | Invalid signature (won't retry) |
-| 500 | Server error (will retry) |
+| Status | When to use | Will Retry? |
+|--------|-------------|-------------|
+| 200 | Received and will process | No |
+| 401 | Invalid signature | No |
+| 400 | Payload malformed | No |
+| 500 | Server error | Yes |
+| 503 | Service unavailable | Yes |
+
+**Important:** Return 401 for invalid signatures. Don't retry authentication failures.
 
 ---
 
 ## Retry Behavior
 
-Bridge retries with exponential backoff:
+Bridge retries with exponential backoff and jitter:
 
-| Attempt | Delay |
-|---------|-------|
+| Attempt | Delay (approximate) |
+|---------|---------------------|
 | 1 | Immediate |
-| 2 | 1 second |
-| 3 | 2 seconds |
-| 4 | 4 seconds |
-| 5+ | Doubles each time (max ~4 minutes) |
+| 2 | ~1 second |
+| 3 | ~2 seconds |
+| 4 | ~4 seconds |
+| 5 | ~8 seconds |
 
-After ~10 retries, the event is dropped.
+**Configuration:**
+- **Maximum attempts**: 5 total (1 initial + 4 retries)
+- **Request timeout**: 10 seconds per attempt
+- **Backoff**: Exponential with random jitter
+- **Retry conditions**: 5xx server errors, 408 timeout, 429 rate limit
+
+Events that fail all attempts are logged and dropped. There is no dead letter queue.
+
+---
+
+## Event Ordering
+
+Bridge does **not** guarantee strict ordering due to:
+- Parallel processing of events
+- Retry delays causing out-of-order delivery
+- Network latency variations
+
+Use the `timestamp` field to order events chronologically:
+
+```javascript
+// Sort events by timestamp before processing
+const sortedEvents = events.sort((a, b) => 
+  new Date(a.timestamp) - new Date(b.timestamp)
+);
+```
 
 ---
 
@@ -231,9 +530,10 @@ After ~10 retries, the event is dropped.
 ### Log All Events
 
 ```javascript
-app.post('/webhooks/bridge', (req, res) => {
-  console.log('Webhook received:', req.body.event_type);
-  console.log(JSON.stringify(req.body, null, 2));
+app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), (req, res) => {
+  console.log('Webhook received:', req.headers['x-webhook-event-type']);
+  console.log('Timestamp:', req.headers['x-webhook-timestamp']);
+  console.log('Body:', req.body.toString());
   res.json({ status: 'ok' });
 });
 ```
@@ -244,7 +544,8 @@ Test with a temporary endpoint:
 
 ```json
 {
-  "webhook_url": "https://webhook.site/your-unique-id"
+  "webhook_url": "https://webhook.site/your-unique-id",
+  "webhook_secret": "runtime-test-token"
 }
 ```
 
@@ -253,6 +554,10 @@ Test with a temporary endpoint:
 ```bash
 docker logs bridge 2>&1 | grep webhook
 ```
+
+Look for:
+- `DEBUG webhooks::dispatcher > Sending webhook to ...`
+- `ERROR webhooks::dispatcher > Webhook delivery failed after retries ...`
 
 ---
 
@@ -265,43 +570,64 @@ const crypto = require('crypto');
 const app = express();
 const WEBHOOK_SECRET = process.env.BRIDGE_WEBHOOK_SECRET;
 
-app.post('/webhooks/bridge', express.json(), async (req, res) => {
+// Raw body parser for signature verification
+app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (req, res) => {
   // Verify signature
-  const signature = req.headers['x-bridge-signature'];
-  const payload = JSON.stringify(req.body);
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
   
+  const message = timestamp + '.' + req.body;
   const expected = crypto
     .createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
+    .update(message)
+    .digest('base64');
   
-  if (signature !== `sha256=${expected}`) {
+  if (signature !== expected) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
   
-  const event = req.body;
+  const event = JSON.parse(req.body);
   
   // Deduplicate
-  if (await db.events.findOne({ event_id: event.event_id })) {
+  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
+  if (await db.events.findOne({ event_key: eventKey })) {
     return res.json({ status: 'already_processed' });
   }
   
   // Handle by type
   switch (event.event_type) {
-    case 'conversation.message':
+    case 'response_completed':
       await db.messages.insert({
         conversation_id: event.conversation_id,
-        ...event.data.message
+        role: 'assistant',
+        content: event.data.full_response,
+        tokens: event.data.output_tokens,
+        created_at: event.timestamp
       });
       break;
       
-    case 'tokens.used':
-      await db.usage.insert({
+    case 'tool_call_completed':
+      await db.tool_calls.insert({
         conversation_id: event.conversation_id,
-        ...event.data
+        tool_name: event.data.tool_name,
+        result: event.data.result,
+        is_error: event.data.is_error,
+        timestamp: event.timestamp
+      });
+      break;
+      
+    case 'agent_error':
+      await db.errors.insert({
+        conversation_id: event.conversation_id,
+        code: event.data.code,
+        message: event.data.message,
+        timestamp: event.timestamp
       });
       break;
   }
+  
+  // Mark as processed
+  await db.events.insert({ event_key: eventKey, processed_at: new Date() });
   
   res.json({ status: 'ok' });
 });
@@ -314,4 +640,4 @@ app.listen(3000);
 ## See Also
 
 - [Webhooks](../core-concepts/webhooks.md) — Event types reference
-- [Webhook Security](../core-concepts/webhooks.md#verifying-webhooks) — Verification details
+- [API Reference](../api-reference/index.md) — Bridge API

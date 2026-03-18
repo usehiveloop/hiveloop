@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.3.0] - 2026-03-18
+
+### Added
+
+- **CLI Interface:** Bridge now has a command-line interface using `clap`
+  - `bridge --help` - Show CLI help
+  - `bridge tools list --json` - List all available tools with their JSON schemas
+  
+- **Makefile Commands:**
+  - `make tools` - List tools using release binary
+  - `make tools-debug` - List tools using debug build
+
+### Documentation
+
+- **Complete Documentation Rewrite (56 pages):**
+  - Fixed all tool names to match actual implementation (case-sensitive)
+  - Fixed API endpoint request/response formats
+  - Fixed SSE event names and payloads
+  - Fixed webhook HMAC signature algorithm documentation
+  - Fixed authentication error codes and messages
+  - Added complete tool limits and constraints
+  - Added provider type aliases and formats
+  - Fixed integration tool schema documentation
+  - Fixed batch tool parameter names
+  - Fixed agent/conversation timeout values
+  - Added missing LLM provider docs (Google, Cohere)
+
+### Changed
+
+- **Exports:** `register_builtin_tools` is now exported from `tools` crate
+
 ## [0.2.0] - 2026-03-17
 
 ### Added

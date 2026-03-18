@@ -40,6 +40,8 @@ spec:
           value: "json"
         - name: BRIDGE_WEBHOOK_URL
           value: "https://api.example.com/webhooks"
+        - name: BRIDGE_DRAIN_TIMEOUT_SECS
+          value: "60"
         resources:
           limits:
             cpu: "2"
@@ -53,13 +55,28 @@ spec:
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
+        terminationGracePeriodSeconds: 90
 ```
+
+**Key configuration:**
+- **Resources:** CPU 500m-2000m, Memory 512Mi-2Gi (adjust based on workload)
+- **Health checks:** `/health` returns `{"status": "ok", "uptime_secs": N}`
+- **Graceful shutdown:** `terminationGracePeriodSeconds` should be > `DRAIN_TIMEOUT_SECS + 10`
+- **PreStop hook:** Adds 10s delay to allow load balancer to remove pod from rotation
 
 ---
 
@@ -148,6 +165,7 @@ metadata:
 data:
   BRIDGE_LOG_LEVEL: "info"
   BRIDGE_LOG_FORMAT: "json"
+  BRIDGE_DRAIN_TIMEOUT_SECS: "60"
 ```
 
 Use in deployment:
@@ -224,9 +242,29 @@ spec:
 
 ## Monitoring
 
-### Prometheus ServiceMonitor
+### Prometheus with JSON Exporter
+
+Bridge's `/metrics` endpoint returns JSON, not Prometheus format. Use json_exporter:
 
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: json-exporter-config
+data:
+  config.yml: |
+    modules:
+      bridge:
+        metrics:
+        - name: bridge_active_conversations
+          valuetype: gauge
+          help: Active conversations
+          path: "{ .global.total_active_conversations }"
+        - name: bridge_uptime_seconds
+          valuetype: gauge
+          help: Bridge uptime
+          path: "{ .global.uptime_secs }"
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -238,6 +276,22 @@ spec:
   endpoints:
   - port: http
     path: /metrics
+```
+
+### Custom Metrics Endpoint
+
+For direct ingestion, poll `/metrics` and extract fields:
+
+```json
+{
+  "timestamp": "2026-01-15T10:30:00Z",
+  "agents": [...],
+  "global": {
+    "total_agents": 5,
+    "total_active_conversations": 42,
+    "uptime_secs": 86400
+  }
+}
 ```
 
 ---
@@ -262,6 +316,19 @@ Install:
 ```bash
 helm install bridge ./bridge
 ```
+
+---
+
+## Graceful Shutdown Handling
+
+Bridge properly handles SIGTERM during pod termination:
+
+1. Kubernetes sends SIGTERM to the container
+2. Bridge stops accepting new connections
+3. Waits up to `DRAIN_TIMEOUT_SECS` for active conversations
+4. Kubernetes waits `terminationGracePeriodSeconds` before SIGKILL
+
+**Important:** Set `terminationGracePeriodSeconds` higher than `BRIDGE_DRAIN_TIMEOUT_SECS` to ensure graceful shutdown.
 
 ---
 

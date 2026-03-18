@@ -19,6 +19,11 @@ Bridge is organized as a Rust workspace with multiple crates, each handling a sp
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐               │
 │  │  Tools   │    │   MCP    │    │ Webhooks │               │
 │  └──────────┘    └──────────┘    └──────────┘               │
+│       │                                                       │
+│       ▼                                                       │
+│  ┌──────────┐                                                │
+│  │   LSP    │                                                │
+│  └──────────┘                                                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -26,17 +31,63 @@ Bridge is organized as a Rust workspace with multiple crates, each handling a sp
 
 ## Crate Structure
 
-| Crate | Purpose |
-|-------|---------|
-| **bridge** | Main binary, configuration loading, startup |
-| **api** | HTTP handlers, routing, middleware, SSE streaming |
-| **core** | Domain models, error types, configuration schemas |
-| **runtime** | Agent supervision, conversation management, state |
-| **llm** | Provider integrations (Anthropic, OpenAI-compatible, etc.) |
-| **tools** | Built-in tool implementations |
-| **mcp** | Model Context Protocol client |
-| **webhooks** | Webhook dispatch with HMAC signing |
-| **lsp** | Language Server Protocol integration |
+| Crate | Purpose | Package Name |
+|-------|---------|--------------|
+| **bridge** | Main binary, configuration loading, startup | `bridge` |
+| **api** | HTTP handlers, routing, middleware, SSE streaming | `api` |
+| **core** | Domain models, error types, configuration schemas | `core` (lib: `bridge_core`) |
+| **runtime** | Agent supervision, conversation management, state | `runtime` |
+| **llm** | Provider integrations (Anthropic, OpenAI-compatible, etc.) | `llm` |
+| **tools** | Built-in tool implementations | `tools` |
+| **mcp** | Model Context Protocol client | `mcp` |
+| **webhooks** | Webhook dispatch with HMAC signing | `webhooks` |
+| **lsp** | Language Server Protocol integration | `lsp` |
+
+---
+
+## Dependency Graph
+
+```
+bridge (binary)
+├── api
+│   ├── bridge_core
+│   ├── runtime
+│   ├── llm
+│   └── webhooks
+├── runtime
+│   ├── bridge_core
+│   ├── llm
+│   ├── mcp
+│   ├── tools
+│   ├── lsp
+│   └── webhooks
+├── webhooks
+│   └── bridge_core
+├── mcp
+│   ├── bridge_core
+│   └── tools
+└── lsp
+    └── (external deps only)
+
+llm
+├── bridge_core
+├── tools
+└── webhooks
+
+tools
+├── bridge_core
+└── lsp
+
+mcp
+├── bridge_core
+└── tools
+
+webhooks
+└── bridge_core
+
+bridge_core
+└── (no internal deps)
+```
 
 ---
 
@@ -81,19 +132,37 @@ Here's what happens when a user sends a message:
 The runtime is the heart of Bridge. It manages:
 
 ### Agent Supervision
-- Maintains a map of running agents
+- Maintains a map of running agents (`AgentMap`)
 - Handles agent lifecycle (start, update, drain)
 - Restarts crashed agents
+- Applies configuration diffs from control plane
 
 ### Conversation State
 - Tracks active conversations per agent
 - Manages message history
 - Handles compaction (summarizing old messages)
+- Provides per-conversation abort tokens
 
 ### Turn Management
 - Processes one "turn" at a time (user message → AI response)
 - Handles tool call loops
 - Streams events to the client
+- Wraps tool execution in `AGENT_CONTEXT` task-local scope
+
+### Key Runtime Modules
+
+| Module | Purpose |
+|--------|---------|
+| `supervisor.rs` | Central agent lifecycle management |
+| `agent_map.rs` | Concurrent agent storage (DashMap) |
+| `agent_runner.rs` | Per-agent event loop and subagent support |
+| `agent_state.rs` | Complete runtime state for a single agent |
+| `conversation.rs` | Conversation event loop and turn processing |
+| `compaction.rs` | History summarization |
+| `drain.rs` | Graceful shutdown with in-flight request draining |
+| `system_reminder.rs` | Periodic system message injection |
+| `token_tracker.rs` | Token usage tracking |
+| `permission_manager.rs` | Runtime-side permission handling |
 
 ---
 
@@ -105,16 +174,30 @@ The API layer handles HTTP concerns:
 - Public endpoints (`/agents`, `/conversations`)
 - Push endpoints (`/push/*` — requires auth)
 - Health and metrics (`/health`, `/metrics`)
+- Tool approvals (`/agents/{id}/conversations/{id}/approvals`)
 
 ### Middleware
-- Authentication for push endpoints
-- Request logging
-- CORS (if enabled)
+- Authentication for push endpoints (bearer token)
+- Request logging via `TraceLayer`
+- CORS (permissive)
 
 ### SSE Streaming
 - Maintains long-lived connections
 - Sends events as they happen
 - Handles client disconnects
+- Stores active streams in `AppState`
+
+### Handler Modules
+
+| Module | Endpoints |
+|--------|-----------|
+| `health.rs` | `GET /health` |
+| `agents.rs` | `GET /agents`, `GET /agents/{id}` |
+| `conversations.rs` | `POST /agents/{id}/conversations`, `POST /conversations/{id}/messages`, `DELETE /conversations/{id}`, `POST /conversations/{id}/abort` |
+| `stream.rs` | `GET /conversations/{id}/stream` |
+| `metrics.rs` | `GET /metrics` |
+| `permissions.rs` | `GET/POST /agents/{id}/conversations/{id}/approvals` |
+| `push.rs` | `POST /push/agents`, `PUT/DELETE /push/agents/{id}`, `POST /push/diff`, etc. |
 
 ---
 
@@ -122,18 +205,45 @@ The API layer handles HTTP concerns:
 
 Tools are organized in the `tools` crate:
 
+### Tool Registration
+
+Tools are registered explicitly via the `ToolRegistry`:
+
+```rust
+let mut registry = ToolRegistry::new();
+registry.register(Arc::new(BashTool::new()));
+```
+
+Built-in tools are registered by `register_builtin_tools()` in `builtin.rs`.
+
 ### Built-in Tools
-- Filesystem: read, write, edit, ls, glob
-- Shell: bash command execution
-- Search: grep, web search
-- Agent management: spawn_agent, parallel_agent, join
-- Task tracking: todo
+- **Filesystem**: `read`, `write`, `edit`, `apply_patch`, `multiedit`, `ls`, `Glob`, `Grep`
+- **Shell**: `bash` command execution
+- **Web**: `web_fetch`, `web_search` (if SEARCH_ENDPOINT set)
+- **Agent management**: `agent`, `parallel_agent`
+- **Task tracking**: `todowrite`, `todoread`, `join`
+- **Batch execution**: `batch`
+- **LSP integration**: `lsp` (if LSP manager provided)
+
+### Tool Execution Context
+
+Tools execute within a Tokio task-local `AGENT_CONTEXT` that provides:
+- Conversation ID and agent ID
+- Subagent runner for spawning child agents
+- Task registry for background operations
+- Stream sender for real-time notifications
+
+This context is set by the runtime's conversation loop and accessible via:
+```rust
+AGENT_CONTEXT.try_with(|ctx| { ... })
+```
 
 ### MCP Tools
+
 External tools accessed via MCP servers. The MCP crate handles:
 - Connecting to stdio and HTTP servers
 - Tool discovery
-- Call execution
+- Call execution via `McpToolExecutor`
 
 ---
 
@@ -141,9 +251,11 @@ External tools accessed via MCP servers. The MCP crate handles:
 
 Bridge keeps state in memory. There's no database:
 
-- **Agents** — Stored in an `AgentMap` (concurrent hash map)
+- **Agents** — Stored in an `AgentMap` (concurrent hash map via DashMap)
 - **Conversations** — Stored per agent in `AgentState`
 - **Message history** — Vector of messages in conversation state
+- **SSE streams** — Stored in `AppState` (DashMap)
+- **Task registry** — Background subagent tasks
 
 This means:
 - **Fast** — No database queries
@@ -161,10 +273,41 @@ For persistence, your control plane:
 
 Bridge uses Tokio for async execution:
 
-- One async runtime per process
-- Each conversation gets its own task
-- Tool calls may spawn blocking threads
-- MCP servers run in separate processes
+- **One async runtime** per process (`#[tokio::main]`)
+- **Per-conversation tasks** — Each conversation runs in its own Tokio task
+- **spawn_blocking** — CPU-intensive operations (grep, glob, ls) run in blocking threads
+- **Task-local context** — `AGENT_CONTEXT` provides per-conversation data without explicit passing
+- **Cancellation tokens** — Graceful shutdown via `tokio_util::sync::CancellationToken`
+- **Rate limiting** — Per-agent request throttling via `governor`
+
+---
+
+## Key Design Patterns
+
+### Task-Local Context
+The `AGENT_CONTEXT` task-local variable carries conversation-scoped data:
+- Eliminates need to pass context through every function
+- Automatically propagates to subagent spawns
+- Used by tools to access the subagent runner and send notifications
+
+### Graceful Drain
+The `drain.rs` module handles zero-downtime agent updates:
+- Stop accepting new conversations
+- Wait for in-flight turns to complete
+- Replace agent definition
+- Resume with new configuration
+
+### Permission Manager
+Centralized tool approval system:
+- Intercepts tool calls requiring approval
+- Queues approval requests per conversation
+- Resumes execution after approval/denial
+
+### Webhook Dispatch
+Async webhook delivery with:
+- HMAC-SHA256 signing
+- Exponential backoff retry
+- Separate dispatcher task
 
 ---
 

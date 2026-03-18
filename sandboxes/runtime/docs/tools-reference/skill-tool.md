@@ -18,7 +18,7 @@ The skill tool lets an agent load a pre-defined skill (reusable prompt). This is
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `name` | string | Yes | Skill ID to load |
+| `name` | string | Yes | Skill ID or title to load (case-insensitive) |
 | `args` | string | No | Additional context for the skill |
 
 ## Example
@@ -38,9 +38,16 @@ The skill tool lets an agent load a pre-defined skill (reusable prompt). This is
 ## How It Works
 
 1. Agent calls `skill` with a skill name
-2. Bridge looks up the skill definition
-3. Skill content is made available to the agent
+2. Bridge looks up the skill definition (matching by ID or title, case-insensitive)
+3. Skill content is substituted with args (if provided) and wrapped in XML tags
 4. Agent uses that expertise for the current task
+
+Output format:
+```xml
+<skill_content name="skill-id" title="Skill Title">
+Skill content with {{args}} substituted...
+</skill_content>
+```
 
 ---
 
@@ -67,6 +74,8 @@ Skills are defined in your agent configuration:
   ]
 }
 ```
+
+The `description` field is shown in system reminders to help agents know when to use each skill.
 
 ---
 
@@ -101,7 +110,7 @@ Write a commit message for these changes: Fixed the login bug
 
 ### Without Placeholders
 
-If a skill doesn't have `{{args}}`, args are appended:
+If a skill doesn't have `{{args}}`, args are appended with an "Arguments:" prefix:
 
 ```json
 {
@@ -115,8 +124,26 @@ With args `"Review this function"`:
 ```
 You are a code reviewer.
 
-Additional context: Review this function
+Arguments: Review this function
 ```
+
+Note: The documentation previously mentioned "Additional context:" but the actual implementation uses "Arguments:".
+
+### Without Args
+
+If no args are provided, the skill content is returned unchanged (including any `{{args}}` placeholders).
+
+---
+
+## Skill Matching
+
+The skill tool matches by **ID or title** (case-insensitive):
+
+| Query | Matches skill with... |
+|-------|----------------------|
+| `"commit"` | id: `commit` or title: `Commit` |
+| `"Code Review"` | id: `code-review` or title: `Code Review` |
+| `"PR-SUMMARY"` | id: `pr-summary` or title: `PR Summary` |
 
 ---
 
@@ -186,18 +213,75 @@ Agent can switch modes by using different skills.
 
 ---
 
-## Error: Skill Not Found
+## Error Handling
 
-If an agent tries to use a skill that doesn't exist:
+### Skill Not Found
 
-```json
-{
-  "success": false,
-  "error": "Skill 'unknown-skill' not found"
-}
+If an agent tries to use a skill that doesn't exist, the tool returns an error:
+
+```
+Skill 'unknown-skill' not found. Available skills: [Code Review, Commit, Explain]
 ```
 
-Make sure the skill is defined in the agent's `skills` array.
+The error includes the list of available skill titles to help identify the correct skill name.
+
+### No Skills Defined
+
+**The skill tool is only registered if the agent has at least one skill defined.** Agents without skills cannot use this tool.
+
+---
+
+## System Reminder Integration
+
+When an agent has skills, Bridge injects a system reminder before every user message:
+
+```xml
+<system-reminder>
+
+# System Reminders
+
+## Available skills
+
+The following skills are available for use with the Skill tool:
+
+- **Code Review** - Reviews code for quality, bugs, and best practices
+- **Commit** - Writes conventional commit messages
+
+</system-reminder>
+```
+
+The reminder shows skill titles and descriptions to help the AI know when to use each skill. The actual skill content is hidden until the skill is invoked.
+
+---
+
+## Blocking Requirement
+
+According to the skill tool instructions, when a skill matches the user's request, invoking the skill tool is a **blocking requirement**. The agent must call the skill tool BEFORE generating any text response about the task.
+
+Additionally:
+- Never mention a skill without actually calling the tool
+- Do not invoke a skill that is already running (check for `<skill_content>` tags in the current turn)
+- Do not use this tool for built-in CLI commands (like /help, /clear, etc.)
+
+---
+
+## Implementation Details
+
+### No Caching
+
+Skills are stored in memory when the agent is initialized. They are not cached to disk or shared between agents.
+
+### No Size Limits
+
+There is no enforced maximum size for skill content. However, very large skills consume context window tokens.
+
+### No Maximum Skill Count
+
+There is no enforced maximum number of skills per agent. However, since all skill titles and descriptions appear in every system reminder, a large number of skills will consume significant context window tokens.
+
+### Case-Insensitive Matching
+
+Skill lookups are case-insensitive for both ID and title matching.
 
 ---
 
