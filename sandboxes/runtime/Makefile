@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi tools tools-debug clean
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
 
 # --- Build ---
 
@@ -76,6 +76,12 @@ tools: ## List available tools (JSON format)
 
 tools-debug: ## List available tools using debug build
 	cargo run -p bridge --bin bridge -- tools list --json
+
+tools-readonly: ## List read-only tools (JSON format)
+	./target/release/bridge tools list --read-only
+
+tools-readonly-debug: ## List read-only tools using debug build
+	cargo run -p bridge --bin bridge -- tools list --read-only
 
 # --- Clean ---
 
