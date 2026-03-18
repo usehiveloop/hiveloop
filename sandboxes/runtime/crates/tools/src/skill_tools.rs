@@ -14,37 +14,14 @@ pub struct SkillToolArgs {
 
 /// A tool that loads domain-specific skill instructions by name.
 ///
-/// The description lists available skills (name + short description).
 /// When invoked, returns the full skill content from memory.
 pub struct SkillTool {
     skills: Vec<SkillDefinition>,
-    description: String,
 }
 
 impl SkillTool {
     pub fn new(skills: Vec<SkillDefinition>) -> Self {
-        let skill_listing = skills
-            .iter()
-            .map(|s| {
-                format!(
-                    "<skill name=\"{}\" description=\"{}\" />",
-                    s.title, s.description
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let description = format!(
-            "Load a skill by name to get domain-specific instructions for a particular task. \
-             Use this when you need specialized guidance.\n\n\
-             <available_skills>\n{}\n</available_skills>",
-            skill_listing
-        );
-
-        Self {
-            skills,
-            description,
-        }
+        Self { skills }
     }
 }
 
@@ -55,7 +32,7 @@ impl ToolExecutor for SkillTool {
     }
 
     fn description(&self) -> &str {
-        &self.description
+        include_str!("instructions/skill.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -117,14 +94,15 @@ mod tests {
     }
 
     #[test]
-    fn description_includes_skill_names_but_not_content() {
+    fn description_is_static_from_file() {
         let tool = SkillTool::new(make_skills());
         let desc = tool.description();
 
-        assert!(desc.contains("Code Review"));
-        assert!(desc.contains("PR Summary"));
-        assert!(desc.contains("<available_skills>"));
-        // Content should NOT be in the description
+        // Description now comes from static file, not dynamically generated
+        assert!(desc.contains("Execute a skill within the main conversation"));
+        assert!(desc.contains("slash command"));
+        assert!(desc.contains("BLOCKING REQUIREMENT"));
+        // Skill content should NOT be in the description
         assert!(!desc.contains("You are a code review expert"));
         assert!(!desc.contains("You are a PR summarizer"));
     }
