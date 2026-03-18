@@ -56,6 +56,7 @@ mod serde_roundtrip_tests {
                 title: "Code Review".to_string(),
                 description: "Reviews code for quality".to_string(),
                 content: "You are a code review expert.".to_string(),
+                ..Default::default()
             }],
             integrations: vec![],
             config: AgentConfig {
@@ -492,6 +493,7 @@ mod serde_roundtrip_tests {
             description: "Analyzes datasets and produces insights.".to_string(),
             content: "You are a data analysis expert. Analyze datasets and produce insights."
                 .to_string(),
+            ..Default::default()
         };
 
         let json = serde_json::to_string_pretty(&skill).expect("serialize");

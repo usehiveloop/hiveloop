@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub type SkillId = String;
 
 /// Definition of a skill that can be activated by an agent.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SkillDefinition {
     /// Unique identifier for the skill
