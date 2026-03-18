@@ -296,6 +296,7 @@ impl AgentSupervisor {
                 agent_permissions,
                 compaction_config,
                 system_reminder,
+                conversation_date: chrono::Utc::now(),
             })
             .await;
         });
@@ -675,6 +676,7 @@ impl AgentSupervisor {
                 agent_permissions,
                 compaction_config,
                 system_reminder,
+                conversation_date: chrono::Utc::now(),
             })
             .await;
         });

@@ -77,6 +77,8 @@ pub struct ConversationParams {
     pub compaction_config: Option<bridge_core::agent::CompactionConfig>,
     /// System reminder markdown to inject before every user message.
     pub system_reminder: String,
+    /// Initial conversation date for date tracking.
+    pub conversation_date: chrono::DateTime<chrono::Utc>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -111,6 +113,7 @@ pub async fn run_conversation(params: ConversationParams) {
         agent_permissions,
         compaction_config,
         system_reminder,
+        conversation_date,
     } = params;
 
     info!(
@@ -125,6 +128,9 @@ pub async fn run_conversation(params: ConversationParams) {
     let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
     let mut turn_count: usize = 0;
     let msg_id = uuid::Uuid::new_v4().to_string();
+
+    // Initialize date tracker for detecting date changes
+    let mut date_tracker = crate::system_reminder::DateTracker::with_date(conversation_date);
 
     loop {
         // Wait for either a user message, a background task notification, or cancellation
@@ -235,11 +241,27 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         }
 
-        // Prepend system reminder if present
-        let final_user_text = if system_reminder.is_empty() {
-            user_text.clone()
-        } else {
-            format!("{}\n\n{}", system_reminder, user_text)
+        // Check for date change and get reminder if date changed
+        let date_change_reminder = date_tracker.check_date_change();
+
+        // Build final user text with reminders
+        let final_user_text = match (date_change_reminder, system_reminder.is_empty()) {
+            (Some(date_reminder), true) => {
+                // Only date change reminder
+                format!("{}\n\n{}", date_reminder, user_text)
+            }
+            (Some(date_reminder), false) => {
+                // Both date change and system reminder
+                format!("{}\n\n{}\n\n{}", date_reminder, system_reminder, user_text)
+            }
+            (None, true) => {
+                // No reminders
+                user_text.clone()
+            }
+            (None, false) => {
+                // Only system reminder
+                format!("{}\n\n{}", system_reminder, user_text)
+            }
         };
 
         history.push(rig::message::Message::user(&final_user_text));
