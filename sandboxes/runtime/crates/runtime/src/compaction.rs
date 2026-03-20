@@ -15,9 +15,8 @@ meta-commentary about the summarization itself.";
 
 /// Global cached BPE tokenizer. Initialized once on first use, thread-safe.
 /// Avoids re-parsing the ~1.7MB vocabulary on every call to `estimate_tokens`.
-static BPE_TOKENIZER: LazyLock<tiktoken_rs::CoreBPE> = LazyLock::new(|| {
-    tiktoken_rs::cl100k_base().expect("cl100k_base encoding should load")
-});
+static BPE_TOKENIZER: LazyLock<tiktoken_rs::CoreBPE> =
+    LazyLock::new(|| tiktoken_rs::cl100k_base().expect("cl100k_base encoding should load"));
 
 /// Result of a successful compaction.
 pub struct CompactionResult {
@@ -414,7 +413,10 @@ mod tests {
         let history = vec![Message::user("Hello, world!")];
         let t1 = estimate_tokens(&history);
         let t2 = estimate_tokens(&history);
-        assert_eq!(t1, t2, "cached tokenizer must produce deterministic results");
+        assert_eq!(
+            t1, t2,
+            "cached tokenizer must produce deterministic results"
+        );
     }
 
     #[test]
@@ -443,7 +445,10 @@ mod tests {
         let history = vec![Message::user("short")];
         // Budget is huge — should return Some(small_number)
         let result = estimate_tokens_fast(&history, 100_000);
-        assert!(result.is_some(), "short message should be clearly under budget");
+        assert!(
+            result.is_some(),
+            "short message should be clearly under budget"
+        );
         assert!(result.unwrap() < 100_000);
     }
 

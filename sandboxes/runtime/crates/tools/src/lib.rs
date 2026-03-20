@@ -27,8 +27,7 @@ pub mod web_search;
 pub mod write;
 
 pub use agent::{
-    AgentContext, AgentTaskNotification, AgentToolParams, SubAgentRunner, TaskBudget,
-    AGENT_CONTEXT,
+    AgentContext, AgentTaskNotification, AgentToolParams, SubAgentRunner, TaskBudget, AGENT_CONTEXT,
 };
 pub use boundary::ProjectBoundary;
 pub use builtin::register_builtin_tools;

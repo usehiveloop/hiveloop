@@ -165,10 +165,7 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
 
     // Create webhook dispatcher if BRIDGE_WEBHOOK_URL is set
     let webhook_ctx: Option<WebhookContext> = if let Some(ref url) = config.webhook_url {
-        let webhook_config = config
-            .webhook_config
-            .clone()
-            .unwrap_or_default();
+        let webhook_config = config.webhook_config.clone().unwrap_or_default();
         let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
         let client = dispatcher.client();
         let dispatcher = Arc::new(dispatcher);

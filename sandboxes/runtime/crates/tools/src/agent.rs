@@ -692,8 +692,16 @@ mod tests {
             })
             .collect();
 
-        let total: usize = handles.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>().into_iter().sum();
-        assert_eq!(total, 100, "exactly 100 slots should be acquired across all threads");
+        let total: usize = handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .sum();
+        assert_eq!(
+            total, 100,
+            "exactly 100 slots should be acquired across all threads"
+        );
         assert_eq!(budget.used(), 100);
         assert_eq!(budget.remaining(), 0);
     }

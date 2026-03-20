@@ -459,8 +459,7 @@ mod tests {
         let task2 = format!("{}-{}", conv_id, "22222222-2222-2222-2222-222222222222");
         let other = format!(
             "{}-{}",
-            "ffffffff-ffff-ffff-ffff-ffffffffffff",
-            "33333333-3333-3333-3333-333333333333"
+            "ffffffff-ffff-ffff-ffff-ffffffffffff", "33333333-3333-3333-3333-333333333333"
         );
 
         store.save(task1.clone(), vec![rig::message::Message::user("a")]);

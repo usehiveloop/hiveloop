@@ -109,13 +109,7 @@ impl WebhookDispatcher {
         rx.close();
         let mut drained = 0u64;
         while let Some(payload) = rx.recv().await {
-            spawn_delivery(
-                &client,
-                &semaphore,
-                payload,
-                delivery_timeout,
-                max_retries,
-            );
+            spawn_delivery(&client, &semaphore, payload, delivery_timeout, max_retries);
             drained += 1;
         }
         if drained > 0 {
