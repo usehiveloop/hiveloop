@@ -15,6 +15,7 @@ const docsSections: DocNavSection[] = [
   {
     title: "Getting Started",
     items: [
+      { label: "Introduction", href: "/docs/introduction" },
       { label: "Quickstart", href: "/docs/quickstart" },
       { label: "Installation", href: "/docs/installation" },
       { label: "Authentication", href: "/docs/authentication" },
@@ -27,30 +28,82 @@ const docsSections: DocNavSection[] = [
       { label: "Tokens", href: "/docs/tokens" },
       { label: "Proxy", href: "/docs/proxy" },
       { label: "Providers", href: "/docs/providers" },
+      { label: "Identities", href: "/docs/identities" },
+      { label: "Rate Limiting", href: "/docs/rate-limiting" },
+    ],
+  },
+  {
+    title: "Connect",
+    items: [
+      { label: "Overview", href: "/docs/connect/overview" },
+      { label: "Embedding", href: "/docs/connect/embedding" },
+      { label: "Theming", href: "/docs/connect/theming" },
+      { label: "Sessions", href: "/docs/connect/sessions" },
+      { label: "Provider Connections", href: "/docs/connect/providers" },
+      { label: "Integration Connections", href: "/docs/connect/integrations" },
+      { label: "Frontend SDK", href: "/docs/connect/frontend-sdk" },
+    ],
+  },
+  {
+    title: "Dashboard",
+    items: [
+      { label: "Overview", href: "/docs/dashboard/overview" },
+      { label: "Credentials", href: "/docs/dashboard/credentials" },
+      { label: "Tokens", href: "/docs/dashboard/tokens" },
+      { label: "API Keys", href: "/docs/dashboard/api-keys" },
+      { label: "Identities", href: "/docs/dashboard/identities" },
+      { label: "Integrations", href: "/docs/dashboard/integrations" },
+      { label: "Audit Log", href: "/docs/dashboard/audit-log" },
+      { label: "Team Management", href: "/docs/dashboard/team" },
+      { label: "Billing", href: "/docs/dashboard/billing" },
     ],
   },
   {
     title: "API Reference",
     items: [
-      { label: "Credentials API", href: "/docs/api/credentials" },
-      { label: "Tokens API", href: "/docs/api/tokens" },
-      { label: "Proxy API", href: "/docs/api/proxy" },
-    ],
-  },
-  {
-    title: "Infrastructure",
-    items: [
-      { label: "Architecture", href: "/docs/architecture" },
-      { label: "Security", href: "/docs/security" },
-      { label: "Self-Hosting", href: "/docs/self-hosting" },
+      { label: "Overview", href: "/docs/api/overview" },
+      { label: "Authentication", href: "/docs/api/authentication" },
+      { label: "Credentials", href: "/docs/api/credentials" },
+      { label: "Tokens", href: "/docs/api/tokens" },
+      { label: "Identities", href: "/docs/api/identities" },
+      { label: "API Keys", href: "/docs/api/api-keys" },
+      { label: "Integrations", href: "/docs/api/integrations" },
+      { label: "Connections", href: "/docs/api/connections" },
+      { label: "Connect Sessions", href: "/docs/api/connect-sessions" },
+      { label: "Widget API", href: "/docs/api/widget" },
+      { label: "Proxy", href: "/docs/api/proxy" },
+      { label: "Providers", href: "/docs/api/providers" },
+      { label: "Audit", href: "/docs/api/audit" },
+      { label: "MCP Server", href: "/docs/api/mcp" },
     ],
   },
   {
     title: "SDKs",
     items: [
-      { label: "TypeScript", href: "/docs/sdk/typescript" },
-      { label: "Python", href: "/docs/sdk/python" },
-      { label: "Go", href: "/docs/sdk/go" },
+      { label: "TypeScript SDK", href: "/docs/sdk/typescript" },
+      { label: "Python SDK", href: "/docs/sdk/python" },
+      { label: "Go SDK", href: "/docs/sdk/go" },
+      { label: "Frontend SDK", href: "/docs/sdk/frontend" },
+    ],
+  },
+  {
+    title: "Security",
+    items: [
+      { label: "Overview", href: "/docs/security/overview" },
+      { label: "Encryption", href: "/docs/security/encryption" },
+      { label: "Token Scoping", href: "/docs/security/token-scoping" },
+      { label: "Audit Logging", href: "/docs/security/audit-logging" },
+      { label: "Compliance", href: "/docs/security/compliance" },
+    ],
+  },
+  {
+    title: "Self-Hosting",
+    items: [
+      { label: "Overview", href: "/docs/self-hosting/overview" },
+      { label: "Docker Compose", href: "/docs/self-hosting/docker-compose" },
+      { label: "Kubernetes", href: "/docs/self-hosting/kubernetes" },
+      { label: "Configuration", href: "/docs/self-hosting/configuration" },
+      { label: "Environment Variables", href: "/docs/self-hosting/environment" },
     ],
   },
 ];
@@ -59,7 +112,7 @@ function DocsSidebarContent({ pathname }: { pathname: string }) {
   return (
     <nav className="flex flex-1 flex-col gap-0 overflow-y-auto">
       {docsSections.map((section) => (
-        <div key={section.title} className="flex flex-col gap-1 px-4 py-2">
+        <div key={section.title} className="flex flex-col gap-1 px-4 py-6">
           <span className="px-2 pb-2 text-[11px] font-semibold uppercase leading-3.5 tracking-wider text-[#9794A3]">
             {section.title}
           </span>
@@ -125,7 +178,6 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         )}
       </AnimatePresence>
 
-      {/* Mobile top bar (below nav, replaces sidebar on small screens) */}
       <div className="fixed left-0 right-0 top-16 z-40 flex items-center gap-3 border-b border-border bg-background px-4 py-3 lg:hidden">
         <button
           onClick={() => setSidebarOpen(true)}
@@ -137,9 +189,9 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* 3-column layout — fills between nav and footer, no page scroll */}
-      <div className="mx-auto flex min-w-0 flex-1 max-w-7xl overflow-hidden pt-13 lg:pt-0">
+      <div className="mx-auto flex min-w-0 flex-1 overflow-hidden w-full pt-13 lg:pt-0">
         {/* Left sidebar — own scroll */}
-        <aside className="hidden w-75 shrink-0 flex-col overflow-y-auto border-r border-border bg-[#18171E] pl-14 pt-6 lg:flex">
+        <aside className="hidden w-75 shrink-0 flex-col overflow-y-auto border-r border-border bg-[#18171E] pt-6 lg:flex">
           <DocsSidebarContent pathname={pathname} />
         </aside>
 
