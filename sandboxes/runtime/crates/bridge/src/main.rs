@@ -16,7 +16,7 @@ use webhooks::{WebhookContext, WebhookDispatcher};
 #[derive(Parser)]
 #[command(name = "bridge")]
 #[command(about = "AI Agent Runtime with tool execution and MCP support")]
-#[command(version = "0.4.0")]
+#[command(version = "0.5.0")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
