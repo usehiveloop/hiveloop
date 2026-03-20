@@ -2,7 +2,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use bridge_core::{AgentDefinition, BridgeError, ConversationRecord};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::state::AppState;
@@ -27,6 +27,64 @@ pub struct PushDiffRequest {
     pub removed: Vec<String>,
 }
 
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct UpdateApiKeyRequest {
+    pub api_key: String,
+}
+
+/// Response for pushing agents.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct PushAgentsResponse {
+    /// Number of agents loaded.
+    pub loaded: usize,
+}
+
+/// Response for upserting an agent.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct UpsertAgentResponse {
+    /// Status of the operation: "unchanged", "updated", or "created".
+    pub status: String,
+}
+
+/// Response for removing an agent.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RemoveAgentResponse {
+    /// Status of the operation.
+    pub status: String,
+}
+
+/// Response for hydrating conversations.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct HydrateConversationsResponse {
+    /// Number of conversations hydrated.
+    pub hydrated: usize,
+}
+
+/// Response for updating an API key.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct UpdateApiKeyResponse {
+    /// Status of the operation.
+    pub status: String,
+}
+
+/// Response for pushing a diff.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct PushDiffResponse {
+    /// Number of agents added.
+    pub added: usize,
+    /// Number of agents updated.
+    pub updated: usize,
+    /// Number of agents removed.
+    pub removed: usize,
+}
+
 /// POST /push/agents — bulk seed agents.
 #[cfg_attr(feature = "openapi", utoipa::path(
     post,
@@ -34,17 +92,17 @@ pub struct PushDiffRequest {
     request_body = PushAgentsRequest,
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "Agents loaded", body = serde_json::Value),
+        (status = 200, description = "Agents loaded", body = PushAgentsResponse),
         (status = 401, description = "Unauthorized")
     )
 ))]
 pub async fn push_agents(
     State(state): State<AppState>,
     Json(body): Json<PushAgentsRequest>,
-) -> Result<(StatusCode, Json<serde_json::Value>), BridgeError> {
+) -> Result<(StatusCode, Json<PushAgentsResponse>), BridgeError> {
     let count = body.agents.len();
     state.supervisor.load_agents(body.agents).await?;
-    Ok((StatusCode::OK, Json(json!({"loaded": count}))))
+    Ok((StatusCode::OK, Json(PushAgentsResponse { loaded: count })))
 }
 
 /// PUT /push/agents/{agent_id} — add if new, update if version differs, no-op if same version.
@@ -55,8 +113,8 @@ pub async fn push_agents(
     request_body = AgentDefinition,
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "Agent unchanged or updated", body = serde_json::Value),
-        (status = 201, description = "Agent created", body = serde_json::Value),
+        (status = 200, description = "Agent unchanged or updated", body = UpsertAgentResponse),
+        (status = 201, description = "Agent created", body = UpsertAgentResponse),
         (status = 400, description = "Invalid request"),
         (status = 401, description = "Unauthorized")
     )
@@ -65,7 +123,7 @@ pub async fn upsert_agent(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
     Json(agent): Json<AgentDefinition>,
-) -> Result<(StatusCode, Json<serde_json::Value>), BridgeError> {
+) -> Result<(StatusCode, Json<UpsertAgentResponse>), BridgeError> {
     if agent.id != agent_id {
         return Err(BridgeError::InvalidRequest(format!(
             "path agent_id '{}' does not match body id '{}'",
@@ -77,21 +135,21 @@ pub async fn upsert_agent(
     if let Some(existing) = state.supervisor.get_agent(&agent_id) {
         // Same version → no-op
         if existing.version().as_deref() == agent.version.as_deref() {
-            return Ok((StatusCode::OK, Json(json!({"status": "unchanged"}))));
+            return Ok((StatusCode::OK, Json(UpsertAgentResponse { status: "unchanged".to_string() })));
         }
         // Different version → update
         state
             .supervisor
             .apply_diff(vec![], vec![agent], vec![])
             .await?;
-        Ok((StatusCode::OK, Json(json!({"status": "updated"}))))
+        Ok((StatusCode::OK, Json(UpsertAgentResponse { status: "updated".to_string() })))
     } else {
         // New agent → add
         state
             .supervisor
             .apply_diff(vec![agent], vec![], vec![])
             .await?;
-        Ok((StatusCode::CREATED, Json(json!({"status": "created"}))))
+        Ok((StatusCode::CREATED, Json(UpsertAgentResponse { status: "created".to_string() })))
     }
 }
 
@@ -102,7 +160,7 @@ pub async fn upsert_agent(
     params(("agent_id" = String, Path, description = "Agent identifier")),
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "Agent removed", body = serde_json::Value),
+        (status = 200, description = "Agent removed", body = RemoveAgentResponse),
         (status = 401, description = "Unauthorized"),
         (status = 404, description = "Agent not found")
     )
@@ -110,7 +168,7 @@ pub async fn upsert_agent(
 pub async fn remove_agent(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
-) -> Result<Json<serde_json::Value>, BridgeError> {
+) -> Result<Json<RemoveAgentResponse>, BridgeError> {
     if state.supervisor.get_agent(&agent_id).is_none() {
         return Err(BridgeError::AgentNotFound(agent_id));
     }
@@ -119,7 +177,7 @@ pub async fn remove_agent(
         .supervisor
         .apply_diff(vec![], vec![], vec![agent_id])
         .await?;
-    Ok(Json(json!({"status": "removed"})))
+    Ok(Json(RemoveAgentResponse { status: "removed".to_string() }))
 }
 
 /// POST /push/agents/{agent_id}/conversations — hydrate conversations for an agent.
@@ -130,7 +188,7 @@ pub async fn remove_agent(
     request_body = HydrateConversationsRequest,
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "Conversations hydrated", body = serde_json::Value),
+        (status = 200, description = "Conversations hydrated", body = HydrateConversationsResponse),
         (status = 401, description = "Unauthorized"),
         (status = 404, description = "Agent not found"),
         (status = 409, description = "Agent has active conversations")
@@ -140,7 +198,7 @@ pub async fn hydrate_conversations(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
     Json(body): Json<HydrateConversationsRequest>,
-) -> Result<(StatusCode, Json<serde_json::Value>), BridgeError> {
+) -> Result<(StatusCode, Json<HydrateConversationsResponse>), BridgeError> {
     let agent = state
         .supervisor
         .get_agent(&agent_id)
@@ -162,13 +220,7 @@ pub async fn hydrate_conversations(
         state.sse_streams.insert(conv_id, sse_rx);
     }
 
-    Ok((StatusCode::OK, Json(json!({"hydrated": count}))))
-}
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct UpdateApiKeyRequest {
-    pub api_key: String,
+    Ok((StatusCode::OK, Json(HydrateConversationsResponse { hydrated: count })))
 }
 
 /// PATCH /push/agents/{agent_id}/api-key — rotate an agent's LLM API key at runtime.
@@ -179,7 +231,7 @@ pub struct UpdateApiKeyRequest {
     request_body = UpdateApiKeyRequest,
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "API key updated", body = serde_json::Value),
+        (status = 200, description = "API key updated", body = UpdateApiKeyResponse),
         (status = 401, description = "Unauthorized"),
         (status = 404, description = "Agent not found")
     )
@@ -188,11 +240,11 @@ pub async fn update_agent_api_key(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
     Json(body): Json<UpdateApiKeyRequest>,
-) -> Result<Json<serde_json::Value>, BridgeError> {
+) -> Result<Json<UpdateApiKeyResponse>, BridgeError> {
     state
         .supervisor
         .update_agent_api_key(&agent_id, body.api_key)?;
-    Ok(Json(json!({"status": "updated"})))
+    Ok(Json(UpdateApiKeyResponse { status: "updated".to_string() }))
 }
 
 /// POST /push/diff — apply a diff of agent changes.
@@ -202,14 +254,14 @@ pub async fn update_agent_api_key(
     request_body = PushDiffRequest,
     security(("bearer" = [])),
     responses(
-        (status = 200, description = "Diff applied", body = serde_json::Value),
+        (status = 200, description = "Diff applied", body = PushDiffResponse),
         (status = 401, description = "Unauthorized")
     )
 ))]
 pub async fn push_diff(
     State(state): State<AppState>,
     Json(body): Json<PushDiffRequest>,
-) -> Result<Json<serde_json::Value>, BridgeError> {
+) -> Result<Json<PushDiffResponse>, BridgeError> {
     let added = body.added.len();
     let updated = body.updated.len();
     let removed = body.removed.len();
@@ -219,7 +271,5 @@ pub async fn push_diff(
         .apply_diff(body.added, body.updated, body.removed)
         .await?;
 
-    Ok(Json(
-        json!({"added": added, "updated": updated, "removed": removed}),
-    ))
+    Ok(Json(PushDiffResponse { added, updated, removed }))
 }

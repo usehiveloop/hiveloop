@@ -2,9 +2,30 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use bridge_core::permission::{ApprovalReply, ApprovalRequest, BulkApprovalReply};
+use serde::Serialize;
 use serde_json::json;
 
 use crate::state::AppState;
+
+/// Response for resolving an approval.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ResolveApprovalResponse {
+    /// Status of the resolution.
+    pub status: String,
+    /// The ID of the resolved request.
+    pub request_id: String,
+}
+
+/// Response for bulk resolving approvals.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct BulkResolveApprovalsResponse {
+    /// List of request IDs that were successfully resolved.
+    pub resolved: Vec<String>,
+    /// List of request IDs that were not found.
+    pub not_found: Vec<String>,
+}
 
 /// List all pending approval requests for a conversation.
 #[cfg_attr(feature = "openapi", utoipa::path(
@@ -37,7 +58,7 @@ pub async fn list_approvals(
     ),
     request_body = ApprovalReply,
     responses(
-        (status = 200, description = "Approval resolved", body = serde_json::Value),
+        (status = 200, description = "Approval resolved", body = ResolveApprovalResponse),
         (status = 404, description = "Approval request not found")
     )
 ))]
@@ -45,7 +66,7 @@ pub async fn resolve_approval(
     State(state): State<AppState>,
     Path((_agent_id, conv_id, request_id)): Path<(String, String, String)>,
     Json(body): Json<ApprovalReply>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<Json<ResolveApprovalResponse>, StatusCode> {
     // Find the SSE sender for this conversation so we can emit resolution events
     let sse_tx = state.sse_streams.get(&conv_id).map(|entry| {
         // We can't borrow the receiver's sender — but we stored receivers, not senders.
@@ -61,9 +82,10 @@ pub async fn resolve_approval(
             .resolve(&request_id, body.decision, None, &state.webhook_ctx);
 
     if resolved {
-        Ok(Json(
-            json!({"status": "resolved", "request_id": request_id}),
-        ))
+        Ok(Json(ResolveApprovalResponse {
+            status: "resolved".to_string(),
+            request_id,
+        }))
     } else {
         Err(StatusCode::NOT_FOUND)
     }
@@ -79,14 +101,14 @@ pub async fn resolve_approval(
     ),
     request_body = BulkApprovalReply,
     responses(
-        (status = 200, description = "Bulk approval result", body = serde_json::Value),
+        (status = 200, description = "Bulk approval result", body = BulkResolveApprovalsResponse),
     )
 ))]
 pub async fn bulk_resolve_approvals(
     State(state): State<AppState>,
     Path((_agent_id, _conv_id)): Path<(String, String)>,
     Json(body): Json<BulkApprovalReply>,
-) -> Json<serde_json::Value> {
+) -> Json<BulkResolveApprovalsResponse> {
     let mut resolved = Vec::new();
     let mut not_found = Vec::new();
 
@@ -103,8 +125,5 @@ pub async fn bulk_resolve_approvals(
         }
     }
 
-    Json(json!({
-        "resolved": resolved,
-        "not_found": not_found,
-    }))
+    Json(BulkResolveApprovalsResponse { resolved, not_found })
 }

@@ -56,11 +56,31 @@ mod openapi {
             bridge_core::MetricsSnapshot,
             bridge_core::GlobalMetrics,
             bridge_core::MetricsResponse,
+            // Request/Response schemas for conversations
             crate::handlers::conversations::SendMessageRequest,
+            crate::handlers::conversations::CreateConversationResponse,
+            crate::handlers::conversations::SendMessageResponse,
+            crate::handlers::conversations::EndConversationResponse,
+            crate::handlers::conversations::AbortConversationResponse,
+            // Request/Response schemas for push
             crate::handlers::push::PushAgentsRequest,
+            crate::handlers::push::PushAgentsResponse,
+            crate::handlers::push::UpsertAgentResponse,
+            crate::handlers::push::RemoveAgentResponse,
             crate::handlers::push::HydrateConversationsRequest,
+            crate::handlers::push::HydrateConversationsResponse,
             crate::handlers::push::PushDiffRequest,
+            crate::handlers::push::PushDiffResponse,
+            crate::handlers::push::UpdateApiKeyRequest,
+            crate::handlers::push::UpdateApiKeyResponse,
+            // Request/Response schemas for agents
+            crate::handlers::agents::AgentDetailsResponse,
+            // Request/Response schemas for health
+            crate::handlers::health::HealthResponse,
+            // Request/Response schemas for permissions
             bridge_core::ApprovalRequest,
+            crate::handlers::permissions::ResolveApprovalResponse,
+            crate::handlers::permissions::BulkResolveApprovalsResponse,
             bridge_core::permission::ApprovalStatus,
             bridge_core::ApprovalDecision,
             bridge_core::ApprovalReply,

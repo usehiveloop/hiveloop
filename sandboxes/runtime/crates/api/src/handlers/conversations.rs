@@ -2,10 +2,44 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use bridge_core::BridgeError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::state::AppState;
+
+/// Response for creating a conversation.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct CreateConversationResponse {
+    /// The ID of the newly created conversation.
+    pub conversation_id: String,
+    /// The URL to stream events from this conversation.
+    pub stream_url: String,
+}
+
+/// Response for sending a message.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SendMessageResponse {
+    /// Status of the message acceptance.
+    pub status: String,
+}
+
+/// Response for ending a conversation.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct EndConversationResponse {
+    /// Status of the end operation.
+    pub status: String,
+}
+
+/// Response for aborting a conversation turn.
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AbortConversationResponse {
+    /// Status of the abort operation.
+    pub status: String,
+}
 
 /// Fire a webhook if the context is configured. Non-blocking, fire-and-forget.
 fn emit_webhook(state: &AppState, payload: bridge_core::webhook::WebhookPayload) {
@@ -28,14 +62,14 @@ pub struct SendMessageRequest {
     path = "/agents/{agent_id}/conversations",
     params(("agent_id" = String, Path, description = "Agent identifier")),
     responses(
-        (status = 201, description = "Conversation created", body = serde_json::Value),
+        (status = 201, description = "Conversation created", body = CreateConversationResponse),
         (status = 404, description = "Agent not found")
     )
 ))]
 pub async fn create_conversation(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
-) -> Result<(StatusCode, Json<serde_json::Value>), BridgeError> {
+) -> Result<(StatusCode, Json<CreateConversationResponse>), BridgeError> {
     let (conv_id, sse_rx) = state.supervisor.create_conversation(&agent_id)?;
 
     // Store the SSE receiver for the stream handler to pick up
@@ -50,10 +84,10 @@ pub async fn create_conversation(
 
     Ok((
         StatusCode::CREATED,
-        Json(json!({
-            "conversation_id": conv_id,
-            "stream_url": format!("/conversations/{}/stream", conv_id),
-        })),
+        Json(CreateConversationResponse {
+            conversation_id: conv_id.clone(),
+            stream_url: format!("/conversations/{}/stream", conv_id),
+        }),
     ))
 }
 
@@ -64,7 +98,7 @@ pub async fn create_conversation(
     params(("conv_id" = String, Path, description = "Conversation identifier")),
     request_body = SendMessageRequest,
     responses(
-        (status = 202, description = "Message accepted", body = serde_json::Value),
+        (status = 202, description = "Message accepted", body = SendMessageResponse),
         (status = 404, description = "Conversation not found")
     )
 ))]
@@ -72,7 +106,7 @@ pub async fn send_message(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
     Json(body): Json<SendMessageRequest>,
-) -> Result<(StatusCode, Json<serde_json::Value>), BridgeError> {
+) -> Result<(StatusCode, Json<SendMessageResponse>), BridgeError> {
     // Find which agent owns this conversation
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
 
@@ -94,7 +128,7 @@ pub async fn send_message(
         .send_message(&agent_id, &conv_id, body.content)
         .await?;
 
-    Ok((StatusCode::ACCEPTED, Json(json!({"status": "accepted"}))))
+    Ok((StatusCode::ACCEPTED, Json(SendMessageResponse { status: "accepted".to_string() })))
 }
 
 /// DELETE /conversations/:conv_id — end a conversation.
@@ -103,14 +137,14 @@ pub async fn send_message(
     path = "/conversations/{conv_id}",
     params(("conv_id" = String, Path, description = "Conversation identifier")),
     responses(
-        (status = 200, description = "Conversation ended", body = serde_json::Value),
+        (status = 200, description = "Conversation ended", body = EndConversationResponse),
         (status = 404, description = "Conversation not found")
     )
 ))]
 pub async fn end_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
-) -> Result<Json<serde_json::Value>, BridgeError> {
+) -> Result<Json<EndConversationResponse>, BridgeError> {
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
 
     state.supervisor.end_conversation(&agent_id, &conv_id)?;
@@ -125,7 +159,7 @@ pub async fn end_conversation(
         );
     }
 
-    Ok(Json(json!({"status": "ended"})))
+    Ok(Json(EndConversationResponse { status: "ended".to_string() }))
 }
 
 /// POST /conversations/:conv_id/abort — abort the current in-flight turn.
@@ -134,17 +168,17 @@ pub async fn end_conversation(
     path = "/conversations/{conv_id}/abort",
     params(("conv_id" = String, Path, description = "Conversation identifier")),
     responses(
-        (status = 200, description = "Turn aborted", body = serde_json::Value),
+        (status = 200, description = "Turn aborted", body = AbortConversationResponse),
         (status = 404, description = "Conversation not found")
     )
 ))]
 pub async fn abort_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
-) -> Result<Json<serde_json::Value>, BridgeError> {
+) -> Result<Json<AbortConversationResponse>, BridgeError> {
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
     state.supervisor.abort_conversation(&agent_id, &conv_id)?;
-    Ok(Json(json!({"status": "aborted"})))
+    Ok(Json(AbortConversationResponse { status: "aborted".to_string() }))
 }
 
 /// Find the agent that owns a conversation by searching all agents.
