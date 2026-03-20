@@ -575,7 +575,11 @@ mod tests {
         let task_result = completed_result.unwrap();
         assert_eq!(task_result.status, "completed");
         assert!(task_result.output.is_some());
-        assert!(task_result.output.as_ref().unwrap().contains("registry_test_output"));
+        assert!(task_result
+            .output
+            .as_ref()
+            .unwrap()
+            .contains("registry_test_output"));
         assert!(task_result.error.is_none());
     }
 
@@ -664,7 +668,10 @@ mod tests {
             .expect("notification should arrive")
             .expect("channel should not be closed");
 
-        assert!(notification.output.expect("should be Ok").contains("no_registry_test"));
+        assert!(notification
+            .output
+            .expect("should be Ok")
+            .contains("no_registry_test"));
     }
 
     #[tokio::test]
@@ -718,7 +725,11 @@ mod tests {
         assert_eq!(join_parsed.succeeded, 1);
         assert!(join_parsed.all_succeeded);
         assert_eq!(join_parsed.completed[0].status, "completed");
-        assert!(join_parsed.completed[0].output.as_ref().unwrap().contains("joinable_task"));
+        assert!(join_parsed.completed[0]
+            .output
+            .as_ref()
+            .unwrap()
+            .contains("joinable_task"));
     }
 
     #[cfg(unix)]

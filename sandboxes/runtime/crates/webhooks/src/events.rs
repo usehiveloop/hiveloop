@@ -393,7 +393,10 @@ mod tests {
             "is_error": false
         });
         let payload = background_task_completed(AGENT, CONV, data.clone(), URL, SECRET);
-        assert_eq!(payload.event_type, WebhookEventType::BackgroundTaskCompleted);
+        assert_eq!(
+            payload.event_type,
+            WebhookEventType::BackgroundTaskCompleted
+        );
         assert_eq!(payload.data, data);
     }
 }

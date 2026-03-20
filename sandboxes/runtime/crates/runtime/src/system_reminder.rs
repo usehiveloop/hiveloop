@@ -116,21 +116,33 @@ impl SystemReminder {
         }
 
         let mut content = String::new();
-        
+
         // Count incomplete todos
-        let incomplete_count = todos.iter().filter(|t| t.status != "completed" && t.status != "cancelled").count();
-        
+        let incomplete_count = todos
+            .iter()
+            .filter(|t| t.status != "completed" && t.status != "cancelled")
+            .count();
+
         if incomplete_count == 0 {
             content.push_str("All tasks are complete!\n\n");
         } else {
-            content.push_str(&format!("You have {} task(s) in progress.\n\n", incomplete_count));
+            content.push_str(&format!(
+                "You have {} task(s) in progress.\n\n",
+                incomplete_count
+            ));
         }
 
         // List all todos with status
         for (i, todo) in todos.iter().enumerate() {
             let priority = todo.format_priority();
             let status = todo.format_status();
-            content.push_str(&format!("{}. {} [{}] {}\n", i + 1, priority, status, todo.content));
+            content.push_str(&format!(
+                "{}. {} [{}] {}\n",
+                i + 1,
+                priority,
+                status,
+                todo.content
+            ));
         }
 
         content.push_str("\n**Important**: Please update your progress with todos as soon as there's an update, rather than waiting until the end.");

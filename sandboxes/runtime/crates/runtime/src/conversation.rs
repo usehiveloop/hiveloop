@@ -207,18 +207,19 @@ pub async fn run_conversation(params: ConversationParams) {
 
                 // Emit webhook event for background task completion
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::background_task_completed(
-                        &agent_id,
-                        &conversation_id,
-                        json!({
-                            "task_id": task_id,
-                            "description": description,
-                            "output": output_text,
-                            "is_error": is_error,
-                        }),
-                        &wh.url,
-                        &wh.secret,
-                    ));
+                    wh.dispatcher
+                        .dispatch(webhooks::events::background_task_completed(
+                            &agent_id,
+                            &conversation_id,
+                            json!({
+                                "task_id": task_id,
+                                "description": description,
+                                "output": output_text,
+                                "is_error": is_error,
+                            }),
+                            &wh.url,
+                            &wh.secret,
+                        ));
                 }
 
                 format!(

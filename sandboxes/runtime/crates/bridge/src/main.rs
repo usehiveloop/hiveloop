@@ -79,7 +79,10 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn handle_tools_command(action: Option<ToolCommands>) -> anyhow::Result<()> {
-    let action = action.unwrap_or(ToolCommands::List { json: true, read_only: false });
+    let action = action.unwrap_or(ToolCommands::List {
+        json: true,
+        read_only: false,
+    });
 
     match action {
         ToolCommands::List { json: _, read_only } => {
@@ -103,7 +106,7 @@ fn get_tools_info(filter_read_only: bool) -> anyhow::Result<Vec<ToolInfo>> {
             let name = tool.name();
             let category = categorize_tool(name);
             let is_read_only = is_read_only_tool(name);
-            
+
             ToolInfo {
                 name: name.to_string(),
                 description: tool.description().to_string(),
@@ -234,10 +237,10 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
             info!(servers = ?server_ids, "starting LSP server installation");
             let installer = lsp::LspInstaller::new();
             let results = installer.install(&server_ids).await;
-            
+
             let mut succeeded = 0;
             let mut failed = 0;
-            
+
             for (id, result) in results {
                 match result {
                     Ok(_) => {
@@ -250,7 +253,7 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
                     }
                 }
             }
-            
+
             info!(succeeded, failed, "LSP server installation complete");
         });
     }

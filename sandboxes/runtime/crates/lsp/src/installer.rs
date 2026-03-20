@@ -740,9 +740,15 @@ mod tests {
         let servers = installable_servers();
 
         // Check various install methods are represented
-        let has_npm = servers.iter().any(|s| matches!(s.method, InstallMethod::Npm { .. }));
-        let has_cargo = servers.iter().any(|s| matches!(s.method, InstallMethod::Cargo { .. }));
-        let has_go = servers.iter().any(|s| matches!(s.method, InstallMethod::Go { .. }));
+        let has_npm = servers
+            .iter()
+            .any(|s| matches!(s.method, InstallMethod::Npm { .. }));
+        let has_cargo = servers
+            .iter()
+            .any(|s| matches!(s.method, InstallMethod::Cargo { .. }));
+        let has_go = servers
+            .iter()
+            .any(|s| matches!(s.method, InstallMethod::Go { .. }));
 
         assert!(has_npm, "should have npm-based servers");
         assert!(has_cargo, "should have cargo-based servers");
