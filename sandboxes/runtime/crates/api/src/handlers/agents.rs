@@ -31,7 +31,7 @@ pub struct AgentDetailsResponse {
     )
 ))]
 pub async fn list_agents(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let agents = state.supervisor.list_agents();
+    let agents = state.supervisor.list_agents().await;
     Json(json!(agents))
 }
 
@@ -54,7 +54,7 @@ pub async fn get_agent(
         .get_agent(&agent_id)
         .ok_or_else(|| BridgeError::AgentNotFound(agent_id.clone()))?;
 
-    let def = agent.definition.read().unwrap();
+    let def = agent.definition.read().await;
     Ok(Json(AgentDetailsResponse {
         id: def.id.clone(),
         name: def.name.clone(),

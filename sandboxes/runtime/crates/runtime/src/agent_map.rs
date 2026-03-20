@@ -36,18 +36,17 @@ impl AgentMap {
     }
 
     /// List all agents as summaries.
-    pub fn list(&self) -> Vec<AgentSummary> {
-        self.inner
-            .iter()
-            .map(|entry| {
-                let state = entry.value();
-                AgentSummary {
-                    id: state.id(),
-                    name: state.name(),
-                    version: state.version(),
-                }
-            })
-            .collect()
+    pub async fn list(&self) -> Vec<AgentSummary> {
+        let mut summaries = Vec::new();
+        for entry in self.inner.iter() {
+            let state = entry.value();
+            summaries.push(AgentSummary {
+                id: state.id().await,
+                name: state.name().await,
+                version: state.version().await,
+            });
+        }
+        summaries
     }
 
     /// Get the number of loaded agents.
@@ -132,7 +131,7 @@ mod tests {
 
         let retrieved = map.get("agent1");
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().id(), "agent1");
+        assert_eq!(retrieved.unwrap().id().await, "agent1");
     }
 
     #[test]
@@ -159,7 +158,7 @@ mod tests {
         map.insert("agent1".to_string(), make_test_state("agent1", "Agent One"));
         map.insert("agent2".to_string(), make_test_state("agent2", "Agent Two"));
 
-        let summaries = map.list();
+        let summaries = map.list().await;
         assert_eq!(summaries.len(), 2);
 
         let ids: Vec<&str> = summaries.iter().map(|s| s.id.as_str()).collect();

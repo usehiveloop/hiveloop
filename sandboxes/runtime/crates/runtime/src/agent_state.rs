@@ -2,7 +2,8 @@ use bridge_core::conversation::Message;
 use bridge_core::{AgentDefinition, AgentMetrics};
 use dashmap::DashMap;
 use llm::BridgeAgent;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
+use tokio::sync::{Mutex, RwLock};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -75,18 +76,18 @@ impl AgentState {
     }
 
     /// Get the agent's ID.
-    pub fn id(&self) -> String {
-        self.definition.read().unwrap().id.clone()
+    pub async fn id(&self) -> String {
+        self.definition.read().await.id.clone()
     }
 
     /// Get the agent's name.
-    pub fn name(&self) -> String {
-        self.definition.read().unwrap().name.clone()
+    pub async fn name(&self) -> String {
+        self.definition.read().await.name.clone()
     }
 
     /// Get the agent's version.
-    pub fn version(&self) -> Option<String> {
-        self.definition.read().unwrap().version.clone()
+    pub async fn version(&self) -> Option<String> {
+        self.definition.read().await.version.clone()
     }
 
     /// Check if this agent has an active conversation with the given ID.

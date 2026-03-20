@@ -133,7 +133,7 @@ pub async fn upsert_agent(
     // Check if agent already exists
     if let Some(existing) = state.supervisor.get_agent(&agent_id) {
         // Same version → no-op
-        if existing.version().as_deref() == agent.version.as_deref() {
+        if existing.version().await.as_deref() == agent.version.as_deref() {
             return Ok((
                 StatusCode::OK,
                 Json(UpsertAgentResponse {
@@ -231,7 +231,7 @@ pub async fn hydrate_conversations(
     let count = body.conversations.len();
     let sse_receivers = state
         .supervisor
-        .hydrate_conversations(&agent_id, body.conversations);
+        .hydrate_conversations(&agent_id, body.conversations).await;
     for (conv_id, sse_rx) in sse_receivers {
         state.sse_streams.insert(conv_id, sse_rx);
     }
@@ -262,7 +262,7 @@ pub async fn update_agent_api_key(
 ) -> Result<Json<UpdateApiKeyResponse>, BridgeError> {
     state
         .supervisor
-        .update_agent_api_key(&agent_id, body.api_key)?;
+        .update_agent_api_key(&agent_id, body.api_key).await?;
     Ok(Json(UpdateApiKeyResponse {
         status: "updated".to_string(),
     }))

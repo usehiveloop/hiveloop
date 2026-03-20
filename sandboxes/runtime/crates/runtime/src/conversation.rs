@@ -4,9 +4,10 @@ use bridge_core::AgentMetrics;
 use llm::{PermissionManager, SseEvent, TokenUsage};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
+use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification, AGENT_CONTEXT};
 use tools::ToolExecutor;
@@ -316,7 +317,7 @@ pub async fn run_conversation(params: ConversationParams) {
         // Create a fresh abort token for this turn
         let turn_cancel = CancellationToken::new();
         {
-            let mut guard = abort_token.lock().unwrap();
+            let mut guard = abort_token.lock().await;
             *guard = turn_cancel.clone();
         }
 
@@ -324,7 +325,7 @@ pub async fn run_conversation(params: ConversationParams) {
         // is guaranteed to fire even if the future blocks a worker thread.
         // Using prompt().with_hook() instead of chat() so tool calls emit SSE events.
         // Clone the agent from behind the RwLock so API key rotations are picked up.
-        let agent_clone = { agent.read().unwrap().clone() };
+        let agent_clone = { agent.read().await.clone() };
         let user_text_clone = user_text.clone();
         let mut history_clone = history.clone();
         let sse_tx_clone = sse_tx.clone();
@@ -544,7 +545,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     // This gives the agent a chance to keep working if it wasn't done.
                     let mut continuation_response: Option<String> = None;
                     for _attempt in 0..MAX_CONTINUATIONS {
-                        let agent_clone = { agent.read().unwrap().clone() };
+                        let agent_clone = { agent.read().await.clone() };
                         let sse_tx_clone = sse_tx.clone();
                         let turn_cancel_clone = turn_cancel.clone();
                         let tool_names_clone = tool_names.clone();

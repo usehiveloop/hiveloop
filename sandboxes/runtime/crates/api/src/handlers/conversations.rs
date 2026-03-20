@@ -70,7 +70,7 @@ pub async fn create_conversation(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
 ) -> Result<(StatusCode, Json<CreateConversationResponse>), BridgeError> {
-    let (conv_id, sse_rx) = state.supervisor.create_conversation(&agent_id)?;
+    let (conv_id, sse_rx) = state.supervisor.create_conversation(&agent_id).await?;
 
     // Store the SSE receiver for the stream handler to pick up
     state.sse_streams.insert(conv_id.clone(), sse_rx);
@@ -108,7 +108,7 @@ pub async fn send_message(
     Json(body): Json<SendMessageRequest>,
 ) -> Result<(StatusCode, Json<SendMessageResponse>), BridgeError> {
     // Find which agent owns this conversation
-    let agent_id = find_agent_for_conversation(&state, &conv_id)?;
+    let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
 
     if let Some(ref wh) = state.webhook_ctx {
         emit_webhook(
@@ -150,7 +150,7 @@ pub async fn end_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
 ) -> Result<Json<EndConversationResponse>, BridgeError> {
-    let agent_id = find_agent_for_conversation(&state, &conv_id)?;
+    let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
 
     state.supervisor.end_conversation(&agent_id, &conv_id)?;
 
@@ -183,16 +183,16 @@ pub async fn abort_conversation(
     State(state): State<AppState>,
     Path(conv_id): Path<String>,
 ) -> Result<Json<AbortConversationResponse>, BridgeError> {
-    let agent_id = find_agent_for_conversation(&state, &conv_id)?;
-    state.supervisor.abort_conversation(&agent_id, &conv_id)?;
+    let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
+    state.supervisor.abort_conversation(&agent_id, &conv_id).await?;
     Ok(Json(AbortConversationResponse {
         status: "aborted".to_string(),
     }))
 }
 
 /// Find the agent that owns a conversation by searching all agents.
-fn find_agent_for_conversation(state: &AppState, conv_id: &str) -> Result<String, BridgeError> {
-    for summary in state.supervisor.list_agents() {
+async fn find_agent_for_conversation(state: &AppState, conv_id: &str) -> Result<String, BridgeError> {
+    for summary in state.supervisor.list_agents().await {
         if let Some(agent_state) = state.supervisor.get_agent(&summary.id) {
             if agent_state.has_conversation(conv_id) {
                 return Ok(summary.id);

@@ -16,6 +16,10 @@ members = [
     "e2e/bridge-e2e",
 ]
 
+[workspace.lints.clippy]
+# Prevent blocking operations in async contexts
+await_holding_lock = "deny"
+
 [workspace.dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }

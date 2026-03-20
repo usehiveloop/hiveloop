@@ -13,7 +13,7 @@ use crate::state::AppState;
     )
 ))]
 pub async fn get_metrics(State(state): State<AppState>) -> Json<MetricsResponse> {
-    let agent_metrics = state.supervisor.collect_metrics();
+    let agent_metrics = state.supervisor.collect_metrics().await;
 
     let total_active: u64 = agent_metrics.iter().map(|m| m.active_conversations).sum();
 

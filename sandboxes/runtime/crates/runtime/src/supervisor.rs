@@ -4,7 +4,8 @@ use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
@@ -187,14 +188,14 @@ impl AgentSupervisor {
     }
 
     /// List all loaded agents.
-    pub fn list_agents(&self) -> Vec<AgentSummary> {
-        self.agent_map.list()
+    pub async fn list_agents(&self) -> Vec<AgentSummary> {
+        self.agent_map.list().await
     }
 
     /// Create a new conversation for an agent.
     ///
     /// Returns the conversation ID and an SSE event receiver for streaming responses.
-    pub fn create_conversation(
+    pub async fn create_conversation(
         &self,
         agent_id: &str,
     ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
@@ -222,7 +223,7 @@ impl AgentSupervisor {
         let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
         let metrics = state.metrics.clone();
         let cancel = state.cancel.clone();
-        let def = state.definition.read().unwrap();
+        let def = state.definition.read().await;
         let max_turns = def.config.max_turns;
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
@@ -260,10 +261,6 @@ impl AgentSupervisor {
             .collect::<std::collections::HashSet<String>>();
         let tool_executors = state.tool_registry.snapshot();
 
-        // Build a no-tools retry agent for recovering from empty responses
-        let retry_agent =
-            Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
-
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
@@ -271,14 +268,19 @@ impl AgentSupervisor {
         let skills = def.skills.clone();
         drop(def); // release read lock before spawning
 
+        // Build a no-tools retry agent for recovering from empty responses
+        let def = state.definition.read().await;
+        let retry_agent =
+            Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
+        drop(def);
+
         // Check if todo tools are enabled
         let has_todo_tools = tool_names.contains("todoread") && tool_names.contains("todowrite");
 
         // Build system reminder with available skills and optionally todos
         let system_reminder = if has_todo_tools {
             // Try to get todo state from the tool registry
-            let todos = tokio::runtime::Handle::current()
-                .block_on(get_todos_from_registry(&tool_executors));
+            let todos = get_todos_from_registry(&tool_executors).await;
             crate::system_reminder::create_reminder_with_skills_todos_and_date(
                 &skills,
                 todos.as_deref(),
@@ -389,7 +391,7 @@ impl AgentSupervisor {
     ///
     /// Cancels the current turn's token, causing the conversation loop to
     /// send an abort SSE event and continue waiting for the next message.
-    pub fn abort_conversation(
+    pub async fn abort_conversation(
         &self,
         agent_id: &str,
         conversation_id: &str,
@@ -405,7 +407,7 @@ impl AgentSupervisor {
             .ok_or_else(|| BridgeError::ConversationNotFound(conversation_id.to_string()))?;
 
         // Cancel the current turn's token
-        let token = handle.abort_token.lock().unwrap();
+        let token = handle.abort_token.lock().await;
         token.cancel();
 
         info!(
@@ -554,7 +556,7 @@ impl AgentSupervisor {
     /// Spawns each conversation as a fully active loop with pre-seeded history.
     /// Returns a list of `(conversation_id, sse_rx)` pairs for storing in
     /// the application's SSE stream map.
-    pub fn hydrate_conversations(
+    pub async fn hydrate_conversations(
         &self,
         agent_id: &str,
         records: Vec<ConversationRecord>,
@@ -568,7 +570,7 @@ impl AgentSupervisor {
         );
 
         for record in records {
-            match self.spawn_hydrated_conversation(agent_id, record) {
+            match self.spawn_hydrated_conversation(agent_id, record).await {
                 Ok((conv_id, sse_rx)) => {
                     sse_receivers.push((conv_id, sse_rx));
                 }
@@ -586,7 +588,7 @@ impl AgentSupervisor {
     }
 
     /// Spawn a single hydrated conversation with pre-seeded history.
-    fn spawn_hydrated_conversation(
+    async fn spawn_hydrated_conversation(
         &self,
         agent_id: &str,
         record: ConversationRecord,
@@ -618,7 +620,7 @@ impl AgentSupervisor {
         let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
         let metrics = state.metrics.clone();
         let cancel = state.cancel.clone();
-        let def = state.definition.read().unwrap();
+        let def = state.definition.read().await;
         let max_turns = def.config.max_turns;
         let agent_id_owned = agent_id.to_string();
         let conv_id_clone = conv_id.clone();
@@ -732,14 +734,14 @@ impl AgentSupervisor {
     /// Rebuilds the `BridgeAgent` with the new key and swaps it in-place so
     /// both existing and new conversations pick up the rotated key on their
     /// next LLM turn. No drain, no cancellation.
-    pub fn update_agent_api_key(&self, agent_id: &str, api_key: String) -> Result<(), BridgeError> {
+    pub async fn update_agent_api_key(&self, agent_id: &str, api_key: String) -> Result<(), BridgeError> {
         let state = self
             .agent_map
             .get(agent_id)
             .ok_or_else(|| BridgeError::AgentNotFound(agent_id.to_string()))?;
 
         // Clone current definition and update the API key
-        let mut updated_def = state.definition.read().unwrap().clone();
+        let mut updated_def = state.definition.read().await.clone();
         updated_def.provider.api_key = api_key;
 
         // Rebuild the agent with existing tools
@@ -753,17 +755,17 @@ impl AgentSupervisor {
         let new_agent = build_agent(&updated_def, dynamic_tools)?;
 
         // Swap in the new agent — all conversations sharing this Arc see the new agent on next turn
-        *state.rig_agent.write().unwrap() = new_agent;
-        *state.definition.write().unwrap() = updated_def;
+        *state.rig_agent.write().await = new_agent;
+        *state.definition.write().await = updated_def;
 
         info!(agent_id = agent_id, "agent API key updated");
         Ok(())
     }
 
     /// Collect metrics from all agents.
-    pub fn collect_metrics(&self) -> Vec<MetricsSnapshot> {
-        self.agent_map
-            .list()
+    pub async fn collect_metrics(&self) -> Vec<MetricsSnapshot> {
+        let agents = self.agent_map.list().await;
+        agents
             .iter()
             .filter_map(|summary| {
                 self.agent_map

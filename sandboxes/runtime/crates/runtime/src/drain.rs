@@ -116,7 +116,7 @@ mod tests {
         assert!(result.is_ok());
 
         let current = map.get("agent1").expect("agent should exist");
-        assert_eq!(current.version().as_deref(), Some("v2"));
+        assert_eq!(current.version().await.as_deref(), Some("v2"));
     }
 
     #[tokio::test]
