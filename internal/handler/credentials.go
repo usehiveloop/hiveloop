@@ -31,6 +31,15 @@ func NewCredentialHandler(db *gorm.DB, kms *crypto.KeyWrapper, cm *cache.Manager
 	return &CredentialHandler{db: db, kms: kms, cacheManager: cm, counter: ctr}
 }
 
+// providerAuthSchemes maps provider IDs to their default auth schemes.
+// Providers not listed default to "bearer".
+var providerAuthSchemes = map[string]string{
+	"anthropic":      "x-api-key",
+	"google":         "query_param",
+	"azure":          "api-key",
+	"amazon-bedrock": "bearer",
+}
+
 type createCredentialRequest struct {
 	Label          string     `json:"label"`
 	ProviderID     string     `json:"provider_id"`
@@ -89,14 +98,33 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.BaseURL == "" || req.AuthScheme == "" || req.APIKey == "" || req.ProviderID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider_id, base_url, auth_scheme, and api_key are required"})
+	if req.APIKey == "" || req.ProviderID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider_id and api_key are required"})
 		return
 	}
 
-	if _, ok := registry.Global().GetProvider(req.ProviderID); !ok {
+	provider, ok := registry.Global().GetProvider(req.ProviderID)
+	if !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider_id %q", req.ProviderID)})
 		return
+	}
+
+	// Auto-fill base_url from registry if not provided
+	if req.BaseURL == "" {
+		if provider.API == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("provider %q does not have a base URL configured; please provide base_url", req.ProviderID)})
+			return
+		}
+		req.BaseURL = provider.API
+	}
+
+	// Auto-fill auth_scheme from provider mapping if not provided
+	if req.AuthScheme == "" {
+		if scheme, ok := providerAuthSchemes[req.ProviderID]; ok {
+			req.AuthScheme = scheme
+		} else {
+			req.AuthScheme = "bearer" // default
+		}
 	}
 
 	validSchemes := map[string]bool{"bearer": true, "x-api-key": true, "api-key": true, "query_param": true}
