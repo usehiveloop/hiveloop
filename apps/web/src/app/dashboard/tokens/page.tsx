@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight, ChevronLeft, Coins } from "lucide-react";
+import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight, ChevronLeft, Coins, Shield } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatusBadge, type Status } from "@/components/status-badge";
 import { RemainingBar, RemainingBarCompact } from "@/components/remaining-bar";
@@ -414,11 +415,10 @@ function ScopeSelector({
         return (
           <div key={connId} className="border border-border">
             <div className="flex items-center gap-2 px-3 py-2.5">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={isSelected}
-                onChange={() => toggleConnection(connId)}
-                className="size-3.5 accent-primary"
+                onCheckedChange={() => toggleConnection(connId)}
+                className="size-4"
               />
               <button
                 onClick={() => toggleExpanded(connId)}
@@ -439,25 +439,57 @@ function ScopeSelector({
             </div>
 
             {isExpanded && isSelected && (
-              <div className="border-t border-border px-3 py-2.5">
-                <div className="flex flex-col gap-1.5">
+              <div className="border-t border-border bg-secondary/20 px-3 py-3">
+                {/* Action Cards Grid */}
+                <div className="mb-3 flex items-center gap-1.5">
                   <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Actions</span>
-                  {(conn.actions ?? []).map((action) => (
-                    <label key={action.key} className="flex items-center gap-2 py-0.5">
-                      <input
-                        type="checkbox"
-                        checked={scopeEntry?.actions.includes(action.key ?? "") ?? false}
-                        onChange={() => toggleAction(connId, action.key ?? "")}
-                        className="size-3 accent-primary"
-                      />
-                      <span className="text-[13px] text-foreground">{action.display_name}</span>
-                      <span className="text-[11px] text-dim">{action.description}</span>
-                    </label>
-                  ))}
+                  <span className="text-[10px] text-dim">({(conn.actions ?? []).length})</span>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {(conn.actions ?? []).map((action) => {
+                    const isChecked = scopeEntry?.actions.includes(action.key ?? "") ?? false;
+                    return (
+                      <div
+                        key={action.key}
+                        onClick={() => toggleAction(connId, action.key ?? "")}
+                        className={`group relative cursor-pointer border p-2.5 transition-all ${
+                          isChecked
+                            ? "border-primary/40 bg-primary/[0.06]"
+                            : "border-border bg-card hover:border-primary/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <Checkbox
+                            checked={isChecked}
+                            className="mt-0.5 size-4 shrink-0"
+                          />
+                          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                            <span className="truncate text-[12px] font-medium text-foreground">
+                              {action.display_name}
+                            </span>
+                            {action.description && (
+                              <span className="line-clamp-2 text-[11px] leading-relaxed text-dim">
+                                {action.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
+                {/* Empty state for actions */}
+                {(conn.actions ?? []).length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <Shield className="mb-2 size-5 text-dim" />
+                    <span className="text-[12px] text-muted-foreground">No actions available</span>
+                  </div>
+                )}
+
                 {conn.resources && Object.entries(conn.resources).map(([type, res]) => (
-                  <div key={type} className="mt-3 flex flex-col gap-1.5">
+                  <div key={type} className="mt-4 flex flex-col gap-1.5">
                     <span className="text-[11px] font-medium uppercase tracking-wider text-dim">{res.display_name}</span>
                     {(res.selected ?? []).length === 0 ? (
                       <span className="text-[11px] text-dim">No resources configured</span>
@@ -490,7 +522,11 @@ function ScopeSelector({
       })}
 
       {availableConnections.length === 0 && (
-        <p className="text-[13px] text-dim">No connections with available actions.</p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Shield className="mb-2 size-6 text-dim" />
+          <p className="text-[13px] text-dim">No connections with available actions.</p>
+          <p className="text-[11px] text-muted-foreground">Connect integrations to enable scoped token access.</p>
+        </div>
       )}
     </div>
   );
