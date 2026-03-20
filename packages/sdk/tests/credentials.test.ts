@@ -7,6 +7,7 @@ describe("credentials", () => {
   it("creates a credential", async () => {
     const { data, error } = await vault.credentials.create({
       label: `sdk-test-${Date.now()}`,
+      provider_id: "openai",
       base_url: "https://api.openai.com/v1",
       auth_scheme: "bearer",
       api_key: "sk-test-fake-key-for-sdk-tests",

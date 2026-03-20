@@ -9,6 +9,7 @@ describe("tokens", () => {
     // First create a credential to mint a token for
     const { data: cred } = await vault.credentials.create({
       label: `sdk-token-test-${Date.now()}`,
+      provider_id: "openai",
       base_url: "https://api.openai.com/v1",
       auth_scheme: "bearer",
       api_key: "sk-test-fake-key-for-token-tests",
