@@ -231,7 +231,8 @@ pub async fn hydrate_conversations(
     let count = body.conversations.len();
     let sse_receivers = state
         .supervisor
-        .hydrate_conversations(&agent_id, body.conversations).await;
+        .hydrate_conversations(&agent_id, body.conversations)
+        .await;
     for (conv_id, sse_rx) in sse_receivers {
         state.sse_streams.insert(conv_id, sse_rx);
     }
@@ -262,7 +263,8 @@ pub async fn update_agent_api_key(
 ) -> Result<Json<UpdateApiKeyResponse>, BridgeError> {
     state
         .supervisor
-        .update_agent_api_key(&agent_id, body.api_key).await?;
+        .update_agent_api_key(&agent_id, body.api_key)
+        .await?;
     Ok(Json(UpdateApiKeyResponse {
         status: "updated".to_string(),
     }))

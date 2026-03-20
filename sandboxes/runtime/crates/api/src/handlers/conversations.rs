@@ -184,14 +184,20 @@ pub async fn abort_conversation(
     Path(conv_id): Path<String>,
 ) -> Result<Json<AbortConversationResponse>, BridgeError> {
     let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
-    state.supervisor.abort_conversation(&agent_id, &conv_id).await?;
+    state
+        .supervisor
+        .abort_conversation(&agent_id, &conv_id)
+        .await?;
     Ok(Json(AbortConversationResponse {
         status: "aborted".to_string(),
     }))
 }
 
 /// Find the agent that owns a conversation by searching all agents.
-async fn find_agent_for_conversation(state: &AppState, conv_id: &str) -> Result<String, BridgeError> {
+async fn find_agent_for_conversation(
+    state: &AppState,
+    conv_id: &str,
+) -> Result<String, BridgeError> {
     for summary in state.supervisor.list_agents().await {
         if let Some(agent_state) = state.supervisor.get_agent(&summary.id) {
             if agent_state.has_conversation(conv_id) {

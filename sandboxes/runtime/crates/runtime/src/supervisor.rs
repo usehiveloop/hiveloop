@@ -5,8 +5,8 @@ use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tokio::sync::mpsc;
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
 use tools::join::TaskRegistry;
@@ -734,7 +734,11 @@ impl AgentSupervisor {
     /// Rebuilds the `BridgeAgent` with the new key and swaps it in-place so
     /// both existing and new conversations pick up the rotated key on their
     /// next LLM turn. No drain, no cancellation.
-    pub async fn update_agent_api_key(&self, agent_id: &str, api_key: String) -> Result<(), BridgeError> {
+    pub async fn update_agent_api_key(
+        &self,
+        agent_id: &str,
+        api_key: String,
+    ) -> Result<(), BridgeError> {
         let state = self
             .agent_map
             .get(agent_id)
