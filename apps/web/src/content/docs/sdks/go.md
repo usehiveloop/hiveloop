@@ -34,8 +34,7 @@ func main() {
 
     // Create an API key
     resp, err := client.APIKeys.Create(context.Background(), llmvault.CreateAPIKeyRequest{
-        Name:   "my-api-key",
-        Scopes: []string{"credentials"},
+        Name: "my-api-key",
     })
     if err != nil {
         log.Fatalf("Error: %v", err)
@@ -99,15 +98,12 @@ Create a new API key.
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
 | `req.Name` | `string` | Yes | Descriptive name for the key |
-| `req.Scopes` | `[]string` | No | Array of permission scopes |
-| `req.ExpiresIn` | `string` | No | TTL like "24h", "7d". Omit for no expiration |
 
 **Returns:** `(*CreateAPIKeyResponse, error)`
 
 ```go
 resp, err := client.APIKeys.Create(ctx, llmvault.CreateAPIKeyRequest{
-    Name:   fmt.Sprintf("sdk-test-%d", time.Now().Unix()),
-    Scopes: []string{"credentials"},
+    Name: fmt.Sprintf("sdk-test-%d", time.Now().Unix()),
 })
 if err != nil {
     log.Fatal(err)
@@ -123,9 +119,7 @@ fmt.Printf("Prefix: %s\n", resp.KeyPrefix) // First 16 chars
 //     Key       string    `json:"key"`        // Full key (shown once)
 //     KeyPrefix string    `json:"key_prefix"` // First 16 chars
 //     Name      string    `json:"name"`
-//     Scopes    []string  `json:"scopes"`
 //     CreatedAt time.Time `json:"created_at"`
-//     ExpiresAt *time.Time `json:"expires_at"`
 // }
 ```
 
@@ -200,48 +194,41 @@ Store a new credential.
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
 | `req.Label` | `string` | Yes | Descriptive label |
-| `req.ProviderID` | `string` | Yes | Provider ID (e.g., "openai", "anthropic") |
-| `req.BaseURL` | `string` | Yes | API base URL |
-| `req.AuthScheme` | `string` | Yes | Auth scheme (e.g., "bearer") |
 | `req.APIKey` | `string` | Yes | The API key to encrypt |
+| `req.ProviderID` | `*string` | No | Provider ID (e.g., "openai", "anthropic") |
+| `req.BaseURL` | `*string` | No | API base URL |
+| `req.AuthScheme` | `*string` | No | Auth scheme (e.g., "bearer") |
 | `req.IdentityID` | `*string` | No | Link to an identity |
-| `req.ExternalID` | `*string` | No | External reference ID |
 | `req.Meta` | `map[string]any` | No | Metadata object |
-| `req.Remaining` | `*int` | No | Usage limit (credits) |
-| `req.RefillAmount` | `*int` | No | Auto-refill amount |
-| `req.RefillInterval` | `*string` | No | Refill interval |
 
 **Returns:** `(*CredentialResponse, error)`
 
 ```go
 resp, err := client.Credentials.Create(ctx, llmvault.CreateCredentialRequest{
     Label:      "OpenAI Production",
-    ProviderID: "openai",
-    BaseURL:    "https://api.openai.com/v1",
-    AuthScheme: "bearer",
     APIKey:     "sk-...",
+    ProviderID: stringPtr("openai"),
+    BaseURL:    stringPtr("https://api.openai.com/v1"),
+    AuthScheme: stringPtr("bearer"),
 })
 if err != nil {
     log.Fatal(err)
 }
 
 fmt.Printf("Created: %s\n", resp.ID)
-fmt.Printf("Provider: %s\n", resp.ProviderID)
+fmt.Printf("Provider: %s\n", *resp.ProviderID)
 
 // Response structure:
 // type CredentialResponse struct {
 //     ID             string         `json:"id"`
 //     Label          string         `json:"label"`
-//     ProviderID     string         `json:"provider_id"`
-//     AuthScheme     string         `json:"auth_scheme"`
-//     BaseURL        string         `json:"base_url"`
+//     ProviderID     *string        `json:"provider_id"`
+//     AuthScheme     *string        `json:"auth_scheme"`
+//     BaseURL        *string        `json:"base_url"`
 //     CreatedAt      time.Time      `json:"created_at"`
 //     RequestCount   int            `json:"request_count"`
 //     IdentityID     *string        `json:"identity_id"`
 //     Meta           map[string]any `json:"meta"`
-//     Remaining      *int           `json:"remaining"`
-//     RefillAmount   *int           `json:"refill_amount"`
-//     RefillInterval *string        `json:"refill_interval"`
 //     LastUsedAt     *time.Time     `json:"last_used_at"`
 //     RevokedAt      *time.Time     `json:"revoked_at"`
 // }
@@ -260,7 +247,7 @@ List credentials with filtering and pagination.
 | `opts.Cursor` | `string` | No | Pagination cursor |
 | `opts.IdentityID` | `string` | No | Filter by identity ID |
 | `opts.ExternalID` | `string` | No | Filter by external ID |
-| `opts.Meta` | `string` | No | Filter by metadata (JSON) |
+| `opts.Meta` | `string` | No | Filter by metadata |
 
 **Returns:** `(*PaginatedCredentials, error)`
 
@@ -273,7 +260,11 @@ if err != nil {
 }
 
 for _, cred := range resp.Data {
-    fmt.Printf("Credential: %s (%s)\n", cred.Label, cred.ProviderID)
+    providerID := ""
+    if cred.ProviderID != nil {
+        providerID = *cred.ProviderID
+    }
+    fmt.Printf("Credential: %s (%s)\n", cred.Label, providerID)
 }
 ```
 
@@ -336,19 +327,16 @@ Mint a new proxy token.
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
 | `req.CredentialID` | `string` | Yes | Credential to scope the token to |
-| `req.TTL` | `string` | No | Token lifetime (e.g., "1h", "24h") |
+| `req.Name` | `*string` | No | Descriptive name for the token |
 | `req.Scopes` | `[]TokenScope` | No | Array of permission scopes |
-| `req.Remaining` | `*int` | No | Usage limit |
-| `req.RefillAmount` | `*int` | No | Auto-refill amount |
-| `req.RefillInterval` | `*string` | No | Refill interval |
-| `req.Meta` | `map[string]any` | No | Metadata |
+| `req.ExpiresIn` | `*string` | No | Token lifetime (e.g., "1h", "24h") |
 
 **Returns:** `(*MintTokenResponse, error)`
 
 ```go
 resp, err := client.Tokens.Create(ctx, llmvault.MintTokenRequest{
     CredentialID: "cred_abc123",
-    TTL:          stringPtr("1h"),
+    ExpiresIn:    stringPtr("1h"),
 })
 if err != nil {
     log.Fatal(err)
@@ -431,20 +419,19 @@ Create a new identity.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
-| `req.ExternalID` | `*string` | No | External reference ID |
+| `req.ExternalID` | `string` | Yes | External reference ID |
+| `req.Name` | `*string` | No | Display name |
 | `req.Meta` | `map[string]any` | No | Metadata object |
-| `req.RateLimits` | `[]IdentityRateLimitParams` | No | Rate limit configurations |
+| `req.RateLimit` | `*RateLimitConfig` | No | Rate limit configuration |
 
 **Returns:** `(*IdentityResponse, error)`
 
 ```go
 resp, err := client.Identities.Create(ctx, llmvault.CreateIdentityRequest{
-    ExternalID: stringPtr("user_123"),
+    ExternalID: "user_123",
+    Name:       stringPtr("User 123"),
     Meta: map[string]any{
         "source": "web-app",
-    },
-    RateLimits: []llmvault.IdentityRateLimitParams{
-        {Name: "default", Limit: 100, Duration: 60000},
     },
 })
 if err != nil {
@@ -456,14 +443,15 @@ fmt.Printf("External ID: %s\n", resp.ExternalID)
 
 // Response structure:
 // type IdentityResponse struct {
-//     ID           string                      `json:"id"`
-//     ExternalID   *string                     `json:"external_id"`
-//     Meta         map[string]any              `json:"meta"`
-//     RateLimits   []IdentityRateLimitParams   `json:"ratelimits"`
-//     CreatedAt    time.Time                   `json:"created_at"`
-//     UpdatedAt    time.Time                   `json:"updated_at"`
-//     RequestCount int                         `json:"request_count"`
-//     LastUsedAt   *time.Time                  `json:"last_used_at"`
+//     ID           string          `json:"id"`
+//     ExternalID   string          `json:"external_id"`
+//     Name         *string         `json:"name"`
+//     Meta         map[string]any  `json:"meta"`
+//     RateLimit    *RateLimitConfig `json:"rate_limit"`
+//     CreatedAt    time.Time       `json:"created_at"`
+//     UpdatedAt    time.Time       `json:"updated_at"`
+//     RequestCount int             `json:"request_count"`
+//     LastUsedAt   *time.Time      `json:"last_used_at"`
 // }
 ```
 
@@ -511,7 +499,7 @@ if err != nil {
     log.Fatal(err)
 }
 
-fmt.Printf("Identity: %s\n", *resp.ExternalID)
+fmt.Printf("Identity: %s\n", resp.ExternalID)
 fmt.Printf("Request count: %d\n", resp.RequestCount)
 ```
 
@@ -525,9 +513,9 @@ Update an identity.
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
 | `id` | `string` | Yes | Identity ID |
-| `req.ExternalID` | `*string` | No | New external ID |
+| `req.Name` | `*string` | No | New display name |
 | `req.Meta` | `map[string]any` | No | New metadata |
-| `req.RateLimits` | `[]IdentityRateLimitParams` | No | New rate limits |
+| `req.RateLimit` | `*RateLimitConfig` | No | New rate limit configuration |
 
 **Returns:** `(*IdentityResponse, error)`
 
@@ -578,21 +566,17 @@ Create a short-lived session for the Connect widget.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `ctx` | `context.Context` | Yes | Request context |
-| `req.IdentityID` | `*string` | No* | Identity ID (required if no ExternalID) |
-| `req.ExternalID` | `*string` | No* | External user ID (required if no IdentityID) |
-| `req.Permissions` | `[]string` | No | Permissions like ["create", "list"] |
-| `req.TTL` | `string` | No | Session lifetime (e.g., "5m") |
-| `req.AllowedIntegrations` | `[]string` | No | Restrict allowed integrations |
-| `req.AllowedOrigins` | `[]string` | No | Allowed widget origins |
-| `req.Metadata` | `map[string]any` | No | Session metadata |
+| `req.IdentityID` | `*string` | No | Identity ID |
+| `req.IntegrationIDs` | `[]string` | No | Restrict to specific integrations |
+| `req.RedirectURL` | `*string` | No | Redirect URL after completion |
+| `req.Meta` | `map[string]any` | No | Session metadata |
 
 **Returns:** `(*ConnectSessionResponse, error)`
 
 ```go
 resp, err := client.Connect.Sessions.Create(ctx, llmvault.CreateConnectSessionRequest{
-    ExternalID:  stringPtr(fmt.Sprintf("user-%d", time.Now().Unix())),
-    Permissions: []string{"create", "list"},
-    TTL:         "5m",
+    IdentityID:  stringPtr("id_xyz789"),
+    RedirectURL: stringPtr("https://app.example.com/callback"),
 })
 if err != nil {
     log.Fatal(err)
@@ -603,14 +587,11 @@ fmt.Printf("Expires: %s\n", resp.ExpiresAt)
 
 // Response structure:
 // type ConnectSessionResponse struct {
-//     ID                   string         `json:"id"`
-//     SessionToken         string         `json:"session_token"` // Starts with csess_
-//     IdentityID           *string        `json:"identity_id"`
-//     ExternalID           *string        `json:"external_id"`
-//     ExpiresAt            time.Time      `json:"expires_at"`
-//     CreatedAt            time.Time      `json:"created_at"`
-//     AllowedIntegrations  []string       `json:"allowed_integrations"`
-//     AllowedOrigins       []string       `json:"allowed_origins"`
+//     ID           string    `json:"id"`
+//     SessionToken string    `json:"session_token"` // Starts with csess_
+//     IdentityID   *string   `json:"identity_id"`
+//     ExpiresAt    time.Time `json:"expires_at"`
+//     CreatedAt    time.Time `json:"created_at"`
 // }
 ```
 

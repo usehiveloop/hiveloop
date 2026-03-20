@@ -506,15 +506,13 @@ function ScopeSelector({
     let newScopes: ScopeSelectionInternal[];
     
     if (existing) {
-      // Remove connection - O(1) filter using pre-built map
-      newScopes = internalScopes.filter((s) => s.connectionId !== connId);
+      newScopes = internalScopes.filter((scope) => scope.connectionId !== connId);
     } else {
-      // Add connection with all actions selected
-      const conn = availableConnections.find((c: AvailableScopeConnection) => c.connection_id === connId);
-      if (conn) {
+      const connection = availableConnections.find((connection: AvailableScopeConnection) => connection.connection_id === connId);
+      if (connection) {
         newScopes = [...internalScopes, {
           connectionId: connId,
-          actions: new Set((conn.actions ?? []).map((a) => a.key ?? "")),
+          actions: new Set<string>(),
           resources: new Map(),
         }];
       } else {
@@ -536,9 +534,8 @@ function ScopeSelector({
 
   const toggleAction = (connId: string, actionKey: string) => {
     const scope = scopeMap.get(connId);
-    if (!scope) return;
+    if (!scope) {return};
 
-    // O(1) toggle using Set
     const newActions = new Set(scope.actions);
     if (newActions.has(actionKey)) {
       newActions.delete(actionKey);
@@ -557,7 +554,6 @@ function ScopeSelector({
     const scope = scopeMap.get(connId);
     if (!scope) return;
 
-    // O(1) toggle using Map of Sets
     const newResources = new Map(scope.resources);
     const currentSet = newResources.get(resourceType) ?? new Set<string>();
     const newSet = new Set(currentSet);

@@ -165,10 +165,10 @@ Store a new credential.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `body.label` | `string` | Yes | Descriptive label |
-| `body.provider_id` | `string` | Yes | Provider ID (e.g., "openai", "anthropic") |
-| `body.base_url` | `string` | Yes | API base URL |
-| `body.auth_scheme` | `string` | Yes | Auth scheme (e.g., "bearer") |
 | `body.api_key` | `string` | Yes | The API key to encrypt |
+| `body.provider_id` | `string` | No | Provider ID (e.g., "openai", "anthropic"). Auto-detected from `base_url` if omitted. |
+| `body.base_url` | `string` | No | API base URL |
+| `body.auth_scheme` | `string` | No | Auth scheme (e.g., "bearer") |
 | `body.identity_id` | `string` | No | Link to an identity |
 | `body.external_id` | `string` | No | External reference ID |
 | `body.meta` | `JSON` | No | Metadata object |
@@ -1013,7 +1013,6 @@ type PaginatedIntegrations = components["schemas"]["paginatedResponse-integratio
 type IntegConnResponse = components["schemas"]["integConnResponse"];
 type IntegConnCreateRequest = components["schemas"]["integConnCreateRequest"];
 type PaginatedIntegConns = components["schemas"]["paginatedResponse-integConnResponse"];
-type TokenResponse = components["schemas"]["tokenResponse"];
 
 // Scope Types
 interface AvailableScopeAction {

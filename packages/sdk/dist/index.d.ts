@@ -507,7 +507,6 @@ type MintTokenResponse = Schemas["mintTokenResponse"];
 type TokenListItem = Schemas["tokenListItem"];
 type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
 type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
-type TokenResponse = Schemas["tokenResponse"];
 interface AvailableScopeAction {
     key: string;
     display_name: string;
@@ -2050,7 +2049,22 @@ declare class IntegrationsResource extends BaseResource {
     }> | undefined, `${string}/${string}`>>;
 }
 
+interface ProxyRequestOptions {
+    method?: string;
+    path: string;
+    body?: unknown;
+    query?: Record<string, string>;
+    headers?: Record<string, string>;
+}
+interface ProxyResponse<T = unknown> {
+    status: number;
+    headers: Headers;
+    body: T;
+}
 declare class ConnectionsResource extends BaseResource {
+    private baseUrl;
+    private apiKey;
+    constructor(client: ApiClient, baseUrl: string, apiKey: string);
     availableScopes(): Promise<AvailableScopeConnection[]>;
     create(integrationId: string, body: IntegConnCreateRequest): Promise<openapi_fetch.FetchResponse<{
         parameters: {
@@ -2248,65 +2262,13 @@ declare class ConnectionsResource extends BaseResource {
             };
         };
     }, `${string}/${string}`>>;
-    retrieveToken(id: string): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["tokenResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                id: string;
-            };
-        };
-    }, `${string}/${string}`>>;
+    /**
+     * Proxy an arbitrary HTTP request through a connection to the upstream provider API.
+     *
+     * The request is forwarded via Nango with the connection's stored credentials.
+     * The raw upstream response (status, headers, body) is returned as-is.
+     */
+    proxy<T = unknown>(id: string, options: ProxyRequestOptions): Promise<ProxyResponse<T>>;
     delete(id: string): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -2669,4 +2631,4 @@ declare class LLMVault {
     constructor(config: LLMVaultConfig);
 }
 
-export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type TokenListItem, type TokenResponse, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };
+export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type TokenListItem, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };

@@ -29,11 +29,11 @@ The audit log table displays:
 
 | Method | Color |
 |--------|-------|
-| GET | Blue (#3B82F6) |
-| POST | Green (#22C55E) |
-| PUT | Amber (#F59E0B) |
-| PATCH | Amber (#F59E0B) |
-| DELETE | Red (#EF4444) |
+| GET | Blue |
+| POST | Green |
+| PUT | Amber |
+| PATCH | Amber |
+| DELETE | Red |
 
 ### Status Colors
 
@@ -49,8 +49,8 @@ The audit log table displays:
 
 Filter by request type:
 - **All** - Show all entries
-- **Proxy** - LLM proxy requests only (`proxy.request`)
-- **Management** - API management requests (`api.request`)
+- **Proxy** - LLM proxy requests only
+- **Management** - API management requests
 
 Filter tabs show counts for each category.
 
@@ -68,32 +68,22 @@ Search is case-insensitive and matches partial strings.
 Entries are paginated (50 per page):
 - Click **Next** / **Previous** to navigate
 - Page number displayed below table
-- Cursor-based pagination for performance
 
 ## Log Entry Details
 
-Each entry contains:
+Each log entry includes:
 
-```json
-{
-  "id": 12345,
-  "action": "proxy.request",
-  "method": "POST",
-  "path": "/v1/chat/completions",
-  "status": 200,
-  "latency_ms": 1250,
-  "credential_id": "cred-uuid",
-  "identity_id": "ident-uuid",
-  "ip_address": "192.168.1.1",
-  "created_at": "2026-03-20T10:30:00Z"
-}
-```
-
-**Metadata Fields** (stored in JSONB):
-- `method` - HTTP method
-- `path` - Request path
-- `status` - HTTP status code
-- `latency_ms` - Response time in milliseconds
+| Field | Description |
+|-------|-------------|
+| Action | Type of request (proxy or management) |
+| Method | HTTP method (GET, POST, etc.) |
+| Path | Request path |
+| Status | HTTP status code |
+| Latency | Response time in milliseconds |
+| Credential | Which credential was used |
+| Identity | Which identity made the request |
+| IP Address | Client IP address |
+| Timestamp | When the request occurred |
 
 ## Retention Policies
 
@@ -107,16 +97,7 @@ Log retention varies by plan:
 
 Logs are automatically purged after the retention period.
 
-## Exporting Logs
-
-Currently, logs can be accessed via:
-- Dashboard UI (paginated viewing)
-- API: `GET /v1/audit`
-- SDK: `vault.audit.list()`
-
-Direct export functionality is planned for future releases.
-
-## API Access
+## Accessing Logs via SDK
 
 Fetch logs programmatically:
 
@@ -134,7 +115,7 @@ const { data, error } = await vault.audit.list({
 Query parameters:
 - `limit` - Items per page (1-100, default 50)
 - `cursor` - Pagination cursor
-- `action` - Filter by action type
+- `action` - Filter by action type (`proxy.request` or `api.request`)
 
 ## Use Cases
 
@@ -158,17 +139,10 @@ Query parameters:
 - Review access history
 - Support investigations
 
-## Performance Notes
-
-- Log writes are asynchronous
-- Queries use cursor-based pagination
-- Large result sets are streamed
-- IP geolocation not performed
-
 ## Best Practices
 
 1. **Regular review** - Check logs weekly for anomalies
 2. **Filter first** - Use action filters before searching
 3. **Monitor latency** - Watch for degrading response times
 4. **Track errors** - Follow up on 4xx and 5xx status codes
-5. **Export periodically** - Backup logs before retention expiration
+5. **Export periodically** - Back up important logs before retention expiration

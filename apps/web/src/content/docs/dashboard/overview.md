@@ -73,9 +73,7 @@ The sidebar displays your current plan usage:
 - Proxy Requests: 10,000/month
 - Identities: 500
 
-Progress bars show current usage with color coding:
-- Yellow (#EAB308) for credentials and requests
-- Purple (#8B5CF6) for identities
+Progress bars show current usage against your plan limits.
 
 Click **"Upgrade"** to view pricing plans.
 
@@ -92,16 +90,25 @@ The active workspace context is persisted across sessions.
 ## Mobile Navigation
 
 On mobile devices:
-- Tap the hamburger menu (☰) to open the sidebar overlay
+- Tap the hamburger menu to open the sidebar overlay
 - Swipe or tap outside to close
 - All navigation items remain accessible
 
 ## Data Refresh
 
-Dashboard data automatically refreshes:
-- Metrics update on page load
-- Real-time stats are fetched from `/v1/usage` endpoint
-- Manual refresh by navigating away and back
+Dashboard data automatically refreshes on page load. To manually refresh, navigate away and back or reload the page.
+
+### SDK Equivalent
+
+You can also fetch your usage metrics programmatically:
+
+```typescript
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.usage.get();
+```
 
 ## Empty States
 

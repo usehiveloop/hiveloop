@@ -347,23 +347,7 @@ After revocation, the API key is no longer accessible and cannot be used for pro
 
 ### Encryption at Rest
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  API Key    │────►│  Encrypt    │────►│  Store      │
-│  (plaintext)│     │  with DEK   │     │  in DB      │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │  DEK wrapped│
-                    │  by KMS     │
-                    └─────────────┘
-```
-
-1. **Data Encryption Key (DEK)**: Random 256-bit key generated per credential
-2. **AES-256-GCM**: Industry-standard encryption
-3. **KMS Wrapping**: DEK encrypted by your KMS (AWS KMS, etc.)
-4. **Memory Safety**: Keys zeroed from memory after use
+All API keys are encrypted using industry-standard envelope encryption before being stored. Each credential is encrypted with a unique key, which is itself protected by your configured key management service (e.g., AWS KMS). Keys are never stored in plaintext.
 
 ### Permission Requirements
 
@@ -439,10 +423,10 @@ If you need a provider not listed above, you can:
 
 ## Provider Logos
 
-Provider logos use their brand colors as defined in `index.css`:
+Each provider is displayed with its official brand color in the Connect widget:
 
-| Provider | Color |
-|----------|-------|
+| Provider | Brand Color |
+|----------|-------------|
 | OpenAI | `#0D0D0D` |
 | Anthropic | `#D4A373` |
 | Google Gemini | `#4285F4` |
@@ -451,6 +435,8 @@ Provider logos use their brand colors as defined in `index.css`:
 | DeepSeek | `#4A6CF7` |
 | Cohere | `#39594D` |
 | Perplexity | `#6366F1` |
+
+These colors are used automatically and cannot be overridden.
 
 ## Next Steps
 

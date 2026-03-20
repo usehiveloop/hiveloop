@@ -310,7 +310,7 @@ func run() error {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
 					r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
 					r.Get("/connections/{id}", connectionHandler.Get)
-					r.Post("/connections/{id}/token", connectionHandler.RetrieveToken)
+					r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
 					r.Delete("/connections/{id}", connectionHandler.Revoke)
 				})
 

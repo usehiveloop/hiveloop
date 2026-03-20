@@ -5,107 +5,40 @@ description: Short-lived proxy tokens with JWT-based authentication, TTL constra
 
 # Tokens
 
-Tokens are short-lived JWTs that grant scoped access to LLM credentials. They enable secure, temporary access for applications, users, or integrations without exposing the underlying API key.
+Tokens are short-lived keys that grant scoped access to your stored credentials. Instead of sharing your LLM API key directly, you mint a token that provides temporary, constrained access — with built-in expiry, request caps, and scope restrictions.
 
-## Token Anatomy
+## Why Tokens?
 
-LLMVault tokens are signed JWTs with the following structure:
+Tokens solve the problem of sharing LLM access safely:
 
-### Header
+- **Time-limited** — tokens expire automatically (default: 1 hour, max: 24 hours)
+- **Scoped** — restrict which actions and models a token can access
+- **Capped** — limit total requests a token can make
+- **Revocable** — instantly invalidate a token before it expires
+- **Auditable** — every request made with a token is logged
 
-```json
-{
-  "alg": "HS256",
-  "typ": "JWT"
-}
+## Creating a Token
+
+```typescript
+const vault = new LLMVault({ apiKey: "your-api-key" });
+
+const { data, error } = await vault.tokens.create({
+  credential_id: "550e8400-e29b-41d4-a716-446655440000",
+  name: "batch-processing",
+  expires_in: "4h",
+  scopes: [
+    {
+      connection_id: "conn-uuid",
+      actions: ["chat.completions", "embeddings"],
+      resources: {
+        models: ["gpt-4", "gpt-3.5-turbo"],
+      },
+    },
+  ],
+});
 ```
 
-### Claims
-
-```go
-type Claims struct {
-    OrgID        string `json:"org_id"`      // Organization UUID
-    CredentialID string `json:"cred_id"`     // Target credential UUID
-    ScopeHash    string `json:"scope_hash"`  // SHA-256 of scopes (if present)
-    jwt.RegisteredClaims
-}
-```
-
-The registered claims include:
-
-| Claim | Description |
-|-------|-------------|
-| `jti` | Unique token ID (UUID) |
-| `iat` | Issued at timestamp |
-| `exp` | Expiration timestamp |
-
-### Token Format
-
-Tokens are prefixed with `ptok_` for identification:
-
-```
-ptok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-The prefix is stripped during validation.
-
-## Token Data Model
-
-```go
-type Token struct {
-    ID             uuid.UUID  `gorm:"type:uuid;primaryKey"`
-    OrgID          uuid.UUID  `gorm:"type:uuid;not null"`
-    CredentialID   uuid.UUID  `gorm:"type:uuid;not null;index"`
-    JTI            string     `gorm:"column:jti;not null;uniqueIndex"`
-    ExpiresAt      time.Time  `gorm:"not null"`
-    Remaining      *int64     // Optional request cap
-    RefillAmount   *int64     // Auto-refill amount
-    RefillInterval *string    // Go duration format
-    LastRefillAt   *time.Time
-    Scopes         JSON       `gorm:"type:jsonb"` // MCP scopes
-    Meta           JSON       `gorm:"type:jsonb;default:'{}'"`
-    RevokedAt      *time.Time
-    CreatedAt      time.Time
-}
-```
-
-## TTL and Expiry
-
-### Maximum TTL
-
-Tokens have a maximum lifetime of **24 hours**:
-
-```go
-const maxTokenTTL = 24 * time.Hour
-```
-
-Attempting to mint a token with longer TTL returns:
-
-```json
-{"error": "ttl exceeds maximum of 24h"}
-```
-
-### Default TTL
-
-If not specified, tokens default to **1 hour**:
-
-```go
-ttl := time.Hour // default
-if req.TTL != "" {
-    ttl, err = time.ParseDuration(req.TTL)
-}
-```
-
-### Valid TTL Formats
-
-Any valid Go duration string:
-
-- `15m` - 15 minutes
-- `1h` - 1 hour  
-- `4h30m` - 4 hours 30 minutes
-- `24h` - Maximum allowed
-
-## Minting a Token
+Or with curl:
 
 ```bash
 curl -X POST https://api.llmvault.dev/v1/tokens \
@@ -114,9 +47,6 @@ curl -X POST https://api.llmvault.dev/v1/tokens \
   -d '{
     "credential_id": "550e8400-e29b-41d4-a716-446655440000",
     "ttl": "4h",
-    "remaining": 100,
-    "refill_amount": 100,
-    "refill_interval": "1h",
     "scopes": [
       {
         "connection_id": "conn-uuid",
@@ -125,8 +55,7 @@ curl -X POST https://api.llmvault.dev/v1/tokens \
           "models": ["gpt-4", "gpt-3.5-turbo"]
         }
       }
-    ],
-    "meta": {"purpose": "batch-processing"}
+    ]
   }'
 ```
 
@@ -141,161 +70,152 @@ curl -X POST https://api.llmvault.dev/v1/tokens \
 }
 ```
 
-## Token Scoping Rules
+The `token` value is the only time the full token string is returned. Store it securely — it cannot be retrieved again.
 
-### MCP Token Scopes
+## Token Format
 
-Scopes define fine-grained access control for MCP (Model Context Protocol) integrations:
+LLMVault tokens are prefixed with `ptok_` for easy identification:
 
-```go
-type TokenScope struct {
-    ConnectionID string              `json:"connection_id"`
-    Actions      []string            `json:"actions"`
-    Resources    map[string][]string `json:"resources,omitempty"`
-}
+```
+ptok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Under the hood, tokens are signed JWTs containing the organization ID, credential ID, and expiry. The `ptok_` prefix is stripped automatically during authentication.
+
+## TTL (Time to Live)
+
+| Setting | Value |
+|---------|-------|
+| Default TTL | 1 hour |
+| Maximum TTL | 24 hours |
+
+Valid TTL formats:
+
+- `15m` — 15 minutes
+- `1h` — 1 hour
+- `4h30m` — 4 hours 30 minutes
+- `24h` — maximum allowed
+
+If you request a TTL longer than 24 hours, the API returns an error:
+
+```json
+{"error": "ttl exceeds maximum of 24h"}
+```
+
+## Using a Token
+
+Pass the token in the `Authorization` header when making proxy requests:
+
+```bash
+curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
+  -H "Authorization: Bearer ptok_eyJhbGciOi..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+LLMVault validates the token, resolves the linked credential, and forwards the request to the upstream provider with the real API key — all transparently.
+
+## Scopes
+
+Scopes let you restrict what a token can do. This is especially useful for MCP (Model Context Protocol) integrations where you want to limit access to specific actions and models.
+
+```typescript
+const { data, error } = await vault.tokens.create({
+  credential_id: "cred-uuid",
+  scopes: [
+    {
+      connection_id: "conn-uuid",
+      actions: ["chat.completions", "embeddings"],
+      resources: {
+        models: ["gpt-4", "gpt-3.5-turbo"],
+      },
+    },
+  ],
+});
 ```
 
 | Field | Description |
 |-------|-------------|
-| `connection_id` | UUID of the integration connection |
-| `actions` | Explicit list of allowed actions (no wildcards) |
-| `resources` | Optional resource type → ID mapping |
+| `connection_id` | The integration connection this scope applies to |
+| `actions` | Explicit list of allowed actions (wildcards are not permitted) |
+| `resources` | Optional mapping of resource types to allowed IDs |
 
-### Scope Validation
+**Scope validation rules:**
 
-Scopes are validated against the embedded actions catalog:
+- The connection must exist and belong to your organization
+- Each action must be a recognized action for the provider
+- Wildcard actions (`*`) are rejected — you must list each action explicitly
+- Resource types must match the actions' expected resource types
 
-1. Connection must exist, belong to org, and not be revoked
-2. Integration must not be soft-deleted
-3. Each action must exist in the provider's catalog
-4. Wildcard actions (`*`) are **explicitly rejected**
-5. Resource types must match the actions' resource types
+When scopes are provided, the token response includes an MCP endpoint URL for Model Context Protocol connections.
 
-```go
-// Wildcard rejection
-if action == "*" {
-    return fmt.Errorf("wildcard actions are not allowed; explicitly list each action")
-}
+## Request Caps
+
+Like credentials, tokens can have request caps with optional automatic refill:
+
+```typescript
+const { data, error } = await vault.tokens.create({
+  credential_id: "cred-uuid",
+  expires_in: "4h",
+  remaining: 100,
+  refill_amount: 100,
+  refill_interval: "1h",
+});
 ```
 
-### Scope Hash
+| Field | Description |
+|-------|-------------|
+| `remaining` | Total requests this token can make |
+| `refill_amount` | Requests to restore when the interval elapses |
+| `refill_interval` | How often to refill (e.g., `1h`) |
 
-Scopes are hashed for inclusion in JWT claims:
-
-```go
-func ScopeHash(scopes []TokenScope) (string, error) {
-    canonical, _ := json.Marshal(scopes)
-    hash := sha256.Sum256(canonical)
-    return fmt.Sprintf("%x", hash), nil
-}
-```
-
-This enables validation that the token's scopes haven't been tampered with.
-
-## Token Authentication
-
-### Authorization Header
-
-```
-Authorization: Bearer ptok_{jwt_token}
-```
-
-### Validation Flow
-
-1. Extract token from `Authorization` header
-2. Strip `ptok_` prefix if present
-3. Validate JWT signature (HS256)
-4. Verify claims (`org_id`, `cred_id`, `exp`)
-5. Check database for revocation (`revoked_at IS NULL`)
-6. Place claims on request context
-
-```go
-claims, err := token.Validate(signingKey, jwtString)
-if err != nil {
-    return 401, "invalid or expired token"
-}
-
-// Check revocation
-var tokenRecord model.Token
-result := db.Where("jti = ?", claims.ID).First(&tokenRecord)
-if result.Error != nil || tokenRecord.RevokedAt != nil {
-    return 401, "token revoked"
-}
-```
-
-## Token Request Caps
-
-Like credentials, tokens support request caps with refill:
+When a token's cap is exhausted, LLMVault automatically checks if a refill is due. If not, the request returns `429`:
 
 ```json
-{
-  "remaining": 100,
-  "refill_amount": 100,
-  "refill_interval": "1h"
-}
+{"error": "token request cap exhausted"}
 ```
 
-### Counter Key Format
+Token counters are automatically cleaned up when the token expires.
 
-Redis key: `pbreq:tok:{jti}`
+## Revoking a Token
 
-### Counter TTL
+Revoke a token before it expires:
 
-Token counters expire with the token plus a 1-minute buffer:
-
-```go
-func (c *Counter) SeedToken(ctx context.Context, jti string, value int64, tokenTTL time.Duration) error {
-    return c.Seed(ctx, tokKey(jti), value, tokenTTL+time.Minute)
-}
+```typescript
+const { data, error } = await vault.tokens.delete("token-jti");
 ```
 
-## MCP Endpoint
-
-When scopes are provided, the token response includes an MCP endpoint URL:
-
-```json
-{
-  "mcp_endpoint": "https://mcp.llmvault.dev/{jti}"
-}
-```
-
-This endpoint enables Model Context Protocol connections scoped to the token's permissions.
-
-## Token Revocation
-
-Tokens can be revoked before expiry:
+Or with curl:
 
 ```bash
 curl -X DELETE https://api.llmvault.dev/v1/tokens/{jti} \
   -H "Authorization: Bearer {org_token}"
 ```
 
-Revocation triggers:
-1. `revoked_at` timestamp set in database
-2. Redis revocation entry with token's original TTL
-3. Cross-instance pub/sub notification
-4. Cached MCP server eviction
-
-### Revocation Check Flow
-
-```
-L1 (Memory set) → L2 (Redis: pbrev:{jti}) → L3 (Postgres revoked_at)
-```
+Revocation takes effect immediately across all proxy instances. Any subsequent request using the revoked token returns `401`.
 
 ## Listing Tokens
 
-```bash
-# List all tokens
-curl "https://api.llmvault.dev/v1/tokens?limit=50"
+```typescript
+// List all tokens
+const { data, error } = await vault.tokens.list();
 
-# Filter by credential
-curl "https://api.llmvault.dev/v1/tokens?credential_id={uuid}"
+// Filter by credential
+const { data, error } = await vault.tokens.list({
+  credential_id: "cred-uuid",
+});
 
-# Cursor pagination
-curl "https://api.llmvault.dev/v1/tokens?cursor=eyJpZCI6..."
+// Paginate
+const { data, error } = await vault.tokens.list({
+  limit: 50,
+  cursor: "eyJpZCI6...",
+});
 ```
 
-Response:
+### Response
 
 ```json
 {
@@ -307,7 +227,7 @@ Response:
       "remaining": 95,
       "refill_amount": 100,
       "refill_interval": "1h",
-      "scopes": {"scopes": [...]},
+      "scopes": [...],
       "meta": {"purpose": "batch-processing"},
       "expires_at": "2024-01-15T18:30:00Z",
       "created_at": "2024-01-15T14:30:00Z"
@@ -318,11 +238,10 @@ Response:
 }
 ```
 
-## Security Properties
+## Security Guarantees
 
-1. **Short lifetime**: Maximum 24 hours, default 1 hour
-2. **Cryptographic signing**: HMAC-SHA256 with 256-bit key
-3. **Unique ID**: UUID-based JTI prevents replay
-4. **Revocation support**: Immediate invalidation possible
-5. **Scope integrity**: SHA-256 hash in JWT claims
-6. **Automatic expiry**: Redis TTLs align with token lifetime
+- **Short lifetime** — tokens last at most 24 hours, defaulting to 1 hour
+- **Cryptographic signing** — tokens are HMAC-SHA256 signed JWTs that cannot be forged or tampered with
+- **Unique identification** — every token has a UUID-based JTI that prevents replay attacks
+- **Instant revocation** — revoked tokens are rejected immediately, even if they haven't expired
+- **Scope integrity** — scope restrictions are cryptographically bound to the token and cannot be modified after creation

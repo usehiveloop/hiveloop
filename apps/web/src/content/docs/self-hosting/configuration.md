@@ -78,24 +78,7 @@ secrets:
 
 #### Database Initialization
 
-The init script at `docker/postgres/init.sql` creates:
-
-1. `pgcrypto` extension for UUID generation
-2. `llmvault_test` database for testing
-3. `llmvault_vault_test` database for Vault KMS tests
-
-```sql
--- Extensions
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
--- Test database
-SELECT 'CREATE DATABASE llmvault_test OWNER ' || current_user
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'llmvault_test')\gexec
-
--- Vault test database
-SELECT 'CREATE DATABASE llmvault_vault_test OWNER ' || current_user
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'llmvault_vault_test')\gexec
-```
+When using Docker Compose, an init script (`docker/postgres/init.sql`) runs automatically to set up the required database extensions. No manual database setup is needed — the schema is managed by LLMVault and migrations run automatically on startup.
 
 ## Redis Configuration
 

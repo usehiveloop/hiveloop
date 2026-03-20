@@ -35,7 +35,7 @@ Click **"Add Integration"** to configure a new provider.
 
 ### Step 1: Select Provider
 
-Browse available providers from the Nango catalog:
+Browse available providers from the catalog:
 - Search by name
 - View provider logos
 - Click to select
@@ -75,6 +75,23 @@ For providers supporting webhooks:
 
 Click **"Create Integration"** to save.
 
+### SDK Equivalent
+
+```typescript
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.integrations.create({
+  display_name: "Slack Production",
+  provider: "slack",
+  credentials: {
+    client_id: "...",
+    client_secret: "..."
+  }
+});
+```
+
 ## Integration Detail Page
 
 Click an integration to view details and manage connections.
@@ -112,7 +129,7 @@ View and rotate credentials:
 1. Click **"Rotate"** button
 2. Enter new credential values
 3. Click **"Save Credentials"**
-4. New credentials propagated immediately
+4. New credentials take effect immediately
 
 **Edit Webhook Secret:**
 - Click pencil icon (if user-defined)
@@ -125,7 +142,7 @@ Lists authenticated users:
 
 | Column | Description |
 |--------|-------------|
-| Connection ID | Nango connection identifier |
+| Connection ID | Connection identifier |
 | Identity | Linked LLMVault identity |
 | Created | Connection timestamp |
 | Status | Always "Active" |
@@ -147,6 +164,18 @@ Users create connections via:
 
 Connections appear automatically in the dashboard.
 
+### SDK Equivalent
+
+```typescript
+// List connections for an integration
+const { data, error } = await vault.connections.list(integrationId, {
+  limit: 20
+});
+
+// Retrieve an access token for a connection
+const { data: token } = await vault.connections.retrieveToken(connectionId);
+```
+
 ## Editing Display Name
 
 1. Click the pencil icon next to the name
@@ -157,8 +186,7 @@ Connections appear automatically in the dashboard.
 ## Deleting an Integration
 
 **Warning:** Deleting an integration:
-- Removes from Nango
-- Soft-deletes in database
+- Removes the integration permanently
 - Invalidates all connections
 - Cannot be undone
 
@@ -166,23 +194,6 @@ To delete:
 1. Click **"Delete"** button
 2. Confirm in dialog
 3. Integration is permanently removed
-
-## Available Scopes Endpoint
-
-Tokens can be scoped to integration actions:
-
-```typescript
-import { LLMVault } from "@llmvault/sdk";
-
-const vault = new LLMVault({ apiKey: "ak_live_..." });
-
-const { data, error } = await vault.connections.availableScopes();
-```
-
-Returns:
-- Available connections
-- Action definitions
-- Resource types
 
 ## Provider List
 
@@ -208,7 +219,7 @@ LLMVault automatically:
 
 ## Best Practices
 
-1. **Use descriptive names** - Include environment
+1. **Use descriptive names** - Include environment (e.g., "Slack Production", "GitHub Staging")
 2. **Rotate credentials regularly** - Security hygiene
 3. **Configure webhooks** - Enable real-time updates
 4. **Monitor connections** - Track active users

@@ -18,18 +18,10 @@ The members table displays:
 | Column | Description |
 |--------|-------------|
 | Name | Full name |
-| Email | Email address (monospace font) |
+| Email | Email address |
 | Role | Permission badge |
 | Joined | Date added |
 | Actions | Remove button (if applicable) |
-
-### Role Badges
-
-| Role | Badge Style |
-|------|-------------|
-| Owner | Primary border, primary background |
-| Admin | Info border, info background |
-| Member | Default border, secondary background |
 
 ### Searching
 
@@ -59,11 +51,6 @@ Click **"Invite Member"** to add a new team member.
 | **Admin** | Full access to all resources - credentials, tokens, identities, integrations, billing, team management |
 | **Member** | Read-only access - can view resources but cannot create, modify, or delete |
 
-**Note:** Role mapping to Logto organization roles:
-- Owner → `admin`
-- Admin → `admin`
-- Member → `viewer`
-
 ### Invitation Process
 
 1. Fill in member details
@@ -76,9 +63,7 @@ Click **"Invite Member"** to add a new team member.
 
 ### Changing Roles
 
-Currently, role changes must be made via the Logto admin console or API.
-
-UI support for role changes is planned.
+Role changes are coming soon. In the meantime, contact support if you need to change a member's role.
 
 ### Removing Members
 
@@ -97,24 +82,24 @@ To remove a member:
 
 | Action | Owner | Admin | Member |
 |--------|-------|-------|--------|
-| View credentials | ✅ | ✅ | ✅ |
-| Create credentials | ✅ | ✅ | ❌ |
-| Revoke credentials | ✅ | ✅ | ❌ |
-| View tokens | ✅ | ✅ | ✅ |
-| Mint tokens | ✅ | ✅ | ❌ |
-| Revoke tokens | ✅ | ✅ | ❌ |
-| View identities | ✅ | ✅ | ✅ |
-| Create identities | ✅ | ✅ | ❌ |
-| Delete identities | ✅ | ✅ | ❌ |
-| View integrations | ✅ | ✅ | ✅ |
-| Add integrations | ✅ | ✅ | ❌ |
-| Delete integrations | ✅ | ✅ | ❌ |
-| View audit log | ✅ | ✅ | ✅ |
-| View billing | ✅ | ✅ | ❌ |
-| Change plan | ✅ | ✅ | ❌ |
-| Invite members | ✅ | ✅ | ❌ |
-| Remove members | ✅ | ✅ | ❌ |
-| Delete workspace | ✅ | ❌ | ❌ |
+| View credentials | Yes | Yes | Yes |
+| Create credentials | Yes | Yes | No |
+| Revoke credentials | Yes | Yes | No |
+| View tokens | Yes | Yes | Yes |
+| Mint tokens | Yes | Yes | No |
+| Revoke tokens | Yes | Yes | No |
+| View identities | Yes | Yes | Yes |
+| Create identities | Yes | Yes | No |
+| Delete identities | Yes | Yes | No |
+| View integrations | Yes | Yes | Yes |
+| Add integrations | Yes | Yes | No |
+| Delete integrations | Yes | Yes | No |
+| View audit log | Yes | Yes | Yes |
+| View billing | Yes | Yes | No |
+| Change plan | Yes | Yes | No |
+| Invite members | Yes | Yes | No |
+| Remove members | Yes | Yes | No |
+| Delete workspace | Yes | No | No |
 
 ## Multiple Organizations
 

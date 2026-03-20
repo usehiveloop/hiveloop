@@ -27,8 +27,9 @@ export class LLMVault {
   public readonly providers: ProvidersResource;
 
   constructor(config: LLMVaultConfig) {
+    const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
     const client = createClient<paths>({
-      baseUrl: config.baseUrl ?? "https://api.llmvault.dev",
+      baseUrl,
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
       },
@@ -40,7 +41,7 @@ export class LLMVault {
     this.identities = new IdentitiesResource(client);
     this.connect = new ConnectResource(client);
     this.integrations = new IntegrationsResource(client);
-    this.connections = new ConnectionsResource(client);
+    this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
     this.usage = new UsageResource(client);
     this.audit = new AuditResource(client);
     this.org = new OrgResource(client);

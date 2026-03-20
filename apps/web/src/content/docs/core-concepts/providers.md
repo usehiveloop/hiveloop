@@ -5,89 +5,18 @@ description: The embedded LLM provider catalog with auto-detection, model metada
 
 # Providers
 
-LLMVault includes an embedded provider and model catalog sourced from [models.dev](https://models.dev). The catalog provides metadata about supported LLM providers, their models, capabilities, and pricing.
+LLMVault includes a built-in catalog of LLM providers and their models, sourced from [models.dev](https://models.dev). The catalog gives you instant access to provider metadata, model capabilities, pricing, and token limits — without any external API calls.
 
-## What is the Provider Catalog?
+## Why a Built-In Catalog?
 
-The provider catalog is an embedded JSON file (`models.json`) that is parsed at application startup and held in memory. This design provides:
+The provider catalog helps you:
 
-- **Zero network latency** - No external API calls needed
-- **O(1) lookups** - Direct map access by provider ID
-- **Build-time embedding** - Catalog is baked into the binary
-- **Type safety** - Strongly typed Go structs
+- **Browse available providers and models** before creating credentials
+- **Validate provider IDs** when storing credentials
+- **Look up model capabilities** like context window size, pricing, and supported modalities
+- **Build provider selection UIs** using the discovery API endpoints
 
-```go
-//go:embed models.json
-var modelsJSON []byte
-```
-
-## Provider Structure
-
-```go
-type Provider struct {
-    ID     string           `json:"id"`      // Unique identifier
-    Name   string           `json:"name"`    // Display name
-    API    string           `json:"api"`     // API documentation URL
-    Doc    string           `json:"doc"`     // Provider documentation URL
-    Models map[string]Model `json:"models"`  // Map of model_id → Model
-}
-```
-
-## Model Structure
-
-```go
-type Model struct {
-    ID               string      `json:"id"`                // Unique model ID
-    Name             string      `json:"name"`              // Display name
-    Family           string      `json:"family,omitempty"`  // Model family
-    Reasoning        bool        `json:"reasoning,omitempty"`
-    ToolCall         bool        `json:"tool_call,omitempty"`
-    StructuredOutput bool        `json:"structured_output,omitempty"`
-    OpenWeights      bool        `json:"open_weights,omitempty"`
-    Knowledge        string      `json:"knowledge,omitempty"`     // Knowledge cutoff date
-    ReleaseDate      string      `json:"release_date,omitempty"`
-    Modalities       *Modalities `json:"modalities,omitempty"`
-    Cost             *Cost       `json:"cost,omitempty"`
-    Limit            *Limit      `json:"limit,omitempty"`
-    Status           string      `json:"status,omitempty"`
-}
-```
-
-### Model Capabilities
-
-| Field | Description |
-|-------|-------------|
-| `Reasoning` | Model supports chain-of-thought reasoning |
-| `ToolCall` | Model can call external tools/functions |
-| `StructuredOutput` | Model supports JSON mode / structured outputs |
-| `OpenWeights` | Model weights are openly available |
-
-### Modalities
-
-```go
-type Modalities struct {
-    Input  []string `json:"input,omitempty"`   // e.g., ["text", "image"]
-    Output []string `json:"output,omitempty"`  // e.g., ["text"]
-}
-```
-
-### Pricing
-
-```go
-type Cost struct {
-    Input  float64 `json:"input,omitempty"`   // Price per 1M input tokens
-    Output float64 `json:"output,omitempty"`  // Price per 1M output tokens
-}
-```
-
-### Token Limits
-
-```go
-type Limit struct {
-    Context int64 `json:"context,omitempty"`  // Context window size
-    Output  int64 `json:"output,omitempty"`   // Max output tokens
-}
-```
+The catalog is embedded in LLMVault and served with zero latency — no external network calls required.
 
 ## Supported Providers
 
@@ -107,12 +36,16 @@ The catalog includes all major LLM providers:
 | `azure_openai` | Azure OpenAI |
 | `aws_bedrock` | AWS Bedrock |
 
-## API Endpoints
+And many more — the catalog covers 100+ providers and 3,000+ models.
+
+## Browsing Providers
 
 ### List All Providers
 
-```bash
-GET /v1/providers
+```typescript
+const vault = new LLMVault({ apiKey: "your-api-key" });
+
+const { data, error } = await vault.providers.list();
 ```
 
 Response:
@@ -136,198 +69,148 @@ Response:
 ]
 ```
 
-### Get Provider Detail
+### Get Provider Details
 
-```bash
-GET /v1/providers/{id}
+```typescript
+const { data, error } = await vault.providers.get("openai");
+```
+
+Returns the provider along with its full model list.
+
+### List Models for a Provider
+
+```typescript
+const { data, error } = await vault.providers.listModels("openai");
 ```
 
 Response:
 
 ```json
-{
-  "id": "openai",
-  "name": "OpenAI",
-  "api": "https://platform.openai.com/docs/api-reference",
-  "doc": "https://platform.openai.com/docs",
-  "models": [
-    {
-      "id": "gpt-4o",
-      "name": "GPT-4o",
-      "family": "gpt-4o",
-      "reasoning": false,
-      "tool_call": true,
-      "structured_output": true,
-      "open_weights": false,
-      "knowledge": "2023-10",
-      "release_date": "2024-05-13",
-      "modalities": {
-        "input": ["text", "image"],
-        "output": ["text"]
-      },
-      "cost": {
-        "input": 5.0,
-        "output": 15.0
-      },
-      "limit": {
-        "context": 128000,
-        "output": 4096
-      },
-      "status": "active"
-    }
-  ]
-}
+[
+  {
+    "id": "gpt-4o",
+    "name": "GPT-4o",
+    "family": "gpt-4o",
+    "reasoning": false,
+    "tool_call": true,
+    "structured_output": true,
+    "open_weights": false,
+    "knowledge": "2023-10",
+    "release_date": "2024-05-13",
+    "modalities": {
+      "input": ["text", "image"],
+      "output": ["text"]
+    },
+    "cost": {
+      "input": 5.0,
+      "output": 15.0
+    },
+    "limit": {
+      "context": 128000,
+      "output": 4096
+    },
+    "status": "active"
+  }
+]
 ```
 
-### List Provider Models
+These endpoints are public and do not require authentication — they're designed for building provider selection UIs.
 
-```bash
-GET /v1/providers/{id}/models
+## Model Metadata
+
+Each model in the catalog includes rich metadata:
+
+### Capabilities
+
+| Field | Description |
+|-------|-------------|
+| `reasoning` | Supports chain-of-thought reasoning |
+| `tool_call` | Can call external tools and functions |
+| `structured_output` | Supports JSON mode and structured outputs |
+| `open_weights` | Model weights are openly available |
+
+### Pricing
+
+Costs are expressed as price per 1 million tokens:
+
+| Field | Description |
+|-------|-------------|
+| `cost.input` | Price per 1M input tokens (USD) |
+| `cost.output` | Price per 1M output tokens (USD) |
+
+### Token Limits
+
+| Field | Description |
+|-------|-------------|
+| `limit.context` | Maximum context window size (tokens) |
+| `limit.output` | Maximum output length (tokens) |
+
+### Modalities
+
+Describes what types of input and output the model supports:
+
+- **Input**: `text`, `image`, `audio`, `video`
+- **Output**: `text`, `image`, `audio`
+
+### Status
+
+| Status | Description |
+|--------|-------------|
+| `active` | Currently available and recommended |
+| `deprecated` | Scheduled for removal — migrate to a newer model |
+| `preview` | Beta or early access — may change without notice |
+
+### Knowledge Cutoff and Release Date
+
+- `knowledge` — training data cutoff (e.g., `2023-10` means October 2023)
+- `release_date` — when the model was released (ISO 8601 format, e.g., `2024-05-13`)
+
+## Using Providers with Credentials
+
+When creating a credential, specify the `provider_id` to link it to a catalog entry:
+
+```typescript
+const { data, error } = await vault.credentials.create({
+  label: "OpenAI Production",
+  api_key: "sk-...",
+  provider_id: "openai",
+});
 ```
 
-Returns just the models array, sorted by model ID.
+The provider ID is validated against the catalog. If you pass an unrecognized ID, the request is rejected:
 
-## Provider Verification
-
-When creating credentials, the provider ID is validated against the catalog:
-
-```go
-if _, ok := registry.Global().GetProvider(req.ProviderID); !ok {
-    writeJSON(w, http.StatusBadRequest, map[string]string{
-        "error": fmt.Sprintf("unknown provider_id %q", req.ProviderID)
-    })
-    return
-}
+```json
+{"error": "unknown provider_id \"invalid-provider\""}
 ```
 
-## Creating Credentials with Providers
+## Custom and Compatible Providers
 
-```bash
-curl -X POST https://api.llmvault.dev/v1/credentials \
-  -H "Authorization: Bearer {org_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider_id": "openai",
-    "base_url": "https://api.openai.com/v1",
-    "auth_scheme": "bearer",
-    "api_key": "sk-...",
-    "label": "OpenAI Production"
-  }'
+You can use any OpenAI-compatible endpoint by specifying a `base_url` alongside a recognized `provider_id`:
+
+```typescript
+const { data, error } = await vault.credentials.create({
+  label: "Local LLM",
+  api_key: "my-key",
+  provider_id: "openai",
+  base_url: "https://api.mycustomllm.com/v1",
+  auth_scheme: "bearer",
+});
 ```
 
-## Custom Providers
+This works well for self-hosted models, custom gateways, or any provider that implements the OpenAI API format.
 
-While the catalog covers major providers, you can use any OpenAI-compatible endpoint by specifying a custom `base_url` and `provider_id`:
+## Model Selection at Request Time
 
-```bash
-curl -X POST https://api.llmvault.dev/v1/credentials \
-  -H "Authorization: Bearer {org_token}" \
-  -d '{
-    "provider_id": "custom",
-    "base_url": "https://api.mycustomllm.com/v1",
-    "auth_scheme": "bearer",
-    "api_key": "my-key"
-  }'
-```
-
-The `provider_id` must exist in the catalog, but you can use any supported provider's ID for custom endpoints with compatible APIs.
-
-## Model Selection
-
-When making proxy requests, use standard model IDs:
+When making proxy requests, pass the model ID directly in your request body — it's forwarded transparently to the upstream provider:
 
 ```bash
 curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
   -H "Authorization: Bearer ptok_..." \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4o",
-    "messages": [...]
+    "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
 
-The model ID is passed through transparently to the upstream provider.
-
-## Catalog Access
-
-The global registry singleton provides thread-safe access:
-
-```go
-import "github.com/llmvault/llmvault/internal/registry"
-
-// Get provider
-provider, ok := registry.Global().GetProvider("openai")
-
-// Get all providers
-allProviders := registry.Global().AllProviders()
-
-// Get counts
-providerCount := registry.Global().ProviderCount()
-modelCount := registry.Global().ModelCount()
-```
-
-## Catalog Updates
-
-The embedded catalog is updated by:
-
-1. Updating the `models.json` file
-2. Rebuilding the application
-3. Redeploying
-
-The catalog is parsed once at startup using `sync.Once`:
-
-```go
-var (
-    globalRegistry *Registry
-    initOnce       sync.Once
-)
-
-func Global() *Registry {
-    initOnce.Do(func() {
-        globalRegistry = mustParse(modelsJSON)
-    })
-    return globalRegistry
-}
-```
-
-## Provider Metadata Fields
-
-### Status Values
-
-| Status | Description |
-|--------|-------------|
-| `active` | Currently available |
-| `deprecated` | Scheduled for removal |
-| `preview` | Beta/early access |
-
-### Knowledge Cutoff
-
-The `knowledge` field indicates the training data cutoff date:
-
-- `2023-10` - Knowledge current through October 2023
-- `2024-04` - Knowledge current through April 2024
-
-### Release Dates
-
-ISO 8601 format: `YYYY-MM-DD`
-
-Example: `2024-05-13` for GPT-4o's release date.
-
-## Integration with MCP
-
-The actions catalog (separate from the provider catalog) defines available actions for MCP integrations:
-
-```
-internal/mcp/catalog/providers/*.actions.json
-```
-
-Each provider can have an associated actions file defining:
-- Available actions (e.g., `chat.completions`, `embeddings`)
-- Resource types (e.g., `models`, `assistants`)
-- Execution configuration
-
-## Security Considerations
-
-1. **No secrets in catalog** - The embedded catalog contains only public metadata
-2. **Build-time embedding** - Catalog cannot be modified at runtime
-3. **Validation on credential creation** - Unknown provider IDs are rejected
-4. **URL validation** - Base URLs are validated against SSRF attacks
+LLMVault does not modify or validate the model ID in proxy requests — it's passed through exactly as you send it.

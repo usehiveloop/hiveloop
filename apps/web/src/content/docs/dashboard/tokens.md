@@ -5,7 +5,7 @@ description: Minting proxy tokens, configuration, integration access, and revoca
 
 # Managing Tokens
 
-Tokens are short-lived JWT credentials scoped to a single parent credential. They authenticate requests to the LLM proxy.
+Tokens are short-lived credentials scoped to a single parent credential. They authenticate requests to the LLM proxy and can be configured with request caps, expiration times, and integration access.
 
 ## Tokens List
 
@@ -68,8 +68,6 @@ Expand **"Integration Access"** to grant MCP tool access:
 2. Choose permitted actions per connection
 3. Select specific resources (if applicable)
 
-Scopes are validated against the integration catalog before token creation.
-
 ### Mint Success Dialog
 
 After minting, a success dialog displays:
@@ -109,6 +107,21 @@ curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
 
 Click **"Copy"** buttons to copy values to clipboard.
 
+### SDK Equivalent
+
+```typescript
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.tokens.create({
+  credential_id: "cred-uuid",
+  name: "My Token",
+  scopes: ["slack:send_message"],
+  expires_in: "1h"
+});
+```
+
 ## Token Statuses
 
 | Status | Description |
@@ -120,14 +133,13 @@ Click **"Copy"** buttons to copy values to clipboard.
 ## Revoking Tokens
 
 Tokens can be revoked via:
-- Dashboard: Find token and revoke (UI pending)
-- API: `DELETE /v1/tokens/{jti}`
-- SDK: `vault.tokens.delete(jti)`
+- **API:** `DELETE /v1/tokens/{jti}`
+- **SDK:** `vault.tokens.delete(jti)`
 
 **Effects:**
-- Immediate invalidation
-- Cache eviction across tiers
-- MCP server eviction (if applicable)
+- Token is immediately invalidated
+- Any in-flight requests may still complete
+- MCP connections using this token are disconnected
 
 ## Token Detail on Credential Page
 
@@ -151,5 +163,5 @@ Mint → Active → [Revoked | Expired]
 1. **Short TTLs** - Use 1 hour or less for production
 2. **Request caps** - Set `remaining` to limit exposure
 3. **Metadata** - Attach user/context info for tracking
-4. **Revoke promptly** - Invalidate tokens when done
-5. **Scopes** - Grant minimal integration access needed
+4. **Revoke promptly** - Invalidate tokens when no longer needed
+5. **Scopes** - Grant only the minimal integration access needed

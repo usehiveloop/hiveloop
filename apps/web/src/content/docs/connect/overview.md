@@ -72,9 +72,8 @@ Connect is a React-based widget served from `https://connect.llmvault.dev` (prod
 ## Security
 
 ### API Key Security
-- **Encryption at rest**: All API keys are encrypted using AES-256-GCM with unique data encryption keys (DEK)
-- **Envelope encryption**: DEKs are wrapped using AWS KMS or your configured key management service
-- **Memory safety**: Keys are zeroed from memory immediately after use
+- **Encryption at rest**: All API keys are encrypted using industry-standard envelope encryption
+- **KMS integration**: Encryption keys are managed by your configured key management service (e.g., AWS KMS)
 - **Verification**: Keys are validated with the provider before storage (optional)
 
 ### Session Security
@@ -119,17 +118,7 @@ Any provider available in the Nango catalog can be configured:
 
 See the [Integrations](./integrations) documentation for configuration details.
 
-## Deployment
-
-Connect is hosted on AWS with the following infrastructure:
-
-```
-User → connect.llmvault.dev
-         ↓
-    CloudFront (CDN + SSL)
-         ↓
-      S3 Bucket (Static Assets)
-```
+## Environments
 
 - **Production**: `https://connect.llmvault.dev`
 - **Development**: `https://connect.dev.llmvault.dev`

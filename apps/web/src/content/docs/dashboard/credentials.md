@@ -74,14 +74,14 @@ Supported providers include:
 | Field | Description | Example |
 |-------|-------------|---------|
 | Label | Human-readable name | "Production OpenAI" |
-| Base URL | Provider API endpoint | `https://api.openai.com/v1` |
-| Auth Scheme | Authentication method | Bearer, X-API-Key, API-Key, Query Param |
 | API Key | Provider API key | `sk-...` |
 
 **Optional Fields:**
 
 | Field | Description | Example |
 |-------|-------------|---------|
+| Base URL | Provider API endpoint (auto-filled based on provider) | `https://api.openai.com/v1` |
+| Auth Scheme | Authentication method (auto-filled based on provider) | Bearer, X-API-Key, API-Key, Query Param |
 | Remaining | Request cap limit | `10000` |
 | Refill Amount | Requests to add on refill | `10000` |
 | Refill Interval | Duration between refills | `24h` |
@@ -94,7 +94,23 @@ Available authentication methods:
 - **API-Key** - `API-Key: <key>`
 - **Query Param** - Appended to URL as query parameter
 
-Click **"Create Credential"** to save. The API key is encrypted at rest using AES-256-GCM.
+Click **"Create Credential"** to save. Your API key is encrypted at rest and never stored in plain text.
+
+### SDK Equivalent
+
+```typescript
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.credentials.create({
+  label: "Production OpenAI",
+  api_key: "sk-...",
+  provider_id: "openai",
+  base_url: "https://api.openai.com/v1",
+  auth_scheme: "bearer"
+});
+```
 
 ## Credential Detail Page
 
@@ -153,8 +169,13 @@ To revoke a credential:
 **Effects of revocation:**
 - Credential status changes to "Revoked"
 - No new tokens can be minted
-- Existing tokens fail authentication
-- Cache is invalidated across all tiers
+- Existing tokens stop working immediately
+
+### SDK Equivalent
+
+```typescript
+await vault.credentials.delete(credentialId);
+```
 
 ## Credential Statuses
 
@@ -166,8 +187,8 @@ To revoke a credential:
 
 ## Best Practices
 
-1. **Use descriptive labels** - Include environment and purpose
+1. **Use descriptive labels** - Include environment and purpose (e.g., "Production OpenAI", "Staging Anthropic")
 2. **Set request caps** - Protect against runaway usage
-3. **Configure refills** - Automatically replenish quotas
+3. **Configure refills** - Automatically replenish quotas on a schedule
 4. **Link identities** - Track per-user usage
 5. **Revoke unused credentials** - Regular security hygiene

@@ -39,6 +39,7 @@ type integConnResponse struct {
 	NangoConnectionID string     `json:"nango_connection_id"`
 	IdentityID        *string    `json:"identity_id,omitempty"`
 	Meta              model.JSON `json:"meta,omitempty"`
+	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
 	RevokedAt         *string    `json:"revoked_at,omitempty"`
 	CreatedAt         string     `json:"created_at"`
 	UpdatedAt         string     `json:"updated_at"`
@@ -62,6 +63,18 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 		resp.RevokedAt = &s
 	}
 	return resp
+}
+
+// buildConnectionProviderConfig extracts safe, non-sensitive fields from
+// the Nango connection response. Credentials are never included.
+func buildConnectionProviderConfig(nangoResp map[string]any) model.JSON {
+	config := model.JSON{}
+	for _, key := range []string{"connection_config", "metadata", "provider"} {
+		if v, exists := nangoResp[key]; exists && v != nil {
+			config[key] = v
+		}
+	}
+	return config
 }
 
 // Create handles POST /v1/integrations/{id}/connections.
@@ -266,7 +279,9 @@ func (h *ConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var conn model.Connection
-	if err := h.db.Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).First(&conn).Error; err != nil {
+	if err := h.db.Preload("Integration").
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
+		First(&conn).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
 			return
@@ -275,7 +290,21 @@ func (h *ConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toIntegConnResponse(conn))
+	resp := toIntegConnResponse(conn)
+
+	nangoKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
+	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nangoKey)
+	if err != nil {
+		slog.Warn("nango: get connection failed, returning without provider_config",
+			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
+	} else if nangoResp != nil {
+		pc := buildConnectionProviderConfig(nangoResp)
+		if len(pc) > 0 {
+			resp.ProviderConfig = pc
+		}
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // Revoke handles DELETE /v1/connections/{id}.
@@ -340,30 +369,9 @@ func (h *ConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
-// tokenResponse is the filtered token returned from Nango.
-type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type,omitempty"`
-	ExpiresAt    string `json:"expires_at,omitempty"`
-	Provider     string `json:"provider"`
-	ConnectionID string `json:"connection_id"`
-}
-
-// RetrieveToken handles POST /v1/connections/{id}/token.
-//
-// @Summary Retrieve connection token
-// @Description Fetches the current OAuth access token for a connection from the upstream provider.
-// @Tags connections
-// @Produce json
-// @Param id path string true "Connection ID"
-// @Success 200 {object} tokenResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 502 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/connections/{id}/token [post]
-func (h *ConnectionHandler) RetrieveToken(w http.ResponseWriter, r *http.Request) {
+// Proxy handles /v1/connections/{id}/proxy/* — forwards any HTTP method/path/body
+// through Nango's proxy to the upstream provider API.
+func (h *ConnectionHandler) Proxy(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
@@ -388,45 +396,35 @@ func (h *ConnectionHandler) RetrieveToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Token retrieval is currently limited to GitHub App connections.
-	if conn.Integration.Provider != "github-app" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{
-			"error": fmt.Sprintf("token retrieval is not supported for provider %q; only github-app is supported", conn.Integration.Provider),
-		})
-		return
+	// Extract wildcard path from chi router
+	proxyPath := chi.URLParam(r, "*")
+	if proxyPath == "" || proxyPath[0] != '/' {
+		proxyPath = "/" + proxyPath
 	}
 
 	nangoKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
-	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nangoKey)
+	nangoResp, err := h.nango.RawProxyRequest(
+		r.Context(),
+		r.Method,
+		nangoKey,
+		conn.NangoConnectionID,
+		proxyPath,
+		r.URL.RawQuery,
+		r.Body,
+		r.Header.Get("Content-Type"),
+	)
 	if err != nil {
-		slog.Error("nango: get connection failed",
-			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to retrieve token from provider"})
+		slog.Error("nango: proxy request failed",
+			"error", err, "connection_id", connID, "path", proxyPath)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream request failed"})
 		return
 	}
 
-	creds, _ := nangoResp["credentials"].(map[string]any)
-	if creds == nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "no credentials in provider response"})
-		return
+	if ct := nangoResp.Header.Get("Content-Type"); ct != "" {
+		w.Header().Set("Content-Type", ct)
 	}
-
-	accessToken, _ := creds["access_token"].(string)
-	if accessToken == "" {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "no access token available for this connection"})
-		return
-	}
-
-	tokenType, _ := creds["type"].(string)
-	expiresAt, _ := creds["expires_at"].(string)
-
-	writeJSON(w, http.StatusOK, tokenResponse{
-		AccessToken:  accessToken,
-		TokenType:    tokenType,
-		ExpiresAt:    expiresAt,
-		Provider:     conn.Integration.Provider,
-		ConnectionID: conn.ID.String(),
-	})
+	w.WriteHeader(nangoResp.StatusCode)
+	w.Write(nangoResp.Body)
 }
 
 // availableScopeAction describes a single action available on a connection.

@@ -127,8 +127,8 @@ Rate limits are specified as:
 | Field | Type | Description |
 |-------|------|-------------|
 | name | string | Identifier (e.g., "requests") |
-| limit | int64 | Maximum requests allowed |
-| duration | int64 | Window in milliseconds |
+| limit | number | Maximum requests allowed |
+| duration | number | Window in milliseconds |
 
 Common durations:
 - 1 minute: `60000`

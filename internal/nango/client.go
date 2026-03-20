@@ -487,6 +487,51 @@ func (c *Client) ProxyRequestWithHeaders(ctx context.Context, method, providerCo
 	return result, nil
 }
 
+// RawProxyResponse holds the raw HTTP response from a Nango proxy request.
+type RawProxyResponse struct {
+	StatusCode int
+	Header     http.Header
+	Body       []byte
+}
+
+// RawProxyRequest makes a request through Nango's proxy and returns the raw response
+// without parsing JSON or treating 4xx as errors. Only transport failures return an error.
+func (c *Client) RawProxyRequest(ctx context.Context, method, providerConfigKey, connectionID, path, rawQuery string, body io.Reader, contentType string) (*RawProxyResponse, error) {
+	fullURL := c.endpoint + "/proxy" + path
+	if rawQuery != "" {
+		fullURL += "?" + rawQuery
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.secretKey)
+	req.Header.Set("Provider-Config-Key", providerConfigKey)
+	req.Header.Set("Connection-Id", connectionID)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RawProxyResponse{
+		StatusCode: resp.StatusCode,
+		Header:     resp.Header,
+		Body:       respBody,
+	}, nil
+}
+
 // truncate truncates a string to maxLen characters, adding "..." if truncated.
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {

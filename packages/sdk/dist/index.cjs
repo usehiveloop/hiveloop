@@ -175,6 +175,13 @@ var IntegrationsResource = class extends BaseResource {
 
 // src/resources/connections.ts
 var ConnectionsResource = class extends BaseResource {
+  baseUrl;
+  apiKey;
+  constructor(client, baseUrl, apiKey) {
+    super(client);
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
   async availableScopes() {
     const { data } = await this.client.GET("/v1/connections/available-scopes", {});
     return data ?? [];
@@ -195,10 +202,42 @@ var ConnectionsResource = class extends BaseResource {
       params: { path: { id } }
     });
   }
-  retrieveToken(id) {
-    return this.client.POST("/v1/connections/{id}/token", {
-      params: { path: { id } }
-    });
+  /**
+   * Proxy an arbitrary HTTP request through a connection to the upstream provider API.
+   *
+   * The request is forwarded via Nango with the connection's stored credentials.
+   * The raw upstream response (status, headers, body) is returned as-is.
+   */
+  async proxy(id, options) {
+    const { method = "GET", path, body, query, headers } = options;
+    let proxyPath = path.startsWith("/") ? path : `/${path}`;
+    if (query && Object.keys(query).length > 0) {
+      const qs = new URLSearchParams(query).toString();
+      proxyPath += `?${qs}`;
+    }
+    const url = `${this.baseUrl}/v1/connections/${encodeURIComponent(id)}/proxy${proxyPath}`;
+    const fetchHeaders = {
+      Authorization: `Bearer ${this.apiKey}`,
+      ...headers
+    };
+    const init = { method, headers: fetchHeaders };
+    if (body !== void 0 && body !== null) {
+      fetchHeaders["Content-Type"] = fetchHeaders["Content-Type"] ?? "application/json";
+      init.body = typeof body === "string" ? body : JSON.stringify(body);
+    }
+    const resp = await fetch(url, init);
+    const contentType = resp.headers.get("Content-Type") ?? "";
+    let parsed;
+    if (contentType.includes("application/json")) {
+      parsed = await resp.json();
+    } else {
+      parsed = await resp.text();
+    }
+    return {
+      status: resp.status,
+      headers: resp.headers,
+      body: parsed
+    };
   }
   delete(id) {
     return this.client.DELETE("/v1/connections/{id}", {
@@ -259,8 +298,9 @@ var LLMVault = class {
   org;
   providers;
   constructor(config) {
+    const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
     const client = (0, import_openapi_fetch.default)({
-      baseUrl: config.baseUrl ?? "https://api.llmvault.dev",
+      baseUrl,
       headers: {
         Authorization: `Bearer ${config.apiKey}`
       }
@@ -271,7 +311,7 @@ var LLMVault = class {
     this.identities = new IdentitiesResource(client);
     this.connect = new ConnectResource(client);
     this.integrations = new IntegrationsResource(client);
-    this.connections = new ConnectionsResource(client);
+    this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
     this.usage = new UsageResource(client);
     this.audit = new AuditResource(client);
     this.org = new OrgResource(client);

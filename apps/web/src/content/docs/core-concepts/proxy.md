@@ -5,327 +5,36 @@ description: How LLMVault's streaming reverse proxy works, including request rou
 
 # Proxy
 
-The LLMVault proxy is a streaming reverse proxy that forwards requests to upstream LLM providers while transparently handling authentication, caching, and security.
+The LLMVault proxy is a streaming reverse proxy that sits between your application and upstream LLM providers. It transparently swaps your short-lived token for the real API key, enforces rate limits and request caps, and logs every request — all without your application ever seeing the actual credentials.
 
-## How the Proxy Works
-
-### Request Flow
+## How It Works
 
 ```
-Client → Token Auth → Rate Limits → Remaining Check → Cache Resolve → Upstream
-           ↓              ↓              ↓                ↓
-        Validate      Identity      Token/Cred      Decrypt via
-        JWT           Rate Limit    Counters        3-tier cache
+Your App                LLMVault Proxy               LLM Provider
+   │                        │                            │
+   ├─ ptok_... ────────────>│                            │
+   │                        ├─ Validate token            │
+   │                        ├─ Check rate limits         │
+   │                        ├─ Resolve credential        │
+   │                        ├─ Swap auth ───────────────>│
+   │                        │                 sk-... ───>│
+   │                        │<──────────── Response ─────┤
+   │<─────────── Response ──┤                            │
+   │                        ├─ Log to audit trail        │
 ```
 
-### URL Rewriting
-
-Requests to `/v1/proxy/*` are rewritten to the credential's upstream:
-
-```
-/v1/proxy/v1/chat/completions → https://api.openai.com/v1/chat/completions
-/v1/proxy/v1/embeddings      → https://api.openai.com/v1/embeddings
-```
-
-The proxy strips the `/v1/proxy` prefix and appends the remainder to the credential's `base_url`.
-
-### Authentication Swap
-
-The incoming sandbox token is replaced with the real API key:
-
-1. Extract claims from JWT
-2. Resolve credential from 3-tier cache
-3. Strip `Authorization` header
-4. Attach real API key using credential's `auth_scheme`
-
-```go
-req.Header.Del("Authorization")
-AttachAuth(req, cred.AuthScheme, cred.APIKey)
-```
-
-## Director Function
-
-The `Director` function transforms incoming requests:
-
-```go
-func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
-    return func(req *http.Request) {
-        // 1. Extract claims
-        claims, ok := middleware.ClaimsFromContext(req.Context())
-        
-        // 2. Resolve credential (L1 → L2 → L3)
-        cred, err := cacheManager.GetDecryptedCredential(req.Context(), claims.CredentialID, orgID)
-        
-        // 3. SSRF validation
-        if err := ValidateBaseURL(cred.BaseURL); err != nil {
-            req.Header.Set("X-Proxy-Error", "disallowed upstream")
-            return
-        }
-        
-        // 4. Strip metadata headers (cloud SSRF protection)
-        for _, h := range []string{
-            "Metadata-Flavor",
-            "X-Aws-Ec2-Metadata-Token",
-            "X-Aws-Ec2-Metadata-Token-Ttl-Seconds",
-            "Metadata",
-        } {
-            req.Header.Del(h)
-        }
-        
-        // 5. URL rewriting
-        upstreamPath := stripProxyPrefix(req.URL.Path)
-        req.URL.Scheme = "https" // or http
-        req.URL.Host = parsedHost
-        req.URL.Path = basePath + upstreamPath
-        
-        // 6. Auth swap
-        req.Header.Del("Authorization")
-        AttachAuth(req, cred.AuthScheme, cred.APIKey)
-        
-        // 7. Zero out plaintext key
-        for i := range cred.APIKey {
-            cred.APIKey[i] = 0
-        }
-        
-        // 8. Set tracing header
-        req.Header.Set("X-Request-ID", uuid.New().String())
-    }
-}
-```
-
-## Streaming Support
-
-### SSE (Server-Sent Events)
-
-The proxy immediately flushes SSE chunks for streaming responses:
-
-```go
-rp := &httputil.ReverseProxy{
-    Director:      director,
-    Transport:     transport,
-    FlushInterval: -1, // immediate SSE streaming
-    ErrorHandler:  errorHandler,
-}
-```
-
-Setting `FlushInterval: -1` ensures real-time streaming for LLM completions.
-
-### Request Methods
-
-All HTTP methods are supported:
-
-- `POST` - Chat completions, embeddings
-- `GET` - Model listings, status checks
-- `DELETE` - Resource deletion
-- `PUT`/`PATCH` - Updates
-
-## Three-Tier Cache
-
-The proxy resolves credentials through a sophisticated 3-tier cache:
-
-### Performance Characteristics
-
-| Tier | Latency | Data State |
-|------|---------|------------|
-| L1 (Memory) | ~0.01ms | Decrypted, memguard sealed |
-| L2 (Redis) | ~0.5ms | Still encrypted (DEK + KMS) |
-| L3 (DB + KMS) | ~3-8ms | Wrapped DEK, encrypted key |
-
-### L1: In-Memory Cache
-
-```go
-type MemoryCache struct {
-    lru *expirable.LRU[string, *CachedCredential]
-}
-
-type CachedCredential struct {
-    Enclave    *memguard.Enclave  // Sealed API key
-    BaseURL    string
-    AuthScheme string
-    OrgID      uuid.UUID
-    CachedAt   time.Time
-    HardExpiry time.Time
-}
-```
-
-- Max size: 10,000 entries
-- TTL: 5 minutes
-- Hard expiry: 15 minutes
-
-### L2: Redis Cache
-
-```go
-type RedisCredential struct {
-    EncryptedKey []byte `json:"ek"` // Still DEK-encrypted
-    WrappedDEK   []byte `json:"wd"` // Still KMS-wrapped
-    BaseURL      string `json:"bu"`
-    AuthScheme   string `json:"as"`
-    OrgID        string `json:"oi"`
-}
-```
-
-- Key prefix: `pbcred:{credential_id}`
-- TTL: 30 minutes
-- Values remain encrypted in Redis
-
-### L3: Database + KMS
-
-Cold path when L1 and L2 miss:
-
-1. Query Postgres: `SELECT * FROM credentials WHERE id = ? AND revoked_at IS NULL`
-2. Unwrap DEK via KMS
-3. Decrypt API key with DEK
-4. Promote to L2 and L1
-
-### Singleflight Deduplication
-
-Concurrent requests for the same credential are deduplicated:
-
-```go
-v, err, _ := m.flight.Do(credentialID, func() (any, error) {
-    return m.resolveFromLowerTiers(ctx, credentialID, orgID)
-})
-```
-
-## Error Handling
-
-### Proxy Error Detection
-
-The director sets `X-Proxy-Error` headers for error conditions:
-
-```go
-if !ok {
-    req.Header.Set("X-Proxy-Error", "missing claims")
-    return
-}
-```
-
-### Error Handler
-
-The error handler checks for director-set errors:
-
-```go
-ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-    if proxyErr := r.Header.Get("X-Proxy-Error"); proxyErr != "" {
-        http.Error(w, `{"error":"`+proxyErr+`"}`, http.StatusBadGateway)
-        return
-    }
-    // Log and return generic error
-    slog.Error("proxy upstream error", "error", err, ...)
-    http.Error(w, `{"error":"upstream unreachable"}`, http.StatusBadGateway)
-}
-```
-
-### Error Types
-
-| Error | Cause | Status Code |
-|-------|-------|-------------|
-| `missing claims` | Token auth failed | 502 |
-| `invalid org_id` | Claims parsing error | 502 |
-| `credential error` | Cache resolution failed | 502 |
-| `disallowed upstream` | SSRF validation failed | 502 |
-| `upstream unreachable` | Network/connectivity error | 502 |
-
-## SSRF Protection
-
-The proxy validates upstream URLs against SSRF attacks:
-
-### Blocked Networks
-
-**IPv4:**
-- Loopback: `127.0.0.0/8`
-- Link-local: `169.254.0.0/16`
-- Private: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
-- CGNAT: `100.64.0.0/10`
-- Multicast: `224.0.0.0/4`
-- Reserved: `240.0.0.0/4`
-
-**IPv6:**
-- Loopback: `::1/128`
-- Link-local: `fe80::/10`
-- Unique local: `fc00::/7`
-- Multicast: `ff00::/8`
-
-### Blocked Hostnames
-
-```go
-blockedHostnames = map[string]struct{}{
-    "localhost":                {},
-    "localhost.localdomain":    {},
-    "metadata.google.internal": {},
-    "metadata":                 {},
-}
-```
-
-### Validation Process
-
-1. Parse URL scheme (must be `http` or `https`)
-2. Check for blocked hostnames
-3. If IP literal: validate against disallowed networks
-4. If hostname: DNS resolve and validate all returned IPs
-
-## Authentication Attachment
-
-The proxy supports multiple auth schemes:
-
-```go
-func AttachAuth(req *http.Request, scheme string, apiKey []byte) {
-    switch scheme {
-    case "bearer":
-        req.Header.Set("Authorization", "Bearer "+string(apiKey))
-    case "x-api-key":
-        req.Header.Set("x-api-key", string(apiKey))
-    case "api-key":
-        req.Header.Set("api-key", string(apiKey))
-    case "query_param":
-        q := req.URL.Query()
-        q.Set("key", string(apiKey))
-        req.URL.RawQuery = q.Encode()
-    }
-}
-```
-
-## Cross-Instance Invalidation
-
-Cache invalidation propagates across all proxy instances via Redis pub/sub:
-
-```go
-const (
-    CredentialChannel = "llmvault:invalidate:credential"
-    TokenChannel      = "llmvault:invalidate:token"
-)
-```
-
-When a credential is revoked, all instances purge their L1 cache.
-
-## Request Logging
-
-Every proxy request is logged to the audit log:
-
-```go
-type AuditEntry struct {
-    ID           uuid.UUID
-    OrgID        uuid.UUID
-    CredentialID uuid.UUID
-    IdentityID   *uuid.UUID
-    Action       string  // "proxy.request"
-    Method       string  // HTTP method
-    Path         string  // Request path
-    StatusCode   int
-    Duration     int64   // milliseconds
-    CreatedAt    time.Time
-}
-```
-
-## Usage Example
+1. Your application sends a request with a `ptok_` token
+2. LLMVault validates the token and checks all rate limits
+3. The credential is resolved from the cache and the real API key is attached
+4. The request is forwarded to the upstream provider
+5. The response streams back to your application in real time
+
+## Making Proxy Requests
+
+Use the `/v1/proxy/` endpoint prefix, followed by the path you'd normally send to the provider:
 
 ```bash
-# Mint a token
-curl -X POST https://api.llmvault.dev/v1/tokens \
-  -H "Authorization: Bearer {org_token}" \
-  -d '{"credential_id": "...", "ttl": "1h"}'
-
-# Use token to call OpenAI through proxy
+# Chat completions through the proxy
 curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
   -H "Authorization: Bearer ptok_..." \
   -H "Content-Type: application/json" \
@@ -333,13 +42,128 @@ curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
     "model": "gpt-4",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
+
+# Embeddings through the proxy
+curl https://api.llmvault.dev/v1/proxy/v1/embeddings \
+  -H "Authorization: Bearer ptok_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "text-embedding-ada-002",
+    "input": "The quick brown fox"
+  }'
 ```
 
-## Security Properties
+The proxy strips the `/v1/proxy` prefix and appends the rest to the credential's base URL:
 
-1. **No key exposure**: Real API keys never leave the proxy
-2. **Memory protection**: Keys sealed in `memguard` enclaves
-3. **Zeroization**: Keys wiped immediately after use
-4. **SSRF hardening**: Multi-layer IP and hostname validation
-5. **Request isolation**: Each request gets fresh credential resolution
-6. **Audit trail**: Every request logged with credential and identity
+```
+/v1/proxy/v1/chat/completions → https://api.openai.com/v1/chat/completions
+/v1/proxy/v1/embeddings       → https://api.openai.com/v1/embeddings
+```
+
+All HTTP methods are supported: `POST`, `GET`, `PUT`, `PATCH`, and `DELETE`.
+
+## Streaming Support
+
+The proxy fully supports Server-Sent Events (SSE) streaming. Chunks are flushed to your application immediately — there's no buffering delay. This means streaming LLM completions work exactly as they would when calling the provider directly.
+
+```bash
+curl https://api.llmvault.dev/v1/proxy/v1/chat/completions \
+  -H "Authorization: Bearer ptok_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Write a poem"}],
+    "stream": true
+  }'
+```
+
+## End-to-End Example
+
+A typical workflow: create a credential, mint a token, and use the proxy.
+
+```typescript
+const vault = new LLMVault({ apiKey: "your-api-key" });
+
+// 1. Store your API key as a credential
+const { data: credential } = await vault.credentials.create({
+  label: "OpenAI Production",
+  api_key: "sk-...",
+  provider_id: "openai",
+});
+
+// 2. Mint a short-lived token
+const { data: token } = await vault.tokens.create({
+  credential_id: credential.id,
+  expires_in: "1h",
+});
+
+// 3. Use the token to call OpenAI through the proxy
+const response = await fetch(
+  "https://api.llmvault.dev/v1/proxy/v1/chat/completions",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello!" }],
+    }),
+  }
+);
+```
+
+## Request Pipeline
+
+Every proxy request passes through these checks in order:
+
+1. **Token authentication** — the `ptok_` JWT is validated for signature and expiry
+2. **Organization rate limit** — the org-wide request rate is checked
+3. **Identity rate limits** — if the credential is linked to an identity, per-user limits apply
+4. **Token request cap** — if the token has a `remaining` cap, it is decremented
+5. **Credential request cap** — if the credential has a `remaining` cap, it is decremented
+6. **Credential resolution** — the API key is decrypted from the cache
+7. **Auth swap** — your token is replaced with the real API key
+8. **Upstream forward** — the request is sent to the LLM provider
+
+If any check fails, the request is rejected before reaching the upstream provider.
+
+## Error Handling
+
+The proxy returns structured JSON errors:
+
+| Error | Status Code | Meaning |
+|-------|-------------|---------|
+| `invalid or expired token` | 401 | Token is expired, revoked, or has an invalid signature |
+| `rate limit exceeded` | 429 | Organization rate limit was hit |
+| `identity rate limit exceeded: {name}` | 429 | Per-user rate limit was hit |
+| `token request cap exhausted` | 429 | Token has used all its allowed requests |
+| `credential request cap exhausted` | 429 | Credential has used all its allowed requests |
+| `upstream unreachable` | 502 | The LLM provider did not respond |
+
+Rate limit errors include a `Retry-After` header indicating how many seconds to wait before retrying.
+
+## Auth Schemes
+
+The proxy supports multiple ways to authenticate with upstream providers. The auth scheme is configured on the credential and determines how the real API key is attached:
+
+| Scheme | How the Key is Sent |
+|--------|---------------------|
+| `bearer` | `Authorization: Bearer {api_key}` |
+| `x-api-key` | `x-api-key: {api_key}` |
+| `api-key` | `api-key: {api_key}` |
+| `query_param` | `?key={api_key}` |
+
+## Cross-Instance Cache Invalidation
+
+If you run multiple LLMVault proxy instances, cache invalidation is automatically coordinated. When a credential is revoked or a token is invalidated, all instances are notified immediately via pub/sub and purge their local caches.
+
+## Security Guarantees
+
+- **No key exposure** — your real API keys never leave the proxy; your application only sees tokens
+- **Memory protection** — decrypted keys are held in protected memory and wiped immediately after each request
+- **SSRF hardening** — upstream URLs are validated against private IP ranges, loopback addresses, link-local addresses, and cloud metadata endpoints
+- **Cloud metadata protection** — headers used for cloud instance metadata (AWS, GCP) are automatically stripped from proxied requests
+- **Request isolation** — each request resolves its own fresh copy of the credential
+- **Full audit trail** — every proxy request is logged with the credential ID, identity, HTTP method, path, status code, and duration

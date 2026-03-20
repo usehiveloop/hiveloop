@@ -87,15 +87,12 @@ Create a new API key.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `body["name"]` | `str` | Yes | Descriptive name for the key |
-| `body["scopes"]` | `list[str]` | No | List of permission scopes |
-| `body["expires_in"]` | `str` | No | TTL like "24h", "7d". Omit for no expiration |
 
 **Returns:** `ApiResult[CreateAPIKeyResponse]`
 
 ```python
 result = vault.api_keys.create({
-    "name": f"sdk-test-{int(time.time())}",
-    "scopes": ["credentials"]
+    "name": f"sdk-test-{int(time.time())}"
 })
 
 if result.data:
@@ -109,9 +106,7 @@ if result.data:
 #     "key": "llmv_sk_...",       # Full key (shown once)
 #     "key_prefix": "llmv_sk_...", # First 16 chars
 #     "name": "my-key",
-#     "scopes": ["credentials"],
-#     "created_at": "2024-01-15T10:30:00Z",
-#     "expires_at": "2024-01-22T10:30:00Z"
+#     "created_at": "2024-01-15T10:30:00Z"
 # }
 ```
 
@@ -169,16 +164,12 @@ Store a new credential.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `body["label"]` | `str` | Yes | Descriptive label |
-| `body["provider_id"]` | `str` | Yes | Provider ID (e.g., "openai", "anthropic") |
-| `body["base_url"]` | `str` | Yes | API base URL |
-| `body["auth_scheme"]` | `str` | Yes | Auth scheme (e.g., "bearer") |
 | `body["api_key"]` | `str` | Yes | The API key to encrypt |
+| `body["provider_id"]` | `str` | No | Provider ID (e.g., "openai", "anthropic") |
+| `body["base_url"]` | `str` | No | API base URL |
+| `body["auth_scheme"]` | `str` | No | Auth scheme (e.g., "bearer") |
 | `body["identity_id"]` | `str` | No | Link to an identity |
-| `body["external_id"]` | `str` | No | External reference ID |
 | `body["meta"]` | `dict` | No | Metadata object |
-| `body["remaining"]` | `int` | No | Usage limit (credits) |
-| `body["refill_amount"]` | `int` | No | Auto-refill amount |
-| `body["refill_interval"]` | `str` | No | Refill interval (e.g., "1h") |
 
 **Returns:** `ApiResult[CredentialResponse]`
 
@@ -206,9 +197,6 @@ if result.data:
 #     "request_count": 0,
 #     "identity_id": None,
 #     "meta": None,
-#     "remaining": None,
-#     "refill_amount": None,
-#     "refill_interval": None,
 #     "last_used_at": None,
 #     "revoked_at": None
 # }
@@ -226,7 +214,7 @@ List credentials with filtering and pagination.
 | `query["cursor"]` | `str` | No | Pagination cursor |
 | `query["identity_id"]` | `str` | No | Filter by identity ID |
 | `query["external_id"]` | `str` | No | Filter by external ID |
-| `query["meta"]` | `str` | No | Filter by metadata (JSON string) |
+| `query["meta"]` | `str` | No | Filter by metadata |
 
 **Returns:** `ApiResult[PaginatedCredentials]`
 
@@ -289,19 +277,16 @@ Mint a new proxy token.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `body["credential_id"]` | `str` | Yes | Credential to scope the token to |
-| `body["ttl"]` | `str` | No | Token lifetime (e.g., "1h", "24h") |
+| `body["name"]` | `str` | No | Descriptive name for the token |
 | `body["scopes"]` | `list[TokenScope]` | No | List of permission scopes |
-| `body["remaining"]` | `int` | No | Usage limit |
-| `body["refill_amount"]` | `int` | No | Auto-refill amount |
-| `body["refill_interval"]` | `str` | No | Refill interval |
-| `body["meta"]` | `dict` | No | Metadata |
+| `body["expires_in"]` | `str` | No | Token lifetime (e.g., "1h", "24h") |
 
 **Returns:** `ApiResult[MintTokenResponse]`
 
 ```python
 result = vault.tokens.create({
     "credential_id": "cred_abc123",
-    "ttl": "1h"
+    "expires_in": "1h"
 })
 
 if result.data:
@@ -371,19 +356,18 @@ Create a new identity.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `body["external_id"]` | `str` | No | External reference ID |
+| `body["external_id"]` | `str` | Yes | External reference ID |
+| `body["name"]` | `str` | No | Display name |
 | `body["meta"]` | `dict` | No | Metadata object |
-| `body["ratelimits"]` | `list[IdentityRateLimitParams]` | No | Rate limit configurations |
+| `body["rate_limit"]` | `dict` | No | Rate limit configuration |
 
 **Returns:** `ApiResult[IdentityResponse]`
 
 ```python
 result = vault.identities.create({
     "external_id": "user_123",
-    "meta": {"source": "web-app"},
-    "ratelimits": [
-        {"name": "default", "limit": 100, "duration": 60000}
-    ]
+    "name": "User 123",
+    "meta": {"source": "web-app"}
 })
 
 if result.data:
@@ -394,8 +378,9 @@ if result.data:
 # {
 #     "id": "id_abc123",
 #     "external_id": "user_123",
+#     "name": "User 123",
 #     "meta": {"source": "web-app"},
-#     "ratelimits": [{"name": "default", "limit": 100, "duration": 60000}],
+#     "rate_limit": None,
 #     "created_at": "2024-01-15T10:30:00Z",
 #     "updated_at": "2024-01-15T10:30:00Z",
 #     "request_count": 0,
@@ -451,9 +436,9 @@ Update an identity.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `id` | `str` | Yes | Identity ID |
-| `body["external_id"]` | `str` | No | New external ID |
+| `body["name"]` | `str` | No | New display name |
 | `body["meta"]` | `dict` | No | New metadata |
-| `body["ratelimits"]` | `list[IdentityRateLimitParams]` | No | New rate limits |
+| `body["rate_limit"]` | `dict` | No | New rate limit configuration |
 
 **Returns:** `ApiResult[IdentityResponse]`
 
@@ -493,38 +478,22 @@ Create a short-lived session for the Connect widget.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `body["identity_id"]` | `str` | No* | Identity ID (required if no external_id) |
-| `body["external_id"]` | `str` | No* | External user ID (required if no identity_id) |
-| `body["permissions"]` | `list[str]` | No | Permissions like ["create", "list"] |
-| `body["ttl"]` | `str` | No | Session lifetime (e.g., "5m") |
-| `body["allowed_integrations"]` | `list[str]` | No | Restrict allowed integrations |
-| `body["allowed_origins"]` | `list[str]` | No | Allowed widget origins |
-| `body["metadata"]` | `dict` | No | Session metadata |
+| `body["identity_id"]` | `str` | No | Identity ID |
+| `body["integration_ids"]` | `list[str]` | No | Restrict to specific integrations |
+| `body["redirect_url"]` | `str` | No | Redirect URL after completion |
+| `body["meta"]` | `dict` | No | Session metadata |
 
 **Returns:** `ApiResult[ConnectSessionResponse]`
 
 ```python
 result = vault.connect.sessions.create({
-    "external_id": f"user-{int(time.time())}",
-    "permissions": ["create", "list"],
-    "ttl": "5m"
+    "identity_id": "id_xyz789",
+    "redirect_url": "https://app.example.com/callback"
 })
 
 if result.data:
     print(f"Session Token: {result.data['session_token']}")  # Starts with csess_
     print(f"Expires: {result.data['expires_at']}")
-
-# Response data structure:
-# {
-#     "id": "sess_abc123",
-#     "session_token": "csess_...",
-#     "identity_id": "id_xyz789",
-#     "external_id": "user-123",
-#     "expires_at": "2024-01-15T10:35:00Z",
-#     "created_at": "2024-01-15T10:30:00Z",
-#     "allowed_integrations": [],
-#     "allowed_origins": []
-# }
 ```
 
 ### `connect.settings.get()`
@@ -1094,25 +1063,19 @@ from typing import TypedDict, Optional, Any
 
 class CreateAPIKeyRequest(TypedDict, total=False):
     name: str
-    scopes: list[str]
-    expires_in: str
 
 class CreateAPIKeyResponse(TypedDict):
     id: str
     key: str
     key_prefix: str
     name: str
-    scopes: list[str]
     created_at: str
-    expires_at: Optional[str]
 
 class ApiKeyResponse(TypedDict):
     id: str
     key_prefix: str
     name: str
-    scopes: list[str]
     created_at: str
-    expires_at: Optional[str]
     last_used_at: Optional[str]
     revoked_at: Optional[str]
 
@@ -1123,41 +1086,31 @@ class PaginatedApiKeys(TypedDict):
 
 class CreateCredentialRequest(TypedDict, total=False):
     label: str
-    provider_id: str
-    base_url: str
-    auth_scheme: str
     api_key: str
+    provider_id: Optional[str]
+    base_url: Optional[str]
+    auth_scheme: Optional[str]
     identity_id: Optional[str]
-    external_id: Optional[str]
     meta: Optional[dict]
-    remaining: Optional[int]
-    refill_amount: Optional[int]
-    refill_interval: Optional[str]
 
 class CredentialResponse(TypedDict):
     id: str
     label: str
-    provider_id: str
-    auth_scheme: str
-    base_url: str
+    provider_id: Optional[str]
+    auth_scheme: Optional[str]
+    base_url: Optional[str]
     created_at: str
     request_count: int
     identity_id: Optional[str]
     meta: Optional[dict]
-    remaining: Optional[int]
-    refill_amount: Optional[int]
-    refill_interval: Optional[str]
     last_used_at: Optional[str]
     revoked_at: Optional[str]
 
 class MintTokenRequest(TypedDict, total=False):
     credential_id: str
-    ttl: str
+    name: Optional[str]
     scopes: list[dict]
-    remaining: Optional[int]
-    refill_amount: Optional[int]
-    refill_interval: Optional[str]
-    meta: Optional[dict]
+    expires_in: Optional[str]
 
 class MintTokenResponse(TypedDict):
     token: str
@@ -1166,15 +1119,17 @@ class MintTokenResponse(TypedDict):
     mcp_endpoint: str
 
 class CreateIdentityRequest(TypedDict, total=False):
-    external_id: Optional[str]
+    external_id: str
+    name: Optional[str]
     meta: Optional[dict]
-    ratelimits: list[dict]
+    rate_limit: Optional[dict]
 
 class IdentityResponse(TypedDict):
     id: str
-    external_id: Optional[str]
+    external_id: str
+    name: Optional[str]
     meta: Optional[dict]
-    ratelimits: list[dict]
+    rate_limit: Optional[dict]
     created_at: str
     updated_at: str
     request_count: int
@@ -1182,22 +1137,16 @@ class IdentityResponse(TypedDict):
 
 class CreateConnectSessionRequest(TypedDict, total=False):
     identity_id: Optional[str]
-    external_id: Optional[str]
-    permissions: list[str]
-    ttl: str
-    allowed_integrations: list[str]
-    allowed_origins: list[str]
-    metadata: Optional[dict]
+    integration_ids: Optional[list[str]]
+    redirect_url: Optional[str]
+    meta: Optional[dict]
 
 class ConnectSessionResponse(TypedDict):
     id: str
     session_token: str
     identity_id: Optional[str]
-    external_id: Optional[str]
     expires_at: str
     created_at: str
-    allowed_integrations: list[str]
-    allowed_origins: list[str]
 
 class CreateIntegrationRequest(TypedDict, total=False):
     provider: str

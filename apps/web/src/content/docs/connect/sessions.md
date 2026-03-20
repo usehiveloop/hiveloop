@@ -268,7 +268,7 @@ Content-Type: application/json
 
 // Invalid format
 {
-  "error": "invalid ttl: must be a valid Go duration (e.g. 15m, 30m)"
+  "error": "invalid ttl: must be a valid duration (e.g. 15m, 30m)"
 }
 
 // Non-positive

@@ -5,278 +5,223 @@ description: Secure storage and lifecycle management of LLM API credentials with
 
 # Credentials
 
-Credentials are the foundation of LLMVault's security model. They store encrypted LLM API keys with fine-grained access controls, request caps, and automatic lifecycle management.
+Credentials are the foundation of LLMVault's security model. Each credential stores an encrypted LLM provider API key alongside access controls, request caps, and lifecycle management — so your real keys never touch your application code.
 
 ## What is a Credential?
 
-A credential represents a stored LLM provider API key. It contains:
+A credential represents a stored LLM provider API key. When you create a credential, LLMVault encrypts the API key using envelope encryption and stores it securely. From that point on, you interact with the credential through short-lived tokens — your actual API key is never exposed again.
 
-- **Encrypted API key** - Protected using AES-256-GCM envelope encryption
-- **Base URL** - The upstream provider endpoint
-- **Auth scheme** - How to authenticate (Bearer, x-api-key, api-key, query_param)
-- **Provider ID** - Reference to the provider in the embedded catalog
-- **Identity association** - Optional link to an identity for rate limiting
-- **Request caps** - Optional limits on API call volume
-- **Metadata** - JSONB field for custom tags and filtering
+A credential contains:
 
-```go
-type Credential struct {
-    ID             uuid.UUID  `gorm:"type:uuid;primaryKey"`
-    OrgID          uuid.UUID  `gorm:"type:uuid;not null;index"`
-    Label          string     `gorm:"not null;default:''"`
-    BaseURL        string     `gorm:"not null"`
-    AuthScheme     string     `gorm:"not null"`
-    IdentityID     *uuid.UUID `gorm:"type:uuid;index"`
-    EncryptedKey   []byte     `gorm:"type:bytea;not null"`
-    WrappedDEK     []byte     `gorm:"type:bytea;not null"`
-    Remaining      *int64     // Request cap remaining
-    RefillAmount   *int64     // Auto-refill amount
-    RefillInterval *string    // Go duration format (e.g., "1h", "24h")
-    LastRefillAt   *time.Time
-    ProviderID     string     `gorm:"default:''"`
-    Meta           JSON       `gorm:"type:jsonb;default:'{}'"`
-    RevokedAt      *time.Time
-    CreatedAt      time.Time
-}
-```
-
-## Envelope Encryption
-
-LLMVault uses a two-layer envelope encryption scheme to protect API keys:
-
-### Layer 1: Data Encryption Key (DEK)
-
-Each credential gets a unique 256-bit random DEK generated using `crypto/rand`:
-
-```go
-func GenerateDEK() ([]byte, error) {
-    key := make([]byte, 32)
-    if _, err := io.ReadFull(rand.Reader, key); err != nil {
-        return nil, fmt.Errorf("generating DEK: %w", err)
-    }
-    return key, nil
-}
-```
-
-The API key is encrypted using **AES-256-GCM** with the DEK:
-
-```go
-func EncryptCredential(plaintext []byte, dek []byte) ([]byte, error) {
-    block, _ := aes.NewCipher(dek)
-    gcm, _ := cipher.NewGCM(block)
-    nonce := make([]byte, gcm.NonceSize())
-    io.ReadFull(rand.Reader, nonce)
-    return gcm.Seal(nonce, nonce, plaintext, nil)
-}
-```
-
-The ciphertext format: `[nonce (12 bytes)][ciphertext + tag]`
-
-### Layer 2: Key Encryption Key (KEK)
-
-The DEK itself is encrypted by a Key Management System (KMS):
-
-```go
-// Wrap DEK via KMS
-wrappedDEK, err := kms.Wrap(ctx, dek)
-
-// Store in database
-// - EncryptedKey: AES-256-GCM encrypted API key
-// - WrappedDEK: KMS-encrypted DEK
-```
-
-### Supported KMS Backends
-
-| Backend | Use Case |
-|---------|----------|
-| **AEAD** | Local AES-256-GCM for development/single-node |
-| **AWS KMS** | Production AWS deployments |
-| **Vault Transit** | HashiCorp Vault for enterprise |
-
-## Three-Tier Credential Cache
-
-Credentials are resolved through a high-performance 3-tier cache:
-
-```
-L1 (Memory) → L2 (Redis) → L3 (Postgres + KMS)
-~0.01ms       ~0.5ms       ~3-8ms
-```
-
-### L1: In-Memory Cache
-
-- Stores **decrypted** credentials in `memguard` enclaves
-- mlocked memory, encrypted at rest in RAM
-- LRU eviction with configurable TTL (default: 5 minutes)
-- Hard expiry prevents stale data (default: 15 minutes)
-
-```go
-type CachedCredential struct {
-    Enclave    *memguard.Enclave  // Sealed plaintext API key
-    BaseURL    string
-    AuthScheme string
-    OrgID      uuid.UUID
-    CachedAt   time.Time
-    HardExpiry time.Time
-}
-```
-
-### L2: Redis Cache
-
-- Stores **still-encrypted** credentials
-- DEK remains KMS-wrapped
-- JSON serialized with fields: `ek` (encrypted key), `wd` (wrapped DEK), `bu`, `as`, `oi`
-- TTL: 30 minutes
-
-### L3: Database + KMS
-
-- Postgres stores `encrypted_key` and `wrapped_dek`
-- Cold path: fetch from DB, unwrap DEK via KMS, decrypt API key
-- Singleflight deduplication prevents thundering herd
-
-## Request Caps and Lifecycle
-
-### Request Caps
-
-Credentials support optional request caps with automatic refill:
-
-```json
-{
-  "remaining": 1000,
-  "refill_amount": 1000,
-  "refill_interval": "1h"
-}
-```
-
-| Field | Description |
-|-------|-------------|
-| `remaining` | Current request budget |
-| `refill_amount` | Amount to refill when interval elapses |
-| `refill_interval` | Go duration (e.g., "1h", "24h", "168h") |
-
-### Lazy Refill Algorithm
-
-Refills happen on-demand when a cap is exhausted:
-
-1. Check if `now - last_refill_at >= refill_interval`
-2. Use optimistic locking to prevent double-refill
-3. Update `remaining = refill_amount`, `last_refill_at = now`
-4. Reset Redis counter
-
-```go
-// Optimistic locking: only update if last_refill_at matches
-result := db.Model(&model.Credential{}).
-    Where("id = ? AND (last_refill_at = ? OR (last_refill_at IS NULL AND ? = ?))",
-        credentialID, lastRefill, lastRefill, cred.CreatedAt).
-    Updates(map[string]any{
-        "remaining":      *cred.RefillAmount,
-        "last_refill_at": now,
-    })
-```
-
-### Redis Counter Management
-
-Counters are stored in Redis with atomic Lua scripts:
-
-```lua
--- Decrement script
-local v = redis.call("GET", KEYS[1])
-if v == false then return -1 end  -- No cap configured
-local n = tonumber(v)
-if n <= 0 then return 0 end       -- Exhausted
-redis.call("DECR", KEYS[1])
-return 1                          -- Success
-```
-
-Key format: `pbreq:cred:{credential_id}`
-
-## Revocation
-
-Credentials are soft-deleted via revocation:
-
-```go
-now := time.Now()
-db.Model(&model.Credential{}).
-    Where("id = ? AND org_id = ? AND revoked_at IS NULL", credID, orgID).
-    Update("revoked_at", &now)
-```
-
-Revocation triggers:
-- Immediate invalidation of all cache tiers (L1, L2, DEK cache)
-- Cross-instance pub/sub notification
-- All tokens minted against this credential become invalid
+- **Encrypted API key** — protected using AES-256-GCM envelope encryption
+- **Provider** — which LLM provider this key belongs to (e.g., `openai`, `anthropic`)
+- **Base URL** — the upstream provider endpoint
+- **Auth scheme** — how to authenticate with the provider
+- **Label** — a human-readable name for identification
+- **Identity** — optional link to an identity for per-user rate limiting
+- **Request caps** — optional limits on API call volume with automatic refill
+- **Metadata** — custom key-value pairs for tagging and filtering
 
 ## Creating a Credential
+
+```typescript
+const vault = new LLMVault({ apiKey: "your-api-key" });
+
+const { data, error } = await vault.credentials.create({
+  label: "Production OpenAI",
+  api_key: "sk-...",
+  provider_id: "openai",
+  base_url: "https://api.openai.com/v1",
+  auth_scheme: "bearer",
+  meta: { environment: "production", team: "ai" },
+});
+```
+
+Or with curl:
 
 ```bash
 curl -X POST https://api.llmvault.dev/v1/credentials \
   -H "Authorization: Bearer {org_token}" \
   -H "Content-Type: application/json" \
   -d '{
+    "label": "Production OpenAI",
+    "api_key": "sk-...",
     "provider_id": "openai",
     "base_url": "https://api.openai.com/v1",
     "auth_scheme": "bearer",
-    "api_key": "sk-...",
-    "label": "Production OpenAI",
-    "external_id": "user_12345",
-    "remaining": 10000,
-    "refill_amount": 10000,
-    "refill_interval": "24h",
     "meta": {"environment": "production", "team": "ai"}
   }'
 ```
 
+### Required and Optional Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `label` | Yes | A human-readable name for the credential |
+| `api_key` | Yes | The LLM provider API key to encrypt and store |
+| `provider_id` | No | Provider identifier (e.g., `openai`, `anthropic`). Validated against the built-in catalog. |
+| `base_url` | No | The upstream provider endpoint URL |
+| `auth_scheme` | No | How to attach the API key to requests (see Auth Schemes below) |
+| `identity_id` | No | Link to an existing identity for rate limiting |
+| `meta` | No | Custom JSON metadata for tagging and filtering |
+
 ### Auto-Creating Identities
 
-If `external_id` is provided without an existing identity, one is auto-created:
+If you pass an `external_id` when creating a credential, LLMVault will automatically look up (or create) an identity with that external ID and link it to the credential:
 
-```go
-if req.ExternalID != nil && *req.ExternalID != "" {
-    var ident model.Identity
-    err := db.Where("external_id = ? AND org_id = ?", *req.ExternalID, org.ID).First(&ident).Error
-    if err == gorm.ErrRecordNotFound {
-        ident = model.Identity{
-            ID:         uuid.New(),
-            OrgID:      org.ID,
-            ExternalID: *req.ExternalID,
-        }
-        db.Create(&ident)
-    }
-    identityID = &ident.ID
-}
+```typescript
+const { data, error } = await vault.credentials.create({
+  label: "User API Key",
+  api_key: "sk-...",
+  provider_id: "openai",
+  identity_id: "user_12345",
+});
 ```
 
-## Filtering and Listing
+This is a convenient shorthand — you don't need to create the identity separately.
 
-Credentials support powerful filtering:
+## Envelope Encryption
 
-```bash
-# Filter by identity
-curl "https://api.llmvault.dev/v1/credentials?identity_id=uuid"
+LLMVault uses a two-layer envelope encryption scheme to protect your API keys:
 
-# Filter by external ID
-curl "https://api.llmvault.dev/v1/credentials?external_id=user_12345"
-
-# Filter by metadata (JSONB containment)
-curl "https://api.llmvault.dev/v1/credentials?meta={\"team\":\"ai\"}"
-
-# Cursor pagination
-curl "https://api.llmvault.dev/v1/credentials?limit=50&cursor=eyJpZCI6..."
 ```
+┌──────────────────────────────────────────────────┐
+│  Your API Key                                     │
+│  Encrypted with a unique Data Encryption Key      │
+│  (AES-256-GCM)                                    │
+├──────────────────────────────────────────────────┤
+│  Data Encryption Key (DEK)                        │
+│  Encrypted by your KMS                            │
+│  (AWS KMS, AEAD, or Vault Transit)                │
+└──────────────────────────────────────────────────┘
+```
+
+**How it works:**
+
+1. Each credential gets its own unique 256-bit encryption key (DEK)
+2. Your API key is encrypted locally using AES-256-GCM with the DEK
+3. The DEK itself is encrypted by your configured Key Management System (KMS)
+4. Both ciphertexts are stored — your plaintext API key is never persisted
+
+This means even if the database is compromised, an attacker would need access to your KMS to decrypt any API key.
+
+### Supported KMS Backends
+
+| Backend | Use Case |
+|---------|----------|
+| **AEAD** | Local AES-256-GCM for development and single-node deployments |
+| **AWS KMS** | Production AWS deployments |
+| **Vault Transit** | HashiCorp Vault for enterprise environments |
 
 ## Auth Schemes
 
-| Scheme | Header/Param |
-|--------|--------------|
+The auth scheme determines how LLMVault attaches your API key when proxying requests to the upstream provider:
+
+| Scheme | How the Key is Sent |
+|--------|---------------------|
 | `bearer` | `Authorization: Bearer {api_key}` |
 | `x-api-key` | `x-api-key: {api_key}` |
 | `api-key` | `api-key: {api_key}` |
 | `query_param` | `?key={api_key}` |
 
-## Security Properties
+Most providers use `bearer`. Azure OpenAI uses `api-key`. Some Google services use `query_param`.
 
-1. **Encryption at rest**: API keys encrypted with AES-256-GCM
-2. **Key isolation**: Unique DEK per credential
-3. **Memory protection**: `memguard` enclaves for decrypted keys
-4. **Zeroization**: Keys wiped from memory immediately after use
-5. **SSRF protection**: Base URL validation against private IPs
-6. **Audit logging**: Every proxy request logged with credential ID
+## Request Caps
+
+Credentials support optional request caps that limit how many API calls can be made. Caps automatically refill on a schedule you define.
+
+```typescript
+const { data, error } = await vault.credentials.create({
+  label: "Rate-Limited Key",
+  api_key: "sk-...",
+  provider_id: "openai",
+  remaining: 10000,
+  refill_amount: 10000,
+  refill_interval: "24h",
+});
+```
+
+| Field | Description |
+|-------|-------------|
+| `remaining` | Current request budget. Decremented with each proxied request. |
+| `refill_amount` | How many requests to restore when the interval elapses |
+| `refill_interval` | How often to refill (e.g., `1h`, `24h`, `168h` for weekly) |
+
+When the cap is exhausted, LLMVault checks whether enough time has passed since the last refill. If so, the counter is automatically reset to `refill_amount`. This happens transparently — you don't need to trigger refills manually.
+
+If the cap is exhausted and no refill is due, requests return a `429` status code:
+
+```json
+{"error": "credential request cap exhausted"}
+```
+
+## Credential Caching
+
+LLMVault resolves credentials through a high-performance three-tier cache to minimize latency on every proxied request:
+
+| Tier | Typical Latency | Description |
+|------|-----------------|-------------|
+| In-memory | ~0.01ms | Decrypted credentials held in protected memory |
+| Redis | ~0.5ms | Encrypted credentials cached for fast retrieval |
+| Database + KMS | ~3-8ms | Full decryption path from persistent storage |
+
+Most requests resolve from the in-memory cache. You don't need to configure or manage the cache — it's fully automatic.
+
+## Listing and Filtering
+
+```typescript
+// List all credentials
+const { data, error } = await vault.credentials.list();
+
+// Filter by identity
+const { data, error } = await vault.credentials.list({
+  identity_id: "identity-uuid",
+});
+
+// Filter by external ID
+const { data, error } = await vault.credentials.list({
+  external_id: "user_12345",
+});
+
+// Filter by metadata
+const { data, error } = await vault.credentials.list({
+  meta: { team: "ai" },
+});
+
+// Paginate
+const { data, error } = await vault.credentials.list({
+  limit: 50,
+  cursor: "eyJpZCI6...",
+});
+```
+
+## Retrieving a Credential
+
+```typescript
+const { data, error } = await vault.credentials.get("credential-uuid");
+```
+
+The response includes all credential metadata but never returns the decrypted API key. The only way to use the key is through the proxy with a valid token.
+
+## Revoking a Credential
+
+```typescript
+const { data, error } = await vault.credentials.delete("credential-uuid");
+```
+
+Revocation is immediate and takes effect across all proxy instances:
+
+- All active tokens tied to this credential become invalid
+- Cached copies of the credential are purged
+- Subsequent proxy requests using this credential's tokens return `401`
+
+Revocation is a soft delete — audit log entries referencing this credential are preserved.
+
+## Security Guarantees
+
+- **Encryption at rest** — API keys are encrypted with AES-256-GCM and never stored in plaintext
+- **Key isolation** — every credential gets its own unique encryption key
+- **Memory protection** — decrypted keys are held in protected memory regions and wiped immediately after use
+- **No key exposure** — your API key is returned once at creation time and never again through any API endpoint
+- **SSRF protection** — base URLs are validated to prevent requests to internal networks
+- **Audit trail** — every proxy request through a credential is logged for compliance

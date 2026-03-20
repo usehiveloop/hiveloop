@@ -7,28 +7,19 @@ description: How scoped tokens limit access to specific resources and actions.
 
 Token scoping allows you to create fine-grained, least-privilege access tokens that can only perform specific actions on specific resources. This is essential for security when giving LLMs access to external integrations.
 
-## Scope Structure
+## How Scopes Work
 
-### TokenScope Definition
+A scope defines what a token is allowed to do. Each scope targets a specific **connection** (an OAuth integration), lists the **actions** the token can perform, and optionally constrains those actions to specific **resources**.
 
-```go
-// From: internal/mcp/scope.go
-type TokenScope struct {
-    ConnectionID string              `json:"connection_id"`
-    Actions      []string            `json:"actions"`
-    Resources    map[string][]string `json:"resources,omitempty"`
-}
-```
-
-**Fields:**
+### Scope Structure
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `connection_id` | string | Yes | UUID of the OAuth connection |
-| `actions` | []string | Yes | List of allowed actions from the provider catalog |
-| `resources` | map[string][]string | No | Resource type → Resource IDs mapping |
+| `actions` | string[] | Yes | List of allowed actions from the provider catalog |
+| `resources` | object | No | Resource type to resource IDs mapping |
 
-### Example Scope
+### Example: Slack Scope
 
 ```json
 {
@@ -42,497 +33,250 @@ type TokenScope struct {
 
 This scope grants the token permission to:
 - Post messages to two specific Slack channels
-- List channels (resource-constrained to the specified channels)
+- List channels (constrained to the specified channels)
 
-## Actions
+The token cannot perform any other Slack actions, and it cannot interact with any other channels.
 
-### Action Definition
+## Creating Scoped Tokens
 
-Actions are defined in the provider catalog (`internal/mcp/catalog/providers/*.actions.json`):
+### Using the SDK
 
-```go
-// From: internal/mcp/catalog/catalog.go
-type ActionDef struct {
-    DisplayName  string           `json:"display_name"`
-    Description  string           `json:"description"`
-    Access       string           `json:"access"`              // "read" or "write"
-    ResourceType string           `json:"resource_type"`       // e.g. "channel", "repo"
-    Parameters   json.RawMessage  `json:"parameters"`          // JSON Schema
-    Execution    *ExecutionConfig `json:"execution,omitempty"` // Execution config
-}
+```typescript
+import { LLMVault } from "@llmvault/sdk";
+const vault = new LLMVault({ apiKey: "your-api-key" });
 
-// Access type constants
-const (
-    AccessRead  = "read"
-    AccessWrite = "write"
-)
+const { data, error } = await vault.tokens.create({
+  credential_id: "550e8400-e29b-41d4-a716-446655440000",
+  expires_in: "1h",
+  scopes: [
+    {
+      connection_id: "660e8400-e29b-41d4-a716-446655440001",
+      actions: ["slack.post_message", "slack.list_channels"],
+      resources: {
+        channel: ["C1234567890"]
+      }
+    }
+  ]
+});
+
+// data.token     - the proxy token (ptok_...)
+// data.jti       - unique token ID for revocation
+// data.mcp_endpoint - MCP endpoint URL if scopes are present
 ```
 
-### Catalog Structure
+### Using the API
+
+```bash
+curl -X POST https://api.llmvault.dev/v1/tokens \
+  -H "Authorization: Bearer llmv_sk_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "credential_id": "550e8400-e29b-41d4-a716-446655440000",
+    "ttl": "1h",
+    "scopes": [
+      {
+        "connection_id": "660e8400-e29b-41d4-a716-446655440001",
+        "actions": ["slack.post_message", "slack.list_channels"],
+        "resources": {
+          "channel": ["C1234567890"]
+        }
+      }
+    ]
+  }'
+```
+
+**Response:**
 
 ```json
 {
-  "display_name": "Slack",
-  "resources": {
-    "channel": {
-      "display_name": "Channel",
-      "description": "A Slack channel",
-      "id_field": "id",
-      "name_field": "name",
-      "icon": "hash",
-      "list_action": "slack.list_channels"
-    }
-  },
-  "actions": {
-    "slack.post_message": {
-      "display_name": "Post Message",
-      "description": "Post a message to a channel",
-      "access": "write",
-      "resource_type": "channel",
-      "parameters": {
-        "type": "object",
-        "required": ["channel", "text"],
-        "properties": {
-          "channel": { "type": "string", "description": "Channel ID" },
-          "text": { "type": "string", "description": "Message text" }
-        }
-      }
-    },
-    "slack.list_channels": {
-      "display_name": "List Channels",
-      "description": "List accessible channels",
-      "access": "read",
-      "resource_type": "channel"
-    }
-  }
+  "token": "ptok_eyJhbGciOi...",
+  "expires_at": "2026-03-20T14:00:00Z",
+  "jti": "abc123",
+  "mcp_endpoint": "https://api.llmvault.dev/mcp/abc123"
 }
 ```
 
-### Action Validation
+## Actions
 
-All actions are validated against the catalog at token mint time:
+Actions represent specific operations a token can perform. They are defined per provider in the LLMVault action catalog.
 
-```go
-// From: internal/mcp/scope.go
-func ValidateScopes(db *gorm.DB, orgID uuid.UUID, cat *catalog.Catalog, scopes []TokenScope) error {
-    for i, scope := range scopes {
-        // Validate connection exists and belongs to org
-        var conn model.Connection
-        if err := db.Preload("Integration").
-            Where("id = ? AND org_id = ? AND revoked_at IS NULL", connUUID, orgID).
-            First(&conn).Error; err != nil {
-            return fmt.Errorf("scope[%d]: connection %q not found or revoked", i, scope.ConnectionID)
-        }
+### Action Properties
 
-        provider := conn.Integration.Provider
+Each action has:
 
-        // Validate actions against catalog
-        if err := cat.ValidateActions(provider, scope.Actions); err != nil {
-            return fmt.Errorf("scope[%d]: %w", i, err)
-        }
+| Property | Description |
+|----------|-------------|
+| **Display name** | Human-readable name (e.g., "Post Message") |
+| **Description** | What the action does |
+| **Access type** | `read` or `write` |
+| **Resource type** | The type of resource this action operates on (e.g., "channel", "repo") |
+| **Parameters** | JSON Schema defining the action's input parameters |
 
-        // Validate resources
-        if err := cat.ValidateResources(provider, scope.Actions, scope.Resources, nil); err != nil {
-            return fmt.Errorf("scope[%d]: %w", i, err)
-        }
-    }
-    return nil
-}
-```
+### Example: Slack Actions
+
+| Action | Access | Resource Type | Description |
+|--------|--------|---------------|-------------|
+| `slack.post_message` | write | channel | Post a message to a channel |
+| `slack.list_channels` | read | channel | List accessible channels |
+| `slack.add_reaction` | write | message | Add a reaction to a message |
 
 ### Wildcard Rejection
 
-For security, wildcard actions are explicitly rejected:
+For security, wildcard actions (`"*"`) are explicitly rejected. You must list each action individually. This prevents accidental over-permissioning:
 
-```go
-// From: internal/mcp/catalog/catalog.go
-func (c *Catalog) ValidateActions(provider string, actions []string) error {
-    for _, action := range actions {
-        if action == "*" {
-            return fmt.Errorf("wildcard actions are not allowed; explicitly list each action")
-        }
-        if _, ok := p.Actions[action]; !ok {
-            return fmt.Errorf("unknown action %q for provider %q", action, provider)
-        }
-    }
-    return nil
-}
+```json
+// This will be rejected:
+{ "actions": ["slack.*"] }
+
+// This is correct:
+{ "actions": ["slack.post_message", "slack.list_channels"] }
 ```
 
 ## Resources
 
-### Resource Types
+Resources constrain actions to specific instances. For example, instead of allowing a token to post to any Slack channel, you can limit it to specific channels.
 
-Resources constrain actions to specific instances (e.g., specific Slack channels):
+### How Resources Work
 
-```go
-// From: internal/mcp/catalog/catalog.go
-type ResourceDef struct {
-    DisplayName   string         `json:"display_name"`
-    Description   string         `json:"description"`
-    IDField       string         `json:"id_field"`       // Field containing the resource ID
-    NameField     string         `json:"name_field"`     // Field containing display name
-    Icon          string         `json:"icon,omitempty"`
-    ListAction    string         `json:"list_action"`    // Action to list available resources
-    RequestConfig *RequestConfig `json:"request_config,omitempty"`
+Resources are organized by type (e.g., `channel`, `repo`, `issue`). Each resource type maps to a list of allowed resource IDs:
+
+```json
+{
+  "resources": {
+    "channel": ["C1234567890", "C0987654321"],
+    "repo": ["llmvault/llmvault", "llmvault/docs"]
+  }
 }
 ```
 
-### Resource Validation
+Resource types must match the actions in the scope. If your actions operate on channels, you can only constrain by `channel` resources.
 
-Resources are validated against the connection's configured resources:
-
-```go
-// From: internal/mcp/catalog/catalog.go
-func (c *Catalog) ValidateResources(provider string, actions []string, requestedResources, allowedResources map[string][]string) error {
-    // Build set of valid resource types from the listed actions
-    validResourceTypes := make(map[string]bool)
-    for _, actionKey := range actions {
-        if action, ok := p.Actions[actionKey]; ok && action.ResourceType != "" {
-            validResourceTypes[action.ResourceType] = true
-        }
-    }
-
-    for resourceType, requestedIDs := range requestedResources {
-        // Check resource type is valid for these actions
-        if !validResourceTypes[resourceType] {
-            return fmt.Errorf("resource type %q does not match any listed action", resourceType)
-        }
-
-        // Check each requested ID is in the allowed set
-        if allowedResources != nil {
-            allowedIDs := allowedResources[resourceType]
-            allowedSet := make(map[string]bool, len(allowedIDs))
-            for _, id := range allowedIDs {
-                allowedSet[id] = true
-            }
-
-            for _, reqID := range requestedIDs {
-                if !allowedSet[reqID] {
-                    return fmt.Errorf("resource %q of type %q not configured for this connection", reqID, resourceType)
-                }
-            }
-        }
-    }
-    return nil
-}
-```
-
-### Resource Example: GitHub
+### Example: GitHub Scope
 
 ```json
 {
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
   "actions": ["github.list_issues", "github.create_issue"],
   "resources": {
-    "repo": ["llmvault/llmvault", "llmvault/docs"],
-    "issue": ["*"]
+    "repo": ["llmvault/llmvault", "llmvault/docs"]
   }
 }
 ```
 
 This scope:
 - Limits repository access to two specific repos
-- Allows issue operations on all issues within those repos
+- Allows listing and creating issues only within those repos
 
-## MCP Scopes
+## MCP Integration
 
-### MCP Integration
+When a token has scopes, LLMVault generates an MCP (Model Context Protocol) endpoint for it. Each scoped action becomes an MCP tool that LLMs can invoke.
 
-Scopes are integrated with the Model Context Protocol (MCP) server:
+### How It Works
 
-```go
-// From: internal/handler/mcphandler.go
-type MCPHandler struct {
-    db          *gorm.DB
-    signingKey  []byte
-    catalog     *catalog.Catalog
-    nango       *nango.Client
-    counter     *counter.Counter
-    ServerCache *mcpserver.ServerCache
-}
+1. You create a token with scopes
+2. The response includes an `mcp_endpoint` URL
+3. Connect your LLM to this endpoint
+4. The LLM sees only the tools (actions) defined in the token's scopes
+5. Every tool invocation is validated against the scope constraints and resources
 
-// serverFactory returns or builds an MCP server for the given request's token.
-func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
-    claims, ok := middleware.ClaimsFromContext(r.Context())
-    
-    srv, err := h.ServerCache.GetOrBuild(claims.JTI, func() (*mcp.Server, time.Time, error) {
-        // Load token record with scopes
-        var token model.Token
-        if err := h.db.Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
-            return nil, time.Time{}, err
-        }
+### Scope Integrity
 
-        // Parse scopes from JSONB
-        scopes, err := parseTokenScopes(token.Scopes)
-        if err != nil {
-            return nil, time.Time{}, err
-        }
+Scopes are cryptographically bound to the token. When a token is minted, a SHA-256 hash of the scopes is embedded in the JWT claims. At runtime, the server validates that the stored scopes match this hash, preventing any scope tampering.
 
-        // Build MCP server from scopes
-        srv, err := mcpserver.BuildServer(&token, scopes, h.catalog, h.nango, h.db, h.counter)
-        return srv, token.ExpiresAt, nil
-    })
-    
-    return srv
-}
+## Revoking Scoped Tokens
+
+Revoke a token immediately when it is no longer needed:
+
+```typescript
+// Using the SDK
+await vault.tokens.delete("abc123"); // Pass the JTI
 ```
-
-### Scope Hash in JWT
-
-Scopes are committed to in the JWT claims via a SHA-256 hash:
-
-```go
-// From: internal/mcp/scope.go
-func ScopeHash(scopes []TokenScope) (string, error) {
-    canonical, err := json.Marshal(scopes)
-    if err != nil {
-        return "", fmt.Errorf("marshaling scopes: %w", err)
-    }
-    hash := sha256.Sum256(canonical)
-    return fmt.Sprintf("%x", hash), nil
-}
-```
-
-**JWT Claims:**
-```go
-// From: internal/token/jwt.go
-type Claims struct {
-    OrgID        string `json:"org_id"`
-    CredentialID string `json:"cred_id"`
-    ScopeHash    string `json:"scope_hash,omitempty"`  // SHA-256 of scopes
-    jwt.RegisteredClaims
-}
-```
-
-This prevents scope tampering - the server validates the scopes match the hash before execution.
-
-### MCP Tool Registration
-
-Each scope action becomes an MCP tool:
-
-```go
-// From: internal/mcpserver/builder.go
-func BuildServer(token *model.Token, scopes []mcp.TokenScope, cat *catalog.Catalog, nangoClient *nango.Client, db *gorm.DB, ctr *counter.Counter) (*mcp.Server, error) {
-    server := mcp.NewServer(&mcp.Implementation{
-        Name:    "llmvault",
-        Version: "v1.0.0",
-    }, nil)
-
-    for _, scope := range scopes {
-        for _, actionKey := range scope.Actions {
-            action, ok := cat.GetAction(provider, actionKey)
-            
-            toolName := provider + "_" + actionKey
-            inputSchema := buildInputSchema(action.Parameters)
-
-            server.AddTool(
-                &mcp.Tool{
-                    Name:        toolName,
-                    Description: action.Description,
-                    InputSchema: inputSchema,
-                },
-                func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-                    // Execute with resource constraints
-                    result, err := ExecuteAction(ctx, nangoClient, capturedProvider, 
-                        capturedCfgKey, capturedConnID, capturedAction, params, capturedResources)
-                    // ...
-                },
-            )
-        }
-    }
-    return server, nil
-}
-```
-
-### Scope Validation Middleware
-
-Two middleware functions enforce scope constraints:
-
-```go
-// From: internal/handler/mcphandler.go
-
-// ValidateJTIMatch ensures the URL {jti} matches the JWT's JTI claim.
-func (h *MCPHandler) ValidateJTIMatch(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        urlJTI := chi.URLParam(r, "jti")
-        claims, ok := middleware.ClaimsFromContext(r.Context())
-        if !ok || urlJTI != claims.JTI {
-            writeJSON(w, http.StatusForbidden, map[string]string{
-                "error": "token JTI does not match URL"
-            })
-            return
-        }
-        next.ServeHTTP(w, r)
-    })
-}
-
-// ValidateHasScopes ensures the token has scopes (returns 403 if no scopes).
-func (h *MCPHandler) ValidateHasScopes(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        claims, ok := middleware.ClaimsFromContext(r.Context())
-        if !ok {
-            writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing claims"})
-            return
-        }
-
-        var token model.Token
-        if err := h.db.Where("jti = ?", claims.JTI).First(&token).Error; err != nil {
-            writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "token not found"})
-            return
-        }
-
-        scopes, err := parseTokenScopes(token.Scopes)
-        if err != nil || len(scopes) == 0 {
-            writeJSON(w, http.StatusForbidden, map[string]string{"error": "token has no MCP scopes"})
-            return
-        }
-
-        next.ServeHTTP(w, r)
-    })
-}
-```
-
-## Token Minting with Scopes
-
-### API Request
 
 ```bash
-POST /v1/tokens
-Authorization: Bearer llmv_sk_...
-Content-Type: application/json
-
-{
-  "credential_id": "550e8400-e29b-41d4-a716-446655440000",
-  "ttl": "1h",
-  "scopes": [
-    {
-      "connection_id": "660e8400-e29b-41d4-a716-446655440001",
-      "actions": ["slack.post_message", "slack.list_channels"],
-      "resources": {
-        "channel": ["C1234567890"]
-      }
-    }
-  ]
-}
+# Using the API
+curl -X DELETE https://api.llmvault.dev/v1/tokens/abc123 \
+  -H "Authorization: Bearer llmv_sk_..."
 ```
 
-### Token Handler Implementation
-
-```go
-// From: internal/handler/tokens.go
-func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
-    // ... validation ...
-
-    // Validate scopes against catalog and database
-    if len(req.Scopes) > 0 && h.catalog != nil {
-        if err := mcp.ValidateScopes(h.db, org.ID, h.catalog, req.Scopes); err != nil {
-            writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-            return
-        }
-    }
-
-    // Compute scope hash for JWT claims
-    var mintOpts []token.MintOptions
-    if len(req.Scopes) > 0 {
-        scopeHash, err := mcp.ScopeHash(req.Scopes)
-        if err != nil {
-            writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to compute scope hash"})
-            return
-        }
-        mintOpts = append(mintOpts, token.MintOptions{ScopeHash: scopeHash})
-    }
-
-    // Mint the JWT
-    tokenStr, jti, err := token.Mint(h.signingKey, org.ID.String(), cred.ID.String(), ttl, mintOpts...)
-    
-    // Store token with scopes
-    tokenRecord := model.Token{
-        ID:        uuid.New(),
-        OrgID:     org.ID,
-        JTI:       jti,
-        Scopes:    scopesJSON,  // Stored as JSONB
-        // ... other fields ...
-    }
-    h.db.Create(&tokenRecord)
-
-    resp := mintTokenResponse{
-        Token:     "ptok_" + tokenStr,
-        ExpiresAt: expiresAt.Format(time.RFC3339),
-        JTI:       jti,
-        MCPEndpoint: h.mcpBaseURL + "/" + jti,  // MCP endpoint if scopes present
-    }
-}
-```
+Revocation takes effect within seconds. The token's MCP endpoint becomes immediately inaccessible.
 
 ## Best Practices
 
 ### Principle of Least Privilege
 
-1. **Grant only needed actions** - Don't include `read` if only `write` is needed
-2. **Constrain resources** - Always specify resource IDs when possible
-3. **Short TTL** - Use the minimum viable token lifetime
-4. **Single connection per scope** - Don't mix multiple integrations in one token
+1. **Grant only needed actions** -- Do not include `read` actions if only `write` is needed, and vice versa
+2. **Constrain resources** -- Always specify resource IDs when possible
+3. **Short TTL** -- Use the minimum viable token lifetime (e.g., 1 hour for a single task)
+4. **Single connection per scope** -- Avoid mixing multiple integrations in one token
 
-### Example: Minimal Slack Scope
+### Minimal Scope Example
+
+**Good** -- specific action, specific resource, short TTL:
+
+```typescript
+const { data } = await vault.tokens.create({
+  credential_id: "...",
+  expires_in: "30m",
+  scopes: [{
+    connection_id: "...",
+    actions: ["slack.post_message"],
+    resources: { channel: ["C1234567890"] }
+  }]
+});
+```
+
+**Avoid** -- broad actions, no resource constraints:
 
 ```json
 {
-  "connection_id": "...",
-  "actions": ["slack.post_message"],
-  "resources": {
-    "channel": ["C1234567890"]
-  }
+  "actions": ["slack.post_message", "slack.list_channels", "slack.add_reaction", "slack.list_users"],
+  "resources": {}
 }
 ```
 
-Instead of:
+### Testing Scopes
 
-```json
-{
-  "connection_id": "...",
-  "actions": ["slack.*"],  // ❌ Wildcards not allowed
-  "resources": {}          // ❌ Unconstrained resources
-}
-```
+Test scoped tokens in a development environment before production use:
 
-### Scope Testing
+```typescript
+// Create a short-lived test token
+const { data } = await vault.tokens.create({
+  credential_id: "...",
+  expires_in: "5m",
+  scopes: [{
+    connection_id: "...",
+    actions: ["slack.post_message"],
+    resources: { channel: ["C-test-channel"] }
+  }]
+});
 
-Test scopes before production use:
-
-```bash
-# 1. Create a test token
-export TOKEN=$(curl -s -X POST https://api.llmvault.dev/v1/tokens \
-  -H "Authorization: Bearer $API_KEY" \
-  -d '{"credential_id": "...", "ttl": "5m", "scopes": [...]}' \
-  | jq -r '.token')
-
-# 2. Test MCP endpoint
-curl -X POST https://api.llmvault.dev/mcp/$JTI \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"action": "slack.post_message", ...}'
+// The MCP endpoint is ready to test
+console.log(data.mcp_endpoint);
 ```
 
 ## Security Considerations
 
-### Scope Injection Attacks
+### Validation at Every Stage
 
-Scopes are validated at:
-1. **Mint time**: Catalog validation rejects unknown actions
-2. **Runtime**: JTI matching prevents token replay to different endpoints
-3. **Hash verification**: Scope hash in JWT prevents tampering
+Scopes are validated at multiple points:
+
+1. **Mint time**: All actions are validated against the provider catalog. Unknown actions are rejected. Connections are verified to exist and belong to your organization.
+2. **Runtime**: The token's JTI is matched against the URL to prevent replay to different endpoints.
+3. **Hash verification**: The scope hash in the JWT prevents tampering with scope definitions after minting.
+
+### If a Token Is Leaked
+
+Scoped tokens limit blast radius by design:
+
+1. **Revoke immediately**: Use `vault.tokens.delete(jti)` or `DELETE /v1/tokens/{jti}`
+2. **Scope limits damage**: The attacker can only perform the specific actions on the specific resources defined in the scope
+3. **TTL limits window**: The token expires automatically at the defined TTL
+4. **Full audit trail**: All actions performed with the token are logged with its JTI for investigation
 
 ### Resource Enumeration
 
-Even with scopes, resource IDs may be enumerable. Ensure:
-- Resource IDs are not sequential
-- Resource access is logged
-- Rate limiting is applied per token
+Even with scopes, be aware that resource IDs may be discoverable. To limit this risk:
 
-### Token Leakage
-
-If a scoped token is leaked:
-1. **Revoke immediately**: `DELETE /v1/tokens/{jti}`
-2. **Scope limits damage**: Attacker can only perform scoped actions
-3. **TTL limits window**: Token expires automatically
-4. **Audit trail**: All actions are logged with token JTI
+- Use non-sequential resource identifiers where possible
+- Monitor audit logs for unusual resource access patterns
+- Apply rate limiting per token

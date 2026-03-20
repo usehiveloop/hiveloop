@@ -322,7 +322,7 @@ LLMVAULT_BASE_URL=https://api.llmvault.dev
 | `vault.tokens` | `create()`, `list()`, `delete(jti)` |
 | `vault.identities` | `create()`, `list()`, `get(id)`, `update(id)`, `delete(id)` |
 | `vault.connect` | `sessions.create()`, `settings.get()`, `settings.update()` |
-| `vault.integrations` | `create()`, `list()`, `get(id)`, `update(id)`, `delete(id)` |
+| `vault.integrations` | `create()`, `list()`, `get(id)`, `update(id)`, `delete(id)`, `listProviders()` |
 | `vault.connections` | `availableScopes()`, `create(integrationId, body)`, `list(integrationId)`, `get(id)`, `retrieveToken(id)`, `delete(id)` |
 | `vault.usage` | `get()` |
 | `vault.audit` | `list()` |

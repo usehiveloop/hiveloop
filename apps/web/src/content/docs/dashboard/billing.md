@@ -127,11 +127,11 @@ The invoices section displays billing history:
 
 ### Invoice Statuses
 
-| Status | Badge Style |
-|--------|-------------|
-| Paid | Success border, success background |
-| Pending | Warning border, warning background |
-| Failed | Destructive border, destructive background |
+| Status | Meaning |
+|--------|---------|
+| Paid | Payment completed successfully |
+| Pending | Payment is being processed |
+| Failed | Payment was unsuccessful |
 
 ### Downloading Invoices
 

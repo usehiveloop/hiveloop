@@ -101,9 +101,9 @@ To revoke a key:
 4. Key is immediately invalidated
 
 **Effects:**
-- Key removed from cache
+- Key is immediately invalidated
 - Future requests return 401 Unauthorized
-- Historical audit log entries remain
+- Historical audit log entries are preserved
 
 ## Using API Keys
 
