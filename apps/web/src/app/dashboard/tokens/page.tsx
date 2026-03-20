@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight, ChevronLeft, Coins, Shield } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -347,6 +348,105 @@ type ScopeSelection = {
 };
 
 type AvailableScopeConnection = components["schemas"]["availableScopeConnection"];
+type ActionItem = components["schemas"]["availableScopeAction"];
+
+const ACTION_ROW_HEIGHT = 44; // Height of each action row in px
+
+function ActionList({
+  actions,
+  scopeEntry,
+  connId,
+  searchQuery,
+  onToggleAction,
+}: {
+  actions: ActionItem[];
+  scopeEntry: ScopeSelection | undefined;
+  connId: string;
+  searchQuery: string;
+  onToggleAction: (connId: string, actionKey: string) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  const filteredActions = useMemo(() => {
+    if (!searchQuery.trim()) return actions;
+    const query = searchQuery.toLowerCase();
+    return actions.filter(
+      (a) =>
+        (a.display_name ?? "").toLowerCase().includes(query) ||
+        (a.description ?? "").toLowerCase().includes(query) ||
+        (a.key ?? "").toLowerCase().includes(query)
+    );
+  }, [actions, searchQuery]);
+
+  const virtualizer = useVirtualizer({
+    count: filteredActions.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ACTION_ROW_HEIGHT,
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
+  return (
+    <div
+      ref={parentRef}
+      className="relative h-64 overflow-auto border border-border"
+    >
+      {filteredActions.length === 0 ? (
+        <div className="flex h-full flex-col items-center justify-center">
+          <span className="text-[12px] text-muted-foreground">No actions match your search</span>
+        </div>
+      ) : (
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const action = filteredActions[virtualItem.index];
+            const isChecked = scopeEntry?.actions.includes(action.key ?? "") ?? false;
+            return (
+              <div
+                key={action.key}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+                onClick={() => onToggleAction(connId, action.key ?? "")}
+                className={`group flex cursor-pointer items-center gap-3 border-b border-border px-3 transition-colors last:border-b-0 ${
+                  isChecked
+                    ? "bg-primary/[0.04] hover:bg-primary/[0.08]"
+                    : "hover:bg-secondary/50"
+                }`}
+              >
+                <Checkbox
+                  checked={isChecked}
+                  className="size-4 shrink-0"
+                />
+                <div className="flex min-w-0 flex-1 flex-col py-2">
+                  <span className="truncate text-[12px] font-medium text-foreground">
+                    {action.display_name}
+                  </span>
+                  {action.description && (
+                    <span className="truncate text-[11px] text-dim">
+                      {action.description}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ScopeSelector({
   scopes,
@@ -357,6 +457,7 @@ function ScopeSelector({
 }) {
   const { data: availableConnections = [] } = $api.useQuery("get", "/v1/connections/available-scopes");
   const [expandedConns, setExpandedConns] = useState<Set<string>>(new Set());
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
 
   const toggleConnection = (connId: string) => {
     const existing = scopes.find((s) => s.connectionId === connId);
@@ -404,6 +505,10 @@ function ScopeSelector({
     }));
   };
 
+  const handleSearchChange = (connId: string, value: string) => {
+    setSearchQueries((prev) => ({ ...prev, [connId]: value }));
+  };
+
   return (
     <div className="flex flex-col gap-2">
       {availableConnections.map((conn: AvailableScopeConnection) => {
@@ -411,6 +516,7 @@ function ScopeSelector({
         const isSelected = scopes.some((s) => s.connectionId === connId);
         const isExpanded = expandedConns.has(connId);
         const scopeEntry = scopes.find((s) => s.connectionId === connId);
+        const searchQuery = searchQueries[connId] ?? "";
 
         return (
           <div key={connId} className="border border-border">
@@ -440,53 +546,31 @@ function ScopeSelector({
 
             {isExpanded && isSelected && (
               <div className="border-t border-border bg-secondary/20 px-3 py-3">
-                {/* Action Cards Grid */}
-                <div className="mb-3 flex items-center gap-1.5">
+                {/* Action List with Search */}
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Actions</span>
-                  <span className="text-[10px] text-dim">({(conn.actions ?? []).length})</span>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {(conn.actions ?? []).map((action) => {
-                    const isChecked = scopeEntry?.actions.includes(action.key ?? "") ?? false;
-                    return (
-                      <div
-                        key={action.key}
-                        onClick={() => toggleAction(connId, action.key ?? "")}
-                        className={`group relative cursor-pointer border p-2.5 transition-all ${
-                          isChecked
-                            ? "border-primary/40 bg-primary/[0.06]"
-                            : "border-border bg-card hover:border-primary/20"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <Checkbox
-                            checked={isChecked}
-                            className="mt-0.5 size-4 shrink-0"
-                          />
-                          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="truncate text-[12px] font-medium text-foreground">
-                              {action.display_name}
-                            </span>
-                            {action.description && (
-                              <span className="line-clamp-2 text-[11px] leading-relaxed text-dim">
-                                {action.description}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <span className="text-[10px] text-dim">{(conn.actions ?? []).length} total</span>
                 </div>
 
-                {/* Empty state for actions */}
-                {(conn.actions ?? []).length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-6">
-                    <Shield className="mb-2 size-5 text-dim" />
-                    <span className="text-[12px] text-muted-foreground">No actions available</span>
-                  </div>
-                )}
+                {/* Search Input */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dim" />
+                  <Input
+                    placeholder="Search actions..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(connId, e.target.value)}
+                    className="h-8 pl-8 text-[12px]"
+                  />
+                </div>
+
+                {/* Virtualized Action List */}
+                <ActionList
+                  actions={conn.actions ?? []}
+                  scopeEntry={scopeEntry}
+                  connId={connId}
+                  searchQuery={searchQuery}
+                  onToggleAction={toggleAction}
+                />
 
                 {conn.resources && Object.entries(conn.resources).map(([type, res]) => (
                   <div key={type} className="mt-4 flex flex-col gap-1.5">
