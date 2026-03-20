@@ -3,7 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use bridge_core::{AgentDefinition, BridgeError, ConversationRecord};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 
 use crate::state::AppState;
 
