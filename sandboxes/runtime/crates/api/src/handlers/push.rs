@@ -135,21 +135,36 @@ pub async fn upsert_agent(
     if let Some(existing) = state.supervisor.get_agent(&agent_id) {
         // Same version → no-op
         if existing.version().as_deref() == agent.version.as_deref() {
-            return Ok((StatusCode::OK, Json(UpsertAgentResponse { status: "unchanged".to_string() })));
+            return Ok((
+                StatusCode::OK,
+                Json(UpsertAgentResponse {
+                    status: "unchanged".to_string(),
+                }),
+            ));
         }
         // Different version → update
         state
             .supervisor
             .apply_diff(vec![], vec![agent], vec![])
             .await?;
-        Ok((StatusCode::OK, Json(UpsertAgentResponse { status: "updated".to_string() })))
+        Ok((
+            StatusCode::OK,
+            Json(UpsertAgentResponse {
+                status: "updated".to_string(),
+            }),
+        ))
     } else {
         // New agent → add
         state
             .supervisor
             .apply_diff(vec![agent], vec![], vec![])
             .await?;
-        Ok((StatusCode::CREATED, Json(UpsertAgentResponse { status: "created".to_string() })))
+        Ok((
+            StatusCode::CREATED,
+            Json(UpsertAgentResponse {
+                status: "created".to_string(),
+            }),
+        ))
     }
 }
 
@@ -177,7 +192,9 @@ pub async fn remove_agent(
         .supervisor
         .apply_diff(vec![], vec![], vec![agent_id])
         .await?;
-    Ok(Json(RemoveAgentResponse { status: "removed".to_string() }))
+    Ok(Json(RemoveAgentResponse {
+        status: "removed".to_string(),
+    }))
 }
 
 /// POST /push/agents/{agent_id}/conversations — hydrate conversations for an agent.
@@ -220,7 +237,10 @@ pub async fn hydrate_conversations(
         state.sse_streams.insert(conv_id, sse_rx);
     }
 
-    Ok((StatusCode::OK, Json(HydrateConversationsResponse { hydrated: count })))
+    Ok((
+        StatusCode::OK,
+        Json(HydrateConversationsResponse { hydrated: count }),
+    ))
 }
 
 /// PATCH /push/agents/{agent_id}/api-key — rotate an agent's LLM API key at runtime.
@@ -244,7 +264,9 @@ pub async fn update_agent_api_key(
     state
         .supervisor
         .update_agent_api_key(&agent_id, body.api_key)?;
-    Ok(Json(UpdateApiKeyResponse { status: "updated".to_string() }))
+    Ok(Json(UpdateApiKeyResponse {
+        status: "updated".to_string(),
+    }))
 }
 
 /// POST /push/diff — apply a diff of agent changes.
@@ -271,5 +293,9 @@ pub async fn push_diff(
         .apply_diff(body.added, body.updated, body.removed)
         .await?;
 
-    Ok(Json(PushDiffResponse { added, updated, removed }))
+    Ok(Json(PushDiffResponse {
+        added,
+        updated,
+        removed,
+    }))
 }

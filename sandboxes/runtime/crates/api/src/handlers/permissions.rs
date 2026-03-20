@@ -125,5 +125,8 @@ pub async fn bulk_resolve_approvals(
         }
     }
 
-    Json(BulkResolveApprovalsResponse { resolved, not_found })
+    Json(BulkResolveApprovalsResponse {
+        resolved,
+        not_found,
+    })
 }

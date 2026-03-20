@@ -128,7 +128,12 @@ pub async fn send_message(
         .send_message(&agent_id, &conv_id, body.content)
         .await?;
 
-    Ok((StatusCode::ACCEPTED, Json(SendMessageResponse { status: "accepted".to_string() })))
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(SendMessageResponse {
+            status: "accepted".to_string(),
+        }),
+    ))
 }
 
 /// DELETE /conversations/:conv_id — end a conversation.
@@ -159,7 +164,9 @@ pub async fn end_conversation(
         );
     }
 
-    Ok(Json(EndConversationResponse { status: "ended".to_string() }))
+    Ok(Json(EndConversationResponse {
+        status: "ended".to_string(),
+    }))
 }
 
 /// POST /conversations/:conv_id/abort — abort the current in-flight turn.
@@ -178,7 +185,9 @@ pub async fn abort_conversation(
 ) -> Result<Json<AbortConversationResponse>, BridgeError> {
     let agent_id = find_agent_for_conversation(&state, &conv_id)?;
     state.supervisor.abort_conversation(&agent_id, &conv_id)?;
-    Ok(Json(AbortConversationResponse { status: "aborted".to_string() }))
+    Ok(Json(AbortConversationResponse {
+        status: "aborted".to_string(),
+    }))
 }
 
 /// Find the agent that owns a conversation by searching all agents.
