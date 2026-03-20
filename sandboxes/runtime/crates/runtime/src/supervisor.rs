@@ -37,7 +37,14 @@ pub struct AgentSupervisor {
     webhook_ctx: Option<WebhookContext>,
     /// Shared permission manager for tool approval requests.
     permission_manager: Arc<PermissionManager>,
+    /// Limits total concurrent conversations across all agents.
+    conversation_semaphore: Option<Arc<tokio::sync::Semaphore>>,
+    /// Limits total concurrent outbound LLM API calls.
+    llm_semaphore: Arc<tokio::sync::Semaphore>,
 }
+
+/// Default maximum concurrent LLM calls when not configured.
+const DEFAULT_MAX_CONCURRENT_LLM_CALLS: usize = 500;
 
 impl AgentSupervisor {
     /// Create a new supervisor.
@@ -49,6 +56,10 @@ impl AgentSupervisor {
             cancel,
             webhook_ctx: None,
             permission_manager: Arc::new(PermissionManager::new()),
+            conversation_semaphore: None,
+            llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
+                DEFAULT_MAX_CONCURRENT_LLM_CALLS,
+            )),
         }
     }
 
@@ -65,7 +76,28 @@ impl AgentSupervisor {
             cancel,
             webhook_ctx: None,
             permission_manager: Arc::new(PermissionManager::new()),
+            conversation_semaphore: None,
+            llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
+                DEFAULT_MAX_CONCURRENT_LLM_CALLS,
+            )),
         }
+    }
+
+    /// Configure admission control from runtime config.
+    pub fn with_capacity_limits(mut self, config: &bridge_core::RuntimeConfig) -> Self {
+        if let Some(max_convs) = config.max_concurrent_conversations {
+            self.conversation_semaphore = Some(Arc::new(tokio::sync::Semaphore::new(max_convs)));
+        }
+        let max_llm = config
+            .max_concurrent_llm_calls
+            .unwrap_or(DEFAULT_MAX_CONCURRENT_LLM_CALLS);
+        self.llm_semaphore = Arc::new(tokio::sync::Semaphore::new(max_llm));
+        self
+    }
+
+    /// Get a reference to the LLM semaphore (for passing to conversations).
+    pub fn llm_semaphore(&self) -> Arc<tokio::sync::Semaphore> {
+        self.llm_semaphore.clone()
     }
 
     /// Get the permission manager (shared across all conversations).
@@ -195,6 +227,7 @@ impl AgentSupervisor {
     /// Create a new conversation for an agent.
     ///
     /// Returns the conversation ID and an SSE event receiver for streaming responses.
+    /// Returns `CapacityExhausted` if global or per-agent conversation limits are reached.
     pub async fn create_conversation(
         &self,
         agent_id: &str,
@@ -203,6 +236,32 @@ impl AgentSupervisor {
             .agent_map
             .get(agent_id)
             .ok_or_else(|| BridgeError::AgentNotFound(agent_id.to_string()))?;
+
+        // --- Admission control: global conversation limit ---
+        let conversation_permit = match &self.conversation_semaphore {
+            Some(sem) => match sem.clone().try_acquire_owned() {
+                Ok(permit) => Some(permit),
+                Err(_) => {
+                    return Err(BridgeError::CapacityExhausted(
+                        "global max concurrent conversations reached".to_string(),
+                    ));
+                }
+            },
+            None => None,
+        };
+
+        // --- Admission control: per-agent conversation limit ---
+        {
+            let def = state.definition.read().await;
+            if let Some(max) = def.config.max_concurrent_conversations {
+                if state.conversations.len() >= max as usize {
+                    return Err(BridgeError::CapacityExhausted(format!(
+                        "agent {} at max concurrent conversations ({})",
+                        agent_id, max
+                    )));
+                }
+            }
+        }
 
         let conv_id = uuid::Uuid::new_v4().to_string();
         let (message_tx, message_rx) = mpsc::channel::<Message>(32);
@@ -231,6 +290,10 @@ impl AgentSupervisor {
         // Build agent context for subagent tool
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
         let subagent_compaction = def.config.compaction.clone();
+        // Create task budget for this conversation (before runner so runner can share it)
+        let max_tasks = def.config.max_tasks_per_conversation.unwrap_or(50) as usize;
+        let task_budget = Arc::new(tools::TaskBudget::new(max_tasks));
+
         let runner = Arc::new(
             ConversationSubAgentRunner::new(
                 state.subagents.clone(),
@@ -243,14 +306,17 @@ impl AgentSupervisor {
                 3, // max_depth
             )
             .with_compaction(subagent_compaction)
-            .with_task_registry(state.task_registry.clone()),
+            .with_task_registry(state.task_registry.clone())
+            .with_task_budget(task_budget.clone()),
         );
+
         let agent_context = AgentContext {
             runner,
             notification_tx,
             task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
+            task_budget,
         };
         let session_store = state.session_store.clone();
 
@@ -266,6 +332,7 @@ impl AgentSupervisor {
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
         let skills = def.skills.clone();
+        let llm_semaphore = self.llm_semaphore.clone();
         drop(def); // release read lock before spawning
 
         // Build a no-tools retry agent for recovering from empty responses
@@ -291,6 +358,10 @@ impl AgentSupervisor {
         };
 
         state.tracker.spawn(async move {
+            // Hold the conversation permit for the lifetime of the conversation.
+            // When the conversation ends, the permit is dropped, freeing a slot.
+            let _conversation_permit = conversation_permit;
+
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
                 conversation_id: conv_id_clone,
@@ -314,6 +385,7 @@ impl AgentSupervisor {
                 compaction_config,
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
+                llm_semaphore,
             })
             .await;
         });
@@ -627,6 +699,10 @@ impl AgentSupervisor {
 
         let (notification_tx, notification_rx) = mpsc::channel::<AgentTaskNotification>(64);
         let subagent_compaction = def.config.compaction.clone();
+        // Create task budget for this conversation
+        let max_tasks = def.config.max_tasks_per_conversation.unwrap_or(50) as usize;
+        let task_budget = Arc::new(tools::TaskBudget::new(max_tasks));
+
         let runner = Arc::new(
             ConversationSubAgentRunner::new(
                 state.subagents.clone(),
@@ -639,14 +715,17 @@ impl AgentSupervisor {
                 3,
             )
             .with_compaction(subagent_compaction)
-            .with_task_registry(state.task_registry.clone()),
+            .with_task_registry(state.task_registry.clone())
+            .with_task_budget(task_budget.clone()),
         );
+
         let agent_context = AgentContext {
             runner,
             notification_tx,
             task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
+            task_budget,
         };
         let session_store = state.session_store.clone();
 
@@ -666,6 +745,7 @@ impl AgentSupervisor {
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
         let skills = def.skills.clone();
+        let llm_semaphore = self.llm_semaphore.clone();
         drop(def); // release read lock before spawning
 
         // Build system reminder with available skills
@@ -695,6 +775,7 @@ impl AgentSupervisor {
                 compaction_config,
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
+                llm_semaphore,
             })
             .await;
         });

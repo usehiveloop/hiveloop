@@ -165,10 +165,19 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
 
     // Create webhook dispatcher if BRIDGE_WEBHOOK_URL is set
     let webhook_ctx: Option<WebhookContext> = if let Some(ref url) = config.webhook_url {
-        let (dispatcher, rx) = WebhookDispatcher::new();
+        let webhook_config = config
+            .webhook_config
+            .clone()
+            .unwrap_or_default();
+        let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
         let client = dispatcher.client();
         let dispatcher = Arc::new(dispatcher);
-        tokio::spawn(WebhookDispatcher::run(rx, client, cancel.clone()));
+        tokio::spawn(WebhookDispatcher::run(
+            rx,
+            client,
+            cancel.clone(),
+            webhook_config,
+        ));
         info!(url = %url, "webhook dispatcher started");
         Some(WebhookContext {
             dispatcher,
@@ -212,6 +221,7 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
 
     let supervisor = Arc::new(
         AgentSupervisor::with_lsp(mcp_manager.clone(), lsp_manager, cancel.clone())
+            .with_capacity_limits(&config)
             .with_webhooks(webhook_ctx.clone()),
     );
 

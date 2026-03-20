@@ -66,6 +66,8 @@ mod serde_roundtrip_tests {
                 json_schema: Some(serde_json::json!({"type": "object"})),
                 rate_limit_rpm: Some(60),
                 compaction: None,
+                max_tasks_per_conversation: None,
+                max_concurrent_conversations: None,
             },
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
@@ -194,6 +196,8 @@ mod serde_roundtrip_tests {
             json_schema: Some(serde_json::json!({"type": "string"})),
             rate_limit_rpm: Some(120),
             compaction: None,
+            max_tasks_per_conversation: Some(100),
+            max_concurrent_conversations: Some(50),
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");
@@ -1043,6 +1047,8 @@ mod serde_roundtrip_tests {
             log_format: LogFormat::Json,
             lsp: None,
             webhook_url: None,
+            max_concurrent_llm_calls: Some(500),
+            webhook_config: None,
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize RuntimeConfig");

@@ -282,7 +282,7 @@ mod tests {
     use super::*;
     use crate::agent::{
         AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
-        AGENT_CONTEXT,
+        TaskBudget, AGENT_CONTEXT,
     };
     use crate::join::{JoinResult, TaskRegistry};
     use std::sync::Arc;
@@ -324,6 +324,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
         (ctx, rx)
     }
@@ -538,6 +539,7 @@ mod tests {
             task_registry: Some(registry.clone()),
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = BashTool::new();
@@ -594,6 +596,7 @@ mod tests {
             task_registry: Some(registry.clone()),
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = BashTool::new();
@@ -646,6 +649,7 @@ mod tests {
             task_registry: None, // No registry
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = BashTool::new();
@@ -688,6 +692,7 @@ mod tests {
             task_registry: Some(registry.clone()),
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = BashTool::new();

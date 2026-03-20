@@ -1,11 +1,77 @@
 use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::Deserialize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use crate::join::TaskRegistry;
 use crate::ToolExecutor;
+
+/// Tracks and limits the total number of subagent tasks spawned
+/// within a single conversation's lifetime.
+///
+/// Shared (via `Arc`) across all subagent depths within a conversation,
+/// ensuring a global ceiling on resource consumption regardless of nesting.
+pub struct TaskBudget {
+    /// Current count of spawned tasks (foreground + background).
+    spawned: AtomicUsize,
+    /// Maximum allowed tasks per conversation.
+    max_tasks: usize,
+}
+
+impl TaskBudget {
+    /// Create a new budget with the given maximum.
+    pub fn new(max_tasks: usize) -> Self {
+        Self {
+            spawned: AtomicUsize::new(0),
+            max_tasks,
+        }
+    }
+
+    /// Try to acquire a task slot. Returns `Err` if budget exhausted.
+    pub fn try_acquire(&self) -> Result<(), String> {
+        // Optimistic increment — roll back on failure.
+        let prev = self.spawned.fetch_add(1, Ordering::Relaxed);
+        if prev >= self.max_tasks {
+            self.spawned.fetch_sub(1, Ordering::Relaxed);
+            Err(format!(
+                "Task budget exhausted: {} of {} task slots used. \
+                 Wait for existing tasks to complete before spawning more.",
+                prev, self.max_tasks
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Try to acquire `n` task slots atomically. Returns `Err` if insufficient.
+    pub fn try_acquire_many(&self, n: usize) -> Result<(), String> {
+        let prev = self.spawned.fetch_add(n, Ordering::Relaxed);
+        if prev + n > self.max_tasks {
+            self.spawned.fetch_sub(n, Ordering::Relaxed);
+            Err(format!(
+                "Cannot spawn {} tasks: only {} of {} slots remaining.",
+                n,
+                self.max_tasks.saturating_sub(prev),
+                self.max_tasks
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Returns the number of remaining task slots.
+    pub fn remaining(&self) -> usize {
+        self.max_tasks
+            .saturating_sub(self.spawned.load(Ordering::Relaxed))
+    }
+
+    /// Returns the current number of spawned tasks.
+    pub fn used(&self) -> usize {
+        self.spawned.load(Ordering::Relaxed)
+    }
+}
 
 /// Trait for running subagents. Defined in tools crate, implemented in runtime.
 #[async_trait]
@@ -36,6 +102,8 @@ pub struct AgentContext {
     pub task_registry: Option<Arc<TaskRegistry>>,
     pub depth: usize,
     pub max_depth: usize,
+    /// Shared task budget across the entire conversation tree.
+    pub task_budget: Arc<TaskBudget>,
 }
 
 tokio::task_local! {
@@ -153,6 +221,9 @@ impl ToolExecutor for AgentTool {
             .try_with(|c| c.clone())
             .map_err(|_| "Agent tool requires a conversation context".to_string())?;
 
+        // Check task budget before spawning
+        ctx.task_budget.try_acquire()?;
+
         // Check depth limit
         if ctx.depth >= ctx.max_depth {
             return Err(format!(
@@ -256,6 +327,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         }
     }
 
@@ -317,6 +389,7 @@ mod tests {
             task_registry: None,
             depth: 3,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
         let tool = AgentTool::new();
         let args = serde_json::json!({
@@ -434,6 +507,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = AgentTool::new();
@@ -506,6 +580,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = AgentTool::new();
@@ -534,5 +609,129 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["task_id"], "bg-delayed-456");
         assert_eq!(parsed["status"], "running");
+    }
+
+    // ── Fix #4: TaskBudget tests ───────────────────────────────────────
+
+    #[test]
+    fn test_task_budget_basic_acquire() {
+        let budget = TaskBudget::new(3);
+        assert_eq!(budget.remaining(), 3);
+        assert_eq!(budget.used(), 0);
+
+        assert!(budget.try_acquire().is_ok());
+        assert_eq!(budget.remaining(), 2);
+        assert_eq!(budget.used(), 1);
+
+        assert!(budget.try_acquire().is_ok());
+        assert!(budget.try_acquire().is_ok());
+        assert_eq!(budget.remaining(), 0);
+        assert_eq!(budget.used(), 3);
+    }
+
+    #[test]
+    fn test_task_budget_exhaustion() {
+        let budget = TaskBudget::new(2);
+        assert!(budget.try_acquire().is_ok());
+        assert!(budget.try_acquire().is_ok());
+
+        let err = budget.try_acquire();
+        assert!(err.is_err());
+        assert!(err.unwrap_err().contains("Task budget exhausted"));
+        // Should not have incremented past max
+        assert_eq!(budget.used(), 2);
+    }
+
+    #[test]
+    fn test_task_budget_acquire_many_success() {
+        let budget = TaskBudget::new(10);
+        assert!(budget.try_acquire_many(5).is_ok());
+        assert_eq!(budget.used(), 5);
+        assert_eq!(budget.remaining(), 5);
+
+        assert!(budget.try_acquire_many(5).is_ok());
+        assert_eq!(budget.used(), 10);
+        assert_eq!(budget.remaining(), 0);
+    }
+
+    #[test]
+    fn test_task_budget_acquire_many_insufficient() {
+        let budget = TaskBudget::new(5);
+        assert!(budget.try_acquire_many(3).is_ok());
+
+        let err = budget.try_acquire_many(5);
+        assert!(err.is_err());
+        assert!(err.unwrap_err().contains("Cannot spawn 5 tasks"));
+        // Should have rolled back
+        assert_eq!(budget.used(), 3);
+    }
+
+    #[test]
+    fn test_task_budget_zero_max() {
+        let budget = TaskBudget::new(0);
+        assert_eq!(budget.remaining(), 0);
+        assert!(budget.try_acquire().is_err());
+    }
+
+    #[test]
+    fn test_task_budget_thread_safety() {
+        use std::sync::Arc;
+        let budget = Arc::new(TaskBudget::new(100));
+        let handles: Vec<_> = (0..10)
+            .map(|_| {
+                let b = budget.clone();
+                std::thread::spawn(move || {
+                    let mut acquired = 0;
+                    for _ in 0..20 {
+                        if b.try_acquire().is_ok() {
+                            acquired += 1;
+                        }
+                    }
+                    acquired
+                })
+            })
+            .collect();
+
+        let total: usize = handles.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>().into_iter().sum();
+        assert_eq!(total, 100, "exactly 100 slots should be acquired across all threads");
+        assert_eq!(budget.used(), 100);
+        assert_eq!(budget.remaining(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_task_budget_enforced_by_agent_tool() {
+        // Budget of 1 — second call should fail
+        let budget = Arc::new(TaskBudget::new(1));
+        let (tx, _rx) = mpsc::channel(16);
+        let ctx = AgentContext {
+            runner: Arc::new(MockRunner {
+                subagents: vec![("coder".to_string(), "A coding agent".to_string())],
+            }),
+            notification_tx: tx,
+            task_registry: None,
+            depth: 0,
+            max_depth: 3,
+            task_budget: budget,
+        };
+
+        let tool = AgentTool::new();
+        let args = serde_json::json!({
+            "description": "test",
+            "prompt": "do something",
+            "subagent": "coder"
+        });
+
+        // First call should succeed
+        let result1 = AGENT_CONTEXT
+            .scope(ctx.clone(), async { tool.execute(args.clone()).await })
+            .await;
+        assert!(result1.is_ok());
+
+        // Second call should fail — budget exhausted
+        let result2 = AGENT_CONTEXT
+            .scope(ctx.clone(), async { tool.execute(args.clone()).await })
+            .await;
+        assert!(result2.is_err());
+        assert!(result2.unwrap_err().contains("Task budget exhausted"));
     }
 }

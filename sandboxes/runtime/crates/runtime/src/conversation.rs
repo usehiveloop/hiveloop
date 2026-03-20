@@ -80,6 +80,8 @@ pub struct ConversationParams {
     pub system_reminder: String,
     /// Initial conversation date for date tracking.
     pub conversation_date: chrono::DateTime<chrono::Utc>,
+    /// Global LLM call semaphore for admission control.
+    pub llm_semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -115,6 +117,7 @@ pub async fn run_conversation(params: ConversationParams) {
         compaction_config,
         system_reminder,
         conversation_date,
+        llm_semaphore,
     } = params;
 
     info!(
@@ -327,7 +330,10 @@ pub async fn run_conversation(params: ConversationParams) {
         // Clone the agent from behind the RwLock so API key rotations are picked up.
         let agent_clone = { agent.read().await.clone() };
         let user_text_clone = user_text.clone();
-        let mut history_clone = history.clone();
+        // Zero-copy: take ownership of history instead of cloning. We get it back
+        // via the oneshot channel. Keep a backup only for error recovery paths.
+        let history_backup = history.clone();
+        let mut history_for_task = std::mem::take(&mut history);
         let sse_tx_clone = sse_tx.clone();
         let agent_context_clone = agent_context.clone();
         let turn_cancel_clone = turn_cancel.clone();
@@ -338,9 +344,21 @@ pub async fn run_conversation(params: ConversationParams) {
         let conversation_id_clone = conversation_id.clone();
         let permission_manager_clone = permission_manager.clone();
         let agent_permissions_clone = agent_permissions.clone();
+        // Acquire LLM semaphore permit before spawning the task.
+        // This provides global backpressure on concurrent LLM API calls.
+        let llm_permit = match llm_semaphore.clone().acquire_owned().await {
+            Ok(p) => p,
+            Err(_) => {
+                // Semaphore closed — runtime is shutting down
+                let _ = history_backup; // no longer needed
+                break;
+            }
+        };
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
+            // Hold the LLM permit for the duration of the agent prompt call
+            let _llm_permit = llm_permit;
             let emitter = llm::ToolCallEmitter {
                 sse_tx: sse_tx_clone,
                 cancel: turn_cancel_clone,
@@ -354,7 +372,7 @@ pub async fn run_conversation(params: ConversationParams) {
             };
             let fut = async {
                 agent_clone
-                    .prompt_with_hook(&user_text_clone, &mut history_clone, emitter)
+                    .prompt_with_hook(&user_text_clone, &mut history_for_task, emitter)
                     .await
             };
 
@@ -363,7 +381,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 Some(ctx) => AGENT_CONTEXT.scope(ctx, fut).await,
                 None => fut.await,
             };
-            let _ = result_tx.send((result, history_clone));
+            let _ = result_tx.send((result, history_for_task));
         });
 
         // Wait for the result with a timeout, or abort/shutdown
@@ -376,6 +394,8 @@ pub async fn run_conversation(params: ConversationParams) {
             // Turn-level abort (user requested abort)
             _ = turn_cancel.cancelled() => {
                 info!(conversation_id = conversation_id, "turn aborted by user");
+                // Restore history from backup since the spawned task may not return it.
+                history = history_backup;
                 // Remove the user message we pushed before the agent call —
                 // no assistant response was generated, so leaving it would
                 // create consecutive user messages in history.
@@ -413,8 +433,9 @@ pub async fn run_conversation(params: ConversationParams) {
         };
 
         match chat_result {
-            // Timeout fired
+            // Timeout fired — restore history from backup
             Err(_timeout) => {
+                history = history_backup;
                 let elapsed = start.elapsed();
                 error!(
                     conversation_id = conversation_id,
@@ -445,8 +466,9 @@ pub async fn run_conversation(params: ConversationParams) {
                     ));
                 }
             }
-            // Task was cancelled (oneshot sender dropped)
+            // Task was cancelled (oneshot sender dropped) — restore history from backup
             Ok(Err(_)) => {
+                history = history_backup;
                 error!(
                     conversation_id = conversation_id,
                     "agent chat task cancelled unexpectedly"
@@ -748,6 +770,13 @@ pub async fn run_conversation(params: ConversationParams) {
     // Cleanup session store entries for this conversation
     if let Some(store) = session_store {
         store.remove_by_prefix(&conversation_id);
+    }
+
+    // Cleanup task registry entries for this conversation (prevents unbounded growth)
+    if let Some(ref ctx) = agent_context {
+        if let Some(ref registry) = ctx.task_registry {
+            registry.cleanup_conversation(&conversation_id);
+        }
     }
 
     token_tracker::decrement_active_conversations(&metrics);

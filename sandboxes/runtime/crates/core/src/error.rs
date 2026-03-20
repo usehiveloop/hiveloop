@@ -55,6 +55,10 @@ pub enum BridgeError {
     /// Conflict with current state
     #[error("conflict: {0}")]
     Conflict(String),
+
+    /// Capacity exhausted (max conversations, task budget, etc.)
+    #[error("capacity exhausted: {0}")]
+    CapacityExhausted(String),
 }
 
 /// Convenience Result type alias for bridge operations.
@@ -78,6 +82,9 @@ impl IntoResponse for BridgeError {
             BridgeError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "rate_limited"),
             BridgeError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized"),
             BridgeError::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
+            BridgeError::CapacityExhausted(_) => {
+                (StatusCode::TOO_MANY_REQUESTS, "capacity_exhausted")
+            }
         };
 
         let body = serde_json::json!({
@@ -146,5 +153,16 @@ mod tests {
             BridgeError::Conflict("active conversations".into()).to_string(),
             "conflict: active conversations"
         );
+        assert_eq!(
+            BridgeError::CapacityExhausted("max conversations reached".into()).to_string(),
+            "capacity exhausted: max conversations reached"
+        );
+    }
+
+    #[test]
+    fn test_capacity_exhausted_returns_429() {
+        let err = BridgeError::CapacityExhausted("max conversations".into());
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
     }
 }

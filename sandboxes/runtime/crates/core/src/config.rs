@@ -27,6 +27,61 @@ pub struct RuntimeConfig {
     /// webhooks to this URL, signed with the control plane API key.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<String>,
+
+    /// Maximum concurrent outbound LLM API calls across all agents.
+    /// Controls the global ceiling on simultaneous requests to LLM providers.
+    /// Default: 500 when not set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_concurrent_llm_calls: Option<usize>,
+
+    /// Webhook delivery configuration. Ignored when webhook_url is not set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_config: Option<WebhookConfig>,
+}
+
+/// Webhook delivery configuration for tuning throughput and resilience.
+///
+/// The internal queue is unbounded (zero data loss guarantee), so there is
+/// no channel capacity setting. Memory is the buffer — webhook payloads are
+/// ~1KB each so even 100K queued events is only ~100MB.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebhookConfig {
+    /// Max concurrent HTTP deliveries. Default: 50.
+    #[serde(default = "default_webhook_max_concurrent")]
+    pub max_concurrent_deliveries: usize,
+    /// Max idle HTTP connections per host. Default: 20.
+    #[serde(default = "default_webhook_max_idle")]
+    pub max_idle_connections: usize,
+    /// Delivery timeout in seconds. Default: 10.
+    #[serde(default = "default_webhook_delivery_timeout")]
+    pub delivery_timeout_secs: u64,
+    /// Max retry attempts. Default: 5.
+    #[serde(default = "default_webhook_max_retries")]
+    pub max_retries: usize,
+}
+
+impl Default for WebhookConfig {
+    fn default() -> Self {
+        Self {
+            max_concurrent_deliveries: default_webhook_max_concurrent(),
+            max_idle_connections: default_webhook_max_idle(),
+            delivery_timeout_secs: default_webhook_delivery_timeout(),
+            max_retries: default_webhook_max_retries(),
+        }
+    }
+}
+
+fn default_webhook_max_concurrent() -> usize {
+    50
+}
+fn default_webhook_max_idle() -> usize {
+    20
+}
+fn default_webhook_delivery_timeout() -> u64 {
+    10
+}
+fn default_webhook_max_retries() -> usize {
+    5
 }
 
 /// LSP configuration: either disabled entirely or per-server config map.
@@ -96,6 +151,8 @@ impl Default for RuntimeConfig {
             log_format: LogFormat::Text,
             lsp: None,
             webhook_url: None,
+            max_concurrent_llm_calls: None,
+            webhook_config: None,
         }
     }
 }
@@ -165,5 +222,76 @@ mod tests {
         let config: RuntimeConfig = serde_json::from_str(json).unwrap();
         let servers = config.lsp.unwrap().into_servers().unwrap();
         assert!(servers.contains_key("custom"));
+    }
+
+    // ── Fix #3/#5: New config fields tests ─────────────────────────────
+
+    #[test]
+    fn test_default_new_capacity_fields_are_none() {
+        let config = RuntimeConfig::default();
+        assert!(config.max_concurrent_llm_calls.is_none());
+        assert!(config.webhook_config.is_none());
+    }
+
+    #[test]
+    fn test_webhook_config_defaults() {
+        let config = WebhookConfig::default();
+        assert_eq!(config.max_concurrent_deliveries, 50);
+        assert_eq!(config.max_idle_connections, 20);
+        assert_eq!(config.delivery_timeout_secs, 10);
+        assert_eq!(config.max_retries, 5);
+    }
+
+    #[test]
+    fn test_webhook_config_serde_roundtrip() {
+        let config = WebhookConfig {
+            max_concurrent_deliveries: 100,
+            max_idle_connections: 10,
+            delivery_timeout_secs: 30,
+            max_retries: 3,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: WebhookConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.max_concurrent_deliveries, 100);
+        assert_eq!(deserialized.max_retries, 3);
+    }
+
+    #[test]
+    fn test_runtime_config_with_all_new_fields() {
+        let json = r#"{
+            "control_plane_url": "http://localhost",
+            "control_plane_api_key": "key",
+            "listen_addr": "0.0.0.0:8080",
+            "drain_timeout_secs": 60,
+            "log_level": "info",
+            "log_format": "text",
+            "max_concurrent_llm_calls": 200,
+            "webhook_config": {
+                "max_concurrent_deliveries": 25
+            }
+        }"#;
+        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.max_concurrent_llm_calls, Some(200));
+        let wh = config.webhook_config.unwrap();
+        assert_eq!(wh.max_concurrent_deliveries, 25);
+        // Defaults for unset fields
+        assert_eq!(wh.max_idle_connections, 20);
+        assert_eq!(wh.max_retries, 5);
+    }
+
+    #[test]
+    fn test_runtime_config_backwards_compatible_without_new_fields() {
+        // Old configs without the new fields should still deserialize
+        let json = r#"{
+            "control_plane_url": "http://localhost",
+            "control_plane_api_key": "key",
+            "listen_addr": "0.0.0.0:8080",
+            "drain_timeout_secs": 60,
+            "log_level": "info",
+            "log_format": "text"
+        }"#;
+        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
+        assert!(config.max_concurrent_llm_calls.is_none());
+        assert!(config.webhook_config.is_none());
     }
 }

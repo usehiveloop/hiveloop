@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{
     AgentContext, AgentTaskHandle, AgentTaskNotification, AgentTaskResult, SubAgentRunner,
-    AGENT_CONTEXT,
+    TaskBudget, AGENT_CONTEXT,
 };
 use tools::join::TaskRegistry;
 use tracing::debug;
@@ -26,9 +26,13 @@ pub struct SubAgentEntry {
 
 /// Session store for subagent history persistence and resumption.
 ///
-/// Keyed by task_id, stores the conversation history for each subagent session.
+/// Uses a primary store (task_id -> history) and a secondary index
+/// (conversation_id -> task_ids) for O(k) cleanup instead of O(n) scans.
 pub struct AgentSessionStore {
+    /// Primary store: task_id -> history
     sessions: DashMap<String, Vec<rig::message::Message>>,
+    /// Secondary index: conversation_id prefix -> set of task_ids
+    conv_index: DashMap<String, Vec<String>>,
 }
 
 impl Default for AgentSessionStore {
@@ -41,6 +45,7 @@ impl AgentSessionStore {
     pub fn new() -> Self {
         Self {
             sessions: DashMap::new(),
+            conv_index: DashMap::new(),
         }
     }
 
@@ -54,11 +59,30 @@ impl AgentSessionStore {
 
     /// Save history for a task_id.
     pub fn save(&self, task_id: String, history: Vec<rig::message::Message>) {
+        // Maintain secondary index: extract conversation_id from task_id
+        if let Some(conv_id) = extract_conversation_id(&task_id) {
+            self.conv_index
+                .entry(conv_id)
+                .or_default()
+                .push(task_id.clone());
+        }
         self.sessions.insert(task_id, history);
     }
 
-    /// Remove all sessions with keys starting with the given prefix.
+    /// Remove all sessions belonging to a conversation.
+    ///
+    /// Uses the secondary index for O(k) removal where k is the number of
+    /// sessions for this conversation, instead of scanning all entries.
     pub fn remove_by_prefix(&self, prefix: &str) {
+        // Fast path: use the index
+        if let Some((_, task_ids)) = self.conv_index.remove(prefix) {
+            for task_id in &task_ids {
+                self.sessions.remove(task_id);
+            }
+            return;
+        }
+
+        // Fallback: prefix scan (for task_ids that predate the index)
         let keys_to_remove: Vec<String> = self
             .sessions
             .iter()
@@ -68,6 +92,28 @@ impl AgentSessionStore {
         for key in keys_to_remove {
             self.sessions.remove(&key);
         }
+    }
+
+    /// Returns the number of stored sessions.
+    pub fn len(&self) -> usize {
+        self.sessions.len()
+    }
+
+    /// Returns true if the store is empty.
+    pub fn is_empty(&self) -> bool {
+        self.sessions.is_empty()
+    }
+}
+
+/// Extract the conversation ID (first UUID) from a task_id of the form
+/// "{conv_uuid}-{task_uuid}". Returns None if the format doesn't match.
+fn extract_conversation_id(task_id: &str) -> Option<String> {
+    // UUID v4 is 36 chars: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    // Task IDs are formatted as: "{conv_id}-{uuid}" (see generate_task_id)
+    if task_id.len() > 37 && task_id.as_bytes().get(36) == Some(&b'-') {
+        Some(task_id[..36].to_string())
+    } else {
+        None
     }
 }
 
@@ -83,6 +129,7 @@ pub struct ConversationSubAgentRunner {
     max_depth: usize,
     compaction_config: Option<bridge_core::agent::CompactionConfig>,
     task_registry: Option<Arc<TaskRegistry>>,
+    task_budget: Arc<TaskBudget>,
 }
 
 impl ConversationSubAgentRunner {
@@ -108,6 +155,7 @@ impl ConversationSubAgentRunner {
             max_depth,
             compaction_config: None,
             task_registry: None,
+            task_budget: Arc::new(TaskBudget::new(50)),
         }
     }
 
@@ -120,6 +168,12 @@ impl ConversationSubAgentRunner {
     /// Set the task registry for tracking background subagent tasks.
     pub fn with_task_registry(mut self, registry: Arc<TaskRegistry>) -> Self {
         self.task_registry = Some(registry);
+        self
+    }
+
+    /// Set the task budget for limiting subagent spawning.
+    pub fn with_task_budget(mut self, budget: Arc<TaskBudget>) -> Self {
+        self.task_budget = budget;
         self
     }
 
@@ -246,6 +300,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let depth = self.depth;
         let max_depth = self.max_depth;
         let task_registry = self.task_registry.clone();
+        let task_budget = self.task_budget.clone();
 
         tokio::spawn(async move {
             let emitter_conv_id = conversation_id.clone();
@@ -273,7 +328,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                         nested_runner.depth,
                         nested_runner.max_depth,
                     )
-                    .with_task_registry(registry),
+                    .with_task_registry(registry)
+                    .with_task_budget(task_budget.clone()),
                 )
             } else {
                 nested_runner
@@ -284,6 +340,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 task_registry: task_registry.clone(),
                 depth: depth + 1,
                 max_depth,
+                task_budget,
             };
 
             let mut history = history;
@@ -389,5 +446,81 @@ mod tests {
         assert!(store.get_or_create("conv-123-task-1").is_empty());
         assert!(store.get_or_create("conv-123-task-2").is_empty());
         assert_eq!(store.get_or_create("conv-456-task-1").len(), 1);
+    }
+
+    // ── Fix #6: Indexed session store tests ────────────────────────────
+
+    #[test]
+    fn test_session_store_indexed_removal_with_uuid_keys() {
+        let store = AgentSessionStore::new();
+        // Use realistic UUID-format task_ids: "{conv_uuid}-{task_uuid}"
+        let conv_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+        let task1 = format!("{}-{}", conv_id, "11111111-1111-1111-1111-111111111111");
+        let task2 = format!("{}-{}", conv_id, "22222222-2222-2222-2222-222222222222");
+        let other = format!(
+            "{}-{}",
+            "ffffffff-ffff-ffff-ffff-ffffffffffff",
+            "33333333-3333-3333-3333-333333333333"
+        );
+
+        store.save(task1.clone(), vec![rig::message::Message::user("a")]);
+        store.save(task2.clone(), vec![rig::message::Message::user("b")]);
+        store.save(other.clone(), vec![rig::message::Message::user("c")]);
+
+        assert_eq!(store.len(), 3);
+
+        // Remove by conversation prefix (UUID = 36 chars)
+        store.remove_by_prefix(conv_id);
+
+        assert!(store.get_or_create(&task1).is_empty());
+        assert!(store.get_or_create(&task2).is_empty());
+        assert_eq!(store.get_or_create(&other).len(), 1);
+        assert_eq!(store.len(), 1);
+    }
+
+    #[test]
+    fn test_session_store_len_and_is_empty() {
+        let store = AgentSessionStore::new();
+        assert!(store.is_empty());
+        assert_eq!(store.len(), 0);
+
+        store.save("task-1".to_string(), vec![]);
+        assert!(!store.is_empty());
+        assert_eq!(store.len(), 1);
+    }
+
+    #[test]
+    fn test_extract_conversation_id_valid() {
+        // UUID is 36 chars: 8-4-4-4-12
+        let conv_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+        let task_uuid = "11111111-1111-1111-1111-111111111111";
+        let task_id = format!("{}-{}", conv_id, task_uuid);
+        let result = extract_conversation_id(&task_id);
+        assert_eq!(result, Some(conv_id.to_string()));
+    }
+
+    #[test]
+    fn test_extract_conversation_id_too_short() {
+        assert_eq!(extract_conversation_id("short"), None);
+        assert_eq!(extract_conversation_id(""), None);
+    }
+
+    #[test]
+    fn test_session_store_fallback_for_non_uuid_keys() {
+        let store = AgentSessionStore::new();
+        // Non-UUID keys that won't match the index — should still be cleaned up via fallback
+        store.save(
+            "myprefix-task-1".to_string(),
+            vec![rig::message::Message::user("a")],
+        );
+        store.save(
+            "myprefix-task-2".to_string(),
+            vec![rig::message::Message::user("b")],
+        );
+
+        store.remove_by_prefix("myprefix");
+
+        assert!(store.get_or_create("myprefix-task-1").is_empty());
+        assert!(store.get_or_create("myprefix-task-2").is_empty());
     }
 }

@@ -934,7 +934,8 @@ mod tests {
     async fn test_emitter_intercepts_bash_background() {
         use std::sync::Arc;
         use tools::agent::{
-            AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, AGENT_CONTEXT,
+            AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, TaskBudget,
+            AGENT_CONTEXT,
         };
 
         struct MockRunner;
@@ -969,6 +970,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let (sse_tx, mut sse_rx) = mpsc::channel(16);
@@ -1074,7 +1076,8 @@ mod tests {
     async fn test_emitter_intercepts_agent_tool() {
         use std::sync::Arc;
         use tools::agent::{
-            AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, AGENT_CONTEXT,
+            AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, TaskBudget,
+            AGENT_CONTEXT,
         };
 
         struct MockRunner;
@@ -1114,6 +1117,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let (sse_tx, mut sse_rx) = mpsc::channel(16);

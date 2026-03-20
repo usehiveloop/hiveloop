@@ -136,6 +136,43 @@ impl TaskRegistry {
             .filter_map(|id| self.completed.get(id).map(|r| r.clone()))
             .collect()
     }
+
+    /// Clean up all tasks (pending + completed) belonging to a conversation.
+    ///
+    /// Removes entries whose task_id starts with `conv_prefix`, preventing
+    /// unbounded growth of the completed-task map over the process lifetime.
+    pub fn cleanup_conversation(&self, conv_prefix: &str) {
+        let completed_keys: Vec<String> = self
+            .completed
+            .iter()
+            .filter(|e| e.key().starts_with(conv_prefix))
+            .map(|e| e.key().clone())
+            .collect();
+        for key in completed_keys {
+            self.completed.remove(&key);
+        }
+
+        let pending_keys: Vec<String> = self
+            .pending
+            .iter()
+            .filter(|e| e.key().starts_with(conv_prefix))
+            .map(|e| e.key().clone())
+            .collect();
+        for key in pending_keys {
+            // Drop the senders — waiters will get RecvError
+            self.pending.remove(&key);
+        }
+    }
+
+    /// Returns the total number of completed tasks stored.
+    pub fn completed_count(&self) -> usize {
+        self.completed.len()
+    }
+
+    /// Returns the total number of pending tasks.
+    pub fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
 }
 
 impl Default for TaskRegistry {
@@ -337,5 +374,62 @@ mod tests {
         assert_eq!(parsed.succeeded, 1);
         assert!(parsed.all_succeeded);
         assert_eq!(parsed.completed[0].output, Some("done".to_string()));
+    }
+
+    // ── Fix #6: TaskRegistry cleanup tests ─────────────────────────────
+
+    #[test]
+    fn test_registry_cleanup_conversation_removes_completed() {
+        let registry = TaskRegistry::new();
+        registry.complete("conv-abc-task-1".to_string(), Ok("out1".to_string()));
+        registry.complete("conv-abc-task-2".to_string(), Ok("out2".to_string()));
+        registry.complete("conv-xyz-task-1".to_string(), Ok("other".to_string()));
+
+        assert_eq!(registry.completed_count(), 3);
+
+        registry.cleanup_conversation("conv-abc");
+
+        assert_eq!(registry.completed_count(), 1);
+        assert!(registry.is_completed("conv-abc-task-1").is_none());
+        assert!(registry.is_completed("conv-abc-task-2").is_none());
+        assert!(registry.is_completed("conv-xyz-task-1").is_some());
+    }
+
+    #[test]
+    fn test_registry_cleanup_conversation_removes_pending() {
+        let registry = TaskRegistry::new();
+        // Register pending tasks
+        let _rx1 = registry.register("conv-abc-task-1".to_string());
+        let _rx2 = registry.register("conv-abc-task-2".to_string());
+        let _rx3 = registry.register("conv-xyz-task-1".to_string());
+
+        assert_eq!(registry.pending_count(), 3);
+
+        registry.cleanup_conversation("conv-abc");
+
+        assert_eq!(registry.pending_count(), 1);
+    }
+
+    #[test]
+    fn test_registry_cleanup_nonexistent_prefix_is_noop() {
+        let registry = TaskRegistry::new();
+        registry.complete("task-1".to_string(), Ok("out".to_string()));
+
+        registry.cleanup_conversation("nonexistent");
+
+        assert_eq!(registry.completed_count(), 1);
+    }
+
+    #[test]
+    fn test_registry_completed_and_pending_counts() {
+        let registry = TaskRegistry::new();
+        assert_eq!(registry.completed_count(), 0);
+        assert_eq!(registry.pending_count(), 0);
+
+        registry.complete("t1".to_string(), Ok("done".to_string()));
+        let _rx = registry.register("t2".to_string());
+
+        assert_eq!(registry.completed_count(), 1);
+        assert_eq!(registry.pending_count(), 1);
     }
 }

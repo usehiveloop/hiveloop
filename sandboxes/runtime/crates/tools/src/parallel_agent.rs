@@ -132,6 +132,9 @@ impl ToolExecutor for ParallelAgentTool {
             .try_with(|c| c.clone())
             .map_err(|_| "Parallel agent tool requires a conversation context".to_string())?;
 
+        // Check task budget — acquire slots for the entire batch upfront
+        ctx.task_budget.try_acquire_many(args.tasks.len())?;
+
         // Check depth limit
         if ctx.depth >= ctx.max_depth {
             return Err(format!(
@@ -253,7 +256,7 @@ impl ToolExecutor for ParallelAgentTool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::{AgentContext, AgentTaskHandle, SubAgentRunner};
+    use crate::agent::{AgentContext, AgentTaskHandle, SubAgentRunner, TaskBudget};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
     use tokio::sync::mpsc;
@@ -315,6 +318,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         }
     }
 
@@ -439,6 +443,7 @@ mod tests {
             task_registry: None,
             depth: 3, // At max depth
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = ParallelAgentTool::new();
@@ -504,6 +509,7 @@ mod tests {
             task_registry: None,
             depth: 0,
             max_depth: 3,
+            task_budget: Arc::new(TaskBudget::new(50)),
         };
 
         let tool = ParallelAgentTool::new();

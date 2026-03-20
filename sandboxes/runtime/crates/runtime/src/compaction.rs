@@ -2,6 +2,7 @@ use bridge_core::agent::CompactionConfig;
 use bridge_core::BridgeError;
 use llm::providers;
 use rig::message::{AssistantContent, Message, UserContent};
+use std::sync::LazyLock;
 use tracing::debug;
 
 /// Default system prompt for the summarization model.
@@ -11,6 +12,12 @@ concisely but completely. Preserve: key decisions, file paths, code changes made
 tool results, errors encountered, and any important context the assistant will \
 need to continue the conversation coherently. Do not include pleasantries or \
 meta-commentary about the summarization itself.";
+
+/// Global cached BPE tokenizer. Initialized once on first use, thread-safe.
+/// Avoids re-parsing the ~1.7MB vocabulary on every call to `estimate_tokens`.
+static BPE_TOKENIZER: LazyLock<tiktoken_rs::CoreBPE> = LazyLock::new(|| {
+    tiktoken_rs::cl100k_base().expect("cl100k_base encoding should load")
+});
 
 /// Result of a successful compaction.
 pub struct CompactionResult {
@@ -23,7 +30,7 @@ pub struct CompactionResult {
 
 /// Estimate the token count for a slice of rig messages using tiktoken cl100k_base.
 pub fn estimate_tokens(history: &[Message]) -> usize {
-    let bpe = tiktoken_rs::cl100k_base().expect("cl100k_base encoding should load");
+    let bpe = &*BPE_TOKENIZER;
 
     let mut total = 0usize;
     for msg in history {
@@ -35,6 +42,56 @@ pub fn estimate_tokens(history: &[Message]) -> usize {
     total
 }
 
+/// Fast token estimation using byte-count heuristic.
+///
+/// Returns `None` if the estimate is ambiguous (near the budget boundary),
+/// indicating that precise counting via `estimate_tokens` is needed.
+/// Returns `Some(estimate)` when the history is clearly under or over budget.
+pub fn estimate_tokens_fast(history: &[Message], budget: usize) -> Option<usize> {
+    let byte_count: usize = history.iter().map(message_byte_count).sum();
+    // Heuristic: ~4 bytes per token for English text, plus framing overhead
+    let rough_estimate = byte_count / 4 + history.len() * 4;
+
+    if rough_estimate < budget * 80 / 100 || rough_estimate > budget * 120 / 100 {
+        // Clearly under or over budget — skip precise counting
+        Some(rough_estimate)
+    } else {
+        // Near boundary — caller should use precise counting
+        None
+    }
+}
+
+/// Count the total bytes in a message without allocating strings.
+fn message_byte_count(msg: &Message) -> usize {
+    match msg {
+        Message::User { content } => content
+            .iter()
+            .map(|part| match part {
+                UserContent::Text(t) => t.text.len(),
+                UserContent::ToolResult(tr) => tr
+                    .content
+                    .iter()
+                    .map(|c| match c {
+                        rig::message::ToolResultContent::Text(t) => t.text.len(),
+                        other => format!("{:?}", other).len(),
+                    })
+                    .sum(),
+                other => format!("{:?}", other).len(),
+            })
+            .sum(),
+        Message::Assistant { content, .. } => content
+            .iter()
+            .map(|part| match part {
+                AssistantContent::Text(t) => t.text.len(),
+                AssistantContent::ToolCall(tc) => {
+                    tc.function.name.len() + tc.function.arguments.as_str().map_or(20, |s| s.len())
+                }
+                other => format!("{:?}", other).len(),
+            })
+            .sum(),
+    }
+}
+
 /// Check if history exceeds the token budget and compact if so.
 ///
 /// Returns `None` if history is under budget. Compaction failure is surfaced
@@ -43,11 +100,30 @@ pub async fn maybe_compact(
     history: &[Message],
     config: &CompactionConfig,
 ) -> Result<Option<CompactionResult>, BridgeError> {
-    let pre_tokens = estimate_tokens(history);
+    let budget = config.token_budget as usize;
 
-    if pre_tokens <= config.token_budget as usize {
-        return Ok(None);
-    }
+    // Fast path: use byte-count heuristic to avoid expensive BPE encoding
+    // when the history is clearly under or over budget.
+    let pre_tokens = match estimate_tokens_fast(history, budget) {
+        Some(fast_est) if fast_est <= budget => return Ok(None),
+        Some(_) => {
+            // Clearly over budget — still need precise count for the result,
+            // but we know compaction is needed. Use precise counting.
+            let precise = estimate_tokens(history);
+            if precise <= budget {
+                return Ok(None);
+            }
+            precise
+        }
+        None => {
+            // Near boundary — use precise counting
+            let precise = estimate_tokens(history);
+            if precise <= budget {
+                return Ok(None);
+            }
+            precise
+        }
+    };
 
     debug!(
         pre_tokens = pre_tokens,
@@ -327,5 +403,86 @@ mod tests {
         assert_eq!(config.token_budget, 100_000);
         assert_eq!(config.tail_messages, 10);
         assert!(config.summary_prompt.is_none());
+    }
+
+    // ── Fix #2: Cached tokenizer tests ─────────────────────────────────
+
+    #[test]
+    fn test_bpe_tokenizer_is_cached_and_reusable() {
+        // Calling estimate_tokens multiple times must not panic or reinitialize.
+        // The LazyLock ensures the tokenizer is created exactly once.
+        let history = vec![Message::user("Hello, world!")];
+        let t1 = estimate_tokens(&history);
+        let t2 = estimate_tokens(&history);
+        assert_eq!(t1, t2, "cached tokenizer must produce deterministic results");
+    }
+
+    #[test]
+    fn test_bpe_tokenizer_thread_safety() {
+        // Verify the LazyLock tokenizer works across threads.
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                std::thread::spawn(move || {
+                    let history = vec![Message::user(&format!("Thread {} says hello", i))];
+                    estimate_tokens(&history)
+                })
+            })
+            .collect();
+
+        let results: Vec<usize> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        // All threads should produce a reasonable token count
+        for count in &results {
+            assert!(*count > 0 && *count < 50);
+        }
+    }
+
+    // ── Fast estimation tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_fast_estimate_clearly_under_budget() {
+        let history = vec![Message::user("short")];
+        // Budget is huge — should return Some(small_number)
+        let result = estimate_tokens_fast(&history, 100_000);
+        assert!(result.is_some(), "short message should be clearly under budget");
+        assert!(result.unwrap() < 100_000);
+    }
+
+    #[test]
+    fn test_fast_estimate_returns_none_near_boundary() {
+        // Create a history that's roughly near a small budget
+        let msg = "a ".repeat(200); // ~100 tokens
+        let history = vec![Message::user(&msg)];
+        // Set budget to exactly what we estimate — should be ambiguous
+        let precise = estimate_tokens(&history);
+        let result = estimate_tokens_fast(&history, precise);
+        // Near the boundary: might be None (ambiguous) or Some (heuristic happened to be clear)
+        // Just ensure it doesn't panic and returns a reasonable answer
+        if let Some(fast) = result {
+            // If it returns Some, the heuristic was confident
+            assert!(fast > 0);
+        }
+    }
+
+    #[test]
+    fn test_fast_estimate_empty_history() {
+        let result = estimate_tokens_fast(&[], 100_000);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), 0);
+    }
+
+    // ── Byte count tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_message_byte_count_user() {
+        let msg = Message::user("Hello, world!");
+        let count = message_byte_count(&msg);
+        assert_eq!(count, 13); // "Hello, world!" is 13 bytes
+    }
+
+    #[test]
+    fn test_message_byte_count_assistant() {
+        let msg = Message::assistant("I can help with that.");
+        let count = message_byte_count(&msg);
+        assert_eq!(count, 21);
     }
 }

@@ -88,6 +88,16 @@ pub struct AgentConfig {
     /// Conversation compaction configuration
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compaction: Option<CompactionConfig>,
+
+    /// Maximum total subagent tasks per conversation. Limits resource consumption
+    /// from recursive/parallel subagent spawning. Default: 50.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tasks_per_conversation: Option<u32>,
+
+    /// Maximum concurrent conversations for this specific agent.
+    /// Takes precedence over the global max_concurrent_conversations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_concurrent_conversations: Option<u32>,
 }
 
 /// Configuration for conversation compaction (history summarization).
