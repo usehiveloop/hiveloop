@@ -264,6 +264,7 @@ func run() error {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("credentials"))
 					r.Post("/credentials", credHandler.Create)
 					r.Get("/credentials", credHandler.List)
+					r.Get("/credentials/{id}", credHandler.Get)
 					r.Delete("/credentials/{id}", credHandler.Revoke)
 				})
 
@@ -308,6 +309,7 @@ func run() error {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
 					r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
 					r.Get("/connections/{id}", connectionHandler.Get)
+					r.Post("/connections/{id}/token", connectionHandler.RetrieveToken)
 					r.Delete("/connections/{id}", connectionHandler.Revoke)
 				})
 

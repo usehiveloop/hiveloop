@@ -346,6 +346,80 @@ func (h *CredentialHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// Get handles GET /v1/credentials/{id}.
+// @Summary Get a credential
+// @Description Returns a single credential by ID with usage stats.
+// @Tags credentials
+// @Produce json
+// @Param id path string true "Credential ID"
+// @Success 200 {object} credentialResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/credentials/{id} [get]
+func (h *CredentialHandler) Get(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	credID := chi.URLParam(r, "id")
+	if credID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential id required"})
+		return
+	}
+
+	var cred model.Credential
+	if err := h.db.Where("id = ? AND org_id = ?", credID, org.ID).First(&cred).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "credential not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get credential"})
+		return
+	}
+
+	resp := credentialResponse{
+		ID:             cred.ID.String(),
+		Label:          cred.Label,
+		BaseURL:        cred.BaseURL,
+		AuthScheme:     cred.AuthScheme,
+		ProviderID:     cred.ProviderID,
+		Remaining:      cred.Remaining,
+		RefillAmount:   cred.RefillAmount,
+		RefillInterval: cred.RefillInterval,
+		Meta:           cred.Meta,
+		CreatedAt:      cred.CreatedAt.Format(time.RFC3339),
+	}
+	if cred.IdentityID != nil {
+		s := cred.IdentityID.String()
+		resp.IdentityID = &s
+	}
+	if cred.RevokedAt != nil {
+		s := cred.RevokedAt.Format(time.RFC3339)
+		resp.RevokedAt = &s
+	}
+
+	// Fetch usage stats from audit_log
+	var stats struct {
+		RequestCount int64      `gorm:"column:request_count"`
+		LastUsedAt   *time.Time `gorm:"column:last_used_at"`
+	}
+	h.db.Raw(`SELECT COUNT(*) AS request_count, MAX(created_at) AS last_used_at
+		FROM audit_log
+		WHERE org_id = ? AND action = 'proxy.request' AND credential_id = ?`, org.ID, cred.ID).Scan(&stats)
+	resp.RequestCount = stats.RequestCount
+	if stats.LastUsedAt != nil {
+		s := stats.LastUsedAt.Format(time.RFC3339)
+		resp.LastUsedAt = &s
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
 // Revoke handles DELETE /v1/credentials/{id}.
 // @Summary Revoke a credential
 // @Description Soft-deletes a credential by setting its revoked_at timestamp.

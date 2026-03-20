@@ -562,6 +562,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/{id}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retrieve connection token
+         * @description Fetches the current OAuth access token for a connection from the upstream provider.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["tokenResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/credentials": {
         parameters: {
             query?: never;
@@ -710,7 +788,69 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get a credential
+         * @description Returns a single credential by ID with usage stats.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["credentialResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         /**
@@ -1538,6 +1678,60 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/integrations/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List actions for an integration
+         * @description Returns all actions for a single integration, optionally filtered by access type.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by access type (read or write) */
+                    access?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Provider ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["actionSummary"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3251,6 +3445,14 @@ export interface components {
         "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
             resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
         };
+        actionSummary: {
+            access?: string;
+            description?: string;
+            display_name?: string;
+            key?: string;
+            parameters?: number[];
+            resource_type?: string;
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -3454,6 +3656,14 @@ export interface components {
             revoked_at?: string;
             updated_at?: string;
         };
+        integrationDetail: {
+            actions?: components["schemas"]["actionSummary"][];
+            display_name?: string;
+            id?: string;
+            resources?: {
+                [key: string]: components["schemas"]["resource"];
+            };
+        };
         integrationProviderInfo: {
             auth_mode?: string;
             display_name?: string;
@@ -3469,6 +3679,14 @@ export interface components {
             provider?: string;
             unique_key?: string;
             updated_at?: string;
+        };
+        integrationSummary: {
+            action_count?: number;
+            display_name?: string;
+            has_resources?: boolean;
+            id?: string;
+            read_count?: number;
+            write_count?: number;
         };
         mintTokenRequest: {
             credential_id?: string;
@@ -3570,6 +3788,13 @@ export interface components {
             total?: number;
             yesterday?: number;
         };
+        resource: {
+            description?: string;
+            display_name?: string;
+            icon?: string;
+            id_field?: string;
+            name_field?: string;
+        };
         sessionInfoResponse: {
             activated_at?: string;
             allowed_integrations?: string[];
@@ -3578,6 +3803,13 @@ export interface components {
             id?: string;
             identity_id?: string;
             permissions?: string[];
+        };
+        tokenResponse: {
+            access_token?: string;
+            connection_id?: string;
+            expires_at?: string;
+            provider?: string;
+            token_type?: string;
         };
         tokenStats: {
             active?: number;

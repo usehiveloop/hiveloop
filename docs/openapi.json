@@ -589,6 +589,83 @@
         }
       }
     },
+    "/v1/connections/{id}/token": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Fetches the current OAuth access token for a connection from the upstream provider.",
+        "tags": [
+          "connections"
+        ],
+        "summary": "Retrieve connection token",
+        "parameters": [
+          {
+            "description": "Connection ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/credentials": {
       "get": {
         "security": [
@@ -763,6 +840,81 @@
       }
     },
     "/v1/credentials/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns a single credential by ID with usage stats.",
+        "tags": [
+          "credentials"
+        ],
+        "summary": "Get a credential",
+        "parameters": [
+          {
+            "description": "Credential ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/credentialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "security": [
           {
@@ -1699,6 +1851,59 @@
           },
           "502": {
             "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/integrations/{id}/actions": {
+      "get": {
+        "description": "Returns all actions for a single integration, optionally filtered by access type.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List actions for an integration",
+        "parameters": [
+          {
+            "description": "Provider ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by access type (read or write)",
+            "name": "access",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/actionSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3514,6 +3719,32 @@
           }
         }
       },
+      "actionSummary": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "resource_type": {
+            "type": "string"
+          }
+        }
+      },
       "apiKeyResponse": {
         "type": "object",
         "properties": {
@@ -4130,6 +4361,29 @@
           }
         }
       },
+      "integrationDetail": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/actionSummary"
+            }
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/resource"
+            }
+          }
+        }
+      },
       "integrationProviderInfo": {
         "type": "object",
         "properties": {
@@ -4173,6 +4427,29 @@
           },
           "updated_at": {
             "type": "string"
+          }
+        }
+      },
+      "integrationSummary": {
+        "type": "object",
+        "properties": {
+          "action_count": {
+            "type": "integer"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "has_resources": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "read_count": {
+            "type": "integer"
+          },
+          "write_count": {
+            "type": "integer"
           }
         }
       },
@@ -4486,6 +4763,26 @@
           }
         }
       },
+      "resource": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "id_field": {
+            "type": "string"
+          },
+          "name_field": {
+            "type": "string"
+          }
+        }
+      },
       "sessionInfoResponse": {
         "type": "object",
         "properties": {
@@ -4515,6 +4812,26 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "tokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
           }
         }
       },

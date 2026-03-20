@@ -3,14 +3,17 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, KeyRound, ArrowRight } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatusBadge, type Status } from "@/components/status-badge";
 import { ProviderBadge } from "@/components/provider-badge";
 import { RemainingBar, RemainingBarCompact } from "@/components/remaining-bar";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { $api } from "@/api/client";
+import { CreateCredentialDialog } from "./create-credential-dialog";
 import type { components } from "@/api/schema";
 
 type CredentialResponse = components["schemas"]["credentialResponse"];
@@ -151,7 +154,9 @@ function CredentialMobileCard({ cred }: { cred: CredentialRow }) {
 }
 
 export default function CredentialsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [modal, setModal] = useState<"closed" | "create">("closed");
   const [cursors, setCursors] = useState<string[]>([]);
   const currentCursor = cursors[cursors.length - 1];
 
@@ -203,7 +208,7 @@ export default function CredentialsPage() {
               className="w-60 pl-9 font-mono text-[13px]"
             />
           </div>
-          <Button size="lg">New Credential</Button>
+          <Button size="lg" onClick={() => setModal("create")}>New Credential</Button>
         </div>
       </header>
 
@@ -238,7 +243,7 @@ export default function CredentialsPage() {
                   Store and manage API keys for LLM providers. Credentials are encrypted at rest and proxied securely.
                 </span>
               </div>
-              <Button size="lg">
+              <Button size="lg" onClick={() => setModal("create")}>
                 New Credential
                 <ArrowRight className="ml-1.5 size-3.5" />
               </Button>
@@ -291,6 +296,20 @@ export default function CredentialsPage() {
           </div>
         )}
       </section>
+
+      {/* Create credential dialog */}
+      <Dialog
+        open={modal === "create"}
+        onOpenChange={(open) => !open && setModal("closed")}
+      >
+        <CreateCredentialDialog
+          onCancel={() => setModal("closed")}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["get", "/v1/credentials"] });
+            setModal("closed");
+          }}
+        />
+      </Dialog>
     </>
   );
 }

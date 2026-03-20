@@ -340,6 +340,95 @@ func (h *ConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
+// tokenResponse is the filtered token returned from Nango.
+type tokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type,omitempty"`
+	ExpiresAt    string `json:"expires_at,omitempty"`
+	Provider     string `json:"provider"`
+	ConnectionID string `json:"connection_id"`
+}
+
+// RetrieveToken handles POST /v1/connections/{id}/token.
+//
+// @Summary Retrieve connection token
+// @Description Fetches the current OAuth access token for a connection from the upstream provider.
+// @Tags connections
+// @Produce json
+// @Param id path string true "Connection ID"
+// @Success 200 {object} tokenResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 502 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/connections/{id}/token [post]
+func (h *ConnectionHandler) RetrieveToken(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	connID := chi.URLParam(r, "id")
+	if connID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "connection id required"})
+		return
+	}
+
+	var conn model.Connection
+	if err := h.db.Preload("Integration").
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
+		First(&conn).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get connection"})
+		return
+	}
+
+	// Token retrieval is currently limited to GitHub App connections.
+	if conn.Integration.Provider != "github-app" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": fmt.Sprintf("token retrieval is not supported for provider %q; only github-app is supported", conn.Integration.Provider),
+		})
+		return
+	}
+
+	nangoKey := fmt.Sprintf("%s_%s", org.ID.String(), conn.Integration.UniqueKey)
+	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nangoKey)
+	if err != nil {
+		slog.Error("nango: get connection failed",
+			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to retrieve token from provider"})
+		return
+	}
+
+	creds, _ := nangoResp["credentials"].(map[string]any)
+	if creds == nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "no credentials in provider response"})
+		return
+	}
+
+	accessToken, _ := creds["access_token"].(string)
+	if accessToken == "" {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "no access token available for this connection"})
+		return
+	}
+
+	tokenType, _ := creds["type"].(string)
+	expiresAt, _ := creds["expires_at"].(string)
+
+	writeJSON(w, http.StatusOK, tokenResponse{
+		AccessToken:  accessToken,
+		TokenType:    tokenType,
+		ExpiresAt:    expiresAt,
+		Provider:     conn.Integration.Provider,
+		ConnectionID: conn.ID.String(),
+	})
+}
+
 // availableScopeAction describes a single action available on a connection.
 type availableScopeAction struct {
 	Key          string `json:"key"`

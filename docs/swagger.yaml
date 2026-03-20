@@ -90,6 +90,23 @@ definitions:
           $ref: '#/definitions/github_com_llmvault_llmvault_internal_resources.AvailableResource'
         type: array
     type: object
+  internal_handler.actionSummary:
+    properties:
+      access:
+        type: string
+      description:
+        type: string
+      display_name:
+        type: string
+      key:
+        type: string
+      parameters:
+        items:
+          type: integer
+        type: array
+      resource_type:
+        type: string
+    type: object
   internal_handler.apiKeyResponse:
     properties:
       created_at:
@@ -491,6 +508,21 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_handler.integrationDetail:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/internal_handler.actionSummary'
+        type: array
+      display_name:
+        type: string
+      id:
+        type: string
+      resources:
+        additionalProperties:
+          $ref: '#/definitions/internal_handler.resource'
+        type: object
+    type: object
   internal_handler.integrationProviderInfo:
     properties:
       auth_mode:
@@ -520,6 +552,21 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  internal_handler.integrationSummary:
+    properties:
+      action_count:
+        type: integer
+      display_name:
+        type: string
+      has_resources:
+        type: boolean
+      id:
+        type: string
+      read_count:
+        type: integer
+      write_count:
+        type: integer
     type: object
   internal_handler.mintTokenRequest:
     properties:
@@ -723,6 +770,19 @@ definitions:
       yesterday:
         type: integer
     type: object
+  internal_handler.resource:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      icon:
+        type: string
+      id_field:
+        type: string
+      name_field:
+        type: string
+    type: object
   internal_handler.sessionInfoResponse:
     properties:
       activated_at:
@@ -743,6 +803,19 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  internal_handler.tokenResponse:
+    properties:
+      access_token:
+        type: string
+      connection_id:
+        type: string
+      expires_at:
+        type: string
+      provider:
+        type: string
+      token_type:
+        type: string
     type: object
   internal_handler.tokenStats:
     properties:
@@ -1120,6 +1193,44 @@ paths:
       summary: Get a connection
       tags:
       - connections
+  /v1/connections/{id}/token:
+    post:
+      description: Fetches the current OAuth access token for a connection from the
+        upstream provider.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.tokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Retrieve connection token
+      tags:
+      - connections
   /v1/connections/available-scopes:
     get:
       description: Returns active connections enriched with their available actions
@@ -1269,6 +1380,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Revoke a credential
+      tags:
+      - credentials
+    get:
+      description: Returns a single credential by ID with usage stats.
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.credentialResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a credential
       tags:
       - credentials
   /v1/identities:
@@ -1686,6 +1833,36 @@ paths:
       security:
       - BearerAuth: []
       summary: Update an integration
+      tags:
+      - integrations
+  /v1/integrations/{id}/actions:
+    get:
+      description: Returns all actions for a single integration, optionally filtered
+        by access type.
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by access type (read or write)
+        in: query
+        name: access
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.actionSummary'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: List actions for an integration
       tags:
       - integrations
   /v1/integrations/{id}/connections:
