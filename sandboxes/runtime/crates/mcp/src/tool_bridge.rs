@@ -49,6 +49,10 @@ impl ToolExecutor for McpToolExecutor {
         // The LLM should receive just the tool output text, not protocol metadata.
         extract_text_from_mcp_result(&result)
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Bridge a list of MCP tools into ToolExecutor instances.

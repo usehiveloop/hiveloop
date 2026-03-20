@@ -7,7 +7,7 @@ extern crate strsim;
 
 /// Trait for executing tools. All built-in and MCP tools implement this.
 #[async_trait]
-pub trait ToolExecutor: Send + Sync {
+pub trait ToolExecutor: Send + Sync + Any {
     /// The unique name of this tool
     fn name(&self) -> &str;
     /// Human-readable description
@@ -16,7 +16,11 @@ pub trait ToolExecutor: Send + Sync {
     fn parameters_schema(&self) -> serde_json::Value;
     /// Execute the tool with the given arguments
     async fn execute(&self, args: serde_json::Value) -> Result<String, String>;
+    /// Return self as Any for downcasting
+    fn as_any(&self) -> &dyn Any;
 }
+
+use std::any::Any;
 
 /// Registry of available tools, combining built-in and MCP-discovered tools.
 pub struct ToolRegistry {
@@ -204,6 +208,9 @@ mod tests {
         }
         async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
             Ok("ok".to_string())
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
         }
     }
 

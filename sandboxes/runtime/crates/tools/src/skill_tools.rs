@@ -84,6 +84,10 @@ impl ToolExecutor for SkillTool {
             }
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -93,6 +93,11 @@ impl TodoWriteTool {
     pub fn with_state(state: TodoState) -> Self {
         Self { state }
     }
+
+    /// Get access to the todo state
+    pub fn state(&self) -> &TodoState {
+        &self.state
+    }
 }
 
 #[async_trait]
@@ -130,6 +135,10 @@ impl ToolExecutor for TodoWriteTool {
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Built-in tool that reads the current todo list (no parameters).
@@ -152,6 +161,11 @@ impl TodoReadTool {
 
     pub fn with_state(state: TodoState) -> Self {
         Self { state }
+    }
+
+    /// Get access to the todo state
+    pub fn state(&self) -> &TodoState {
+        &self.state
     }
 }
 
@@ -186,6 +200,10 @@ impl ToolExecutor for TodoReadTool {
         };
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

@@ -300,6 +300,9 @@ mod tests {
             let input = args.get("input").and_then(|v| v.as_str()).unwrap_or("none");
             Ok(format!("mock result: {}", input))
         }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
     }
 
     #[tokio::test]

@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
+use crate::join::TaskRegistry;
 use crate::ToolExecutor;
 
 /// Trait for running subagents. Defined in tools crate, implemented in runtime.
@@ -32,6 +33,7 @@ pub trait SubAgentRunner: Send + Sync {
 pub struct AgentContext {
     pub runner: Arc<dyn SubAgentRunner>,
     pub notification_tx: mpsc::Sender<AgentTaskNotification>,
+    pub task_registry: Option<Arc<TaskRegistry>>,
     pub depth: usize,
     pub max_depth: usize,
 }
@@ -202,6 +204,10 @@ impl ToolExecutor for AgentTool {
             ))
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
@@ -247,6 +253,7 @@ mod tests {
         AgentContext {
             runner: Arc::new(MockRunner { subagents }),
             notification_tx: tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         }
@@ -307,6 +314,7 @@ mod tests {
                 subagents: vec![("coder".to_string(), "A coding agent".to_string())],
             }),
             notification_tx: tx,
+            task_registry: None,
             depth: 3,
             max_depth: 3,
         };
@@ -423,6 +431,7 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(DelayedMockRunner),
             notification_tx: tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         };
@@ -494,6 +503,7 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(DelayedMockRunner),
             notification_tx: tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         };

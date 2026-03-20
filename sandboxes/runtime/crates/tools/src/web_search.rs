@@ -198,6 +198,10 @@ impl ToolExecutor for WebSearchTool {
 
         serde_json::to_string(&results).map_err(|e| format!("Failed to serialize results: {e}"))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]

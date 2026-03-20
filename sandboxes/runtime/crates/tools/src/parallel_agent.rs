@@ -244,6 +244,10 @@ impl ToolExecutor for ParallelAgentTool {
         serde_json::to_string_pretty(&parallel_result)
             .map_err(|e| format!("Failed to serialize result: {e}"))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
@@ -308,6 +312,7 @@ mod tests {
                 delay_ms,
             }),
             notification_tx: tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         }
@@ -431,6 +436,7 @@ mod tests {
                 delay_ms: 0,
             }),
             notification_tx: tx,
+            task_registry: None,
             depth: 3, // At max depth
             max_depth: 3,
         };
@@ -495,6 +501,7 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(FailingMockRunner),
             notification_tx: tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         };

@@ -111,6 +111,10 @@ impl ToolExecutor for IntegrationToolExecutor {
     async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
         self.execute_with_retry(args).await
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Create tool executors for all non-denied integration actions.

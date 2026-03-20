@@ -81,6 +81,17 @@ pub enum SseEvent {
     },
     /// The response stream is complete.
     Done,
+    /// A background task (bash or subagent) completed.
+    BackgroundTaskCompleted {
+        /// The task ID that completed.
+        task_id: String,
+        /// Description of the task.
+        description: String,
+        /// The result output (JSON string for bash, plain text for subagent).
+        output: String,
+        /// Whether the task failed.
+        is_error: bool,
+    },
 }
 
 /// A single todo item in the task list.
@@ -162,5 +173,21 @@ mod tests {
         let event = SseEvent::Done;
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("done"));
+    }
+
+    #[test]
+    fn test_background_task_completed_serialization() {
+        let event = SseEvent::BackgroundTaskCompleted {
+            task_id: "task-123".to_string(),
+            description: "Run backend tests".to_string(),
+            output: "test result: ok. 5 passed".to_string(),
+            is_error: false,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("background_task_completed"));
+        assert!(json.contains("task-123"));
+        assert!(json.contains("Run backend tests"));
+        assert!(json.contains("test result: ok"));
+        assert!(json.contains("\"is_error\":false"));
     }
 }

@@ -247,6 +247,7 @@ impl AgentSupervisor {
         let agent_context = AgentContext {
             runner,
             notification_tx,
+            task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
         };
@@ -270,8 +271,22 @@ impl AgentSupervisor {
         let skills = def.skills.clone();
         drop(def); // release read lock before spawning
 
-        // Build system reminder with available skills
-        let system_reminder = crate::system_reminder::create_reminder_with_skills(&skills);
+        // Check if todo tools are enabled
+        let has_todo_tools = tool_names.contains("todoread") && tool_names.contains("todowrite");
+
+        // Build system reminder with available skills and optionally todos
+        let system_reminder = if has_todo_tools {
+            // Try to get todo state from the tool registry
+            let todos = tokio::runtime::Handle::current()
+                .block_on(get_todos_from_registry(&tool_executors));
+            crate::system_reminder::create_reminder_with_skills_todos_and_date(
+                &skills,
+                todos.as_deref(),
+                chrono::Utc::now(),
+            )
+        } else {
+            crate::system_reminder::create_reminder_with_skills(&skills)
+        };
 
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
@@ -627,6 +642,7 @@ impl AgentSupervisor {
         let agent_context = AgentContext {
             runner,
             notification_tx,
+            task_registry: Some(state.task_registry.clone()),
             depth: 0,
             max_depth: 3,
         };
@@ -811,4 +827,48 @@ fn build_subagents(
     }
 
     Ok(subagent_map)
+}
+
+
+/// Helper function to get todos from the tool registry.
+/// Looks for the TodoReadTool and extracts its state.
+async fn get_todos_from_registry(
+    tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
+) -> Option<Vec<crate::system_reminder::TodoItem>> {
+    // Try to get the todoread tool to access its state
+    if let Some(todo_tool) = tool_executors.get("todoread") {
+        // Downcast to TodoReadTool to get the state
+        if let Some(todo_read_tool) = todo_tool.as_ref().as_any().downcast_ref::<tools::todo::TodoReadTool>() {
+            let todos = todo_read_tool.state().get().await;
+            return Some(
+                todos
+                    .into_iter()
+                    .map(|t| crate::system_reminder::TodoItem {
+                        content: t.content,
+                        status: t.status,
+                        priority: t.priority,
+                    })
+                    .collect(),
+            );
+        }
+    }
+    
+    // Alternative: try todowrite tool
+    if let Some(todo_tool) = tool_executors.get("todowrite") {
+        if let Some(todo_write_tool) = todo_tool.as_ref().as_any().downcast_ref::<tools::todo::TodoWriteTool>() {
+            let todos = todo_write_tool.state().get().await;
+            return Some(
+                todos
+                    .into_iter()
+                    .map(|t| crate::system_reminder::TodoItem {
+                        content: t.content,
+                        status: t.status,
+                        priority: t.priority,
+                    })
+                    .collect(),
+            );
+        }
+    }
+    
+    None
 }

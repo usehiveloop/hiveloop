@@ -9,17 +9,20 @@ use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{info, warn};
 use webhooks::{WebhookContext, WebhookDispatcher};
 
 /// Bridge - AI Agent Runtime
 #[derive(Parser)]
 #[command(name = "bridge")]
 #[command(about = "AI Agent Runtime with tool execution and MCP support")]
-#[command(version = "0.3.0")]
+#[command(version = "0.4.0")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+    /// Install LSP servers on startup (comma-separated list or "all")
+    #[arg(long, value_name = "SERVERS")]
+    install_lsp_servers: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -64,7 +67,14 @@ async fn main() -> anyhow::Result<()> {
             handle_tools_command(action).await?;
             Ok(())
         }
-        None => run_server().await,
+        None => {
+            let servers_to_install = cli.install_lsp_servers.map(|s| {
+                s.split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect::<Vec<String>>()
+            });
+            run_server(servers_to_install).await
+        }
     }
 }
 
@@ -81,7 +91,7 @@ async fn handle_tools_command(action: Option<ToolCommands>) -> anyhow::Result<()
 }
 
 fn get_tools_info(filter_read_only: bool) -> anyhow::Result<Vec<ToolInfo>> {
-    use tools::{register_builtin_tools, ToolExecutor, ToolRegistry};
+    use tools::{register_builtin_tools, ToolRegistry};
 
     let mut registry = ToolRegistry::new();
     register_builtin_tools(&mut registry);
@@ -134,7 +144,7 @@ fn is_read_only_tool(name: &str) -> bool {
     )
 }
 
-async fn run_server() -> anyhow::Result<()> {
+async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<()> {
     // Load configuration from config.toml and environment variables
     let config: RuntimeConfig = Figment::from(Serialized::defaults(RuntimeConfig::default()))
         .merge(Toml::file("config.toml"))
@@ -217,6 +227,33 @@ async fn run_server() -> anyhow::Result<()> {
         .await
         .context("failed to bind TCP listener")?;
     info!(addr = config.listen_addr, "listening");
+
+    // Spawn background LSP installer if requested
+    if let Some(server_ids) = servers_to_install {
+        tokio::spawn(async move {
+            info!(servers = ?server_ids, "starting LSP server installation");
+            let installer = lsp::LspInstaller::new();
+            let results = installer.install(&server_ids).await;
+            
+            let mut succeeded = 0;
+            let mut failed = 0;
+            
+            for (id, result) in results {
+                match result {
+                    Ok(_) => {
+                        info!(server = %id, "installed successfully");
+                        succeeded += 1;
+                    }
+                    Err(e) => {
+                        warn!(server = %id, error = %e, "installation failed");
+                        failed += 1;
+                    }
+                }
+            }
+            
+            info!(succeeded, failed, "LSP server installation complete");
+        });
+    }
 
     // Serve with graceful shutdown
     axum::serve(listener, app)

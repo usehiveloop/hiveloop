@@ -370,6 +370,10 @@ impl ToolExecutor for WebFetchTool {
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]

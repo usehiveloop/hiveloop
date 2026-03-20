@@ -257,6 +257,10 @@ impl ToolExecutor for JoinTool {
         serde_json::to_string_pretty(&join_result)
             .map_err(|e| format!("Failed to serialize result: {e}"))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]

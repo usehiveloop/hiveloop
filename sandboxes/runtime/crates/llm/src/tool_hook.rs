@@ -966,6 +966,7 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         };
@@ -1110,6 +1111,7 @@ mod tests {
         let ctx = AgentContext {
             runner: Arc::new(MockRunner),
             notification_tx: notif_tx,
+            task_registry: None,
             depth: 0,
             max_depth: 3,
         };
@@ -1316,6 +1318,9 @@ mod tests {
             async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
                 Ok("repaired_bash_output".to_string())
             }
+            fn as_any(&self) -> &dyn std::any::Any {
+                self
+            }
         }
         let mut executors: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
         executors.insert("bash".to_string(), Arc::new(StubBash));
@@ -1389,6 +1394,9 @@ mod tests {
             }
             async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
                 Ok("trimmed_output".to_string())
+            }
+            fn as_any(&self) -> &dyn std::any::Any {
+                self
             }
         }
         let mut executors: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();

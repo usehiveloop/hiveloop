@@ -189,10 +189,38 @@ pub async fn run_conversation(params: ConversationParams) {
             IncomingMessage::BackgroundComplete(notif) => {
                 let task_id = notif.task_id.clone();
                 let description = notif.description.clone();
+                let is_error = notif.output.is_err();
                 let output_text = match &notif.output {
                     Ok(output) => output.clone(),
                     Err(error) => format!("[ERROR] {}", error),
                 };
+
+                // Emit SSE event for background task completion
+                let _ = sse_tx
+                    .send(SseEvent::BackgroundTaskCompleted {
+                        task_id: task_id.clone(),
+                        description: description.clone(),
+                        output: output_text.clone(),
+                        is_error,
+                    })
+                    .await;
+
+                // Emit webhook event for background task completion
+                if let Some(ref wh) = webhook_ctx {
+                    wh.dispatcher.dispatch(webhooks::events::background_task_completed(
+                        &agent_id,
+                        &conversation_id,
+                        json!({
+                            "task_id": task_id,
+                            "description": description,
+                            "output": output_text,
+                            "is_error": is_error,
+                        }),
+                        &wh.url,
+                        &wh.secret,
+                    ));
+                }
+
                 format!(
                     "[Background Agent Task Completed]\ntask_id: {}\ndescription: {}\n\n<task_result>\n{}\n</task_result>",
                     task_id,

@@ -281,6 +281,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             let nested_ctx = AgentContext {
                 runner: nested_runner,
                 notification_tx: notification_tx.clone(),
+                task_registry: task_registry.clone(),
                 depth: depth + 1,
                 max_depth,
             };

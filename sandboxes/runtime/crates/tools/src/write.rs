@@ -197,6 +197,10 @@ impl ToolExecutor for WriteTool {
             do_write(&file_path, &content, &boundary, &file_tracker, &lsp_manager).await
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]

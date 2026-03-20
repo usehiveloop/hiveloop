@@ -7,6 +7,31 @@
 use bridge_core::SkillDefinition;
 use chrono::{DateTime, Utc};
 
+/// A todo item for display in the system reminder
+#[derive(Clone)]
+pub struct TodoItem {
+    pub content: String,
+    pub status: String,
+    pub priority: String,
+}
+
+impl TodoItem {
+    /// Format status for display
+    fn format_status(&self) -> String {
+        self.status.clone()
+    }
+
+    /// Format priority for display
+    fn format_priority(&self) -> String {
+        match self.priority.as_str() {
+            "high" => "[high]".to_string(),
+            "medium" => "[medium]".to_string(),
+            "low" => "[low]".to_string(),
+            _ => "".to_string(),
+        }
+    }
+}
+
 /// A flexible system reminder builder that generates markdown content
 /// to be injected before user messages.
 pub struct SystemReminder {
@@ -82,6 +107,40 @@ impl SystemReminder {
 
         output.push_str("\n</system-reminder>");
         output
+    }
+
+    /// Add the todo list section.
+    pub fn with_todos(mut self, todos: &[TodoItem]) -> Self {
+        if todos.is_empty() {
+            return self;
+        }
+
+        let mut content = String::new();
+        
+        // Count incomplete todos
+        let incomplete_count = todos.iter().filter(|t| t.status != "completed" && t.status != "cancelled").count();
+        
+        if incomplete_count == 0 {
+            content.push_str("All tasks are complete!\n\n");
+        } else {
+            content.push_str(&format!("You have {} task(s) in progress.\n\n", incomplete_count));
+        }
+
+        // List all todos with status
+        for (i, todo) in todos.iter().enumerate() {
+            let priority = todo.format_priority();
+            let status = todo.format_status();
+            content.push_str(&format!("{}. {} [{}] {}\n", i + 1, priority, status, todo.content));
+        }
+
+        content.push_str("\n**Important**: Please update your progress with todos as soon as there's an update, rather than waiting until the end.");
+
+        self.sections.push(Section {
+            title: "Todo List".to_string(),
+            content,
+        });
+
+        self
     }
 
     /// Check if the reminder has any content.
@@ -180,6 +239,29 @@ pub fn create_reminder_with_skills_and_date(
         .with_skills(skills)
         .with_current_date(date)
         .build()
+}
+
+/// Create a system reminder with skills, todos, and current date.
+pub fn create_reminder_with_skills_todos_and_date(
+    skills: &[SkillDefinition],
+    todos: Option<&[TodoItem]>,
+    date: DateTime<Utc>,
+) -> String {
+    let mut reminder = SystemReminder::new();
+
+    if !skills.is_empty() {
+        reminder = reminder.with_skills(skills);
+    }
+
+    if let Some(todo_list) = todos {
+        if !todo_list.is_empty() {
+            reminder = reminder.with_todos(todo_list);
+        }
+    }
+
+    reminder = reminder.with_current_date(date);
+
+    reminder.build()
 }
 
 #[cfg(test)]

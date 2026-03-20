@@ -442,6 +442,10 @@ impl ToolExecutor for LspTool {
             }
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 fn markup_content_to_string(mc: lsp_types::MarkedString) -> String {

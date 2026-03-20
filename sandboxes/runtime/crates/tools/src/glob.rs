@@ -103,6 +103,10 @@ impl ToolExecutor for GlobTool {
         );
         Ok(truncated.content)
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 fn execute_glob(pattern: &str, search_path: &str) -> Result<GlobResult, String> {

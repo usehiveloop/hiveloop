@@ -209,6 +209,10 @@ impl ToolExecutor for BatchTool {
         );
         Ok(truncated.content)
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
@@ -232,6 +236,9 @@ mod tests {
         async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
             Ok(serde_json::to_string(&args).unwrap())
         }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
     }
 
     /// A tool that always fails.
@@ -250,6 +257,9 @@ mod tests {
         }
         async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
             Err("intentional failure".to_string())
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
         }
     }
 

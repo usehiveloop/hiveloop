@@ -362,6 +362,14 @@ eventSource.onmessage = (event) => {
       updateTodoList(data.todos);
       break;
 
+    case 'background_task_completed':
+      // Background task finished — optionally notify user
+      console.log(`Task ${data.task_id} completed: ${data.description}`);
+      if (data.is_error) {
+        showNotification('Task failed', data.output);
+      }
+      break;
+
     case 'error':
       // Show error in the UI
       showError(data.code, data.message);
@@ -388,6 +396,7 @@ Every event is JSON with a `type` field:
 | `tool_approval_required` | `request_id`, `tool_name`, `tool_call_id`, `arguments`, `integration_name?`, `integration_action?` | Tool needs user approval |
 | `tool_approval_resolved` | `request_id`, `decision` | Approval decided |
 | `todo_updated` | `todos[]` (each: `content`, `status`, `priority`) | Agent updated its task list |
+| `background_task_completed` | `task_id`, `description`, `output`, `is_error` | Background bash/subagent task finished |
 | `message_end` | `message_id`, `usage` (`input_tokens`, `output_tokens`) | Response complete |
 | `error` | `code`, `message` | Error occurred |
 | `done` | — | Turn finished, safe to send next message |
@@ -571,6 +580,7 @@ app.post('/webhooks/bridge', (req, res) => {
 | `tool_approval_required` | `{"request_id": "...", "tool_name": "...", "arguments": {...}}` | Notify user/admin |
 | `tool_approval_resolved` | `{"request_id": "...", "decision": "approve"}` | Log decision |
 | `todo_updated` | `{"todos": [...]}` | Update task tracking |
+| `background_task_completed` | `{"task_id": "...", "description": "...", "output": "...", "is_error": false}` | Log background task completion |
 | `turn_completed` | `{}` | Mark turn done, update billing |
 | `agent_error` | `{"code": "...", "message": "..."}` | Alert on failures |
 | `conversation_ended` | `{}` | Mark conversation closed |

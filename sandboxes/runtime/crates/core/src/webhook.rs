@@ -35,6 +35,8 @@ pub enum WebhookEventType {
     ToolApprovalResolved,
     /// The conversation history was compacted (summarized)
     ConversationCompacted,
+    /// A background task (bash or subagent) completed.
+    BackgroundTaskCompleted,
 }
 
 /// Payload for a webhook delivery.

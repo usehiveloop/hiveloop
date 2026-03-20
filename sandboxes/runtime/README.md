@@ -78,6 +78,33 @@ make run-release
 
 The server starts on **port 8080** by default.
 
+### Install LSP Servers (Optional)
+
+Bridge can automatically install LSP servers on startup for code intelligence support:
+
+```bash
+# Install specific servers
+bridge --install-lsp-servers=rust,go,typescript
+
+# Install all 40+ available servers
+bridge --install-lsp-servers=all
+
+# Run without installing (default)
+bridge
+```
+
+**Available servers include:**
+- **JavaScript/TypeScript**: typescript, eslint, biome, deno, vue, svelte, astro, tailwindcss
+- **Systems**: rust, go, zig, clangd
+- **Python**: python (pyright), ruff, pylsp
+- **Web**: yaml, json, dockerfile, terraform, graphql
+- **JVM**: jdtls (Java), kotlin-ls
+- **Ruby**: ruby-lsp, ruby-lsp-official
+- **Functional**: haskell, elixir, gleam, ocaml, elm, clojure
+- **And more**: scala (metals), php, lua, bash, dart, cmake, ansible, vimls, nix, etc.
+
+Installation runs **non-blocking** in the background after bridge starts. Already-installed servers are skipped.
+
 ## API Endpoints
 
 ### Health & Metrics
@@ -141,10 +168,61 @@ The `/conversations/{conv_id}/stream` endpoint emits these Server-Sent Events:
 | `tool_call_result` | Tool execution result |
 | `tool_approval_required` | Tool call waiting for user approval |
 | `tool_approval_resolved` | Approval decision made |
-| `todo_updated` | Task list update |
+| `todo_updated` | Task list update (see [Todo Tools](#todo-tools)) |
+| `background_task_completed` | Background bash/subagent task finished |
 | `message_end` | Message complete |
 | `error` | Error occurred |
 | `done` | Stream terminated |
+
+## Todo Tools
+
+Bridge includes built-in task management tools that agents can use to track progress. When both tools are enabled for an agent, a task list summary is automatically included in the system reminder.
+
+### `todowrite` - Create/Update Task List
+
+Replaces the entire todo list. Each call must include **all** items (completed, in-progress, and pending).
+
+**Parameters:**
+```json
+{
+  "todos": [
+    {
+      "content": "Task description",
+      "status": "in_progress",
+      "priority": "high"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | string | Task description |
+| `status` | string | One of: `pending`, `in_progress`, `completed`, `cancelled` |
+| `priority` | string | One of: `high`, `medium`, `low` |
+
+**Key behaviors:**
+- **Replace-all semantics**: Each call replaces the entire list
+- To update one item, send the full list with that item changed
+- Only one task should be `in_progress` at a time
+- Mark tasks `completed` immediately after finishing
+
+### `todoread` - Read Current Task List
+
+Takes no parameters. Returns the current todo list with `content`, `status`, and `priority` for each item.
+
+**Example response:**
+```json
+{
+  "todos": [
+    {"content": "Implement feature", "status": "completed", "priority": "high"},
+    {"content": "Write tests", "status": "in_progress", "priority": "high"},
+    {"content": "Update docs", "status": "pending", "priority": "medium"}
+  ],
+  "total": 3,
+  "incomplete_count": 2
+}
+```
 
 ## Supported LLM Providers
 
@@ -200,7 +278,7 @@ crates/
   core/      # Domain models, schemas, error types, config
   llm/       # LLM provider integration, tool call execution, permissions
   runtime/   # Agent supervisor, conversation management
-  tools/     # Built-in tool implementations (filesystem, bash, search)
+  tools/     # Built-in tool implementations (filesystem, bash, search, todo)
   mcp/       # Model Context Protocol client (stdio + HTTP transports)
   lsp/       # Language Server Protocol integration
   webhooks/  # Webhook dispatching with HMAC signing

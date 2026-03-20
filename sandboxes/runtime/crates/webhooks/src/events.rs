@@ -249,6 +249,24 @@ pub fn agent_error(
     )
 }
 
+/// Create a webhook payload for a background_task_completed event.
+pub fn background_task_completed(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::BackgroundTaskCompleted,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -364,5 +382,18 @@ mod tests {
         let payload = turn_completed(AGENT, CONV, URL, SECRET);
         assert_eq!(payload.event_type, WebhookEventType::TurnCompleted);
         assert_eq!(payload.data, json!({}));
+    }
+
+    #[test]
+    fn test_background_task_completed() {
+        let data = json!({
+            "task_id": "task-123",
+            "description": "Run tests",
+            "output": "test result: ok",
+            "is_error": false
+        });
+        let payload = background_task_completed(AGENT, CONV, data.clone(), URL, SECRET);
+        assert_eq!(payload.event_type, WebhookEventType::BackgroundTaskCompleted);
+        assert_eq!(payload.data, data);
     }
 }

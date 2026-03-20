@@ -177,6 +177,10 @@ impl ToolExecutor for GrepTool {
         );
         Ok(truncated.content)
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 /// Custom sink for collecting grep matches.

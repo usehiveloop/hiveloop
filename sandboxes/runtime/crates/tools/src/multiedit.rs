@@ -201,6 +201,10 @@ impl ToolExecutor for MultiEditTool {
             do_multiedit(&file_path, &edits, &boundary, &file_tracker, &lsp_manager).await
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
