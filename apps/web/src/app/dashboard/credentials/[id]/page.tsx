@@ -1,20 +1,34 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatusBadge, type Status } from "@/components/status-badge";
 import { ProviderBadge } from "@/components/provider-badge";
 import { RemainingBar } from "@/components/remaining-bar";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { $api, fetchClient } from "@/api/client";
 import type { components } from "@/api/schema";
 
 type CredentialResponse = components["schemas"]["credentialResponse"];
+type TokenListItem = components["schemas"]["tokenListItem"];
+
+const TOKEN_PAGE_SIZE = 20;
 
 function deriveStatus(cred: CredentialResponse): Status {
   if (cred.revoked_at) return "Revoked";
   if (cred.remaining != null && cred.remaining <= 0) return "Expiring";
+  return "Active";
+}
+
+function deriveTokenStatus(t: TokenListItem): Status {
+  if (t.revoked_at) return "Revoked";
+  if (t.expires_at && new Date(t.expires_at) < new Date()) return "Revoked";
+  if (t.remaining != null && t.remaining <= 0) return "Expiring";
   return "Active";
 }
 
@@ -29,10 +43,24 @@ function formatDateTime(dateStr: string): string {
   });
 }
 
+function relativeTime(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff < 0) return "expired";
+  if (diff < 60_000) return "< 1m";
+  if (diff < 3_600_000) return `in ${Math.round(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `in ${Math.round(diff / 3_600_000)}h`;
+  return `in ${Math.round(diff / 86_400_000)}d`;
+}
+
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return n.toString();
+}
+
+function truncateJTI(jti: string): string {
+  if (jti.length <= 16) return jti;
+  return `${jti.slice(0, 10)}…${jti.slice(-4)}`;
 }
 
 function ConfigRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -43,6 +71,95 @@ function ConfigRow({ label, children }: { label: string; children: React.ReactNo
     </div>
   );
 }
+
+type TokenRow = TokenListItem & { status: Status };
+
+const tokenColumns: DataTableColumn<TokenRow>[] = [
+  {
+    id: "jti",
+    header: "JTI",
+    width: "30%",
+    cellClassName: "font-mono text-[13px] text-foreground",
+    cell: (row) => truncateJTI(row.jti ?? ""),
+  },
+  {
+    id: "status",
+    header: "Status",
+    width: "12%",
+    cell: (row) => <StatusBadge status={row.status} />,
+  },
+  {
+    id: "remaining",
+    header: "Remaining",
+    width: "20%",
+    cell: (row) => {
+      if (row.remaining == null) return <span className="text-xs text-dim">Unlimited</span>;
+      const max = row.refill_amount ?? row.remaining;
+      const percent = max > 0 ? Math.round((row.remaining / max) * 100) : 0;
+      return (
+        <div className="flex items-center gap-1.5 pr-4">
+          <div className="h-1 flex-1 bg-secondary">
+            <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+          </div>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {formatCount(row.remaining)} / {formatCount(max)}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    id: "expires",
+    header: "Expires",
+    width: "18%",
+    cellClassName: "text-[13px] text-muted-foreground",
+    cell: (row) => row.expires_at ? relativeTime(row.expires_at) : "—",
+  },
+  {
+    id: "created",
+    header: "Created",
+    width: "20%",
+    cellClassName: "text-[13px] text-muted-foreground",
+    cell: (row) => row.created_at ? formatDateTime(row.created_at) : "—",
+  },
+];
+
+function TokenMobileCard({ token }: { token: TokenRow }) {
+  return (
+    <div className="flex flex-col gap-2 border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[13px] text-foreground">{truncateJTI(token.jti ?? "")}</span>
+        <StatusBadge status={token.status} />
+      </div>
+      {token.remaining != null && (
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-16 bg-secondary">
+            <div
+              className="h-full bg-primary"
+              style={{
+                width: `${(token.refill_amount ?? token.remaining) > 0 ? Math.round((token.remaining / (token.refill_amount ?? token.remaining)) * 100) : 0}%`,
+              }}
+            />
+          </div>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {formatCount(token.remaining)} / {formatCount(token.refill_amount ?? token.remaining)}
+          </span>
+        </div>
+      )}
+      <span className="text-xs text-dim">
+        Expires {token.expires_at ? relativeTime(token.expires_at) : "—"}
+      </span>
+    </div>
+  );
+}
+
+const tokenSkeletonColumns = [
+  { width: "30%" },
+  { width: "12%" },
+  { width: "20%" },
+  { width: "18%" },
+  { width: "20%" },
+];
 
 function LoadingSkeleton() {
   return (
@@ -79,10 +196,27 @@ export default function CredentialDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const [tokenCursors, setTokenCursors] = useState<string[]>([]);
+  const currentTokenCursor = tokenCursors[tokenCursors.length - 1];
+
   const { data: credential, isLoading } = $api.useQuery(
     "get",
     "/v1/credentials/{id}",
     { params: { path: { id } } },
+  );
+
+  const { data: tokenPage, isLoading: tokensLoading } = $api.useQuery(
+    "get",
+    "/v1/tokens",
+    {
+      params: {
+        query: {
+          credential_id: id,
+          limit: TOKEN_PAGE_SIZE,
+          ...(currentTokenCursor ? { cursor: currentTokenCursor } : {}),
+        },
+      },
+    },
   );
 
   const revokeMutation = useMutation({
@@ -97,6 +231,23 @@ export default function CredentialDetailPage() {
       router.push("/dashboard/credentials");
     },
   });
+
+  const tokens: TokenRow[] = (tokenPage?.data ?? []).map((t) => ({
+    ...t,
+    status: deriveTokenStatus(t),
+  }));
+  const tokensHasMore = tokenPage?.has_more ?? false;
+  const tokenPageNumber = tokenCursors.length + 1;
+
+  const goNextTokens = useCallback(() => {
+    if (tokenPage?.next_cursor) {
+      setTokenCursors((prev) => [...prev, tokenPage.next_cursor!]);
+    }
+  }, [tokenPage]);
+
+  const goPrevTokens = useCallback(() => {
+    setTokenCursors((prev) => prev.slice(0, -1));
+  }, []);
 
   if (isLoading) return <LoadingSkeleton />;
 
@@ -248,6 +399,61 @@ export default function CredentialDetailPage() {
               </ConfigRow>
             </div>
           </div>
+        </div>
+
+        {/* Tokens */}
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between pb-4">
+            <span className="text-sm font-medium text-foreground">Minted Tokens</span>
+            <Link href="/dashboard/tokens" className="text-[13px] text-chart-2">View all tokens</Link>
+          </div>
+
+          {tokensLoading ? (
+            <TableSkeleton columns={tokenSkeletonColumns} rows={4} />
+          ) : tokens.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-1 border border-border py-12 text-center">
+              <span className="text-[13px] text-muted-foreground">No tokens minted for this credential.</span>
+            </div>
+          ) : (
+            <>
+              <DataTable
+                columns={tokenColumns}
+                data={tokens}
+                keyExtractor={(row) => row.id ?? row.jti ?? ""}
+                rowClassName="hover:bg-secondary/30"
+                mobileCard={(row) => <TokenMobileCard token={row} />}
+              />
+
+              {/* Token Pagination */}
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                <span className="text-[13px] text-muted-foreground">
+                  Page {tokenPageNumber}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={tokenCursors.length === 0}
+                    onClick={goPrevTokens}
+                    className="h-8 gap-1 text-[13px]"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!tokensHasMore}
+                    onClick={goNextTokens}
+                    className="h-8 gap-1 text-[13px]"
+                  >
+                    Next
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Metadata */}

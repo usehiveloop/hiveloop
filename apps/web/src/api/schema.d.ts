@@ -2257,7 +2257,64 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List tokens
+         * @description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max items per page (1-100, default 50) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
+                    /** @description Filter by credential ID */
+                    credential_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Mint a proxy token
@@ -3762,6 +3819,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-tokenListItem": {
+            data?: components["schemas"]["tokenListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         patchIntegrationConnectionRequest: {
             resources?: {
                 [key: string]: string[];
@@ -3803,6 +3865,19 @@ export interface components {
             id?: string;
             identity_id?: string;
             permissions?: string[];
+        };
+        tokenListItem: {
+            created_at?: string;
+            credential_id?: string;
+            expires_at?: string;
+            id?: string;
+            jti?: string;
+            meta?: components["schemas"]["JSON"];
+            refill_amount?: number;
+            refill_interval?: string;
+            remaining?: number;
+            revoked_at?: string;
+            scopes?: components["schemas"]["JSON"];
         };
         tokenResponse: {
             access_token?: string;

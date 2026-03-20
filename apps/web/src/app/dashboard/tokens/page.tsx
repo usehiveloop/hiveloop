@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Search, X, Copy, Check, CircleAlert, ChevronDown, ChevronRight, ChevronLeft, Coins } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,169 +14,128 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatusBadge, type Status } from "@/components/status-badge";
 import { RemainingBar, RemainingBarCompact } from "@/components/remaining-bar";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { $api, fetchClient } from "@/api/client";
+import type { components } from "@/api/schema";
 
-type StatusFilter = "All" | "Active" | "Expiring" | "Revoked";
+type TokenListItem = components["schemas"]["tokenListItem"];
 
-type Token = {
-  jti: string;
-  credential: { name: string; id: string };
-  status: Status;
-  remaining: { current: string; max: string; percent: number } | null;
-  expires: string;
-  created: string;
-};
+const PAGE_SIZE = 20;
 
-const tokens: Token[] = [
-  { jti: "ptok_a8f2…3e91", credential: { name: "prod-openai-main", id: "9f2a…b4c1" }, status: "Active", remaining: { current: "450", max: "1,000", percent: 45 }, expires: "in 23 hours", created: "Mar 8, 2026" },
-  { jti: "ptok_c7d1…9b42", credential: { name: "staging-anthropic", id: "4b1c…e7a2" }, status: "Active", remaining: null, expires: "in 6 days", created: "Mar 3, 2026" },
-  { jti: "ptok_e4b8…1f73", credential: { name: "prod-openai-main", id: "9f2a…b4c1" }, status: "Expiring", remaining: { current: "12", max: "150", percent: 8 }, expires: "in 47 minutes", created: "Mar 9, 2026" },
-  { jti: "ptok_f291…8d04", credential: { name: "prod-gemini-flash", id: "d83f…1a9e" }, status: "Active", remaining: null, expires: "in 12 days", created: "Feb 25, 2026" },
-  { jti: "ptok_3b7a…c812", credential: { name: "staging-anthropic", id: "4b1c…e7a2" }, status: "Revoked", remaining: null, expires: "expired", created: "Feb 14, 2026" },
-  { jti: "ptok_d5e3…2a67", credential: { name: "azure-openai-east", id: "5f18…e3d7" }, status: "Active", remaining: { current: "4.5k", max: "5,000", percent: 90 }, expires: "in 3 days", created: "Mar 6, 2026" },
-];
+function deriveTokenStatus(t: TokenListItem): Status {
+  if (t.revoked_at) return "Revoked";
+  if (t.expires_at && new Date(t.expires_at) < new Date()) return "Revoked";
+  if (t.remaining != null && t.remaining <= 0) return "Expiring";
+  return "Active";
+}
 
-const statusCounts: Record<StatusFilter, number> = { All: 47, Active: 38, Expiring: 4, Revoked: 5 };
+function relativeTime(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff < 0) return "expired";
+  if (diff < 60_000) return "< 1m";
+  if (diff < 3_600_000) return `in ${Math.round(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `in ${Math.round(diff / 3_600_000)}h`;
+  return `in ${Math.round(diff / 86_400_000)}d`;
+}
 
-const credentialOptions = [
-  { name: "prod-openai-main", id: "cred_9f2a…b4c1", provider: "openai" },
-  { name: "staging-anthropic", id: "cred_4b1c…e7a2", provider: "anthropic" },
-  { name: "prod-gemini-flash", id: "cred_d83f…1a9e", provider: "google" },
-  { name: "azure-openai-east", id: "cred_2f8d…a1b3", provider: "azure" },
-  { name: "mistral-large-prod", id: "cred_5c4a…f8e7", provider: "mistral" },
-];
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toString();
+}
 
-// Mock available scopes data (will be fetched from API)
-type AvailableScopeAction = {
-  key: string;
-  display_name: string;
-  description: string;
-  resource_type?: string;
-};
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
-type AvailableScopeResourceItem = { id: string; name: string };
-type AvailableScopeResource = { display_name: string; selected: AvailableScopeResourceItem[] };
+function truncateJTI(jti: string): string {
+  if (jti.length <= 16) return jti;
+  return `${jti.slice(0, 10)}…${jti.slice(-4)}`;
+}
 
-type AvailableScopeConnection = {
-  connection_id: string;
-  integration_id: string;
-  provider: string;
-  display_name: string;
-  actions: AvailableScopeAction[];
-  resources?: Record<string, AvailableScopeResource>;
-};
+function truncateId(id: string): string {
+  if (id.length <= 12) return id;
+  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+}
 
-const mockAvailableScopes: AvailableScopeConnection[] = [
-  {
-    connection_id: "conn-1",
-    integration_id: "int-1",
-    provider: "slack",
-    display_name: "Slack (Engineering)",
-    actions: [
-      { key: "send_message", display_name: "Send Message", description: "Send a message to a channel", resource_type: "channel" },
-      { key: "read_messages", display_name: "Read Messages", description: "Read messages from a channel", resource_type: "channel" },
-      { key: "list_channels", display_name: "List Channels", description: "List all channels in the workspace" },
-    ],
-    resources: {
-      channel: {
-        display_name: "Channels",
-        selected: [
-          { id: "C123", name: "engineering" },
-          { id: "C456", name: "general" },
-          { id: "C789", name: "alerts" },
-        ],
-      },
-    },
-  },
-  {
-    connection_id: "conn-2",
-    integration_id: "int-2",
-    provider: "github-app",
-    display_name: "GitHub (Org)",
-    actions: [
-      { key: "list_repos", display_name: "List Repositories", description: "List repositories" },
-      { key: "list_issues", display_name: "List Issues", description: "List issues in a repository", resource_type: "repo" },
-      { key: "create_issue", display_name: "Create Issue", description: "Create an issue", resource_type: "repo" },
-    ],
-    resources: {
-      repo: {
-        display_name: "Repositories",
-        selected: [
-          { id: "org/api", name: "api" },
-          { id: "org/web", name: "web" },
-        ],
-      },
-    },
-  },
-];
+type TokenRow = TokenListItem & { status: Status };
 
-const columns: DataTableColumn<Token>[] = [
+const columns: DataTableColumn<TokenRow>[] = [
   {
     id: "jti",
     header: "JTI",
-    width: "19%",
+    width: "22%",
     cellClassName: "font-mono text-[13px] text-foreground",
-    cell: (row) => row.jti,
+    cell: (row) => truncateJTI(row.jti ?? ""),
   },
   {
     id: "credential",
     header: "Credential",
-    width: "17%",
+    width: "15%",
     cell: (row) => (
-      <div className="flex flex-col">
-        <span className="text-[13px] font-medium leading-4 text-foreground">{row.credential.name}</span>
-        <span className="font-mono text-[11px] leading-3.5 text-dim">{row.credential.id}</span>
-      </div>
+      <Link href={`/dashboard/credentials/${row.credential_id}`} className="font-mono text-[13px] text-chart-2">
+        {truncateId(row.credential_id ?? "")}
+      </Link>
     ),
   },
   {
     id: "status",
     header: "Status",
-    width: "8%",
+    width: "9%",
     cell: (row) => <StatusBadge status={row.status} />,
   },
   {
     id: "remaining",
     header: "Remaining",
-    width: "16%",
-    cell: (row) =>
-      row.remaining ? (
-        <RemainingBar {...row.remaining} />
-      ) : row.status === "Revoked" ? (
-        <span className="text-xs text-dim">—</span>
-      ) : (
-        <span className="text-xs text-dim">Unlimited</span>
-      ),
+    width: "18%",
+    cell: (row) => {
+      if (row.status === "Revoked") return <span className="text-xs text-dim">—</span>;
+      if (row.remaining == null) return <span className="text-xs text-dim">Unlimited</span>;
+      const max = row.refill_amount ?? row.remaining;
+      const percent = max > 0 ? Math.round((row.remaining / max) * 100) : 0;
+      return <RemainingBar current={formatCount(row.remaining)} max={formatCount(max)} percent={percent} />;
+    },
   },
   {
     id: "expires",
     header: "Expires",
     width: "14%",
     cellClassName: "text-[13px] text-muted-foreground",
-    cell: (row) => row.expires,
+    cell: (row) => row.expires_at ? relativeTime(row.expires_at) : "—",
   },
   {
     id: "created",
     header: "Created",
-    width: "26%",
+    width: "22%",
     cellClassName: "text-[13px] text-muted-foreground",
-    cell: (row) => row.created,
+    cell: (row) => row.created_at ? formatDate(row.created_at) : "—",
   },
 ];
 
-function TokenMobileCard({ token }: { token: Token }) {
+function TokenMobileCard({ token }: { token: TokenRow }) {
   return (
     <div className="flex flex-col gap-3 border border-border bg-card p-4">
       <div className="flex items-start justify-between">
         <div className="flex flex-col">
-          <span className="font-mono text-[13px] text-foreground">{token.jti}</span>
-          <span className="text-[13px] text-muted-foreground">{token.credential.name}</span>
+          <span className="font-mono text-[13px] text-foreground">{truncateJTI(token.jti ?? "")}</span>
+          <Link href={`/dashboard/credentials/${token.credential_id}`} className="font-mono text-[11px] text-chart-2">
+            {truncateId(token.credential_id ?? "")}
+          </Link>
         </div>
         <StatusBadge status={token.status} />
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Expires {token.expires}</span>
-        {token.remaining ? (
-          <RemainingBarCompact {...token.remaining} />
+        <span>Expires {token.expires_at ? relativeTime(token.expires_at) : "—"}</span>
+        {token.remaining != null ? (
+          <RemainingBarCompact
+            current={formatCount(token.remaining)}
+            max={formatCount(token.refill_amount ?? token.remaining)}
+            percent={(token.refill_amount ?? token.remaining) > 0 ? Math.round((token.remaining / (token.refill_amount ?? token.remaining)) * 100) : 0}
+          />
         ) : token.status === "Revoked" ? (
           <span className="text-dim">—</span>
         ) : (
@@ -185,45 +146,80 @@ function TokenMobileCard({ token }: { token: Token }) {
   );
 }
 
+const skeletonColumns = [
+  { width: "22%" },
+  { width: "15%" },
+  { width: "9%" },
+  { width: "18%" },
+  { width: "14%" },
+  { width: "22%" },
+];
+
 type ModalState = "closed" | "mint" | "success";
 
-// Scope selection state
-type ScopeSelection = {
-  connectionId: string;
-  actions: string[];
-  resources: Record<string, string[]>;
-};
-
-// Minted token result
 type MintResult = {
   token: string;
   jti: string;
   expiresAt: string;
   mcpEndpoint?: string;
-  credentialName: string;
+  credentialId: string;
   ttl: string;
 };
 
 export default function TokensPage() {
-  const [filter, setFilter] = useState<StatusFilter>("All");
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [credentialFilter, setCredentialFilter] = useState<string | null>(null);
+  const [cursors, setCursors] = useState<string[]>([]);
+  const currentCursor = cursors[cursors.length - 1];
   const [modal, setModal] = useState<ModalState>("closed");
   const [mintResult, setMintResult] = useState<MintResult | null>(null);
 
-  const credentialNames = [...new Set(tokens.map((t) => t.credential.name))];
-
-  const filtered = tokens.filter((tok) => {
-    if (filter !== "All" && tok.status !== filter) return false;
-    if (credentialFilter && tok.credential.name !== credentialFilter) return false;
-    if (search && !tok.jti.toLowerCase().includes(search.toLowerCase()) && !tok.credential.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
+  const { data: tokenPage, isLoading } = $api.useQuery("get", "/v1/tokens", {
+    params: {
+      query: {
+        limit: PAGE_SIZE,
+        ...(currentCursor ? { cursor: currentCursor } : {}),
+        ...(credentialFilter ? { credential_id: credentialFilter } : {}),
+      },
+    },
   });
 
+  const { data: credPage } = $api.useQuery("get", "/v1/credentials", {
+    params: { query: { limit: 100 } },
+  });
+
+  const allTokens: TokenRow[] = (tokenPage?.data ?? []).map((t) => ({
+    ...t,
+    status: deriveTokenStatus(t),
+  }));
+
+  const filtered = search
+    ? allTokens.filter((t) =>
+        (t.jti ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (t.credential_id ?? "").toLowerCase().includes(search.toLowerCase())
+      )
+    : allTokens;
+
+  const hasMore = tokenPage?.has_more ?? false;
+  const pageNumber = cursors.length + 1;
+  const credentials = credPage?.data ?? [];
+
+  const goNext = useCallback(() => {
+    if (tokenPage?.next_cursor) {
+      setCursors((prev) => [...prev, tokenPage.next_cursor!]);
+    }
+  }, [tokenPage]);
+
+  const goPrev = useCallback(() => {
+    setCursors((prev) => prev.slice(0, -1));
+  }, []);
+
   const handleMintSuccess = useCallback((result: MintResult) => {
+    queryClient.invalidateQueries({ queryKey: ["get", "/v1/tokens"] });
     setMintResult(result);
     setModal("success");
-  }, []);
+  }, [queryClient]);
 
   return (
     <>
@@ -259,29 +255,15 @@ export default function TokensPage() {
 
       {/* Filters */}
       <section className="flex shrink-0 flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-1">
-          {(["All", "Active", "Expiring", "Revoked"] as StatusFilter[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-3 py-1.5 text-[13px] font-medium transition-colors ${
-                filter === tab ? "bg-primary/8 text-chart-2" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab} ({statusCounts[tab]})
-            </button>
-          ))}
-        </div>
-        <div className="hidden h-5 w-px bg-border sm:block" />
         <div className="hidden items-center gap-2 sm:flex">
-          <Select value={credentialFilter ?? ""} onValueChange={(v) => setCredentialFilter(v || null)}>
+          <Select value={credentialFilter ?? ""} onValueChange={(v) => { setCredentialFilter(v || null); setCursors([]); }}>
             <SelectTrigger className="h-8 text-[13px] text-muted-foreground">
-              <SelectValue placeholder="Credential" />
+              <SelectValue placeholder="All Credentials" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Credentials</SelectItem>
-              {credentialNames.map((name) => (
-                <SelectItem key={name} value={name}>{name}</SelectItem>
+              {credentials.map((c) => (
+                <SelectItem key={c.id} value={c.id ?? ""}>{c.label || c.id}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -290,17 +272,61 @@ export default function TokensPage() {
 
       {/* Table */}
       <section className="flex shrink-0 flex-col px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8 lg:px-8">
-        <DataTable
-          columns={columns}
-          data={filtered}
-          keyExtractor={(row) => row.jti}
-          mobileCard={(row) => <TokenMobileCard token={row} />}
-        />
+        {isLoading ? (
+          <TableSkeleton columns={skeletonColumns} rows={6} />
+        ) : allTokens.length === 0 && !credentialFilter ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+              <div className="flex size-16 items-center justify-center rounded-full border border-border bg-card">
+                <Coins className="size-7 text-dim" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[15px] font-medium text-foreground">No tokens yet</span>
+                <span className="text-[13px] leading-5 text-muted-foreground">
+                  Mint short-lived proxy tokens scoped to a credential. Tokens authenticate requests to the LLM proxy.
+                </span>
+              </div>
+              <Button size="lg" onClick={() => setModal("mint")}>Mint Token</Button>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16">
+            <span className="text-sm text-muted-foreground">No tokens match your search.</span>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filtered}
+            keyExtractor={(row) => row.id ?? row.jti ?? ""}
+            mobileCard={(row) => <TokenMobileCard token={row} />}
+          />
+        )}
+
+        {/* Pagination */}
+        {!isLoading && allTokens.length > 0 && (
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <span className="text-[13px] text-muted-foreground">Page {pageNumber}</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={cursors.length === 0} onClick={goPrev} className="h-8 gap-1 text-[13px]">
+                <ChevronLeft className="size-3.5" />
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled={!hasMore} onClick={goNext} className="h-8 gap-1 text-[13px]">
+                Next
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Mint Token Dialog */}
       <Dialog open={modal === "mint"} onOpenChange={(open) => !open && setModal("closed")}>
-        <MintTokenForm onCancel={() => setModal("closed")} onSuccess={handleMintSuccess} />
+        <MintTokenForm
+          credentials={credentials}
+          onCancel={() => setModal("closed")}
+          onSuccess={handleMintSuccess}
+        />
       </Dialog>
 
       {/* Mint Success Dialog */}
@@ -313,6 +339,14 @@ export default function TokensPage() {
 
 // --- Scope Selection Component ---
 
+type ScopeSelection = {
+  connectionId: string;
+  actions: string[];
+  resources: Record<string, string[]>;
+};
+
+type AvailableScopeConnection = components["schemas"]["availableScopeConnection"];
+
 function ScopeSelector({
   scopes,
   onScopesChange,
@@ -320,7 +354,7 @@ function ScopeSelector({
   scopes: ScopeSelection[];
   onScopesChange: (scopes: ScopeSelection[]) => void;
 }) {
-  const availableConnections = mockAvailableScopes;
+  const { data: availableConnections = [] } = $api.useQuery("get", "/v1/connections/available-scopes");
   const [expandedConns, setExpandedConns] = useState<Set<string>>(new Set());
 
   const toggleConnection = (connId: string) => {
@@ -328,11 +362,11 @@ function ScopeSelector({
     if (existing) {
       onScopesChange(scopes.filter((s) => s.connectionId !== connId));
     } else {
-      const conn = availableConnections.find((c) => c.connection_id === connId);
+      const conn = availableConnections.find((c: AvailableScopeConnection) => c.connection_id === connId);
       if (conn) {
         onScopesChange([...scopes, {
           connectionId: connId,
-          actions: conn.actions.map((a) => a.key),
+          actions: (conn.actions ?? []).map((a) => a.key ?? ""),
           resources: {},
         }]);
       }
@@ -371,23 +405,23 @@ function ScopeSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      {availableConnections.map((conn) => {
-        const isSelected = scopes.some((s) => s.connectionId === conn.connection_id);
-        const isExpanded = expandedConns.has(conn.connection_id);
-        const scopeEntry = scopes.find((s) => s.connectionId === conn.connection_id);
+      {availableConnections.map((conn: AvailableScopeConnection) => {
+        const connId = conn.connection_id ?? "";
+        const isSelected = scopes.some((s) => s.connectionId === connId);
+        const isExpanded = expandedConns.has(connId);
+        const scopeEntry = scopes.find((s) => s.connectionId === connId);
 
         return (
-          <div key={conn.connection_id} className="border border-border">
-            {/* Connection header */}
+          <div key={connId} className="border border-border">
             <div className="flex items-center gap-2 px-3 py-2.5">
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={() => toggleConnection(conn.connection_id)}
+                onChange={() => toggleConnection(connId)}
                 className="size-3.5 accent-primary"
               />
               <button
-                onClick={() => toggleExpanded(conn.connection_id)}
+                onClick={() => toggleExpanded(connId)}
                 className="flex flex-1 items-center gap-1.5 text-left"
               >
                 {isExpanded
@@ -404,18 +438,16 @@ function ScopeSelector({
               )}
             </div>
 
-            {/* Expanded: actions + resources */}
             {isExpanded && isSelected && (
               <div className="border-t border-border px-3 py-2.5">
-                {/* Actions */}
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Actions</span>
-                  {conn.actions.map((action) => (
+                  {(conn.actions ?? []).map((action) => (
                     <label key={action.key} className="flex items-center gap-2 py-0.5">
                       <input
                         type="checkbox"
-                        checked={scopeEntry?.actions.includes(action.key) ?? false}
-                        onChange={() => toggleAction(conn.connection_id, action.key)}
+                        checked={scopeEntry?.actions.includes(action.key ?? "") ?? false}
+                        onChange={() => toggleAction(connId, action.key ?? "")}
                         className="size-3 accent-primary"
                       />
                       <span className="text-[13px] text-foreground">{action.display_name}</span>
@@ -424,20 +456,19 @@ function ScopeSelector({
                   ))}
                 </div>
 
-                {/* Resources */}
                 {conn.resources && Object.entries(conn.resources).map(([type, res]) => (
                   <div key={type} className="mt-3 flex flex-col gap-1.5">
                     <span className="text-[11px] font-medium uppercase tracking-wider text-dim">{res.display_name}</span>
-                    {res.selected.length === 0 ? (
+                    {(res.selected ?? []).length === 0 ? (
                       <span className="text-[11px] text-dim">No resources configured</span>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
-                        {res.selected.map((item) => {
-                          const isActive = scopeEntry?.resources[type]?.includes(item.id) ?? false;
+                        {(res.selected ?? []).map((item) => {
+                          const isActive = scopeEntry?.resources[type]?.includes(item.id ?? "") ?? false;
                           return (
                             <button
                               key={item.id}
-                              onClick={() => toggleResource(conn.connection_id, type, item.id)}
+                              onClick={() => toggleResource(connId, type, item.id ?? "")}
                               className={`px-2 py-1 text-[12px] transition-colors ${
                                 isActive
                                   ? "border border-primary/30 bg-primary/8 text-foreground"
@@ -467,8 +498,19 @@ function ScopeSelector({
 
 // --- Mint Token Form ---
 
-function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: (result: MintResult) => void }) {
-  const [credential, setCredential] = useState(credentialOptions[0].id);
+type CredentialOption = components["schemas"]["credentialResponse"];
+
+function MintTokenForm({
+  credentials,
+  onCancel,
+  onSuccess,
+}: {
+  credentials: CredentialOption[];
+  onCancel: () => void;
+  onSuccess: (result: MintResult) => void;
+}) {
+  const activeCredentials = credentials.filter((c) => !c.revoked_at);
+  const [credential, setCredential] = useState(activeCredentials[0]?.id ?? "");
   const [ttl, setTtl] = useState("1h");
   const [remaining, setRemaining] = useState("");
   const [refillAmount, setRefillAmount] = useState("");
@@ -477,19 +519,46 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
   const [scopeSelections, setScopeSelections] = useState<ScopeSelection[]>([]);
   const [showScopes, setShowScopes] = useState(false);
 
-  const handleMint = () => {
-    // TODO: Replace with real API call
-    const credName = credentialOptions.find((c) => c.id === credential)?.name ?? "unknown";
-    const hasMCP = scopeSelections.length > 0;
-    onSuccess({
-      token: "ptok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvcmdfaWQiOiI5ZjJhLi4uYjRjMSIsImlhdCI6MTcxMDk1NzIwMH0.aI5ZjJh…",
-      jti: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      expiresAt: new Date(Date.now() + 3600000).toISOString(),
-      mcpEndpoint: hasMCP ? `https://mcp.llmvault.dev/a1b2c3d4-e5f6-7890-abcd-ef1234567890` : undefined,
-      credentialName: credName,
-      ttl,
-    });
-  };
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const body: Record<string, unknown> = {
+        credential_id: credential,
+        ttl,
+      };
+      if (remaining) body.remaining = Number(remaining);
+      if (refillAmount) body.refill_amount = Number(refillAmount);
+      if (refillInterval) body.refill_interval = refillInterval;
+      if (scopeSelections.length > 0) {
+        body.scopes = scopeSelections.map((s) => ({
+          connection_id: s.connectionId,
+          actions: s.actions,
+          resources: s.resources,
+        }));
+      }
+      try {
+        const parsed = JSON.parse(metadata);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          body.meta = parsed;
+        }
+      } catch { /* ignore invalid JSON */ }
+
+      const { data, error } = await fetchClient.POST("/v1/tokens", {
+        body: body as components["schemas"]["mintTokenRequest"],
+      });
+      if (error) throw new Error((error as { error?: string }).error ?? "Failed to mint token");
+      return data;
+    },
+    onSuccess: (data) => {
+      onSuccess({
+        token: data?.token ?? "",
+        jti: data?.jti ?? "",
+        expiresAt: data?.expires_at ?? "",
+        mcpEndpoint: data?.mcp_endpoint ?? undefined,
+        credentialId: credential,
+        ttl,
+      });
+    },
+  });
 
   return (
     <DialogContent className="sm:max-w-130 gap-6 p-7" showCloseButton={false}>
@@ -504,6 +573,13 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
         Create a short-lived proxy token scoped to a single credential. Tokens use the ptok_ prefix and authenticate proxy requests.
       </DialogDescription>
 
+      {mutation.error && (
+        <div className="flex items-center gap-2 border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+          <CircleAlert className="size-3.5 shrink-0 text-destructive" />
+          <span className="text-xs text-destructive">{mutation.error.message}</span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4.5">
         {/* Credential */}
         <div className="flex flex-col gap-1.5">
@@ -515,8 +591,10 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {credentialOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name} — {c.provider}</SelectItem>
+              {activeCredentials.map((c) => (
+                <SelectItem key={c.id} value={c.id ?? ""}>
+                  {c.label || c.id}{c.provider_id ? ` — ${c.provider_id}` : ""}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -531,7 +609,7 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="remaining" className="text-xs">Remaining</Label>
-            <Input id="remaining" value={remaining} onChange={(e) => setRemaining(e.target.value)} className="h-10" placeholder="No limit" />
+            <Input id="remaining" type="number" value={remaining} onChange={(e) => setRemaining(e.target.value)} className="h-10" placeholder="No limit" />
             <span className="text-[11px] text-dim">Optional request cap.</span>
           </div>
         </div>
@@ -540,7 +618,7 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="refillAmount" className="text-xs">Refill Amount</Label>
-            <Input id="refillAmount" value={refillAmount} onChange={(e) => setRefillAmount(e.target.value)} className="h-10" placeholder="—" />
+            <Input id="refillAmount" type="number" value={refillAmount} onChange={(e) => setRefillAmount(e.target.value)} className="h-10" placeholder="—" />
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="refillInterval" className="text-xs">Refill Interval</Label>
@@ -582,8 +660,8 @@ function MintTokenForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
       </div>
 
       <DialogFooter className="flex-row justify-end gap-2.5 rounded-none border-t border-border bg-transparent p-0 pt-4">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleMint}>Mint Token</Button>
+        <Button variant="outline" onClick={onCancel} disabled={mutation.isPending}>Cancel</Button>
+        <Button onClick={() => mutation.mutate()} disabled={!credential} loading={mutation.isPending}>Mint Token</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -607,7 +685,6 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
 
   return (
     <DialogContent className="sm:max-w-140 gap-6 p-7" showCloseButton={false}>
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
           <Badge variant="outline" className="flex size-8 items-center justify-center border-success/20 bg-success/10 p-0">
@@ -616,7 +693,7 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
           <DialogHeader className="space-y-0.5">
             <DialogTitle className="font-mono text-lg font-semibold">Token Minted</DialogTitle>
             <DialogDescription className="text-[13px]">
-              Scoped to {result.credentialName} &middot; Expires in {result.ttl}
+              Scoped to {truncateId(result.credentialId)} &middot; Expires in {result.ttl}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -625,13 +702,11 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
         </button>
       </div>
 
-      {/* Warning */}
       <div className="flex items-center gap-2 border border-warning/[0.13] bg-warning/5 px-3 py-2.5">
         <CircleAlert className="size-3.5 shrink-0 text-warning-foreground" />
         <span className="text-xs text-warning-foreground">This token is shown only once. Copy it now — you won&apos;t be able to see it again.</span>
       </div>
 
-      {/* Your Token */}
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">Your Token</Label>
         <div className="flex items-center gap-2 border border-border bg-code px-3 py-3">
@@ -643,7 +718,6 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
         </div>
       </div>
 
-      {/* MCP Endpoint (shown when scopes are present) */}
       {result.mcpEndpoint && (
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">MCP Endpoint</Label>
@@ -687,7 +761,6 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
         </div>
       )}
 
-      {/* Quick Start (proxy) */}
       {!result.mcpEndpoint && (
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">Quick Start</Label>
@@ -711,7 +784,6 @@ function MintSuccessContent({ result, onClose }: { result: MintResult | null; on
             </div>
           </div>
 
-          {/* Base URL */}
           <div className="mt-2 flex flex-col gap-1.5 border-t border-border bg-secondary/50 px-3 py-2.5">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-medium text-foreground">Base URL</span>

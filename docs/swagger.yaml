@@ -720,6 +720,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_tokenListItem:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.tokenListItem'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.patchIntegrationConnectionRequest:
     properties:
       resources:
@@ -803,6 +814,31 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  internal_handler.tokenListItem:
+    properties:
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      jti:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      refill_amount:
+        type: integer
+      refill_interval:
+        type: string
+      remaining:
+        type: integer
+      revoked_at:
+        type: string
+      scopes:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
     type: object
   internal_handler.tokenResponse:
     properties:
@@ -2145,6 +2181,46 @@ paths:
       tags:
       - settings
   /v1/tokens:
+    get:
+      description: Returns tokens for the organization with cursor pagination. Supports
+        filtering by credential_id.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      - description: Filter by credential ID
+        in: query
+        name: credential_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_tokenListItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List tokens
+      tags:
+      - tokens
     post:
       consumes:
       - application/json

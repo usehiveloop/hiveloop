@@ -209,6 +209,105 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
+// tokenResponse is the API representation of a token record.
+type tokenListItem struct {
+	ID             string     `json:"id"`
+	JTI            string     `json:"jti"`
+	CredentialID   string     `json:"credential_id"`
+	Remaining      *int64     `json:"remaining,omitempty"`
+	RefillAmount   *int64     `json:"refill_amount,omitempty"`
+	RefillInterval *string    `json:"refill_interval,omitempty"`
+	Scopes         model.JSON `json:"scopes,omitempty"`
+	Meta           model.JSON `json:"meta,omitempty"`
+	ExpiresAt      string     `json:"expires_at"`
+	RevokedAt      *string    `json:"revoked_at,omitempty"`
+	CreatedAt      string     `json:"created_at"`
+}
+
+func toTokenListItem(t model.Token) tokenListItem {
+	item := tokenListItem{
+		ID:             t.ID.String(),
+		JTI:            t.JTI,
+		CredentialID:   t.CredentialID.String(),
+		Remaining:      t.Remaining,
+		RefillAmount:   t.RefillAmount,
+		RefillInterval: t.RefillInterval,
+		Scopes:         t.Scopes,
+		Meta:           t.Meta,
+		ExpiresAt:      t.ExpiresAt.Format(time.RFC3339),
+		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
+	}
+	if t.RevokedAt != nil {
+		s := t.RevokedAt.Format(time.RFC3339)
+		item.RevokedAt = &s
+	}
+	return item
+}
+
+// List handles GET /v1/tokens.
+// @Summary List tokens
+// @Description Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.
+// @Tags tokens
+// @Produce json
+// @Param limit query int false "Max items per page (1-100, default 50)"
+// @Param cursor query string false "Pagination cursor from previous response"
+// @Param credential_id query string false "Filter by credential ID"
+// @Success 200 {object} paginatedResponse[tokenListItem]
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/tokens [get]
+func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	limit, cursor, err := parsePagination(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := h.db.Where("org_id = ?", org.ID)
+
+	if credID := r.URL.Query().Get("credential_id"); credID != "" {
+		q = q.Where("credential_id = ?", credID)
+	}
+
+	q = applyPagination(q, cursor, limit)
+
+	var tokens []model.Token
+	if err := q.Find(&tokens).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list tokens"})
+		return
+	}
+
+	hasMore := len(tokens) > limit
+	if hasMore {
+		tokens = tokens[:limit]
+	}
+
+	resp := make([]tokenListItem, len(tokens))
+	for i, t := range tokens {
+		resp[i] = toTokenListItem(t)
+	}
+
+	result := paginatedResponse[tokenListItem]{
+		Data:    resp,
+		HasMore: hasMore,
+	}
+	if hasMore {
+		last := tokens[len(tokens)-1]
+		c := encodeCursor(last.CreatedAt, last.ID)
+		result.NextCursor = &c
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
 // Revoke handles DELETE /v1/tokens/{jti}.
 // @Summary Revoke a proxy token
 // @Description Revokes a proxy token by its JTI and propagates through cache tiers.

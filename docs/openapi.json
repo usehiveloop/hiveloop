@@ -2410,6 +2410,86 @@
       }
     },
     "/v1/tokens": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns tokens for the organization with cursor pagination. Supports filtering by credential_id.",
+        "tags": [
+          "tokens"
+        ],
+        "summary": "List tokens",
+        "parameters": [
+          {
+            "description": "Max items per page (1-100, default 50)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor from previous response",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by credential ID",
+            "name": "credential_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-tokenListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "security": [
           {
@@ -4686,6 +4766,23 @@
           }
         }
       },
+      "paginatedResponse-tokenListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/tokenListItem"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "patchIntegrationConnectionRequest": {
         "type": "object",
         "properties": {
@@ -4812,6 +4909,44 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "tokenListItem": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "jti": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "refill_amount": {
+            "type": "integer"
+          },
+          "refill_interval": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "revoked_at": {
+            "type": "string"
+          },
+          "scopes": {
+            "$ref": "#/components/schemas/JSON"
           }
         }
       },

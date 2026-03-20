@@ -271,6 +271,7 @@ func run() error {
 				// Token operations — scope: "tokens"
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireAPIKeyScopeOrLogto("tokens"))
+					r.Get("/tokens", tokenHandler.List)
 					r.Post("/tokens", tokenHandler.Mint)
 					r.Delete("/tokens/{jti}", tokenHandler.Revoke)
 				})
