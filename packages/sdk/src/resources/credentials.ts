@@ -16,6 +16,12 @@ export class CredentialsResource extends BaseResource {
     return this.client.GET("/v1/credentials", { params: { query } });
   }
 
+  get(id: string) {
+    return this.client.GET("/v1/credentials/{id}", {
+      params: { path: { id } },
+    });
+  }
+
   delete(id: string) {
     return this.client.DELETE("/v1/credentials/{id}", {
       params: { path: { id } },

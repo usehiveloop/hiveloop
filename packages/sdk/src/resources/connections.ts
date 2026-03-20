@@ -26,6 +26,12 @@ export class ConnectionsResource extends BaseResource {
     });
   }
 
+  retrieveToken(id: string) {
+    return this.client.POST("/v1/connections/{id}/token", {
+      params: { path: { id } },
+    });
+  }
+
   delete(id: string) {
     return this.client.DELETE("/v1/connections/{id}", {
       params: { path: { id } },

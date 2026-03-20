@@ -17,7 +17,11 @@ export type CreateCredentialRequest = Schemas["createCredentialRequest"];
 
 export type MintTokenRequest = Schemas["mintTokenRequest"];
 export type MintTokenResponse = Schemas["mintTokenResponse"];
+export type TokenListItem = Schemas["tokenListItem"];
+export type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
 export type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
+
+export type TokenResponse = Schemas["tokenResponse"];
 
 // Available scopes for token minting (used by scope selection UI)
 export interface AvailableScopeAction {

@@ -50,6 +50,14 @@ interface components {
         "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
             resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
         };
+        actionSummary: {
+            access?: string;
+            description?: string;
+            display_name?: string;
+            key?: string;
+            parameters?: number[];
+            resource_type?: string;
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -253,6 +261,14 @@ interface components {
             revoked_at?: string;
             updated_at?: string;
         };
+        integrationDetail: {
+            actions?: components["schemas"]["actionSummary"][];
+            display_name?: string;
+            id?: string;
+            resources?: {
+                [key: string]: components["schemas"]["resource"];
+            };
+        };
         integrationProviderInfo: {
             auth_mode?: string;
             display_name?: string;
@@ -268,6 +284,14 @@ interface components {
             provider?: string;
             unique_key?: string;
             updated_at?: string;
+        };
+        integrationSummary: {
+            action_count?: number;
+            display_name?: string;
+            has_resources?: boolean;
+            id?: string;
+            read_count?: number;
+            write_count?: number;
         };
         mintTokenRequest: {
             credential_id?: string;
@@ -343,6 +367,11 @@ interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-tokenListItem": {
+            data?: components["schemas"]["tokenListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         patchIntegrationConnectionRequest: {
             resources?: {
                 [key: string]: string[];
@@ -369,6 +398,13 @@ interface components {
             total?: number;
             yesterday?: number;
         };
+        resource: {
+            description?: string;
+            display_name?: string;
+            icon?: string;
+            id_field?: string;
+            name_field?: string;
+        };
         sessionInfoResponse: {
             activated_at?: string;
             allowed_integrations?: string[];
@@ -377,6 +413,26 @@ interface components {
             id?: string;
             identity_id?: string;
             permissions?: string[];
+        };
+        tokenListItem: {
+            created_at?: string;
+            credential_id?: string;
+            expires_at?: string;
+            id?: string;
+            jti?: string;
+            meta?: components["schemas"]["JSON"];
+            refill_amount?: number;
+            refill_interval?: string;
+            remaining?: number;
+            revoked_at?: string;
+            scopes?: components["schemas"]["JSON"];
+        };
+        tokenResponse: {
+            access_token?: string;
+            connection_id?: string;
+            expires_at?: string;
+            provider?: string;
+            token_type?: string;
         };
         tokenStats: {
             active?: number;
@@ -448,7 +504,10 @@ type CredentialResponse = Schemas["credentialResponse"];
 type CreateCredentialRequest = Schemas["createCredentialRequest"];
 type MintTokenRequest = Schemas["mintTokenRequest"];
 type MintTokenResponse = Schemas["mintTokenResponse"];
+type TokenListItem = Schemas["tokenListItem"];
+type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
 type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
+type TokenResponse = Schemas["tokenResponse"];
 interface AvailableScopeAction {
     key: string;
     display_name: string;
@@ -814,6 +873,65 @@ declare class CredentialsResource extends BaseResource {
             } | undefined;
         };
     }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["credentialResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
     delete(id: string): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -939,6 +1057,65 @@ declare class TokensResource extends BaseResource {
             remaining?: number;
             scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
             ttl?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        credential_id?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                credential_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                credential_id?: string;
+            } | undefined;
         };
     }, `${string}/${string}`>>;
     delete(jti: string): Promise<openapi_fetch.FetchResponse<{
@@ -2071,6 +2248,65 @@ declare class ConnectionsResource extends BaseResource {
             };
         };
     }, `${string}/${string}`>>;
+    retrieveToken(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["tokenResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
     delete(id: string): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -2433,4 +2669,4 @@ declare class LLMVault {
     constructor(config: LLMVaultConfig);
 }
 
-export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type ProviderDetail, type ProviderSummary, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };
+export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type TokenListItem, type TokenResponse, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };

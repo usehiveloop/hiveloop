@@ -31,6 +31,11 @@ var CredentialsResource = class extends BaseResource {
   list(query) {
     return this.client.GET("/v1/credentials", { params: { query } });
   }
+  get(id) {
+    return this.client.GET("/v1/credentials/{id}", {
+      params: { path: { id } }
+    });
+  }
   delete(id) {
     return this.client.DELETE("/v1/credentials/{id}", {
       params: { path: { id } }
@@ -42,6 +47,9 @@ var CredentialsResource = class extends BaseResource {
 var TokensResource = class extends BaseResource {
   create(body) {
     return this.client.POST("/v1/tokens", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/tokens", { params: { query } });
   }
   delete(jti) {
     return this.client.DELETE("/v1/tokens/{jti}", {
@@ -148,6 +156,11 @@ var ConnectionsResource = class extends BaseResource {
   }
   get(id) {
     return this.client.GET("/v1/connections/{id}", {
+      params: { path: { id } }
+    });
+  }
+  retrieveToken(id) {
+    return this.client.POST("/v1/connections/{id}/token", {
       params: { path: { id } }
     });
   }
