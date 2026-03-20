@@ -112,7 +112,7 @@ Logs are automatically purged after the retention period.
 Currently, logs can be accessed via:
 - Dashboard UI (paginated viewing)
 - API: `GET /v1/audit`
-- SDK: `sdk.audit.list()`
+- SDK: `vault.audit.list()`
 
 Direct export functionality is planned for future releases.
 
@@ -121,7 +121,11 @@ Direct export functionality is planned for future releases.
 Fetch logs programmatically:
 
 ```typescript
-const entries = await sdk.audit.list({
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.audit.list({
   limit: 50,
   action: "proxy.request"
 });

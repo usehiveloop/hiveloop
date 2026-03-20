@@ -28,21 +28,18 @@ npm install @llmvault/frontend
 First, create a Connect session on your backend:
 
 ```typescript
+import { LLMVault } from "@llmvault/sdk";
+
 // Server-side: Create a Connect session
-const response = await fetch('https://api.llmvault.dev/v1/connect/sessions', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${LLMVAULT_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    external_id: 'user-123',           // Your user's ID
-    permissions: ['create', 'list'],   // Allowed operations
-    ttl: '15m',                        // Session TTL (max 30m)
-  }),
+const vault = new LLMVault({ apiKey: LLMVAULT_API_KEY });
+
+const { data, error } = await vault.connect.sessions.create({
+  external_id: 'user-123',           // Your user's ID
+  permissions: ['create', 'list'],   // Allowed operations
+  ttl: '15m',                        // Session TTL (max 30m)
 });
 
-const { session_token } = await response.json();
+const session_token = data.session_token;
 // Pass session_token to your frontend
 ```
 

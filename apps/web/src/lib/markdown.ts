@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 
@@ -26,12 +27,14 @@ export async function getDocContent(slug: string[]): Promise<DocContent | null> 
     ) + ".md";
     
     const fileContent = await readFile(filePath, "utf-8");
+    
     const { data, content } = matter(fileContent);
     
     // Process markdown to HTML
     const processed = await unified()
       .use(remarkParse)
       .use(remarkGfm)
+      .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeHighlight)
       .use(rehypeStringify)
       .process(content);

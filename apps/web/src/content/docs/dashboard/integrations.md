@@ -172,7 +172,11 @@ To delete:
 Tokens can be scoped to integration actions:
 
 ```typescript
-const scopes = await sdk.connect.getAvailableScopes();
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.connections.availableScopes();
 ```
 
 Returns:
@@ -185,7 +189,11 @@ Returns:
 View all available providers:
 
 ```typescript
-const providers = await sdk.integrations.listProviders();
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.integrations.listProviders();
 ```
 
 Returns provider name, display name, auth mode, and webhook support.

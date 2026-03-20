@@ -177,14 +177,11 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* Main content — own scroll */}
-        <main className="min-w-0 flex-1 overflow-y-auto px-8 py-10 lg:max-w-185 lg:px-15">
-          {children}
+        <main className="min-w-0 flex-1 overflow-y-auto px-8 py-10 lg:px-15">
+          <div className="max-w-5xl mx-auto">
+            {children}
+          </div>
         </main>
-
-        {/* Right sidebar — fixed, no scroll */}
-        <aside className="hidden w-70 shrink-0 border-l border-border px-6 pr-20 py-10 xl:block">
-          <div id="docs-toc" />
-        </aside>
       </div>
 
       {/* Footer — fixed at bottom */}

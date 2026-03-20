@@ -323,11 +323,11 @@ LLMVAULT_BASE_URL=https://api.llmvault.dev
 | `vault.identities` | `create()`, `list()`, `get(id)`, `update(id)`, `delete(id)` |
 | `vault.connect` | `sessions.create()`, `settings.get()`, `settings.update()` |
 | `vault.integrations` | `create()`, `list()`, `get(id)`, `update(id)`, `delete(id)` |
-| `vault.connections` | `list()`, `get(id)`, `delete(id)` |
+| `vault.connections` | `availableScopes()`, `create(integrationId, body)`, `list(integrationId)`, `get(id)`, `retrieveToken(id)`, `delete(id)` |
 | `vault.usage` | `get()` |
 | `vault.audit` | `list()` |
-| `vault.org` | `get()` |
-| `vault.providers` | `list()`, `get(id)` |
+| `vault.org` | `getCurrent()` |
+| `vault.providers` | `list()`, `get(id)`, `listModels(id)` |
 
 ### TypeScript Types
 

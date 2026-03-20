@@ -25,8 +25,7 @@ vault = LLMVault(
 
 # Create an API key
 result = vault.api_keys.create({
-    "name": "my-api-key",
-    "scopes": ["credentials"]
+    "name": "my-api-key"
 })
 
 if result.error:

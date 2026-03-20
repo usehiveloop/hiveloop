@@ -97,10 +97,14 @@ Displays JSON metadata attached to the identity:
 Identities are typically created programmatically:
 
 ```typescript
-const identity = await sdk.identities.create({
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.identities.create({
   external_id: "user_12345",
   meta: { tier: "premium" },
-  ratelimits: [
+  rate_limit: [
     { name: "requests", limit: 100, duration: 3600000 } // 1 hour in ms
   ]
 });
@@ -141,10 +145,13 @@ From the detail page, you can:
 **Note:** UI editing is currently in development. Use the API for now:
 
 ```typescript
-await sdk.identities.update(identityId, {
-  external_id: "new_id",
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: "ak_live_..." });
+
+const { data, error } = await vault.identities.update(identityId, {
   meta: { updated: true },
-  ratelimits: [
+  rate_limit: [
     { name: "requests", limit: 200, duration: 3600000 }
   ]
 });

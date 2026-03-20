@@ -122,7 +122,7 @@ Click **"Copy"** buttons to copy values to clipboard.
 Tokens can be revoked via:
 - Dashboard: Find token and revoke (UI pending)
 - API: `DELETE /v1/tokens/{jti}`
-- SDK: `sdk.tokens.delete(jti)`
+- SDK: `vault.tokens.delete(jti)`
 
 **Effects:**
 - Immediate invalidation

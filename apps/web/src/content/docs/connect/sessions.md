@@ -301,47 +301,42 @@ Metadata is stored with the session and available in webhook payloads.
 ## Complete Session Example
 
 ```typescript
+import { LLMVault } from "@llmvault/sdk";
+
+const vault = new LLMVault({ apiKey: process.env.LLMVAULT_API_KEY });
+
 // Backend: Create a scoped session
 async function createConnectSession(user: User) {
-  const response = await fetch('https://api.llmvault.dev/v1/connect/sessions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.LLMVAULT_API_KEY}`,
-      'Content-Type': 'application/json',
+  const { data, error } = await vault.connect.sessions.create({
+    // User identification
+    external_id: user.id,
+
+    // Scoped permissions
+    permissions: user.plan === 'enterprise'
+      ? ['create', 'list', 'delete', 'verify']
+      : ['create', 'list'],
+
+    // Integration restrictions
+    allowed_integrations: user.allowedIntegrations,
+
+    // Security
+    allowed_origins: ['https://app.example.com'],
+    ttl: '15m',
+
+    // Tracking
+    metadata: {
+      user_plan: user.plan,
+      source: 'settings_page',
     },
-    body: JSON.stringify({
-      // User identification
-      external_id: user.id,
-      
-      // Scoped permissions
-      permissions: user.plan === 'enterprise' 
-        ? ['create', 'list', 'delete', 'verify']
-        : ['create', 'list'],
-      
-      // Integration restrictions
-      allowed_integrations: user.allowedIntegrations,
-      
-      // Security
-      allowed_origins: ['https://app.example.com'],
-      ttl: '15m',
-      
-      // Tracking
-      metadata: {
-        user_plan: user.plan,
-        source: 'settings_page',
-      },
-    }),
   });
-  
-  if (!response.ok) {
+
+  if (error) {
     throw new Error('Failed to create session');
   }
-  
-  const { session_token, expires_at } = await response.json();
-  
+
   return {
-    token: session_token,
-    expiresAt: expires_at,
+    token: data.session_token,
+    expiresAt: data.expires_at,
   };
 }
 ```
