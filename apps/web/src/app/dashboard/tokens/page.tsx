@@ -341,6 +341,14 @@ export default function TokensPage() {
 
 // --- Scope Selection Component ---
 
+// Internal optimized representation using Sets for O(1) lookups
+type ScopeSelectionInternal = {
+  connectionId: string;
+  actions: Set<string>;
+  resources: Map<string, Set<string>>;
+};
+
+// External API representation (arrays for JSON serialization)
 type ScopeSelection = {
   connectionId: string;
   actions: string[];
@@ -352,15 +360,37 @@ type ActionItem = components["schemas"]["availableScopeAction"];
 
 const ACTION_ROW_HEIGHT = 44; // Height of each action row in px
 
+// Convert external array format to internal Set format
+function toInternalScope(scopes: ScopeSelection[]): ScopeSelectionInternal[] {
+  return scopes.map((s) => ({
+    connectionId: s.connectionId,
+    actions: new Set(s.actions),
+    resources: new Map(
+      Object.entries(s.resources).map(([type, ids]) => [type, new Set(ids)])
+    ),
+  }));
+}
+
+// Convert internal Set format back to external array format
+function toExternalScope(scopes: ScopeSelectionInternal[]): ScopeSelection[] {
+  return scopes.map((s) => ({
+    connectionId: s.connectionId,
+    actions: Array.from(s.actions),
+    resources: Object.fromEntries(
+      Array.from(s.resources.entries()).map(([type, set]) => [type, Array.from(set)])
+    ),
+  }));
+}
+
 function ActionList({
   actions,
-  scopeEntry,
+  actionSet,
   connId,
   searchQuery,
   onToggleAction,
 }: {
   actions: ActionItem[];
-  scopeEntry: ScopeSelection | undefined;
+  actionSet: Set<string>;
   connId: string;
   searchQuery: string;
   onToggleAction: (connId: string, actionKey: string) => void;
@@ -406,7 +436,7 @@ function ActionList({
         >
           {virtualItems.map((virtualItem) => {
             const action = filteredActions[virtualItem.index];
-            const isChecked = scopeEntry?.actions.includes(action.key ?? "") ?? false;
+            const isChecked = actionSet.has(action.key ?? "");
             return (
               <div
                 key={action.key}
@@ -458,51 +488,97 @@ function ScopeSelector({
   const { data: availableConnections = [] } = $api.useQuery("get", "/v1/connections/available-scopes");
   const [expandedConns, setExpandedConns] = useState<Set<string>>(new Set());
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
+  
+  // Convert to internal format with Sets for O(1) operations
+  const internalScopes = useMemo(() => toInternalScope(scopes), [scopes]);
+  
+  // Build lookup map for O(1) connection access
+  const scopeMap = useMemo(() => {
+    const map = new Map<string, ScopeSelectionInternal>();
+    for (const s of internalScopes) {
+      map.set(s.connectionId, s);
+    }
+    return map;
+  }, [internalScopes]);
 
   const toggleConnection = (connId: string) => {
-    const existing = scopes.find((s) => s.connectionId === connId);
+    const existing = scopeMap.get(connId);
+    let newScopes: ScopeSelectionInternal[];
+    
     if (existing) {
-      onScopesChange(scopes.filter((s) => s.connectionId !== connId));
+      // Remove connection - O(1) filter using pre-built map
+      newScopes = internalScopes.filter((s) => s.connectionId !== connId);
     } else {
+      // Add connection with all actions selected
       const conn = availableConnections.find((c: AvailableScopeConnection) => c.connection_id === connId);
       if (conn) {
-        onScopesChange([...scopes, {
+        newScopes = [...internalScopes, {
           connectionId: connId,
-          actions: (conn.actions ?? []).map((a) => a.key ?? ""),
-          resources: {},
-        }]);
+          actions: new Set((conn.actions ?? []).map((a) => a.key ?? "")),
+          resources: new Map(),
+        }];
+      } else {
+        newScopes = internalScopes;
       }
     }
+    
+    onScopesChange(toExternalScope(newScopes));
   };
 
   const toggleExpanded = (connId: string) => {
-    const next = new Set(expandedConns);
-    if (next.has(connId)) next.delete(connId);
-    else next.add(connId);
-    setExpandedConns(next);
+    setExpandedConns((prev) => {
+      const next = new Set(prev);
+      if (next.has(connId)) next.delete(connId);
+      else next.add(connId);
+      return next;
+    });
   };
 
   const toggleAction = (connId: string, actionKey: string) => {
-    onScopesChange(scopes.map((s) => {
-      if (s.connectionId !== connId) return s;
-      const has = s.actions.includes(actionKey);
-      return { ...s, actions: has ? s.actions.filter((a) => a !== actionKey) : [...s.actions, actionKey] };
-    }));
+    const scope = scopeMap.get(connId);
+    if (!scope) return;
+
+    // O(1) toggle using Set
+    const newActions = new Set(scope.actions);
+    if (newActions.has(actionKey)) {
+      newActions.delete(actionKey);
+    } else {
+      newActions.add(actionKey);
+    }
+
+    const newScopes = internalScopes.map((s) =>
+      s.connectionId === connId ? { ...s, actions: newActions } : s
+    );
+    
+    onScopesChange(toExternalScope(newScopes));
   };
 
   const toggleResource = (connId: string, resourceType: string, resourceId: string) => {
-    onScopesChange(scopes.map((s) => {
-      if (s.connectionId !== connId) return s;
-      const current = s.resources[resourceType] ?? [];
-      const has = current.includes(resourceId);
-      return {
-        ...s,
-        resources: {
-          ...s.resources,
-          [resourceType]: has ? current.filter((id) => id !== resourceId) : [...current, resourceId],
-        },
-      };
-    }));
+    const scope = scopeMap.get(connId);
+    if (!scope) return;
+
+    // O(1) toggle using Map of Sets
+    const newResources = new Map(scope.resources);
+    const currentSet = newResources.get(resourceType) ?? new Set<string>();
+    const newSet = new Set(currentSet);
+    
+    if (newSet.has(resourceId)) {
+      newSet.delete(resourceId);
+    } else {
+      newSet.add(resourceId);
+    }
+    
+    if (newSet.size === 0) {
+      newResources.delete(resourceType);
+    } else {
+      newResources.set(resourceType, newSet);
+    }
+
+    const newScopes = internalScopes.map((s) =>
+      s.connectionId === connId ? { ...s, resources: newResources } : s
+    );
+    
+    onScopesChange(toExternalScope(newScopes));
   };
 
   const handleSearchChange = (connId: string, value: string) => {
@@ -513,9 +589,9 @@ function ScopeSelector({
     <div className="flex flex-col gap-2">
       {availableConnections.map((conn: AvailableScopeConnection) => {
         const connId = conn.connection_id ?? "";
-        const isSelected = scopes.some((s) => s.connectionId === connId);
+        const isSelected = scopeMap.has(connId);
         const isExpanded = expandedConns.has(connId);
-        const scopeEntry = scopes.find((s) => s.connectionId === connId);
+        const scopeEntry = scopeMap.get(connId);
         const searchQuery = searchQueries[connId] ?? "";
 
         return (
@@ -539,7 +615,7 @@ function ScopeSelector({
               </button>
               {isSelected && (
                 <span className="text-[11px] text-muted-foreground">
-                  {scopeEntry?.actions.length ?? 0} actions
+                  {scopeEntry?.actions.size ?? 0} actions
                 </span>
               )}
             </div>
@@ -566,39 +642,42 @@ function ScopeSelector({
                 {/* Virtualized Action List */}
                 <ActionList
                   actions={conn.actions ?? []}
-                  scopeEntry={scopeEntry}
+                  actionSet={scopeEntry?.actions ?? new Set()}
                   connId={connId}
                   searchQuery={searchQuery}
                   onToggleAction={toggleAction}
                 />
 
-                {conn.resources && Object.entries(conn.resources).map(([type, res]) => (
-                  <div key={type} className="mt-4 flex flex-col gap-1.5">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-dim">{res.display_name}</span>
-                    {(res.selected ?? []).length === 0 ? (
-                      <span className="text-[11px] text-dim">No resources configured</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {(res.selected ?? []).map((item) => {
-                          const isActive = scopeEntry?.resources[type]?.includes(item.id ?? "") ?? false;
-                          return (
-                            <button
-                              key={item.id}
-                              onClick={() => toggleResource(connId, type, item.id ?? "")}
-                              className={`px-2 py-1 text-[12px] transition-colors ${
-                                isActive
-                                  ? "border border-primary/30 bg-primary/8 text-foreground"
-                                  : "border border-border text-muted-foreground hover:border-primary/20"
-                              }`}
-                            >
-                              {item.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {conn.resources && Object.entries(conn.resources).map(([type, res]) => {
+                  const resourceSet = scopeEntry?.resources.get(type) ?? new Set<string>();
+                  return (
+                    <div key={type} className="mt-4 flex flex-col gap-1.5">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-dim">{res.display_name}</span>
+                      {(res.selected ?? []).length === 0 ? (
+                        <span className="text-[11px] text-dim">No resources configured</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {(res.selected ?? []).map((item) => {
+                            const isActive = resourceSet.has(item.id ?? "");
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => toggleResource(connId, type, item.id ?? "")}
+                                className={`px-2 py-1 text-[12px] transition-colors ${
+                                  isActive
+                                    ? "border border-primary/30 bg-primary/8 text-foreground"
+                                    : "border border-border text-muted-foreground hover:border-primary/20"
+                                }`}
+                              >
+                                {item.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
