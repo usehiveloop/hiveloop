@@ -375,6 +375,7 @@ func TestGet_WithProviderConfig(t *testing.T) {
 		"connection_config": map[string]any{
 			"installation_id": "12345",
 			"app_id":          "67890",
+			"jwtToken":        "eyJhbGciOiJSUzI1NiJ9.sensitive",
 		},
 		"metadata": map[string]any{
 			"org_name": "acme-corp",
@@ -424,6 +425,11 @@ func TestGet_WithProviderConfig(t *testing.T) {
 		t.Fatalf("expected installation_id=12345, got %v", connCfg["installation_id"])
 	}
 
+	// jwtToken must be stripped from connection_config
+	if _, ok := connCfg["jwtToken"]; ok {
+		t.Fatal("jwtToken must not be present in connection_config")
+	}
+
 	// metadata should be present
 	if _, ok := pc["metadata"]; !ok {
 		t.Fatal("expected metadata in provider_config")
@@ -434,9 +440,13 @@ func TestGet_WithProviderConfig(t *testing.T) {
 		t.Fatalf("expected provider=github-app, got %v", pc["provider"])
 	}
 
-	// credentials must NOT be present
-	if _, ok := pc["credentials"]; ok {
-		t.Fatal("credentials must not be present in provider_config")
+	// credentials should be present with access_token
+	creds, ok := pc["credentials"].(map[string]any)
+	if !ok {
+		t.Fatal("expected credentials in provider_config")
+	}
+	if creds["access_token"] != "ghs_SECRET" {
+		t.Fatalf("expected access_token=ghs_SECRET, got %v", creds["access_token"])
 	}
 }
 
