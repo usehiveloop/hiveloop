@@ -229,6 +229,7 @@ func run() error {
 	// Integration actions discovery (no auth — used by frontend)
 	actionsHandler := handler.NewActionsHandler(actionsCatalog)
 	r.Get("/v1/integrations", actionsHandler.ListIntegrations)
+	r.Get("/v1/integrations/providers", integrationHandler.ListProviders)
 	r.Get("/v1/integrations/{id}", actionsHandler.GetIntegration)
 	r.Get("/v1/integrations/{id}/actions", actionsHandler.ListActions)
 

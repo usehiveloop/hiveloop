@@ -1,6 +1,6 @@
 {
   "name": "@llmvault/sdk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Server-side SDK for the LLMVault API",
   "type": "module",
   "exports": {
