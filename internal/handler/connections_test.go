@@ -384,6 +384,7 @@ func TestGet_WithProviderConfig(t *testing.T) {
 		"credentials": map[string]any{
 			"access_token": "ghs_SECRET",
 			"token_type":   "bearer",
+			"jwtToken":     "eyJhbGciOiJSUzI1NiJ9.sensitive-creds",
 		},
 	}
 
@@ -447,6 +448,11 @@ func TestGet_WithProviderConfig(t *testing.T) {
 	}
 	if creds["access_token"] != "ghs_SECRET" {
 		t.Fatalf("expected access_token=ghs_SECRET, got %v", creds["access_token"])
+	}
+
+	// jwtToken must be stripped from credentials
+	if _, ok := creds["jwtToken"]; ok {
+		t.Fatal("jwtToken must not be present in credentials")
 	}
 }
 
