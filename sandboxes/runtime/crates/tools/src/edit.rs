@@ -89,7 +89,8 @@ fn snippet(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
     } else {
-        format!("{}...", &s[..max_len])
+        let end = s.floor_char_boundary(max_len);
+        format!("{}...", &s[..end])
     }
 }
 
@@ -571,5 +572,15 @@ mod tests {
         // Replaced 1 line with 3 lines = +2 lines added, 0 removed
         assert_eq!(parsed.lines_added, 2);
         assert_eq!(parsed.lines_removed, 0);
+    }
+
+    #[test]
+    fn test_snippet_multibyte_truncation() {
+        // Each 'あ' is 3 bytes; 1000 of them = 3000 bytes.
+        // Truncating at a non-char-boundary byte index would panic without floor_char_boundary.
+        let s = "あ".repeat(1000);
+        let result = snippet(&s, 100);
+        assert!(result.ends_with("..."), "should be truncated with ...");
+        // Should not panic — that's the main assertion
     }
 }

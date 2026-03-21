@@ -19,7 +19,8 @@ const MAX_MATCH_LINE_LENGTH: usize = 2000;
 
 fn truncate_match_line(line: &str) -> String {
     if line.len() > MAX_MATCH_LINE_LENGTH {
-        format!("{}...", &line[..MAX_MATCH_LINE_LENGTH])
+        let end = line.floor_char_boundary(MAX_MATCH_LINE_LENGTH);
+        format!("{}...", &line[..end])
     } else {
         line.to_string()
     }
@@ -775,6 +776,35 @@ mod tests {
         );
         // Should be 2000 + 3 for "..."
         assert!(content.len() <= 2003 + 10);
+    }
+
+    #[tokio::test]
+    async fn test_grep_truncation_on_multibyte_chars() {
+        let dir = tempdir().expect("create temp dir");
+        let dir_path = dir.path();
+
+        // Each 'あ' is 3 bytes in UTF-8; 1000 of them = 3000 bytes, exceeding the 2000-byte limit.
+        // Truncating at byte 2000 would land in the middle of a character without floor_char_boundary.
+        let long_line = "あ".repeat(1000);
+        fs::write(dir_path.join("multibyte.txt"), &long_line).expect("write");
+
+        let tool = GrepTool::new();
+        let args = serde_json::json!({
+            "pattern": "あ",
+            "path": dir_path.to_str().unwrap(),
+            "output_mode": "content"
+        });
+
+        let result = tool.execute(args).await.expect("should not panic");
+        let parsed: GrepResult = serde_json::from_str(&result).expect("parse");
+
+        assert_eq!(parsed.total_matches, 1);
+        let content = parsed.matches[0]["content"].as_str().unwrap();
+        assert!(
+            content.ends_with("..."),
+            "long multibyte line should be truncated with ..."
+        );
+        assert!(content.len() <= MAX_MATCH_LINE_LENGTH + 3);
     }
 
     #[tokio::test]
