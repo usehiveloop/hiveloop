@@ -16,7 +16,7 @@ pub struct SubAgentTask {
     /// The detailed task for the subagent to perform.
     pub prompt: String,
     /// Which subagent to invoke.
-    pub subagent: String,
+    pub subagent_name: String,
 }
 
 /// Arguments for the parallel agent tool.
@@ -44,7 +44,7 @@ fn default_max_concurrent() -> usize {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParallelTaskResult {
     pub description: String,
-    pub subagent: String,
+    pub subagent_name: String,
     pub status: String, // "completed", "failed", "timeout"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_id: Option<String>,
@@ -146,12 +146,14 @@ impl ToolExecutor for ParallelAgentTool {
         // Validate all subagents exist
         let available = ctx.runner.available_subagents();
         for task in &args.tasks {
-            let exists = available.iter().any(|(name, _)| name == &task.subagent);
+            let exists = available
+                .iter()
+                .any(|(name, _)| name == &task.subagent_name);
             if !exists {
                 let names: Vec<&str> = available.iter().map(|(n, _)| n.as_str()).collect();
                 return Err(format!(
                     "Unknown subagent '{}'. Available: [{}]",
-                    task.subagent,
+                    task.subagent_name,
                     names.join(", ")
                 ));
             }
@@ -178,7 +180,7 @@ impl ToolExecutor for ParallelAgentTool {
                 // Run the subagent
                 let result = tokio::time::timeout(timeout, async {
                     runner
-                        .run_foreground(&task.subagent, &task.prompt, None)
+                        .run_foreground(&task.subagent_name, &task.prompt, None)
                         .await
                 })
                 .await;
@@ -186,7 +188,7 @@ impl ToolExecutor for ParallelAgentTool {
                 match result {
                     Ok(Ok(agent_result)) => ParallelTaskResult {
                         description: task.description.clone(),
-                        subagent: task.subagent.clone(),
+                        subagent_name: task.subagent_name.clone(),
                         status: "completed".to_string(),
                         task_id: Some(agent_result.task_id),
                         output: Some(agent_result.output),
@@ -194,7 +196,7 @@ impl ToolExecutor for ParallelAgentTool {
                     },
                     Ok(Err(e)) => ParallelTaskResult {
                         description: task.description.clone(),
-                        subagent: task.subagent.clone(),
+                        subagent_name: task.subagent_name.clone(),
                         status: "failed".to_string(),
                         task_id: None,
                         output: None,
@@ -202,7 +204,7 @@ impl ToolExecutor for ParallelAgentTool {
                     },
                     Err(_) => ParallelTaskResult {
                         description: task.description.clone(),
-                        subagent: task.subagent.clone(),
+                        subagent_name: task.subagent_name.clone(),
                         status: "timeout".to_string(),
                         task_id: None,
                         output: None,
@@ -221,7 +223,7 @@ impl ToolExecutor for ParallelAgentTool {
                 Ok(result) => results.push(result),
                 Err(e) => results.push(ParallelTaskResult {
                     description: "unknown".to_string(),
-                    subagent: "unknown".to_string(),
+                    subagent_name: "unknown".to_string(),
                     status: "failed".to_string(),
                     task_id: None,
                     output: None,
@@ -342,7 +344,7 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "test", "prompt": "do something", "subagent": "unknown"}
+                {"description": "test", "prompt": "do something", "subagent_name": "unknown"}
             ],
             "timeout_secs": 10,
             "max_concurrent": 5
@@ -362,9 +364,9 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "task 1", "prompt": "find files", "subagent": "explorer"},
-                {"description": "task 2", "prompt": "write code", "subagent": "coder"},
-                {"description": "task 3", "prompt": "find more", "subagent": "explorer"}
+                {"description": "task 1", "prompt": "find files", "subagent_name": "explorer"},
+                {"description": "task 2", "prompt": "write code", "subagent_name": "coder"},
+                {"description": "task 3", "prompt": "find more", "subagent_name": "explorer"}
             ],
             "timeout_secs": 10,
             "max_concurrent": 5
@@ -397,10 +399,10 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "task 1", "prompt": "work", "subagent": "explorer"},
-                {"description": "task 2", "prompt": "work", "subagent": "explorer"},
-                {"description": "task 3", "prompt": "work", "subagent": "explorer"},
-                {"description": "task 4", "prompt": "work", "subagent": "explorer"}
+                {"description": "task 1", "prompt": "work", "subagent_name": "explorer"},
+                {"description": "task 2", "prompt": "work", "subagent_name": "explorer"},
+                {"description": "task 3", "prompt": "work", "subagent_name": "explorer"},
+                {"description": "task 4", "prompt": "work", "subagent_name": "explorer"}
             ],
             "timeout_secs": 10,
             "max_concurrent": 2  // Only 2 at a time
@@ -449,7 +451,7 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "task 1", "prompt": "work", "subagent": "explorer"}
+                {"description": "task 1", "prompt": "work", "subagent_name": "explorer"}
             ],
             "timeout_secs": 10,
             "max_concurrent": 5
@@ -515,9 +517,9 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "task 1", "prompt": "work", "subagent": "explorer"},
-                {"description": "task 2", "prompt": "work", "subagent": "coder"},  // Will fail
-                {"description": "task 3", "prompt": "work", "subagent": "explorer"}
+                {"description": "task 1", "prompt": "work", "subagent_name": "explorer"},
+                {"description": "task 2", "prompt": "work", "subagent_name": "coder"},  // Will fail
+                {"description": "task 3", "prompt": "work", "subagent_name": "explorer"}
             ],
             "timeout_secs": 10,
             "max_concurrent": 5
@@ -541,7 +543,7 @@ mod tests {
         let tool = ParallelAgentTool::new();
         let args = serde_json::json!({
             "tasks": [
-                {"description": "slow task", "prompt": "work", "subagent": "explorer"}
+                {"description": "slow task", "prompt": "work", "subagent_name": "explorer"}
             ],
             "timeout_secs": 1,  // 1 second timeout
             "max_concurrent": 5

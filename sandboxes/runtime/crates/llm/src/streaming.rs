@@ -35,6 +35,9 @@ pub enum SseEvent {
         result: String,
         /// Whether the tool execution errored
         is_error: bool,
+        /// Duration of the tool call in milliseconds.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        duration_ms: Option<u64>,
     },
     /// The assistant finished generating the response.
     MessageEnd {
@@ -166,6 +169,32 @@ mod tests {
         assert!(json.contains("in_progress"));
         assert!(json.contains("Write tests"));
         assert!(json.contains("pending"));
+    }
+
+    #[test]
+    fn test_tool_call_result_with_duration() {
+        let event = SseEvent::ToolCallResult {
+            id: "tc_1".to_string(),
+            result: "ok".to_string(),
+            is_error: false,
+            duration_ms: Some(42),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("tool_call_result"));
+        assert!(json.contains("\"duration_ms\":42"));
+    }
+
+    #[test]
+    fn test_tool_call_result_without_duration() {
+        let event = SseEvent::ToolCallResult {
+            id: "tc_1".to_string(),
+            result: "ok".to_string(),
+            is_error: false,
+            duration_ms: None,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("tool_call_result"));
+        assert!(!json.contains("duration_ms"));
     }
 
     #[test]

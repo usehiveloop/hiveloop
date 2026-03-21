@@ -201,6 +201,16 @@ impl AgentSupervisor {
         // Build subagents from definition.subagents
         let subagent_map = build_subagents(&definition, &integration_tools)?;
 
+        // Inject the parent agent as "__self__" for self-delegation
+        subagent_map.insert(
+            tools::self_agent::SELF_AGENT_NAME.to_string(),
+            SubAgentEntry {
+                name: tools::self_agent::SELF_AGENT_NAME.to_string(),
+                description: "Self-delegation agent".to_string(),
+                agent: Arc::new(rig_agent.clone()),
+            },
+        );
+
         let state = Arc::new(AgentState::new(
             definition,
             rig_agent,
@@ -222,6 +232,11 @@ impl AgentSupervisor {
     /// List all loaded agents.
     pub async fn list_agents(&self) -> Vec<AgentSummary> {
         self.agent_map.list().await
+    }
+
+    /// Return all agent states for enriched API responses.
+    pub fn list_agent_states(&self) -> Vec<Arc<AgentState>> {
+        self.agent_map.list_states()
     }
 
     /// Create a new conversation for an agent.
@@ -304,6 +319,7 @@ impl AgentSupervisor {
                 conv_id_clone.clone(),
                 0, // depth
                 3, // max_depth
+                metrics.clone(),
             )
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())
@@ -614,6 +630,16 @@ impl AgentSupervisor {
         // Build subagents from definition.subagents
         let subagent_map = build_subagents(&definition, &integration_tools)?;
 
+        // Inject the parent agent as "__self__" for self-delegation
+        subagent_map.insert(
+            tools::self_agent::SELF_AGENT_NAME.to_string(),
+            SubAgentEntry {
+                name: tools::self_agent::SELF_AGENT_NAME.to_string(),
+                description: "Self-delegation agent".to_string(),
+                agent: Arc::new(rig_agent.clone()),
+            },
+        );
+
         Ok(Arc::new(AgentState::new(
             definition,
             rig_agent,
@@ -713,6 +739,7 @@ impl AgentSupervisor {
                 conv_id_clone.clone(),
                 0,
                 3,
+                metrics.clone(),
             )
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())

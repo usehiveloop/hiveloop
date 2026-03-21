@@ -676,7 +676,7 @@ async fn test_delegator_subagent_natural_invocation() {
         .iter()
         .filter(|e| {
             e.event_type == "tool_call_start"
-                && e.data.get("name").and_then(|n| n.as_str()) == Some("agent")
+                && e.data.get("name").and_then(|n| n.as_str()) == Some("sub_agent")
         })
         .collect();
 

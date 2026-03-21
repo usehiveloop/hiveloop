@@ -49,6 +49,11 @@ impl AgentMap {
         summaries
     }
 
+    /// Return all agent states (for enriched API responses).
+    pub fn list_states(&self) -> Vec<Arc<AgentState>> {
+        self.inner.iter().map(|e| e.value().clone()).collect()
+    }
+
     /// Get the number of loaded agents.
     pub fn len(&self) -> usize {
         self.inner.len()

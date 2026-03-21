@@ -329,7 +329,7 @@ dependencies = [
 
 [[package]]
 name = "bridge"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "api",
@@ -520,6 +520,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
+ "dashmap",
  "pretty_assertions",
  "serde",
  "serde_json",

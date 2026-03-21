@@ -128,10 +128,10 @@ pub struct AgentTaskNotification {
     pub output: Result<String, String>,
 }
 
-/// Parameters for the agent tool.
+/// Parameters for the sub_agent tool.
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentToolParams {
+pub struct SubAgentToolParams {
     /// Short (3-5 word) description of the task.
     #[schemars(description = "Short (3-5 word) description of the task. Example: 'Fix login bug'")]
     pub description: String,
@@ -142,7 +142,7 @@ pub struct AgentToolParams {
     pub prompt: String,
     /// Which subagent to invoke (must match a defined subagent name).
     #[schemars(description = "Which subagent to invoke. Must match an available subagent name")]
-    pub subagent: String,
+    pub subagent_name: String,
     /// Set to true to run in background (returns immediately, notifies on completion).
     #[schemars(
         description = "Set to true to run in background. Returns immediately with task_id; notifies on completion"
@@ -156,17 +156,17 @@ pub struct AgentToolParams {
 }
 
 /// Tool that invokes subagents for autonomous task execution.
-pub struct AgentTool {
+pub struct SubAgentTool {
     description: String,
 }
 
-impl Default for AgentTool {
+impl Default for SubAgentTool {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl AgentTool {
+impl SubAgentTool {
     pub fn new() -> Self {
         Self {
             description: String::new(),
@@ -176,7 +176,7 @@ impl AgentTool {
     /// Build the description by replacing the {agents} placeholder with available subagents.
     #[cfg(test)]
     fn build_description(agents: &[(String, String)]) -> String {
-        let template = include_str!("instructions/agent.txt");
+        let template = include_str!("instructions/sub_agent.txt");
         let agent_list = if agents.is_empty() {
             "(none)".to_string()
         } else {
@@ -191,9 +191,9 @@ impl AgentTool {
 }
 
 #[async_trait]
-impl ToolExecutor for AgentTool {
+impl ToolExecutor for SubAgentTool {
     fn name(&self) -> &str {
-        "agent"
+        "sub_agent"
     }
 
     fn description(&self) -> &str {
@@ -201,25 +201,25 @@ impl ToolExecutor for AgentTool {
         // is built in execute() since we need the task_local context.
         // For schema registration, the static template is sufficient.
         if self.description.is_empty() {
-            include_str!("instructions/agent.txt")
+            include_str!("instructions/sub_agent.txt")
         } else {
             &self.description
         }
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
-        serde_json::to_value(schemars::schema_for!(AgentToolParams))
+        serde_json::to_value(schemars::schema_for!(SubAgentToolParams))
             .unwrap_or_else(|_| serde_json::json!({}))
     }
 
     async fn execute(&self, args: serde_json::Value) -> Result<String, String> {
-        let params: AgentToolParams =
+        let params: SubAgentToolParams =
             serde_json::from_value(args).map_err(|e| format!("Invalid arguments: {e}"))?;
 
         // Read context from task_local
         let ctx = AGENT_CONTEXT
             .try_with(|c| c.clone())
-            .map_err(|_| "Agent tool requires a conversation context".to_string())?;
+            .map_err(|_| "Sub-agent tool requires a conversation context".to_string())?;
 
         // Check task budget before spawning
         ctx.task_budget.try_acquire()?;
@@ -234,7 +234,9 @@ impl ToolExecutor for AgentTool {
 
         // Validate subagent exists
         let available = ctx.runner.available_subagents();
-        let subagent_exists = available.iter().any(|(name, _)| name == &params.subagent);
+        let subagent_exists = available
+            .iter()
+            .any(|(name, _)| name == &params.subagent_name);
         if !subagent_exists {
             if available.is_empty() {
                 return Err(
@@ -244,7 +246,7 @@ impl ToolExecutor for AgentTool {
             let names: Vec<&str> = available.iter().map(|(n, _)| n.as_str()).collect();
             return Err(format!(
                 "Unknown subagent '{}'. Available: [{}]",
-                params.subagent,
+                params.subagent_name,
                 names.join(", ")
             ));
         }
@@ -253,7 +255,7 @@ impl ToolExecutor for AgentTool {
             // Background execution
             let handle = ctx
                 .runner
-                .run_background(&params.subagent, &params.prompt, &params.description)
+                .run_background(&params.subagent_name, &params.prompt, &params.description)
                 .await?;
 
             serde_json::to_string(&serde_json::json!({
@@ -266,7 +268,11 @@ impl ToolExecutor for AgentTool {
             // Foreground execution
             let result = ctx
                 .runner
-                .run_foreground(&params.subagent, &params.prompt, params.task_id.as_deref())
+                .run_foreground(
+                    &params.subagent_name,
+                    &params.prompt,
+                    params.task_id.as_deref(),
+                )
                 .await?;
 
             Ok(format!(
@@ -333,11 +339,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_no_context_returns_error() {
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test",
             "prompt": "do something",
-            "subagent": "explorer"
+            "subagentName": "explorer"
         });
         let result = tool.execute(args).await;
         assert!(result.is_err());
@@ -347,11 +353,11 @@ mod tests {
     #[tokio::test]
     async fn test_no_subagents_returns_error() {
         let ctx = make_context(vec![]);
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test",
             "prompt": "do something",
-            "subagent": "explorer"
+            "subagentName": "explorer"
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -363,11 +369,11 @@ mod tests {
     #[tokio::test]
     async fn test_unknown_subagent_returns_error() {
         let ctx = make_context(vec![("coder".to_string(), "A coding agent".to_string())]);
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test",
             "prompt": "do something",
-            "subagent": "explorer"
+            "subagentName": "explorer"
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -391,11 +397,11 @@ mod tests {
             max_depth: 3,
             task_budget: Arc::new(TaskBudget::new(50)),
         };
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test",
             "prompt": "do something",
-            "subagent": "coder"
+            "subagentName": "coder"
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -407,11 +413,11 @@ mod tests {
     #[tokio::test]
     async fn test_foreground_execution() {
         let ctx = make_context(vec![("coder".to_string(), "A coding agent".to_string())]);
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test task",
             "prompt": "write hello world",
-            "subagent": "coder"
+            "subagentName": "coder"
         });
         let result = AGENT_CONTEXT
             .scope(ctx, async { tool.execute(args).await })
@@ -426,11 +432,11 @@ mod tests {
     #[tokio::test]
     async fn test_background_execution() {
         let ctx = make_context(vec![("coder".to_string(), "A coding agent".to_string())]);
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test task",
             "prompt": "write hello world",
-            "subagent": "coder",
+            "subagentName": "coder",
             "background": true
         });
         let result = AGENT_CONTEXT
@@ -449,7 +455,7 @@ mod tests {
             ("coder".to_string(), "A coding agent".to_string()),
             ("explorer".to_string(), "An exploration agent".to_string()),
         ];
-        let desc = AgentTool::build_description(&agents);
+        let desc = SubAgentTool::build_description(&agents);
         assert!(desc.contains("- coder: A coding agent"));
         assert!(desc.contains("- explorer: An exploration agent"));
         assert!(!desc.contains("{agents}"));
@@ -457,7 +463,7 @@ mod tests {
 
     #[test]
     fn test_build_description_no_agents() {
-        let desc = AgentTool::build_description(&[]);
+        let desc = SubAgentTool::build_description(&[]);
         assert!(desc.contains("(none)"));
     }
 
@@ -510,11 +516,11 @@ mod tests {
             task_budget: Arc::new(TaskBudget::new(50)),
         };
 
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "delayed task",
             "prompt": "do something slow",
-            "subagent": "coder"
+            "subagentName": "coder"
         });
 
         let start = Instant::now();
@@ -583,11 +589,11 @@ mod tests {
             task_budget: Arc::new(TaskBudget::new(50)),
         };
 
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "background task",
             "prompt": "do something slow in background",
-            "subagent": "coder",
+            "subagentName": "coder",
             "background": true
         });
 
@@ -707,7 +713,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_task_budget_enforced_by_agent_tool() {
+    async fn test_task_budget_enforced_by_sub_agent_tool() {
         // Budget of 1 — second call should fail
         let budget = Arc::new(TaskBudget::new(1));
         let (tx, _rx) = mpsc::channel(16);
@@ -722,11 +728,11 @@ mod tests {
             task_budget: budget,
         };
 
-        let tool = AgentTool::new();
+        let tool = SubAgentTool::new();
         let args = serde_json::json!({
             "description": "test",
             "prompt": "do something",
-            "subagent": "coder"
+            "subagentName": "coder"
         });
 
         // First call should succeed

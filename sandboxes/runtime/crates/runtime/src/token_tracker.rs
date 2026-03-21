@@ -21,11 +21,6 @@ pub fn record_request(
     metrics.latency_count.fetch_add(1, Ordering::Relaxed);
 }
 
-/// Record a tool call execution.
-pub fn record_tool_call(metrics: &AgentMetrics) {
-    metrics.tool_calls.fetch_add(1, Ordering::Relaxed);
-}
-
 /// Record a failed request.
 pub fn record_error(metrics: &AgentMetrics) {
     metrics.failed_requests.fetch_add(1, Ordering::Relaxed);
@@ -73,14 +68,6 @@ mod tests {
         assert_eq!(metrics.total_requests.load(Ordering::Relaxed), 2);
         assert_eq!(metrics.latency_sum_ms.load(Ordering::Relaxed), 80);
         assert_eq!(metrics.latency_count.load(Ordering::Relaxed), 2);
-    }
-
-    #[test]
-    fn test_record_tool_call() {
-        let metrics = AgentMetrics::new();
-        record_tool_call(&metrics);
-        record_tool_call(&metrics);
-        assert_eq!(metrics.tool_calls.load(Ordering::Relaxed), 2);
     }
 
     #[test]

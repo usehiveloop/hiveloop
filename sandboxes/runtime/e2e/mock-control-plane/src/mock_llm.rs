@@ -266,7 +266,7 @@ pub async fn chat_completions(
             t.get("function")
                 .and_then(|f| f.get("name"))
                 .and_then(|n| n.as_str())
-                == Some("agent")
+                == Some("sub_agent")
         });
 
         if has_agent_tool {
@@ -585,7 +585,7 @@ fn stream_response(
 /// Build a non-streaming response that calls the "agent" tool with proper arguments.
 fn build_agent_tool_call_response(subagent_name: &str, prompt: &str) -> ChatCompletionResponse {
     let args = serde_json::json!({
-        "subagent": subagent_name,
+        "subagentName": subagent_name,
         "prompt": prompt,
         "description": format!("delegating to {}", subagent_name)
     });
@@ -604,7 +604,7 @@ fn build_agent_tool_call_response(subagent_name: &str, prompt: &str) -> ChatComp
                     id: format!("call_{}", uuid::Uuid::new_v4()),
                     call_type: "function".to_string(),
                     function: FunctionCall {
-                        name: "agent".to_string(),
+                        name: "sub_agent".to_string(),
                         arguments: serde_json::to_string(&args).unwrap(),
                     },
                 }]),
@@ -619,13 +619,13 @@ fn build_agent_tool_call_response(subagent_name: &str, prompt: &str) -> ChatComp
     }
 }
 
-/// Build a streaming response that calls the "agent" tool with proper arguments.
+/// Build a streaming response that calls the "sub_agent" tool with proper arguments.
 fn stream_agent_tool_call(
     subagent_name: &str,
     prompt: &str,
 ) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
     let args = serde_json::json!({
-        "subagent": subagent_name,
+        "subagentName": subagent_name,
         "prompt": prompt,
         "description": format!("delegating to {}", subagent_name)
     });
@@ -649,7 +649,7 @@ fn stream_agent_tool_call(
                         "id": call_id,
                         "type": "function",
                         "function": {
-                            "name": "agent",
+                            "name": "sub_agent",
                             "arguments": args_str
                         }
                     }]

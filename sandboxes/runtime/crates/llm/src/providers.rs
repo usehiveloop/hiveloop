@@ -4,6 +4,7 @@ use rig::agent::Agent;
 use rig::completion::{CompletionModel, Prompt, PromptError};
 use rig::message::Message;
 use rig::prelude::CompletionClient;
+use tracing::{error, info};
 
 use crate::tool_hook::ToolCallEmitter;
 
@@ -64,6 +65,16 @@ macro_rules! dispatch_prompt_simple {
 }
 
 impl BridgeAgent {
+    /// Return the provider name for logging.
+    fn provider_name(&self) -> &'static str {
+        match self {
+            BridgeAgent::OpenAI(_) => "openai",
+            BridgeAgent::Anthropic(_) => "anthropic",
+            BridgeAgent::Gemini(_) => "gemini",
+            BridgeAgent::Cohere(_) => "cohere",
+        }
+    }
+
     /// Run a prompt with history and a tool-call hook, returning extended
     /// details (output text + token usage).
     ///
@@ -74,12 +85,51 @@ impl BridgeAgent {
         history: &mut Vec<Message>,
         hook: ToolCallEmitter,
     ) -> Result<PromptResponse, PromptError> {
-        match self {
+        let provider = self.provider_name();
+        // Borrow for the start log, clone for post-dispatch log (hook is moved into dispatch).
+        info!(
+            agent_id = %hook.agent_id,
+            conversation_id = %hook.conversation_id,
+            provider = provider,
+            "llm_request_start"
+        );
+        let agent_id = hook.agent_id.clone();
+        let conversation_id = hook.conversation_id.clone();
+
+        let start = std::time::Instant::now();
+        let result = match self {
             BridgeAgent::OpenAI(a) => dispatch_prompt!(a, text, history, hook),
             BridgeAgent::Anthropic(a) => dispatch_prompt!(a, text, history, hook),
             BridgeAgent::Gemini(a) => dispatch_prompt!(a, text, history, hook),
             BridgeAgent::Cohere(a) => dispatch_prompt!(a, text, history, hook),
+        };
+        let latency_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(resp) => {
+                info!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    provider = provider,
+                    input_tokens = resp.total_usage.input_tokens,
+                    output_tokens = resp.total_usage.output_tokens,
+                    latency_ms = latency_ms,
+                    "llm_request_complete"
+                );
+            }
+            Err(e) => {
+                error!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    provider = provider,
+                    error = %e,
+                    latency_ms = latency_ms,
+                    "llm_request_failed"
+                );
+            }
         }
+
+        result
     }
 
     /// Run a prompt with history and a tool-call hook, returning just the text output.
@@ -91,6 +141,17 @@ impl BridgeAgent {
         history: &mut Vec<Message>,
         hook: ToolCallEmitter,
     ) -> Result<String, PromptError> {
+        let provider = self.provider_name();
+        info!(
+            agent_id = %hook.agent_id,
+            conversation_id = %hook.conversation_id,
+            provider = provider,
+            "llm_request_start"
+        );
+        let agent_id = hook.agent_id.clone();
+        let conversation_id = hook.conversation_id.clone();
+
+        let start = std::time::Instant::now();
         macro_rules! dispatch {
             ($agent:expr) => {{
                 $agent
@@ -100,12 +161,37 @@ impl BridgeAgent {
                     .await
             }};
         }
-        match self {
+        let result = match self {
             BridgeAgent::OpenAI(a) => dispatch!(a),
             BridgeAgent::Anthropic(a) => dispatch!(a),
             BridgeAgent::Gemini(a) => dispatch!(a),
             BridgeAgent::Cohere(a) => dispatch!(a),
+        };
+        let latency_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(_) => {
+                info!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    provider = provider,
+                    latency_ms = latency_ms,
+                    "llm_request_complete"
+                );
+            }
+            Err(e) => {
+                error!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    provider = provider,
+                    error = %e,
+                    latency_ms = latency_ms,
+                    "llm_request_failed"
+                );
+            }
         }
+
+        result
     }
 
     /// Prompt with history but no hooks. Returns just the text output.
@@ -116,29 +202,65 @@ impl BridgeAgent {
         text: &str,
         history: &mut Vec<Message>,
     ) -> Result<String, PromptError> {
+        let provider = self.provider_name();
+        info!(provider = provider, "llm_request_start");
+
+        let start = std::time::Instant::now();
         macro_rules! dispatch {
             ($agent:expr) => {{
                 $agent.prompt(text).with_history(history).await
             }};
         }
-        match self {
+        let result = match self {
             BridgeAgent::OpenAI(a) => dispatch!(a),
             BridgeAgent::Anthropic(a) => dispatch!(a),
             BridgeAgent::Gemini(a) => dispatch!(a),
             BridgeAgent::Cohere(a) => dispatch!(a),
+        };
+        let latency_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(_) => info!(
+                provider = provider,
+                latency_ms = latency_ms,
+                "llm_request_complete"
+            ),
+            Err(e) => {
+                error!(provider = provider, error = %e, latency_ms = latency_ms, "llm_request_failed")
+            }
         }
+
+        result
     }
 
     /// Simple prompt without hooks or history. Returns just the text output.
     ///
     /// Used by the compaction summarizer.
     pub async fn prompt_simple(&self, text: &str) -> Result<String, PromptError> {
-        match self {
+        let provider = self.provider_name();
+        info!(provider = provider, "llm_request_start");
+
+        let start = std::time::Instant::now();
+        let result = match self {
             BridgeAgent::OpenAI(a) => dispatch_prompt_simple!(a, text),
             BridgeAgent::Anthropic(a) => dispatch_prompt_simple!(a, text),
             BridgeAgent::Gemini(a) => dispatch_prompt_simple!(a, text),
             BridgeAgent::Cohere(a) => dispatch_prompt_simple!(a, text),
+        };
+        let latency_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(_) => info!(
+                provider = provider,
+                latency_ms = latency_ms,
+                "llm_request_complete"
+            ),
+            Err(e) => {
+                error!(provider = provider, error = %e, latency_ms = latency_ms, "llm_request_failed")
+            }
         }
+
+        result
     }
 }
 

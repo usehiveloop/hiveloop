@@ -1,6 +1,7 @@
 use bridge_core::conversation::{Message, Role};
 use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
+use dashmap::DashMap;
 use llm::{PermissionManager, SseEvent, TokenUsage};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -344,6 +345,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let conversation_id_clone = conversation_id.clone();
         let permission_manager_clone = permission_manager.clone();
         let agent_permissions_clone = agent_permissions.clone();
+        let metrics_for_task = metrics.clone();
         // Acquire LLM semaphore permit before spawning the task.
         // This provides global backpressure on concurrent LLM API calls.
         let llm_permit = match llm_semaphore.clone().acquire_owned().await {
@@ -369,6 +371,8 @@ pub async fn run_conversation(params: ConversationParams) {
                 conversation_id: conversation_id_clone,
                 permission_manager: permission_manager_clone,
                 agent_permissions: agent_permissions_clone,
+                metrics: metrics_for_task,
+                pending_tool_timings: Arc::new(DashMap::new()),
             };
             let fut = async {
                 agent_clone
@@ -578,6 +582,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         let conversation_id_clone = conversation_id.clone();
                         let permission_manager_clone = permission_manager.clone();
                         let agent_permissions_clone = agent_permissions.clone();
+                        let metrics_for_cont = metrics.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
                         let cont_prompt = "Continue working on the task. If you have completed all the work, provide a final text summary of what you did and what you found.".to_string();
@@ -593,6 +598,8 @@ pub async fn run_conversation(params: ConversationParams) {
                                 conversation_id: conversation_id_clone,
                                 permission_manager: permission_manager_clone,
                                 agent_permissions: agent_permissions_clone,
+                                metrics: metrics_for_cont,
+                                pending_tool_timings: Arc::new(DashMap::new()),
                             };
                             let fut = async {
                                 agent_clone

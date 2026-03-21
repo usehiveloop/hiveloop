@@ -816,6 +816,7 @@ mod serde_roundtrip_tests {
             total_conversations: 15,
             tool_calls: 25,
             avg_latency_ms: 150.5,
+            tool_call_details: vec![],
         };
 
         let json = serde_json::to_string_pretty(&snapshot).expect("serialize MetricsSnapshot");
@@ -909,6 +910,7 @@ mod serde_roundtrip_tests {
                 total_conversations: 3,
                 tool_calls: 10,
                 avg_latency_ms: 200.0,
+                tool_call_details: vec![],
             }],
             global: GlobalMetrics {
                 total_agents: 1,

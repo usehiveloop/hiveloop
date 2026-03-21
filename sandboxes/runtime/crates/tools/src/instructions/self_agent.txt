@@ -1,0 +1,17 @@
+Launch a clone of yourself to handle a focused task autonomously.
+
+Use this tool to delegate a specific subtask to an independent instance of yourself. The clone shares your system prompt, tools, and capabilities, but operates in its own context. This is useful for breaking complex work into parallel or sequential subtasks without losing your main conversation thread.
+
+When NOT to use the agent tool:
+- If you want to read a specific file path, use the Read or Glob tool instead, to find the match more quickly
+- If you are searching for a specific class definition like "class Foo", use the Glob tool instead, to find the match more quickly
+- If you are searching for code within a specific file or set of 2-3 files, use the Read tool instead, to find the match more quickly
+- For simple, single-step tasks that don't benefit from delegation
+
+Usage notes:
+1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses
+2. When the agent is done, it will return a single message back to you. The result is not visible to the user. To show the user the result, send a text message with a concise summary. The output includes a task_id you can reuse later to continue the same session.
+3. Each invocation starts with a fresh context unless you provide task_id to resume a previous session. When starting fresh, your prompt should contain a highly detailed task description and specify exactly what information should be returned.
+4. The agent's outputs should generally be trusted
+5. Clearly tell the agent whether you expect it to write complete a specific task as part of your work or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent. Tell it how to verify its work if possible (e.g., relevant test commands).
+6. Set background: true for long-running tasks. You will be automatically notified when they complete.

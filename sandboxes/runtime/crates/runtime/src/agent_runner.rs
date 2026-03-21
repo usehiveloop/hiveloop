@@ -130,6 +130,7 @@ pub struct ConversationSubAgentRunner {
     compaction_config: Option<bridge_core::agent::CompactionConfig>,
     task_registry: Option<Arc<TaskRegistry>>,
     task_budget: Arc<TaskBudget>,
+    metrics: Arc<bridge_core::AgentMetrics>,
 }
 
 impl ConversationSubAgentRunner {
@@ -143,6 +144,7 @@ impl ConversationSubAgentRunner {
         conversation_id: String,
         depth: usize,
         max_depth: usize,
+        metrics: Arc<bridge_core::AgentMetrics>,
     ) -> Self {
         Self {
             subagents,
@@ -156,6 +158,7 @@ impl ConversationSubAgentRunner {
             compaction_config: None,
             task_registry: None,
             task_budget: Arc::new(TaskBudget::new(50)),
+            metrics,
         }
     }
 
@@ -188,6 +191,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
     fn available_subagents(&self) -> Vec<(String, String)> {
         self.subagents
             .iter()
+            .filter(|entry| entry.key() != tools::self_agent::SELF_AGENT_NAME)
             .map(|entry| {
                 let e = entry.value();
                 (e.name.clone(), e.description.clone())
@@ -232,6 +236,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             conversation_id: self.conversation_id.clone(),
             permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
             agent_permissions: std::collections::HashMap::new(),
+            metrics: self.metrics.clone(),
+            pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
         };
 
         let prompt_owned = prompt.to_string();
@@ -301,6 +307,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let max_depth = self.max_depth;
         let task_registry = self.task_registry.clone();
         let task_budget = self.task_budget.clone();
+        let metrics_clone = self.metrics.clone();
 
         tokio::spawn(async move {
             let emitter_conv_id = conversation_id.clone();
@@ -314,6 +321,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 conversation_id,
                 depth + 1,
                 max_depth,
+                metrics_clone.clone(),
             ));
             // Pass task_registry to nested runner if available
             let nested_runner = if let Some(registry) = task_registry.clone() {
@@ -327,6 +335,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                         nested_runner.conversation_id.clone(),
                         nested_runner.depth,
                         nested_runner.max_depth,
+                        metrics_clone.clone(),
                     )
                     .with_task_registry(registry)
                     .with_task_budget(task_budget.clone()),
@@ -354,6 +363,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 conversation_id: emitter_conv_id,
                 permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
                 agent_permissions: std::collections::HashMap::new(),
+                metrics: metrics_clone,
+                pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
             };
 
             let result = AGENT_CONTEXT

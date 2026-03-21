@@ -94,8 +94,11 @@ pub fn register_builtin_tools_with_lsp(
         registry.register(Arc::new(crate::lsp_tool::LspTool::new(manager)));
     }
 
-    // Agent tool — subagent invocation (uses task_local for context)
-    registry.register(Arc::new(crate::agent::AgentTool::new()));
+    // Self-delegation agent tool (uses task_local for context)
+    registry.register(Arc::new(crate::self_agent::AgentTool::new()));
+
+    // Sub-agent tool — subagent invocation (uses task_local for context)
+    registry.register(Arc::new(crate::agent::SubAgentTool::new()));
 
     // Parallel agent tool — spawn multiple subagents concurrently
     registry.register(Arc::new(crate::parallel_agent::ParallelAgentTool::new()));
@@ -291,8 +294,19 @@ pub fn register_filtered_builtin_tools_with_lsp(
         );
     }
 
-    // Agent tool
-    maybe_register(registry, Arc::new(crate::agent::AgentTool::new()), filter);
+    // Self-delegation agent tool
+    maybe_register(
+        registry,
+        Arc::new(crate::self_agent::AgentTool::new()),
+        filter,
+    );
+
+    // Sub-agent tool
+    maybe_register(
+        registry,
+        Arc::new(crate::agent::SubAgentTool::new()),
+        filter,
+    );
 
     // Batch tool — registered last with a snapshot of all other tools
     if allowed_tools.iter().any(|n| n == "batch") {

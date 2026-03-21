@@ -24,7 +24,10 @@ pub use conversation::{
 pub use error::{BridgeError, Result};
 pub use integration::{IntegrationAction, IntegrationDefinition};
 pub use mcp::{McpServerDefinition, McpTransport};
-pub use metrics::{AgentMetrics, GlobalMetrics, MetricsResponse, MetricsSnapshot};
+pub use metrics::{
+    AgentMetrics, GlobalMetrics, MetricsResponse, MetricsSnapshot, ToolCallStats,
+    ToolCallStatsSnapshot,
+};
 pub use permission::{
     ApprovalDecision, ApprovalReply, ApprovalRequest, BulkApprovalReply, ToolPermission,
 };

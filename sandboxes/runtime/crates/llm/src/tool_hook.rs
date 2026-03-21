@@ -2,18 +2,22 @@ use crate::permission_manager::PermissionManager;
 use crate::streaming::TodoItem;
 use crate::SseEvent;
 use bridge_core::permission::{ApprovalDecision, ToolPermission};
+use bridge_core::AgentMetrics;
+use dashmap::DashMap;
 use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-use tools::agent::{AgentTaskNotification, AgentToolParams, AGENT_CONTEXT};
+use tools::agent::{AgentTaskNotification, SubAgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
+use tools::self_agent::AgentToolParams;
 use tools::todo::TodoWriteResult;
 use tools::ToolExecutor;
-use tracing::{debug, warn};
+use tracing::{info, warn};
 use webhooks::WebhookContext;
 
 /// A [`PromptHook`] that emits [`SseEvent::ToolCallStart`] and
@@ -51,6 +55,12 @@ pub struct ToolCallEmitter {
     pub permission_manager: Arc<PermissionManager>,
     /// Per-tool permission overrides for this agent.
     pub agent_permissions: HashMap<String, ToolPermission>,
+    /// Shared metrics for recording per-tool stats.
+    pub metrics: Arc<AgentMetrics>,
+    /// Pending tool call start times, keyed by tool_call_id.
+    /// Used to measure latency for rig-core dispatched tools where
+    /// timing spans on_tool_call → on_tool_result.
+    pub pending_tool_timings: Arc<DashMap<String, (Instant, String)>>,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -61,11 +71,19 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         internal_call_id: &str,
         args: &str,
     ) -> ToolCallHookAction {
+        let call_start = Instant::now();
         let id = tool_call_id.unwrap_or_else(|| internal_call_id.to_string());
         let arguments = serde_json::from_str(args)
             .unwrap_or_else(|_| serde_json::Value::String(args.to_string()));
 
-        debug!(tool_name = tool_name, id = %id, "tool call start");
+        info!(
+            agent_id = %self.agent_id,
+            conversation_id = %self.conversation_id,
+            tool_name = tool_name,
+            tool_call_id = %id,
+            arguments = %Truncated::new(args, 500),
+            "tool_call_start"
+        );
 
         let id_for_bg = id.clone();
         let _ = self
@@ -93,10 +111,12 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     Some(resolved) => {
                         let repaired = resolved != tool_name;
                         if repaired {
-                            debug!(
+                            info!(
+                                agent_id = %self.agent_id,
+                                conversation_id = %self.conversation_id,
                                 original = tool_name,
                                 resolved = %resolved,
-                                "auto-repaired tool name"
+                                "tool_name_repaired"
                             );
                         }
                         (resolved, repaired)
@@ -104,12 +124,24 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     None => {
                         // Unresolvable — return error with suggestion.
                         let error = self.unknown_tool_error(tool_name);
+                        let duration_ms = call_start.elapsed().as_millis() as u64;
+                        self.metrics
+                            .record_tool_call_detailed(tool_name, true, duration_ms);
+                        warn!(
+                            agent_id = %self.agent_id,
+                            conversation_id = %self.conversation_id,
+                            tool_name = tool_name,
+                            duration_ms = duration_ms,
+                            error = %error,
+                            "tool_call_failed"
+                        );
                         let _ = self
                             .sse_tx
                             .send(SseEvent::ToolCallResult {
                                 id: id_for_bg.clone(),
                                 result: error.clone(),
                                 is_error: true,
+                                duration_ms: Some(duration_ms),
                             })
                             .await;
                         if let Some(ref wh) = self.webhook_ctx {
@@ -133,12 +165,24 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     "error": format!("Tool '{}' is denied by agent permissions", effective_name)
                 })
                 .to_string();
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed(&effective_name, true, duration_ms);
+                warn!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    tool_name = %effective_name,
+                    duration_ms = duration_ms,
+                    error = %error,
+                    "tool_call_failed"
+                );
                 let _ = self
                     .sse_tx
                     .send(SseEvent::ToolCallResult {
                         id: id_for_bg.clone(),
                         result: error.clone(),
                         is_error: true,
+                        duration_ms: Some(duration_ms),
                     })
                     .await;
                 if let Some(ref wh) = self.webhook_ctx {
@@ -175,13 +219,24 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     .await;
                 match decision {
                     Ok(ApprovalDecision::Deny) => {
+                        info!(
+                            agent_id = %self.agent_id,
+                            conversation_id = %self.conversation_id,
+                            tool_name = %effective_name,
+                            decision = "denied",
+                            "permission_decision"
+                        );
                         let error = json!({"error": "Tool call denied by user"}).to_string();
+                        let duration_ms = call_start.elapsed().as_millis() as u64;
+                        self.metrics
+                            .record_tool_call_detailed(&effective_name, true, duration_ms);
                         let _ = self
                             .sse_tx
                             .send(SseEvent::ToolCallResult {
                                 id: id_for_bg.clone(),
                                 result: error.clone(),
                                 is_error: true,
+                                duration_ms: Some(duration_ms),
                             })
                             .await;
                         if let Some(ref wh) = self.webhook_ctx {
@@ -196,17 +251,29 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         return ToolCallHookAction::Skip { reason: error };
                     }
                     Ok(ApprovalDecision::Approve) => {
-                        // Fall through to normal execution
+                        info!(
+                            agent_id = %self.agent_id,
+                            conversation_id = %self.conversation_id,
+                            tool_name = %effective_name,
+                            decision = "approved",
+                            "permission_decision"
+                        );
                     }
                     Err(()) => {
-                        warn!(
+                        info!(
+                            agent_id = %self.agent_id,
+                            conversation_id = %self.conversation_id,
                             tool_name = %effective_name,
-                            "approval channel dropped (conversation ended), skipping tool call"
+                            decision = "cancelled",
+                            "permission_decision"
                         );
                         let error = json!({
                             "error": "Tool approval cancelled — conversation ended"
                         })
                         .to_string();
+                        let duration_ms = call_start.elapsed().as_millis() as u64;
+                        self.metrics
+                            .record_tool_call_detailed(&effective_name, true, duration_ms);
                         return ToolCallHookAction::Skip { reason: error };
                     }
                 }
@@ -220,15 +287,49 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         if effective_name == "bash" {
             if let Ok(bash_args) = serde_json::from_str::<BashArgs>(args) {
                 if bash_args.background {
-                    return self.handle_background_bash(bash_args, id_for_bg).await;
+                    info!(
+                        agent_id = %self.agent_id,
+                        conversation_id = %self.conversation_id,
+                        command = %Truncated::new(&bash_args.command, 200),
+                        task_description = bash_args.description.as_deref().unwrap_or(""),
+                        "background_task_spawn"
+                    );
+                    return self
+                        .handle_background_bash(bash_args, id_for_bg, call_start)
+                        .await;
                 }
             }
         }
 
-        // Intercept ALL agent tool calls (AGENT_CONTEXT is only available here).
+        // Intercept self-delegation agent tool calls (AGENT_CONTEXT is only available here).
         if effective_name == "agent" {
             if let Ok(agent_params) = serde_json::from_str::<AgentToolParams>(args) {
-                return self.handle_agent_tool(agent_params, id_for_bg).await;
+                info!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    subagent_name = "__self__",
+                    mode = if agent_params.background { "background" } else { "foreground" },
+                    "subagent_spawn"
+                );
+                return self
+                    .handle_self_agent_tool(agent_params, id_for_bg, call_start)
+                    .await;
+            }
+        }
+
+        // Intercept sub_agent tool calls (AGENT_CONTEXT is only available here).
+        if effective_name == "sub_agent" {
+            if let Ok(sub_agent_params) = serde_json::from_str::<SubAgentToolParams>(args) {
+                info!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    subagent_name = %sub_agent_params.subagent_name,
+                    mode = if sub_agent_params.background { "background" } else { "foreground" },
+                    "subagent_spawn"
+                );
+                return self
+                    .handle_sub_agent_tool(sub_agent_params, id_for_bg, call_start)
+                    .await;
             }
         }
 
@@ -236,9 +337,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         // original name. Execute the tool ourselves and return Skip.
         if name_was_repaired {
             return self
-                .execute_repaired_tool(&effective_name, args, id_for_bg)
+                .execute_repaired_tool(&effective_name, args, id_for_bg, call_start)
                 .await;
         }
+
+        // Path 8: rig-core will dispatch. Store timing for on_tool_result.
+        self.pending_tool_timings
+            .insert(id_for_bg, (call_start, effective_name));
 
         ToolCallHookAction::Continue
     }
@@ -253,7 +358,29 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
     ) -> HookAction {
         let id = tool_call_id.unwrap_or_else(|| internal_call_id.to_string());
 
-        debug!(tool_name = tool_name, id = %id, "tool call result");
+        // Look up pending timing from on_tool_call (path 8 — rig-core dispatch)
+        let (duration_ms, effective_name) =
+            if let Some((_, (start, ename))) = self.pending_tool_timings.remove(&id) {
+                (Some(start.elapsed().as_millis() as u64), ename)
+            } else {
+                (None, tool_name.to_string())
+            };
+
+        if let Some(dur) = duration_ms {
+            self.metrics
+                .record_tool_call_detailed(&effective_name, false, dur);
+        }
+
+        info!(
+            agent_id = %self.agent_id,
+            conversation_id = %self.conversation_id,
+            tool_name = %effective_name,
+            tool_call_id = %id,
+            duration_ms = duration_ms.unwrap_or(0),
+            is_error = false,
+            result = %Truncated::new(result, 300),
+            "tool_call_complete"
+        );
 
         let _ = self
             .sse_tx
@@ -261,6 +388,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 id,
                 result: result.to_string(),
                 is_error: false,
+                duration_ms,
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
@@ -268,7 +396,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                 .dispatch(webhooks::events::tool_call_completed(
                     &self.agent_id,
                     &self.conversation_id,
-                    json!({"tool_name": tool_name, "result": result, "is_error": false}),
+                    json!({"tool_name": &effective_name, "result": result, "is_error": false}),
                     &wh.url,
                     &wh.secret,
                 ));
@@ -322,6 +450,35 @@ fn normalize_tool_name(name: &str) -> String {
 
     // Trim again in case of nested whitespace
     s.trim().to_string()
+}
+
+/// A zero-allocation Display wrapper that truncates a string slice on output.
+/// Only performs formatting work when actually rendered (i.e., when the log
+/// event is enabled), making it truly zero-cost when filtered out.
+struct Truncated<'a> {
+    s: &'a str,
+    max_len: usize,
+}
+
+impl<'a> Truncated<'a> {
+    fn new(s: &'a str, max_len: usize) -> Self {
+        Self { s, max_len }
+    }
+}
+
+impl std::fmt::Display for Truncated<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.s.len() <= self.max_len {
+            f.write_str(self.s)
+        } else {
+            write!(
+                f,
+                "{}...[truncated, {} bytes total]",
+                &self.s[..self.max_len],
+                self.s.len()
+            )
+        }
+    }
 }
 
 impl ToolCallEmitter {
@@ -417,6 +574,7 @@ impl ToolCallEmitter {
         tool_name: &str,
         args: &str,
         sse_id: String,
+        call_start: Instant,
     ) -> ToolCallHookAction {
         let executor = match self.tool_executors.get(tool_name) {
             Some(executor) => executor.clone(),
@@ -425,12 +583,24 @@ impl ToolCallEmitter {
                     "Tool '{}' resolved but executor not found (internal error)",
                     tool_name
                 );
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed(tool_name, true, duration_ms);
+                warn!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    tool_name = tool_name,
+                    duration_ms = duration_ms,
+                    error = %error,
+                    "tool_call_failed"
+                );
                 let _ = self
                     .sse_tx
                     .send(SseEvent::ToolCallResult {
                         id: sse_id,
                         result: error.clone(),
                         is_error: true,
+                        duration_ms: Some(duration_ms),
                     })
                     .await;
                 if let Some(ref wh) = self.webhook_ctx {
@@ -455,12 +625,37 @@ impl ToolCallEmitter {
             Err(e) => (format!("Toolset error: {}", e), true),
         };
 
+        let duration_ms = call_start.elapsed().as_millis() as u64;
+        self.metrics
+            .record_tool_call_detailed(tool_name, is_error, duration_ms);
+        if is_error {
+            warn!(
+                agent_id = %self.agent_id,
+                conversation_id = %self.conversation_id,
+                tool_name = tool_name,
+                duration_ms = duration_ms,
+                error = %Truncated::new(&result_str, 300),
+                "tool_call_failed"
+            );
+        } else {
+            info!(
+                agent_id = %self.agent_id,
+                conversation_id = %self.conversation_id,
+                tool_name = tool_name,
+                duration_ms = duration_ms,
+                is_error = false,
+                result = %Truncated::new(&result_str, 300),
+                "tool_call_complete"
+            );
+        }
+
         let _ = self
             .sse_tx
             .send(SseEvent::ToolCallResult {
                 id: sse_id,
                 result: result_str.clone(),
                 is_error,
+                duration_ms: Some(duration_ms),
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
@@ -483,13 +678,28 @@ impl ToolCallEmitter {
     /// conversation's `notification_tx` when complete. Returns `Skip` with
     /// a JSON result containing the task_id so the tool server does not
     /// execute the bash tool itself.
-    async fn handle_background_bash(&self, args: BashArgs, sse_id: String) -> ToolCallHookAction {
+    async fn handle_background_bash(
+        &self,
+        args: BashArgs,
+        sse_id: String,
+        call_start: Instant,
+    ) -> ToolCallHookAction {
         let ctx = match AGENT_CONTEXT.try_with(|c| c.clone()) {
             Ok(ctx) => ctx,
             Err(_) => {
-                return ToolCallHookAction::Skip {
-                    reason: "Background bash requires a conversation context".to_string(),
-                };
+                let error = "Background bash requires a conversation context".to_string();
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed("bash", true, duration_ms);
+                warn!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    tool_name = "bash",
+                    duration_ms = duration_ms,
+                    error = %error,
+                    "tool_call_failed"
+                );
+                return ToolCallHookAction::Skip { reason: error };
             }
         };
 
@@ -511,6 +721,20 @@ impl ToolCallEmitter {
             "message": "Background command started. You will be notified when it completes."
         })
         .to_string();
+
+        // Record metrics for the background bash spawn (not the actual execution)
+        let duration_ms = call_start.elapsed().as_millis() as u64;
+        self.metrics
+            .record_tool_call_detailed("bash", false, duration_ms);
+        info!(
+            agent_id = %self.agent_id,
+            conversation_id = %self.conversation_id,
+            tool_name = "bash",
+            duration_ms = duration_ms,
+            is_error = false,
+            task_id = %task_id_clone,
+            "tool_call_complete"
+        );
 
         // Emit the tool result SSE event for the immediate response
         let result_json_clone = result_json.clone();
@@ -548,6 +772,7 @@ impl ToolCallEmitter {
                 id: sse_id,
                 result: result_json_clone.clone(),
                 is_error: false,
+                duration_ms: Some(duration_ms),
             })
             .await;
         if let Some(ref wh) = self.webhook_ctx {
@@ -566,24 +791,33 @@ impl ToolCallEmitter {
         }
     }
 
-    /// Handle an agent tool call by executing it here where AGENT_CONTEXT is
-    /// available, then returning `Skip` so rig-core does not dispatch to a
-    /// spawned task (where the task_local would be lost).
-    async fn handle_agent_tool(
+    /// Handle a self-delegation agent tool call by executing it here where
+    /// AGENT_CONTEXT is available, then returning `Skip` so rig-core does not
+    /// dispatch to a spawned task (where the task_local would be lost).
+    async fn handle_self_agent_tool(
         &self,
         params: AgentToolParams,
         sse_id: String,
+        call_start: Instant,
     ) -> ToolCallHookAction {
         let ctx = match AGENT_CONTEXT.try_with(|c| c.clone()) {
             Ok(ctx) => ctx,
             Err(_) => {
                 let error = "Agent tool requires a conversation context".to_string();
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed("agent", true, duration_ms);
+                warn!(
+                    agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                    tool_name = "agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
+                );
                 let _ = self
                     .sse_tx
                     .send(SseEvent::ToolCallResult {
                         id: sse_id,
                         result: error.clone(),
                         is_error: true,
+                        duration_ms: Some(duration_ms),
                     })
                     .await;
                 if let Some(ref wh) = self.webhook_ctx {
@@ -602,13 +836,21 @@ impl ToolCallEmitter {
 
         // Check depth limit
         if ctx.depth >= ctx.max_depth {
-            let error = format!("Maximum subagent depth ({}) reached", ctx.max_depth);
+            let error = format!("Maximum agent depth ({}) reached", ctx.max_depth);
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("agent", true, duration_ms);
+            warn!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
+            );
             let _ = self
                 .sse_tx
                 .send(SseEvent::ToolCallResult {
                     id: sse_id,
                     result: error.clone(),
                     is_error: true,
+                    duration_ms: Some(duration_ms),
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
@@ -624,46 +866,34 @@ impl ToolCallEmitter {
             return ToolCallHookAction::Skip { reason: error };
         }
 
-        // Validate subagent exists
-        let available = ctx.runner.available_subagents();
-        let subagent_exists = available.iter().any(|(name, _)| name == &params.subagent);
-        if !subagent_exists {
-            let error = if available.is_empty() {
-                "No subagents available. This agent has no subagents configured.".to_string()
-            } else {
-                let names: Vec<&str> = available.iter().map(|(n, _)| n.as_str()).collect();
-                format!(
-                    "Unknown subagent '{}'. Available: [{}]",
-                    params.subagent,
-                    names.join(", ")
-                )
-            };
+        // Check task budget
+        if let Err(e) = ctx.task_budget.try_acquire() {
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("agent", true, duration_ms);
+            warn!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "agent", duration_ms = duration_ms, error = %e, "tool_call_failed"
+            );
             let _ = self
                 .sse_tx
                 .send(SseEvent::ToolCallResult {
                     id: sse_id,
-                    result: error.clone(),
+                    result: e.clone(),
                     is_error: true,
+                    duration_ms: Some(duration_ms),
                 })
                 .await;
-            if let Some(ref wh) = self.webhook_ctx {
-                wh.dispatcher
-                    .dispatch(webhooks::events::tool_call_completed(
-                        &self.agent_id,
-                        &self.conversation_id,
-                        json!({"tool_name": "agent", "result": &error, "is_error": true}),
-                        &wh.url,
-                        &wh.secret,
-                    ));
-            }
-            return ToolCallHookAction::Skip { reason: error };
+            return ToolCallHookAction::Skip { reason: e };
         }
+
+        // Self-delegation always targets "__self__"
+        let subagent_name = "__self__";
 
         if params.background {
-            // Background execution
             let result = ctx
                 .runner
-                .run_background(&params.subagent, &params.prompt, &params.description)
+                .run_background(subagent_name, &params.prompt, &params.description)
                 .await;
 
             let (result_str, is_error) = match result {
@@ -679,12 +909,21 @@ impl ToolCallEmitter {
                 Err(e) => (e, true),
             };
 
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("agent", is_error, duration_ms);
+            info!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "agent", duration_ms = duration_ms, is_error = is_error,
+                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+            );
             let _ = self
                 .sse_tx
                 .send(SseEvent::ToolCallResult {
                     id: sse_id,
                     result: result_str.clone(),
                     is_error,
+                    duration_ms: Some(duration_ms),
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
@@ -699,10 +938,9 @@ impl ToolCallEmitter {
             }
             ToolCallHookAction::Skip { reason: result_str }
         } else {
-            // Foreground execution
             let result = ctx
                 .runner
-                .run_foreground(&params.subagent, &params.prompt, params.task_id.as_deref())
+                .run_foreground(subagent_name, &params.prompt, params.task_id.as_deref())
                 .await;
 
             let (result_str, is_error) = match result {
@@ -716,12 +954,21 @@ impl ToolCallEmitter {
                 Err(e) => (e, true),
             };
 
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("agent", is_error, duration_ms);
+            info!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "agent", duration_ms = duration_ms, is_error = is_error,
+                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+            );
             let _ = self
                 .sse_tx
                 .send(SseEvent::ToolCallResult {
                     id: sse_id,
                     result: result_str.clone(),
                     is_error,
+                    duration_ms: Some(duration_ms),
                 })
                 .await;
             if let Some(ref wh) = self.webhook_ctx {
@@ -733,6 +980,219 @@ impl ToolCallEmitter {
                         &wh.url,
                         &wh.secret,
                     ));
+            }
+            ToolCallHookAction::Skip { reason: result_str }
+        }
+    }
+
+    /// Handle a sub_agent tool call by executing it here where AGENT_CONTEXT is
+    /// available, then returning `Skip` so rig-core does not dispatch to a
+    /// spawned task (where the task_local would be lost).
+    async fn handle_sub_agent_tool(
+        &self,
+        params: SubAgentToolParams,
+        sse_id: String,
+        call_start: Instant,
+    ) -> ToolCallHookAction {
+        let ctx = match AGENT_CONTEXT.try_with(|c| c.clone()) {
+            Ok(ctx) => ctx,
+            Err(_) => {
+                let error = "Sub-agent tool requires a conversation context".to_string();
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed("sub_agent", true, duration_ms);
+                warn!(
+                    agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                    tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
+                );
+                let _ = self
+                    .sse_tx
+                    .send(SseEvent::ToolCallResult {
+                        id: sse_id,
+                        result: error.clone(),
+                        is_error: true,
+                        duration_ms: Some(duration_ms),
+                    })
+                    .await;
+                if let Some(ref wh) = self.webhook_ctx {
+                    wh.dispatcher
+                        .dispatch(webhooks::events::tool_call_completed(
+                            &self.agent_id,
+                            &self.conversation_id,
+                            json!({"tool_name": "sub_agent", "result": &error, "is_error": true}),
+                            &wh.url,
+                            &wh.secret,
+                        ));
+                }
+                return ToolCallHookAction::Skip { reason: error };
+            }
+        };
+
+        // Check depth limit
+        if ctx.depth >= ctx.max_depth {
+            let error = format!("Maximum subagent depth ({}) reached", ctx.max_depth);
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("sub_agent", true, duration_ms);
+            warn!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
+            );
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: error.clone(),
+                    is_error: true,
+                    duration_ms: Some(duration_ms),
+                })
+                .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "sub_agent", "result": &error, "is_error": true}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
+            }
+            return ToolCallHookAction::Skip { reason: error };
+        }
+
+        // Validate subagent exists
+        let available = ctx.runner.available_subagents();
+        let subagent_exists = available
+            .iter()
+            .any(|(name, _)| name == &params.subagent_name);
+        if !subagent_exists {
+            let error = if available.is_empty() {
+                "No subagents available. This agent has no subagents configured.".to_string()
+            } else {
+                let names: Vec<&str> = available.iter().map(|(n, _)| n.as_str()).collect();
+                format!(
+                    "Unknown subagent '{}'. Available: [{}]",
+                    params.subagent_name,
+                    names.join(", ")
+                )
+            };
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("sub_agent", true, duration_ms);
+            warn!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "sub_agent", duration_ms = duration_ms, error = %error, "tool_call_failed"
+            );
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: error.clone(),
+                    is_error: true,
+                    duration_ms: Some(duration_ms),
+                })
+                .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher
+                    .dispatch(webhooks::events::tool_call_completed(
+                        &self.agent_id,
+                        &self.conversation_id,
+                        json!({"tool_name": "sub_agent", "result": &error, "is_error": true}),
+                        &wh.url,
+                        &wh.secret,
+                    ));
+            }
+            return ToolCallHookAction::Skip { reason: error };
+        }
+
+        if params.background {
+            let result = ctx
+                .runner
+                .run_background(&params.subagent_name, &params.prompt, &params.description)
+                .await;
+
+            let (result_str, is_error) = match result {
+                Ok(handle) => {
+                    let json = serde_json::json!({
+                        "task_id": handle.task_id,
+                        "status": "running",
+                        "message": "Background task started. You will be notified when it completes."
+                    })
+                    .to_string();
+                    (json, false)
+                }
+                Err(e) => (e, true),
+            };
+
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("sub_agent", is_error, duration_ms);
+            info!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,
+                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+            );
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: result_str.clone(),
+                    is_error,
+                    duration_ms: Some(duration_ms),
+                })
+                .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "sub_agent", "result": &result_str, "is_error": is_error}),
+                    &wh.url, &wh.secret,
+                ));
+            }
+            ToolCallHookAction::Skip { reason: result_str }
+        } else {
+            let result = ctx
+                .runner
+                .run_foreground(
+                    &params.subagent_name,
+                    &params.prompt,
+                    params.task_id.as_deref(),
+                )
+                .await;
+
+            let (result_str, is_error) = match result {
+                Ok(task_result) => {
+                    let output = format!(
+                        "task_id: {} (for resuming)\n\n<task_result>\n{}\n</task_result>",
+                        task_result.task_id, task_result.output
+                    );
+                    (output, false)
+                }
+                Err(e) => (e, true),
+            };
+
+            let duration_ms = call_start.elapsed().as_millis() as u64;
+            self.metrics
+                .record_tool_call_detailed("sub_agent", is_error, duration_ms);
+            info!(
+                agent_id = %self.agent_id, conversation_id = %self.conversation_id,
+                tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,
+                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+            );
+            let _ = self
+                .sse_tx
+                .send(SseEvent::ToolCallResult {
+                    id: sse_id,
+                    result: result_str.clone(),
+                    is_error,
+                    duration_ms: Some(duration_ms),
+                })
+                .await;
+            if let Some(ref wh) = self.webhook_ctx {
+                wh.dispatcher.dispatch(webhooks::events::tool_call_completed(
+                    &self.agent_id, &self.conversation_id,
+                    json!({"tool_name": "sub_agent", "result": &result_str, "is_error": is_error}),
+                    &wh.url, &wh.secret,
+                ));
             }
             ToolCallHookAction::Skip { reason: result_str }
         }
@@ -759,6 +1219,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -800,6 +1262,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let action = PromptHook::<TestModel>::on_tool_result(
@@ -820,6 +1284,7 @@ mod tests {
                 id,
                 result,
                 is_error,
+                ..
             } => {
                 assert_eq!(id, "call_123");
                 assert_eq!(result, r#"{"results": ["page1"]}"#);
@@ -842,6 +1307,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let tool_action =
@@ -874,6 +1341,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -907,6 +1376,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -984,6 +1455,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let action = AGENT_CONTEXT
@@ -1057,6 +1530,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         // bash without background: true should Continue normally
@@ -1073,7 +1548,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_emitter_intercepts_agent_tool() {
+    async fn test_emitter_intercepts_sub_agent_tool() {
         use std::sync::Arc;
         use tools::agent::{
             AgentContext, AgentTaskHandle, AgentTaskResult, SubAgentRunner, TaskBudget,
@@ -1131,16 +1606,18 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let action = AGENT_CONTEXT
             .scope(ctx, async {
                 PromptHook::<TestModel>::on_tool_call(
                     &emitter,
-                    "agent",
-                    Some("call_agent".to_string()),
-                    "int_agent",
-                    r#"{"description":"test task","prompt":"write hello world","subagent":"coder"}"#,
+                    "sub_agent",
+                    Some("call_sub_agent".to_string()),
+                    "int_sub_agent",
+                    r#"{"description":"test task","prompt":"write hello world","subagentName":"coder"}"#,
                 )
                 .await
             })
@@ -1166,8 +1643,8 @@ mod tests {
         let start_event = sse_rx.try_recv().expect("should have tool_call_start");
         match &start_event {
             SseEvent::ToolCallStart { id, name, .. } => {
-                assert_eq!(id, "call_agent");
-                assert_eq!(name, "agent");
+                assert_eq!(id, "call_sub_agent");
+                assert_eq!(name, "sub_agent");
             }
             other => panic!("expected ToolCallStart, got {:?}", other),
         }
@@ -1178,8 +1655,9 @@ mod tests {
                 id,
                 is_error,
                 result,
+                ..
             } => {
-                assert_eq!(id, "call_agent");
+                assert_eq!(id, "call_sub_agent");
                 assert!(!is_error, "should not be an error");
                 assert!(result.contains("Result from coder"));
             }
@@ -1204,6 +1682,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -1255,6 +1735,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         // Known tool should pass through
@@ -1283,6 +1765,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -1339,6 +1823,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
@@ -1416,6 +1902,8 @@ mod tests {
             conversation_id: "test-conv".to_string(),
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
+            metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            pending_tool_timings: Arc::new(DashMap::new()),
         };
 
         // " bash" (leading space) should auto-repair to "bash"
