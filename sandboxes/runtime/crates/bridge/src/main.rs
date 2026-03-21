@@ -284,8 +284,15 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
 fn init_logging(config: &RuntimeConfig) {
     use tracing_subscriber::EnvFilter;
 
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level));
+    // Build filter: honour RUST_LOG if set, otherwise use config log_level
+    // with sensible defaults to suppress noisy library spans that embed
+    // full system prompts (rig::completions) or low-level HTTP frames.
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::new(format!(
+            "{},rig::completions=warn,h2=info,hyper_util=info,reqwest=info",
+            config.log_level
+        ))
+    });
 
     match config.log_format {
         bridge_core::LogFormat::Json => {

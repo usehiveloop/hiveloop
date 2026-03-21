@@ -91,6 +91,7 @@ impl BridgeAgent {
             agent_id = %hook.agent_id,
             conversation_id = %hook.conversation_id,
             provider = provider,
+            history_len = history.len(),
             "llm_request_start"
         );
         let agent_id = hook.agent_id.clone();

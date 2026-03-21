@@ -54,11 +54,29 @@ impl WebhookDispatcher {
     /// The only way this can fail is if the receiver is dropped (runtime
     /// shutting down), which is logged but not recoverable.
     pub fn dispatch(&self, payload: WebhookPayload) {
+        let event_type = format!("{:?}", payload.event_type);
+        let agent_id = payload.agent_id.clone();
+        let conversation_id = payload.conversation_id.clone();
+
         if self.event_tx.send(payload).is_err() {
-            tracing::error!("webhook channel closed — event lost during shutdown");
+            tracing::error!(
+                agent_id = %agent_id,
+                conversation_id = %conversation_id,
+                event_type = %event_type,
+                "webhook channel closed — event lost during shutdown"
+            );
             return;
         }
         let depth = self.enqueued.fetch_add(1, Ordering::Relaxed) + 1;
+
+        tracing::debug!(
+            agent_id = %agent_id,
+            conversation_id = %conversation_id,
+            event_type = %event_type,
+            queue_depth = depth,
+            "webhook event enqueued"
+        );
+
         if depth == 10_000 || depth == 50_000 || depth == 100_000 {
             tracing::warn!(
                 queue_depth = depth,
@@ -163,20 +181,58 @@ async fn deliver_webhook(
 
     let url = payload.webhook_url.clone();
     let secret = payload.webhook_secret.clone();
+    let event_type = format!("{:?}", payload.event_type);
+    let agent_id = payload.agent_id.clone();
+    let conversation_id = payload.conversation_id.clone();
     let body = match serde_json::to_vec(&payload) {
         Ok(b) => b,
         Err(e) => {
-            tracing::error!("Failed to serialize webhook payload: {}", e);
+            tracing::error!(
+                agent_id = %agent_id,
+                conversation_id = %conversation_id,
+                event_type = %event_type,
+                error = %e,
+                "webhook serialization failed"
+            );
             return;
         }
     };
+
+    let body_len = body.len();
+    let start = std::time::Instant::now();
+    let attempt = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+
+    tracing::debug!(
+        agent_id = %agent_id,
+        conversation_id = %conversation_id,
+        event_type = %event_type,
+        body_bytes = body_len,
+        "webhook delivery starting"
+    );
 
     let result = (|| {
         let client = client.clone();
         let url = url.clone();
         let secret = secret.clone();
         let body = body.clone();
+        let agent_id = agent_id.clone();
+        let conversation_id = conversation_id.clone();
+        let event_type = event_type.clone();
+        let attempt = attempt.clone();
         async move {
+            let attempt_num = attempt.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+            let attempt_start = std::time::Instant::now();
+
+            if attempt_num > 1 {
+                tracing::warn!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    event_type = %event_type,
+                    attempt = attempt_num,
+                    "webhook delivery retrying"
+                );
+            }
+
             let timestamp = chrono::Utc::now().timestamp();
             let signature = sign_webhook(&body, &secret, timestamp);
             let response = client
@@ -190,9 +246,30 @@ async fn deliver_webhook(
                 .await?;
 
             let status = response.status();
+            let latency_ms = attempt_start.elapsed().as_millis() as u64;
+
             if status.is_server_error() {
+                tracing::warn!(
+                    agent_id = %agent_id,
+                    conversation_id = %conversation_id,
+                    event_type = %event_type,
+                    attempt = attempt_num,
+                    status = status.as_u16(),
+                    latency_ms = latency_ms,
+                    "webhook delivery attempt failed with server error"
+                );
                 return Err(response.error_for_status().unwrap_err());
             }
+
+            tracing::info!(
+                agent_id = %agent_id,
+                conversation_id = %conversation_id,
+                event_type = %event_type,
+                attempt = attempt_num,
+                status = status.as_u16(),
+                latency_ms = latency_ms,
+                "webhook delivered"
+            );
             Ok(())
         }
     })
@@ -204,8 +281,19 @@ async fn deliver_webhook(
     .sleep(tokio::time::sleep)
     .await;
 
+    let total_latency_ms = start.elapsed().as_millis() as u64;
+    let total_attempts = attempt.load(std::sync::atomic::Ordering::Relaxed);
+
     if let Err(e) = result {
-        tracing::error!("Webhook delivery failed after retries to {}: {}", url, e);
+        tracing::error!(
+            agent_id = %agent_id,
+            conversation_id = %conversation_id,
+            event_type = %event_type,
+            attempts = total_attempts,
+            total_latency_ms = total_latency_ms,
+            error = %e,
+            "webhook delivery failed after all retries"
+        );
     }
 }
 
