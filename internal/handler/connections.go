@@ -65,14 +65,19 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 	return resp
 }
 
-// buildConnectionProviderConfig extracts safe, non-sensitive fields from
-// the Nango connection response. Credentials are never included.
+// buildConnectionProviderConfig extracts relevant fields from
+// the Nango connection response, including credentials for token access.
+// Sensitive internal fields (e.g. jwtToken) are stripped from connection_config.
 func buildConnectionProviderConfig(nangoResp map[string]any) model.JSON {
 	config := model.JSON{}
-	for _, key := range []string{"connection_config", "metadata", "provider"} {
+	for _, key := range []string{"connection_config", "metadata", "credentials", "provider"} {
 		if v, exists := nangoResp[key]; exists && v != nil {
 			config[key] = v
 		}
+	}
+	// Strip sensitive internal fields from connection_config.
+	if cc, ok := config["connection_config"].(map[string]any); ok {
+		delete(cc, "jwtToken")
 	}
 	return config
 }
