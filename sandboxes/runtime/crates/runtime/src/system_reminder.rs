@@ -73,6 +73,29 @@ impl SystemReminder {
         self
     }
 
+    /// Add the available sub-agents section.
+    pub fn with_subagents(mut self, subagents: &[(String, String)]) -> Self {
+        if subagents.is_empty() {
+            return self;
+        }
+
+        let mut content = String::new();
+        content.push_str(
+            "The following sub-agents are available for use with the Agent tool:\n\n",
+        );
+
+        for (name, description) in subagents {
+            content.push_str(&format!("- **{}** - {}\n", name, description));
+        }
+
+        self.sections.push(Section {
+            title: "Available sub-agents".to_string(),
+            content,
+        });
+
+        self
+    }
+
     /// Add the current date section.
     pub fn with_current_date(mut self, date: DateTime<Utc>) -> Self {
         let formatted_date = date.format("%A, %B %d, %Y").to_string();
@@ -229,33 +252,38 @@ impl Default for DateTracker {
     }
 }
 
-/// Create a system reminder with skills section.
-pub fn create_reminder_with_skills(skills: &[SkillDefinition]) -> String {
-    if skills.is_empty() {
-        return String::new();
-    }
-
-    SystemReminder::new().with_skills(skills).build()
-}
-
-/// Create a system reminder with skills and current date.
-pub fn create_reminder_with_skills_and_date(
+/// Create a system reminder with skills and sub-agents sections.
+pub fn create_reminder_with_skills(
     skills: &[SkillDefinition],
-    date: DateTime<Utc>,
+    subagents: &[(String, String)],
 ) -> String {
-    if skills.is_empty() {
-        return SystemReminder::new().with_current_date(date).build();
+    if skills.is_empty() && subagents.is_empty() {
+        return String::new();
     }
 
     SystemReminder::new()
         .with_skills(skills)
+        .with_subagents(subagents)
+        .build()
+}
+
+/// Create a system reminder with skills, sub-agents, and current date.
+pub fn create_reminder_with_skills_and_date(
+    skills: &[SkillDefinition],
+    subagents: &[(String, String)],
+    date: DateTime<Utc>,
+) -> String {
+    SystemReminder::new()
+        .with_skills(skills)
+        .with_subagents(subagents)
         .with_current_date(date)
         .build()
 }
 
-/// Create a system reminder with skills, todos, and current date.
+/// Create a system reminder with skills, sub-agents, todos, and current date.
 pub fn create_reminder_with_skills_todos_and_date(
     skills: &[SkillDefinition],
+    subagents: &[(String, String)],
     todos: Option<&[TodoItem]>,
     date: DateTime<Utc>,
 ) -> String {
@@ -264,6 +292,8 @@ pub fn create_reminder_with_skills_todos_and_date(
     if !skills.is_empty() {
         reminder = reminder.with_skills(skills);
     }
+
+    reminder = reminder.with_subagents(subagents);
 
     if let Some(todo_list) = todos {
         if !todo_list.is_empty() {
@@ -366,10 +396,66 @@ mod tests {
         assert_eq!(reminder.build(), "");
     }
 
+    fn make_test_subagents() -> Vec<(String, String)> {
+        vec![
+            (
+                "researcher".to_string(),
+                "Searches and summarizes information".to_string(),
+            ),
+            (
+                "coder".to_string(),
+                "Writes and reviews code".to_string(),
+            ),
+        ]
+    }
+
+    #[test]
+    fn test_reminder_with_subagents() {
+        let subagents = make_test_subagents();
+        let reminder = SystemReminder::new().with_subagents(&subagents);
+
+        let output = reminder.build();
+
+        assert!(!reminder.is_empty());
+        assert!(output.contains("<system-reminder>"));
+        assert!(output.contains("## Available sub-agents"));
+        assert!(output.contains(
+            "The following sub-agents are available for use with the Agent tool:"
+        ));
+        assert!(output.contains("- **researcher** - Searches and summarizes information"));
+        assert!(output.contains("- **coder** - Writes and reviews code"));
+        assert!(output.contains("</system-reminder>"));
+    }
+
+    #[test]
+    fn test_reminder_with_empty_subagents() {
+        let subagents: Vec<(String, String)> = vec![];
+        let reminder = SystemReminder::new().with_subagents(&subagents);
+
+        assert!(reminder.is_empty());
+        assert_eq!(reminder.build(), "");
+    }
+
+    #[test]
+    fn test_reminder_with_skills_and_subagents() {
+        let skills = make_test_skills();
+        let subagents = make_test_subagents();
+        let reminder = SystemReminder::new()
+            .with_skills(&skills)
+            .with_subagents(&subagents);
+
+        let output = reminder.build();
+
+        assert!(output.contains("## Available skills"));
+        assert!(output.contains("## Available sub-agents"));
+        assert!(output.contains("Code Review"));
+        assert!(output.contains("researcher"));
+    }
+
     #[test]
     fn test_convenience_function() {
         let skills = make_test_skills();
-        let output = create_reminder_with_skills(&skills);
+        let output = create_reminder_with_skills(&skills, &[]);
 
         assert!(output.contains("<system-reminder>"));
         assert!(output.contains("Available skills"));
@@ -380,7 +466,7 @@ mod tests {
     #[test]
     fn test_convenience_function_empty() {
         let skills: Vec<SkillDefinition> = vec![];
-        let output = create_reminder_with_skills(&skills);
+        let output = create_reminder_with_skills(&skills, &[]);
 
         assert_eq!(output, "");
     }
@@ -389,7 +475,7 @@ mod tests {
     fn test_convenience_function_with_date() {
         let skills = make_test_skills();
         let date = Utc::now();
-        let output = create_reminder_with_skills_and_date(&skills, date);
+        let output = create_reminder_with_skills_and_date(&skills, &[], date);
 
         assert!(output.contains("Available skills"));
         assert!(output.contains("Current date"));

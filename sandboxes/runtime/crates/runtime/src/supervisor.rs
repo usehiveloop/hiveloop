@@ -360,17 +360,26 @@ impl AgentSupervisor {
         // Check if todo tools are enabled
         let has_todo_tools = tool_names.contains("todoread") && tool_names.contains("todowrite");
 
-        // Build system reminder with available skills and optionally todos
+        // Extract subagent names and descriptions, filtering out __self__
+        let subagent_list: Vec<(String, String)> = state
+            .subagents
+            .iter()
+            .filter(|entry| entry.key() != tools::self_agent::SELF_AGENT_NAME)
+            .map(|entry| (entry.value().name.clone(), entry.value().description.clone()))
+            .collect();
+
+        // Build system reminder with available skills, sub-agents, and optionally todos
         let system_reminder = if has_todo_tools {
             // Try to get todo state from the tool registry
             let todos = get_todos_from_registry(&tool_executors).await;
             crate::system_reminder::create_reminder_with_skills_todos_and_date(
                 &skills,
+                &subagent_list,
                 todos.as_deref(),
                 chrono::Utc::now(),
             )
         } else {
-            crate::system_reminder::create_reminder_with_skills(&skills)
+            crate::system_reminder::create_reminder_with_skills(&skills, &subagent_list)
         };
 
         state.tracker.spawn(async move {
@@ -775,8 +784,17 @@ impl AgentSupervisor {
         let llm_semaphore = self.llm_semaphore.clone();
         drop(def); // release read lock before spawning
 
-        // Build system reminder with available skills
-        let system_reminder = crate::system_reminder::create_reminder_with_skills(&skills);
+        // Extract subagent names and descriptions, filtering out __self__
+        let subagent_list: Vec<(String, String)> = state
+            .subagents
+            .iter()
+            .filter(|entry| entry.key() != tools::self_agent::SELF_AGENT_NAME)
+            .map(|entry| (entry.value().name.clone(), entry.value().description.clone()))
+            .collect();
+
+        // Build system reminder with available skills and sub-agents
+        let system_reminder =
+            crate::system_reminder::create_reminder_with_skills(&skills, &subagent_list);
 
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {

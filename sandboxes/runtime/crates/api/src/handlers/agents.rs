@@ -48,6 +48,14 @@ pub struct SubAgentSummary {
     pub tools: Vec<ToolDefinition>,
 }
 
+/// Summary of a registered tool (built-in, MCP, or integration).
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RegisteredToolSummary {
+    pub name: String,
+    pub description: String,
+}
+
 /// Full agent response — returned by both list and detail endpoints.
 /// System prompts may be truncated on the list endpoint.
 #[derive(Serialize)]
@@ -74,6 +82,8 @@ pub struct AgentResponse {
     pub updated_at: Option<String>,
     pub active_conversations: usize,
     pub metrics: MetricsSnapshot,
+    /// All tools registered and available to this agent (built-in + MCP + integrations).
+    pub registered_tools: Vec<RegisteredToolSummary>,
 }
 
 /// Build an `AgentResponse` from an `AgentState`.
@@ -110,6 +120,17 @@ async fn build_agent_response(
 
     let metrics = agent.metrics.snapshot(&def.id, &def.name);
 
+    let mut registered_tools: Vec<RegisteredToolSummary> = agent
+        .tool_registry
+        .list()
+        .into_iter()
+        .map(|(name, description)| RegisteredToolSummary {
+            name: name.to_string(),
+            description: description.to_string(),
+        })
+        .collect();
+    registered_tools.sort_by(|a, b| a.name.cmp(&b.name));
+
     AgentResponse {
         id: def.id.clone(),
         name: def.name.clone(),
@@ -128,6 +149,7 @@ async fn build_agent_response(
         updated_at: def.updated_at.clone(),
         active_conversations: agent.active_conversation_count(),
         metrics,
+        registered_tools,
     }
 }
 
