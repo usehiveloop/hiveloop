@@ -53,13 +53,13 @@ type actionSummary struct {
 	Parameters   json.RawMessage `json:"parameters"`
 }
 
-// ListIntegrations handles GET /v1/integrations — returns all providers with action counts.
+// ListIntegrations handles GET /v1/catalog/integrations — returns all providers with action counts.
 // @Summary List all integrations
 // @Description Returns every integration provider in the catalog with action counts.
 // @Tags integrations
 // @Produce json
 // @Success 200 {array} integrationSummary
-// @Router /v1/integrations [get]
+// @Router /v1/catalog/integrations [get]
 func (h *ActionsHandler) ListIntegrations(w http.ResponseWriter, r *http.Request) {
 	names := h.catalog.ListProviders()
 	resp := make([]integrationSummary, 0, len(names))
@@ -94,7 +94,7 @@ func (h *ActionsHandler) ListIntegrations(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// GetIntegration handles GET /v1/integrations/{id} — returns provider detail with all actions.
+// GetIntegration handles GET /v1/catalog/integrations/{id} — returns provider detail with all actions.
 // @Summary Get integration detail
 // @Description Returns a single integration with its full action list.
 // @Tags integrations
@@ -102,7 +102,7 @@ func (h *ActionsHandler) ListIntegrations(w http.ResponseWriter, r *http.Request
 // @Param id path string true "Provider ID (e.g. github-app, slack, jira)"
 // @Success 200 {object} integrationDetail
 // @Failure 404 {object} errorResponse
-// @Router /v1/integrations/{id} [get]
+// @Router /v1/catalog/integrations/{id} [get]
 func (h *ActionsHandler) GetIntegration(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	p, ok := h.catalog.GetProvider(id)
@@ -132,7 +132,7 @@ func (h *ActionsHandler) GetIntegration(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// ListActions handles GET /v1/integrations/{id}/actions — returns just the actions list.
+// ListActions handles GET /v1/catalog/integrations/{id}/actions — returns just the actions list.
 // @Summary List actions for an integration
 // @Description Returns all actions for a single integration, optionally filtered by access type.
 // @Tags integrations
@@ -141,7 +141,7 @@ func (h *ActionsHandler) GetIntegration(w http.ResponseWriter, r *http.Request) 
 // @Param access query string false "Filter by access type (read or write)"
 // @Success 200 {array} actionSummary
 // @Failure 404 {object} errorResponse
-// @Router /v1/integrations/{id}/actions [get]
+// @Router /v1/catalog/integrations/{id}/actions [get]
 func (h *ActionsHandler) ListActions(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	p, ok := h.catalog.GetProvider(id)

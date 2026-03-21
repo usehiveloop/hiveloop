@@ -226,12 +226,11 @@ func run() error {
 	r.Get("/v1/providers/{id}", providerHandler.Get)
 	r.Get("/v1/providers/{id}/models", providerHandler.Models)
 
-	// Integration actions discovery (no auth — used by frontend)
+	// Integration catalog discovery (no auth — MCP actions/resources catalog)
 	actionsHandler := handler.NewActionsHandler(actionsCatalog)
-	r.Get("/v1/integrations", actionsHandler.ListIntegrations)
-	r.Get("/v1/integrations/providers", integrationHandler.ListProviders)
-	r.Get("/v1/integrations/{id}", actionsHandler.GetIntegration)
-	r.Get("/v1/integrations/{id}/actions", actionsHandler.ListActions)
+	r.Get("/v1/catalog/integrations", actionsHandler.ListIntegrations)
+	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
+	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
 
 	// Org-authenticated routes (Logto JWT or API Key) — credential & token management
 	if cfg.LogtoEndpoint != "" && cfg.LogtoAudience != "" {
