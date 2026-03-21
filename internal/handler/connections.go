@@ -75,9 +75,12 @@ func buildConnectionProviderConfig(nangoResp map[string]any) model.JSON {
 			config[key] = v
 		}
 	}
-	// Strip sensitive internal fields from connection_config.
+	// Strip sensitive internal fields.
 	if cc, ok := config["connection_config"].(map[string]any); ok {
 		delete(cc, "jwtToken")
+	}
+	if creds, ok := config["credentials"].(map[string]any); ok {
+		delete(creds, "jwtToken")
 	}
 	return config
 }
