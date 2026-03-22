@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use std::sync::Arc;
 use tracing::{error, info};
 
-use crate::connection::{McpConnection, McpToolInfo};
+use crate::connection::McpConnection;
 
 /// Manages MCP server connections for all agents.
 ///
@@ -25,14 +25,14 @@ impl McpManager {
 
     /// Connect an agent to all its configured MCP servers.
     ///
-    /// Returns the list of all discovered tools across all servers.
+    /// Establishes connections and stores them for later use. Tool discovery
+    /// is deferred to callers who can query each connection individually via
+    /// `McpConnection::list_tools()` to preserve the tool-to-server association.
     pub async fn connect_agent(
         &self,
         agent_id: &str,
         servers: &[McpServerDefinition],
-    ) -> Result<Vec<McpToolInfo>, BridgeError> {
-        let mut all_tools = Vec::new();
-
+    ) -> Result<(), BridgeError> {
         for server in servers {
             match McpConnection::connect(&server.name, &server.transport).await {
                 Ok(conn) => {
@@ -50,7 +50,6 @@ impl McpManager {
                                 tool_count = tools.len(),
                                 "discovered MCP tools"
                             );
-                            all_tools.extend(tools);
                         }
                         Err(e) => {
                             error!(
@@ -76,7 +75,7 @@ impl McpManager {
             }
         }
 
-        Ok(all_tools)
+        Ok(())
     }
 
     /// Disconnect all MCP servers for a given agent.
@@ -211,8 +210,7 @@ mod tests {
     #[tokio::test]
     async fn test_connect_agent_with_no_servers() {
         let manager = McpManager::new();
-        let tools = manager.connect_agent("agent1", &[]).await.unwrap();
-        assert!(tools.is_empty());
+        manager.connect_agent("agent1", &[]).await.unwrap();
         assert_eq!(manager.connection_count(), 0);
     }
 
@@ -228,8 +226,7 @@ mod tests {
             },
         }];
         // Should not panic; the server fails to connect but the manager handles it gracefully
-        let tools = manager.connect_agent("agent1", &servers).await.unwrap();
-        assert!(tools.is_empty());
+        manager.connect_agent("agent1", &servers).await.unwrap();
         assert_eq!(manager.connection_count(), 0);
     }
 }

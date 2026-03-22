@@ -125,19 +125,20 @@ impl AgentSupervisor {
     async fn load_single_agent(&self, mut definition: AgentDefinition) -> Result<(), BridgeError> {
         let agent_id = definition.id.clone();
 
-        // Connect to MCP servers and discover tools
-        let mcp_tools = self
-            .mcp_manager
+        // Connect to MCP servers
+        self.mcp_manager
             .connect_agent(&agent_id, &definition.mcp_servers)
             .await?;
 
-        // Build tool registry with MCP tools
+        // Build tool registry with MCP tools (each connection's tools bridged to its own connection)
         let mut tool_registry = ToolRegistry::new();
         let connections = self.mcp_manager.get_agent_connections(&agent_id);
         for conn in &connections {
-            let bridged = mcp::bridge_mcp_tools(conn.clone(), mcp_tools.clone());
-            for tool in bridged {
-                tool_registry.register(tool);
+            if let Ok(tools) = conn.list_tools().await {
+                let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
+                for tool in bridged {
+                    tool_registry.register(tool);
+                }
             }
         }
 
@@ -568,17 +569,18 @@ impl AgentSupervisor {
     ) -> Result<Arc<AgentState>, BridgeError> {
         let agent_id = definition.id.clone();
 
-        let mcp_tools = self
-            .mcp_manager
+        self.mcp_manager
             .connect_agent(&agent_id, &definition.mcp_servers)
             .await?;
 
         let mut tool_registry = ToolRegistry::new();
         let connections = self.mcp_manager.get_agent_connections(&agent_id);
         for conn in &connections {
-            let bridged = mcp::bridge_mcp_tools(conn.clone(), mcp_tools.clone());
-            for tool in bridged {
-                tool_registry.register(tool);
+            if let Ok(tools) = conn.list_tools().await {
+                let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
+                for tool in bridged {
+                    tool_registry.register(tool);
+                }
             }
         }
 

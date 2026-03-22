@@ -9,6 +9,14 @@ use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
+/// Per-worker delivery settings extracted from WebhookConfig.
+#[derive(Clone, Copy)]
+struct WorkerConfig {
+    delivery_timeout: Duration,
+    max_retries: usize,
+    idle_timeout: Duration,
+}
+
 pub struct WebhookDispatcher {
     client: Client,
     event_tx: mpsc::UnboundedSender<WebhookPayload>,
@@ -110,9 +118,11 @@ impl WebhookDispatcher {
     ) {
         let max_inflight = config.max_concurrent_deliveries;
         let semaphore = Arc::new(tokio::sync::Semaphore::new(max_inflight));
-        let delivery_timeout = Duration::from_secs(config.delivery_timeout_secs);
-        let max_retries = config.max_retries;
-        let idle_timeout = Duration::from_secs(config.worker_idle_timeout_secs);
+        let worker_config = WorkerConfig {
+            delivery_timeout: Duration::from_secs(config.delivery_timeout_secs),
+            max_retries: config.max_retries,
+            idle_timeout: Duration::from_secs(config.worker_idle_timeout_secs),
+        };
 
         // Per-conversation routing table and sequence counters
         let mut workers: HashMap<String, mpsc::UnboundedSender<WebhookPayload>> = HashMap::new();
@@ -130,7 +140,7 @@ impl WebhookDispatcher {
                     if let Ok(conv_id) = result {
                         let is_stale = workers
                             .get(&conv_id)
-                            .map_or(true, |tx| tx.is_closed());
+                            .is_none_or(|tx| tx.is_closed());
                         if is_stale {
                             workers.remove(&conv_id);
                             sequence_counters.remove(&conv_id);
@@ -151,9 +161,7 @@ impl WebhookDispatcher {
                         &mut worker_handles,
                         &client,
                         &semaphore,
-                        delivery_timeout,
-                        max_retries,
-                        idle_timeout,
+                        &worker_config,
                     );
                 }
             }
@@ -171,9 +179,7 @@ impl WebhookDispatcher {
                 &mut worker_handles,
                 &client,
                 &semaphore,
-                delivery_timeout,
-                max_retries,
-                idle_timeout,
+                &worker_config,
             );
             drained += 1;
         }
@@ -207,9 +213,7 @@ fn route_event(
     worker_handles: &mut JoinSet<String>,
     client: &Client,
     semaphore: &Arc<tokio::sync::Semaphore>,
-    delivery_timeout: Duration,
-    max_retries: usize,
-    idle_timeout: Duration,
+    config: &WorkerConfig,
 ) {
     let conv_id = payload.conversation_id.clone();
 
@@ -235,6 +239,7 @@ fn route_event(
     let worker_client = client.clone();
     let worker_sem = semaphore.clone();
     let worker_conv_id = conv_id;
+    let worker_config = *config;
 
     worker_handles.spawn(async move {
         conversation_delivery_worker(
@@ -242,9 +247,9 @@ fn route_event(
             worker_rx,
             worker_client,
             worker_sem,
-            delivery_timeout,
-            max_retries,
-            idle_timeout,
+            worker_config.delivery_timeout,
+            worker_config.max_retries,
+            worker_config.idle_timeout,
         )
         .await;
         worker_conv_id
