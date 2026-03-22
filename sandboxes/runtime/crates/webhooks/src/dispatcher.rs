@@ -313,13 +313,7 @@ async fn conversation_delivery_worker(
         );
 
         // Deliver the batch sequentially — next batch waits for this one
-        deliver_webhook_batch(
-            client.clone(),
-            batch,
-            delivery_timeout,
-            max_retries,
-        )
-        .await;
+        deliver_webhook_batch(client.clone(), batch, delivery_timeout, max_retries).await;
         // permit dropped here, freeing the slot
     }
 
@@ -680,11 +674,18 @@ mod tests {
             }
         }
 
-        assert_eq!(all_seq_numbers.len(), 10, "all 10 events should be delivered");
+        assert_eq!(
+            all_seq_numbers.len(),
+            10,
+            "all 10 events should be delivered"
+        );
 
         // Sequence numbers must be 1..=10 in strictly increasing order
         let expected: Vec<u64> = (1..=10).collect();
-        assert_eq!(all_seq_numbers, expected, "sequence numbers must be 1..10 in order");
+        assert_eq!(
+            all_seq_numbers, expected,
+            "sequence numbers must be 1..10 in order"
+        );
     }
 
     #[tokio::test]
@@ -766,9 +767,7 @@ mod tests {
 
         // First request is slow, so subsequent events queue up and batch
         Mock::given(method("POST"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_string("ok"),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_string("ok"))
             .mount(&mock_server)
             .await;
 
@@ -827,7 +826,11 @@ mod tests {
             for window in batch.windows(2) {
                 let seq_a = window[0]["sequence_number"].as_u64().unwrap();
                 let seq_b = window[1]["sequence_number"].as_u64().unwrap();
-                assert_eq!(seq_b, seq_a + 1, "sequence numbers must be contiguous within batch");
+                assert_eq!(
+                    seq_b,
+                    seq_a + 1,
+                    "sequence numbers must be contiguous within batch"
+                );
             }
         }
     }

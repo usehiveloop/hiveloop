@@ -366,7 +366,12 @@ impl AgentSupervisor {
             .subagents
             .iter()
             .filter(|entry| entry.key() != tools::self_agent::SELF_AGENT_NAME)
-            .map(|entry| (entry.value().name.clone(), entry.value().description.clone()))
+            .map(|entry| {
+                (
+                    entry.value().name.clone(),
+                    entry.value().description.clone(),
+                )
+            })
             .collect();
 
         // Build system reminder with available skills, sub-agents, and optionally todos
@@ -791,7 +796,12 @@ impl AgentSupervisor {
             .subagents
             .iter()
             .filter(|entry| entry.key() != tools::self_agent::SELF_AGENT_NAME)
-            .map(|entry| (entry.value().name.clone(), entry.value().description.clone()))
+            .map(|entry| {
+                (
+                    entry.value().name.clone(),
+                    entry.value().description.clone(),
+                )
+            })
             .collect();
 
         // Build system reminder with available skills and sub-agents

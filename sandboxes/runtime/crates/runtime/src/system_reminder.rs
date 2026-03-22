@@ -80,9 +80,7 @@ impl SystemReminder {
         }
 
         let mut content = String::new();
-        content.push_str(
-            "The following sub-agents are available for use with the Agent tool:\n\n",
-        );
+        content.push_str("The following sub-agents are available for use with the Agent tool:\n\n");
 
         for (name, description) in subagents {
             content.push_str(&format!("- **{}** - {}\n", name, description));
@@ -402,10 +400,7 @@ mod tests {
                 "researcher".to_string(),
                 "Searches and summarizes information".to_string(),
             ),
-            (
-                "coder".to_string(),
-                "Writes and reviews code".to_string(),
-            ),
+            ("coder".to_string(), "Writes and reviews code".to_string()),
         ]
     }
 
@@ -419,9 +414,9 @@ mod tests {
         assert!(!reminder.is_empty());
         assert!(output.contains("<system-reminder>"));
         assert!(output.contains("## Available sub-agents"));
-        assert!(output.contains(
-            "The following sub-agents are available for use with the Agent tool:"
-        ));
+        assert!(
+            output.contains("The following sub-agents are available for use with the Agent tool:")
+        );
         assert!(output.contains("- **researcher** - Searches and summarizes information"));
         assert!(output.contains("- **coder** - Writes and reviews code"));
         assert!(output.contains("</system-reminder>"));
