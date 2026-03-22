@@ -6,22 +6,24 @@ Receive and process events from Bridge.
 
 ## Setting Up Your Endpoint
 
-Create an HTTP endpoint that accepts POST requests:
+Create an HTTP endpoint that accepts POST requests. The body is always a **JSON array** of events, ordered by `sequence_number`. Events in a batch always belong to the same conversation.
 
 ```javascript
 app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (req, res) => {
   // Verify signature before processing
   const signature = req.headers['x-webhook-signature'];
   const timestamp = req.headers['x-webhook-timestamp'];
-  
+
   if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
-  
-  // Parse and process the event
-  const event = JSON.parse(req.body);
-  await queue.add(event);
-  
+
+  // Parse the event batch and process each event
+  const events = JSON.parse(req.body);
+  for (const event of events) {
+    await queue.add(event);
+  }
+
   // Acknowledge quickly
   res.json({ status: 'ok' });
 });
@@ -41,22 +43,25 @@ Configure the URL in your agent:
 
 ## Event Structure
 
-Every webhook has this format:
+The webhook body is always a **JSON array** of events. Each event has this format:
 
 ```json
-{
-  "event_type": "response_completed",
-  "timestamp": "2026-01-15T10:30:00Z",
-  "agent_id": "my-agent",
-  "conversation_id": "conv-def456",
-  "data": {
-    "input_tokens": 150,
-    "output_tokens": 42,
-    "full_response": "Hello! How can I help?"
-  },
-  "webhook_url": "https://your-api.com/webhooks/bridge",
-  "webhook_secret": "<webhook-secret>"
-}
+[
+  {
+    "event_type": "response_completed",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "agent_id": "my-agent",
+    "conversation_id": "conv-def456",
+    "sequence_number": 3,
+    "data": {
+      "input_tokens": 150,
+      "output_tokens": 42,
+      "full_response": "Hello! How can I help?"
+    },
+    "webhook_url": "https://your-api.com/webhooks/bridge",
+    "webhook_secret": "<webhook-secret>"
+  }
+]
 ```
 
 ### Common Fields
@@ -67,9 +72,10 @@ Every webhook has this format:
 | `timestamp` | string | ISO 8601 timestamp in UTC |
 | `agent_id` | string | Which agent triggered the event |
 | `conversation_id` | string | Which conversation |
+| `sequence_number` | integer | Monotonically increasing per conversation (starts at 1) |
 | `data` | object | Event-specific data (see below) |
 
-**Note:** There is no `event_id` field. For deduplication, use a combination of `timestamp`, `conversation_id`, and `event_type`.
+Use `sequence_number` with `conversation_id` for deduplication and ordering.
 
 ---
 
@@ -252,23 +258,26 @@ Common error codes:
 The most common webhook handler saves events:
 
 ```javascript
-async function handleWebhook(event) {
-  // Create unique key for deduplication
-  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
-  
-  // Check for duplicates
-  const exists = await db.events.findOne({ event_key: eventKey });
-  if (exists) return;
-  
-  // Save the event
-  await db.events.insert({
-    event_key: eventKey,
-    type: event.event_type,
-    agent_id: event.agent_id,
-    conversation_id: event.conversation_id,
-    data: event.data,
-    created_at: event.timestamp
-  });
+async function handleWebhookBatch(events) {
+  for (const event of events) {
+    // Create unique key from conversation + sequence number
+    const eventKey = `${event.conversation_id}:${event.sequence_number}`;
+
+    // Check for duplicates
+    const exists = await db.events.findOne({ event_key: eventKey });
+    if (exists) continue;
+
+    // Save the event
+    await db.events.insert({
+      event_key: eventKey,
+      type: event.event_type,
+      agent_id: event.agent_id,
+      conversation_id: event.conversation_id,
+      sequence_number: event.sequence_number,
+      data: event.data,
+      created_at: event.timestamp
+    });
+  }
 }
 ```
 
@@ -279,53 +288,62 @@ async function handleWebhook(event) {
 ### Save Messages
 
 ```javascript
-if (event.event_type === 'response_completed') {
-  await db.messages.insert({
-    conversation_id: event.conversation_id,
-    role: 'assistant',
-    content: event.data.full_response,
-    input_tokens: event.data.input_tokens,
-    output_tokens: event.data.output_tokens,
-    created_at: event.timestamp
-  });
+for (const event of events) {
+  if (event.event_type === 'response_completed') {
+    await db.messages.insert({
+      conversation_id: event.conversation_id,
+      sequence_number: event.sequence_number,
+      role: 'assistant',
+      content: event.data.full_response,
+      input_tokens: event.data.input_tokens,
+      output_tokens: event.data.output_tokens,
+      created_at: event.timestamp
+    });
+  }
 }
 ```
 
 ### Track Tool Usage
 
 ```javascript
-if (event.event_type === 'tool_call_completed') {
-  await db.tool_calls.insert({
-    conversation_id: event.conversation_id,
-    agent_id: event.agent_id,
-    tool_name: event.data.tool_name,
-    result: event.data.result,
-    is_error: event.data.is_error,
-    timestamp: event.timestamp
-  });
+for (const event of events) {
+  if (event.event_type === 'tool_call_completed') {
+    await db.tool_calls.insert({
+      conversation_id: event.conversation_id,
+      agent_id: event.agent_id,
+      tool_name: event.data.tool_name,
+      result: event.data.result,
+      is_error: event.data.is_error,
+      timestamp: event.timestamp
+    });
+  }
 }
 ```
 
 ### Update Conversation Status
 
 ```javascript
-if (event.event_type === 'conversation_ended') {
-  await db.conversations.update(
-    { id: event.conversation_id },
-    { status: 'ended', ended_at: event.timestamp }
-  );
+for (const event of events) {
+  if (event.event_type === 'conversation_ended') {
+    await db.conversations.update(
+      { id: event.conversation_id },
+      { status: 'ended', ended_at: event.timestamp }
+    );
+  }
 }
 ```
 
 ### Handle Streaming Chunks
 
 ```javascript
-if (event.event_type === 'response_chunk') {
-  // Stream to connected clients via WebSocket
-  await websocket.broadcast(event.conversation_id, {
-    type: 'chunk',
-    delta: event.data.delta
-  });
+for (const event of events) {
+  if (event.event_type === 'response_chunk') {
+    // Stream to connected clients via WebSocket
+    await websocket.broadcast(event.conversation_id, {
+      type: 'chunk',
+      delta: event.data.delta
+    });
+  }
 }
 ```
 
@@ -333,13 +351,13 @@ if (event.event_type === 'response_chunk') {
 
 ## Verifying Signatures
 
-**Critical:** Always verify webhooks came from Bridge. The signature is computed as:
+**Critical:** Always verify webhooks came from Bridge. The signature is computed over the full JSON array body:
 
 ```
 HMAC-SHA256("{timestamp}.{payload}", secret)
 ```
 
-The result is **base64-encoded** (not hex).
+The result is **base64-encoded** (not hex). The `payload` is the raw request body (the entire JSON array).
 
 ### JavaScript/Node.js
 
@@ -349,12 +367,12 @@ const crypto = require('crypto');
 function verifyWebhook(payload, signature, secret, timestamp) {
   // payload should be the raw body (Buffer or string)
   const message = timestamp + '.' + payload;
-  
+
   const expected = crypto
     .createHmac('sha256', secret)
     .update(message)
     .digest('base64');
-  
+
   // Use timing-safe comparison
   return crypto.timingSafeEqual(
     Buffer.from(signature),
@@ -365,15 +383,17 @@ function verifyWebhook(payload, signature, secret, timestamp) {
 app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-webhook-signature'];
   const timestamp = req.headers['x-webhook-timestamp'];
-  
+
   if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
-  
-  // Process webhook...
-  const event = JSON.parse(req.body);
-  handleWebhook(event);
-  
+
+  // Body is always a JSON array of events
+  const events = JSON.parse(req.body);
+  for (const event of events) {
+    handleEvent(event);
+  }
+
   res.json({ status: 'ok' });
 });
 ```
@@ -388,14 +408,14 @@ import base64
 def verify_webhook(payload: bytes, signature: str, secret: str, timestamp: str) -> bool:
     # Message format: {timestamp}.{payload}
     message = f"{timestamp}.".encode() + payload
-    
+
     expected = hmac.new(
         secret.encode(),
         message,
         hashlib.sha256
     ).digest()
     expected_b64 = base64.b64encode(expected).decode()
-    
+
     return hmac.compare_digest(expected_b64, signature)
 
 @app.post('/webhooks/bridge')
@@ -403,12 +423,13 @@ async def handle_webhook(request):
     signature = request.headers.get('X-Webhook-Signature')
     timestamp = request.headers.get('X-Webhook-Timestamp')
     body = await request.body()
-    
+
     if not verify_webhook(body, signature, WEBHOOK_SECRET, timestamp):
         raise HTTPException(status_code=401, detail='Invalid signature')
-    
-    event = json.loads(body)
-    await process_event(event)
+
+    events = json.loads(body)  # Always a JSON array
+    for event in events:
+        await process_event(event)
     return {'status': 'ok'}
 ```
 
@@ -416,26 +437,25 @@ async def handle_webhook(request):
 
 ## Deduplication
 
-Bridge may send the same event multiple times (retries). Since there is no `event_id`, use a composite key:
+Bridge may send the same batch multiple times during retries. Use `conversation_id` + `sequence_number` as a unique key:
 
 ```javascript
-async function handleWebhook(event) {
-  // Create unique identifier
-  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
-  
-  // Check if already processed
-  const exists = await db.events.findOne({ event_key: eventKey });
-  if (exists) {
-    return; // Already handled
+async function handleWebhookBatch(events) {
+  for (const event of events) {
+    const eventKey = `${event.conversation_id}:${event.sequence_number}`;
+
+    const exists = await db.events.findOne({ event_key: eventKey });
+    if (exists) {
+      continue; // Already handled
+    }
+
+    await processEvent(event);
+    await db.events.insert({ event_key: eventKey, processed_at: new Date() });
   }
-  
-  // Process and save
-  await processEvent(event);
-  await db.events.insert({ event_key: eventKey, processed_at: new Date() });
 }
 ```
 
-**Note:** Events within the same millisecond for the same conversation and type are considered duplicates.
+The `sequence_number` is unique per conversation and monotonically increasing, making it a reliable deduplication key.
 
 ---
 
@@ -448,22 +468,24 @@ app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (r
   // Verify signature first
   const signature = req.headers['x-webhook-signature'];
   const timestamp = req.headers['x-webhook-timestamp'];
-  
+
   if (!verifyWebhook(req.body, signature, WEBHOOK_SECRET, timestamp)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
-  
-  // Queue for processing (don't await the actual work)
-  const event = JSON.parse(req.body);
-  queue.add(event); // Fire and forget
-  
+
+  // Queue each event for processing (don't await the actual work)
+  const events = JSON.parse(req.body);
+  for (const event of events) {
+    queue.add(event); // Fire and forget
+  }
+
   // Respond immediately
   res.json({ status: 'ok' });
 });
 
 // Process asynchronously
 queue.process(async (job) => {
-  await handleWebhook(job.data);
+  await handleEvent(job.data);
 });
 ```
 
@@ -507,21 +529,20 @@ Events that fail all attempts are logged and dropped. There is no dead letter qu
 
 ---
 
-## Event Ordering
+## Event Ordering and Batching
 
-Bridge does **not** guarantee strict ordering due to:
-- Parallel processing of events
-- Retry delays causing out-of-order delivery
-- Network latency variations
+Bridge guarantees **strict in-order delivery per conversation**. Events for the same conversation are delivered sequentially, never concurrently. Each event carries a `sequence_number` that increases monotonically (1, 2, 3, ...) within a conversation.
 
-Use the `timestamp` field to order events chronologically:
+When multiple events queue up for the same conversation, Bridge batches them into a single HTTP POST. The body is always a JSON array ordered by `sequence_number`:
 
 ```javascript
-// Sort events by timestamp before processing
-const sortedEvents = events.sort((a, b) => 
-  new Date(a.timestamp) - new Date(b.timestamp)
-);
+// Events within a batch are already in order — just iterate
+for (const event of events) {
+  console.log(`${event.conversation_id} seq=${event.sequence_number} type=${event.event_type}`);
+}
 ```
+
+Events for **different conversations** are delivered concurrently and independently, each with their own sequence numbering starting at 1.
 
 ---
 
@@ -531,9 +552,11 @@ const sortedEvents = events.sort((a, b) =>
 
 ```javascript
 app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), (req, res) => {
-  console.log('Webhook received:', req.headers['x-webhook-event-type']);
-  console.log('Timestamp:', req.headers['x-webhook-timestamp']);
-  console.log('Body:', req.body.toString());
+  const events = JSON.parse(req.body);
+  console.log(`Webhook batch received: ${events.length} event(s)`);
+  for (const event of events) {
+    console.log(`  [${event.conversation_id} seq=${event.sequence_number}] ${event.event_type}`);
+  }
   res.json({ status: 'ok' });
 });
 ```
@@ -556,8 +579,10 @@ docker logs bridge 2>&1 | grep webhook
 ```
 
 Look for:
-- `DEBUG webhooks::dispatcher > Sending webhook to ...`
-- `ERROR webhooks::dispatcher > Webhook delivery failed after retries ...`
+- `DEBUG webhooks::dispatcher > conversation delivery worker started`
+- `DEBUG webhooks::dispatcher > delivering webhook batch`
+- `INFO  webhooks::dispatcher > webhook batch delivered`
+- `ERROR webhooks::dispatcher > webhook batch delivery failed after all retries`
 
 ---
 
@@ -575,60 +600,64 @@ app.post('/webhooks/bridge', express.raw({ type: 'application/json' }), async (r
   // Verify signature
   const signature = req.headers['x-webhook-signature'];
   const timestamp = req.headers['x-webhook-timestamp'];
-  
+
   const message = timestamp + '.' + req.body;
   const expected = crypto
     .createHmac('sha256', WEBHOOK_SECRET)
     .update(message)
     .digest('base64');
-  
+
   if (signature !== expected) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
-  
-  const event = JSON.parse(req.body);
-  
-  // Deduplicate
-  const eventKey = `${event.timestamp}:${event.conversation_id}:${event.event_type}`;
-  if (await db.events.findOne({ event_key: eventKey })) {
-    return res.json({ status: 'already_processed' });
+
+  // Body is always a JSON array of events (batched per conversation)
+  const events = JSON.parse(req.body);
+
+  for (const event of events) {
+    // Deduplicate using conversation_id + sequence_number
+    const eventKey = `${event.conversation_id}:${event.sequence_number}`;
+    if (await db.events.findOne({ event_key: eventKey })) {
+      continue;
+    }
+
+    // Handle by type
+    switch (event.event_type) {
+      case 'response_completed':
+        await db.messages.insert({
+          conversation_id: event.conversation_id,
+          sequence_number: event.sequence_number,
+          role: 'assistant',
+          content: event.data.full_response,
+          tokens: event.data.output_tokens,
+          created_at: event.timestamp
+        });
+        break;
+
+      case 'tool_call_completed':
+        await db.tool_calls.insert({
+          conversation_id: event.conversation_id,
+          tool_name: event.data.tool_name,
+          result: event.data.result,
+          is_error: event.data.is_error,
+          timestamp: event.timestamp
+        });
+        break;
+
+      case 'agent_error':
+        await db.errors.insert({
+          conversation_id: event.conversation_id,
+          code: event.data.code,
+          message: event.data.message,
+          timestamp: event.timestamp
+        });
+        break;
+    }
+
+    // Mark as processed
+    await db.events.insert({ event_key: eventKey, processed_at: new Date() });
   }
-  
-  // Handle by type
-  switch (event.event_type) {
-    case 'response_completed':
-      await db.messages.insert({
-        conversation_id: event.conversation_id,
-        role: 'assistant',
-        content: event.data.full_response,
-        tokens: event.data.output_tokens,
-        created_at: event.timestamp
-      });
-      break;
-      
-    case 'tool_call_completed':
-      await db.tool_calls.insert({
-        conversation_id: event.conversation_id,
-        tool_name: event.data.tool_name,
-        result: event.data.result,
-        is_error: event.data.is_error,
-        timestamp: event.timestamp
-      });
-      break;
-      
-    case 'agent_error':
-      await db.errors.insert({
-        conversation_id: event.conversation_id,
-        code: event.data.code,
-        message: event.data.message,
-        timestamp: event.timestamp
-      });
-      break;
-  }
-  
-  // Mark as processed
-  await db.events.insert({ event_key: eventKey, processed_at: new Date() });
-  
+
   res.json({ status: 'ok' });
 });
 

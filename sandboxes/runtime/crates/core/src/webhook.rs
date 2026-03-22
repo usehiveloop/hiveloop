@@ -50,6 +50,10 @@ pub struct WebhookPayload {
     pub conversation_id: ConversationId,
     /// Timestamp of the event
     pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// Monotonically increasing sequence number within a conversation.
+    /// Assigned by the dispatcher before delivery. Recipients can use this
+    /// to verify in-order delivery.
+    pub sequence_number: u64,
     /// Event-specific data
     pub data: serde_json::Value,
     /// URL to deliver the webhook to
@@ -73,6 +77,7 @@ impl WebhookPayload {
             agent_id: agent_id.into(),
             conversation_id: conversation_id.into(),
             timestamp: chrono::Utc::now(),
+            sequence_number: 0,
             data,
             webhook_url: webhook_url.into(),
             webhook_secret: webhook_secret.into(),

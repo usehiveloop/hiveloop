@@ -101,20 +101,35 @@ Bridge sends these event types:
 
 ## Webhook Payload Format
 
+The webhook body is always a **JSON array** of events. Even a single event is wrapped in an array. Events within a batch belong to the same conversation and are ordered by `sequence_number`.
+
 ```json
-{
-  "event_type": "response_completed",
-  "timestamp": "2026-01-15T10:30:00Z",
-  "agent_id": "my-agent",
-  "conversation_id": "conv-def456",
-  "data": {
-    "input_tokens": 150,
-    "output_tokens": 42,
-    "full_response": "Hello! How can I help?"
+[
+  {
+    "event_type": "response_started",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "agent_id": "my-agent",
+    "conversation_id": "conv-def456",
+    "sequence_number": 1,
+    "data": {},
+    "webhook_url": "https://api.yourservice.com/webhooks/bridge",
+    "webhook_secret": "<webhook-secret>"
   },
-  "webhook_url": "https://api.yourservice.com/webhooks/bridge",
-  "webhook_secret": "<webhook-secret>"
-}
+  {
+    "event_type": "response_completed",
+    "timestamp": "2026-01-15T10:30:02Z",
+    "agent_id": "my-agent",
+    "conversation_id": "conv-def456",
+    "sequence_number": 2,
+    "data": {
+      "input_tokens": 150,
+      "output_tokens": 42,
+      "full_response": "Hello! How can I help?"
+    },
+    "webhook_url": "https://api.yourservice.com/webhooks/bridge",
+    "webhook_secret": "<webhook-secret>"
+  }
+]
 ```
 
 ### Common Fields
@@ -125,11 +140,12 @@ Bridge sends these event types:
 | `timestamp` | string | ISO 8601 timestamp (UTC) |
 | `agent_id` | string | Agent identifier |
 | `conversation_id` | string | Conversation identifier |
+| `sequence_number` | integer | Monotonically increasing per conversation (starts at 1) |
 | `data` | object | Event-specific data (varies by event type) |
 | `webhook_url` | string | Target webhook URL |
 | `webhook_secret` | string | Secret used for signing |
 
-**Note:** There is no `event_id` field. Use the combination of `timestamp`, `conversation_id`, and `event_type` for deduplication if needed.
+Use `sequence_number` for ordering and deduplication within a conversation.
 
 ---
 
@@ -180,6 +196,11 @@ signature = request.headers.get("X-Webhook-Signature")
 timestamp = request.headers.get("X-Webhook-Timestamp")
 if not verify_webhook(request.body, signature, WEBHOOK_SECRET, timestamp):
     raise ValueError("Invalid signature")
+
+# Body is always a JSON array
+events = json.loads(request.body)
+for event in events:
+    process_event(event)
 ```
 
 ### Node.js Example
@@ -190,12 +211,12 @@ const crypto = require('crypto');
 function verifyWebhook(payload, signature, secret, timestamp) {
   // Message format: {timestamp}.{payload}
   const message = timestamp + '.' + payload;
-  
+
   const expected = crypto
     .createHmac('sha256', secret)
     .update(message)
     .digest('base64');
-  
+
   return signature === expected;
 }
 
@@ -206,6 +227,12 @@ const payload = req.body; // raw body bytes/string
 
 if (!verifyWebhook(payload, signature, WEBHOOK_SECRET, timestamp)) {
   return res.status(401).json({ error: 'Invalid signature' });
+}
+
+// Body is always a JSON array
+const events = JSON.parse(payload);
+for (const event of events) {
+  handleEvent(event);
 }
 ```
 
@@ -220,24 +247,25 @@ Respond with 200 OK as soon as you receive the webhook. Bridge retries on failur
 ```python
 @app.post("/webhooks/bridge")
 async def handle_webhook(request):
-    # Queue for async processing
-    await queue.put(request.json)
+    events = await request.json()  # Always a JSON array
+    for event in events:
+        await queue.put(event)
     return {"status": "ok"}  # Respond immediately
 ```
 
 ### Handle Duplicates
 
-Bridge may send the same event multiple times during retries. Use a combination of fields to deduplicate:
+Bridge may send the same batch multiple times during retries. Use `sequence_number` and `conversation_id` to deduplicate:
 
 ```python
-# Create a unique key from timestamp + conversation_id + event_type
-event_key = f"{event['timestamp']}:{event['conversation_id']}:{event['event_type']}"
+for event in events:
+    event_key = f"{event['conversation_id']}:{event['sequence_number']}"
 
-if await db.events.find_one({"event_key": event_key}):
-    return  # Already processed
+    if await db.events.find_one({"event_key": event_key}):
+        continue  # Already processed
 
-await process_event(event)
-await db.events.insert_one({"event_key": event_key})
+    await process_event(event)
+    await db.events.insert_one({"event_key": event_key})
 ```
 
 ### Handle Retries
@@ -276,9 +304,13 @@ Events that permanently fail (all 5 attempts exhausted) are logged and dropped. 
 
 ---
 
-## Event Ordering
+## Event Ordering and Batching
 
-Bridge does **not** guarantee strict ordering of webhook deliveries. Events are sent as they occur, and retries can cause out-of-order delivery. Use the `timestamp` field to order events chronologically if needed.
+Bridge guarantees **strict in-order delivery per conversation**. Events for the same conversation are always delivered sequentially, never concurrently. Each event carries a `sequence_number` that increases monotonically (1, 2, 3, ...) within a conversation.
+
+When multiple events queue up for the same conversation, Bridge batches them into a single HTTP POST. The body is always a JSON array, ordered by `sequence_number`. A batch may contain one or more events, but all events in a batch belong to the same conversation.
+
+Events for **different conversations** are delivered concurrently and independently.
 
 ---
 
@@ -287,49 +319,54 @@ Bridge does **not** guarantee strict ordering of webhook deliveries. Events are 
 ### Saving Conversation History
 
 ```python
-if event["event_type"] == "response_completed":
-    await db.messages.insert_one({
-        "conversation_id": event["conversation_id"],
-        "response": event["data"]["full_response"],
-        "input_tokens": event["data"]["input_tokens"],
-        "output_tokens": event["data"]["output_tokens"],
-        "timestamp": event["timestamp"]
-    })
+for event in events:
+    if event["event_type"] == "response_completed":
+        await db.messages.insert_one({
+            "conversation_id": event["conversation_id"],
+            "sequence_number": event["sequence_number"],
+            "response": event["data"]["full_response"],
+            "input_tokens": event["data"]["input_tokens"],
+            "output_tokens": event["data"]["output_tokens"],
+            "timestamp": event["timestamp"]
+        })
 ```
 
 ### Tracking Tool Usage
 
 ```python
-if event["event_type"] == "tool_call_completed":
-    await db.tool_calls.insert_one({
-        "conversation_id": event["conversation_id"],
-        "tool_name": event["data"]["tool_name"],
-        "result": event["data"]["result"],
-        "is_error": event["data"]["is_error"],
-        "timestamp": event["timestamp"]
-    })
+for event in events:
+    if event["event_type"] == "tool_call_completed":
+        await db.tool_calls.insert_one({
+            "conversation_id": event["conversation_id"],
+            "tool_name": event["data"]["tool_name"],
+            "result": event["data"]["result"],
+            "is_error": event["data"]["is_error"],
+            "timestamp": event["timestamp"]
+        })
 ```
 
 ### Handling Errors
 
 ```python
-if event["event_type"] == "agent_error":
-    await db.errors.insert_one({
-        "conversation_id": event["conversation_id"],
-        "code": event["data"]["code"],
-        "message": event["data"]["message"],
-        "timestamp": event["timestamp"]
-    })
+for event in events:
+    if event["event_type"] == "agent_error":
+        await db.errors.insert_one({
+            "conversation_id": event["conversation_id"],
+            "code": event["data"]["code"],
+            "message": event["data"]["message"],
+            "timestamp": event["timestamp"]
+        })
 ```
 
 ### Updating User Interface
 
 ```python
-if event["event_type"] == "response_chunk":
-    await websocket.broadcast(event["conversation_id"], {
-        "type": "chunk",
-        "delta": event["data"]["delta"]
-    })
+for event in events:
+    if event["event_type"] == "response_chunk":
+        await websocket.broadcast(event["conversation_id"], {
+            "type": "chunk",
+            "delta": event["data"]["delta"]
+        })
 ```
 
 ---
@@ -347,8 +384,9 @@ export BRIDGE_LOG_LEVEL=debug
 Look for:
 
 ```
-DEBUG webhooks::dispatcher > Sending webhook to https://...
-DEBUG webhooks::dispatcher > Webhook delivered: 200 OK
+DEBUG webhooks::dispatcher > conversation delivery worker started
+DEBUG webhooks::dispatcher > delivering webhook batch, batch_size=3
+INFO  webhooks::dispatcher > webhook batch delivered, status=200
 ```
 
 ### Test Your Endpoint

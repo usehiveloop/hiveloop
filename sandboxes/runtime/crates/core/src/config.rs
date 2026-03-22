@@ -58,6 +58,10 @@ pub struct WebhookConfig {
     /// Max retry attempts. Default: 5.
     #[serde(default = "default_webhook_max_retries")]
     pub max_retries: usize,
+    /// How long a per-conversation delivery worker stays alive with no events,
+    /// in seconds. Default: 300 (5 minutes).
+    #[serde(default = "default_webhook_worker_idle_timeout")]
+    pub worker_idle_timeout_secs: u64,
 }
 
 impl Default for WebhookConfig {
@@ -67,6 +71,7 @@ impl Default for WebhookConfig {
             max_idle_connections: default_webhook_max_idle(),
             delivery_timeout_secs: default_webhook_delivery_timeout(),
             max_retries: default_webhook_max_retries(),
+            worker_idle_timeout_secs: default_webhook_worker_idle_timeout(),
         }
     }
 }
@@ -82,6 +87,9 @@ fn default_webhook_delivery_timeout() -> u64 {
 }
 fn default_webhook_max_retries() -> usize {
     5
+}
+fn default_webhook_worker_idle_timeout() -> u64 {
+    300
 }
 
 /// LSP configuration: either disabled entirely or per-server config map.
@@ -249,6 +257,7 @@ mod tests {
             max_idle_connections: 10,
             delivery_timeout_secs: 30,
             max_retries: 3,
+            worker_idle_timeout_secs: 300,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: WebhookConfig = serde_json::from_str(&json).unwrap();
