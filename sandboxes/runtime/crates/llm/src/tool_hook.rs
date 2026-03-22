@@ -81,7 +81,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             conversation_id = %self.conversation_id,
             tool_name = tool_name,
             tool_call_id = %id,
-            arguments = %Truncated::new(args, 500),
+            arguments = %Truncated::new(args, 100),
             "tool_call_start"
         );
 
@@ -290,7 +290,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     info!(
                         agent_id = %self.agent_id,
                         conversation_id = %self.conversation_id,
-                        command = %Truncated::new(&bash_args.command, 200),
+                        command = %Truncated::new(&bash_args.command, 100),
                         task_description = bash_args.description.as_deref().unwrap_or(""),
                         "background_task_spawn"
                     );
@@ -378,7 +378,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             tool_call_id = %id,
             duration_ms = duration_ms.unwrap_or(0),
             is_error = false,
-            result = %Truncated::new(result, 300),
+            result = %Truncated::new(result, 80),
             "tool_call_complete"
         );
 
@@ -471,10 +471,12 @@ impl std::fmt::Display for Truncated<'_> {
         if self.s.len() <= self.max_len {
             f.write_str(self.s)
         } else {
+            // Find a char-safe boundary at or before max_len
+            let boundary = self.s.floor_char_boundary(self.max_len);
             write!(
                 f,
                 "{}...[truncated, {} bytes total]",
-                &self.s[..self.max_len],
+                &self.s[..boundary],
                 self.s.len()
             )
         }
@@ -634,7 +636,7 @@ impl ToolCallEmitter {
                 conversation_id = %self.conversation_id,
                 tool_name = tool_name,
                 duration_ms = duration_ms,
-                error = %Truncated::new(&result_str, 300),
+                error = %Truncated::new(&result_str, 80),
                 "tool_call_failed"
             );
         } else {
@@ -644,7 +646,7 @@ impl ToolCallEmitter {
                 tool_name = tool_name,
                 duration_ms = duration_ms,
                 is_error = false,
-                result = %Truncated::new(&result_str, 300),
+                result = %Truncated::new(&result_str, 80),
                 "tool_call_complete"
             );
         }
@@ -915,7 +917,7 @@ impl ToolCallEmitter {
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "agent", duration_ms = duration_ms, is_error = is_error,
-                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+                result = %Truncated::new(&result_str, 80), "tool_call_complete"
             );
             let _ = self
                 .sse_tx
@@ -960,7 +962,7 @@ impl ToolCallEmitter {
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "agent", duration_ms = duration_ms, is_error = is_error,
-                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+                result = %Truncated::new(&result_str, 80), "tool_call_complete"
             );
             let _ = self
                 .sse_tx
@@ -1130,7 +1132,7 @@ impl ToolCallEmitter {
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,
-                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+                result = %Truncated::new(&result_str, 80), "tool_call_complete"
             );
             let _ = self
                 .sse_tx
@@ -1176,7 +1178,7 @@ impl ToolCallEmitter {
             info!(
                 agent_id = %self.agent_id, conversation_id = %self.conversation_id,
                 tool_name = "sub_agent", duration_ms = duration_ms, is_error = is_error,
-                result = %Truncated::new(&result_str, 300), "tool_call_complete"
+                result = %Truncated::new(&result_str, 80), "tool_call_complete"
             );
             let _ = self
                 .sse_tx
