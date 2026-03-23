@@ -1,0 +1,24 @@
+[package]
+name = "storage"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bridge_core = { workspace = true }
+libsql = { version = "0.9", features = ["replication", "encryption"] }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+zstd = "0.13"
+
+[dev-dependencies]
+tokio = { workspace = true }
+tempfile = { workspace = true }
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true

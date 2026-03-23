@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -181,7 +181,7 @@ impl Default for AgentMetrics {
 }
 
 /// Serializable snapshot of per-tool call statistics.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ToolCallStatsSnapshot {
     /// Tool name
@@ -199,7 +199,7 @@ pub struct ToolCallStatsSnapshot {
 }
 
 /// Serializable snapshot of agent metrics for the /metrics endpoint.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct MetricsSnapshot {
     /// Agent identifier
