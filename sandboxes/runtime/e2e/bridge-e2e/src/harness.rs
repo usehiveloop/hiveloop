@@ -262,9 +262,10 @@ fn format_sse_for_log(event_type: &str, data: &serde_json::Value) -> String {
                 .unwrap_or_else(|_| result_str.to_string());
             // Truncate very long results for readability
             let truncated = if formatted.len() > 4000 {
+                let boundary = formatted.floor_char_boundary(4000);
                 format!(
                     "{}...\n[truncated, {} total chars]",
-                    &formatted[..4000],
+                    &formatted[..boundary],
                     formatted.len()
                 )
             } else {
