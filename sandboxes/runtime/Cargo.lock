@@ -2264,6 +2264,7 @@ dependencies = [
  "chrono",
  "core",
  "dashmap",
+ "http 1.4.0",
  "pretty_assertions",
  "reqwest 0.12.28",
  "rig-core",
