@@ -32,6 +32,15 @@ pub struct ToolCallLogEntry {
     pub result: serde_json::Value,
 }
 
+/// Raw received webhook as stored by the mock control plane.
+/// The `body` may be either a single event object or a batched array.
+#[derive(Debug, Clone, Deserialize)]
+struct ReceivedWebhookRaw {
+    pub timestamp: String,
+    pub headers: HashMap<String, String>,
+    pub body: serde_json::Value,
+}
+
 /// A received webhook entry from the mock control plane.
 ///
 /// Provides typed access to the webhook payload fields so tests can assert
@@ -342,6 +351,9 @@ impl TestHarness {
         let cp_base_url = format!("http://127.0.0.1:{}", mock_cp_port);
 
         tracing::info!(port = mock_cp_port, "mock control plane started");
+
+        // Ensure /tmp/workspace exists for the MCP filesystem server fixture
+        let _ = std::fs::create_dir_all("/tmp/workspace");
 
         // 3. Start bridge with env vars pointing to mock control plane, random listen port
         let bridge_port = Self::find_free_port()?;
@@ -1682,12 +1694,36 @@ impl TestHarness {
 
     /// GET /webhooks/log on the mock control plane — retrieve received webhooks
     /// as typed [`WebhookLog`] with query helpers.
+    ///
+    /// Webhooks are delivered as batched JSON arrays, so each received POST may
+    /// contain multiple events. This method flattens them into individual entries.
     pub async fn get_webhook_log(&self) -> Result<WebhookLog> {
         let raw = self.get_webhook_log_raw().await?;
-        let entries: Vec<WebhookEntry> = raw
-            .into_iter()
-            .map(|v| serde_json::from_value(v).expect("failed to deserialize WebhookEntry"))
-            .collect();
+        let mut entries = Vec::new();
+        for v in raw {
+            let received: ReceivedWebhookRaw =
+                serde_json::from_value(v).expect("failed to deserialize ReceivedWebhookRaw");
+            match received.body {
+                // Batched format: body is an array of event objects
+                serde_json::Value::Array(events) => {
+                    for event in events {
+                        entries.push(WebhookEntry {
+                            timestamp: received.timestamp.clone(),
+                            headers: received.headers.clone(),
+                            body: event,
+                        });
+                    }
+                }
+                // Legacy/single format: body is a single event object
+                other => {
+                    entries.push(WebhookEntry {
+                        timestamp: received.timestamp.clone(),
+                        headers: received.headers.clone(),
+                        body: other,
+                    });
+                }
+            }
+        }
         Ok(WebhookLog { entries })
     }
 
