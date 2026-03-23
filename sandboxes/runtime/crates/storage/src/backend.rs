@@ -91,10 +91,7 @@ pub trait StorageBackend: Send + Sync + 'static {
     ) -> Result<(), StorageError>;
 
     /// Load all sessions for an agent. Returns `(task_id, decompressed_json)`.
-    async fn load_sessions(
-        &self,
-        agent_id: &str,
-    ) -> Result<Vec<(String, Vec<u8>)>, StorageError>;
+    async fn load_sessions(&self, agent_id: &str) -> Result<Vec<(String, Vec<u8>)>, StorageError>;
 
     /// Delete all sessions for an agent.
     async fn delete_sessions_for_agent(&self, agent_id: &str) -> Result<(), StorageError>;

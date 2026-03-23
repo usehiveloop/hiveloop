@@ -105,10 +105,9 @@ impl StorageHandle {
     }
 
     pub fn save_metrics_snapshot(&self, agent_id: String, snapshot: MetricsSnapshot) {
-        let _ = self.tx.send(WriteCommand::SaveMetricsSnapshot {
-            agent_id,
-            snapshot,
-        });
+        let _ = self
+            .tx
+            .send(WriteCommand::SaveMetricsSnapshot { agent_id, snapshot });
     }
 
     pub fn save_session(&self, task_id: String, agent_id: String, history_json: Vec<u8>) {
@@ -221,10 +220,7 @@ async fn process_command(backend: &Arc<dyn StorageBackend>, cmd: WriteCommand) {
             conversation_id,
             messages,
         } => {
-            if let Err(e) = backend
-                .replace_messages(&conversation_id, &messages)
-                .await
-            {
+            if let Err(e) = backend.replace_messages(&conversation_id, &messages).await {
                 error!(conversation_id = %conversation_id, error = %e, "storage: replace_messages failed");
             }
         }

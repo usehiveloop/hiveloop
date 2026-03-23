@@ -23,8 +23,11 @@ pub struct LibSqlBackend {
 impl LibSqlBackend {
     /// Connect to an embedded replica, run migrations, and perform initial sync.
     pub async fn new(config: &StorageConfig) -> Result<Self, StorageError> {
-        let mut builder =
-            Builder::new_remote_replica(&config.path, config.url.clone(), config.auth_token.clone());
+        let mut builder = Builder::new_remote_replica(
+            &config.path,
+            config.url.clone(),
+            config.auth_token.clone(),
+        );
 
         builder = builder
             .sync_interval(Duration::from_secs(config.sync_interval_secs))
@@ -141,19 +144,13 @@ impl StorageBackend for LibSqlBackend {
             )
             .await?;
         self.conn
-            .execute(
-                "DELETE FROM agents WHERE agent_id = ?1",
-                params![agent_id],
-            )
+            .execute("DELETE FROM agents WHERE agent_id = ?1", params![agent_id])
             .await?;
         Ok(())
     }
 
     async fn load_all_agents(&self) -> Result<Vec<AgentDefinition>, StorageError> {
-        let mut rows = self
-            .conn
-            .query("SELECT definition FROM agents", ())
-            .await?;
+        let mut rows = self.conn.query("SELECT definition FROM agents", ()).await?;
 
         let mut agents = Vec::new();
         while let Some(row) = rows.next().await? {
@@ -229,17 +226,9 @@ impl StorageBackend for LibSqlBackend {
             records.push(ConversationRecord {
                 id: conv_id,
                 agent_id: agent_id.to_string(),
-                title: if title.is_empty() {
-                    None
-                } else {
-                    Some(title)
-                },
-                created_at: created_at
-                    .parse()
-                    .unwrap_or_else(|_| chrono::Utc::now()),
-                updated_at: updated_at
-                    .parse()
-                    .unwrap_or_else(|_| chrono::Utc::now()),
+                title: if title.is_empty() { None } else { Some(title) },
+                created_at: created_at.parse().unwrap_or_else(|_| chrono::Utc::now()),
+                updated_at: updated_at.parse().unwrap_or_else(|_| chrono::Utc::now()),
                 messages: Vec::new(),
             });
         }
@@ -265,14 +254,11 @@ impl StorageBackend for LibSqlBackend {
                 let content: Vec<bridge_core::ContentBlock> =
                     serde_json::from_slice(&content_json)?;
 
-                let role: bridge_core::Role = serde_json::from_value(
-                    serde_json::Value::String(role_str),
-                )
-                .unwrap_or(bridge_core::Role::User);
+                let role: bridge_core::Role =
+                    serde_json::from_value(serde_json::Value::String(role_str))
+                        .unwrap_or(bridge_core::Role::User);
 
-                let timestamp = timestamp_str
-                    .parse()
-                    .unwrap_or_else(|_| chrono::Utc::now());
+                let timestamp = timestamp_str.parse().unwrap_or_else(|_| chrono::Utc::now());
 
                 records[*idx].messages.push(Message {
                     role,
@@ -438,9 +424,8 @@ impl StorageBackend for LibSqlBackend {
     }
 
     async fn cleanup_delivered_webhooks(&self, older_than_secs: u64) -> Result<u64, StorageError> {
-        let cutoff = (chrono::Utc::now()
-            - chrono::Duration::seconds(older_than_secs as i64))
-        .to_rfc3339();
+        let cutoff =
+            (chrono::Utc::now() - chrono::Duration::seconds(older_than_secs as i64)).to_rfc3339();
         self.conn
             .execute(
                 "DELETE FROM webhook_outbox
@@ -492,10 +477,7 @@ impl StorageBackend for LibSqlBackend {
         Ok(())
     }
 
-    async fn load_sessions(
-        &self,
-        agent_id: &str,
-    ) -> Result<Vec<(String, Vec<u8>)>, StorageError> {
+    async fn load_sessions(&self, agent_id: &str) -> Result<Vec<(String, Vec<u8>)>, StorageError> {
         let mut rows = self
             .conn
             .query(
