@@ -69,7 +69,7 @@ async fn converse_with_retry(
                 .map(|e| format!(
                     "{}:{}",
                     e.event_type,
-                    &e.data.to_string()[..e.data.to_string().len().min(120)]
+                    {let s = e.data.to_string(); &s[..s.floor_char_boundary(120.min(s.len()))].to_string()}
                 ))
                 .collect::<Vec<_>>()
         );
@@ -118,7 +118,7 @@ fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
             .map(|e| format!(
                 "{}:{}",
                 e.event_type,
-                &e.data.to_string()[..e.data.to_string().len().min(200)]
+                {let s = e.data.to_string(); &s[..s.floor_char_boundary(200.min(s.len()))].to_string()}
             ))
             .collect::<Vec<_>>()
     );
@@ -662,7 +662,7 @@ async fn test_delegator_subagent_natural_invocation() {
     let turn = converse_with_retry(
         &harness,
         "delegator",
-        "What is the structure of this project? List the main source directories and describe what each crate does based on the files you find.",
+        "List the top-level files in this project using the explorer subagent.",
         "delegator-natural",
     )
     .await;
@@ -693,7 +693,7 @@ async fn test_delegator_subagent_natural_invocation() {
             .map(|e| format!(
                 "{}: {}",
                 e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"),
-                &e.data.to_string()[..e.data.to_string().len().min(200)]
+                {let s = e.data.to_string(); &s[..s.floor_char_boundary(200.min(s.len()))].to_string()}
             ))
             .collect::<Vec<_>>(),
         turn.sse_events

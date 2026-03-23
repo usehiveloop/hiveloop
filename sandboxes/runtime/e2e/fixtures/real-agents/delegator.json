@@ -13,8 +13,9 @@
   "skills": [],
   "config": {
     "max_tokens": 4096,
-    "max_turns": 25,
-    "temperature": 0.3
+    "max_turns": 10,
+    "temperature": 0.3,
+    "max_tasks_per_conversation": 5
   },
   "subagents": [
     {
@@ -33,7 +34,7 @@
       "skills": [],
       "config": {
         "max_tokens": 4096,
-        "max_turns": 25,
+        "max_turns": 10,
         "temperature": 0.3
       }
     },
@@ -53,7 +54,7 @@
       "skills": [],
       "config": {
         "max_tokens": 4096,
-        "max_turns": 25,
+        "max_turns": 10,
         "temperature": 0.3
       }
     }
