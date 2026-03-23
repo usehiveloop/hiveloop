@@ -287,13 +287,14 @@ fn init_logging(config: &RuntimeConfig) {
     // Build filter: honour RUST_LOG if set, otherwise use config log_level
     // with sensible defaults to suppress noisy library crates.
     //
-    // rig_core is set to warn because its agent/prompt_request module logs
-    // full untruncated tool call arguments, results, system prompts, and
-    // completions at info level. Bridge already logs tool calls with proper
-    // truncation in tool_hook.rs, so rig's verbose output is redundant.
+    // rig-core compiles as `rig` (not `rig_core`) due to [lib] name = "rig"
+    // in its Cargo.toml. Its agent/prompt_request module logs full untruncated
+    // tool call arguments, results, system prompts, and completions at info
+    // level. Bridge already logs tool calls with proper truncation in
+    // tool_hook.rs, so rig's verbose output is redundant.
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         EnvFilter::new(format!(
-            "{},rig_core=warn,h2=info,hyper_util=info,reqwest=info",
+            "{},rig=warn,h2=info,hyper_util=info,reqwest=info",
             config.log_level
         ))
     });
