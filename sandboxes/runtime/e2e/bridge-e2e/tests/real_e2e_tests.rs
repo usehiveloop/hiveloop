@@ -66,11 +66,10 @@ async fn converse_with_retry(
             attempt + 1,
             turn.sse_events
                 .iter()
-                .map(|e| format!(
-                    "{}:{}",
-                    e.event_type,
-                    {let s = e.data.to_string(); &s[..s.floor_char_boundary(120.min(s.len()))].to_string()}
-                ))
+                .map(|e| format!("{}:{}", e.event_type, {
+                    let s = e.data.to_string();
+                    &s[..s.floor_char_boundary(120.min(s.len()))].to_string()
+                }))
                 .collect::<Vec<_>>()
         );
         last_turn = Some(turn);
@@ -115,11 +114,10 @@ fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
         label,
         turn.sse_events
             .iter()
-            .map(|e| format!(
-                "{}:{}",
-                e.event_type,
-                {let s = e.data.to_string(); &s[..s.floor_char_boundary(200.min(s.len()))].to_string()}
-            ))
+            .map(|e| format!("{}:{}", e.event_type, {
+                let s = e.data.to_string();
+                &s[..s.floor_char_boundary(200.min(s.len()))].to_string()
+            }))
             .collect::<Vec<_>>()
     );
 }
@@ -693,7 +691,10 @@ async fn test_delegator_subagent_natural_invocation() {
             .map(|e| format!(
                 "{}: {}",
                 e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"),
-                {let s = e.data.to_string(); &s[..s.floor_char_boundary(200.min(s.len()))].to_string()}
+                {
+                    let s = e.data.to_string();
+                    &s[..s.floor_char_boundary(200.min(s.len()))].to_string()
+                }
             ))
             .collect::<Vec<_>>(),
         turn.sse_events
