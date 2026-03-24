@@ -5,6 +5,7 @@ use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
 use std::sync::Arc;
+use storage::{StorageBackend, StorageHandle};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
@@ -41,6 +42,10 @@ pub struct AgentSupervisor {
     conversation_semaphore: Option<Arc<tokio::sync::Semaphore>>,
     /// Limits total concurrent outbound LLM API calls.
     llm_semaphore: Arc<tokio::sync::Semaphore>,
+    /// Optional non-blocking persistence handle.
+    storage: Option<StorageHandle>,
+    /// Optional persistence backend for startup/restore reads.
+    storage_backend: Option<Arc<dyn StorageBackend>>,
 }
 
 /// Default maximum concurrent LLM calls when not configured.
@@ -60,6 +65,8 @@ impl AgentSupervisor {
             llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
                 DEFAULT_MAX_CONCURRENT_LLM_CALLS,
             )),
+            storage: None,
+            storage_backend: None,
         }
     }
 
@@ -80,7 +87,24 @@ impl AgentSupervisor {
             llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
                 DEFAULT_MAX_CONCURRENT_LLM_CALLS,
             )),
+            storage: None,
+            storage_backend: None,
         }
+    }
+
+    /// Attach an optional non-blocking persistence handle.
+    pub fn with_storage(mut self, storage: Option<StorageHandle>) -> Self {
+        self.storage = storage;
+        self
+    }
+
+    /// Attach an optional persistence backend for restore reads.
+    pub fn with_storage_backend(
+        mut self,
+        storage_backend: Option<Arc<dyn StorageBackend>>,
+    ) -> Self {
+        self.storage_backend = storage_backend;
+        self
     }
 
     /// Configure admission control from runtime config.
@@ -114,7 +138,31 @@ impl AgentSupervisor {
     /// Load a set of agent definitions, building their runtime state.
     pub async fn load_agents(&self, definitions: Vec<AgentDefinition>) -> Result<(), BridgeError> {
         for def in definitions {
-            if let Err(e) = self.load_single_agent(def).await {
+            let agent_id = def.id.clone();
+
+            if let Some(existing) = self.agent_map.get(&agent_id) {
+                let existing_def = existing.definition.read().await.clone();
+                if definitions_equivalent(&existing_def, &def) {
+                    continue;
+                }
+
+                match self.load_single_agent_state(def).await {
+                    Ok(new_state) => {
+                        let persisted_def = new_state.definition.read().await.clone();
+                        let timeout = std::time::Duration::from_secs(60);
+                        if let Err(e) =
+                            drain_and_replace(&self.agent_map, &agent_id, new_state, timeout).await
+                        {
+                            error!(agent_id = agent_id, error = %e, "failed to replace existing agent");
+                        } else if let Some(storage) = &self.storage {
+                            storage.save_agent(persisted_def);
+                        }
+                    }
+                    Err(e) => {
+                        error!(agent_id = agent_id, error = %e, "failed to rebuild existing agent");
+                    }
+                }
+            } else if let Err(e) = self.load_single_agent(def).await {
                 error!(error = %e, "failed to load agent");
             }
         }
@@ -212,14 +260,26 @@ impl AgentSupervisor {
             },
         );
 
+        let persisted_definition = definition.clone();
+
         let state = Arc::new(AgentState::new(
             definition,
             rig_agent,
             tool_registry,
             subagent_map,
             task_registry,
+            self.storage.clone(),
         ));
+
+        if let Some(storage_backend) = &self.storage_backend {
+            restore_agent_sessions(storage_backend.as_ref(), &agent_id, &state.session_store).await;
+        }
+
         self.agent_map.insert(agent_id.clone(), state);
+
+        if let Some(storage) = &self.storage {
+            storage.save_agent(persisted_definition);
+        }
 
         info!(agent_id = agent_id, "agent loaded");
         Ok(())
@@ -291,8 +351,13 @@ impl AgentSupervisor {
             created_at: chrono::Utc::now(),
             abort_token: abort_token.clone(),
         };
+        let created_at = handle.created_at;
 
         state.conversations.insert(conv_id.clone(), handle);
+
+        if let Some(storage) = &self.storage {
+            storage.create_conversation(agent_id.to_string(), conv_id.clone(), None, created_at);
+        }
 
         // Spawn the conversation task
         let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
@@ -350,6 +415,7 @@ impl AgentSupervisor {
         let compaction_config = def.config.compaction.clone();
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
+        let storage = self.storage.clone();
         drop(def); // release read lock before spawning
 
         // Build a no-tools retry agent for recovering from empty responses
@@ -417,6 +483,8 @@ impl AgentSupervisor {
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
                 llm_semaphore,
+                initial_persisted_messages: None,
+                storage,
             })
             .await;
         });
@@ -477,6 +545,10 @@ impl AgentSupervisor {
             .conversations
             .remove(conversation_id)
             .ok_or_else(|| BridgeError::ConversationNotFound(conversation_id.to_string()))?;
+
+        if let Some(storage) = &self.storage {
+            storage.delete_conversation(conversation_id.to_string());
+        }
 
         info!(
             agent_id = agent_id,
@@ -540,11 +612,14 @@ impl AgentSupervisor {
             let agent_id = def.id.clone();
             match self.load_single_agent_state(def).await {
                 Ok(new_state) => {
+                    let persisted_def = new_state.definition.read().await.clone();
                     let timeout = std::time::Duration::from_secs(60);
                     if let Err(e) =
                         drain_and_replace(&self.agent_map, &agent_id, new_state, timeout).await
                     {
                         error!(agent_id = agent_id, error = %e, "failed to drain and replace agent");
+                    } else if let Some(storage) = &self.storage {
+                        storage.save_agent(persisted_def);
                     }
                 }
                 Err(e) => {
@@ -560,6 +635,9 @@ impl AgentSupervisor {
                 state.tracker.close();
                 state.tracker.wait().await;
                 self.mcp_manager.disconnect_agent(&agent_id).await;
+                if let Some(storage) = &self.storage {
+                    storage.delete_agent(agent_id.clone());
+                }
                 info!(agent_id = agent_id, "agent removed");
             }
         }
@@ -656,13 +734,20 @@ impl AgentSupervisor {
             },
         );
 
-        Ok(Arc::new(AgentState::new(
+        let state = Arc::new(AgentState::new(
             definition,
             rig_agent,
             tool_registry,
             subagent_map,
             task_registry,
-        )))
+            self.storage.clone(),
+        ));
+
+        if let Some(storage_backend) = &self.storage_backend {
+            restore_agent_sessions(storage_backend.as_ref(), &agent_id, &state.session_store).await;
+        }
+
+        Ok(state)
     }
 
     /// Hydrate pre-fetched conversations for a specific agent.
@@ -728,7 +813,9 @@ impl AgentSupervisor {
         state.conversations.insert(conv_id.clone(), handle);
 
         // Convert stored messages to rig history
-        let initial_history = crate::conversation::convert_messages(&record.messages);
+        let initial_persisted_messages =
+            crate::conversation::normalize_messages_for_persistence(&record.messages);
+        let initial_history = crate::conversation::convert_messages(&initial_persisted_messages);
 
         // Spawn the conversation task (same setup as create_conversation)
         let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
@@ -789,6 +876,7 @@ impl AgentSupervisor {
         let compaction_config = def.config.compaction.clone();
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
+        let storage = self.storage.clone();
         drop(def); // release read lock before spawning
 
         // Extract subagent names and descriptions, filtering out __self__
@@ -833,6 +921,8 @@ impl AgentSupervisor {
                 system_reminder,
                 conversation_date: chrono::Utc::now(),
                 llm_semaphore,
+                initial_persisted_messages: Some(initial_persisted_messages),
+                storage,
             })
             .await;
         });
@@ -898,7 +988,11 @@ impl AgentSupervisor {
 
         // Swap in the new agent — all conversations sharing this Arc see the new agent on next turn
         *state.rig_agent.write().await = new_agent;
-        *state.definition.write().await = updated_def;
+        *state.definition.write().await = updated_def.clone();
+
+        if let Some(storage) = &self.storage {
+            storage.save_agent(updated_def.clone());
+        }
 
         info!(agent_id = agent_id, "agent API key updated");
         Ok(())
@@ -920,6 +1014,13 @@ impl AgentSupervisor {
     /// Get the number of loaded agents.
     pub fn agent_count(&self) -> usize {
         self.agent_map.len()
+    }
+}
+
+fn definitions_equivalent(existing: &AgentDefinition, incoming: &AgentDefinition) -> bool {
+    match (&existing.version, &incoming.version) {
+        (Some(existing_version), Some(incoming_version)) => existing_version == incoming_version,
+        _ => existing == incoming,
     }
 }
 
@@ -971,6 +1072,28 @@ fn build_subagents(
     }
 
     Ok(subagent_map)
+}
+
+async fn restore_agent_sessions(
+    storage_backend: &dyn StorageBackend,
+    agent_id: &str,
+    session_store: &Arc<crate::agent_runner::AgentSessionStore>,
+) {
+    match storage_backend.load_sessions(agent_id).await {
+        Ok(sessions) => {
+            for (task_id, history_json) in sessions {
+                match serde_json::from_slice::<Vec<rig::message::Message>>(&history_json) {
+                    Ok(history) => session_store.restore(task_id, history),
+                    Err(e) => {
+                        error!(agent_id = %agent_id, error = %e, "failed to deserialize stored session history")
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!(agent_id = %agent_id, error = %e, "failed to load stored sessions");
+        }
+    }
 }
 
 /// Helper function to get todos from the tool registry.

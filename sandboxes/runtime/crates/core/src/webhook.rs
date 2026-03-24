@@ -42,6 +42,9 @@ pub enum WebhookEventType {
 /// Payload for a webhook delivery.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookPayload {
+    /// Stable identifier used for persistence and delivery acknowledgement.
+    #[serde(default = "default_event_id")]
+    pub event_id: String,
     /// Type of event that triggered this webhook
     pub event_type: WebhookEventType,
     /// Agent that triggered the event
@@ -62,6 +65,10 @@ pub struct WebhookPayload {
     pub webhook_secret: String,
 }
 
+fn default_event_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
 impl WebhookPayload {
     /// Create a new webhook payload with the current timestamp.
     pub fn new(
@@ -73,6 +80,7 @@ impl WebhookPayload {
         webhook_secret: impl Into<String>,
     ) -> Self {
         Self {
+            event_id: default_event_id(),
             event_type,
             agent_id: agent_id.into(),
             conversation_id: conversation_id.into(),

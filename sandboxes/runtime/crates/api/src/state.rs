@@ -2,6 +2,7 @@ use dashmap::DashMap;
 use llm::{PermissionManager, SseEvent};
 use runtime::AgentSupervisor;
 use std::sync::Arc;
+use storage::StorageBackend;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 use webhooks::WebhookContext;
@@ -21,6 +22,8 @@ pub struct AppState {
     pub control_plane_api_key: String,
     /// Optional webhook context for dispatching webhook events.
     pub webhook_ctx: Option<WebhookContext>,
+    /// Optional storage backend for startup and restore reads.
+    pub storage_backend: Option<Arc<dyn StorageBackend>>,
     /// Shared permission manager for tool approval requests.
     pub permission_manager: Arc<PermissionManager>,
 }
@@ -31,6 +34,7 @@ impl AppState {
         supervisor: Arc<AgentSupervisor>,
         control_plane_api_key: String,
         webhook_ctx: Option<WebhookContext>,
+        storage_backend: Option<Arc<dyn StorageBackend>>,
     ) -> Self {
         let permission_manager = supervisor.permission_manager();
         Self {
@@ -39,6 +43,7 @@ impl AppState {
             sse_streams: Arc::new(DashMap::new()),
             control_plane_api_key,
             webhook_ctx,
+            storage_backend,
             permission_manager,
         }
     }

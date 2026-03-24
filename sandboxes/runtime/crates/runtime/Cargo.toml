@@ -11,6 +11,7 @@ rig-core = { workspace = true }
 tools = { workspace = true }
 lsp = { workspace = true }
 webhooks = { workspace = true }
+storage = { workspace = true }
 dashmap = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }

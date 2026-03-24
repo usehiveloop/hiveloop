@@ -977,6 +977,7 @@ mod serde_roundtrip_tests {
     #[test]
     fn webhook_payload_roundtrip() {
         let payload = WebhookPayload {
+            event_id: "evt-1".to_string(),
             event_type: WebhookEventType::MessageReceived,
             agent_id: "agent-1".to_string(),
             conversation_id: "conv-123".to_string(),
@@ -1001,6 +1002,7 @@ mod serde_roundtrip_tests {
     #[test]
     fn webhook_payload_json_shape() {
         let payload = WebhookPayload {
+            event_id: "evt-2".to_string(),
             event_type: WebhookEventType::ToolCallStarted,
             agent_id: "agent-5".to_string(),
             conversation_id: "conv-999".to_string(),

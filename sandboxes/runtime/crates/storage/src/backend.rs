@@ -59,14 +59,14 @@ pub trait StorageBackend: Send + Sync + 'static {
 
     // ── Webhook outbox ──────────────────────────────────────
 
-    /// Insert a webhook payload into the outbox. Returns the outbox row id.
-    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<i64, StorageError>;
+    /// Insert a webhook payload into the outbox. Returns the stable event id.
+    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<String, StorageError>;
 
     /// Mark a webhook as delivered.
-    async fn mark_webhook_delivered(&self, outbox_id: i64) -> Result<(), StorageError>;
+    async fn mark_webhook_delivered(&self, event_id: &str) -> Result<(), StorageError>;
 
     /// Load all undelivered webhooks for replay after restart.
-    async fn load_pending_webhooks(&self) -> Result<Vec<(i64, WebhookPayload)>, StorageError>;
+    async fn load_pending_webhooks(&self) -> Result<Vec<(String, WebhookPayload)>, StorageError>;
 
     /// Delete delivered webhooks older than the given age.
     async fn cleanup_delivered_webhooks(&self, older_than_secs: u64) -> Result<u64, StorageError>;
@@ -95,6 +95,9 @@ pub trait StorageBackend: Send + Sync + 'static {
 
     /// Delete all sessions for an agent.
     async fn delete_sessions_for_agent(&self, agent_id: &str) -> Result<(), StorageError>;
+
+    /// Delete all sessions whose task ids start with the given prefix.
+    async fn delete_sessions_by_prefix(&self, prefix: &str) -> Result<(), StorageError>;
 
     // ── Lifecycle ───────────────────────────────────────────
 

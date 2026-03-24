@@ -366,42 +366,43 @@ impl StorageBackend for LibSqlBackend {
 
     // ── Webhook outbox ──────────────────────────────────────
 
-    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<i64, StorageError> {
+    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<String, StorageError> {
         let json = serde_json::to_vec(payload)?;
         let blob = compression::compress(&json)?;
         let event_type = serde_json::to_value(&payload.event_type)?
             .as_str()
             .unwrap_or("unknown")
             .to_string();
+        let event_id = payload.event_id.clone();
 
         self.conn
             .execute(
-                "INSERT INTO webhook_outbox (conversation_id, event_type, payload)
-                 VALUES (?1, ?2, ?3)",
-                params![payload.conversation_id.clone(), event_type, blob],
+                "INSERT OR REPLACE INTO webhook_outbox (event_id, conversation_id, event_type, payload)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![event_id, payload.conversation_id.clone(), event_type, blob],
             )
             .await?;
 
-        Ok(self.conn.last_insert_rowid())
+        Ok(payload.event_id.clone())
     }
 
-    async fn mark_webhook_delivered(&self, outbox_id: i64) -> Result<(), StorageError> {
+    async fn mark_webhook_delivered(&self, event_id: &str) -> Result<(), StorageError> {
         let now = chrono::Utc::now().to_rfc3339();
         self.conn
             .execute(
                 "UPDATE webhook_outbox SET delivered_at = ?1, attempts = attempts + 1
-                 WHERE id = ?2",
-                params![now, outbox_id],
+                 WHERE event_id = ?2",
+                params![now, event_id],
             )
             .await?;
         Ok(())
     }
 
-    async fn load_pending_webhooks(&self) -> Result<Vec<(i64, WebhookPayload)>, StorageError> {
+    async fn load_pending_webhooks(&self) -> Result<Vec<(String, WebhookPayload)>, StorageError> {
         let mut rows = self
             .conn
             .query(
-                "SELECT id, payload FROM webhook_outbox
+                "SELECT event_id, payload FROM webhook_outbox
                  WHERE delivered_at IS NULL
                  ORDER BY id ASC",
                 (),
@@ -410,13 +411,16 @@ impl StorageBackend for LibSqlBackend {
 
         let mut results = Vec::new();
         while let Some(row) = rows.next().await? {
-            let id: i64 = row.get(0)?;
+            let event_id: String = row.get(0)?;
             let blob: Vec<u8> = row.get(1)?;
             let json = compression::decompress(&blob)?;
             match serde_json::from_slice::<WebhookPayload>(&json) {
-                Ok(payload) => results.push((id, payload)),
+                Ok(mut payload) => {
+                    payload.event_id = event_id.clone();
+                    results.push((event_id, payload));
+                }
                 Err(e) => {
-                    error!(outbox_id = id, error = %e, "failed to deserialize webhook payload, skipping");
+                    error!(event_id = %event_id, error = %e, "failed to deserialize webhook payload, skipping");
                 }
             }
         }
@@ -501,6 +505,17 @@ impl StorageBackend for LibSqlBackend {
             .execute(
                 "DELETE FROM session_store WHERE agent_id = ?1",
                 params![agent_id],
+            )
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_sessions_by_prefix(&self, prefix: &str) -> Result<(), StorageError> {
+        let pattern = format!("{}%", prefix);
+        self.conn
+            .execute(
+                "DELETE FROM session_store WHERE task_id LIKE ?1",
+                params![pattern],
             )
             .await?;
         Ok(())

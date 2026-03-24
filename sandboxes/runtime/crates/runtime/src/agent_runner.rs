@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use llm::{BridgeAgent, SseEvent, ToolCallEmitter};
 use std::sync::Arc;
 use std::time::Duration;
+use storage::StorageHandle;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{
@@ -10,7 +11,7 @@ use tools::agent::{
     TaskBudget, AGENT_CONTEXT,
 };
 use tools::join::TaskRegistry;
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// Timeout for a foreground subagent chat call.
 const FOREGROUND_TIMEOUT: Duration = Duration::from_secs(120);
@@ -33,19 +34,23 @@ pub struct AgentSessionStore {
     sessions: DashMap<String, Vec<rig::message::Message>>,
     /// Secondary index: conversation_id prefix -> set of task_ids
     conv_index: DashMap<String, Vec<String>>,
+    agent_id: String,
+    storage: Option<StorageHandle>,
 }
 
 impl Default for AgentSessionStore {
     fn default() -> Self {
-        Self::new()
+        Self::new(String::new(), None)
     }
 }
 
 impl AgentSessionStore {
-    pub fn new() -> Self {
+    pub fn new(agent_id: String, storage: Option<StorageHandle>) -> Self {
         Self {
             sessions: DashMap::new(),
             conv_index: DashMap::new(),
+            agent_id,
+            storage,
         }
     }
 
@@ -66,6 +71,28 @@ impl AgentSessionStore {
                 .or_default()
                 .push(task_id.clone());
         }
+        self.sessions.insert(task_id.clone(), history.clone());
+
+        if let Some(storage) = &self.storage {
+            match serde_json::to_vec(&history) {
+                Ok(history_json) => {
+                    storage.save_session(task_id, self.agent_id.clone(), history_json);
+                }
+                Err(e) => {
+                    warn!(error = %e, "failed to serialize session history for persistence");
+                }
+            }
+        }
+    }
+
+    /// Restore history for a task_id without persisting again.
+    pub fn restore(&self, task_id: String, history: Vec<rig::message::Message>) {
+        if let Some(conv_id) = extract_conversation_id(&task_id) {
+            self.conv_index
+                .entry(conv_id)
+                .or_default()
+                .push(task_id.clone());
+        }
         self.sessions.insert(task_id, history);
     }
 
@@ -79,6 +106,9 @@ impl AgentSessionStore {
             for task_id in &task_ids {
                 self.sessions.remove(task_id);
             }
+            if let Some(storage) = &self.storage {
+                storage.delete_sessions_by_prefix(prefix.to_string());
+            }
             return;
         }
 
@@ -91,6 +121,10 @@ impl AgentSessionStore {
             .collect();
         for key in keys_to_remove {
             self.sessions.remove(&key);
+        }
+
+        if let Some(storage) = &self.storage {
+            storage.delete_sessions_by_prefix(prefix.to_string());
         }
     }
 
@@ -422,14 +456,14 @@ mod tests {
 
     #[test]
     fn test_session_store_get_or_create_empty() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         let history = store.get_or_create("task-1");
         assert!(history.is_empty());
     }
 
     #[test]
     fn test_session_store_save_and_retrieve() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         let history = vec![rig::message::Message::user("hello")];
         store.save("task-1".to_string(), history.clone());
         let retrieved = store.get_or_create("task-1");
@@ -438,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_session_store_remove_by_prefix() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         store.save(
             "conv-123-task-1".to_string(),
             vec![rig::message::Message::user("a")],
@@ -463,7 +497,7 @@ mod tests {
 
     #[test]
     fn test_session_store_indexed_removal_with_uuid_keys() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         // Use realistic UUID-format task_ids: "{conv_uuid}-{task_uuid}"
         let conv_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
         let task1 = format!("{}-{}", conv_id, "11111111-1111-1111-1111-111111111111");
@@ -490,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_session_store_len_and_is_empty() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         assert!(store.is_empty());
         assert_eq!(store.len(), 0);
 
@@ -517,7 +551,7 @@ mod tests {
 
     #[test]
     fn test_session_store_fallback_for_non_uuid_keys() {
-        let store = AgentSessionStore::new();
+        let store = AgentSessionStore::new(String::new(), None);
         // Non-UUID keys that won't match the index — should still be cleaned up via fallback
         store.save(
             "myprefix-task-1".to_string(),

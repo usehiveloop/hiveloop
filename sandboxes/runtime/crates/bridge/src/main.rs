@@ -7,6 +7,7 @@ use lsp::LspManager;
 use mcp::McpManager;
 use runtime::AgentSupervisor;
 use std::sync::Arc;
+use storage::{StorageBackend, StorageHandle};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
@@ -163,17 +164,35 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     // Create global lifecycle primitives
     let cancel = CancellationToken::new();
 
+    let (storage_backend, storage_handle): (
+        Option<Arc<dyn StorageBackend>>,
+        Option<StorageHandle>,
+    ) = match storage::init_storage()
+        .await
+        .context("failed to initialize storage")?
+    {
+        Some((backend, handle)) => (Some(backend), Some(handle)),
+        None => (None, None),
+    };
+
+    if storage_backend.is_some() {
+        info!("storage persistence enabled");
+    } else {
+        info!("storage persistence disabled");
+    }
+
     // Create webhook dispatcher if BRIDGE_WEBHOOK_URL is set
     let webhook_ctx: Option<WebhookContext> = if let Some(ref url) = config.webhook_url {
         let webhook_config = config.webhook_config.clone().unwrap_or_default();
         let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
         let client = dispatcher.client();
-        let dispatcher = Arc::new(dispatcher);
+        let dispatcher = Arc::new(dispatcher.with_storage(storage_handle.clone()));
         tokio::spawn(WebhookDispatcher::run(
             rx,
             client,
             cancel.clone(),
             webhook_config,
+            storage_handle.clone(),
         ));
         info!(url = %url, "webhook dispatcher started");
         Some(WebhookContext {
@@ -219,7 +238,9 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     let supervisor = Arc::new(
         AgentSupervisor::with_lsp(mcp_manager.clone(), lsp_manager, cancel.clone())
             .with_capacity_limits(&config)
-            .with_webhooks(webhook_ctx.clone()),
+            .with_webhooks(webhook_ctx.clone())
+            .with_storage_backend(storage_backend.clone())
+            .with_storage(storage_handle.clone()),
     );
 
     // Create app state — bridge starts with zero agents, waits for pushes
@@ -227,10 +248,90 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
         supervisor.clone(),
         config.control_plane_api_key.clone(),
         webhook_ctx,
+        storage_backend.clone(),
     );
+
+    if let Some(backend) = &storage_backend {
+        let stored_agents = backend
+            .load_all_agents()
+            .await
+            .context("failed to load stored agents")?;
+
+        if !stored_agents.is_empty() {
+            let agent_count = stored_agents.len();
+            supervisor
+                .load_agents(stored_agents.clone())
+                .await
+                .context("failed to restore stored agents")?;
+            info!(count = agent_count, "restored agents from storage");
+        }
+
+        let mut restored_conversations = 0usize;
+        for agent in &stored_agents {
+            let records = backend
+                .load_conversations(&agent.id)
+                .await
+                .with_context(|| format!("failed to load stored conversations for {}", agent.id))?;
+
+            if records.is_empty() {
+                continue;
+            }
+
+            let count = records.len();
+            let sse_receivers = supervisor.hydrate_conversations(&agent.id, records).await;
+            for (conv_id, sse_rx) in sse_receivers {
+                app_state.sse_streams.insert(conv_id, sse_rx);
+                restored_conversations += 1;
+            }
+            info!(agent_id = %agent.id, count = count, "restored conversations from storage");
+        }
+
+        if restored_conversations > 0 {
+            info!(
+                count = restored_conversations,
+                "restored active conversations from storage"
+            );
+        }
+
+        if let Some(ref webhook_ctx) = app_state.webhook_ctx {
+            let pending_webhooks = backend
+                .load_pending_webhooks()
+                .await
+                .context("failed to load pending webhooks")?;
+
+            if !pending_webhooks.is_empty() {
+                let count = pending_webhooks.len();
+                for (_, payload) in pending_webhooks {
+                    webhook_ctx.dispatcher.dispatch_replayed(payload);
+                }
+                info!(count = count, "replayed pending webhooks from storage");
+            }
+        }
+    }
 
     // Build HTTP router
     let app = api::build_router(app_state);
+
+    if let Some(storage_handle) = storage_handle.clone() {
+        let supervisor = supervisor.clone();
+        let cancel = cancel.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => break,
+                    _ = interval.tick() => {
+                        let snapshots = supervisor.collect_metrics().await;
+                        for snapshot in snapshots {
+                            storage_handle.save_metrics_snapshot(snapshot.agent_id.clone(), snapshot);
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     // Bind and serve
     let listener = TcpListener::bind(&config.listen_addr)
@@ -275,6 +376,9 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     info!("shutting down...");
     cancel.cancel();
     supervisor.shutdown().await;
+    if let Some(handle) = storage_handle {
+        handle.drain().await;
+    }
     info!("bridge stopped");
 
     Ok(())

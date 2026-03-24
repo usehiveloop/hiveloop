@@ -26,7 +26,7 @@ pub enum WriteCommand {
         messages: Vec<Message>,
     },
     EnqueueWebhook(WebhookPayload),
-    MarkWebhookDelivered(i64),
+    MarkWebhookDelivered(String),
     SaveMetricsSnapshot {
         agent_id: String,
         snapshot: MetricsSnapshot,
@@ -37,6 +37,9 @@ pub enum WriteCommand {
         history_json: Vec<u8>,
     },
     DeleteSessionsForAgent(String),
+    DeleteSessionsByPrefix(String),
+    /// Wait until all pending writes ahead of this command have completed.
+    Drain(oneshot::Sender<()>),
     /// Flush all pending writes, then signal the caller.
     Flush(oneshot::Sender<()>),
 }
@@ -100,8 +103,8 @@ impl StorageHandle {
         let _ = self.tx.send(WriteCommand::EnqueueWebhook(payload));
     }
 
-    pub fn mark_webhook_delivered(&self, outbox_id: i64) {
-        let _ = self.tx.send(WriteCommand::MarkWebhookDelivered(outbox_id));
+    pub fn mark_webhook_delivered(&self, event_id: String) {
+        let _ = self.tx.send(WriteCommand::MarkWebhookDelivered(event_id));
     }
 
     pub fn save_metrics_snapshot(&self, agent_id: String, snapshot: MetricsSnapshot) {
@@ -120,6 +123,20 @@ impl StorageHandle {
 
     pub fn delete_sessions_for_agent(&self, agent_id: String) {
         let _ = self.tx.send(WriteCommand::DeleteSessionsForAgent(agent_id));
+    }
+
+    pub fn delete_sessions_by_prefix(&self, prefix: String) {
+        let _ = self.tx.send(WriteCommand::DeleteSessionsByPrefix(prefix));
+    }
+
+    /// Block until all queued writes have been executed.
+    ///
+    /// Unlike `flush`, this does not force a replica sync. Use this on process
+    /// shutdown when writes only need to reach the primary before exit.
+    pub async fn drain(&self) {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(WriteCommand::Drain(tx));
+        let _ = rx.await;
     }
 
     /// Block until all pending writes have been flushed to the database.
@@ -229,9 +246,9 @@ async fn process_command(backend: &Arc<dyn StorageBackend>, cmd: WriteCommand) {
                 error!(error = %e, "storage: enqueue_webhook failed");
             }
         }
-        WriteCommand::MarkWebhookDelivered(id) => {
-            if let Err(e) = backend.mark_webhook_delivered(id).await {
-                error!(outbox_id = id, error = %e, "storage: mark_webhook_delivered failed");
+        WriteCommand::MarkWebhookDelivered(event_id) => {
+            if let Err(e) = backend.mark_webhook_delivered(&event_id).await {
+                error!(event_id = %event_id, error = %e, "storage: mark_webhook_delivered failed");
             }
         }
         WriteCommand::SaveMetricsSnapshot { agent_id, snapshot } => {
@@ -255,6 +272,14 @@ async fn process_command(backend: &Arc<dyn StorageBackend>, cmd: WriteCommand) {
             if let Err(e) = backend.delete_sessions_for_agent(&agent_id).await {
                 error!(agent_id = %agent_id, error = %e, "storage: delete_sessions_for_agent failed");
             }
+        }
+        WriteCommand::DeleteSessionsByPrefix(prefix) => {
+            if let Err(e) = backend.delete_sessions_by_prefix(&prefix).await {
+                error!(prefix = %prefix, error = %e, "storage: delete_sessions_by_prefix failed");
+            }
+        }
+        WriteCommand::Drain(reply) => {
+            let _ = reply.send(());
         }
         WriteCommand::Flush(reply) => {
             if let Err(e) = backend.sync().await {

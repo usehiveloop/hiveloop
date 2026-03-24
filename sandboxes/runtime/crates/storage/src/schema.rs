@@ -40,6 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conv
 
 CREATE TABLE IF NOT EXISTS webhook_outbox (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id        TEXT,
     conversation_id TEXT NOT NULL,
     event_type      TEXT NOT NULL,
     payload         BLOB NOT NULL,
@@ -78,5 +79,34 @@ pub async fn run_migrations(conn: &libsql::Connection) -> Result<(), StorageErro
     conn.execute_batch(MIGRATIONS)
         .await
         .map_err(|e| StorageError::Database(format!("migration failed: {e}")))?;
+
+    if let Err(e) = conn
+        .execute("ALTER TABLE webhook_outbox ADD COLUMN event_id TEXT", ())
+        .await
+    {
+        let message = e.to_string().to_lowercase();
+        if !message.contains("duplicate column") && !message.contains("already exists") {
+            return Err(StorageError::Database(format!(
+                "migration failed adding event_id: {e}"
+            )));
+        }
+    }
+
+    conn.execute(
+        "UPDATE webhook_outbox SET event_id = CAST(id AS TEXT) WHERE event_id IS NULL",
+        (),
+    )
+    .await
+    .map_err(|e| StorageError::Database(format!("migration failed backfilling event_id: {e}")))?;
+
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_event_id ON webhook_outbox(event_id)",
+        (),
+    )
+    .await
+    .map_err(|e| {
+        StorageError::Database(format!("migration failed creating event_id index: {e}"))
+    })?;
+
     Ok(())
 }

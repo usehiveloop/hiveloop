@@ -7,6 +7,7 @@ use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
+use storage::StorageHandle;
 use tokio::sync::mpsc;
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
@@ -86,6 +87,10 @@ pub struct ConversationParams {
     pub conversation_date: chrono::DateTime<chrono::Utc>,
     /// Global LLM call semaphore for admission control.
     pub llm_semaphore: Arc<tokio::sync::Semaphore>,
+    /// Initial persistence-ready history, normalized to align with rig history.
+    pub initial_persisted_messages: Option<Vec<Message>>,
+    /// Optional non-blocking persistence handle.
+    pub storage: Option<StorageHandle>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -122,6 +127,8 @@ pub async fn run_conversation(params: ConversationParams) {
         system_reminder,
         conversation_date,
         llm_semaphore,
+        initial_persisted_messages,
+        storage,
     } = params;
 
     info!(
@@ -134,6 +141,7 @@ pub async fn run_conversation(params: ConversationParams) {
     token_tracker::increment_total_conversations(&metrics);
 
     let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
+    let mut persisted_messages: Vec<Message> = initial_persisted_messages.unwrap_or_default();
     let mut turn_count: usize = 0;
     let msg_id = uuid::Uuid::new_v4().to_string();
 
@@ -239,6 +247,16 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         };
 
+        let persisted_user_message = match &incoming {
+            IncomingMessage::User(msg) => {
+                normalize_messages_for_persistence(std::slice::from_ref(msg))
+                    .into_iter()
+                    .next()
+                    .unwrap_or_else(|| msg.clone())
+            }
+            IncomingMessage::BackgroundComplete(_) => text_message(Role::User, user_text.clone()),
+        };
+
         // Check if compaction is needed before adding the new message
         if let Some(ref compaction_config) = compaction_config {
             match crate::compaction::maybe_compact(&history, compaction_config).await {
@@ -253,6 +271,17 @@ pub async fn run_conversation(params: ConversationParams) {
 
                     // Replace in-memory history
                     history = result.compacted_history;
+
+                    apply_compaction_to_persisted_history(
+                        &mut persisted_messages,
+                        &result.summary_text,
+                        result.messages_compacted,
+                    );
+
+                    if let Some(storage) = &storage {
+                        storage
+                            .replace_messages(conversation_id.clone(), persisted_messages.clone());
+                    }
 
                     // Fire webhook
                     if let Some(ref wh) = webhook_ctx {
@@ -302,6 +331,7 @@ pub async fn run_conversation(params: ConversationParams) {
         };
 
         history.push(rig::message::Message::user(&final_user_text));
+        persisted_messages.push(persisted_user_message);
 
         // Signal response starting
         let _ = sse_tx
@@ -407,6 +437,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 // no assistant response was generated, so leaving it would
                 // create consecutive user messages in history.
                 history.pop();
+                persisted_messages.pop();
                 let _ = sse_tx
                     .send(SseEvent::Error {
                         code: "aborted".to_string(),
@@ -443,6 +474,7 @@ pub async fn run_conversation(params: ConversationParams) {
             // Timeout fired — restore history from backup
             Err(_timeout) => {
                 history = history_backup;
+                persisted_messages.pop();
                 let elapsed = start.elapsed();
                 error!(
                     conversation_id = conversation_id,
@@ -476,6 +508,7 @@ pub async fn run_conversation(params: ConversationParams) {
             // Task was cancelled (oneshot sender dropped) — restore history from backup
             Ok(Err(_)) => {
                 history = history_backup;
+                persisted_messages.pop();
                 error!(
                     conversation_id = conversation_id,
                     "agent chat task cancelled unexpectedly"
@@ -529,6 +562,7 @@ pub async fn run_conversation(params: ConversationParams) {
                             (None, 0u64, 0u64)
                         } else {
                             // Genuine error — keep existing fatal handling
+                            persisted_messages.pop();
                             error!(
                                 agent_id = agent_id,
                                 conversation_id = conversation_id,
@@ -734,6 +768,14 @@ pub async fn run_conversation(params: ConversationParams) {
                     ));
                 }
 
+                let new_persisted_messages =
+                    convert_from_rig_messages(&enriched_history[history_backup.len()..]);
+                persisted_messages.extend(new_persisted_messages);
+
+                if let Some(storage) = &storage {
+                    storage.replace_messages(conversation_id.clone(), persisted_messages.clone());
+                }
+
                 // Replace main history with the enriched version so that
                 // subsequent turns preserve full tool-call context.
                 history = enriched_history;
@@ -797,6 +839,144 @@ pub async fn run_conversation(params: ConversationParams) {
         turns = turn_count,
         "conversation ended"
     );
+}
+
+fn text_message(role: Role, text: String) -> Message {
+    Message {
+        role,
+        content: vec![bridge_core::conversation::ContentBlock::Text { text }],
+        timestamp: chrono::Utc::now(),
+    }
+}
+
+fn tool_result_message(tool_call_id: String, content: String) -> Message {
+    Message {
+        role: Role::Tool,
+        content: vec![bridge_core::conversation::ContentBlock::ToolResult(
+            bridge_core::conversation::ToolResult {
+                tool_call_id,
+                content,
+                is_error: false,
+            },
+        )],
+        timestamp: chrono::Utc::now(),
+    }
+}
+
+fn tool_result_text(parts: &rig::OneOrMany<rig::message::ToolResultContent>) -> String {
+    parts
+        .iter()
+        .map(|part| match part {
+            rig::message::ToolResultContent::Text(text) => text.text.clone(),
+            other => format!("{:?}", other),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn convert_from_rig_message(msg: &rig::message::Message) -> Vec<Message> {
+    use rig::completion::message::{AssistantContent, UserContent};
+
+    match msg {
+        rig::message::Message::User { content } => content
+            .iter()
+            .filter_map(|part| match part {
+                UserContent::Text(text) if !text.text.is_empty() => {
+                    Some(text_message(Role::User, text.text.clone()))
+                }
+                UserContent::ToolResult(result) => Some(tool_result_message(
+                    result.id.clone(),
+                    tool_result_text(&result.content),
+                )),
+                _ => None,
+            })
+            .collect(),
+        rig::message::Message::Assistant { content, .. } => {
+            let mut blocks = Vec::new();
+            for part in content.iter() {
+                match part {
+                    AssistantContent::Text(text) if !text.text.is_empty() => {
+                        blocks.push(bridge_core::conversation::ContentBlock::Text {
+                            text: text.text.clone(),
+                        });
+                    }
+                    AssistantContent::ToolCall(call) => {
+                        let arguments = call.function.arguments.clone();
+                        blocks.push(bridge_core::conversation::ContentBlock::ToolCall(
+                            bridge_core::conversation::ToolCall {
+                                id: call.id.clone(),
+                                name: call.function.name.clone(),
+                                arguments,
+                            },
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+
+            if blocks.is_empty() {
+                Vec::new()
+            } else {
+                vec![Message {
+                    role: Role::Assistant,
+                    content: blocks,
+                    timestamp: chrono::Utc::now(),
+                }]
+            }
+        }
+    }
+}
+
+fn convert_from_rig_messages(messages: &[rig::message::Message]) -> Vec<Message> {
+    messages.iter().flat_map(convert_from_rig_message).collect()
+}
+
+fn apply_compaction_to_persisted_history(
+    history: &mut Vec<Message>,
+    summary_text: &str,
+    messages_compacted: usize,
+) {
+    let split_at = messages_compacted.min(history.len());
+    if split_at == 0 {
+        return;
+    }
+
+    let mut compacted = Vec::with_capacity(1 + history.len().saturating_sub(split_at));
+    compacted.push(text_message(
+        Role::User,
+        format!("[Conversation Summary]\n{}", summary_text),
+    ));
+    compacted.extend(history.drain(split_at..));
+    *history = compacted;
+}
+
+pub fn normalize_messages_for_persistence(messages: &[Message]) -> Vec<Message> {
+    let mut normalized = Vec::with_capacity(messages.len());
+
+    for message in messages {
+        if message.role == Role::Tool {
+            let mut expanded = false;
+            for block in &message.content {
+                if let bridge_core::conversation::ContentBlock::ToolResult(result) = block {
+                    expanded = true;
+                    normalized.push(Message {
+                        role: Role::Tool,
+                        content: vec![bridge_core::conversation::ContentBlock::ToolResult(
+                            result.clone(),
+                        )],
+                        timestamp: message.timestamp,
+                    });
+                }
+            }
+            if !expanded {
+                normalized.push(message.clone());
+            }
+        } else {
+            normalized.push(message.clone());
+        }
+    }
+
+    normalized
 }
 
 /// Convert a bridge_core Message into a rig message.

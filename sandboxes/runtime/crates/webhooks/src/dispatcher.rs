@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use storage::StorageHandle;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -20,6 +21,7 @@ struct WorkerConfig {
 pub struct WebhookDispatcher {
     client: Client,
     event_tx: mpsc::UnboundedSender<WebhookPayload>,
+    storage: Option<StorageHandle>,
     /// High-water-mark: tracks the peak queue depth for observability.
     enqueued: Arc<AtomicU64>,
 }
@@ -47,9 +49,16 @@ impl WebhookDispatcher {
         let dispatcher = Self {
             client,
             event_tx: tx,
+            storage: None,
             enqueued,
         };
         (dispatcher, rx)
+    }
+
+    /// Attach an optional non-blocking persistence handle.
+    pub fn with_storage(mut self, storage: Option<StorageHandle>) -> Self {
+        self.storage = storage;
+        self
     }
 
     /// Returns a clone of the internal HTTP client.
@@ -68,6 +77,28 @@ impl WebhookDispatcher {
         let agent_id = payload.agent_id.clone();
         let conversation_id = payload.conversation_id.clone();
 
+        if let Some(storage) = &self.storage {
+            storage.enqueue_webhook(payload.clone());
+        }
+
+        self.dispatch_internal(payload, &event_type, &agent_id, &conversation_id);
+    }
+
+    /// Dispatch a payload that already exists in persistent storage.
+    pub fn dispatch_replayed(&self, payload: WebhookPayload) {
+        let event_type = format!("{:?}", payload.event_type);
+        let agent_id = payload.agent_id.clone();
+        let conversation_id = payload.conversation_id.clone();
+        self.dispatch_internal(payload, &event_type, &agent_id, &conversation_id);
+    }
+
+    fn dispatch_internal(
+        &self,
+        payload: WebhookPayload,
+        event_type: &str,
+        agent_id: &str,
+        conversation_id: &str,
+    ) {
         if self.event_tx.send(payload).is_err() {
             tracing::error!(
                 agent_id = %agent_id,
@@ -115,6 +146,7 @@ impl WebhookDispatcher {
         client: Client,
         cancel: CancellationToken,
         config: WebhookConfig,
+        storage: Option<StorageHandle>,
     ) {
         let max_inflight = config.max_concurrent_deliveries;
         let semaphore = Arc::new(tokio::sync::Semaphore::new(max_inflight));
@@ -162,6 +194,7 @@ impl WebhookDispatcher {
                         &client,
                         &semaphore,
                         &worker_config,
+                        storage.clone(),
                     );
                 }
             }
@@ -180,6 +213,7 @@ impl WebhookDispatcher {
                 &client,
                 &semaphore,
                 &worker_config,
+                storage.clone(),
             );
             drained += 1;
         }
@@ -200,7 +234,7 @@ impl WebhookDispatcher {
         client: Client,
         cancel: CancellationToken,
     ) {
-        Self::run(rx, client, cancel, WebhookConfig::default()).await;
+        Self::run(rx, client, cancel, WebhookConfig::default(), None).await;
     }
 }
 
@@ -214,6 +248,7 @@ fn route_event(
     client: &Client,
     semaphore: &Arc<tokio::sync::Semaphore>,
     config: &WorkerConfig,
+    storage: Option<StorageHandle>,
 ) {
     let conv_id = payload.conversation_id.clone();
 
@@ -250,6 +285,7 @@ fn route_event(
             worker_config.delivery_timeout,
             worker_config.max_retries,
             worker_config.idle_timeout,
+            storage,
         )
         .await;
         worker_conv_id
@@ -267,6 +303,7 @@ async fn conversation_delivery_worker(
     delivery_timeout: Duration,
     max_retries: usize,
     idle_timeout: Duration,
+    storage: Option<StorageHandle>,
 ) {
     tracing::debug!(
         conversation_id = %conversation_id,
@@ -313,7 +350,14 @@ async fn conversation_delivery_worker(
         );
 
         // Deliver the batch sequentially — next batch waits for this one
-        deliver_webhook_batch(client.clone(), batch, delivery_timeout, max_retries).await;
+        deliver_webhook_batch(
+            client.clone(),
+            batch,
+            delivery_timeout,
+            max_retries,
+            storage.clone(),
+        )
+        .await;
         // permit dropped here, freeing the slot
     }
 
@@ -331,6 +375,7 @@ async fn deliver_webhook_batch(
     batch: Vec<WebhookPayload>,
     timeout: Duration,
     max_retries: usize,
+    storage: Option<StorageHandle>,
 ) {
     use backon::{ExponentialBuilder, Retryable};
 
@@ -458,6 +503,10 @@ async fn deliver_webhook_batch(
             error = %e,
             "webhook batch delivery failed after all retries"
         );
+    } else if let Some(storage) = storage {
+        for payload in &batch {
+            storage.mark_webhook_delivered(payload.event_id.clone());
+        }
     }
 }
 
@@ -472,6 +521,7 @@ mod tests {
 
     fn make_payload_for_conv(conv_id: &str) -> WebhookPayload {
         WebhookPayload {
+            event_id: format!("evt-{conv_id}"),
             event_type: WebhookEventType::ConversationCreated,
             agent_id: "agent-1".to_string(),
             conversation_id: conv_id.to_string(),
@@ -526,7 +576,7 @@ mod tests {
 
         let cancel_clone = cancel.clone();
         let handle = tokio::spawn(async move {
-            WebhookDispatcher::run(rx, client, cancel_clone, config).await;
+            WebhookDispatcher::run(rx, client, cancel_clone, config, None).await;
         });
 
         // Let the loop start
@@ -566,7 +616,7 @@ mod tests {
         // the important thing is it reads all events from the channel)
         tokio::time::timeout(
             Duration::from_secs(10),
-            WebhookDispatcher::run(rx, client, cancel, config),
+            WebhookDispatcher::run(rx, client, cancel, config, None),
         )
         .await
         .expect("run should complete drain within timeout");
@@ -602,7 +652,7 @@ mod tests {
 
         let cancel_clone = cancel.clone();
         let handle = tokio::spawn(async move {
-            WebhookDispatcher::run(rx, client, cancel_clone, config).await;
+            WebhookDispatcher::run(rx, client, cancel_clone, config, None).await;
         });
 
         // Wait for delivery
@@ -653,7 +703,7 @@ mod tests {
 
         let cancel_clone = cancel.clone();
         let handle = tokio::spawn(async move {
-            WebhookDispatcher::run(rx, client, cancel_clone, config).await;
+            WebhookDispatcher::run(rx, client, cancel_clone, config, None).await;
         });
 
         // Wait for all deliveries
@@ -724,7 +774,7 @@ mod tests {
 
         let cancel_clone = cancel.clone();
         let handle = tokio::spawn(async move {
-            WebhookDispatcher::run(rx, client, cancel_clone, config).await;
+            WebhookDispatcher::run(rx, client, cancel_clone, config, None).await;
         });
 
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -784,7 +834,7 @@ mod tests {
 
         let cancel_clone = cancel.clone();
         let handle = tokio::spawn(async move {
-            WebhookDispatcher::run(rx, client, cancel_clone, config).await;
+            WebhookDispatcher::run(rx, client, cancel_clone, config, None).await;
         });
 
         // Give run() time to start

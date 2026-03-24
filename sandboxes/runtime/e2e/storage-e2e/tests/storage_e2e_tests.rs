@@ -293,7 +293,7 @@ async fn test_webhook_outbox_lifecycle() {
     let id2 = backend.enqueue_webhook(&wh2).await.unwrap();
     let id3 = backend.enqueue_webhook(&wh3).await.unwrap();
 
-    backend.mark_webhook_delivered(id1).await.unwrap();
+    backend.mark_webhook_delivered(&id1).await.unwrap();
 
     let pending = backend.load_pending_webhooks().await.unwrap();
     let our_pending: Vec<_> = pending
@@ -303,8 +303,8 @@ async fn test_webhook_outbox_lifecycle() {
     assert_eq!(our_pending.len(), 2);
 
     // Cleanup
-    backend.mark_webhook_delivered(id2).await.unwrap();
-    backend.mark_webhook_delivered(id3).await.unwrap();
+    backend.mark_webhook_delivered(&id2).await.unwrap();
+    backend.mark_webhook_delivered(&id3).await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread")]

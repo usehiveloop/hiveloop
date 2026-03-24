@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bridge_core = { workspace = true }
+storage = { workspace = true }
 reqwest = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }

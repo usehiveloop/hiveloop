@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use bridge_core::{AgentDefinition, BridgeError, ConversationRecord};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::state::AppState;
 
@@ -100,7 +101,13 @@ pub async fn push_agents(
     Json(body): Json<PushAgentsRequest>,
 ) -> Result<(StatusCode, Json<PushAgentsResponse>), BridgeError> {
     let count = body.agents.len();
+    let agent_ids: Vec<String> = body.agents.iter().map(|agent| agent.id.clone()).collect();
     state.supervisor.load_agents(body.agents).await?;
+
+    for agent_id in agent_ids {
+        restore_stored_conversations_for_agent(&state, &agent_id).await?;
+    }
+
     Ok((StatusCode::OK, Json(PushAgentsResponse { loaded: count })))
 }
 
@@ -132,8 +139,9 @@ pub async fn upsert_agent(
 
     // Check if agent already exists
     if let Some(existing) = state.supervisor.get_agent(&agent_id) {
+        let existing_def = existing.definition.read().await.clone();
         // Same version → no-op
-        if existing.version().await.as_deref() == agent.version.as_deref() {
+        if definitions_equivalent(&existing_def, &agent) {
             return Ok((
                 StatusCode::OK,
                 Json(UpsertAgentResponse {
@@ -146,6 +154,7 @@ pub async fn upsert_agent(
             .supervisor
             .apply_diff(vec![], vec![agent], vec![])
             .await?;
+        restore_stored_conversations_for_agent(&state, &agent_id).await?;
         Ok((
             StatusCode::OK,
             Json(UpsertAgentResponse {
@@ -158,6 +167,7 @@ pub async fn upsert_agent(
             .supervisor
             .apply_diff(vec![agent], vec![], vec![])
             .await?;
+        restore_stored_conversations_for_agent(&state, &agent_id).await?;
         Ok((
             StatusCode::CREATED,
             Json(UpsertAgentResponse {
@@ -288,15 +298,69 @@ pub async fn push_diff(
     let added = body.added.len();
     let updated = body.updated.len();
     let removed = body.removed.len();
+    let agent_ids: Vec<String> = body
+        .added
+        .iter()
+        .chain(body.updated.iter())
+        .map(|agent| agent.id.clone())
+        .collect();
 
     state
         .supervisor
         .apply_diff(body.added, body.updated, body.removed)
         .await?;
 
+    for agent_id in agent_ids {
+        restore_stored_conversations_for_agent(&state, &agent_id).await?;
+    }
+
     Ok(Json(PushDiffResponse {
         added,
         updated,
         removed,
     }))
+}
+
+async fn restore_stored_conversations_for_agent(
+    state: &AppState,
+    agent_id: &str,
+) -> Result<(), BridgeError> {
+    let Some(storage_backend) = state.storage_backend.as_ref() else {
+        return Ok(());
+    };
+
+    let Some(agent) = state.supervisor.get_agent(agent_id) else {
+        return Ok(());
+    };
+
+    if agent.active_conversation_count() > 0 {
+        return Ok(());
+    }
+
+    let records = storage_backend.load_conversations(agent_id).await.map_err(|e| {
+        BridgeError::Internal(format!(
+            "failed to load stored conversations for {}: {}",
+            agent_id, e
+        ))
+    })?;
+
+    if records.is_empty() {
+        return Ok(());
+    }
+
+    let restored = records.len();
+    let sse_receivers = state.supervisor.hydrate_conversations(agent_id, records).await;
+    for (conv_id, sse_rx) in sse_receivers {
+        state.sse_streams.insert(conv_id, sse_rx);
+    }
+
+    info!(agent_id = agent_id, count = restored, "restored conversations after agent load");
+    Ok(())
+}
+
+fn definitions_equivalent(existing: &AgentDefinition, incoming: &AgentDefinition) -> bool {
+    match (&existing.version, &incoming.version) {
+        (Some(existing_version), Some(incoming_version)) => existing_version == incoming_version,
+        _ => existing == incoming,
+    }
 }

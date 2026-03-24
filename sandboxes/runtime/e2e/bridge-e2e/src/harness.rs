@@ -361,7 +361,23 @@ impl TestHarness {
         let bridge_listen_addr = format!("127.0.0.1:{}", bridge_port);
         let bridge_base_url = format!("http://127.0.0.1:{}", bridge_port);
 
-        let bridge_process = Command::new(&bridge_binary)
+        let bridge_stdout_log = std::fs::File::create(
+            std::env::temp_dir().join(format!("bridge-e2e-stdout-{}.log", bridge_port)),
+        )
+        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        let bridge_stderr_log = std::fs::File::create(
+            std::env::temp_dir().join(format!("bridge-e2e-stderr-{}.log", bridge_port)),
+        )
+        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+
+        eprintln!(
+            "[harness] Bridge logs: stdout={}/bridge-e2e-stdout-{}.log stderr={}/bridge-e2e-stderr-{}.log",
+            std::env::temp_dir().display(), bridge_port,
+            std::env::temp_dir().display(), bridge_port,
+        );
+
+        let mut bridge_command = Command::new(&bridge_binary);
+        bridge_command
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
@@ -370,8 +386,24 @@ impl TestHarness {
                 "BRIDGE_WEBHOOK_URL",
                 format!("{}/webhooks/receive", cp_base_url),
             )
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
+            .stdout(Stdio::from(bridge_stdout_log))
+            .stderr(Stdio::from(bridge_stderr_log));
+
+        for key in [
+            "BRIDGE_STORAGE_URL",
+            "BRIDGE_STORAGE_AUTH_TOKEN",
+            "BRIDGE_STORAGE_PATH",
+            "BRIDGE_STORAGE_SYNC_INTERVAL_SECS",
+            "BRIDGE_STORAGE_ENCRYPTION_KEY",
+            "SSL_CERT_FILE",
+            "SSL_CERT_DIR",
+        ] {
+            if let Ok(value) = std::env::var(key) {
+                bridge_command.env(key, value);
+            }
+        }
+
+        let bridge_process = bridge_command
             .spawn()
             .context("failed to start bridge")?;
 
@@ -379,6 +411,7 @@ impl TestHarness {
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
+            .pool_max_idle_per_host(0)
             .build()
             .context("failed to build reqwest client")?;
 
@@ -403,8 +436,15 @@ impl TestHarness {
             conversation_agents: Mutex::new(HashMap::new()),
         };
 
-        // 4. Poll /health until 200 (max 30s)
-        harness.wait_for_bridge_healthy().await?;
+        // 4. Poll /health until 200.
+        let health_timeout = if std::env::var("BRIDGE_STORAGE_URL").is_ok() {
+            Duration::from_secs(60)
+        } else {
+            Duration::from_secs(30)
+        };
+        harness
+            .wait_for_bridge_healthy_with_timeout(health_timeout)
+            .await?;
 
         // 5. Fetch agents from mock CP and push them to the bridge
         harness.push_agents_from_cp().await?;
@@ -527,7 +567,8 @@ impl TestHarness {
             std::env::temp_dir().display(), bridge_port,
         );
 
-        let bridge_process = Command::new(&bridge_binary)
+        let mut bridge_command = Command::new(&bridge_binary);
+        bridge_command
             .env("BRIDGE_CONTROL_PLANE_URL", &cp_base_url)
             .env("BRIDGE_CONTROL_PLANE_API_KEY", "e2e-test-key")
             .env("BRIDGE_LISTEN_ADDR", &bridge_listen_addr)
@@ -538,7 +579,23 @@ impl TestHarness {
                 format!("{}/webhooks/receive", cp_base_url),
             )
             .stdout(Stdio::from(bridge_stdout_log))
-            .stderr(Stdio::from(bridge_stderr_log))
+            .stderr(Stdio::from(bridge_stderr_log));
+
+        for key in [
+            "BRIDGE_STORAGE_URL",
+            "BRIDGE_STORAGE_AUTH_TOKEN",
+            "BRIDGE_STORAGE_PATH",
+            "BRIDGE_STORAGE_SYNC_INTERVAL_SECS",
+            "BRIDGE_STORAGE_ENCRYPTION_KEY",
+            "SSL_CERT_FILE",
+            "SSL_CERT_DIR",
+        ] {
+            if let Ok(value) = std::env::var(key) {
+                bridge_command.env(key, value);
+            }
+        }
+
+        let bridge_process = bridge_command
             .spawn()
             .context("failed to start bridge")?;
 
@@ -546,6 +603,7 @@ impl TestHarness {
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
+            .pool_max_idle_per_host(0)
             .build()
             .context("failed to build reqwest client")?;
 
@@ -1193,12 +1251,6 @@ impl TestHarness {
         let port = listener.local_addr()?.port();
         drop(listener);
         Ok(port)
-    }
-
-    /// Poll the bridge /health endpoint until it returns 200 or timeout.
-    async fn wait_for_bridge_healthy(&mut self) -> Result<()> {
-        self.wait_for_bridge_healthy_with_timeout(Duration::from_secs(30))
-            .await
     }
 
     async fn wait_for_bridge_healthy_with_timeout(&mut self, timeout: Duration) -> Result<()> {
@@ -2007,24 +2059,33 @@ impl TestHarness {
                 // Send SIGTERM first for graceful shutdown (flushes logs)
                 #[cfg(unix)]
                 {
+                    let graceful_timeout = if name == "bridge"
+                        && std::env::var("BRIDGE_STORAGE_URL").is_ok()
+                    {
+                        std::time::Duration::from_secs(45)
+                    } else {
+                        std::time::Duration::from_secs(5)
+                    };
+
                     unsafe {
                         libc::kill(proc.id() as i32, libc::SIGTERM);
                     }
-                    // Give the process a moment to flush and exit
-                    match proc.try_wait() {
-                        Ok(Some(_)) => {}
-                        _ => {
-                            std::thread::sleep(std::time::Duration::from_millis(500));
-                            match proc.try_wait() {
-                                Ok(Some(_)) => {}
-                                _ => {
-                                    eprintln!(
-                                        "[harness] {} did not exit after SIGTERM, killing",
-                                        name
-                                    );
-                                    let _ = proc.kill();
-                                    let _ = proc.wait();
-                                }
+                    // Give the process time to flush and exit cleanly.
+                    let deadline = std::time::Instant::now() + graceful_timeout;
+                    loop {
+                        match proc.try_wait() {
+                            Ok(Some(_)) => break,
+                            _ if std::time::Instant::now() >= deadline => {
+                                eprintln!(
+                                    "[harness] {} did not exit after SIGTERM, killing",
+                                    name
+                                );
+                                let _ = proc.kill();
+                                let _ = proc.wait();
+                                break;
+                            }
+                            _ => {
+                                std::thread::sleep(std::time::Duration::from_millis(100));
                             }
                         }
                     }

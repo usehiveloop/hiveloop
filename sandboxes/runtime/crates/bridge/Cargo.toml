@@ -23,6 +23,7 @@ api = { workspace = true }
 webhooks = { workspace = true }
 mcp = { workspace = true }
 tools = { workspace = true }
+storage = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }

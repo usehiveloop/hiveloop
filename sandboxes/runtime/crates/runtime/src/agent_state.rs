@@ -3,6 +3,7 @@ use bridge_core::{AgentDefinition, AgentMetrics};
 use dashmap::DashMap;
 use llm::BridgeAgent;
 use std::sync::Arc;
+use storage::StorageHandle;
 use tokio::sync::mpsc;
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
@@ -60,7 +61,9 @@ impl AgentState {
         tool_registry: ToolRegistry,
         subagents: Arc<DashMap<String, SubAgentEntry>>,
         task_registry: Arc<TaskRegistry>,
+        storage: Option<StorageHandle>,
     ) -> Self {
+        let agent_id = definition.id.clone();
         Self {
             definition: RwLock::new(definition),
             rig_agent: Arc::new(RwLock::new(rig_agent)),
@@ -70,7 +73,7 @@ impl AgentState {
             tracker: TaskTracker::new(),
             metrics: Arc::new(AgentMetrics::new()),
             subagents,
-            session_store: Arc::new(AgentSessionStore::new()),
+            session_store: Arc::new(AgentSessionStore::new(agent_id, storage)),
             task_registry,
         }
     }
