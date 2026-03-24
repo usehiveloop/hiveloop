@@ -21,6 +21,7 @@ import { IntegrationSuccess } from './IntegrationSuccess'
 import { ResourceSelectionSuccess } from './ResourceSelectionSuccess'
 import { ProviderConnect } from './ProviderConnect'
 import { IntegrationConnect } from './IntegrationConnect'
+import { IntegrationDetailConnect } from './IntegrationDetailConnect'
 
 interface Props {
   view: View
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export function ViewRouter({ view, canGoBack, returnTo, navigate, onClose }: Props) {
-  const isSingleConnect = returnTo.type === 'provider-connect' || returnTo.type === 'integration-connect'
+  const isSingleConnect = returnTo.type === 'provider-connect' || returnTo.type === 'integration-connect' || returnTo.type === 'integration-detail-connect'
   const { sendToParent } = useParentEvents()
 
   // Send error events to parent
@@ -217,6 +218,14 @@ export function ViewRouter({ view, canGoBack, returnTo, navigate, onClose }: Pro
           provider={view.provider}
           onConnect={(integration) => navigate({ type: 'INTEGRATION_CONNECT_START', integration })}
           onViewDetail={(integration) => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration })}
+          onClose={onClose}
+        />
+      )
+    case 'integration-detail-connect':
+      return (
+        <IntegrationDetailConnect
+          integrationId={view.integrationId}
+          onReady={(integration) => navigate({ type: 'VIEW_INTEGRATION_DETAIL', integration })}
           onClose={onClose}
         />
       )

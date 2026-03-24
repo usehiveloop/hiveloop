@@ -41,6 +41,7 @@ export function ApiKeyInput({ providerId, onSubmit, onSuccess, onError, onBack, 
     onSuccess: (data) => {
       setPending(null)
       queryClient.invalidateQueries({ queryKey: ['widget', 'connections'] })
+      queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/providers'] })
       onSuccess(data?.id ?? '')
     },
     onError: () => onError(),

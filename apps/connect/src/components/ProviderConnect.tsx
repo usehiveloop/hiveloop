@@ -39,6 +39,7 @@ export function ProviderConnect({ providerId, onSubmit, onSuccess, onError, onCl
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['widget', 'connections'] })
+      queryClient.invalidateQueries({ queryKey: ['get', '/v1/widget/providers'] })
       onSuccess(data?.id ?? '')
     },
     onError: () => onError(),
