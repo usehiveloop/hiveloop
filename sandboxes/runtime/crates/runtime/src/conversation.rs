@@ -18,7 +18,10 @@ use webhooks::WebhookContext;
 use crate::agent_runner::AgentSessionStore;
 
 /// Timeout for a single agent.chat() call (includes internal tool loops).
-const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(180);
+const AGENT_CHAT_TIMEOUT: Duration = Duration::from_secs(6 * 60 * 60);
+
+/// Timeout for automatic continuation attempts when the agent returns an empty response.
+const CONTINUATION_TIMEOUT: Duration = Duration::from_secs(180);
 
 /// Maximum number of automatic continuation attempts when the agent returns an
 /// empty response. After this many continuations, fall back to the no-tools
@@ -617,7 +620,7 @@ pub async fn run_conversation(params: ConversationParams) {
                             let _ = cont_tx.send((result, history_for_continuation));
                         });
 
-                        match tokio::time::timeout(AGENT_CHAT_TIMEOUT, cont_rx).await {
+                        match tokio::time::timeout(CONTINUATION_TIMEOUT, cont_rx).await {
                             Ok(Ok((Ok(pr), cont_history))) if !pr.output.is_empty() => {
                                 info!(
                                     agent_id = agent_id,
