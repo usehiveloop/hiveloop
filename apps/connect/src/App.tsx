@@ -32,6 +32,7 @@ function getInitialView(): View {
     case 'integration-error':     return { type: 'integration-error', integration: { id: '', provider: 'slack', display_name: 'Slack', auth_mode: 'OAUTH2' }, error: 'Preview error' }
     case 'provider-connect':      return { type: 'provider-connect', providerId: params.get('providerId') ?? 'openai' }
     case 'integration-connect':   return { type: 'integration-connect', provider: params.get('integrationId') ?? '' }
+    case 'integration-detail':    return { type: 'integration-detail-connect', integrationId: params.get('integrationId') ?? '' }
     default:                    return { type: 'provider-selection' }
   }
 }

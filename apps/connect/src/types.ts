@@ -31,5 +31,6 @@ export type View =
   | { type: 'integration-disconnect-confirm'; integration: IntegrationProvider }
   | { type: 'provider-connect'; providerId: string }
   | { type: 'integration-connect'; provider: string }
+  | { type: 'integration-detail-connect'; integrationId: string }
 
 export type ThemeMode = 'light' | 'dark' | 'system'

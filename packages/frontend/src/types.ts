@@ -6,6 +6,7 @@ export type ConnectScreen =
   | 'connected-list'
   | 'provider-connect'
   | 'integration-connect'
+  | 'integration-detail'
 
 export type ConnectErrorCode =
   | 'session_invalid'
