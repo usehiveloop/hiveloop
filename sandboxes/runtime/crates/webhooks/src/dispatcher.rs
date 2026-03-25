@@ -240,6 +240,7 @@ impl WebhookDispatcher {
 
 /// Stamp a sequence number on the payload and route it to the correct
 /// per-conversation worker, creating a new worker if needed.
+#[allow(clippy::too_many_arguments)]
 fn route_event(
     mut payload: WebhookPayload,
     workers: &mut HashMap<String, mpsc::UnboundedSender<WebhookPayload>>,
@@ -295,6 +296,7 @@ fn route_event(
 /// Per-conversation delivery worker. Processes events sequentially to guarantee
 /// in-order delivery. When multiple events are queued, batches them into a
 /// single HTTP POST.
+#[allow(clippy::too_many_arguments)]
 async fn conversation_delivery_worker(
     conversation_id: &str,
     mut rx: mpsc::UnboundedReceiver<WebhookPayload>,

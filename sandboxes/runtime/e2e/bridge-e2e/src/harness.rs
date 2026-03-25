@@ -403,9 +403,7 @@ impl TestHarness {
             }
         }
 
-        let bridge_process = bridge_command
-            .spawn()
-            .context("failed to start bridge")?;
+        let bridge_process = bridge_command.spawn().context("failed to start bridge")?;
 
         tracing::info!(port = bridge_port, "bridge process started");
 
@@ -595,9 +593,7 @@ impl TestHarness {
             }
         }
 
-        let bridge_process = bridge_command
-            .spawn()
-            .context("failed to start bridge")?;
+        let bridge_process = bridge_command.spawn().context("failed to start bridge")?;
 
         tracing::info!(port = bridge_port, "bridge process started (real agents)");
 
@@ -2059,13 +2055,12 @@ impl TestHarness {
                 // Send SIGTERM first for graceful shutdown (flushes logs)
                 #[cfg(unix)]
                 {
-                    let graceful_timeout = if name == "bridge"
-                        && std::env::var("BRIDGE_STORAGE_URL").is_ok()
-                    {
-                        std::time::Duration::from_secs(45)
-                    } else {
-                        std::time::Duration::from_secs(5)
-                    };
+                    let graceful_timeout =
+                        if name == "bridge" && std::env::var("BRIDGE_STORAGE_URL").is_ok() {
+                            std::time::Duration::from_secs(45)
+                        } else {
+                            std::time::Duration::from_secs(5)
+                        };
 
                     unsafe {
                         libc::kill(proc.id() as i32, libc::SIGTERM);
@@ -2076,10 +2071,7 @@ impl TestHarness {
                         match proc.try_wait() {
                             Ok(Some(_)) => break,
                             _ if std::time::Instant::now() >= deadline => {
-                                eprintln!(
-                                    "[harness] {} did not exit after SIGTERM, killing",
-                                    name
-                                );
+                                eprintln!("[harness] {} did not exit after SIGTERM, killing", name);
                                 let _ = proc.kill();
                                 let _ = proc.wait();
                                 break;

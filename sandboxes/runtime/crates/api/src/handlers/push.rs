@@ -337,24 +337,34 @@ async fn restore_stored_conversations_for_agent(
         return Ok(());
     }
 
-    let records = storage_backend.load_conversations(agent_id).await.map_err(|e| {
-        BridgeError::Internal(format!(
-            "failed to load stored conversations for {}: {}",
-            agent_id, e
-        ))
-    })?;
+    let records = storage_backend
+        .load_conversations(agent_id)
+        .await
+        .map_err(|e| {
+            BridgeError::Internal(format!(
+                "failed to load stored conversations for {}: {}",
+                agent_id, e
+            ))
+        })?;
 
     if records.is_empty() {
         return Ok(());
     }
 
     let restored = records.len();
-    let sse_receivers = state.supervisor.hydrate_conversations(agent_id, records).await;
+    let sse_receivers = state
+        .supervisor
+        .hydrate_conversations(agent_id, records)
+        .await;
     for (conv_id, sse_rx) in sse_receivers {
         state.sse_streams.insert(conv_id, sse_rx);
     }
 
-    info!(agent_id = agent_id, count = restored, "restored conversations after agent load");
+    info!(
+        agent_id = agent_id,
+        count = restored,
+        "restored conversations after agent load"
+    );
     Ok(())
 }
 

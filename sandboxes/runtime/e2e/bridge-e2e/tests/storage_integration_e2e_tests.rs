@@ -86,7 +86,12 @@ async fn cleanup_agents(url: &str, auth_token: &str, path: &str, agent_ids: &[St
     }
 }
 
-async fn load_conversation_ids(url: &str, auth_token: &str, path: &str, agent_id: &str) -> Vec<String> {
+async fn load_conversation_ids(
+    url: &str,
+    auth_token: &str,
+    path: &str,
+    agent_id: &str,
+) -> Vec<String> {
     let backend = match LibSqlBackend::new(&StorageConfig {
         url: url.to_string(),
         auth_token: auth_token.to_string(),
@@ -173,7 +178,8 @@ async fn test_storage_restores_conversation_after_restart() {
         assert!(!text.is_empty(), "first run should produce a response");
     }
 
-    let stored_conversations = load_conversation_ids(&url, &auth_token, &path, "agent_simple").await;
+    let stored_conversations =
+        load_conversation_ids(&url, &auth_token, &path, "agent_simple").await;
     assert!(
         stored_conversations.contains(&conversation_id),
         "conversation should be persisted before restart; got {:?}",
@@ -182,7 +188,9 @@ async fn test_storage_restores_conversation_after_restart() {
 
     let stored_agents = load_agent_ids(&url, &auth_token, &path).await;
     assert!(
-        stored_agents.iter().any(|agent_id| agent_id == "agent_simple"),
+        stored_agents
+            .iter()
+            .any(|agent_id| agent_id == "agent_simple"),
         "agent should be persisted before restart; got {:?}",
         stored_agents
     );
