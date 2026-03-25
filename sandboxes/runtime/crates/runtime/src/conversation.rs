@@ -599,7 +599,8 @@ pub async fn run_conversation(params: ConversationParams) {
                 };
 
                 let has_text = matches!(&response_text, Some(text) if !text.is_empty());
-                let had_tool_calls = history_contains_tool_calls(&enriched_history, history_backup.len());
+                let had_tool_calls =
+                    history_contains_tool_calls(&enriched_history, history_backup.len());
 
                 let needs_recovery = if tool_calls_only && had_tool_calls {
                     // Agent is configured to complete with tool calls only — no text needed.
@@ -865,10 +866,7 @@ pub async fn run_conversation(params: ConversationParams) {
 }
 
 /// Check if any assistant messages in `enriched[baseline_len..]` contain tool calls.
-fn history_contains_tool_calls(
-    enriched: &[rig::message::Message],
-    baseline_len: usize,
-) -> bool {
+fn history_contains_tool_calls(enriched: &[rig::message::Message], baseline_len: usize) -> bool {
     use rig::completion::message::AssistantContent;
     enriched[baseline_len..].iter().any(|msg| {
         if let rig::message::Message::Assistant { content, .. } = msg {
