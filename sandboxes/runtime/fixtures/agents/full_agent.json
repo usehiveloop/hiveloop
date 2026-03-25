@@ -62,7 +62,8 @@
   "config": {
     "max_tokens": 4096,
     "max_turns": 10,
-    "temperature": 0.7
+    "temperature": 0.7,
+    "tool_calls_only": false
   },
   "subagents": [],
   "webhook_url": "https://example.com/webhooks/agent",

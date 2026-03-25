@@ -27,7 +27,7 @@ const CONTINUATION_TIMEOUT: Duration = Duration::from_secs(180);
 /// Maximum number of automatic continuation attempts when the agent returns an
 /// empty response. After this many continuations, fall back to the no-tools
 /// retry agent.
-const MAX_CONTINUATIONS: usize = 1;
+const MAX_CONTINUATIONS: usize = 3;
 
 use crate::token_tracker;
 
@@ -91,6 +91,8 @@ pub struct ConversationParams {
     pub initial_persisted_messages: Option<Vec<Message>>,
     /// Optional non-blocking persistence handle.
     pub storage: Option<StorageHandle>,
+    /// When true, empty text responses are accepted as success if tool calls were made.
+    pub tool_calls_only: bool,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -129,6 +131,7 @@ pub async fn run_conversation(params: ConversationParams) {
         llm_semaphore,
         initial_persisted_messages,
         storage,
+        tool_calls_only,
     } = params;
 
     info!(
@@ -595,7 +598,15 @@ pub async fn run_conversation(params: ConversationParams) {
                     }
                 };
 
-                let needs_recovery = !matches!(&response_text, Some(text) if !text.is_empty());
+                let has_text = matches!(&response_text, Some(text) if !text.is_empty());
+                let had_tool_calls = history_contains_tool_calls(&enriched_history, history_backup.len());
+
+                let needs_recovery = if tool_calls_only && had_tool_calls {
+                    // Agent is configured to complete with tool calls only — no text needed.
+                    false
+                } else {
+                    !has_text
+                };
 
                 let response = if needs_recovery {
                     warn!(
@@ -622,7 +633,17 @@ pub async fn run_conversation(params: ConversationParams) {
                         let metrics_for_cont = metrics.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
-                        let cont_prompt = "Continue working on the task. If you have completed all the work, provide a final text summary of what you did and what you found.".to_string();
+                        let cont_prompt = if tool_calls_only {
+                            format!(
+                                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it.",
+                                user_text
+                            )
+                        } else {
+                            format!(
+                                "You were assigned to work on the following task:\n\n{}\n\nPlease continue working on it. If you have completed all the work, provide a final text summary.",
+                                user_text
+                            )
+                        };
 
                         tokio::spawn(async move {
                             let emitter = llm::ToolCallEmitter {
@@ -737,7 +758,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         }
                     }
                 } else {
-                    response_text.unwrap()
+                    response_text.unwrap_or_default()
                 };
 
                 info!(
@@ -751,21 +772,23 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent response finalized"
                 );
 
-                // Send the response as content delta
-                let _ = sse_tx
-                    .send(SseEvent::ContentDelta {
-                        delta: response.clone(),
-                        message_id: msg_id.clone(),
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::response_chunk(
-                        &agent_id,
-                        &conversation_id,
-                        json!({"delta": &response}),
-                        &wh.url,
-                        &wh.secret,
-                    ));
+                // Send the response as content delta (skip if empty, e.g. tool_calls_only mode)
+                if !response.is_empty() {
+                    let _ = sse_tx
+                        .send(SseEvent::ContentDelta {
+                            delta: response.clone(),
+                            message_id: msg_id.clone(),
+                        })
+                        .await;
+                    if let Some(ref wh) = webhook_ctx {
+                        wh.dispatcher.dispatch(webhooks::events::response_chunk(
+                            &agent_id,
+                            &conversation_id,
+                            json!({"delta": &response}),
+                            &wh.url,
+                            &wh.secret,
+                        ));
+                    }
                 }
 
                 let new_persisted_messages =
@@ -839,6 +862,23 @@ pub async fn run_conversation(params: ConversationParams) {
         turns = turn_count,
         "conversation ended"
     );
+}
+
+/// Check if any assistant messages in `enriched[baseline_len..]` contain tool calls.
+fn history_contains_tool_calls(
+    enriched: &[rig::message::Message],
+    baseline_len: usize,
+) -> bool {
+    use rig::completion::message::AssistantContent;
+    enriched[baseline_len..].iter().any(|msg| {
+        if let rig::message::Message::Assistant { content, .. } = msg {
+            content
+                .iter()
+                .any(|c| matches!(c, AssistantContent::ToolCall(_)))
+        } else {
+            false
+        }
+    })
 }
 
 fn text_message(role: Role, text: String) -> Message {

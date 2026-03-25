@@ -98,6 +98,12 @@ pub struct AgentConfig {
     /// Takes precedence over the global max_concurrent_conversations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_concurrent_conversations: Option<u32>,
+
+    /// When true, the agent can complete a turn with only tool calls and no text.
+    /// Empty text responses are treated as success if tool calls were executed.
+    /// Default: false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls_only: Option<bool>,
 }
 
 /// Configuration for conversation compaction (history summarization).

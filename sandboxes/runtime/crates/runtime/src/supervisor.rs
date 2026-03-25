@@ -413,6 +413,7 @@ impl AgentSupervisor {
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
+        let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
@@ -485,6 +486,7 @@ impl AgentSupervisor {
                 llm_semaphore,
                 initial_persisted_messages: None,
                 storage,
+                tool_calls_only,
             })
             .await;
         });
@@ -874,6 +876,7 @@ impl AgentSupervisor {
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
+        let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
@@ -923,6 +926,7 @@ impl AgentSupervisor {
                 llm_semaphore,
                 initial_persisted_messages: Some(initial_persisted_messages),
                 storage,
+                tool_calls_only,
             })
             .await;
         });
