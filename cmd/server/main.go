@@ -169,6 +169,9 @@ func run() error {
 	reg := registry.Global()
 	slog.Info("provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
 
+	// 11b. Generation writer (buffered, non-blocking — observability for proxy requests)
+	generationWriter := middleware.NewGenerationWriter(database, reg, 10000)
+
 	// 12. Logto client (for org management)
 	var logtoClient *logto.Client
 	if cfg.LogtoM2MAppID != "" && cfg.LogtoM2MAppSecret != "" {
@@ -205,7 +208,9 @@ func run() error {
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
-	proxyHandler := handler.NewProxyHandler(cacheManager, proxy.NewTransport())
+	generationHandler := handler.NewGenerationHandler(database)
+	reportingHandler := handler.NewReportingHandler(database)
+	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
 
 	// 14. Router
 	r := chi.NewRouter()
@@ -253,6 +258,9 @@ func run() error {
 				r.Get("/orgs/current", orgHandler.Current)
 				r.Get("/usage", usageHandler.Get)
 				r.Get("/audit", auditHandler.List)
+				r.Get("/reporting", reportingHandler.Get)
+				r.Get("/generations", generationHandler.List)
+				r.Get("/generations/{id}", generationHandler.Get)
 
 				// API key CRUD (any auth, no scope required)
 				r.Post("/api-keys", apiKeyHandler.Create)
@@ -355,6 +363,7 @@ func run() error {
 		r.Use(middleware.IdentityRateLimit(redisClient, database))
 		r.Use(middleware.RemainingCheck(ctr))
 		r.Use(middleware.Audit(auditWriter, "proxy.request"))
+		r.Use(middleware.Generation(generationWriter, database))
 		r.Handle("/*", proxyHandler)
 	})
 
@@ -430,8 +439,9 @@ func run() error {
 		slog.Error("mcp server shutdown error", "error", err)
 	}
 
-	// Flush audit buffer
+	// Flush audit + generation buffers
 	auditWriter.Shutdown(shutdownCtx)
+	generationWriter.Shutdown(shutdownCtx)
 
 	// Purge L1 cache (zeros memguard enclaves)
 	cacheManager.Memory().Purge()

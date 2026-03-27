@@ -64,6 +64,43 @@ type topCredential struct {
 	RequestCount int64  `json:"request_count"`
 }
 
+type spendOverTime struct {
+	Date      string  `json:"date"`
+	TotalCost float64 `json:"total_cost"`
+}
+
+type tokenVolumes struct {
+	Date         string `json:"date"`
+	InputTokens  int64  `json:"input_tokens"`
+	OutputTokens int64  `json:"output_tokens"`
+	CachedTokens int64  `json:"cached_tokens"`
+}
+
+type latencyStats struct {
+	Date      string  `json:"date"`
+	AvgTTFBMs float64 `json:"avg_ttfb_ms"`
+	P95TTFBMs float64 `json:"p95_ttfb_ms"`
+}
+
+type topModel struct {
+	Model        string  `json:"model"`
+	ProviderID   string  `json:"provider_id"`
+	RequestCount int64   `json:"request_count"`
+	TotalCost    float64 `json:"total_cost"`
+}
+
+type topUser struct {
+	UserID       string  `json:"user_id"`
+	RequestCount int64   `json:"request_count"`
+	TotalCost    float64 `json:"total_cost"`
+}
+
+type errorRate struct {
+	Date       string `json:"date"`
+	Total      int64  `json:"total"`
+	ErrorCount int64  `json:"error_count"`
+}
+
 type usageResponse struct {
 	Credentials    credentialStats `json:"credentials"`
 	Tokens         tokenStats      `json:"tokens"`
@@ -72,6 +109,14 @@ type usageResponse struct {
 	Requests       requestStats    `json:"requests"`
 	DailyRequests  []dailyRequests `json:"daily_requests"`
 	TopCredentials []topCredential `json:"top_credentials"`
+
+	// Generation-based analytics
+	SpendOverTime []spendOverTime `json:"spend_over_time"`
+	TokenVolumes  []tokenVolumes  `json:"token_volumes"`
+	Latency       []latencyStats  `json:"latency"`
+	TopModels     []topModel      `json:"top_models"`
+	TopUsers      []topUser       `json:"top_users"`
+	ErrorRates    []errorRate     `json:"error_rates"`
 }
 
 // Get handles GET /v1/usage.
@@ -240,6 +285,172 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// Query 7: Spend over time (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			Date      time.Time
+			TotalCost float64
+		}
+		h.db.Raw(`
+			SELECT DATE(created_at) AS date, COALESCE(SUM(cost), 0) AS total_cost
+			FROM generations
+			WHERE org_id = ? AND created_at >= ?
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
+
+		resp.SpendOverTime = make([]spendOverTime, 0, len(rows))
+		for _, row := range rows {
+			resp.SpendOverTime = append(resp.SpendOverTime, spendOverTime{
+				Date:      row.Date.Format("2006-01-02"),
+				TotalCost: row.TotalCost,
+			})
+		}
+	}()
+
+	// Query 8: Token volumes (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			Date         time.Time
+			InputTokens  int64
+			OutputTokens int64
+			CachedTokens int64
+		}
+		h.db.Raw(`
+			SELECT DATE(created_at) AS date,
+				COALESCE(SUM(input_tokens), 0) AS input_tokens,
+				COALESCE(SUM(output_tokens), 0) AS output_tokens,
+				COALESCE(SUM(cached_tokens), 0) AS cached_tokens
+			FROM generations
+			WHERE org_id = ? AND created_at >= ?
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
+
+		resp.TokenVolumes = make([]tokenVolumes, 0, len(rows))
+		for _, row := range rows {
+			resp.TokenVolumes = append(resp.TokenVolumes, tokenVolumes{
+				Date:         row.Date.Format("2006-01-02"),
+				InputTokens:  row.InputTokens,
+				OutputTokens: row.OutputTokens,
+				CachedTokens: row.CachedTokens,
+			})
+		}
+	}()
+
+	// Query 9: Latency stats (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			Date      time.Time
+			AvgTTFBMs float64
+			P95TTFBMs float64
+		}
+		h.db.Raw(`
+			SELECT DATE(created_at) AS date,
+				COALESCE(AVG(ttfb_ms), 0) AS avg_ttfb_ms,
+				COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY ttfb_ms), 0) AS p95_ttfb_ms
+			FROM generations
+			WHERE org_id = ? AND created_at >= ? AND ttfb_ms IS NOT NULL
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
+
+		resp.Latency = make([]latencyStats, 0, len(rows))
+		for _, row := range rows {
+			resp.Latency = append(resp.Latency, latencyStats{
+				Date:      row.Date.Format("2006-01-02"),
+				AvgTTFBMs: row.AvgTTFBMs,
+				P95TTFBMs: row.P95TTFBMs,
+			})
+		}
+	}()
+
+	// Query 10: Top models (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			Model        string
+			ProviderID   string
+			RequestCount int64
+			TotalCost    float64
+		}
+		h.db.Raw(`
+			SELECT model, provider_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
+			FROM generations
+			WHERE org_id = ? AND created_at >= ? AND model != ''
+			GROUP BY model, provider_id
+			ORDER BY request_count DESC
+			LIMIT 10`, orgID, last30d).Scan(&rows)
+
+		resp.TopModels = make([]topModel, 0, len(rows))
+		for _, row := range rows {
+			resp.TopModels = append(resp.TopModels, topModel{
+				Model:        row.Model,
+				ProviderID:   row.ProviderID,
+				RequestCount: row.RequestCount,
+				TotalCost:    row.TotalCost,
+			})
+		}
+	}()
+
+	// Query 11: Top users by cost (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			UserID       string
+			RequestCount int64
+			TotalCost    float64
+		}
+		h.db.Raw(`
+			SELECT user_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
+			FROM generations
+			WHERE org_id = ? AND created_at >= ? AND user_id != ''
+			GROUP BY user_id
+			ORDER BY total_cost DESC
+			LIMIT 10`, orgID, last30d).Scan(&rows)
+
+		resp.TopUsers = make([]topUser, 0, len(rows))
+		for _, row := range rows {
+			resp.TopUsers = append(resp.TopUsers, topUser{
+				UserID:       row.UserID,
+				RequestCount: row.RequestCount,
+				TotalCost:    row.TotalCost,
+			})
+		}
+	}()
+
+	// Query 12: Error rates (last 30 days, from generations)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var rows []struct {
+			Date       time.Time
+			Total      int64
+			ErrorCount int64
+		}
+		h.db.Raw(`
+			SELECT DATE(created_at) AS date, COUNT(*) AS total,
+				COUNT(*) FILTER (WHERE error_type != '' AND error_type IS NOT NULL) AS error_count
+			FROM generations
+			WHERE org_id = ? AND created_at >= ?
+			GROUP BY DATE(created_at)
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
+
+		resp.ErrorRates = make([]errorRate, 0, len(rows))
+		for _, row := range rows {
+			resp.ErrorRates = append(resp.ErrorRates, errorRate{
+				Date:       row.Date.Format("2006-01-02"),
+				Total:      row.Total,
+				ErrorCount: row.ErrorCount,
+			})
+		}
+	}()
+
 	wg.Wait()
 
 	// Ensure non-null arrays
@@ -248,6 +459,24 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	if resp.TopCredentials == nil {
 		resp.TopCredentials = []topCredential{}
+	}
+	if resp.SpendOverTime == nil {
+		resp.SpendOverTime = []spendOverTime{}
+	}
+	if resp.TokenVolumes == nil {
+		resp.TokenVolumes = []tokenVolumes{}
+	}
+	if resp.Latency == nil {
+		resp.Latency = []latencyStats{}
+	}
+	if resp.TopModels == nil {
+		resp.TopModels = []topModel{}
+	}
+	if resp.TopUsers == nil {
+		resp.TopUsers = []topUser{}
+	}
+	if resp.ErrorRates == nil {
+		resp.ErrorRates = []errorRate{}
 	}
 
 	writeJSON(w, http.StatusOK, resp)
