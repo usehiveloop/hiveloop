@@ -686,14 +686,15 @@ async fn test_webhooks_dispatched_for_conversation() {
         .await
         .expect("stream_sse_until_done failed");
 
-    // Wait for at least 5 webhooks to arrive. In the error path we expect:
-    // conversation_created, message_received, response_started, agent_error, turn_completed.
-    // Each webhook delivery is a separate spawned task, so waiting for just
-    // turn_completed can race ahead of agent_error.
+    // Wait for turn_completed — it is always the last event in the turn
+    // lifecycle, so all prior events (response_chunk, response_completed,
+    // agent_error, etc.) should already be in the log by the time it arrives.
+    // With streaming, many response_chunk webhooks are sent incrementally
+    // before turn_completed, so a fixed count no longer works reliably.
     let log = harness
-        .wait_for_webhooks(5, Duration::from_secs(10))
+        .wait_for_webhook_type("turn_completed", Duration::from_secs(10))
         .await
-        .expect("wait_for_webhooks failed");
+        .expect("wait_for_webhook_type(turn_completed) failed");
 
     // These lifecycle events are always emitted regardless of LLM success/failure:
     // - conversation_created: from the API handler

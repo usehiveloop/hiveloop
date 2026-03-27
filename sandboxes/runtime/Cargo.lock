@@ -445,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "bridge"
-version = "0.8.4"
+version = "0.8.5"
 dependencies = [
  "anyhow",
  "api",
@@ -2267,6 +2267,7 @@ dependencies = [
  "chrono",
  "core",
  "dashmap",
+ "futures",
  "http 1.4.0",
  "pretty_assertions",
  "reqwest 0.12.28",

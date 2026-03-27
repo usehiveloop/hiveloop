@@ -2,7 +2,8 @@ use bridge_core::conversation::{Message, Role};
 use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
 use dashmap::DashMap;
-use llm::{PermissionManager, SseEvent, TokenUsage};
+use futures::StreamExt;
+use llm::{BridgeStreamItem, PermissionManager, SseEvent, TokenUsage};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -370,7 +371,7 @@ pub async fn run_conversation(params: ConversationParams) {
         // Zero-copy: take ownership of history instead of cloning. We get it back
         // via the oneshot channel. Keep a backup only for error recovery paths.
         let history_backup = history.clone();
-        let mut history_for_task = std::mem::take(&mut history);
+        let history_for_task = std::mem::take(&mut history);
         let sse_tx_clone = sse_tx.clone();
         let agent_context_clone = agent_context.clone();
         let turn_cancel_clone = turn_cancel.clone();
@@ -382,6 +383,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let permission_manager_clone = permission_manager.clone();
         let agent_permissions_clone = agent_permissions.clone();
         let metrics_for_task = metrics.clone();
+        let msg_id_clone = msg_id.clone();
         // Acquire LLM semaphore permit before spawning the task.
         // This provides global backpressure on concurrent LLM API calls.
         let llm_permit = match llm_semaphore.clone().acquire_owned().await {
@@ -395,8 +397,16 @@ pub async fn run_conversation(params: ConversationParams) {
         let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
         tokio::spawn(async move {
-            // Hold the LLM permit for the duration of the agent prompt call
+            // Hold the LLM permit for the duration of the agent streaming call
             let _llm_permit = llm_permit;
+
+            // Extra clones for streaming text delta emission (the originals
+            // are moved into the ToolCallEmitter for tool-call SSE events).
+            let sse_tx_for_text = sse_tx_clone.clone();
+            let webhook_ctx_for_text = webhook_ctx_clone.clone();
+            let agent_id_for_text = agent_id_clone.clone();
+            let conversation_id_for_text = conversation_id_clone.clone();
+
             let emitter = llm::ToolCallEmitter {
                 sse_tx: sse_tx_clone,
                 cancel: turn_cancel_clone,
@@ -410,10 +420,90 @@ pub async fn run_conversation(params: ConversationParams) {
                 metrics: metrics_for_task,
                 pending_tool_timings: Arc::new(DashMap::new()),
             };
+
             let fut = async {
-                agent_clone
-                    .prompt_with_hook(&user_text_clone, &mut history_for_task, emitter)
-                    .await
+                let mut stream = agent_clone
+                    .stream_prompt_with_hook(&user_text_clone, history_for_task, emitter)
+                    .await;
+
+                let mut accumulated_text = String::new();
+                let mut final_usage = rig::completion::Usage::new();
+                let mut final_history: Option<Vec<rig::message::Message>> = None;
+                let mut had_error: Option<String> = None;
+
+                while let Some(item) = stream.next().await {
+                    match item {
+                        BridgeStreamItem::TextDelta(delta) => {
+                            accumulated_text.push_str(&delta);
+                            // Emit SSE content delta in real time
+                            let _ = sse_tx_for_text
+                                .send(SseEvent::ContentDelta {
+                                    delta: delta.clone(),
+                                    message_id: msg_id_clone.clone(),
+                                })
+                                .await;
+                            // Emit webhook in real time
+                            if let Some(ref wh) = webhook_ctx_for_text {
+                                wh.dispatcher.dispatch(
+                                    webhooks::events::response_chunk(
+                                        &agent_id_for_text,
+                                        &conversation_id_for_text,
+                                        json!({"delta": &delta}),
+                                        &wh.url,
+                                        &wh.secret,
+                                    ),
+                                );
+                            }
+                        }
+                        BridgeStreamItem::StreamFinished {
+                            response,
+                            usage,
+                            history,
+                        } => {
+                            accumulated_text = response;
+                            final_usage = usage;
+                            final_history = history;
+                        }
+                        BridgeStreamItem::StreamError(err) => {
+                            had_error = Some(err);
+                            break;
+                        }
+                    }
+                }
+
+                let enriched_history = final_history.unwrap_or_default();
+
+                if let Some(err_msg) = had_error {
+                    // Check if it's a parse error that allows recovery
+                    if err_msg.contains("no message or tool call")
+                        || err_msg
+                            .contains("did not match any variant of untagged enum")
+                    {
+                        // Treat as recoverable: return accumulated text (may be empty)
+                        (
+                            Ok(llm::PromptResponse {
+                                output: accumulated_text,
+                                total_usage: final_usage,
+                            }),
+                            enriched_history,
+                        )
+                    } else {
+                        (
+                            Err(rig::completion::PromptError::CompletionError(
+                                rig::completion::CompletionError::ProviderError(err_msg),
+                            )),
+                            enriched_history,
+                        )
+                    }
+                } else {
+                    (
+                        Ok(llm::PromptResponse {
+                            output: accumulated_text,
+                            total_usage: final_usage,
+                        }),
+                        enriched_history,
+                    )
+                }
             };
 
             // Wrap in AGENT_CONTEXT scope if available
@@ -421,7 +511,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 Some(ctx) => AGENT_CONTEXT.scope(ctx, fut).await,
                 None => fut.await,
             };
-            let _ = result_tx.send((result, history_for_task));
+            let _ = result_tx.send(result);
         });
 
         // Wait for the result with a timeout, or abort/shutdown
@@ -776,8 +866,10 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent response finalized"
                 );
 
-                // Send the response as content delta (skip if empty, e.g. tool_calls_only mode)
-                if !response.is_empty() {
+                // Send the response as content delta only for recovery responses.
+                // In the normal streaming path, text was already sent incrementally
+                // via ContentDelta events from the spawned task.
+                if !response.is_empty() && needs_recovery {
                     let _ = sse_tx
                         .send(SseEvent::ContentDelta {
                             delta: response.clone(),

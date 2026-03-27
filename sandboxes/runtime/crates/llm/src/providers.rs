@@ -1,11 +1,15 @@
+use std::pin::Pin;
 use std::time::Duration;
 
 use bridge_core::provider::{ProviderConfig, ProviderType};
 use bridge_core::BridgeError;
+use futures::stream::StreamExt;
+use futures::Stream;
 use rig::agent::Agent;
 use rig::completion::{CompletionError, CompletionModel, Prompt, PromptError};
 use rig::message::Message;
 use rig::prelude::CompletionClient;
+use rig::streaming::StreamingPrompt;
 use tracing::{error, info, warn};
 
 use crate::tool_hook::ToolCallEmitter;
@@ -54,6 +58,28 @@ pub struct PromptResponse {
     pub total_usage: rig::completion::Usage,
 }
 
+/// Provider-agnostic stream item for real-time text streaming.
+///
+/// Erases the provider-specific response type from rig's `MultiTurnStreamItem<R>`,
+/// exposing only the items Bridge needs: text deltas, final response, and errors.
+/// Tool call events are handled separately by `ToolCallEmitter` hooks.
+pub enum BridgeStreamItem {
+    /// Incremental text token from the assistant.
+    TextDelta(String),
+    /// The stream finished. Contains final text, aggregated token usage, and
+    /// the enriched conversation history (if history was provided).
+    StreamFinished {
+        response: String,
+        usage: rig::completion::Usage,
+        history: Option<Vec<Message>>,
+    },
+    /// A streaming error occurred.
+    StreamError(String),
+}
+
+/// A type-erased stream of [`BridgeStreamItem`]s.
+pub type BridgeStream = Pin<Box<dyn Stream<Item = BridgeStreamItem> + Send>>;
+
 /// Helper macro to dispatch a prompt chain across all enum variants.
 ///
 /// Each variant produces the same `Result<PromptResponse, PromptError>` so
@@ -76,6 +102,49 @@ macro_rules! dispatch_prompt {
 macro_rules! dispatch_prompt_simple {
     ($agent_variant:expr, $text:expr) => {{
         $agent_variant.prompt($text).await
+    }};
+}
+
+/// Dispatch a streaming prompt across a concrete agent variant, mapping
+/// the provider-specific `MultiTurnStreamItem<R>` into `BridgeStreamItem`.
+///
+/// Text deltas and the final response are forwarded; tool events are filtered
+/// out because `ToolCallEmitter` hooks handle them via SSE directly.
+macro_rules! dispatch_stream {
+    ($agent_variant:expr, $text:expr, $history:expr, $hook:expr) => {{
+        use rig::agent::MultiTurnStreamItem;
+        use rig::streaming::StreamedAssistantContent;
+
+        let stream = $agent_variant
+            .stream_prompt($text)
+            .with_history($history)
+            .with_hook($hook)
+            .await;
+
+        let mapped = stream.filter_map(|item| async move {
+            match item {
+                Ok(MultiTurnStreamItem::StreamAssistantItem(
+                    StreamedAssistantContent::Text(text),
+                )) => {
+                    if text.text.is_empty() {
+                        None
+                    } else {
+                        Some(BridgeStreamItem::TextDelta(text.text))
+                    }
+                }
+                Ok(MultiTurnStreamItem::FinalResponse(f)) => {
+                    Some(BridgeStreamItem::StreamFinished {
+                        response: f.response().to_string(),
+                        usage: f.usage(),
+                        history: f.history().map(|h: &[Message]| h.to_vec()),
+                    })
+                }
+                Err(e) => Some(BridgeStreamItem::StreamError(format!("{}", e))),
+                _ => None, // tool events, reasoning — handled by ToolCallEmitter hook
+            }
+        });
+
+        Box::pin(mapped) as BridgeStream
     }};
 }
 
@@ -376,6 +445,33 @@ impl BridgeAgent {
         }
 
         Err(last_error.unwrap())
+    }
+
+    /// Stream a prompt with history and a tool-call hook, returning a
+    /// provider-agnostic stream of text deltas and the final response.
+    ///
+    /// Unlike [`prompt_with_hook`](Self::prompt_with_hook) which waits for the
+    /// full response, this returns immediately with a stream that yields text
+    /// chunks as they arrive from the LLM, interleaved with tool execution
+    /// (which the [`ToolCallEmitter`] hook handles via SSE directly).
+    ///
+    /// History is passed by value because the streaming path consumes it;
+    /// the enriched history is returned via [`BridgeStreamItem::StreamFinished`].
+    ///
+    /// No retry logic is applied — once streaming starts, data has already been
+    /// emitted to the client, making retries unsafe.
+    pub async fn stream_prompt_with_hook(
+        &self,
+        text: &str,
+        history: Vec<Message>,
+        hook: ToolCallEmitter,
+    ) -> BridgeStream {
+        match self {
+            BridgeAgent::OpenAI(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgent::Anthropic(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgent::Gemini(a) => dispatch_stream!(a, text, history, hook),
+            BridgeAgent::Cohere(a) => dispatch_stream!(a, text, history, hook),
+        }
     }
 
     /// Simple prompt without hooks or history. Returns just the text output.
