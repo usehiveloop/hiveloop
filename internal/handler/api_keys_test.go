@@ -61,6 +61,7 @@ func connectTestRedis(t *testing.T) *redis.Client {
 
 func cleanupOrg(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	t.Helper()
+	db.Where("org_id = ?", orgID).Delete(&model.Generation{})
 	db.Where("org_id = ?", orgID).Delete(&model.APIKey{})
 	db.Where("org_id = ?", orgID).Delete(&model.AuditEntry{})
 	db.Where("org_id = ?", orgID).Delete(&model.Token{})

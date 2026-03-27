@@ -9,6 +9,7 @@ import (
 
 	"github.com/llmvault/llmvault/internal/cache"
 	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/observe"
 )
 
 // NewDirector returns an httputil.ReverseProxy Director function.
@@ -73,6 +74,12 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		}
 		req.URL.Path = basePath + upstreamPath
 		req.Host = hostAndPath[0]
+
+		// Extract model from request body and store on captured data (if present)
+		modelName := ExtractModel(req)
+		if captured, ok := observe.CapturedDataFromContext(req.Context()); ok {
+			captured.Model = modelName
+		}
 
 		// Strip the incoming Authorization header (sandbox token) and attach real API key
 		req.Header.Del("Authorization")
