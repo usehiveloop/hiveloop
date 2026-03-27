@@ -555,12 +555,15 @@ pub async fn run_conversation(params: ConversationParams) {
                     }
                     Err(e) => {
                         let error_msg = format!("{}", e);
-                        if error_msg.contains("no message or tool call") {
+                        if error_msg.contains("no message or tool call")
+                            || error_msg
+                                .contains("did not match any variant of untagged enum")
+                        {
                             warn!(
                                 agent_id = agent_id,
                                 conversation_id = conversation_id,
                                 error = %e,
-                                "agent returned no message or tool call, attempting recovery"
+                                "agent response could not be parsed, attempting recovery"
                             );
                             (None, 0u64, 0u64)
                         } else {

@@ -497,9 +497,10 @@ fn is_retryable_error(err: &PromptError) -> bool {
                     || msg.contains("connection")
             }
             CompletionError::RequestError(_) => true,
-            CompletionError::JsonError(_)
-            | CompletionError::UrlError(_)
-            | CompletionError::ResponseError(_) => false,
+            // JsonError can be transient with OpenAI-compatible providers
+            // (e.g. OpenRouter) that intermittently return non-standard formats.
+            CompletionError::JsonError(_) => true,
+            CompletionError::UrlError(_) | CompletionError::ResponseError(_) => false,
         },
         // Tool errors mean tools already executed — NOT safe to retry
         PromptError::ToolError(_)
@@ -827,10 +828,10 @@ mod tests {
     }
 
     #[test]
-    fn test_not_retryable_json_error() {
+    fn test_retryable_json_error() {
         let json_err = serde_json::from_str::<String>("not json").unwrap_err();
         let err = PromptError::CompletionError(CompletionError::JsonError(json_err));
-        assert!(!is_retryable_error(&err));
+        assert!(is_retryable_error(&err));
     }
 
     #[test]
