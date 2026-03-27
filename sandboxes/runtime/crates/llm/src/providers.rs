@@ -123,9 +123,9 @@ macro_rules! dispatch_stream {
 
         let mapped = stream.filter_map(|item| async move {
             match item {
-                Ok(MultiTurnStreamItem::StreamAssistantItem(
-                    StreamedAssistantContent::Text(text),
-                )) => {
+                Ok(MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(
+                    text,
+                ))) => {
                     if text.text.is_empty() {
                         None
                     } else {

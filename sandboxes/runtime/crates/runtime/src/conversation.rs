@@ -444,15 +444,13 @@ pub async fn run_conversation(params: ConversationParams) {
                                 .await;
                             // Emit webhook in real time
                             if let Some(ref wh) = webhook_ctx_for_text {
-                                wh.dispatcher.dispatch(
-                                    webhooks::events::response_chunk(
-                                        &agent_id_for_text,
-                                        &conversation_id_for_text,
-                                        json!({"delta": &delta}),
-                                        &wh.url,
-                                        &wh.secret,
-                                    ),
-                                );
+                                wh.dispatcher.dispatch(webhooks::events::response_chunk(
+                                    &agent_id_for_text,
+                                    &conversation_id_for_text,
+                                    json!({"delta": &delta}),
+                                    &wh.url,
+                                    &wh.secret,
+                                ));
                             }
                         }
                         BridgeStreamItem::StreamFinished {
@@ -476,8 +474,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 if let Some(err_msg) = had_error {
                     // Check if it's a parse error that allows recovery
                     if err_msg.contains("no message or tool call")
-                        || err_msg
-                            .contains("did not match any variant of untagged enum")
+                        || err_msg.contains("did not match any variant of untagged enum")
                     {
                         // Treat as recoverable: return accumulated text (may be empty)
                         (
@@ -646,8 +643,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     Err(e) => {
                         let error_msg = format!("{}", e);
                         if error_msg.contains("no message or tool call")
-                            || error_msg
-                                .contains("did not match any variant of untagged enum")
+                            || error_msg.contains("did not match any variant of untagged enum")
                         {
                             warn!(
                                 agent_id = agent_id,
