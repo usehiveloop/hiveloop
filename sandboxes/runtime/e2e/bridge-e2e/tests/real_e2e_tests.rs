@@ -1563,3 +1563,135 @@ async fn test_compaction_triggers_and_fires_webhook() {
         pre, post
     );
 }
+
+// ============================================================================
+// Test: Streaming — text interleaved with tool calls
+// Verifies: content_delta events arrive BEFORE and AFTER tool_call_start/result
+// ============================================================================
+#[tokio::test]
+#[ignore]
+async fn test_streaming_text_between_tool_calls() {
+    if !require_fireworks_key() {
+        return;
+    }
+
+    let harness = TestHarness::start_real()
+        .await
+        .expect("failed to start real harness");
+
+    let turn = converse_with_retry(
+        &harness,
+        "streaming-agent",
+        "Look up issue ENG-42 and tell me about it.",
+        "streaming",
+    )
+    .await;
+
+    assert_response_not_empty(&turn, "streaming");
+
+    // The agent should have called getIssue
+    assert_any_tool_called_in_sse(&turn, &["getIssue"], "streaming");
+
+    // ── Core streaming assertion ──
+    // Verify that content_delta events appear both BEFORE and AFTER tool calls.
+    // This is the key behavior: the LLM streams text, then makes a tool call,
+    // then streams more text — and the client sees all of it in real time.
+
+    // Find the index of the first tool_call_start event
+    let first_tool_start_idx = turn
+        .sse_events
+        .iter()
+        .position(|e| e.event_type == "tool_call_start");
+
+    // Find the index of the last tool_call_result event
+    let last_tool_result_idx = turn
+        .sse_events
+        .iter()
+        .rposition(|e| e.event_type == "tool_call_result");
+
+    assert!(
+        first_tool_start_idx.is_some(),
+        "[streaming] expected at least one tool_call_start event"
+    );
+    assert!(
+        last_tool_result_idx.is_some(),
+        "[streaming] expected at least one tool_call_result event"
+    );
+
+    let tool_start = first_tool_start_idx.unwrap();
+    let tool_end = last_tool_result_idx.unwrap();
+
+    // Check for content_delta events BEFORE the first tool call
+    let deltas_before_tool = turn.sse_events[..tool_start]
+        .iter()
+        .any(|e| e.event_type == "content_delta");
+
+    // Check for content_delta events AFTER the last tool result
+    let deltas_after_tool = turn.sse_events[tool_end + 1..]
+        .iter()
+        .any(|e| e.event_type == "content_delta");
+
+    // Log the full event sequence for debugging
+    let event_sequence: Vec<String> = turn
+        .sse_events
+        .iter()
+        .map(|e| {
+            if e.event_type == "content_delta" {
+                let text = e
+                    .data
+                    .get("delta")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("");
+                let preview: String = text.chars().take(40).collect();
+                format!("content_delta(\"{}\")", preview)
+            } else if e.event_type == "tool_call_start" {
+                let name = e
+                    .data
+                    .get("name")
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("?");
+                format!("tool_call_start({})", name)
+            } else {
+                e.event_type.clone()
+            }
+        })
+        .collect();
+
+    eprintln!("[streaming] event sequence: {:#?}", event_sequence);
+
+    assert!(
+        deltas_before_tool,
+        "[streaming] expected content_delta events BEFORE tool_call_start. \
+         The LLM should stream explanatory text before calling a tool. \
+         Events: {:?}",
+        event_sequence
+    );
+
+    assert!(
+        deltas_after_tool,
+        "[streaming] expected content_delta events AFTER tool_call_result. \
+         The LLM should stream a summary after receiving the tool result. \
+         Events: {:?}",
+        event_sequence
+    );
+
+    // Also verify multiple content_delta events (proving incremental streaming,
+    // not a single bulk event)
+    let delta_count = turn
+        .sse_events
+        .iter()
+        .filter(|e| e.event_type == "content_delta")
+        .count();
+
+    assert!(
+        delta_count >= 3,
+        "[streaming] expected at least 3 content_delta events (incremental streaming), got {}. \
+         Events: {:?}",
+        delta_count, event_sequence
+    );
+
+    eprintln!(
+        "[streaming] completed in {:?} — {} content_deltas, text interleaved with tool calls ✓",
+        turn.duration, delta_count
+    );
+}

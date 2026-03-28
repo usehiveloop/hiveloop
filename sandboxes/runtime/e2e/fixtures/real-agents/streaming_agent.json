@@ -1,0 +1,32 @@
+{
+  "id": "streaming-agent",
+  "name": "Streaming Test Agent",
+  "system_prompt": "You are a helpful project assistant with access to issue tracking tools.\n\nWhen asked about an issue, you MUST follow this exact pattern:\n1. First, write a short sentence explaining that you will look up the issue\n2. Then call the getIssue tool with the issue identifier\n3. After receiving the tool result, write a summary of what you found\n\nAlways follow this pattern: explain first, then use the tool, then summarize the result.",
+  "provider": {
+    "provider_type": "open_ai",
+    "model": "accounts/fireworks/models/kimi-k2p5",
+    "api_key": "PLACEHOLDER_FIREWORKS_KEY",
+    "base_url": "https://api.fireworks.ai/inference/v1"
+  },
+  "tools": [],
+  "mcp_servers": [
+    {
+      "name": "portal",
+      "transport": {
+        "type": "stdio",
+        "command": "PLACEHOLDER_MOCK_PORTAL_MCP_PATH",
+        "args": [],
+        "env": {
+          "WORKSPACE_DIR": "PLACEHOLDER_WORKSPACE_DIR",
+          "PORTAL_MCP_LOG_FILE": "PLACEHOLDER_LOG_PATH"
+        }
+      }
+    }
+  ],
+  "skills": [],
+  "config": {
+    "max_tokens": 4096,
+    "max_turns": 10,
+    "temperature": 0.3
+  }
+}
