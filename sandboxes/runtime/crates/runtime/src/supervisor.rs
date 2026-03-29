@@ -180,9 +180,14 @@ impl AgentSupervisor {
 
         // Build tool registry with MCP tools (each connection's tools bridged to its own connection)
         let mut tool_registry = ToolRegistry::new();
+        let mut mcp_server_tools: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
         let connections = self.mcp_manager.get_agent_connections(&agent_id);
         for conn in &connections {
             if let Ok(tools) = conn.list_tools().await {
+                let server_name = conn.server_name().to_string();
+                let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
+                mcp_server_tools.insert(server_name, tool_names);
                 let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
                 for tool in bridged {
                     tool_registry.register(tool);
@@ -269,6 +274,7 @@ impl AgentSupervisor {
             subagent_map,
             task_registry,
             self.storage.clone(),
+            mcp_server_tools,
         ));
 
         if let Some(storage_backend) = &self.storage_backend {
@@ -307,6 +313,8 @@ impl AgentSupervisor {
     pub async fn create_conversation(
         &self,
         agent_id: &str,
+        filter_tool_names: Option<Vec<String>>,
+        filter_mcp_server_names: Option<Vec<String>>,
     ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
         let state = self
             .agent_map
@@ -360,7 +368,6 @@ impl AgentSupervisor {
         }
 
         // Spawn the conversation task
-        let agent = state.rig_agent.clone(); // Arc<RwLock<BridgeAgent>> — shared ref
         let metrics = state.metrics.clone();
         let cancel = state.cancel.clone();
         let def = state.definition.read().await;
@@ -402,12 +409,20 @@ impl AgentSupervisor {
         };
         let session_store = state.session_store.clone();
 
-        let tool_names = state
-            .tool_registry
-            .tool_names()
-            .into_iter()
-            .collect::<std::collections::HashSet<String>>();
-        let tool_executors = state.tool_registry.snapshot();
+        let has_filters = filter_tool_names.is_some() || filter_mcp_server_names.is_some();
+
+        let mut tool_names: std::collections::HashSet<String> =
+            state.tool_registry.tool_names().into_iter().collect();
+        let mut tool_executors = state.tool_registry.snapshot();
+
+        filter_conversation_tools(
+            agent_id,
+            &mut tool_names,
+            &mut tool_executors,
+            &state.mcp_server_tools,
+            filter_mcp_server_names.as_ref(),
+            filter_tool_names.as_ref(),
+        )?;
 
         let webhook_ctx = self.webhook_ctx.clone();
         let permission_manager = self.permission_manager.clone();
@@ -417,6 +432,18 @@ impl AgentSupervisor {
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
+
+        // Build a conversation-scoped agent when filters are active so the LLM
+        // only sees the allowed tools. When unfiltered, share the agent-wide instance.
+        let conversation_agent = if has_filters {
+            let scoped_executors: Vec<Arc<dyn tools::ToolExecutor>> =
+                tool_executors.values().cloned().collect();
+            let scoped_dynamic = adapt_tools(scoped_executors)?;
+            Arc::new(tokio::sync::RwLock::new(build_agent(&def, scoped_dynamic)?))
+        } else {
+            state.rig_agent.clone()
+        };
+
         drop(def); // release read lock before spawning
 
         // Build a no-tools retry agent for recovering from empty responses
@@ -463,7 +490,7 @@ impl AgentSupervisor {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
                 conversation_id: conv_id_clone,
-                agent,
+                agent: conversation_agent,
                 message_rx,
                 sse_tx,
                 metrics,
@@ -659,9 +686,14 @@ impl AgentSupervisor {
             .await?;
 
         let mut tool_registry = ToolRegistry::new();
+        let mut mcp_server_tools: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
         let connections = self.mcp_manager.get_agent_connections(&agent_id);
         for conn in &connections {
             if let Ok(tools) = conn.list_tools().await {
+                let server_name = conn.server_name().to_string();
+                let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
+                mcp_server_tools.insert(server_name, tool_names);
                 let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
                 for tool in bridged {
                     tool_registry.register(tool);
@@ -743,6 +775,7 @@ impl AgentSupervisor {
             subagent_map,
             task_registry,
             self.storage.clone(),
+            mcp_server_tools,
         ));
 
         if let Some(storage_backend) = &self.storage_backend {
@@ -1028,6 +1061,65 @@ fn definitions_equivalent(existing: &AgentDefinition, incoming: &AgentDefinition
     }
 }
 
+/// Apply optional tool/MCP scoping filters to a conversation's tool set.
+///
+/// - `mcp_server_names`: if provided, only tools from these MCP servers are kept.
+/// - `tool_names_filter`: if provided, only these tools are kept (applied after MCP filter).
+///
+/// Returns `Err(BridgeError::InvalidRequest)` if any name is unrecognized.
+pub(crate) fn filter_conversation_tools(
+    agent_id: &str,
+    tool_names: &mut std::collections::HashSet<String>,
+    tool_executors: &mut std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
+    mcp_server_tools: &std::collections::HashMap<String, Vec<String>>,
+    filter_mcp_server_names: Option<&Vec<String>>,
+    filter_tool_names: Option<&Vec<String>>,
+) -> Result<(), BridgeError> {
+    // Apply MCP server name filter: keep only tools from specified servers
+    if let Some(server_names) = filter_mcp_server_names {
+        for name in server_names {
+            if !mcp_server_tools.contains_key(name) {
+                return Err(BridgeError::InvalidRequest(format!(
+                    "MCP server '{}' not found on agent '{}'",
+                    name, agent_id
+                )));
+            }
+        }
+        let allowed_mcp_tools: std::collections::HashSet<String> = server_names
+            .iter()
+            .filter_map(|name| mcp_server_tools.get(name))
+            .flat_map(|tools| tools.iter().cloned())
+            .collect();
+        let all_mcp_tools: std::collections::HashSet<String> = mcp_server_tools
+            .values()
+            .flat_map(|v| v.iter().cloned())
+            .collect();
+        let disallowed: std::collections::HashSet<String> = all_mcp_tools
+            .difference(&allowed_mcp_tools)
+            .cloned()
+            .collect();
+        tool_names.retain(|n| !disallowed.contains(n));
+        tool_executors.retain(|n, _| !disallowed.contains(n));
+    }
+
+    // Apply tool name filter: retain only the requested tools
+    if let Some(requested) = filter_tool_names {
+        let requested_set: std::collections::HashSet<String> = requested.iter().cloned().collect();
+        for name in &requested_set {
+            if !tool_names.contains(name) {
+                return Err(BridgeError::InvalidRequest(format!(
+                    "tool '{}' not found on agent '{}'",
+                    name, agent_id
+                )));
+            }
+        }
+        tool_names.retain(|n| requested_set.contains(n));
+        tool_executors.retain(|n, _| requested_set.contains(n));
+    }
+
+    Ok(())
+}
+
 /// Build subagent entries from an agent definition's subagents list.
 ///
 /// Each subagent gets built-in tools plus the parent's integration tools
@@ -1149,4 +1241,442 @@ async fn get_todos_from_registry(
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::any::Any;
+    use std::collections::{HashMap, HashSet};
+    use tools::ToolExecutor;
+
+    /// Minimal mock tool executor for testing.
+    struct MockTool {
+        name: String,
+    }
+
+    impl MockTool {
+        fn new(name: &str) -> Arc<dyn ToolExecutor> {
+            Arc::new(Self {
+                name: name.to_string(),
+            })
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl ToolExecutor for MockTool {
+        fn name(&self) -> &str {
+            &self.name
+        }
+        fn description(&self) -> &str {
+            "mock tool"
+        }
+        fn parameters_schema(&self) -> serde_json::Value {
+            serde_json::json!({})
+        }
+        async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
+            Ok("ok".to_string())
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    /// Helper: build a tool_names set and tool_executors map from a list of names.
+    fn make_tools(names: &[&str]) -> (HashSet<String>, HashMap<String, Arc<dyn ToolExecutor>>) {
+        let tool_names: HashSet<String> = names.iter().map(|n| n.to_string()).collect();
+        let tool_executors: HashMap<String, Arc<dyn ToolExecutor>> = names
+            .iter()
+            .map(|n| (n.to_string(), MockTool::new(n)))
+            .collect();
+        (tool_names, tool_executors)
+    }
+
+    // ── filter_conversation_tools: no filters ─────────────────────────────────
+
+    #[test]
+    fn no_filters_returns_all_tools() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "write", "glob"]);
+        let mcp_map = HashMap::new();
+
+        let result =
+            filter_conversation_tools("agent1", &mut names, &mut executors, &mcp_map, None, None);
+
+        assert!(result.is_ok());
+        assert_eq!(names.len(), 4);
+        assert_eq!(executors.len(), 4);
+    }
+
+    // ── filter_conversation_tools: tool_names filter ──────────────────────────
+
+    #[test]
+    fn tool_names_filter_retains_only_requested() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "write", "glob"]);
+        let mcp_map = HashMap::new();
+        let filter = vec!["bash".to_string(), "read".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            None,
+            Some(&filter),
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(names.len(), 2);
+        assert!(names.contains("bash"));
+        assert!(names.contains("read"));
+        assert!(!names.contains("write"));
+        assert!(!names.contains("glob"));
+        assert_eq!(executors.len(), 2);
+        assert!(executors.contains_key("bash"));
+        assert!(executors.contains_key("read"));
+    }
+
+    #[test]
+    fn tool_names_filter_single_tool() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "write"]);
+        let mcp_map = HashMap::new();
+        let filter = vec!["bash".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            None,
+            Some(&filter),
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(names.len(), 1);
+        assert!(names.contains("bash"));
+        assert_eq!(executors.len(), 1);
+    }
+
+    #[test]
+    fn tool_names_filter_empty_array_means_no_tools() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "write"]);
+        let mcp_map = HashMap::new();
+        let filter: Vec<String> = vec![];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            None,
+            Some(&filter),
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(names.len(), 0);
+        assert_eq!(executors.len(), 0);
+    }
+
+    #[test]
+    fn tool_names_filter_unknown_tool_returns_error() {
+        let (mut names, mut executors) = make_tools(&["bash", "read"]);
+        let mcp_map = HashMap::new();
+        let filter = vec!["bash".to_string(), "nonexistent".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            None,
+            Some(&filter),
+        );
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("nonexistent"),
+            "error should name the tool: {err}"
+        );
+        assert!(err.contains("agent1"), "error should name the agent: {err}");
+    }
+
+    // ── filter_conversation_tools: mcp_server_names filter ────────────────────
+
+    #[test]
+    fn mcp_filter_keeps_only_specified_server_tools() {
+        // Agent has builtin tools + tools from two MCP servers
+        let (mut names, mut executors) =
+            make_tools(&["bash", "read", "search", "query", "index", "delete"]);
+        let mut mcp_map = HashMap::new();
+        mcp_map.insert(
+            "server-a".to_string(),
+            vec!["search".to_string(), "query".to_string()],
+        );
+        mcp_map.insert(
+            "server-b".to_string(),
+            vec!["index".to_string(), "delete".to_string()],
+        );
+        let filter = vec!["server-a".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            Some(&filter),
+            None,
+        );
+
+        assert!(result.is_ok());
+        // Builtin tools (bash, read) remain, server-a tools (search, query) remain
+        // server-b tools (index, delete) are removed
+        assert_eq!(names.len(), 4);
+        assert!(names.contains("bash"));
+        assert!(names.contains("read"));
+        assert!(names.contains("search"));
+        assert!(names.contains("query"));
+        assert!(!names.contains("index"));
+        assert!(!names.contains("delete"));
+        assert_eq!(executors.len(), 4);
+    }
+
+    #[test]
+    fn mcp_filter_empty_array_removes_all_mcp_tools() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "search", "index"]);
+        let mut mcp_map = HashMap::new();
+        mcp_map.insert("server-a".to_string(), vec!["search".to_string()]);
+        mcp_map.insert("server-b".to_string(), vec!["index".to_string()]);
+        let filter: Vec<String> = vec![];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            Some(&filter),
+            None,
+        );
+
+        assert!(result.is_ok());
+        // Only builtin tools remain
+        assert_eq!(names.len(), 2);
+        assert!(names.contains("bash"));
+        assert!(names.contains("read"));
+        assert!(!names.contains("search"));
+        assert!(!names.contains("index"));
+    }
+
+    #[test]
+    fn mcp_filter_unknown_server_returns_error() {
+        let (mut names, mut executors) = make_tools(&["bash", "search"]);
+        let mut mcp_map = HashMap::new();
+        mcp_map.insert("server-a".to_string(), vec!["search".to_string()]);
+        let filter = vec!["server-a".to_string(), "nonexistent-server".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            Some(&filter),
+            None,
+        );
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("nonexistent-server"),
+            "error should name the server: {err}"
+        );
+        assert!(err.contains("agent1"), "error should name the agent: {err}");
+    }
+
+    // ── filter_conversation_tools: both filters combined ──────────────────────
+
+    #[test]
+    fn both_filters_mcp_applied_first_then_tool_names() {
+        let (mut names, mut executors) = make_tools(&["bash", "read", "search", "query", "index"]);
+        let mut mcp_map = HashMap::new();
+        mcp_map.insert(
+            "server-a".to_string(),
+            vec!["search".to_string(), "query".to_string()],
+        );
+        mcp_map.insert("server-b".to_string(), vec!["index".to_string()]);
+
+        // MCP filter: only server-a → removes "index"
+        // Tool filter: only "bash" and "search" → removes "read" and "query"
+        let mcp_filter = vec!["server-a".to_string()];
+        let tool_filter = vec!["bash".to_string(), "search".to_string()];
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            Some(&mcp_filter),
+            Some(&tool_filter),
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(names.len(), 2);
+        assert!(names.contains("bash"));
+        assert!(names.contains("search"));
+        assert_eq!(executors.len(), 2);
+    }
+
+    #[test]
+    fn tool_filter_referencing_mcp_tool_removed_by_server_filter_errors() {
+        // MCP filter removes "index", then tool filter requests "index" → error
+        let (mut names, mut executors) = make_tools(&["bash", "search", "index"]);
+        let mut mcp_map = HashMap::new();
+        mcp_map.insert("server-a".to_string(), vec!["search".to_string()]);
+        mcp_map.insert("server-b".to_string(), vec!["index".to_string()]);
+
+        let mcp_filter = vec!["server-a".to_string()]; // removes "index"
+        let tool_filter = vec!["bash".to_string(), "index".to_string()]; // requests "index"
+
+        let result = filter_conversation_tools(
+            "agent1",
+            &mut names,
+            &mut executors,
+            &mcp_map,
+            Some(&mcp_filter),
+            Some(&tool_filter),
+        );
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("index"),
+            "error should name the unavailable tool: {err}"
+        );
+    }
+
+    // ── Supervisor integration tests ──────────────────────────────────────────
+
+    fn make_test_supervisor() -> AgentSupervisor {
+        let mcp_manager = Arc::new(McpManager::new());
+        let cancel = CancellationToken::new();
+        AgentSupervisor::new(mcp_manager, cancel)
+    }
+
+    fn make_test_definition(id: &str) -> AgentDefinition {
+        AgentDefinition {
+            id: id.to_string(),
+            name: format!("Test Agent {}", id),
+            description: None,
+            system_prompt: "You are a test agent.".to_string(),
+            provider: bridge_core::provider::ProviderConfig {
+                provider_type: bridge_core::provider::ProviderType::OpenAI,
+                model: "gpt-4o".to_string(),
+                api_key: "test-key".to_string(),
+                base_url: Some("https://api.openai.com/v1".to_string()),
+            },
+            tools: vec![],
+            mcp_servers: vec![],
+            skills: vec![],
+            integrations: vec![],
+            config: bridge_core::agent::AgentConfig::default(),
+            subagents: vec![],
+            permissions: std::collections::HashMap::new(),
+            webhook_url: None,
+            webhook_secret: None,
+            version: Some("1".to_string()),
+            updated_at: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_no_filters_succeeds() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor.create_conversation("agent1", None, None).await;
+
+        assert!(result.is_ok());
+        let (conv_id, _sse_rx) = result.unwrap();
+        assert!(!conv_id.is_empty());
+
+        // Cleanup
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_valid_tool_filter_succeeds() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        // Agent has builtin tools (bash, read, write, etc.) because tools: [] means all builtins.
+        // Pick some known builtin tool names.
+        let state = supervisor.get_agent("agent1").unwrap();
+        let all_tools: Vec<String> = state.tool_registry.tool_names();
+        assert!(!all_tools.is_empty(), "agent should have builtin tools");
+
+        // Request only the first two tools
+        let filter = all_tools.iter().take(2).cloned().collect::<Vec<_>>();
+
+        let result = supervisor
+            .create_conversation("agent1", Some(filter.clone()), None)
+            .await;
+
+        assert!(result.is_ok());
+        let (conv_id, _sse_rx) = result.unwrap();
+        assert!(!conv_id.is_empty());
+
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_invalid_tool_returns_error() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor
+            .create_conversation("agent1", Some(vec!["totally_fake_tool".to_string()]), None)
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("totally_fake_tool"));
+        assert!(err.contains("agent1"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_invalid_mcp_server_returns_error() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor
+            .create_conversation("agent1", None, Some(vec!["nonexistent-mcp".to_string()]))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("nonexistent-mcp"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_unknown_agent_returns_error() {
+        let supervisor = make_test_supervisor();
+
+        let result = supervisor
+            .create_conversation("no_such_agent", None, None)
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("no_such_agent"));
+    }
 }

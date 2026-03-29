@@ -2,6 +2,7 @@ use bridge_core::conversation::Message;
 use bridge_core::{AgentDefinition, AgentMetrics};
 use dashmap::DashMap;
 use llm::BridgeAgent;
+use std::collections::HashMap;
 use std::sync::Arc;
 use storage::StorageHandle;
 use tokio::sync::mpsc;
@@ -51,6 +52,8 @@ pub struct AgentState {
     pub session_store: Arc<AgentSessionStore>,
     /// Task registry for tracking background subagent tasks.
     pub task_registry: Arc<TaskRegistry>,
+    /// Mapping from MCP server name to tool names provided by that server.
+    pub mcp_server_tools: HashMap<String, Vec<String>>,
 }
 
 impl AgentState {
@@ -62,6 +65,7 @@ impl AgentState {
         subagents: Arc<DashMap<String, SubAgentEntry>>,
         task_registry: Arc<TaskRegistry>,
         storage: Option<StorageHandle>,
+        mcp_server_tools: HashMap<String, Vec<String>>,
     ) -> Self {
         let agent_id = definition.id.clone();
         Self {
@@ -75,6 +79,7 @@ impl AgentState {
             subagents,
             session_store: Arc::new(AgentSessionStore::new(agent_id, storage)),
             task_registry,
+            mcp_server_tools,
         }
     }
 

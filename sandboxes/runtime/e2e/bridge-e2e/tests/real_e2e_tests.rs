@@ -1637,19 +1637,11 @@ async fn test_streaming_text_between_tool_calls() {
         .iter()
         .map(|e| {
             if e.event_type == "content_delta" {
-                let text = e
-                    .data
-                    .get("delta")
-                    .and_then(|d| d.as_str())
-                    .unwrap_or("");
+                let text = e.data.get("delta").and_then(|d| d.as_str()).unwrap_or("");
                 let preview: String = text.chars().take(40).collect();
                 format!("content_delta(\"{}\")", preview)
             } else if e.event_type == "tool_call_start" {
-                let name = e
-                    .data
-                    .get("name")
-                    .and_then(|n| n.as_str())
-                    .unwrap_or("?");
+                let name = e.data.get("name").and_then(|n| n.as_str()).unwrap_or("?");
                 format!("tool_call_start({})", name)
             } else {
                 e.event_type.clone()
@@ -1687,7 +1679,8 @@ async fn test_streaming_text_between_tool_calls() {
         delta_count >= 3,
         "[streaming] expected at least 3 content_delta events (incremental streaming), got {}. \
          Events: {:?}",
-        delta_count, event_sequence
+        delta_count,
+        event_sequence
     );
 
     eprintln!(

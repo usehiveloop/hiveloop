@@ -48,6 +48,21 @@ fn emit_webhook(state: &AppState, payload: bridge_core::webhook::WebhookPayload)
     }
 }
 
+/// Optional request body for creating a conversation with tool/MCP scoping.
+#[derive(Deserialize, Default)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct CreateConversationRequest {
+    /// When provided, only these tools are available in the conversation.
+    /// Tool names must match the agent's registered tool names exactly.
+    #[serde(default)]
+    pub tool_names: Option<Vec<String>>,
+
+    /// When provided, only tools from these MCP servers are available.
+    /// Server names must match the agent's configured MCP server names.
+    #[serde(default)]
+    pub mcp_server_names: Option<Vec<String>>,
+}
+
 /// Request body for creating a message.
 #[derive(Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -61,16 +76,23 @@ pub struct SendMessageRequest {
     post,
     path = "/agents/{agent_id}/conversations",
     params(("agent_id" = String, Path, description = "Agent identifier")),
+    request_body(content = Option<CreateConversationRequest>, description = "Optional tool/MCP scoping filters"),
     responses(
         (status = 201, description = "Conversation created", body = CreateConversationResponse),
+        (status = 400, description = "Invalid tool or MCP server name"),
         (status = 404, description = "Agent not found")
     )
 ))]
 pub async fn create_conversation(
     State(state): State<AppState>,
     Path(agent_id): Path<String>,
+    body: Option<Json<CreateConversationRequest>>,
 ) -> Result<(StatusCode, Json<CreateConversationResponse>), BridgeError> {
-    let (conv_id, sse_rx) = state.supervisor.create_conversation(&agent_id).await?;
+    let request = body.map(|b| b.0).unwrap_or_default();
+    let (conv_id, sse_rx) = state
+        .supervisor
+        .create_conversation(&agent_id, request.tool_names, request.mcp_server_names)
+        .await?;
 
     // Store the SSE receiver for the stream handler to pick up
     state.sse_streams.insert(conv_id.clone(), sse_rx);

@@ -57,6 +57,7 @@ mod openapi {
             bridge_core::GlobalMetrics,
             bridge_core::MetricsResponse,
             // Request/Response schemas for conversations
+            crate::handlers::conversations::CreateConversationRequest,
             crate::handlers::conversations::SendMessageRequest,
             crate::handlers::conversations::CreateConversationResponse,
             crate::handlers::conversations::SendMessageResponse,
