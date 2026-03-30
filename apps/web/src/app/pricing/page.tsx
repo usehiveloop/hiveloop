@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { PricingContent } from "@/components/pricing-content";
@@ -92,10 +93,13 @@ function FAQSection() {
   );
 }
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const cookieStore = await cookies();
+  const isAuthenticated = !!cookieStore.get("llmvault_access_token")?.value;
+
   return (
     <div className="mx-auto flex min-h-screen max-w-360 flex-col bg-background">
-      <Nav />
+      <Nav isAuthenticated={isAuthenticated} />
       <PricingHero />
       <PricingContent />
       <FAQSection />

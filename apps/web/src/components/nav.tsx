@@ -1,12 +1,8 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { LockIcon } from "@/components/icons";
 
-export async function Nav() {
-  const cookieStore = await cookies();
-  const authed = !!cookieStore.get("llmvault_access_token")?.value;
-
+export function Nav({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   return (
     <nav className="flex h-16 shrink-0 items-center justify-center border-b border-border">
       <div className="flex h-full w-full max-w-7xl items-center justify-between px-20">
@@ -54,7 +50,7 @@ export async function Nav() {
         <Link href="/pricing" className="text-sm text-muted-foreground">Pricing</Link>
         <Link href="/architecture" className="text-sm text-muted-foreground">Architecture</Link>
         <a href="https://github.com/llmvault/llmvault" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground">GitHub</a>
-        {authed ? (
+        {isAuthenticated ? (
           <Button render={<Link href="/dashboard" />} className="h-auto px-5 py-2 text-sm font-medium">
             Dashboard
           </Button>

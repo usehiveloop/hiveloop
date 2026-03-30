@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
@@ -207,10 +208,13 @@ function FinalCTA() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const isAuthenticated = !!cookieStore.get("llmvault_access_token")?.value;
+
   return (
     <div className="mx-auto flex min-h-screen max-w-360 flex-col bg-background">
-      <Nav />
+      <Nav isAuthenticated={isAuthenticated} />
       <HeroSection />
       <ProblemSection />
       <HowItWorksSection />
