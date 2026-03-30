@@ -12,7 +12,7 @@ export function SetupWorkspace() {
 
   const createOrg = $api.useMutation("post", "/v1/orgs", {
     onSuccess() {
-      router.push("/sign-in");
+      router.push("/auth/login");
     },
   });
 

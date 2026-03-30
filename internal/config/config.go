@@ -55,14 +55,15 @@ type Config struct {
 	// JWT (for sandbox proxy tokens)
 	JWTSigningKey string `env:"JWT_SIGNING_KEY,required"`
 
+	// Auth (RSA key for JWT signing)
+	AuthRSAPrivateKey   string        `env:"AUTH_RSA_PRIVATE_KEY,required"` // base64-encoded PEM
+	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"llmvault"`
+	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.llmvault.dev"`
+	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
+	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
-
-	// Logto (Identity & Auth)
-	LogtoEndpoint     string `env:"LOGTO_ENDPOINT"`       // e.g. http://localhost:3001
-	LogtoAudience     string `env:"LOGTO_AUDIENCE"`        // API resource indicator (e.g. https://api.llmvault.dev)
-	LogtoM2MAppID     string `env:"LOGTO_M2M_APP_ID"`     // M2M app for Management API access
-	LogtoM2MAppSecret string `env:"LOGTO_M2M_APP_SECRET"` // M2M app secret
 
 	// Nango (OAuth integration proxy)
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004

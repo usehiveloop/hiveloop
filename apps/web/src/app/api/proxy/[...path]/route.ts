@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccessToken } from "@logto/next/server-actions";
-import { getLogtoConfig } from "@/lib/logto";
+import { getAccessToken, getRefreshToken, setAuthCookies } from "@/lib/auth";
+import { apiRefresh } from "@/lib/auth-api";
 import { getSelectedOrgId } from "@/lib/org";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+
+async function getValidToken(): Promise<string | undefined> {
+  let token = await getAccessToken();
+  if (token) return token;
+
+  // Access token missing — try refreshing
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) return undefined;
+
+  try {
+    const orgId = await getSelectedOrgId();
+    const data = await apiRefresh(refreshToken, orgId);
+    await setAuthCookies(data.access_token, data.refresh_token);
+    return data.access_token;
+  } catch {
+    return undefined;
+  }
+}
 
 async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname.replace(/^\/api\/proxy/, "");
@@ -12,32 +30,16 @@ async function proxy(req: NextRequest) {
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
 
-  let token: string | undefined;
-  let orgId: string | undefined;
-  let resource: string | undefined;
-  let authError: string | undefined;
-
-  try {
-    const config = getLogtoConfig();
-    resource = config.resources?.[0];
-    orgId = await getSelectedOrgId();
-    token = await getAccessToken(config, resource, orgId);
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-  } catch (e) {
-    authError = e instanceof Error ? e.message : String(e);
+  const token = await getValidToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   console.log("[proxy]", {
     method: req.method,
     path,
     url,
-    resource,
-    orgId: orgId ?? "(none)",
     hasToken: !!token,
-    tokenPrefix: token ? token.substring(0, 30) + "..." : "(none)",
-    authError: authError ?? "(none)",
   });
 
   const res = await fetch(url, {

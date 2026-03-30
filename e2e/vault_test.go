@@ -222,11 +222,10 @@ func vaultIsAvailable(t *testing.T) bool {
 func (h *vaultTestHarness) createOrg(t *testing.T) model.Org {
 	t.Helper()
 	org := model.Org{
-		ID:           uuid.New(),
-		Name:         fmt.Sprintf("vault-e2e-org-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-vault-%s", uuid.New().String()[:8]),
-		RateLimit:    10000,
-		Active:       true,
+		ID:        uuid.New(),
+		Name:      fmt.Sprintf("vault-e2e-org-%s", uuid.New().String()[:8]),
+		RateLimit: 10000,
+		Active:    true,
 	}
 	if err := h.db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)

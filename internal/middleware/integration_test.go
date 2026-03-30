@@ -2,6 +2,8 @@ package middleware_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/logto"
+	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/token"
@@ -63,152 +65,66 @@ func cleanupOrg(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	db.Where("id = ?", orgID).Delete(&model.Org{})
 }
 
-// logtoTestHelper manages Logto test resources.
-type logtoTestHelper struct {
-	client        *logto.Client
-	endpoint      string // reachable URL (e.g. http://localhost:3301)
-	issuer        string // OIDC issuer URL from Logto's ENDPOINT config (e.g. http://localhost:3001/oidc)
-	audience      string
-	testAppID     string
-	testAppSecret string
+// authTestHelper manages RSA key pairs and JWT minting for tests.
+type authTestHelper struct {
+	privKey  *rsa.PrivateKey
+	issuer   string
+	audience string
 }
 
-func newLogtoHelper(t *testing.T) *logtoTestHelper {
+func newAuthHelper(t *testing.T) *authTestHelper {
 	t.Helper()
-
-	endpoint := os.Getenv("LOGTO_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "https://auth.dev.llmvault.dev"
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate RSA key: %v", err)
 	}
-
-	audience := os.Getenv("LOGTO_AUDIENCE")
-	if audience == "" {
-		audience = "https://api.llmvault.dev"
-	}
-
-	// M2M credentials for Management API
-	m2mAppID := os.Getenv("LOGTO_M2M_APP_ID")
-	m2mAppSecret := os.Getenv("LOGTO_M2M_APP_SECRET")
-	if m2mAppID == "" || m2mAppSecret == "" {
-		t.Fatal("LOGTO_M2M_APP_ID and LOGTO_M2M_APP_SECRET must be set")
-	}
-
-	// Test M2M app credentials (for simulating authenticated requests)
-	testAppID := os.Getenv("LOGTO_TEST_APP_ID")
-	testAppSecret := os.Getenv("LOGTO_TEST_APP_SECRET")
-	if testAppID == "" || testAppSecret == "" {
-		t.Fatal("LOGTO_TEST_APP_ID and LOGTO_TEST_APP_SECRET must be set")
-	}
-
-	// Discover the actual OIDC issuer from Logto (may differ from endpoint due to port mapping)
-	issuer := endpoint + "/oidc"
-	resp, err := http.Get(endpoint + "/oidc/.well-known/openid-configuration")
-	if err == nil {
-		defer resp.Body.Close()
-		var oidcConfig struct {
-			Issuer string `json:"issuer"`
-		}
-		if json.NewDecoder(resp.Body).Decode(&oidcConfig) == nil && oidcConfig.Issuer != "" {
-			issuer = oidcConfig.Issuer
-		}
-	}
-
-	return &logtoTestHelper{
-		client:        logto.NewClient(endpoint, m2mAppID, m2mAppSecret),
-		endpoint:      endpoint,
-		issuer:        issuer,
-		audience:      audience,
-		testAppID:     testAppID,
-		testAppSecret: testAppSecret,
+	return &authTestHelper{
+		privKey:  privKey,
+		issuer:   "test-issuer",
+		audience: "test-audience",
 	}
 }
 
-// newLogtoAuth creates a LogtoAuth middleware configured with the correct
-// issuer and JWKS URL (handles port mapping between issuer and reachable endpoint).
-func (lh *logtoTestHelper) newLogtoAuth() *middleware.LogtoAuth {
-	auth := middleware.NewLogtoAuth(lh.issuer, lh.audience)
-	// If the issuer URL differs from the endpoint (e.g. port mapping),
-	// set the JWKS URL to the reachable endpoint.
-	if lh.issuer != lh.endpoint+"/oidc" {
-		auth.SetJWKSURL(lh.endpoint + "/oidc")
-	}
-	return auth
-}
-
-// createTestOrg creates a Logto org, adds the test M2M app to it with the
-// specified roles, and creates the corresponding LLMVault Org record.
-func (lh *logtoTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name string, roles []string) (model.Org, string) {
+// createTestOrg creates an LLMVault Org in Postgres and mints a JWT for it.
+func (ah *authTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name, role string) (model.Org, string) {
 	t.Helper()
 
 	uniqueName := fmt.Sprintf("%s-%s", name, uuid.New().String()[:8])
+	orgID := uuid.New()
+	userID := uuid.New().String()
 
-	// Create org in Logto
-	logtoOrgID, err := lh.client.CreateOrganization(uniqueName)
-	if err != nil {
-		t.Fatalf("failed to create Logto org: %v", err)
-	}
-
-	// Add the test M2M app to the org
-	if err := lh.client.AddOrgMemberM2M(logtoOrgID, lh.testAppID); err != nil {
-		t.Fatalf("failed to add test app to org: %v", err)
-	}
-
-	// Get role IDs and assign them
-	var roleIDs []string
-	for _, roleName := range roles {
-		roleID, err := lh.client.GetOrgRoleByName(roleName)
-		if err != nil {
-			t.Fatalf("failed to get org role %q: %v", roleName, err)
-		}
-		roleIDs = append(roleIDs, roleID)
-	}
-	if len(roleIDs) > 0 {
-		if err := lh.client.AssignOrgRoleToM2M(logtoOrgID, lh.testAppID, roleIDs); err != nil {
-			t.Fatalf("failed to assign org roles: %v", err)
-		}
-	}
-
-	// Get an org-scoped JWT for the test M2M app
-	scopes := make([]string, 0)
-	for _, r := range roles {
-		scopes = append(scopes, r)
-	}
-	jwt, err := lh.client.GetM2MOrgToken(lh.testAppID, lh.testAppSecret, logtoOrgID, lh.audience, scopes)
-	if err != nil {
-		t.Fatalf("failed to get org-scoped token: %v", err)
-	}
-
-	// Create LLMVault Org record in Postgres
 	org := model.Org{
-		ID:         uuid.New(),
-		Name:       uniqueName,
-		LogtoOrgID: logtoOrgID,
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      uniqueName,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org in DB: %v", err)
 	}
-	t.Cleanup(func() { cleanupOrg(t, db, org.ID) })
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	return org, jwt
+	jwtToken, err := auth.IssueAccessToken(ah.privKey, ah.issuer, ah.audience, userID, orgID.String(), role, time.Hour)
+	if err != nil {
+		t.Fatalf("failed to issue access token: %v", err)
+	}
+
+	return org, jwtToken
 }
 
 // --------------------------------------------------------------------------
-// Logto Auth — real Logto + real Postgres
+// Auth — RSA JWT + real Postgres
 // --------------------------------------------------------------------------
 
-func TestIntegration_LogtoAuth_ValidToken(t *testing.T) {
+func TestIntegration_Auth_ValidToken(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
+	ah := newAuthHelper(t)
 
-	org, userJWT := lh.createTestOrg(t, db, "test-logto-valid", []string{"m2m:admin"})
-
-	logtoAuth := lh.newLogtoAuth()
+	org, userJWT := ah.createTestOrg(t, db, "test-auth-valid", "admin")
 
 	var gotOrg *model.Org
-	handler := logtoAuth.RequireAuthorization()(
-		middleware.ResolveOrg(db)(
+	handler := middleware.RequireAuth(&ah.privKey.PublicKey, ah.issuer, ah.audience)(
+		middleware.ResolveOrgFromClaims(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var ok bool
 				gotOrg, ok = middleware.OrgFromContext(r.Context())
@@ -236,14 +152,12 @@ func TestIntegration_LogtoAuth_ValidToken(t *testing.T) {
 	}
 }
 
-func TestIntegration_LogtoAuth_MissingToken(t *testing.T) {
+func TestIntegration_Auth_MissingToken(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
+	ah := newAuthHelper(t)
 
-	logtoAuth := lh.newLogtoAuth()
-
-	handler := logtoAuth.RequireAuthorization()(
-		middleware.ResolveOrg(db)(
+	handler := middleware.RequireAuth(&ah.privKey.PublicKey, ah.issuer, ah.audience)(
+		middleware.ResolveOrgFromClaims(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Fatal("handler should not be called")
 			}),
@@ -259,14 +173,12 @@ func TestIntegration_LogtoAuth_MissingToken(t *testing.T) {
 	}
 }
 
-func TestIntegration_LogtoAuth_InvalidToken(t *testing.T) {
+func TestIntegration_Auth_InvalidToken(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
+	ah := newAuthHelper(t)
 
-	logtoAuth := lh.newLogtoAuth()
-
-	handler := logtoAuth.RequireAuthorization()(
-		middleware.ResolveOrg(db)(
+	handler := middleware.RequireAuth(&ah.privKey.PublicKey, ah.issuer, ah.audience)(
+		middleware.ResolveOrgFromClaims(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Fatal("handler should not be called")
 			}),
@@ -283,21 +195,19 @@ func TestIntegration_LogtoAuth_InvalidToken(t *testing.T) {
 	}
 }
 
-func TestIntegration_LogtoAuth_InactiveOrg(t *testing.T) {
+func TestIntegration_Auth_InactiveOrg(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
+	ah := newAuthHelper(t)
 
-	org, userJWT := lh.createTestOrg(t, db, "test-logto-inactive", []string{"m2m:admin"})
+	org, userJWT := ah.createTestOrg(t, db, "test-auth-inactive", "admin")
 
 	// Deactivate the org
 	if err := db.Model(&org).Update("active", false).Error; err != nil {
 		t.Fatalf("failed to deactivate org: %v", err)
 	}
 
-	logtoAuth := lh.newLogtoAuth()
-
-	handler := logtoAuth.RequireAuthorization()(
-		middleware.ResolveOrg(db)(
+	handler := middleware.RequireAuth(&ah.privKey.PublicKey, ah.issuer, ah.audience)(
+		middleware.ResolveOrgFromClaims(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Fatal("handler should not be called for inactive org")
 			}),
@@ -321,35 +231,46 @@ func TestIntegration_LogtoAuth_InactiveOrg(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// Logto Scope-Based Access
+// Auth — JWT claims validation
 // --------------------------------------------------------------------------
 
-func TestIntegration_LogtoAuth_RequireScope(t *testing.T) {
+func TestIntegration_Auth_WrongIssuerRejected(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
+	ah := newAuthHelper(t)
 
-	_, userJWT := lh.createTestOrg(t, db, "test-logto-scope", []string{"m2m:viewer"})
+	orgID := uuid.New()
+	org := model.Org{
+		ID:        orgID,
+		Name:      fmt.Sprintf("test-auth-issuer-%s", uuid.New().String()[:8]),
+		RateLimit: 1000,
+		Active:    true,
+	}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("failed to create org: %v", err)
+	}
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	logtoAuth := lh.newLogtoAuth()
+	// Mint JWT with wrong issuer
+	wrongJWT, err := auth.IssueAccessToken(ah.privKey, "wrong-issuer", ah.audience, uuid.New().String(), orgID.String(), "admin", time.Hour)
+	if err != nil {
+		t.Fatalf("issue token: %v", err)
+	}
 
-	// Require "admin" scope, but user only has "viewer"
-	handler := logtoAuth.RequireAuthorization()(
-		middleware.ResolveOrg(db)(
-			middleware.RequireScope("admin")(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					t.Fatal("handler should not be called without admin scope")
-				}),
-			),
+	handler := middleware.RequireAuth(&ah.privKey.PublicKey, ah.issuer, ah.audience)(
+		middleware.ResolveOrgFromClaims(db)(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Fatal("handler should not be called with wrong issuer")
+			}),
 		),
 	)
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/credentials", nil)
-	req.Header.Set("Authorization", "Bearer "+userJWT)
+	req := httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
+	req.Header.Set("Authorization", "Bearer "+wrongJWT)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d; body: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -364,11 +285,10 @@ func TestIntegration_TokenAuth_ValidToken(t *testing.T) {
 	credID := uuid.New()
 
 	org := model.Org{
-		ID:         orgID,
-		Name:       "integration-token-org",
-		LogtoOrgID: fmt.Sprintf("logto-token-%s", uuid.New().String()[:8]),
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      "integration-token-org",
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -440,11 +360,10 @@ func TestIntegration_TokenAuth_RevokedToken(t *testing.T) {
 	credID := uuid.New()
 
 	org := model.Org{
-		ID:         orgID,
-		Name:       "integration-revoked-token-org",
-		LogtoOrgID: fmt.Sprintf("logto-revoked-%s", uuid.New().String()[:8]),
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      "integration-revoked-token-org",
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -534,11 +453,10 @@ func TestIntegration_Audit_WritesToPostgres(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       "integration-audit-org",
-		LogtoOrgID: fmt.Sprintf("logto-audit-%s", uuid.New().String()[:8]),
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      "integration-audit-org",
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -600,11 +518,10 @@ func TestIntegration_Audit_MultipleRequestsFlushed(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       "integration-audit-multi",
-		LogtoOrgID: fmt.Sprintf("logto-audit-multi-%s", uuid.New().String()[:8]),
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      "integration-audit-multi",
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -645,11 +562,10 @@ func TestIntegration_RateLimit_EnforcesLimit(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       "integration-ratelimit-org",
-		LogtoOrgID: fmt.Sprintf("logto-rl-%s", uuid.New().String()[:8]),
-		RateLimit:  1, // 1 per minute -> burst of 1
-		Active:     true,
+		ID:        orgID,
+		Name:      "integration-ratelimit-org",
+		RateLimit: 1, // 1 per minute -> burst of 1
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -690,11 +606,10 @@ func TestIntegration_RateLimit_IsolatedPerOrg(t *testing.T) {
 	db := connectTestDB(t)
 
 	org1 := model.Org{
-		ID:         uuid.New(),
-		Name:       "integration-rl-org1",
-		LogtoOrgID: fmt.Sprintf("logto-rl1-%s", uuid.New().String()[:8]),
-		RateLimit:  1,
-		Active:     true,
+		ID:        uuid.New(),
+		Name:      "integration-rl-org1",
+		RateLimit: 1,
+		Active:    true,
 	}
 	if err := db.Create(&org1).Error; err != nil {
 		t.Fatalf("failed to create org1: %v", err)
@@ -702,11 +617,10 @@ func TestIntegration_RateLimit_IsolatedPerOrg(t *testing.T) {
 	t.Cleanup(func() { cleanupOrg(t, db, org1.ID) })
 
 	org2 := model.Org{
-		ID:         uuid.New(),
-		Name:       "integration-rl-org2",
-		LogtoOrgID: fmt.Sprintf("logto-rl2-%s", uuid.New().String()[:8]),
-		RateLimit:  6000,
-		Active:     true,
+		ID:        uuid.New(),
+		Name:      "integration-rl-org2",
+		RateLimit: 6000,
+		Active:    true,
 	}
 	if err := db.Create(&org2).Error; err != nil {
 		t.Fatalf("failed to create org2: %v", err)

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"testing"
 	"time"
 )
@@ -24,6 +25,7 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("MEM_CACHE_MAX_SIZE", "10000")
 	t.Setenv("JWT_SIGNING_KEY", "test-signing-key")
 	t.Setenv("CORS_ORIGINS", "http://localhost:3000")
+	t.Setenv("AUTH_RSA_PRIVATE_KEY", base64.StdEncoding.EncodeToString([]byte("test-pem")))
 }
 
 func TestLoad_AllRequired(t *testing.T) {
@@ -69,7 +71,6 @@ func TestLoad_CustomValues(t *testing.T) {
 	t.Setenv("REDIS_DB", "2")
 	t.Setenv("REDIS_PASSWORD", "secret")
 	t.Setenv("CORS_ORIGINS", "http://localhost:3000,https://app.llmvault.dev")
-	t.Setenv("LOGTO_ENDPOINT", "http://localhost:3001")
 
 	cfg, err := Load()
 	if err != nil {
@@ -100,8 +101,58 @@ func TestLoad_CustomValues(t *testing.T) {
 	if len(cfg.CORSOrigins) != 2 {
 		t.Errorf("expected 2 CORS origins, got %d", len(cfg.CORSOrigins))
 	}
-	if cfg.LogtoEndpoint != "http://localhost:3001" {
-		t.Errorf("expected Logto endpoint 'http://localhost:3001', got %q", cfg.LogtoEndpoint)
+}
+
+func TestLoad_AuthConfig_Defaults(t *testing.T) {
+	setRequiredEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.AuthIssuer != "llmvault" {
+		t.Errorf("expected default AuthIssuer 'llmvault', got %q", cfg.AuthIssuer)
+	}
+	if cfg.AuthAudience != "https://api.llmvault.dev" {
+		t.Errorf("expected default AuthAudience 'https://api.llmvault.dev', got %q", cfg.AuthAudience)
+	}
+	if cfg.AuthAccessTokenTTL != 15*time.Minute {
+		t.Errorf("expected default AuthAccessTokenTTL 15m, got %v", cfg.AuthAccessTokenTTL)
+	}
+	if cfg.AuthRefreshTokenTTL != 720*time.Hour {
+		t.Errorf("expected default AuthRefreshTokenTTL 720h, got %v", cfg.AuthRefreshTokenTTL)
+	}
+}
+
+func TestLoad_AuthConfig_CustomValues(t *testing.T) {
+	setRequiredEnv(t)
+	testPEM := base64.StdEncoding.EncodeToString([]byte("custom-test-pem"))
+	t.Setenv("AUTH_RSA_PRIVATE_KEY", testPEM)
+	t.Setenv("AUTH_ISSUER", "custom-issuer")
+	t.Setenv("AUTH_AUDIENCE", "https://custom.example.com")
+	t.Setenv("AUTH_ACCESS_TOKEN_TTL", "30m")
+	t.Setenv("AUTH_REFRESH_TOKEN_TTL", "168h")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.AuthRSAPrivateKey != testPEM {
+		t.Errorf("expected AuthRSAPrivateKey %q, got %q", testPEM, cfg.AuthRSAPrivateKey)
+	}
+	if cfg.AuthIssuer != "custom-issuer" {
+		t.Errorf("expected AuthIssuer 'custom-issuer', got %q", cfg.AuthIssuer)
+	}
+	if cfg.AuthAudience != "https://custom.example.com" {
+		t.Errorf("expected AuthAudience 'https://custom.example.com', got %q", cfg.AuthAudience)
+	}
+	if cfg.AuthAccessTokenTTL != 30*time.Minute {
+		t.Errorf("expected AuthAccessTokenTTL 30m, got %v", cfg.AuthAccessTokenTTL)
+	}
+	if cfg.AuthRefreshTokenTTL != 168*time.Hour {
+		t.Errorf("expected AuthRefreshTokenTTL 168h, got %v", cfg.AuthRefreshTokenTTL)
 	}
 }
 

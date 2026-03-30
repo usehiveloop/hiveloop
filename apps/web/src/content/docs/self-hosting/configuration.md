@@ -367,56 +367,32 @@ vault write auth/kubernetes/role/llmvault \
 
 For detailed Vault production setup, see [Vault Production Setup](/docs/vault-production-setup).
 
-## Logto Configuration
+## Authentication Configuration
 
-Logto provides authentication and organization management for LLMVault.
+LLMVault uses embedded Go authentication with RSA key signing for JWT tokens.
 
-### Backend Configuration
+### Configuration
 
 | Variable | Description |
 |----------|-------------|
-| `LOGTO_ENDPOINT` | Logto server URL (e.g., `https://auth.yourcompany.com`) |
-| `LOGTO_AUDIENCE` | API resource identifier (e.g., `https://api.llmvault.dev`) |
-| `LOGTO_M2M_APP_ID` | Machine-to-machine application ID |
-| `LOGTO_M2M_APP_SECRET` | Machine-to-machine application secret |
+| `AUTH_RSA_PRIVATE_KEY` | Base64-encoded RSA private key PEM |
+| `AUTH_ISSUER` | JWT issuer (default: `llmvault`) |
+| `AUTH_AUDIENCE` | JWT audience (default: `https://api.llmvault.dev`) |
+
+### Generating Keys
+
+```bash
+# Generate base64-encoded RSA private key
+openssl genrsa 2048 | base64 | tr -d '\n'
+```
 
 ### Example
 
 ```bash
-# Using hosted Logto
-LOGTO_ENDPOINT=https://auth.llmvault.dev
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-m2m-app-id
-LOGTO_M2M_APP_SECRET=your-m2m-app-secret
-
-# Self-hosted Logto
-LOGTO_ENDPOINT=https://auth.internal.company.com
-LOGTO_AUDIENCE=https://api.internal.company.com
-LOGTO_M2M_APP_ID=abc123
-LOGTO_M2M_APP_SECRET=xyz789
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 ```
-
-### Logto Setup Script
-
-For self-hosted Logto, use the init script at `docker/logto/init.sh`:
-
-```bash
-# Required environment variables
-export LOGTO_DB_URL="postgres://logto:password@localhost:5432/logto"
-export LOGTO_ENDPOINT="https://auth.internal.company.com"
-export DASHBOARD_REDIRECT_URI="https://vault.company.com/api/auth/callback/logto"
-export DASHBOARD_LOGOUT_URI="https://vault.company.com"
-
-# Run init script
-docker/logto/init.sh
-```
-
-This script creates:
-- API resource (`https://api.llmvault.dev`)
-- Organization roles (admin, viewer, m2m:admin, m2m:viewer)
-- Backend M2M application
-- Dashboard OIDC application
-- Test M2M application
 
 ## Nango Configuration
 
@@ -584,11 +560,10 @@ JWT_SIGNING_KEY=dev-signing-key-not-for-production
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:30112
 
-# Logto (staging)
-LOGTO_ENDPOINT=https://auth.dev.llmvault.dev
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-staging-app-id
-LOGTO_M2M_APP_SECRET=your-staging-app-secret
+# Auth (built-in — generate with: openssl genrsa 2048 | base64 | tr -d '\n')
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
 # Nango (staging)
 NANGO_ENDPOINT=https://integrations.dev.llmvault.dev
@@ -631,11 +606,10 @@ JWT_SIGNING_KEY=your-production-signing-key
 # CORS
 CORS_ORIGINS=https://vault.yourcompany.com
 
-# Logto
-LOGTO_ENDPOINT=https://auth.yourcompany.com
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-production-app-id
-LOGTO_M2M_APP_SECRET=your-production-app-secret
+# Auth (built-in — generate with: openssl genrsa 2048 | base64 | tr -d '\n')
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
 # Nango
 NANGO_ENDPOINT=https://integrations.yourcompany.com

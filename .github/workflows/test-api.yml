@@ -35,19 +35,16 @@ env:
   CORS_ORIGINS: http://localhost:3000
   VAULT_TOKEN: llmvault-dev-token
   VAULT_ADDRESS: http://localhost:8200
-  LOGTO_ENDPOINT: https://auth.dev.llmvault.dev
-  LOGTO_AUDIENCE: https://api.llmvault.dev
-  LOGTO_M2M_APP_ID: ${{ secrets.LOGTO_M2M_APP_ID }}
-  LOGTO_M2M_APP_SECRET: ${{ secrets.LOGTO_M2M_APP_SECRET }}
-  LOGTO_TEST_APP_ID: ${{ secrets.LOGTO_TEST_APP_ID }}
-  LOGTO_TEST_APP_SECRET: ${{ secrets.LOGTO_TEST_APP_SECRET }}
+  # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
+  AUTH_ISSUER: llmvault
+  AUTH_AUDIENCE: https://api.llmvault.dev
   NANGO_ENDPOINT: https://integrations.dev.llmvault.dev
   NANGO_SECRET_KEY: ${{ secrets.NANGO_SECRET_KEY }}
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
 
 jobs:
-  test-logto:
+  test-auth:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,11 +52,15 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
-      - name: run logto tests
-        run: make test-logto
+      - name: run auth tests
+        run: make test-auth
         timeout-minutes: 5
       - name: cleanup
         if: always()
@@ -73,6 +74,10 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -91,6 +96,10 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -109,6 +118,10 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -127,6 +140,10 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -145,6 +162,10 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+      - name: Generate auth RSA key
+        run: |
+          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
+          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -159,12 +180,12 @@ jobs:
 
   results:
     if: always()
-    needs: [test-logto, test-nango, test-proxy, test-connect, test-vault, test-core]
+    needs: [test-auth, test-nango, test-proxy, test-connect, test-vault, test-core]
     runs-on: ubuntu-latest
     steps:
       - name: check results
         run: |
-          if [ "${{ needs.test-logto.result }}" != "success" ] || \
+          if [ "${{ needs.test-auth.result }}" != "success" ] || \
              [ "${{ needs.test-nango.result }}" != "success" ] || \
              [ "${{ needs.test-proxy.result }}" != "success" ] || \
              [ "${{ needs.test-connect.result }}" != "success" ] || \

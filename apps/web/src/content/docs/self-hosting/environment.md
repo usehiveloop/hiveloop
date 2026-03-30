@@ -39,10 +39,9 @@ Additional variables required when `ENVIRONMENT=production`:
 | `AWS_REGION` | AWS region (for AWS KMS) | `us-east-1` |
 | `VAULT_ADDRESS` | Vault URL (for Vault KMS) | `https://vault.company.com` |
 | `VAULT_TOKEN` | Vault token (for Vault KMS) | `s.xxx` |
-| `LOGTO_ENDPOINT` | Logto authentication URL | `https://auth.company.com` |
-| `LOGTO_AUDIENCE` | Logto API resource | `https://api.llmvault.dev` |
-| `LOGTO_M2M_APP_ID` | Logto M2M app ID | `abc123` |
-| `LOGTO_M2M_APP_SECRET` | Logto M2M app secret | `xyz789` |
+| `AUTH_RSA_PRIVATE_KEY` | Base64-encoded RSA private key PEM | `<base64-encoded RSA private key>` |
+| `AUTH_ISSUER` | JWT issuer | `llmvault` |
+| `AUTH_AUDIENCE` | JWT audience | `https://api.llmvault.dev` |
 | `NANGO_ENDPOINT` | Nango OAuth proxy URL | `https://integrations.company.com` |
 | `NANGO_SECRET_KEY` | Nango API secret | `secret-key` |
 
@@ -212,24 +211,31 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:30112
 
 **Note:** Do not use `*` in production. Always specify exact origins.
 
-### Logto (Authentication)
+### Authentication (Built-in)
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `LOGTO_ENDPOINT` | - | Yes | Logto server base URL |
-| `LOGTO_AUDIENCE` | - | Yes | API resource identifier |
-| `LOGTO_M2M_APP_ID` | - | Yes | Machine-to-machine application ID |
-| `LOGTO_M2M_APP_SECRET` | - | Yes | Machine-to-machine application secret |
+| `AUTH_RSA_PRIVATE_KEY` | - | Yes | Base64-encoded RSA private key PEM |
+| `AUTH_ISSUER` | `llmvault` | No | JWT issuer claim |
+| `AUTH_AUDIENCE` | `https://api.llmvault.dev` | No | JWT audience claim |
+
+**Generating Keys:**
+```bash
+# Generate base64-encoded RSA private key
+openssl genrsa 2048 | base64 | tr -d '\n'
+```
 
 **Examples:**
 ```bash
-# Hosted Logto
-LOGTO_ENDPOINT=https://auth.llmvault.dev
-LOGTO_AUDIENCE=https://api.llmvault.dev
+# Development
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
-# Self-hosted
-LOGTO_ENDPOINT=https://auth.internal.company.com
-LOGTO_AUDIENCE=https://api.internal.company.com
+# Production
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 ```
 
 ### Nango (OAuth Integration Proxy)
@@ -340,11 +346,10 @@ JWT_SIGNING_KEY=dev-signing-key-not-for-production
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:30112
 
-# Logto (staging)
-LOGTO_ENDPOINT=https://auth.dev.llmvault.dev
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-staging-app-id
-LOGTO_M2M_APP_SECRET=your-staging-app-secret
+# Auth (built-in — generate with: openssl genrsa 2048 | base64 | tr -d '\n')
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
 # Nango (staging)
 NANGO_ENDPOINT=https://integrations.dev.llmvault.dev
@@ -387,11 +392,10 @@ JWT_SIGNING_KEY=your-production-signing-key
 # CORS
 CORS_ORIGINS=https://vault.yourcompany.com
 
-# Logto
-LOGTO_ENDPOINT=https://auth.yourcompany.com
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-production-app-id
-LOGTO_M2M_APP_SECRET=your-production-app-secret
+# Auth (built-in — generate with: openssl genrsa 2048 | base64 | tr -d '\n')
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
 # Nango
 NANGO_ENDPOINT=https://integrations.yourcompany.com
@@ -423,8 +427,8 @@ data:
   KMS_TYPE: "awskms"
   KMS_KEY: "alias/llmvault-production"
   AWS_REGION: "us-east-1"
-  LOGTO_ENDPOINT: "https://auth.yourcompany.com"
-  LOGTO_AUDIENCE: "https://api.llmvault.dev"
+  AUTH_ISSUER: "llmvault"
+  AUTH_AUDIENCE: "https://api.llmvault.dev"
   NANGO_ENDPOINT: "https://integrations.yourcompany.com"
   CORS_ORIGINS: "https://vault.yourcompany.com"
 ```
@@ -439,8 +443,10 @@ type: Opaque
 stringData:
   DB_PASSWORD: "your-secure-password"
   JWT_SIGNING_KEY: "your-jwt-signing-key"
-  LOGTO_M2M_APP_ID: "your-app-id"
-  LOGTO_M2M_APP_SECRET: "your-app-secret"
+  AUTH_RSA_PRIVATE_KEY: |
+    -----BEGIN PRIVATE KEY-----
+    your-rsa-private-key-content
+    -----END PRIVATE KEY-----
   NANGO_SECRET_KEY: "your-secret-key"
 ```
 

@@ -174,7 +174,7 @@ Every proxy request passes through:
 ### SaaS Proxy
 | Endpoint | Description |
 |---|---|
-| `* /v1/connections/{id}/proxy/*` | Proxy to upstream SaaS API via Nango. Any method/path/body/query. Auth: API key or Logto JWT. |
+| `* /v1/connections/{id}/proxy/*` | Proxy to upstream SaaS API via Nango. Any method/path/body/query. Auth: API key or JWT. |
 
 ---
 

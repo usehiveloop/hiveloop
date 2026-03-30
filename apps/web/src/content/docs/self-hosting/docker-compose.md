@@ -98,11 +98,10 @@ JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
 # CORS (your dashboard domain)
 CORS_ORIGINS=https://vault.yourcompany.com
 
-# Logto (use hosted or self-hosted)
-LOGTO_ENDPOINT=https://auth.yourcompany.com
-LOGTO_AUDIENCE=https://api.llmvault.dev
-LOGTO_M2M_APP_ID=your-m2m-app-id
-LOGTO_M2M_APP_SECRET=your-m2m-app-secret
+# Auth (built-in — generate with: openssl genrsa 2048 | base64 | tr -d '\n')
+AUTH_RSA_PRIVATE_KEY=<base64-encoded RSA private key>
+AUTH_ISSUER=llmvault
+AUTH_AUDIENCE=https://api.llmvault.dev
 
 # Nango (use hosted or self-hosted)
 NANGO_ENDPOINT=https://integrations.yourcompany.com
@@ -170,10 +169,9 @@ docker run -d \
   -e KMS_KEY="${KMS_KEY}" \
   -e REDIS_ADDR=localhost:6379 \
   -e JWT_SIGNING_KEY="${JWT_SIGNING_KEY}" \
-  -e LOGTO_ENDPOINT="${LOGTO_ENDPOINT}" \
-  -e LOGTO_AUDIENCE="${LOGTO_AUDIENCE}" \
-  -e LOGTO_M2M_APP_ID="${LOGTO_M2M_APP_ID}" \
-  -e LOGTO_M2M_APP_SECRET="${LOGTO_M2M_APP_SECRET}" \
+  -e AUTH_RSA_PRIVATE_KEY="${AUTH_RSA_PRIVATE_KEY}" \
+  -e AUTH_ISSUER=llmvault \
+  -e AUTH_AUDIENCE=https://api.llmvault.dev \
   -e NANGO_ENDPOINT="${NANGO_ENDPOINT}" \
   -e NANGO_SECRET_KEY="${NANGO_SECRET_KEY}" \
   -p 80:80 \
@@ -227,10 +225,9 @@ services:
       - MEM_CACHE_MAX_SIZE=10000
       - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS}
-      - LOGTO_ENDPOINT=${LOGTO_ENDPOINT}
-      - LOGTO_AUDIENCE=${LOGTO_AUDIENCE}
-      - LOGTO_M2M_APP_ID=${LOGTO_M2M_APP_ID}
-      - LOGTO_M2M_APP_SECRET=${LOGTO_M2M_APP_SECRET}
+      - AUTH_RSA_PRIVATE_KEY=${AUTH_RSA_PRIVATE_KEY}
+      - AUTH_ISSUER=${AUTH_ISSUER:-llmvault}
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE:-https://api.llmvault.dev}
       - NANGO_ENDPOINT=${NANGO_ENDPOINT}
       - NANGO_SECRET_KEY=${NANGO_SECRET_KEY}
     depends_on:
@@ -336,10 +333,9 @@ services:
       - AWS_REGION=${AWS_REGION}
       - REDIS_URL=${ELASTICACHE_URL}
       - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
-      - LOGTO_ENDPOINT=${LOGTO_ENDPOINT}
-      - LOGTO_AUDIENCE=${LOGTO_AUDIENCE}
-      - LOGTO_M2M_APP_ID=${LOGTO_M2M_APP_ID}
-      - LOGTO_M2M_APP_SECRET=${LOGTO_M2M_APP_SECRET}
+      - AUTH_RSA_PRIVATE_KEY=${AUTH_RSA_PRIVATE_KEY}
+      - AUTH_ISSUER=${AUTH_ISSUER:-llmvault}
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE:-https://api.llmvault.dev}
       - NANGO_ENDPOINT=${NANGO_ENDPOINT}
       - NANGO_SECRET_KEY=${NANGO_SECRET_KEY}
 ```

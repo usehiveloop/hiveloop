@@ -1,34 +1,37 @@
 package e2e
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/logto"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 )
 
-// orgHarness extends the base testHarness with Logto integration for org tests.
+const (
+	orgTestIssuer   = "llmvault-e2e-org-test"
+	orgTestAudience = "llmvault-e2e"
+)
+
+// orgHarness bundles infrastructure for org E2E tests using the embedded auth system.
 type orgHarness struct {
 	*testHarness
-	logtoClient *logto.Client
-	orgRouter   *chi.Mux
-	logtoAuth   *middleware.LogtoAuth
-	// Test M2M app credentials (for simulating authenticated requests)
-	testAppID     string
-	testAppSecret string
-	audience      string
-	endpoint      string
+	privateKey *rsa.PrivateKey
+	publicKey  *rsa.PublicKey
+	signingHMAC []byte
+	orgRouter  *chi.Mux
 }
 
 func newOrgHarness(t *testing.T) *orgHarness {
@@ -36,93 +39,106 @@ func newOrgHarness(t *testing.T) *orgHarness {
 
 	h := newHarness(t)
 
-	endpoint := envOr("LOGTO_ENDPOINT", "https://auth.dev.llmvault.dev")
-	audience := envOr("LOGTO_AUDIENCE", "https://api.llmvault.dev")
-
-	m2mAppID := os.Getenv("LOGTO_M2M_APP_ID")
-	m2mAppSecret := os.Getenv("LOGTO_M2M_APP_SECRET")
-	if m2mAppID == "" || m2mAppSecret == "" {
-		t.Fatal("LOGTO_M2M_APP_ID and LOGTO_M2M_APP_SECRET must be set")
+	// Generate RSA key pair for JWT signing/validation
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate RSA key: %v", err)
 	}
+	pubKey := &privKey.PublicKey
+	signingHMAC := []byte("e2e-org-hmac-signing-key")
 
-	testAppID := os.Getenv("LOGTO_TEST_APP_ID")
-	testAppSecret := os.Getenv("LOGTO_TEST_APP_SECRET")
-	if testAppID == "" || testAppSecret == "" {
-		t.Fatal("LOGTO_TEST_APP_ID and LOGTO_TEST_APP_SECRET must be set")
-	}
+	// Handlers
+	authHandler := handler.NewAuthHandler(h.db, privKey, signingHMAC, orgTestIssuer, orgTestAudience, 15*time.Minute, 24*time.Hour)
+	orgHandler := handler.NewOrgHandler(h.db)
 
-	logtoClient := logto.NewClient(endpoint, m2mAppID, m2mAppSecret)
-
-	// Discover the actual OIDC issuer (may differ from endpoint due to port mapping)
-	issuer := endpoint + "/oidc"
-	resp, err := http.Get(endpoint + "/oidc/.well-known/openid-configuration")
-	if err == nil {
-		defer resp.Body.Close()
-		var oidcConfig struct {
-			Issuer string `json:"issuer"`
-		}
-		if json.NewDecoder(resp.Body).Decode(&oidcConfig) == nil && oidcConfig.Issuer != "" {
-			issuer = oidcConfig.Issuer
-		}
-	}
-
-	// Logto JWT auth middleware
-	logtoAuth := middleware.NewLogtoAuth(issuer, audience)
-	if issuer != endpoint+"/oidc" {
-		logtoAuth.SetJWKSURL(endpoint + "/oidc")
-	}
-
-	// Org handler
-	orgHandler := handler.NewOrgHandler(h.db, logtoClient)
-
-	// Router with real Logto JWT authentication
+	// Router with embedded auth
 	r := chi.NewRouter()
-	r.Route("/v1", func(r chi.Router) {
-		r.Use(logtoAuth.RequireAuthorization())
 
-		// Org management (no org context needed)
+	// Public auth routes (no auth middleware)
+	r.Post("/auth/register", authHandler.Register)
+	r.Post("/auth/login", authHandler.Login)
+
+	// Protected routes
+	r.Route("/v1", func(r chi.Router) {
+		r.Use(middleware.RequireAuth(pubKey, orgTestIssuer, orgTestAudience))
+
+		// Org management (no org context needed, user creates an org)
 		r.Post("/orgs", orgHandler.Create)
 
-		// Org-scoped routes (require resolved org)
+		// Org-scoped routes (require resolved org from JWT claims)
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.ResolveOrg(h.db))
+			r.Use(middleware.ResolveOrgFromClaims(h.db))
 			r.Get("/orgs/current", orgHandler.Current)
 		})
 	})
 
 	return &orgHarness{
-		testHarness:   h,
-		logtoClient:   logtoClient,
-		orgRouter:     r,
-		logtoAuth:     logtoAuth,
-		testAppID:     testAppID,
-		testAppSecret: testAppSecret,
-		audience:      audience,
-		endpoint:      endpoint,
+		testHarness: h,
+		privateKey:  privKey,
+		publicKey:   pubKey,
+		signingHMAC: signingHMAC,
+		orgRouter:   r,
 	}
 }
 
-// getTestToken obtains an M2M token scoped to an organization.
-func (oh *orgHarness) getOrgToken(t *testing.T, orgID string) string {
+// registerUser creates a new user via the auth handler and returns the auth response.
+func (oh *orgHarness) registerUser(t *testing.T, email, password, name string) authResponseDTO {
 	t.Helper()
-	tok, err := oh.logtoClient.GetM2MOrgToken(oh.testAppID, oh.testAppSecret, orgID, oh.audience, []string{"m2m:admin"})
+
+	body := fmt.Sprintf(`{"email":%q,"password":%q,"name":%q}`, email, password, name)
+	req := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	oh.orgRouter.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("POST /auth/register: expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp authResponseDTO
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode register response: %v", err)
+	}
+	return resp
+}
+
+// loginUser logs in and returns the auth response.
+func (oh *orgHarness) loginUser(t *testing.T, email, password string, orgID string) authResponseDTO {
+	t.Helper()
+
+	var body string
+	if orgID != "" {
+		body = fmt.Sprintf(`{"email":%q,"password":%q,"org_id":%q}`, email, password, orgID)
+	} else {
+		body = fmt.Sprintf(`{"email":%q,"password":%q}`, email, password)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	oh.orgRouter.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /auth/login: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp authResponseDTO
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode login response: %v", err)
+	}
+	return resp
+}
+
+// issueToken creates an access token directly using the auth package (for test convenience).
+func (oh *orgHarness) issueToken(t *testing.T, userID, orgID, role string) string {
+	t.Helper()
+	tok, err := auth.IssueAccessToken(oh.privateKey, orgTestIssuer, orgTestAudience, userID, orgID, role, 15*time.Minute)
 	if err != nil {
-		t.Fatalf("failed to get org-scoped token: %v", err)
+		t.Fatalf("issue access token: %v", err)
 	}
 	return tok
 }
 
-// getNonOrgToken obtains a non-org-scoped M2M token (for creating orgs).
-func (oh *orgHarness) getNonOrgToken(t *testing.T) string {
-	t.Helper()
-	tok, err := oh.logtoClient.GetM2MToken(oh.testAppID, oh.testAppSecret, oh.audience)
-	if err != nil {
-		t.Fatalf("failed to get M2M token: %v", err)
-	}
-	return tok
-}
-
-// orgRequest makes an authenticated request to the org router using a Logto M2M token.
+// orgRequest makes an authenticated request to the org router.
 func (oh *orgHarness) orgRequest(t *testing.T, method, path string, body string, token string) *httptest.ResponseRecorder {
 	t.Helper()
 	var reader *strings.Reader
@@ -136,42 +152,74 @@ func (oh *orgHarness) orgRequest(t *testing.T, method, path string, body string,
 		req = httptest.NewRequest(method, path, nil)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 	rr := httptest.NewRecorder()
 	oh.orgRouter.ServeHTTP(rr, req)
 	return rr
 }
 
+type authResponseDTO struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	User         struct {
+		ID    string `json:"id"`
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	} `json:"user"`
+	Orgs []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Role string `json:"role"`
+	} `json:"orgs"`
+}
+
 func TestOrgCreate(t *testing.T) {
 	oh := newOrgHarness(t)
 
-	tok := oh.getNonOrgToken(t)
+	suffix := uuid.New().String()[:8]
+	email := fmt.Sprintf("orgcreate-%s@test.local", suffix)
+	regResp := oh.registerUser(t, email, "password123", "OrgCreator")
 
-	orgName := fmt.Sprintf("e2e-org-%s", randomSuffix())
+	t.Cleanup(func() {
+		// Clean up user, memberships, orgs
+		oh.db.Where("user_id = ?", regResp.User.ID).Delete(&model.OrgMembership{})
+		oh.db.Where("id = ?", regResp.User.ID).Delete(&model.User{})
+		for _, o := range regResp.Orgs {
+			oh.db.Where("id = ?", o.ID).Delete(&model.Org{})
+		}
+	})
+
+	// Use the access token from registration (which is scoped to the auto-created org)
+	// to create a second org.
+	orgName := fmt.Sprintf("e2e-org-%s", uuid.New().String()[:8])
 	body := fmt.Sprintf(`{"name":%q}`, orgName)
 
-	rr := oh.orgRequest(t, http.MethodPost, "/v1/orgs", body, tok)
+	rr := oh.orgRequest(t, http.MethodPost, "/v1/orgs", body, regResp.AccessToken)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("POST /v1/orgs: expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
 	var resp struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		LogtoOrgID string `json:"logto_org_id"`
-		RateLimit  int    `json:"rate_limit"`
-		Active     bool   `json:"active"`
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		RateLimit int    `json:"rate_limit"`
+		Active    bool   `json:"active"`
 	}
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 
+	t.Cleanup(func() {
+		oh.db.Where("org_id = ?", resp.ID).Delete(&model.OrgMembership{})
+		oh.db.Where("id = ?", resp.ID).Delete(&model.Org{})
+	})
+
 	// Verify response fields
 	if resp.Name != orgName {
 		t.Errorf("name: got %q, want %q", resp.Name, orgName)
-	}
-	if resp.LogtoOrgID == "" {
-		t.Error("logto_org_id is empty")
 	}
 	if resp.ID == "" {
 		t.Error("id is empty")
@@ -183,24 +231,32 @@ func TestOrgCreate(t *testing.T) {
 		t.Errorf("rate_limit: got %d, want 1000 (default)", resp.RateLimit)
 	}
 
-	// Verify org exists in local DB
+	// Verify org exists in DB
 	var dbOrg model.Org
 	if err := oh.db.Where("id = ?", resp.ID).First(&dbOrg).Error; err != nil {
 		t.Fatalf("org not found in DB: %v", err)
 	}
-	if dbOrg.LogtoOrgID != resp.LogtoOrgID {
-		t.Errorf("DB logto_org_id mismatch: got %q, want %q", dbOrg.LogtoOrgID, resp.LogtoOrgID)
+	if dbOrg.Name != orgName {
+		t.Errorf("DB name mismatch: got %q, want %q", dbOrg.Name, orgName)
 	}
-
-	// Cleanup
-	t.Cleanup(func() {
-		oh.db.Where("id = ?", resp.ID).Delete(&model.Org{})
-	})
 }
 
 func TestOrgCreateValidation(t *testing.T) {
 	oh := newOrgHarness(t)
-	tok := oh.getNonOrgToken(t)
+
+	suffix := uuid.New().String()[:8]
+	email := fmt.Sprintf("orgval-%s@test.local", suffix)
+	regResp := oh.registerUser(t, email, "password123", "Validator")
+
+	t.Cleanup(func() {
+		oh.db.Where("user_id = ?", regResp.User.ID).Delete(&model.OrgMembership{})
+		for _, o := range regResp.Orgs {
+			oh.db.Where("id = ?", o.ID).Delete(&model.Org{})
+		}
+		oh.db.Where("id = ?", regResp.User.ID).Delete(&model.User{})
+	})
+
+	tok := regResp.AccessToken
 
 	// Missing name
 	rr := oh.orgRequest(t, http.MethodPost, "/v1/orgs", `{"name":""}`, tok)
@@ -227,46 +283,49 @@ func TestOrgCreateUnauthenticated(t *testing.T) {
 	if rr.Code == http.StatusCreated {
 		t.Error("expected unauthenticated request to fail, got 201")
 	}
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
 }
 
 func TestOrgCurrent(t *testing.T) {
 	oh := newOrgHarness(t)
-	tok := oh.getNonOrgToken(t)
 
-	// First create an org so it exists in both Logto and local DB
-	orgName := fmt.Sprintf("e2e-current-%s", randomSuffix())
+	suffix := uuid.New().String()[:8]
+	email := fmt.Sprintf("orgcur-%s@test.local", suffix)
+	regResp := oh.registerUser(t, email, "password123", "CurrentUser")
+
+	t.Cleanup(func() {
+		oh.db.Where("user_id = ?", regResp.User.ID).Delete(&model.OrgMembership{})
+		for _, o := range regResp.Orgs {
+			oh.db.Where("id = ?", o.ID).Delete(&model.Org{})
+		}
+		oh.db.Where("id = ?", regResp.User.ID).Delete(&model.User{})
+	})
+
+	// Create a new org
+	orgName := fmt.Sprintf("e2e-current-%s", uuid.New().String()[:8])
 	body := fmt.Sprintf(`{"name":%q}`, orgName)
 
-	createRR := oh.orgRequest(t, http.MethodPost, "/v1/orgs", body, tok)
+	createRR := oh.orgRequest(t, http.MethodPost, "/v1/orgs", body, regResp.AccessToken)
 	if createRR.Code != http.StatusCreated {
 		t.Fatalf("POST /v1/orgs: expected 201, got %d: %s", createRR.Code, createRR.Body.String())
 	}
 
 	var created struct {
-		ID         string `json:"id"`
-		LogtoOrgID string `json:"logto_org_id"`
+		ID string `json:"id"`
 	}
 	json.NewDecoder(createRR.Body).Decode(&created)
 
 	t.Cleanup(func() {
+		oh.db.Where("org_id = ?", created.ID).Delete(&model.OrgMembership{})
 		oh.db.Where("id = ?", created.ID).Delete(&model.Org{})
 	})
 
-	// GET /v1/orgs/current requires an org-scoped JWT.
-	// We need to add the test M2M app to the Logto org and get an org-scoped token.
-	if err := oh.logtoClient.AddOrgMemberM2M(created.LogtoOrgID, oh.testAppID); err != nil {
-		t.Fatalf("failed to add test app to org: %v", err)
-	}
-	adminRoleID, err := oh.logtoClient.GetOrgRoleByName("m2m:admin")
-	if err != nil {
-		t.Fatalf("failed to get admin role: %v", err)
-	}
-	if err := oh.logtoClient.AssignOrgRoleToM2M(created.LogtoOrgID, oh.testAppID, []string{adminRoleID}); err != nil {
-		t.Fatalf("failed to assign admin role: %v", err)
-	}
+	// Issue a token scoped to the new org
+	orgTok := oh.issueToken(t, regResp.User.ID, created.ID, "admin")
 
-	orgTok := oh.getOrgToken(t, created.LogtoOrgID)
-
+	// GET /v1/orgs/current
 	rr := oh.orgRequest(t, http.MethodGet, "/v1/orgs/current", "", orgTok)
 
 	if rr.Code != http.StatusOK {
@@ -293,9 +352,22 @@ func TestOrgCurrent(t *testing.T) {
 
 func TestOrgCreateDuplicateName(t *testing.T) {
 	oh := newOrgHarness(t)
-	tok := oh.getNonOrgToken(t)
 
-	orgName := fmt.Sprintf("e2e-dup-%s", randomSuffix())
+	suffix := uuid.New().String()[:8]
+	email := fmt.Sprintf("orgdup-%s@test.local", suffix)
+	regResp := oh.registerUser(t, email, "password123", "DupTester")
+
+	t.Cleanup(func() {
+		oh.db.Where("user_id = ?", regResp.User.ID).Delete(&model.OrgMembership{})
+		for _, o := range regResp.Orgs {
+			oh.db.Where("id = ?", o.ID).Delete(&model.Org{})
+		}
+		oh.db.Where("id = ?", regResp.User.ID).Delete(&model.User{})
+	})
+
+	tok := regResp.AccessToken
+
+	orgName := fmt.Sprintf("e2e-dup-%s", uuid.New().String()[:8])
 	body := fmt.Sprintf(`{"name":%q}`, orgName)
 
 	rr1 := oh.orgRequest(t, http.MethodPost, "/v1/orgs", body, tok)
@@ -306,6 +378,7 @@ func TestOrgCreateDuplicateName(t *testing.T) {
 	json.NewDecoder(rr1.Body).Decode(&org1)
 
 	t.Cleanup(func() {
+		oh.db.Where("org_id = ?", org1.ID).Delete(&model.OrgMembership{})
 		oh.db.Where("id = ?", org1.ID).Delete(&model.Org{})
 	})
 
@@ -318,19 +391,31 @@ func TestOrgCreateDuplicateName(t *testing.T) {
 
 func TestOrgCreateMultiple(t *testing.T) {
 	oh := newOrgHarness(t)
-	tok := oh.getNonOrgToken(t)
+
+	suffix := uuid.New().String()[:8]
+	email := fmt.Sprintf("orgmulti-%s@test.local", suffix)
+	regResp := oh.registerUser(t, email, "password123", "MultiTester")
+
+	t.Cleanup(func() {
+		oh.db.Where("user_id = ?", regResp.User.ID).Delete(&model.OrgMembership{})
+		for _, o := range regResp.Orgs {
+			oh.db.Where("id = ?", o.ID).Delete(&model.Org{})
+		}
+		oh.db.Where("id = ?", regResp.User.ID).Delete(&model.User{})
+	})
+
+	tok := regResp.AccessToken
 
 	// Create two orgs with different names
-	name1 := fmt.Sprintf("e2e-multi-a-%s", randomSuffix())
-	name2 := fmt.Sprintf("e2e-multi-b-%s", randomSuffix())
+	name1 := fmt.Sprintf("e2e-multi-a-%s", uuid.New().String()[:8])
+	name2 := fmt.Sprintf("e2e-multi-b-%s", uuid.New().String()[:8])
 
 	rr1 := oh.orgRequest(t, http.MethodPost, "/v1/orgs", fmt.Sprintf(`{"name":%q}`, name1), tok)
 	if rr1.Code != http.StatusCreated {
 		t.Fatalf("first create: expected 201, got %d: %s", rr1.Code, rr1.Body.String())
 	}
 	var org1 struct {
-		ID         string `json:"id"`
-		LogtoOrgID string `json:"logto_org_id"`
+		ID string `json:"id"`
 	}
 	json.NewDecoder(rr1.Body).Decode(&org1)
 
@@ -339,19 +424,16 @@ func TestOrgCreateMultiple(t *testing.T) {
 		t.Fatalf("second create: expected 201, got %d: %s", rr2.Code, rr2.Body.String())
 	}
 	var org2 struct {
-		ID         string `json:"id"`
-		LogtoOrgID string `json:"logto_org_id"`
+		ID string `json:"id"`
 	}
 	json.NewDecoder(rr2.Body).Decode(&org2)
 
 	if org1.ID == org2.ID {
 		t.Error("two orgs should have different IDs")
 	}
-	if org1.LogtoOrgID == org2.LogtoOrgID {
-		t.Error("two orgs should have different Logto org IDs")
-	}
 
 	t.Cleanup(func() {
+		oh.db.Where("org_id IN ?", []string{org1.ID, org2.ID}).Delete(&model.OrgMembership{})
 		oh.db.Where("id IN ?", []string{org1.ID, org2.ID}).Delete(&model.Org{})
 	})
 }

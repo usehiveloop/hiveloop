@@ -224,6 +224,11 @@ interface components {
             count?: number;
             date?: string;
         };
+        errorRate: {
+            date?: string;
+            error_count?: number;
+            total?: number;
+        };
         errorResponse: {
             error?: string;
         };
@@ -258,6 +263,7 @@ interface components {
             integration_id?: string;
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
+            provider_config?: components["schemas"]["JSON"];
             revoked_at?: string;
             updated_at?: string;
         };
@@ -292,6 +298,11 @@ interface components {
             id?: string;
             read_count?: number;
             write_count?: number;
+        };
+        latencyStats: {
+            avg_ttfb_ms?: number;
+            date?: string;
+            p95_ttfb_ms?: number;
         };
         mintTokenRequest: {
             credential_id?: string;
@@ -328,7 +339,6 @@ interface components {
             active?: boolean;
             created_at?: string;
             id?: string;
-            logto_org_id?: string;
             name?: string;
             rate_limit?: number;
         };
@@ -391,6 +401,24 @@ interface components {
             model_count?: number;
             name?: string;
         };
+        reportRow: {
+            avg_ttfb_ms?: number;
+            cached_tokens?: number;
+            credential_id?: string;
+            error_count?: number;
+            identity_id?: string;
+            input_tokens?: number;
+            model?: string;
+            output_tokens?: number;
+            p50_ttfb_ms?: number;
+            p95_ttfb_ms?: number;
+            period?: string;
+            provider_id?: string;
+            reasoning_tokens?: number;
+            request_count?: number;
+            total_cost?: number;
+            user_id?: string;
+        };
         requestStats: {
             last_30d?: number;
             last_7d?: number;
@@ -414,6 +442,10 @@ interface components {
             identity_id?: string;
             permissions?: string[];
         };
+        spendOverTime: {
+            date?: string;
+            total_cost?: number;
+        };
         tokenListItem: {
             created_at?: string;
             credential_id?: string;
@@ -427,24 +459,34 @@ interface components {
             revoked_at?: string;
             scopes?: components["schemas"]["JSON"];
         };
-        tokenResponse: {
-            access_token?: string;
-            connection_id?: string;
-            expires_at?: string;
-            provider?: string;
-            token_type?: string;
-        };
         tokenStats: {
             active?: number;
             expired?: number;
             revoked?: number;
             total?: number;
         };
+        tokenVolumes: {
+            cached_tokens?: number;
+            date?: string;
+            input_tokens?: number;
+            output_tokens?: number;
+        };
         topCredential: {
             id?: string;
             label?: string;
             provider_id?: string;
             request_count?: number;
+        };
+        topModel: {
+            model?: string;
+            provider_id?: string;
+            request_count?: number;
+            total_cost?: number;
+        };
+        topUser: {
+            request_count?: number;
+            total_cost?: number;
+            user_id?: string;
         };
         updateIdentityRequest: {
             external_id?: string;
@@ -460,10 +502,17 @@ interface components {
             api_keys?: components["schemas"]["apiKeyStats"];
             credentials?: components["schemas"]["credentialStats"];
             daily_requests?: components["schemas"]["dailyRequests"][];
+            error_rates?: components["schemas"]["errorRate"][];
             identities?: components["schemas"]["identityStats"];
+            latency?: components["schemas"]["latencyStats"][];
             requests?: components["schemas"]["requestStats"];
+            /** @description Generation-based analytics */
+            spend_over_time?: components["schemas"]["spendOverTime"][];
+            token_volumes?: components["schemas"]["tokenVolumes"][];
             tokens?: components["schemas"]["tokenStats"];
             top_credentials?: components["schemas"]["topCredential"][];
+            top_models?: components["schemas"]["topModel"][];
+            top_users?: components["schemas"]["topUser"][];
         };
         widgetIntegrationResponse: {
             auth_mode?: string;

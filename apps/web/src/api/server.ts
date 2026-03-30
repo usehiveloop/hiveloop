@@ -1,14 +1,12 @@
 import createFetchClient from "openapi-fetch";
-import { getAccessToken } from "@logto/next/server-actions";
-import { getLogtoConfig } from "@/lib/logto";
-import { getSelectedOrgId } from "@/lib/org";
+import { getAccessToken } from "@/lib/auth";
 import type { paths } from "./schema";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 /**
  * Server-side openapi-fetch client that calls the backend directly
- * with the user's Logto access token. For use in Route Handlers
+ * with the user's access token from cookies. For use in Route Handlers
  * and Server Actions (not Server Components).
  */
 export function createServerClient() {
@@ -16,10 +14,7 @@ export function createServerClient() {
 
   client.use({
     async onRequest({ request }) {
-      const config = getLogtoConfig();
-      const resource = config.resources?.[0];
-      const orgId = await getSelectedOrgId();
-      const token = await getAccessToken(config, resource, orgId);
+      const token = await getAccessToken();
       if (token) {
         request.headers.set("Authorization", `Bearer ${token}`);
       }

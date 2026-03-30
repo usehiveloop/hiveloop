@@ -308,6 +308,125 @@
         }
       }
     },
+    "/v1/catalog/integrations": {
+      "get": {
+        "description": "Returns every integration provider in the catalog with action counts.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List all integrations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/integrationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog/integrations/{id}": {
+      "get": {
+        "description": "Returns a single integration with its full action list.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Get integration detail",
+        "parameters": [
+          {
+            "description": "Provider ID (e.g. github-app, slack, jira)",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/integrationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog/integrations/{id}/actions": {
+      "get": {
+        "description": "Returns all actions for a single integration, optionally filtered by access type.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List actions for an integration",
+        "parameters": [
+          {
+            "description": "Provider ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by access type (read or write)",
+            "name": "access",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/actionSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/connect/sessions": {
       "post": {
         "security": [
@@ -578,83 +697,6 @@
           },
           "500": {
             "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/connections/{id}/token": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Fetches the current OAuth access token for a connection from the upstream provider.",
-        "tags": [
-          "connections"
-        ],
-        "summary": "Retrieve connection token",
-        "parameters": [
-          {
-            "description": "Connection ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/tokenResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
@@ -1862,59 +1904,6 @@
         }
       }
     },
-    "/v1/integrations/{id}/actions": {
-      "get": {
-        "description": "Returns all actions for a single integration, optionally filtered by access type.",
-        "tags": [
-          "integrations"
-        ],
-        "summary": "List actions for an integration",
-        "parameters": [
-          {
-            "description": "Provider ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by access type (read or write)",
-            "name": "access",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/actionSummary"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/integrations/{id}/connections": {
       "get": {
         "security": [
@@ -2101,7 +2090,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new organization in Logto and stores a local record.",
+        "description": "Creates a new organization and adds the requesting user as an admin member.",
         "tags": [
           "orgs"
         ],
@@ -2297,6 +2286,129 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reporting": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns aggregated analytics from generations with flexible grouping and filtering.",
+        "tags": [
+          "reporting"
+        ],
+        "summary": "Get analytics report",
+        "parameters": [
+          {
+            "description": "Comma-separated grouping dimensions: model, provider, credential, user, identity",
+            "name": "group_by",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Time granularity: hour or day (default: day)",
+            "name": "date_part",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start date inclusive (YYYY-MM-DD)",
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End date inclusive (YYYY-MM-DD)",
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by model name",
+            "name": "model",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by provider ID",
+            "name": "provider_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by credential ID",
+            "name": "credential_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by user ID",
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by tag (comma-separated, OR)",
+            "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/reportRow"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -3655,7 +3767,7 @@
   "components": {
     "securitySchemes": {
       "BearerAuth": {
-        "description": "Logto JWT bearer token (Management API) or Connect session token (Widget API).",
+        "description": "Bearer token (JWT or API key).",
         "type": "apiKey",
         "name": "Authorization",
         "in": "header"
@@ -4335,6 +4447,20 @@
           }
         }
       },
+      "errorRate": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "error_count": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
       "errorResponse": {
         "type": "object",
         "properties": {
@@ -4433,6 +4559,9 @@
           "nango_connection_id": {
             "type": "string"
           },
+          "provider_config": {
+            "$ref": "#/components/schemas/JSON"
+          },
           "revoked_at": {
             "type": "string"
           },
@@ -4530,6 +4659,20 @@
           },
           "write_count": {
             "type": "integer"
+          }
+        }
+      },
+      "latencyStats": {
+        "type": "object",
+        "properties": {
+          "avg_ttfb_ms": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          },
+          "p95_ttfb_ms": {
+            "type": "number"
           }
         }
       },
@@ -4634,9 +4777,6 @@
             "type": "string"
           },
           "id": {
-            "type": "string"
-          },
-          "logto_org_id": {
             "type": "string"
           },
           "name": {
@@ -4840,6 +4980,59 @@
           }
         }
       },
+      "reportRow": {
+        "type": "object",
+        "properties": {
+          "avg_ttfb_ms": {
+            "type": "number"
+          },
+          "cached_tokens": {
+            "type": "integer"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "error_count": {
+            "type": "integer"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "p50_ttfb_ms": {
+            "type": "number"
+          },
+          "p95_ttfb_ms": {
+            "type": "number"
+          },
+          "period": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "reasoning_tokens": {
+            "type": "integer"
+          },
+          "request_count": {
+            "type": "integer"
+          },
+          "total_cost": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
       "requestStats": {
         "type": "object",
         "properties": {
@@ -4912,6 +5105,17 @@
           }
         }
       },
+      "spendOverTime": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "total_cost": {
+            "type": "number"
+          }
+        }
+      },
       "tokenListItem": {
         "type": "object",
         "properties": {
@@ -4950,26 +5154,6 @@
           }
         }
       },
-      "tokenResponse": {
-        "type": "object",
-        "properties": {
-          "access_token": {
-            "type": "string"
-          },
-          "connection_id": {
-            "type": "string"
-          },
-          "expires_at": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "token_type": {
-            "type": "string"
-          }
-        }
-      },
       "tokenStats": {
         "type": "object",
         "properties": {
@@ -4983,6 +5167,23 @@
             "type": "integer"
           },
           "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "tokenVolumes": {
+        "type": "object",
+        "properties": {
+          "cached_tokens": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "string"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
             "type": "integer"
           }
         }
@@ -5001,6 +5202,37 @@
           },
           "request_count": {
             "type": "integer"
+          }
+        }
+      },
+      "topModel": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "request_count": {
+            "type": "integer"
+          },
+          "total_cost": {
+            "type": "number"
+          }
+        }
+      },
+      "topUser": {
+        "type": "object",
+        "properties": {
+          "request_count": {
+            "type": "integer"
+          },
+          "total_cost": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "string"
           }
         }
       },
@@ -5050,11 +5282,36 @@
               "$ref": "#/components/schemas/dailyRequests"
             }
           },
+          "error_rates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/errorRate"
+            }
+          },
           "identities": {
             "$ref": "#/components/schemas/identityStats"
           },
+          "latency": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/latencyStats"
+            }
+          },
           "requests": {
             "$ref": "#/components/schemas/requestStats"
+          },
+          "spend_over_time": {
+            "description": "Generation-based analytics",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/spendOverTime"
+            }
+          },
+          "token_volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/tokenVolumes"
+            }
           },
           "tokens": {
             "$ref": "#/components/schemas/tokenStats"
@@ -5063,6 +5320,18 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/topCredential"
+            }
+          },
+          "top_models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/topModel"
+            }
+          },
+          "top_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/topUser"
             }
           }
         }

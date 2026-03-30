@@ -198,8 +198,8 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 - `GET /v1/catalog/integrations/{id}` — Get integration detail with actions
 - `GET /v1/catalog/integrations/{id}/actions` — List actions (supports ?access=read|write)
 
-### Organization Management (Logto JWT / API Key)
-- `POST /v1/orgs` — Create organization (Logto JWT only)
+### Organization Management (JWT / API Key)
+- `POST /v1/orgs` — Create organization (JWT only)
 - `GET /v1/orgs/current` — Get current org
 
 ### Credentials — Maps to Problem 2 (Scope: `credentials`)

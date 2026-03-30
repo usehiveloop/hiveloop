@@ -102,9 +102,9 @@ environment:
   KMS_KEY: "alias/llmvault-production"
   AWS_REGION: "us-east-1"
   
-  # Auth (Logto)
-  LOGTO_ENDPOINT: "https://auth.yourcompany.com"
-  LOGTO_AUDIENCE: "https://api.llmvault.dev"
+  # Auth (built-in)
+  AUTH_ISSUER: "llmvault"
+  AUTH_AUDIENCE: "https://api.llmvault.dev"
   
   # OAuth (Nango)
   NANGO_ENDPOINT: "https://integrations.yourcompany.com"
@@ -241,8 +241,9 @@ kubectl create secret generic llmvault-secrets \
   --namespace llmvault \
   --from-literal=DB_PASSWORD="your-db-password" \
   --from-literal=JWT_SIGNING_KEY="$(openssl rand -hex 32)" \
-  --from-literal=LOGTO_M2M_APP_ID="your-logto-app-id" \
-  --from-literal=LOGTO_M2M_APP_SECRET="your-logto-app-secret" \
+  --from-file=AUTH_RSA_PRIVATE_KEY=certs/auth.key \
+  --from-literal=AUTH_ISSUER="llmvault" \
+  --from-literal=AUTH_AUDIENCE="https://api.llmvault.dev" \
   --from-literal=NANGO_SECRET_KEY="your-nango-secret-key"
 ```
 
@@ -306,8 +307,8 @@ data:
   KMS_TYPE: "awskms"
   KMS_KEY: "alias/llmvault-production"
   AWS_REGION: "us-east-1"
-  LOGTO_ENDPOINT: "https://auth.yourcompany.com"
-  LOGTO_AUDIENCE: "https://api.llmvault.dev"
+  AUTH_ISSUER: "llmvault"
+  AUTH_AUDIENCE: "https://api.llmvault.dev"
   NANGO_ENDPOINT: "https://integrations.yourcompany.com"
   CORS_ORIGINS: "https://vault.yourcompany.com"
 ```
@@ -324,8 +325,12 @@ type: Opaque
 stringData:
   DB_PASSWORD: "your-secure-db-password"
   JWT_SIGNING_KEY: "your-jwt-signing-key-min-32-chars"
-  LOGTO_M2M_APP_ID: "your-logto-app-id"
-  LOGTO_M2M_APP_SECRET: "your-logto-app-secret"
+  AUTH_RSA_PRIVATE_KEY: |
+    -----BEGIN PRIVATE KEY-----
+    your-rsa-private-key-content
+    -----END PRIVATE KEY-----
+  AUTH_ISSUER: "llmvault"
+  AUTH_AUDIENCE: "https://api.llmvault.dev"
   NANGO_SECRET_KEY: "your-nango-secret-key"
 ```
 

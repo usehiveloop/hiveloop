@@ -870,7 +870,6 @@ const { data, error } = await vault.org.getCurrent();
 // {
 //   id: "org_abc123",
 //   name: "My Organization",
-//   logto_org_id: "logto_xyz",
 //   active: true,
 //   rate_limit: 1000,
 //   created_at: "2024-01-01T00:00:00Z"

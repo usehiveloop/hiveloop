@@ -439,6 +439,15 @@ definitions:
       date:
         type: string
     type: object
+  internal_handler.errorRate:
+    properties:
+      date:
+        type: string
+      error_count:
+        type: integer
+      total:
+        type: integer
+    type: object
   internal_handler.errorResponse:
     properties:
       error:
@@ -503,6 +512,8 @@ definitions:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       nango_connection_id:
         type: string
+      provider_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       revoked_at:
         type: string
       updated_at:
@@ -567,6 +578,15 @@ definitions:
         type: integer
       write_count:
         type: integer
+    type: object
+  internal_handler.latencyStats:
+    properties:
+      avg_ttfb_ms:
+        type: number
+      date:
+        type: string
+      p95_ttfb_ms:
+        type: number
     type: object
   internal_handler.mintTokenRequest:
     properties:
@@ -635,8 +655,6 @@ definitions:
       created_at:
         type: string
       id:
-        type: string
-      logto_org_id:
         type: string
       name:
         type: string
@@ -768,6 +786,41 @@ definitions:
       name:
         type: string
     type: object
+  internal_handler.reportRow:
+    properties:
+      avg_ttfb_ms:
+        type: number
+      cached_tokens:
+        type: integer
+      credential_id:
+        type: string
+      error_count:
+        type: integer
+      identity_id:
+        type: string
+      input_tokens:
+        type: integer
+      model:
+        type: string
+      output_tokens:
+        type: integer
+      p50_ttfb_ms:
+        type: number
+      p95_ttfb_ms:
+        type: number
+      period:
+        type: string
+      provider_id:
+        type: string
+      reasoning_tokens:
+        type: integer
+      request_count:
+        type: integer
+      total_cost:
+        type: number
+      user_id:
+        type: string
+    type: object
   internal_handler.requestStats:
     properties:
       last_7d:
@@ -815,6 +868,13 @@ definitions:
           type: string
         type: array
     type: object
+  internal_handler.spendOverTime:
+    properties:
+      date:
+        type: string
+      total_cost:
+        type: number
+    type: object
   internal_handler.tokenListItem:
     properties:
       created_at:
@@ -840,19 +900,6 @@ definitions:
       scopes:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
     type: object
-  internal_handler.tokenResponse:
-    properties:
-      access_token:
-        type: string
-      connection_id:
-        type: string
-      expires_at:
-        type: string
-      provider:
-        type: string
-      token_type:
-        type: string
-    type: object
   internal_handler.tokenStats:
     properties:
       active:
@@ -862,6 +909,17 @@ definitions:
       revoked:
         type: integer
       total:
+        type: integer
+    type: object
+  internal_handler.tokenVolumes:
+    properties:
+      cached_tokens:
+        type: integer
+      date:
+        type: string
+      input_tokens:
+        type: integer
+      output_tokens:
         type: integer
     type: object
   internal_handler.topCredential:
@@ -874,6 +932,26 @@ definitions:
         type: string
       request_count:
         type: integer
+    type: object
+  internal_handler.topModel:
+    properties:
+      model:
+        type: string
+      provider_id:
+        type: string
+      request_count:
+        type: integer
+      total_cost:
+        type: number
+    type: object
+  internal_handler.topUser:
+    properties:
+      request_count:
+        type: integer
+      total_cost:
+        type: number
+      user_id:
+        type: string
     type: object
   internal_handler.updateIdentityRequest:
     properties:
@@ -905,15 +983,40 @@ definitions:
         items:
           $ref: '#/definitions/internal_handler.dailyRequests'
         type: array
+      error_rates:
+        items:
+          $ref: '#/definitions/internal_handler.errorRate'
+        type: array
       identities:
         $ref: '#/definitions/internal_handler.identityStats'
+      latency:
+        items:
+          $ref: '#/definitions/internal_handler.latencyStats'
+        type: array
       requests:
         $ref: '#/definitions/internal_handler.requestStats'
+      spend_over_time:
+        description: Generation-based analytics
+        items:
+          $ref: '#/definitions/internal_handler.spendOverTime'
+        type: array
+      token_volumes:
+        items:
+          $ref: '#/definitions/internal_handler.tokenVolumes'
+        type: array
       tokens:
         $ref: '#/definitions/internal_handler.tokenStats'
       top_credentials:
         items:
           $ref: '#/definitions/internal_handler.topCredential'
+        type: array
+      top_models:
+        items:
+          $ref: '#/definitions/internal_handler.topModel'
+        type: array
+      top_users:
+        items:
+          $ref: '#/definitions/internal_handler.topUser'
         type: array
     type: object
   internal_handler.widgetIntegrationResponse:
@@ -1113,6 +1216,74 @@ paths:
       summary: List audit log entries
       tags:
       - audit
+  /v1/catalog/integrations:
+    get:
+      description: Returns every integration provider in the catalog with action counts.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.integrationSummary'
+            type: array
+      summary: List all integrations
+      tags:
+      - integrations
+  /v1/catalog/integrations/{id}:
+    get:
+      description: Returns a single integration with its full action list.
+      parameters:
+      - description: Provider ID (e.g. github-app, slack, jira)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.integrationDetail'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Get integration detail
+      tags:
+      - integrations
+  /v1/catalog/integrations/{id}/actions:
+    get:
+      description: Returns all actions for a single integration, optionally filtered
+        by access type.
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by access type (read or write)
+        in: query
+        name: access
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.actionSummary'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: List actions for an integration
+      tags:
+      - integrations
   /v1/connect/sessions:
     post:
       consumes:
@@ -1227,44 +1398,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a connection
-      tags:
-      - connections
-  /v1/connections/{id}/token:
-    post:
-      description: Fetches the current OAuth access token for a connection from the
-        upstream provider.
-      parameters:
-      - description: Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.tokenResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Retrieve connection token
       tags:
       - connections
   /v1/connections/available-scopes:
@@ -1871,36 +2004,6 @@ paths:
       summary: Update an integration
       tags:
       - integrations
-  /v1/integrations/{id}/actions:
-    get:
-      description: Returns all actions for a single integration, optionally filtered
-        by access type.
-      parameters:
-      - description: Provider ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Filter by access type (read or write)
-        in: query
-        name: access
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/internal_handler.actionSummary'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      summary: List actions for an integration
-      tags:
-      - integrations
   /v1/integrations/{id}/connections:
     get:
       description: Returns connections for an integration with cursor pagination.
@@ -2011,7 +2114,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new organization in Logto and stores a local record.
+      description: Creates a new organization and adds the requesting user as an admin
+        member.
       parameters:
       - description: Organization name
         in: body
@@ -2125,6 +2229,70 @@ paths:
       summary: List models for a provider
       tags:
       - providers
+  /v1/reporting:
+    get:
+      description: Returns aggregated analytics from generations with flexible grouping
+        and filtering.
+      parameters:
+      - description: 'Comma-separated grouping dimensions: model, provider, credential,
+          user, identity'
+        in: query
+        name: group_by
+        type: string
+      - description: 'Time granularity: hour or day (default: day)'
+        in: query
+        name: date_part
+        type: string
+      - description: Start date inclusive (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date inclusive (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      - description: Filter by model name
+        in: query
+        name: model
+        type: string
+      - description: Filter by provider ID
+        in: query
+        name: provider_id
+        type: string
+      - description: Filter by credential ID
+        in: query
+        name: credential_id
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by tag (comma-separated, OR)
+        in: query
+        name: tags
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.reportRow'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get analytics report
+      tags:
+      - reporting
   /v1/settings/connect:
     get:
       description: Returns the Connect widget settings for the current organization.
@@ -2806,8 +2974,7 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: Logto JWT bearer token (Management API) or Connect session token
-      (Widget API).
+    description: Bearer token (JWT or API key).
     in: header
     name: Authorization
     type: apiKey

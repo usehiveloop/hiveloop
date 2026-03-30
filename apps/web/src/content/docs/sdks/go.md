@@ -1078,7 +1078,6 @@ fmt.Printf("Rate limit: %d\n", resp.RateLimit)
 // type OrgResponse struct {
 //     ID         string    `json:"id"`
 //     Name       string    `json:"name"`
-//     LogtoOrgID string    `json:"logto_org_id"`
 //     Active     bool      `json:"active"`
 //     RateLimit  int       `json:"rate_limit"`
 //     CreatedAt  time.Time `json:"created_at"`

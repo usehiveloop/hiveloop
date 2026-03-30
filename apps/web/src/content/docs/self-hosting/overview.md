@@ -22,10 +22,10 @@ LLMVault follows a microservices architecture with the following core components
 │  └──────────────┘     └──────┬───────┘     └──────────────┘        │
 │                              │                                      │
 │                              ▼                                      │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐        │
-│  │   Logto      │◀────│    Redis     │     │   HashiCorp  │        │
-│  │   (Auth)     │     │   (Cache)    │◀────│    Vault     │        │
-│  └──────────────┘     └──────────────┘     │    (KMS)     │        │
+│                       ┌──────────────┐     ┌──────────────┐        │
+│                       │    Redis     │     │   HashiCorp  │        │
+│                       │   (Cache)    │◀────│    Vault     │        │
+│                       └──────────────┘     │    (KMS)     │        │
 │                                            └──────────────┘        │
 │                              │                                      │
 │                              ▼                                      │
@@ -92,16 +92,16 @@ Key Management Service for envelope encryption of credentials. Three options ava
 | **AWS KMS** | AWS deployments | ✅ Yes |
 | **HashiCorp Vault** | Multi-cloud, on-premise | ✅ Yes |
 
-### 5. Logto (Required for Auth)
+### 5. Built-in Authentication
 
-Identity and access management providing:
-- OIDC/OAuth2 authentication
+LLMVault includes embedded Go authentication with RSA key signing for JWT tokens:
+- Register/login/refresh endpoints at `/auth/*`
+- RSA-signed JWT tokens
 - Organization-based multi-tenancy
-- Machine-to-machine (M2M) authentication
 
-**Options:**
-- **Hosted**: Use `https://auth.dev.llmvault.dev` (staging) or managed service
-- **Self-hosted**: Deploy your own Logto instance
+**Setup:**
+- Generate RSA keys with `make generate-auth-keys`
+- Configure `AUTH_RSA_PRIVATE_KEY`, `AUTH_ISSUER`, and `AUTH_AUDIENCE` environment variables
 
 ### 6. Nango (Required for OAuth)
 
@@ -162,7 +162,6 @@ The following endpoints must be accessible for full functionality:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `https://auth.dev.llmvault.dev` | Logto authentication (staging) |
 | `https://integrations.dev.llmvault.dev` | Nango OAuth proxy (staging) |
 | Provider APIs | OpenRouter, Fireworks, etc. |
 
@@ -223,7 +222,7 @@ Best for: Custom infrastructure, VMs, bare metal
         ▼
 3. LLMVault Server (auth check)
         │
-        ├──▶ Logto (verify token)
+        ├──▶ Built-in auth (verify JWT)
         │
         ▼
 4. Retrieve credentials

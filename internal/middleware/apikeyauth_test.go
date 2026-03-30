@@ -1,6 +1,8 @@
 package middleware_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/cache"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
@@ -27,7 +30,7 @@ func TestIntegration_APIKeyAuth_ValidKey(t *testing.T) {
 	org := model.Org{
 		ID:         orgID,
 		Name:       fmt.Sprintf("apikey-valid-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-apikey-valid-%s", uuid.New().String()[:8]),
+
 		RateLimit:  1000,
 		Active:     true,
 	}
@@ -101,7 +104,7 @@ func TestIntegration_APIKeyAuth_CacheHit(t *testing.T) {
 	org := model.Org{
 		ID:         orgID,
 		Name:       fmt.Sprintf("apikey-cache-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-apikey-cache-%s", uuid.New().String()[:8]),
+
 		RateLimit:  1000,
 		Active:     true,
 	}
@@ -222,7 +225,7 @@ func TestIntegration_APIKeyAuth_RevokedKey(t *testing.T) {
 	org := model.Org{
 		ID:         orgID,
 		Name:       fmt.Sprintf("apikey-revoked-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-apikey-revoked-%s", uuid.New().String()[:8]),
+
 		RateLimit:  1000,
 		Active:     true,
 	}
@@ -274,7 +277,7 @@ func TestIntegration_APIKeyAuth_ExpiredKey(t *testing.T) {
 	org := model.Org{
 		ID:         orgID,
 		Name:       fmt.Sprintf("apikey-expired-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-apikey-expired-%s", uuid.New().String()[:8]),
+
 		RateLimit:  1000,
 		Active:     true,
 	}
@@ -326,7 +329,7 @@ func TestIntegration_APIKeyAuth_InactiveOrg(t *testing.T) {
 	org := model.Org{
 		ID:         orgID,
 		Name:       fmt.Sprintf("apikey-inactive-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-apikey-inactive-%s", uuid.New().String()[:8]),
+
 		RateLimit:  1000,
 		Active:     true,
 	}
@@ -373,11 +376,11 @@ func TestIntegration_APIKeyAuth_InactiveOrg(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// RequireAPIKeyScopeOrLogto — scope enforcement
+// RequireAPIKeyScopeOrJWT — scope enforcement
 // --------------------------------------------------------------------------
 
-func TestRequireAPIKeyScopeOrLogto_AllowsMatchingScope(t *testing.T) {
-	mw := middleware.RequireAPIKeyScopeOrLogto("credentials")
+func TestRequireAPIKeyScopeOrJWT_AllowsMatchingScope(t *testing.T) {
+	mw := middleware.RequireAPIKeyScopeOrJWT("credentials")
 
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -397,8 +400,8 @@ func TestRequireAPIKeyScopeOrLogto_AllowsMatchingScope(t *testing.T) {
 	}
 }
 
-func TestRequireAPIKeyScopeOrLogto_AllScopeGrantsAccess(t *testing.T) {
-	mw := middleware.RequireAPIKeyScopeOrLogto("credentials")
+func TestRequireAPIKeyScopeOrJWT_AllScopeGrantsAccess(t *testing.T) {
+	mw := middleware.RequireAPIKeyScopeOrJWT("credentials")
 
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -418,8 +421,8 @@ func TestRequireAPIKeyScopeOrLogto_AllScopeGrantsAccess(t *testing.T) {
 	}
 }
 
-func TestRequireAPIKeyScopeOrLogto_DeniesWrongScope(t *testing.T) {
-	mw := middleware.RequireAPIKeyScopeOrLogto("credentials")
+func TestRequireAPIKeyScopeOrJWT_DeniesWrongScope(t *testing.T) {
+	mw := middleware.RequireAPIKeyScopeOrJWT("credentials")
 
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called with wrong scope")
@@ -445,8 +448,8 @@ func TestRequireAPIKeyScopeOrLogto_DeniesWrongScope(t *testing.T) {
 	}
 }
 
-func TestRequireAPIKeyScopeOrLogto_DeniesNoClaims(t *testing.T) {
-	mw := middleware.RequireAPIKeyScopeOrLogto("credentials")
+func TestRequireAPIKeyScopeOrJWT_DeniesNoClaims(t *testing.T) {
+	mw := middleware.RequireAPIKeyScopeOrJWT("credentials")
 
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called without claims")
@@ -461,8 +464,8 @@ func TestRequireAPIKeyScopeOrLogto_DeniesNoClaims(t *testing.T) {
 	}
 }
 
-func TestRequireAPIKeyScopeOrLogto_MultipleScopes(t *testing.T) {
-	mw := middleware.RequireAPIKeyScopeOrLogto("tokens")
+func TestRequireAPIKeyScopeOrJWT_MultipleScopes(t *testing.T) {
+	mw := middleware.RequireAPIKeyScopeOrJWT("tokens")
 
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -488,17 +491,19 @@ func TestRequireAPIKeyScopeOrLogto_MultipleScopes(t *testing.T) {
 
 func TestIntegration_MultiAuth_APIKeyPath(t *testing.T) {
 	db := connectTestDB(t)
-	// Use a dummy LogtoAuth — the API key path never calls Logto
-	logtoAuth := middleware.NewLogtoAuth("http://localhost:3001/oidc", "https://api.llmvault.dev")
+	// Generate a dummy RSA key -- the API key path never validates JWTs
+	dummyKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate RSA key: %v", err)
+	}
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("multiauth-apikey-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-multiauth-apikey-%s", uuid.New().String()[:8]),
-		RateLimit:  1000,
-		Active:     true,
+		ID:        orgID,
+		Name:      fmt.Sprintf("multiauth-apikey-%s", uuid.New().String()[:8]),
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -525,7 +530,7 @@ func TestIntegration_MultiAuth_APIKeyPath(t *testing.T) {
 	}
 
 	var gotClaims *middleware.APIKeyClaims
-	handler := middleware.MultiAuth(logtoAuth, db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		gotClaims, ok = middleware.APIKeyClaimsFromContext(r.Context())
 		if !ok {
@@ -547,22 +552,43 @@ func TestIntegration_MultiAuth_APIKeyPath(t *testing.T) {
 	}
 }
 
-func TestIntegration_MultiAuth_LogtoPath(t *testing.T) {
+func TestIntegration_MultiAuth_JWTPath(t *testing.T) {
 	db := connectTestDB(t)
-	lh := newLogtoHelper(t)
-	logtoAuth := lh.newLogtoAuth()
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate RSA key: %v", err)
+	}
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	_, userJWT := lh.createTestOrg(t, db, "multiauth-logto", []string{"m2m:admin"})
+	const testIssuer = "test-issuer"
+	const testAudience = "test-audience"
+
+	orgID := uuid.New()
+	org := model.Org{
+		ID:        orgID,
+		Name:      fmt.Sprintf("multiauth-jwt-%s", uuid.New().String()[:8]),
+		RateLimit: 1000,
+		Active:    true,
+	}
+	if err := db.Create(&org).Error; err != nil {
+		t.Fatalf("failed to create org: %v", err)
+	}
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
+
+	userID := uuid.New().String()
+	jwtToken, err := auth.IssueAccessToken(privKey, testIssuer, testAudience, userID, orgID.String(), "admin", time.Hour)
+	if err != nil {
+		t.Fatalf("issue token: %v", err)
+	}
 
 	var gotOrg *model.Org
-	handler := middleware.MultiAuth(logtoAuth, db, keyCache)(
+	handler := middleware.MultiAuth(&privKey.PublicKey, testIssuer, testAudience, db, keyCache)(
 		middleware.ResolveOrgFlexible(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var ok bool
 				gotOrg, ok = middleware.OrgFromContext(r.Context())
 				if !ok {
-					t.Fatal("org not found via MultiAuth + Logto path")
+					t.Fatal("org not found via MultiAuth + JWT path")
 				}
 				w.WriteHeader(http.StatusOK)
 			}),
@@ -570,7 +596,7 @@ func TestIntegration_MultiAuth_LogtoPath(t *testing.T) {
 	)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
-	req.Header.Set("Authorization", "Bearer "+userJWT)
+	req.Header.Set("Authorization", "Bearer "+jwtToken)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
@@ -578,16 +604,22 @@ func TestIntegration_MultiAuth_LogtoPath(t *testing.T) {
 		t.Fatalf("expected 200, got %d; body: %s", rr.Code, rr.Body.String())
 	}
 	if gotOrg == nil {
-		t.Fatal("expected org to be resolved via Logto path")
+		t.Fatal("expected org to be resolved via JWT path")
+	}
+	if gotOrg.ID != orgID {
+		t.Fatalf("expected org ID %s, got %s", orgID, gotOrg.ID)
 	}
 }
 
 func TestIntegration_MultiAuth_MissingAuth(t *testing.T) {
 	db := connectTestDB(t)
-	logtoAuth := middleware.NewLogtoAuth("http://localhost:3001/oidc", "https://api.llmvault.dev")
+	dummyKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate RSA key: %v", err)
+	}
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	handler := middleware.MultiAuth(logtoAuth, db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called")
 	}))
 
@@ -601,7 +633,7 @@ func TestIntegration_MultiAuth_MissingAuth(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// ResolveOrgFlexible — skips Logto resolution when org already set
+// ResolveOrgFlexible — skips JWT resolution when org already set
 // --------------------------------------------------------------------------
 
 func TestResolveOrgFlexible_SkipsWhenOrgSet(t *testing.T) {

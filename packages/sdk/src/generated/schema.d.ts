@@ -283,6 +283,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/catalog/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all integrations
+         * @description Returns every integration provider in the catalog with action counts.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["integrationSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/catalog/integrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get integration detail
+         * @description Returns a single integration with its full action list.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Provider ID (e.g. github-app, slack, jira) */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["integrationDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/catalog/integrations/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List actions for an integration
+         * @description Returns all actions for a single integration, optionally filtered by access type.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by access type (read or write) */
+                    access?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Provider ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["actionSummary"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/connect/sessions": {
         parameters: {
             query?: never;
@@ -557,84 +701,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/connections/{id}/token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Retrieve connection token
-         * @description Fetches the current OAuth access token for a connection from the upstream provider.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Connection ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["tokenResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1683,60 +1749,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/integrations/{id}/actions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List actions for an integration
-         * @description Returns all actions for a single integration, optionally filtered by access type.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by access type (read or write) */
-                    access?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description Provider ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["actionSummary"][];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/integrations/{id}/connections": {
         parameters: {
             query?: never;
@@ -1898,7 +1910,7 @@ export interface paths {
         put?: never;
         /**
          * Create an organization
-         * @description Creates a new organization in Logto and stores a local record.
+         * @description Creates a new organization and adds the requesting user as an admin member.
          */
         post: {
             parameters: {
@@ -2130,6 +2142,82 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reporting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get analytics report
+         * @description Returns aggregated analytics from generations with flexible grouping and filtering.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Comma-separated grouping dimensions: model, provider, credential, user, identity */
+                    group_by?: string;
+                    /** @description Time granularity: hour or day (default: day) */
+                    date_part?: string;
+                    /** @description Start date inclusive (YYYY-MM-DD) */
+                    start_date?: string;
+                    /** @description End date inclusive (YYYY-MM-DD) */
+                    end_date?: string;
+                    /** @description Filter by model name */
+                    model?: string;
+                    /** @description Filter by provider ID */
+                    provider_id?: string;
+                    /** @description Filter by credential ID */
+                    credential_id?: string;
+                    /** @description Filter by user ID */
+                    user_id?: string;
+                    /** @description Filter by tag (comma-separated, OR) */
+                    tags?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["reportRow"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3676,6 +3764,11 @@ export interface components {
             count?: number;
             date?: string;
         };
+        errorRate: {
+            date?: string;
+            error_count?: number;
+            total?: number;
+        };
         errorResponse: {
             error?: string;
         };
@@ -3710,6 +3803,7 @@ export interface components {
             integration_id?: string;
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
+            provider_config?: components["schemas"]["JSON"];
             revoked_at?: string;
             updated_at?: string;
         };
@@ -3744,6 +3838,11 @@ export interface components {
             id?: string;
             read_count?: number;
             write_count?: number;
+        };
+        latencyStats: {
+            avg_ttfb_ms?: number;
+            date?: string;
+            p95_ttfb_ms?: number;
         };
         mintTokenRequest: {
             credential_id?: string;
@@ -3780,7 +3879,6 @@ export interface components {
             active?: boolean;
             created_at?: string;
             id?: string;
-            logto_org_id?: string;
             name?: string;
             rate_limit?: number;
         };
@@ -3843,6 +3941,24 @@ export interface components {
             model_count?: number;
             name?: string;
         };
+        reportRow: {
+            avg_ttfb_ms?: number;
+            cached_tokens?: number;
+            credential_id?: string;
+            error_count?: number;
+            identity_id?: string;
+            input_tokens?: number;
+            model?: string;
+            output_tokens?: number;
+            p50_ttfb_ms?: number;
+            p95_ttfb_ms?: number;
+            period?: string;
+            provider_id?: string;
+            reasoning_tokens?: number;
+            request_count?: number;
+            total_cost?: number;
+            user_id?: string;
+        };
         requestStats: {
             last_30d?: number;
             last_7d?: number;
@@ -3866,6 +3982,10 @@ export interface components {
             identity_id?: string;
             permissions?: string[];
         };
+        spendOverTime: {
+            date?: string;
+            total_cost?: number;
+        };
         tokenListItem: {
             created_at?: string;
             credential_id?: string;
@@ -3879,24 +3999,34 @@ export interface components {
             revoked_at?: string;
             scopes?: components["schemas"]["JSON"];
         };
-        tokenResponse: {
-            access_token?: string;
-            connection_id?: string;
-            expires_at?: string;
-            provider?: string;
-            token_type?: string;
-        };
         tokenStats: {
             active?: number;
             expired?: number;
             revoked?: number;
             total?: number;
         };
+        tokenVolumes: {
+            cached_tokens?: number;
+            date?: string;
+            input_tokens?: number;
+            output_tokens?: number;
+        };
         topCredential: {
             id?: string;
             label?: string;
             provider_id?: string;
             request_count?: number;
+        };
+        topModel: {
+            model?: string;
+            provider_id?: string;
+            request_count?: number;
+            total_cost?: number;
+        };
+        topUser: {
+            request_count?: number;
+            total_cost?: number;
+            user_id?: string;
         };
         updateIdentityRequest: {
             external_id?: string;
@@ -3912,10 +4042,17 @@ export interface components {
             api_keys?: components["schemas"]["apiKeyStats"];
             credentials?: components["schemas"]["credentialStats"];
             daily_requests?: components["schemas"]["dailyRequests"][];
+            error_rates?: components["schemas"]["errorRate"][];
             identities?: components["schemas"]["identityStats"];
+            latency?: components["schemas"]["latencyStats"][];
             requests?: components["schemas"]["requestStats"];
+            /** @description Generation-based analytics */
+            spend_over_time?: components["schemas"]["spendOverTime"][];
+            token_volumes?: components["schemas"]["tokenVolumes"][];
             tokens?: components["schemas"]["tokenStats"];
             top_credentials?: components["schemas"]["topCredential"][];
+            top_models?: components["schemas"]["topModel"][];
+            top_users?: components["schemas"]["topUser"][];
         };
         widgetIntegrationResponse: {
             auth_mode?: string;

@@ -137,7 +137,7 @@ GET    /v1/app/usage                       My usage summary (requests, tokens, c
 
 | Concern | App endpoints (`/v1/app/*`) | Platform endpoints (`/v1/*`) |
 |---|---|---|
-| Auth | Logto JWT (user session) | API key or Logto JWT |
+| Auth | JWT (user session) | API key or JWT |
 | Identity | Implicit (the logged-in user) | Explicit (identity_id parameter) |
 | OAuth apps | LLMVault's pre-installed apps | Builder's own installed apps |
 | MCP token | Auto-minted on connect | Manually minted via `POST /v1/tokens` |

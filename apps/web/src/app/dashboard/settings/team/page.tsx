@@ -77,7 +77,7 @@ const columns: DataTableColumn<Member>[] = [
   },
 ];
 
-// Maps UI roles to Logto org roles: Owner = admin, Admin = admin, Member = viewer.
+// Maps UI roles to org membership roles: Owner = admin, Admin = admin, Member = viewer.
 type InviteRole = "Admin" | "Member";
 
 function InviteMemberModal({

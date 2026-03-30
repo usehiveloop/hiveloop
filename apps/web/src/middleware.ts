@@ -1,13 +1,10 @@
-import LogtoClient from "@logto/next/edge";
 import { type NextRequest, NextResponse } from "next/server";
-import { getLogtoConfig } from "@/lib/logto";
 
 export async function middleware(request: NextRequest) {
-  const client = new LogtoClient(getLogtoConfig());
-  const { isAuthenticated } = await client.getLogtoContext(request);
+  const accessToken = request.cookies.get("llmvault_access_token")?.value;
 
-  if (!isAuthenticated) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+  if (!accessToken) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   return NextResponse.next();

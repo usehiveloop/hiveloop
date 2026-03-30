@@ -105,11 +105,10 @@ func createTestCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, org
 func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	t.Helper()
 	org := model.Org{
-		ID:           uuid.New(),
-		Name:         fmt.Sprintf("cache-test-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-cache-%s", uuid.New().String()[:8]),
-		RateLimit:    1000,
-		Active:       true,
+		ID:        uuid.New(),
+		Name:      fmt.Sprintf("cache-test-%s", uuid.New().String()[:8]),
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)

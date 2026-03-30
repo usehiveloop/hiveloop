@@ -1,6 +1,6 @@
-import { getLogtoContext } from "@logto/next/server-actions";
-import { getLogtoConfig } from "@/lib/logto";
-import { getOrganizations } from "@/lib/logto-api";
+import { redirect } from "next/navigation";
+import { getAccessToken } from "@/lib/auth";
+import { apiMe } from "@/lib/auth-api";
 import { getSelectedOrgId } from "@/lib/org";
 import { DashboardShell } from "./dashboard-shell";
 import { SetupWorkspace } from "./setup-workspace";
@@ -8,25 +8,35 @@ import { SetupWorkspace } from "./setup-workspace";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const config = getLogtoConfig();
-  const { claims } = await getLogtoContext(config);
-  const userName = claims?.name ?? claims?.email ?? claims?.username ?? null;
-  const orgIds = claims?.organizations ?? [];
+  const accessToken = await getAccessToken();
 
-  if (orgIds.length === 0) {
+  if (!accessToken) {
+    redirect("/auth/login");
+  }
+
+  let userName: string | null = null;
+  let orgs: { id: string; name: string; role: string }[] = [];
+
+  try {
+    const me = await apiMe(accessToken);
+    userName = me.user.name ?? me.user.email ?? null;
+    orgs = me.orgs ?? [];
+  } catch {
+    redirect("/auth/login");
+  }
+
+  if (orgs.length === 0) {
     return <SetupWorkspace />;
   }
 
-  const orgs = await getOrganizations(orgIds);
   const selectedOrgId = await getSelectedOrgId();
+  const orgIds = orgs.map((o) => o.id);
 
   // Default to first org if none selected or if selection is stale
   const activeOrgId = selectedOrgId && orgIds.includes(selectedOrgId)
     ? selectedOrgId
     : orgIds[0] ?? null;
 
-  // If we need to persist a default, let the client component handle it
-  // via a server action (cookies can't be set in Server Components)
   const needsOrgSync = !!(activeOrgId && activeOrgId !== selectedOrgId);
 
   return (

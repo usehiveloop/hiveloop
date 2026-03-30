@@ -1,8 +1,12 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-models fetch-actions generate docker-build docker-run test-clean test-clean-logto test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-logto test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-models fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= llmvault/llmvault
+
+# Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
+generate-auth-keys:
+	@openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' && echo
 
 # Fetch models.dev provider catalog and write internal/registry/models.json
 fetch-models:
@@ -71,7 +75,7 @@ test-setup:
 	@echo "  ✓ Vault Transit key ready"
 	@echo ""
 	@echo "  Infrastructure ready. Run tests with:"
-	@echo "    make test-logto"
+	@echo "    make test-auth"
 	@echo "    make test-nango"
 	@echo "    make test-proxy"
 	@echo "    make test-connect"
@@ -79,9 +83,9 @@ test-setup:
 
 # --- Targeted test commands (no teardown, assumes stack is running) ---
 
-# Logto auth middleware + org e2e tests
-test-logto:
-	go test ./internal/middleware/... -v -race -count=1 -run "Logto|MultiAuth_LogtoPath"
+# Auth middleware + org e2e tests
+test-auth:
+	go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
 	go test ./e2e/... -v -count=1 -timeout=5m -run "TestOrg"
 
 # Nango integration CRUD e2e tests
@@ -150,7 +154,6 @@ vault-dev: vault-up
 	@echo "  Redis:            localhost:6379"
 	@echo ""
 	@echo "  Hosted services:"
-	@echo "    Logto:          https://auth.dev.llmvault.dev"
 	@echo "    Nango:          https://integrations.dev.llmvault.dev"
 	@echo ""
 	@echo "  Vault credentials:"
@@ -184,7 +187,6 @@ dev: up
 	@echo "  Redis:            localhost:6379"
 	@echo ""
 	@echo "  Hosted services:"
-	@echo "    Logto:          https://auth.dev.llmvault.dev"
 	@echo "    Nango:          https://integrations.dev.llmvault.dev"
 	@echo ""
 
@@ -192,9 +194,9 @@ dev: up
 test-clean:
 	@./scripts/test-clean.sh
 
-# Logto auth tests (internal middleware + e2e org tests)
-test-clean-logto:
-	@./scripts/test-clean.sh logto
+# Auth middleware + e2e org tests
+test-clean-auth:
+	@./scripts/test-clean.sh auth
 
 # Nango integration CRUD tests
 test-clean-nango:

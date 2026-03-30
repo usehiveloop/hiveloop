@@ -19,7 +19,7 @@ First, create an API key for your organization. This key is used to manage crede
 
 ```bash
 curl -X POST https://api.llmvault.dev/v1/api-keys \
-  -H "Authorization: Bearer YOUR_LOGTO_TOKEN" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Production API Key",

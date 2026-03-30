@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"crypto/rsa"
 	"net/http"
 	"strings"
 	"time"
@@ -99,9 +100,9 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 
 // MultiAuth dispatches authentication based on the bearer token prefix:
 // - "llmv_sk_*" → API Key auth
-// - everything else → Logto JWT auth
-func MultiAuth(logtoAuth *LogtoAuth, db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
-	logtoMW := logtoAuth.RequireAuthorization()
+// - everything else → Embedded JWT auth (RS256)
+func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
+	authMW := RequireAuth(pubKey, issuer, audience)
 	apiKeyMW := APIKeyAuth(db, keyCache)
 
 	return func(next http.Handler) http.Handler {
@@ -115,16 +116,16 @@ func MultiAuth(logtoAuth *LogtoAuth, db *gorm.DB, keyCache *cache.APIKeyCache) f
 			if strings.HasPrefix(token, "llmv_sk_") {
 				apiKeyMW(next).ServeHTTP(w, r)
 			} else {
-				logtoMW(next).ServeHTTP(w, r)
+				authMW(next).ServeHTTP(w, r)
 			}
 		})
 	}
 }
 
 // ResolveOrgFlexible resolves the org from context. If already set (by API key auth), it's a no-op.
-// Otherwise, falls back to Logto-based org resolution.
+// Otherwise, falls back to embedded auth claims-based org resolution.
 func ResolveOrgFlexible(db *gorm.DB) func(http.Handler) http.Handler {
-	logtoResolve := ResolveOrg(db)
+	claimsResolve := ResolveOrgFromClaims(db)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -132,18 +133,18 @@ func ResolveOrgFlexible(db *gorm.DB) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			logtoResolve(next).ServeHTTP(w, r)
+			claimsResolve(next).ServeHTTP(w, r)
 		})
 	}
 }
 
-// RequireAPIKeyScopeOrLogto enforces scope checking for API key auth.
-// Logto JWT requests pass through unchecked (they use Logto's own scope system).
-func RequireAPIKeyScopeOrLogto(scope string) func(http.Handler) http.Handler {
+// RequireAPIKeyScopeOrJWT enforces scope checking for API key auth.
+// JWT-authenticated requests pass through unchecked (they use org-level roles).
+func RequireAPIKeyScopeOrJWT(scope string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Logto-authenticated requests bypass scope checks
-			if _, ok := LogtoClaimsFromContext(r.Context()); ok {
+			// JWT-authenticated requests bypass scope checks
+			if _, ok := AuthClaimsFromContext(r.Context()); ok {
 				next.ServeHTTP(w, r)
 				return
 			}

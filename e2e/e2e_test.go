@@ -173,7 +173,7 @@ func newHarness(t *testing.T) *testHarness {
 	integrationHandler := handler.NewIntegrationHandler(db, nangoClient)
 	connectionHandler := handler.NewConnectionHandler(db, nangoClient, actionsCatalog)
 
-	// Management routes (no Logto auth in E2E — we set org on context directly)
+	// Management routes (no JWT auth in E2E — we set org on context directly)
 	r.Route("/v1", func(r chi.Router) {
 		r.Post("/credentials", credHandler.Create)
 		r.Get("/credentials", credHandler.List)
@@ -256,11 +256,10 @@ func newHarness(t *testing.T) *testHarness {
 func (h *testHarness) createOrg(t *testing.T) model.Org {
 	t.Helper()
 	org := model.Org{
-		ID:           uuid.New(),
-		Name:         fmt.Sprintf("e2e-org-%s", uuid.New().String()[:8]),
-		LogtoOrgID: fmt.Sprintf("logto-e2e-%s", uuid.New().String()[:8]),
-		RateLimit:    10000,
-		Active:       true,
+		ID:        uuid.New(),
+		Name:      fmt.Sprintf("e2e-org-%s", uuid.New().String()[:8]),
+		RateLimit: 10000,
+		Active:    true,
 	}
 	if err := h.db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)

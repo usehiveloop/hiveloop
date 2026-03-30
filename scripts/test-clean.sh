@@ -3,7 +3,7 @@ set -euo pipefail
 
 TARGET="${1:-all}"
 
-# Source .env if available (provides Logto/Nango credentials)
+# Source .env if available (provides credentials)
 if [ -f .env ]; then
     set -a
     source .env
@@ -38,12 +38,6 @@ echo ""
 echo "==> Verifying env vars..."
 
 # Verify required env vars (from .env or environment)
-: "${LOGTO_ENDPOINT:?LOGTO_ENDPOINT must be set}"
-: "${LOGTO_AUDIENCE:?LOGTO_AUDIENCE must be set}"
-: "${LOGTO_M2M_APP_ID:?LOGTO_M2M_APP_ID must be set}"
-: "${LOGTO_M2M_APP_SECRET:?LOGTO_M2M_APP_SECRET must be set}"
-: "${LOGTO_TEST_APP_ID:?LOGTO_TEST_APP_ID must be set}"
-: "${LOGTO_TEST_APP_SECRET:?LOGTO_TEST_APP_SECRET must be set}"
 : "${NANGO_ENDPOINT:?NANGO_ENDPOINT must be set}"
 : "${NANGO_SECRET_KEY:?NANGO_SECRET_KEY must be set}"
 : "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY must be set}"
@@ -60,10 +54,10 @@ run_tests() {
 }
 
 case "$TARGET" in
-    logto)
-        run_tests "Running Logto middleware tests..." \
-            go test ./internal/middleware/... -v -race -count=1 -run "Logto|MultiAuth_LogtoPath"
-        run_tests "Running Logto e2e org tests..." \
+    auth)
+        run_tests "Running auth middleware tests..." \
+            go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
+        run_tests "Running auth e2e org tests..." \
             go test ./e2e/... -v -count=1 -timeout=5m -run "TestOrg"
         ;;
     nango)
@@ -100,7 +94,7 @@ case "$TARGET" in
         ;;
     *)
         echo "Unknown target: $TARGET"
-        echo "Usage: $0 [all|logto|nango|proxy|connect|vault|integrations]"
+        echo "Usage: $0 [all|auth|nango|proxy|connect|vault|integrations]"
         exit 1
         ;;
 esac

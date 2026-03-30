@@ -27,7 +27,7 @@ Example: `llmv_sk_a1b2c3d4e5f6789012345678901234567890abcdef...`
 
 ```bash
 curl -X POST https://api.llmvault.dev/v1/api-keys \
-  -H "Authorization: Bearer YOUR_LOGTO_TOKEN" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Production Backend",

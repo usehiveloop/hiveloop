@@ -1,20 +1,10 @@
 import Link from "next/link";
-import { getLogtoContext } from "@logto/next/server-actions";
-import { getLogtoConfig } from "@/lib/logto";
+import { isAuthenticated } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LockIcon } from "@/components/icons";
 
-async function getAuthState() {
-  try {
-    const { isAuthenticated } = await getLogtoContext(getLogtoConfig());
-    return isAuthenticated;
-  } catch {
-    return false;
-  }
-}
-
 export async function Nav() {
-  const isAuthenticated = await getAuthState();
+  const authed = await isAuthenticated();
 
   return (
     <nav className="flex h-16 shrink-0 items-center justify-center border-b border-border">
@@ -63,12 +53,12 @@ export async function Nav() {
         <Link href="/pricing" className="text-sm text-muted-foreground">Pricing</Link>
         <Link href="/architecture" className="text-sm text-muted-foreground">Architecture</Link>
         <a href="https://github.com/llmvault/llmvault" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground">GitHub</a>
-        {isAuthenticated ? (
+        {authed ? (
           <Button render={<Link href="/dashboard" />} className="h-auto px-5 py-2 text-sm font-medium">
             Dashboard
           </Button>
         ) : (
-          <Button render={<Link href="/sign-in" />} className="h-auto px-5 py-2 text-sm font-medium">
+          <Button render={<Link href="/auth/login" />} className="h-auto px-5 py-2 text-sm font-medium">
             Sign In
           </Button>
         )}

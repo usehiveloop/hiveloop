@@ -2,24 +2,24 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/logto"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 )
 
 type OrgHandler struct {
-	db      *gorm.DB
-	logto   *logto.Client
+	db *gorm.DB
 }
 
-func NewOrgHandler(db *gorm.DB, logtoClient *logto.Client) *OrgHandler {
-	return &OrgHandler{db: db, logto: logtoClient}
+func NewOrgHandler(db *gorm.DB) *OrgHandler {
+	return &OrgHandler{db: db}
 }
 
 type createOrgRequest struct {
@@ -27,17 +27,16 @@ type createOrgRequest struct {
 }
 
 type orgResponse struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	LogtoOrgID string `json:"logto_org_id"`
-	RateLimit  int    `json:"rate_limit"`
-	Active     bool   `json:"active"`
-	CreatedAt  string `json:"created_at"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	RateLimit int    `json:"rate_limit"`
+	Active    bool   `json:"active"`
+	CreatedAt string `json:"created_at"`
 }
 
 // Create handles POST /v1/orgs.
 // @Summary Create an organization
-// @Description Creates a new organization in Logto and stores a local record.
+// @Description Creates a new organization and adds the requesting user as an admin member.
 // @Tags orgs
 // @Accept json
 // @Produce json
@@ -49,8 +48,8 @@ type orgResponse struct {
 // @Security BearerAuth
 // @Router /v1/orgs [post]
 func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.LogtoClaimsFromContext(r.Context())
-	if !ok || claims.Sub == "" {
+	claims, ok := middleware.AuthClaimsFromContext(r.Context())
+	if !ok || claims.UserID == "" {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
@@ -65,59 +64,40 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Create org in Logto
-	logtoOrgID, err := h.logto.CreateOrganization(req.Name)
+	var org model.Org
+	var membership model.OrgMembership
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		org = model.Org{
+			Name: req.Name,
+		}
+		if err := tx.Create(&org).Error; err != nil {
+			return fmt.Errorf("creating org: %w", err)
+		}
+
+		membership = model.OrgMembership{
+			UserID: uuid.MustParse(claims.UserID),
+			OrgID:  org.ID,
+			Role:   "admin",
+		}
+		if err := tx.Create(&membership).Error; err != nil {
+			return fmt.Errorf("creating membership: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		slog.Error("failed to create org in Logto", "error", err)
+		slog.Error("failed to create org", "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create organization"})
 		return
 	}
 
-	// 2. Add the requesting actor as an org member.
-	// For user tokens, sub is the user ID and differs from client_id.
-	// For M2M tokens, sub == client_id, so we only add as M2M member.
-	isUserToken := claims.Sub != "" && claims.Sub != claims.ClientID
-	if isUserToken {
-		if err := h.logto.AddOrgMember(logtoOrgID, claims.Sub); err != nil {
-			slog.Error("failed to add user as org member", "error", err, "org_id", logtoOrgID, "user_id", claims.Sub)
-		}
-		adminRoleID, err := h.logto.GetOrgRoleByName("admin")
-		if err == nil {
-			if err := h.logto.AssignOrgRoleToUser(logtoOrgID, claims.Sub, []string{adminRoleID}); err != nil {
-				slog.Error("failed to assign admin role to user", "error", err, "org_id", logtoOrgID)
-			}
-		}
-	}
-	if claims.ClientID != "" {
-		if err := h.logto.AddOrgMemberM2M(logtoOrgID, claims.ClientID); err != nil {
-			slog.Error("failed to add M2M app as org member", "error", err, "org_id", logtoOrgID, "client_id", claims.ClientID)
-		}
-		adminRoleID, err := h.logto.GetOrgRoleByName("m2m:admin")
-		if err == nil {
-			if err := h.logto.AssignOrgRoleToM2M(logtoOrgID, claims.ClientID, []string{adminRoleID}); err != nil {
-				slog.Error("failed to assign admin role to M2M", "error", err, "org_id", logtoOrgID)
-			}
-		}
-	}
-
-	// 3. Create local org record
-	org := model.Org{
-		Name:       req.Name,
-		LogtoOrgID: logtoOrgID,
-	}
-	if err := h.db.Create(&org).Error; err != nil {
-		slog.Error("failed to create local org", "error", err, "logto_org_id", logtoOrgID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create organization record"})
-		return
-	}
-
 	writeJSON(w, http.StatusCreated, orgResponse{
-		ID:         org.ID.String(),
-		Name:       org.Name,
-		LogtoOrgID: org.LogtoOrgID,
-		RateLimit:  org.RateLimit,
-		Active:     org.Active,
-		CreatedAt:  org.CreatedAt.Format(time.RFC3339),
+		ID:        org.ID.String(),
+		Name:      org.Name,
+		RateLimit: org.RateLimit,
+		Active:    org.Active,
+		CreatedAt: org.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -138,11 +118,10 @@ func (h *OrgHandler) Current(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, orgResponse{
-		ID:         org.ID.String(),
-		Name:       org.Name,
-		LogtoOrgID: org.LogtoOrgID,
-		RateLimit:  org.RateLimit,
-		Active:     org.Active,
-		CreatedAt:  org.CreatedAt.Format(time.RFC3339),
+		ID:        org.ID.String(),
+		Name:      org.Name,
+		RateLimit: org.RateLimit,
+		Active:    org.Active,
+		CreatedAt: org.CreatedAt.Format(time.RFC3339),
 	})
 }

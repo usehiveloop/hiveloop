@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { switchOrganization } from "./actions";
 import { $api } from "@/api/client";
-import type { LogtoOrganization } from "@/lib/logto-api";
+type Organization = { id: string; name: string; role: string; description?: string | null };
 import {
   LayoutDashboard,
   KeyRound,
@@ -131,7 +131,7 @@ function WorkspaceSwitcher({
   organizations,
   activeOrgId,
 }: {
-  organizations: LogtoOrganization[];
+  organizations: Organization[];
   activeOrgId: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -221,14 +221,19 @@ function WorkspaceSwitcher({
 }
 
 function SignOutButton() {
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/auth/login";
+  }
+
   return (
-    <a
-      href="/sign-out"
+    <button
+      onClick={handleSignOut}
       className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-normal text-muted-foreground transition-colors hover:text-foreground"
     >
       <LogOut className="size-4.5" />
       Sign out
-    </a>
+    </button>
   );
 }
 
@@ -240,7 +245,7 @@ function SidebarContent({
 }: {
   pathname: string;
   userName?: string | null;
-  organizations: LogtoOrganization[];
+  organizations: Organization[];
   activeOrgId: string | null;
 }) {
   return (
@@ -323,7 +328,7 @@ export function DashboardShell({
 }: {
   children: React.ReactNode;
   userName: string | null;
-  organizations: LogtoOrganization[];
+  organizations: Organization[];
   activeOrgId: string | null;
   syncOrgId?: string;
 }) {

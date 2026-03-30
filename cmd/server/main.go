@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/cache"
 	"github.com/llmvault/llmvault/internal/config"
 	"github.com/llmvault/llmvault/internal/counter"
@@ -23,7 +25,6 @@ import (
 	"github.com/llmvault/llmvault/internal/db"
 	"github.com/llmvault/llmvault/internal/handler"
 	"github.com/llmvault/llmvault/internal/logging"
-	"github.com/llmvault/llmvault/internal/logto"
 	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
@@ -42,7 +43,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Logto JWT bearer token (Management API) or Connect session token (Widget API).
+// @description Bearer token (JWT or API key).
 
 // Set via -ldflags at build time.
 var (
@@ -165,6 +166,13 @@ func run() error {
 	// 10. Signing key
 	signingKey := []byte(cfg.JWTSigningKey)
 
+	// 10b. Embedded auth (RSA key for JWT signing — required)
+	rsaKey, err := auth.LoadRSAPrivateKey(cfg.AuthRSAPrivateKey)
+	if err != nil {
+		return fmt.Errorf("loading auth RSA key: %w", err)
+	}
+	slog.Info("embedded auth ready")
+
 	// 11. Provider registry (embedded at build time)
 	reg := registry.Global()
 	slog.Info("provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
@@ -172,14 +180,7 @@ func run() error {
 	// 11b. Generation writer (buffered, non-blocking — observability for proxy requests)
 	generationWriter := middleware.NewGenerationWriter(database, reg, 10000)
 
-	// 12. Logto client (for org management)
-	var logtoClient *logto.Client
-	if cfg.LogtoM2MAppID != "" && cfg.LogtoM2MAppSecret != "" {
-		logtoClient = logto.NewClient(cfg.LogtoEndpoint, cfg.LogtoM2MAppID, cfg.LogtoM2MAppSecret)
-		slog.Info("logto admin client ready")
-	}
-
-	// 12b. Nango client (REQUIRED — OAuth integration proxy)
+	// 12. Nango client (REQUIRED — OAuth integration proxy)
 	if cfg.NangoEndpoint == "" || cfg.NangoSecretKey == "" {
 		return fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
 	}
@@ -204,7 +205,9 @@ func run() error {
 	settingsHandler := handler.NewSettingsHandler(database)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
-	orgHandler := handler.NewOrgHandler(database, logtoClient)
+	orgHandler := handler.NewOrgHandler(database)
+	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
+		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
@@ -237,102 +240,109 @@ func run() error {
 	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
 	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
 
-	// Org-authenticated routes (Logto JWT or API Key) — credential & token management
-	if cfg.LogtoEndpoint != "" && cfg.LogtoAudience != "" {
-		logtoIssuer := cfg.LogtoEndpoint + "/oidc"
-		logtoAuth := middleware.NewLogtoAuth(logtoIssuer, cfg.LogtoAudience)
-		slog.Info("logto auth ready", "issuer", logtoIssuer, "audience", cfg.LogtoAudience)
+	// Embedded auth
+	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-		r.Route("/v1", func(r chi.Router) {
-			r.Use(middleware.MultiAuth(logtoAuth, database, apiKeyCache))
+	// Auth routes (register, login, refresh, logout, me)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", authHandler.Register)
+		r.Post("/login", authHandler.Login)
+		r.Post("/refresh", authHandler.Refresh)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
+			r.Post("/logout", authHandler.Logout)
+			r.Get("/me", authHandler.Me)
+		})
+	})
 
-			// Org management (Logto-only, no org context needed for creation)
-			r.Post("/orgs", orgHandler.Create)
+	// Org-authenticated routes (JWT or API Key) — credential & token management
+	r.Route("/v1", func(r chi.Router) {
+		r.Use(middleware.MultiAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience, database, apiKeyCache))
 
-			// Org-scoped routes (require resolved org context)
+		// Org management (JWT-only, no org context needed for creation)
+		r.Post("/orgs", orgHandler.Create)
+
+		// Org-scoped routes (require resolved org context)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.ResolveOrgFlexible(database))
+			r.Use(middleware.RateLimit())
+			r.Use(middleware.Audit(auditWriter))
+
+			r.Get("/orgs/current", orgHandler.Current)
+			r.Get("/usage", usageHandler.Get)
+			r.Get("/audit", auditHandler.List)
+			r.Get("/reporting", reportingHandler.Get)
+			r.Get("/generations", generationHandler.List)
+			r.Get("/generations/{id}", generationHandler.Get)
+
+			// API key CRUD (any auth, no scope required)
+			r.Post("/api-keys", apiKeyHandler.Create)
+			r.Get("/api-keys", apiKeyHandler.List)
+			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
+
+			// Credential operations — scope: "credentials"
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.ResolveOrgFlexible(database))
-				r.Use(middleware.RateLimit())
-				r.Use(middleware.Audit(auditWriter))
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))
+				r.Post("/credentials", credHandler.Create)
+				r.Get("/credentials", credHandler.List)
+				r.Get("/credentials/{id}", credHandler.Get)
+				r.Delete("/credentials/{id}", credHandler.Revoke)
+			})
 
-				r.Get("/orgs/current", orgHandler.Current)
-				r.Get("/usage", usageHandler.Get)
-				r.Get("/audit", auditHandler.List)
-				r.Get("/reporting", reportingHandler.Get)
-				r.Get("/generations", generationHandler.List)
-				r.Get("/generations/{id}", generationHandler.Get)
+			// Token operations — scope: "tokens"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("tokens"))
+				r.Get("/tokens", tokenHandler.List)
+				r.Post("/tokens", tokenHandler.Mint)
+				r.Delete("/tokens/{jti}", tokenHandler.Revoke)
+			})
 
-				// API key CRUD (any auth, no scope required)
-				r.Post("/api-keys", apiKeyHandler.Create)
-				r.Get("/api-keys", apiKeyHandler.List)
-				r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
+			// Identity operations — scope: "all"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
+				r.Post("/identities", identityHandler.Create)
+				r.Get("/identities", identityHandler.List)
+				r.Get("/identities/{id}", identityHandler.Get)
+				r.Put("/identities/{id}", identityHandler.Update)
+				r.Delete("/identities/{id}", identityHandler.Delete)
+			})
 
-				// Credential operations — scope: "credentials"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("credentials"))
-					r.Post("/credentials", credHandler.Create)
-					r.Get("/credentials", credHandler.List)
-					r.Get("/credentials/{id}", credHandler.Get)
-					r.Delete("/credentials/{id}", credHandler.Revoke)
-				})
+			// Connect operations — scope: "connect"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("connect"))
+				r.Post("/connect/sessions", connectSessionHandler.Create)
+			})
 
-				// Token operations — scope: "tokens"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("tokens"))
-					r.Get("/tokens", tokenHandler.List)
-					r.Post("/tokens", tokenHandler.Mint)
-					r.Delete("/tokens/{jti}", tokenHandler.Revoke)
-				})
+			// Integration operations — scope: "integrations"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
+				r.Get("/integrations/providers", integrationHandler.ListProviders)
+				r.Post("/integrations", integrationHandler.Create)
+				r.Get("/integrations", integrationHandler.List)
+				r.Get("/integrations/{id}", integrationHandler.Get)
+				r.Put("/integrations/{id}", integrationHandler.Update)
+				r.Delete("/integrations/{id}", integrationHandler.Delete)
+				r.Post("/integrations/{id}/connections", connectionHandler.Create)
+				r.Get("/integrations/{id}/connections", connectionHandler.List)
+			})
 
-				// Identity operations — scope: "all"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("all"))
-					r.Post("/identities", identityHandler.Create)
-					r.Get("/identities", identityHandler.List)
-					r.Get("/identities/{id}", identityHandler.Get)
-					r.Put("/identities/{id}", identityHandler.Update)
-					r.Delete("/identities/{id}", identityHandler.Delete)
-				})
+			// Connection operations — scope: "integrations"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("integrations"))
+				r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
+				r.Get("/connections/{id}", connectionHandler.Get)
+				r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
+				r.Delete("/connections/{id}", connectionHandler.Revoke)
+			})
 
-				// Connect operations — scope: "connect"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("connect"))
-					r.Post("/connect/sessions", connectSessionHandler.Create)
-				})
-
-				// Integration operations — scope: "integrations"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
-					r.Get("/integrations/providers", integrationHandler.ListProviders)
-					r.Post("/integrations", integrationHandler.Create)
-					r.Get("/integrations", integrationHandler.List)
-					r.Get("/integrations/{id}", integrationHandler.Get)
-					r.Put("/integrations/{id}", integrationHandler.Update)
-					r.Delete("/integrations/{id}", integrationHandler.Delete)
-					r.Post("/integrations/{id}/connections", connectionHandler.Create)
-					r.Get("/integrations/{id}/connections", connectionHandler.List)
-				})
-
-				// Connection operations — scope: "integrations"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("integrations"))
-					r.Get("/connections/available-scopes", connectionHandler.AvailableScopes)
-					r.Get("/connections/{id}", connectionHandler.Get)
-					r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
-					r.Delete("/connections/{id}", connectionHandler.Revoke)
-				})
-
-				// Settings — scope: "all"
-				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAPIKeyScopeOrLogto("all"))
-					r.Get("/settings/connect", settingsHandler.GetConnectSettings)
-					r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
-				})
+			// Settings — scope: "all"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
+				r.Get("/settings/connect", settingsHandler.GetConnectSettings)
+				r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
 			})
 		})
-	} else {
-		slog.Warn("Logto not configured — management API disabled")
-	}
+	})
 
 	// Connect API (session-authenticated — used by Connect widget iframe)
 	r.Route("/v1/widget", func(r chi.Router) {
