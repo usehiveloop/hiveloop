@@ -20,7 +20,7 @@ function HeroSection() {
         </div>
 
         <h1 className="text-center font-mono text-[56px] font-semibold leading-16 tracking-[-0.03em] text-foreground">
-          Your customers&apos; LLM keys deserve a vault, not a database column.
+          The secure access layer for your ai agents
         </h1>
 
         <p className="max-w-170 text-center text-lg leading-7 text-muted-foreground">
