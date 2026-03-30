@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { isAuthenticated } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { LockIcon } from "@/components/icons";
 
 export async function Nav() {
-  const authed = await isAuthenticated();
+  const cookieStore = await cookies();
+  const authed = !!cookieStore.get("llmvault_access_token")?.value;
 
   return (
     <nav className="flex h-16 shrink-0 items-center justify-center border-b border-border">
