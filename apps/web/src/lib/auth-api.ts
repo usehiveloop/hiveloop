@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
-export type AuthUser = { id: string; email: string; name: string };
+export type AuthUser = { id: string; email: string; name: string; email_confirmed: boolean };
 export type AuthOrg = { id: string; name: string; role: string };
 export type AuthResponse = {
   access_token: string;

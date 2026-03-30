@@ -42,7 +42,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex w-full max-w-sm flex-col items-center gap-8 px-6">
+      <div className="flex w-full max-w-lg flex-col items-center gap-8 px-6">
         <div className="flex items-center gap-2.5">
           <LockIcon />
           <span

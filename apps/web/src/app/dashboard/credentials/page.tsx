@@ -60,7 +60,7 @@ const skeletonColumns = [
 const columns: DataTableColumn<CredentialRow>[] = [
   {
     id: "credential",
-    header: "Credential",
+    header: "Llm Key",
     width: "22%",
     cell: (row) => (
       <Link href={`/dashboard/credentials/${row.id}`} className="flex flex-col">
@@ -196,19 +196,19 @@ export default function CredentialsPage() {
       {/* Header */}
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
         <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">
-          Credentials
+          Llm Keys
         </h1>
         <div className="flex items-center gap-3">
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dim" />
             <Input
-              placeholder="Search credentials..."
+              placeholder="Search Llm keys..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-60 pl-9 font-mono text-[13px]"
             />
           </div>
-          <Button size="lg" onClick={() => setModal("create")}>New Credential</Button>
+          <Button size="lg" onClick={() => setModal("create")}>New Llm Key</Button>
         </div>
       </header>
 
@@ -217,7 +217,7 @@ export default function CredentialsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dim" />
           <Input
-            placeholder="Search credentials..."
+            placeholder="Search Llm keys..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 font-mono text-[13px]"
@@ -237,14 +237,14 @@ export default function CredentialsPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[15px] font-medium text-foreground">
-                  No credentials yet
+                  No Llm keys yet
                 </span>
                 <span className="text-[13px] leading-5 text-muted-foreground">
-                  Store and manage API keys for LLM providers. Credentials are encrypted at rest and proxied securely.
+                  Store and manage API keys for LLM providers. Llm keys are encrypted at rest and proxied securely.
                 </span>
               </div>
               <Button size="lg" onClick={() => setModal("create")}>
-                New Credential
+                New Llm Key
                 <ArrowRight className="ml-1.5 size-3.5" />
               </Button>
             </div>
@@ -252,7 +252,7 @@ export default function CredentialsPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
             <span className="text-sm text-muted-foreground">
-              No credentials match your search.
+              No Llm keys match your search.
             </span>
           </div>
         ) : (

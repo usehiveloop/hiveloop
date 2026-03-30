@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -45,6 +46,62 @@ type connectSessionResponse struct {
 	AllowedOrigins      []string `json:"allowed_origins,omitempty"`
 	ExpiresAt           string   `json:"expires_at"`
 	CreatedAt           string   `json:"created_at"`
+}
+
+type connectSessionListItem struct {
+	ID                  string     `json:"id"`
+	SessionToken        string     `json:"session_token"`
+	IdentityID          *string    `json:"identity_id,omitempty"`
+	ExternalID          string     `json:"external_id,omitempty"`
+	AllowedIntegrations []string   `json:"allowed_integrations,omitempty"`
+	Permissions         []string   `json:"permissions,omitempty"`
+	AllowedOrigins      []string   `json:"allowed_origins,omitempty"`
+	Metadata            model.JSON `json:"metadata,omitempty"`
+	Status              string     `json:"status"`
+	ActivatedAt         *string    `json:"activated_at,omitempty"`
+	ExpiresAt           string     `json:"expires_at"`
+	CreatedAt           string     `json:"created_at"`
+}
+
+func sessionStatus(sess model.ConnectSession) string {
+	if time.Now().After(sess.ExpiresAt) {
+		return "expired"
+	}
+	if sess.ActivatedAt != nil {
+		return "activated"
+	}
+	return "active"
+}
+
+func maskToken(token string) string {
+	if len(token) <= 12 {
+		return token
+	}
+	return token[:10] + "..." + token[len(token)-4:]
+}
+
+func toSessionListItem(sess model.ConnectSession) connectSessionListItem {
+	item := connectSessionListItem{
+		ID:                  sess.ID.String(),
+		SessionToken:        maskToken(sess.SessionToken),
+		ExternalID:          sess.ExternalID,
+		AllowedIntegrations: []string(sess.AllowedIntegrations),
+		Permissions:         []string(sess.Permissions),
+		AllowedOrigins:      []string(sess.AllowedOrigins),
+		Metadata:            sess.Metadata,
+		Status:              sessionStatus(sess),
+		ExpiresAt:           sess.ExpiresAt.Format(time.RFC3339),
+		CreatedAt:           sess.CreatedAt.Format(time.RFC3339),
+	}
+	if sess.IdentityID != nil {
+		s := sess.IdentityID.String()
+		item.IdentityID = &s
+	}
+	if sess.ActivatedAt != nil {
+		s := sess.ActivatedAt.Format(time.RFC3339)
+		item.ActivatedAt = &s
+	}
+	return item
 }
 
 // Create handles POST /v1/connect/sessions.
@@ -227,4 +284,167 @@ func (h *ConnectSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, resp)
+}
+
+// List handles GET /v1/connect/sessions.
+// @Summary List connect sessions
+// @Description Returns connect sessions for the current organization with cursor-based pagination.
+// @Tags connect-sessions
+// @Produce json
+// @Param status query string false "Filter by status: active, activated, expired"
+// @Param identity_id query string false "Filter by identity ID"
+// @Param external_id query string false "Filter by external ID"
+// @Param limit query int false "Page size (default 50, max 100)"
+// @Param cursor query string false "Pagination cursor from previous response"
+// @Success 200 {object} paginatedResponse[connectSessionListItem]
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/connect/sessions [get]
+func (h *ConnectSessionHandler) List(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	limit, cursor, err := parsePagination(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := h.db.Where("connect_sessions.org_id = ?", org.ID)
+
+	if status := r.URL.Query().Get("status"); status != "" {
+		now := time.Now()
+		switch status {
+		case "expired":
+			q = q.Where("expires_at <= ?", now)
+		case "activated":
+			q = q.Where("activated_at IS NOT NULL AND expires_at > ?", now)
+		case "active":
+			q = q.Where("activated_at IS NULL AND expires_at > ?", now)
+		default:
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid status: must be active, activated, or expired"})
+			return
+		}
+	}
+
+	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
+		q = q.Where("identity_id = ?", identityID)
+	}
+
+	if externalID := r.URL.Query().Get("external_id"); externalID != "" {
+		q = q.Where("external_id = ?", externalID)
+	}
+
+	q = applyPagination(q, cursor, limit)
+
+	var sessions []model.ConnectSession
+	if err := q.Find(&sessions).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list sessions"})
+		return
+	}
+
+	hasMore := len(sessions) > limit
+	if hasMore {
+		sessions = sessions[:limit]
+	}
+
+	resp := make([]connectSessionListItem, len(sessions))
+	for i, s := range sessions {
+		resp[i] = toSessionListItem(s)
+	}
+
+	result := paginatedResponse[connectSessionListItem]{
+		Data:    resp,
+		HasMore: hasMore,
+	}
+	if hasMore {
+		last := sessions[len(sessions)-1]
+		c := encodeCursor(last.CreatedAt, last.ID)
+		result.NextCursor = &c
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// Get handles GET /v1/connect/sessions/{id}.
+// @Summary Get a connect session
+// @Description Returns a single connect session by ID.
+// @Tags connect-sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} connectSessionListItem
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/connect/sessions/{id} [get]
+func (h *ConnectSessionHandler) Get(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	sessID := chi.URLParam(r, "id")
+	if sessID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session id required"})
+		return
+	}
+
+	var sess model.ConnectSession
+	if err := h.db.Where("id = ? AND org_id = ?", sessID, org.ID).First(&sess).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "session not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get session"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toSessionListItem(sess))
+}
+
+// Delete handles DELETE /v1/connect/sessions/{id}.
+// @Summary Delete a connect session
+// @Description Deletes a connect session, immediately invalidating it.
+// @Tags connect-sessions
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/connect/sessions/{id} [delete]
+func (h *ConnectSessionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	sessID := chi.URLParam(r, "id")
+	if sessID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session id required"})
+		return
+	}
+
+	result := h.db.Where("id = ? AND org_id = ?", sessID, org.ID).Delete(&model.ConnectSession{})
+	if result.Error != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete session"})
+		return
+	}
+	if result.RowsAffected == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "session not found"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

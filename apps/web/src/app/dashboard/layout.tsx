@@ -15,14 +15,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   let userName: string | null = null;
+  let userEmail: string | null = null;
+  let emailConfirmed = false;
   let orgs: { id: string; name: string; role: string }[] = [];
 
   try {
     const me = await apiMe(accessToken);
     userName = me.user.name ?? me.user.email ?? null;
+    userEmail = me.user.email ?? null;
+    emailConfirmed = me.user.email_confirmed ?? false;
     orgs = me.orgs ?? [];
   } catch {
     redirect("/auth/login");
+  }
+
+  if (!emailConfirmed) {
+    redirect(`/auth/confirm-email?email=${encodeURIComponent(userEmail ?? "")}`);
   }
 
   if (orgs.length === 0) {

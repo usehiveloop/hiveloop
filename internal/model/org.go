@@ -37,6 +37,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&Integration{},
 		&Connection{},
 		&Generation{},
+		&EmailVerification{},
+		&PasswordReset{},
 	); err != nil {
 		return err
 	}

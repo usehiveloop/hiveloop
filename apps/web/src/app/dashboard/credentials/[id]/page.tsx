@@ -254,9 +254,9 @@ export default function CredentialDetailPage() {
   if (!credential) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16">
-        <span className="text-sm text-muted-foreground">Credential not found.</span>
+        <span className="text-sm text-muted-foreground">Llm key not found.</span>
         <Link href="/dashboard/credentials" className="text-[13px] text-chart-2">
-          Back to credentials
+          Back to Llm keys
         </Link>
       </div>
     );
@@ -275,7 +275,7 @@ export default function CredentialDetailPage() {
       <header className="flex shrink-0 flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
         <div className="flex items-center gap-1.5">
           <Link href="/dashboard/credentials" className="text-[13px] text-dim hover:text-foreground">
-            Credentials
+            Llm Keys
           </Link>
           <span className="text-[13px] text-dim">/</span>
           <span className="text-[13px] text-muted-foreground">{credential.label || "Untitled"}</span>
@@ -412,7 +412,7 @@ export default function CredentialDetailPage() {
             <TableSkeleton columns={tokenSkeletonColumns} rows={4} />
           ) : tokens.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-1 border border-border py-12 text-center">
-              <span className="text-[13px] text-muted-foreground">No tokens minted for this credential.</span>
+              <span className="text-[13px] text-muted-foreground">No tokens minted for this Llm key.</span>
             </div>
           ) : (
             <>

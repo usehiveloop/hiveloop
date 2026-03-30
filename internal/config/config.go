@@ -62,6 +62,12 @@ type Config struct {
 	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
 	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
 
+	// Frontend (for building email links)
+	FrontendURL string `env:"FRONTEND_URL" envDefault:"http://localhost:3000"`
+
+	// Auth: auto-confirm email on registration (useful for self-hosted deployments)
+	AutoConfirmEmail bool `env:"AUTO_CONFIRM_EMAIL" envDefault:"false"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
 

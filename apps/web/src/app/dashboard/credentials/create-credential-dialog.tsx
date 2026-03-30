@@ -77,7 +77,7 @@ export function CreateCredentialDialog({
       const { error } = await fetchClient.POST("/v1/credentials", {
         body,
       });
-      if (error) throw new Error((error as { error?: string }).error ?? "Failed to create credential");
+      if (error) throw new Error((error as { error?: string }).error ?? "Failed to create Llm key");
     },
     onSuccess: () => onSuccess(),
   });
@@ -251,7 +251,7 @@ export function CreateCredentialDialog({
                     placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
                   />
                   <FieldHint>
-                    UUID of an existing identity to link this credential to. Used for shared rate limiting across credentials.
+                    UUID of an existing identity to link this Llm key to. Used for shared rate limiting across Llm keys.
                   </FieldHint>
                 </div>
 
@@ -346,7 +346,7 @@ export function CreateCredentialDialog({
                   rows={4}
                 />
                 <FieldHint>
-                  Arbitrary JSON metadata to attach to this credential. Useful for tagging, filtering, or storing custom attributes.
+                  Arbitrary JSON metadata to attach to this Llm key. Useful for tagging, filtering, or storing custom attributes.
                 </FieldHint>
               </div>
             </div>
@@ -367,7 +367,7 @@ export function CreateCredentialDialog({
           disabled={!apiKey}
           loading={mutation.isPending}
         >
-          Create Credential
+          Create Llm Key
         </Button>
       </DialogFooter>
     </DialogContent>

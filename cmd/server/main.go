@@ -27,6 +27,7 @@ import (
 	"github.com/llmvault/llmvault/internal/logging"
 	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/email"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/nango"
 	"github.com/llmvault/llmvault/internal/proxy"
@@ -206,8 +207,10 @@ func run() error {
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
+	emailSender := &email.LogSender{}
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
-		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL)
+		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
+		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
@@ -222,6 +225,7 @@ func run() error {
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
+	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.CORSOrigins))
 	r.Use(middleware.RequestLog(logger))
 
@@ -243,21 +247,28 @@ func run() error {
 	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	// Auth routes (register, login, refresh, logout, me)
+	// Auth routes (register, login, refresh, logout, me, email confirmation, password reset)
 	r.Route("/auth", func(r chi.Router) {
+		r.Use(middleware.AuthRateLimit(10, 20)) // 10 rps per IP, burst 20
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)
+		r.Post("/confirm-email", authHandler.ConfirmEmail)
+		r.Post("/resend-confirmation", authHandler.ResendConfirmation)
+		r.Post("/forgot-password", authHandler.ForgotPassword)
+		r.Post("/reset-password", authHandler.ResetPassword)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 			r.Post("/logout", authHandler.Logout)
 			r.Get("/me", authHandler.Me)
+			r.Post("/change-password", authHandler.ChangePassword)
 		})
 	})
 
 	// Org-authenticated routes (JWT or API Key) — credential & token management
 	r.Route("/v1", func(r chi.Router) {
 		r.Use(middleware.MultiAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience, database, apiKeyCache))
+		r.Use(middleware.RequireEmailConfirmed(database))
 
 		// Org management (JWT-only, no org context needed for creation)
 		r.Post("/orgs", orgHandler.Create)
@@ -311,6 +322,9 @@ func run() error {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("connect"))
 				r.Post("/connect/sessions", connectSessionHandler.Create)
+				r.Get("/connect/sessions", connectSessionHandler.List)
+				r.Get("/connect/sessions/{id}", connectSessionHandler.Get)
+				r.Delete("/connect/sessions/{id}", connectSessionHandler.Delete)
 			})
 
 			// Integration operations — scope: "integrations"
@@ -377,7 +391,24 @@ func run() error {
 		r.Handle("/*", proxyHandler)
 	})
 
-	// 15. Server
+	// 15. Token cleanup (expired email verifications & password resets)
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				cutoff := time.Now().Add(-7 * 24 * time.Hour)
+				database.Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.EmailVerification{})
+				database.Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.PasswordReset{})
+				slog.Debug("cleaned up expired verification/reset tokens")
+			}
+		}
+	}()
+
+	// 16. Server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      r,

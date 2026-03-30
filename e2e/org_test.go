@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/llmvault/llmvault/internal/auth"
+	"github.com/llmvault/llmvault/internal/email"
 	"github.com/llmvault/llmvault/internal/handler"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
@@ -48,7 +49,7 @@ func newOrgHarness(t *testing.T) *orgHarness {
 	signingHMAC := []byte("e2e-org-hmac-signing-key")
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(h.db, privKey, signingHMAC, orgTestIssuer, orgTestAudience, 15*time.Minute, 24*time.Hour)
+	authHandler := handler.NewAuthHandler(h.db, privKey, signingHMAC, orgTestIssuer, orgTestAudience, 15*time.Minute, 24*time.Hour, &email.LogSender{}, "http://localhost:3000", true)
 	orgHandler := handler.NewOrgHandler(h.db)
 
 	// Router with embedded auth

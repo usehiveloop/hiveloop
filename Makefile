@@ -167,7 +167,7 @@ vault-dev: vault-up
 	@echo "    VAULT_TOKEN=llmvault-dev-token"
 	@echo ""
 
-# Start dev infra, wait for all services to be healthy, print URLs
+# Start dev infra, wait for healthy, then run server with hot reload (air)
 dev: up
 	@echo ""
 	@echo "Waiting for services..."
@@ -175,20 +175,14 @@ dev: up
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
-	@until curl -sf http://localhost:8025/livez >/dev/null 2>&1; do sleep 2; done
-	@echo "  ✓ Mailpit"
 	@echo ""
 	@echo "========================================"
-	@echo "  LLMVault dev stack is ready"
+	@echo "  Starting LLMVault (hot reload, debug)"
 	@echo "========================================"
+	@echo "  Postgres:  localhost:5433"
+	@echo "  Redis:     localhost:6379"
 	@echo ""
-	@echo "  Mailpit UI:       http://localhost:8025"
-	@echo "  Postgres:         localhost:5433  (user: llmvault, databases: llmvault + llmvault_test)"
-	@echo "  Redis:            localhost:6379"
-	@echo ""
-	@echo "  Hosted services:"
-	@echo "    Nango:          https://integrations.dev.llmvault.dev"
-	@echo ""
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) air
 
 # Clean slate: tear down, rebuild, run all tests
 test-clean:

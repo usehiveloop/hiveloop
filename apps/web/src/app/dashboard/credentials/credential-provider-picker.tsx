@@ -123,7 +123,7 @@ export function CredentialProviderPicker({
             Select a provider
           </DialogTitle>
           <DialogDescription className="mt-1 text-[13px]">
-            Choose an LLM provider for your credential.
+            Choose an LLM provider for your Llm key.
           </DialogDescription>
         </DialogHeader>
         <button onClick={onCancel} className="text-dim hover:text-foreground">
