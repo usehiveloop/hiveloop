@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LockIcon } from "@/components/icons";
@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { $api } from "@/api/client";
 
 export default function ConfirmEmailPage() {
+  return (
+    <Suspense>
+      <ConfirmEmailContent />
+    </Suspense>
+  );
+}
+
+function ConfirmEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const [sent, setSent] = useState(false);
