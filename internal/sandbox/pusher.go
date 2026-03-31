@@ -30,7 +30,10 @@ var providerTypeMap = map[string]bridgepkg.ProviderType{
 	"ollama":    bridgepkg.Ollama,
 }
 
-const agentTokenTTL = 24 * time.Hour
+const (
+	agentTokenTTL      = 24 * time.Hour
+	tokenRotationWindow = 3 * time.Hour // rotate when within 3h of expiry
+)
 
 // Pusher constructs Bridge AgentDefinitions from our Agent model
 // and pushes them to Bridge instances running in sandboxes.
@@ -108,6 +111,69 @@ func (p *Pusher) RemoveAgent(ctx context.Context, agent *model.Agent) error {
 		// Non-fatal — agent is deleted from our DB regardless
 	}
 	return nil
+}
+
+// RotateAgentToken mints a new proxy token for an agent and pushes it to Bridge.
+// Called lazily when a token is near expiry.
+func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	var cred model.Credential
+	if err := p.db.Where("id = ?", agent.CredentialID).First(&cred).Error; err != nil {
+		return fmt.Errorf("loading credential: %w", err)
+	}
+
+	// Mint new token
+	proxyToken, jti, err := p.mintAgentToken(agent, &cred)
+	if err != nil {
+		return fmt.Errorf("minting new token: %w", err)
+	}
+
+	// Store in DB
+	now := time.Now()
+	expiresAt := now.Add(agentTokenTTL)
+	dbToken := model.Token{
+		OrgID:        agent.OrgID,
+		CredentialID: cred.ID,
+		JTI:          jti,
+		ExpiresAt:    expiresAt,
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
+	}
+	if err := p.db.Create(&dbToken).Error; err != nil {
+		return fmt.Errorf("storing new token: %w", err)
+	}
+
+	// Push to Bridge
+	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
+	if err != nil {
+		return fmt.Errorf("getting bridge client: %w", err)
+	}
+	if err := client.RotateAPIKey(ctx, agent.ID.String(), proxyToken); err != nil {
+		return fmt.Errorf("rotating key in bridge: %w", err)
+	}
+
+	// Revoke old tokens for this agent (keep the new one)
+	p.db.Model(&model.Token{}).
+		Where("meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND jti != ?",
+			agent.ID.String(), jti).
+		Update("revoked_at", now)
+
+	slog.Info("agent token rotated",
+		"agent_id", agent.ID,
+		"new_jti", jti,
+		"expires_at", expiresAt.Format(time.RFC3339),
+	)
+
+	return nil
+}
+
+// NeedsTokenRotation checks if the agent's proxy token is within the rotation window.
+func (p *Pusher) NeedsTokenRotation(agentID string) bool {
+	var tok model.Token
+	err := p.db.Where("meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND revoked_at IS NULL",
+		agentID).Order("created_at DESC").First(&tok).Error
+	if err != nil {
+		return true // no token found, needs one
+	}
+	return time.Until(tok.ExpiresAt) < tokenRotationWindow
 }
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
