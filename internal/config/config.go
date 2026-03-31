@@ -78,6 +78,26 @@ type Config struct {
 	// MCP Server
 	MCPPort    int    `env:"MCP_PORT" envDefault:"8081"`
 	MCPBaseURL string `env:"MCP_BASE_URL" envDefault:"http://localhost:8081"`
+
+	// Turso (per-workspace libsql database provisioning)
+	TursoAPIToken string `env:"TURSO_API_TOKEN"`
+	TursoOrgSlug  string `env:"TURSO_ORG_SLUG"`
+	TursoGroup    string `env:"TURSO_GROUP" envDefault:"default"`
+
+	// Sandbox provider (global — one provider for the whole platform)
+	SandboxEncryptionKey string `env:"SANDBOX_ENCRYPTION_KEY"` // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
+	SandboxProviderID    string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // "daytona"
+	SandboxProviderURL string `env:"SANDBOX_PROVIDER_URL"`                     // e.g. https://app.daytona.io/api
+	SandboxProviderKey string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
+	SandboxTarget      string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
+
+	// Bridge (agent runtime in sandboxes)
+	BridgeBaseImagePrefix string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"llmvault-bridge-0-10-0-small-v2"` // full snapshot name (no size suffix appended)
+	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook/proxy URLs
+
+	// Sandbox defaults
+	SharedSandboxIdleTimeoutMins    int `env:"SHARED_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`
+	DedicatedSandboxGracePeriodMins int `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
 }
 
 func Load() (*Config, error) {

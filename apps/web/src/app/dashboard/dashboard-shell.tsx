@@ -13,6 +13,7 @@ import {
   Key,
   Coins,
   Users,
+  Blocks,
   Cable,
   Clock,
   Settings,
@@ -23,88 +24,37 @@ import {
   Menu,
   X,
   LogOut,
-  Unplug,
-  Sparkles,
-  LayoutGrid,
-  Palette,
-  Timer,
-  ArrowRight,
 } from "lucide-react";
-import { DashboardModeProvider, useDashboardMode } from "@/hooks/use-dashboard-mode";
 
 type NavItem = { label: string; icon: typeof LayoutDashboard; href: string };
 type NavSection = { title?: string; items: NavItem[] };
 
-const appNavSections: NavSection[] = [
+const navSections: NavSection[] = [
   {
     items: [
-      { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
+      { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     ],
   },
   {
-    title: "My Connections",
+    title: "Security",
     items: [
-      { label: "Connections", icon: Unplug, href: "/dashboard/connections" },
-      { label: "LLM Keys", icon: KeyRound, href: "/dashboard/llm-keys" },
-    ],
-  },
-  {
-    title: "Logs",
-    items: [
-      { label: "Generations", icon: Sparkles, href: "/dashboard/generations" },
-    ],
-  },
-  {
-    items: [
-      { label: "Settings", icon: Settings, href: "/dashboard/settings" },
-    ],
-  },
-];
-
-const platformNavSections: NavSection[] = [
-  {
-    items: [
-      { label: "Home", icon: LayoutDashboard, href: "/dashboard" },
-    ],
-  },
-  {
-    title: "Apps",
-    items: [
-      { label: "Installed Apps", icon: Cable, href: "/dashboard/apps" },
-      { label: "App Catalog", icon: LayoutGrid, href: "/dashboard/apps/catalog" },
-    ],
-  },
-  {
-    title: "Customers",
-    items: [
-      { label: "Connections", icon: Unplug, href: "/dashboard/customer-connections" },
+      { label: "Credentials", icon: KeyRound, href: "/dashboard/credentials" },
+      { label: "Tokens", icon: Coins, href: "/dashboard/tokens" },
+      { label: "API Keys", icon: Key, href: "/dashboard/api-keys" },
       { label: "Identities", icon: Users, href: "/dashboard/identities" },
     ],
   },
   {
-    title: "Connect Widget",
+    title: "Experience",
     items: [
-      { label: "Appearance", icon: Palette, href: "/dashboard/widget" },
-      { label: "Sessions", icon: Timer, href: "/dashboard/widget/sessions" },
+      { label: "Connect UI", icon: Blocks, href: "/dashboard/connect" },
+      { label: "Integrations", icon: Cable, href: "/dashboard/integrations" },
     ],
   },
   {
-    title: "Access",
+    title: "Manage",
     items: [
-      { label: "LLM Keys", icon: KeyRound, href: "/dashboard/llm-keys" },
-      { label: "Tokens", icon: Coins, href: "/dashboard/tokens" },
-      { label: "API Keys", icon: Key, href: "/dashboard/api-keys" },
-    ],
-  },
-  {
-    title: "Logs",
-    items: [
-      { label: "Generations", icon: Sparkles, href: "/dashboard/generations" },
       { label: "Audit Log", icon: Clock, href: "/dashboard/audit-log" },
-    ],
-  },
-  {
-    items: [
       { label: "Settings", icon: Settings, href: "/dashboard/settings" },
     ],
   },
@@ -287,20 +237,6 @@ function SignOutButton() {
   );
 }
 
-function ModeSwitchButton() {
-  const { mode, toggleMode } = useDashboardMode();
-  const targetLabel = mode === "app" ? "Platform" : "App";
-  return (
-    <button
-      onClick={toggleMode}
-      className="flex w-full items-center justify-between gap-2.5 px-3 py-2 text-sm font-normal text-muted-foreground transition-colors hover:text-foreground"
-    >
-      <span>Switch to {targetLabel}</span>
-      <ArrowRight className="size-3.5" />
-    </button>
-  );
-}
-
 function SidebarContent({
   pathname,
   userName,
@@ -312,9 +248,6 @@ function SidebarContent({
   organizations: Organization[];
   activeOrgId: string | null;
 }) {
-  const { mode } = useDashboardMode();
-  const navSections = mode === "app" ? appNavSections : platformNavSections;
-
   return (
     <>
       {/* Workspace Switcher */}
@@ -380,7 +313,6 @@ function SidebarContent({
             <span className="text-[11px] text-dim">{userName}</span>
           </div>
         )}
-        <ModeSwitchButton />
         <SignOutButton />
       </div>
     </>
@@ -412,65 +344,63 @@ export function DashboardShell({
   }, [syncOrgId]);
 
   return (
-    <DashboardModeProvider>
-      <div className="flex h-screen overflow-hidden">
-        {/* Desktop sidebar */}
-        <aside className="hidden w-90 shrink-0 flex-col gap-10 border-r border-border bg-background px-6 py-8 lg:flex">
-          <SidebarContent pathname={pathname} userName={userName} organizations={organizations} activeOrgId={activeOrgId} />
-        </aside>
+    <div className="flex h-screen overflow-hidden">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-90 shrink-0 flex-col gap-10 border-r border-border bg-background px-6 py-8 lg:flex">
+        <SidebarContent pathname={pathname} userName={userName} organizations={organizations} activeOrgId={activeOrgId} />
+      </aside>
 
-        {/* Mobile sidebar overlay */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <div className="fixed inset-0 z-50 lg:hidden">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0 bg-black/60"
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: "spring", stiffness: 350, damping: 35 }}
+              className="relative flex h-full w-75 max-w-[80vw] flex-col gap-8 bg-background px-5 py-6"
+            >
+              <button
                 onClick={() => setSidebarOpen(false)}
-              />
-              <motion.aside
-                initial={{ x: -300 }}
-                animate={{ x: 0 }}
-                exit={{ x: -300 }}
-                transition={{ type: "spring", stiffness: 350, damping: 35 }}
-                className="relative flex h-full w-75 max-w-[80vw] flex-col gap-8 bg-background px-5 py-6"
+                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
               >
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-5" />
-                </button>
-                <SidebarContent pathname={pathname} userName={userName} organizations={organizations} activeOrgId={activeOrgId} />
-              </motion.aside>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Mobile top bar */}
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3 lg:hidden">
-            <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground">
-              <Menu className="size-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="flex size-5 items-center justify-center border border-primary bg-primary/20">
-                <Lock className="size-3 text-primary" />
-              </div>
-              <span className="text-[15px] font-semibold tracking-tight text-foreground" style={{ fontFamily: "var(--font-bricolage)" }}>
-                llmvault
-              </span>
-            </div>
+                <X className="size-5" />
+              </button>
+              <SidebarContent pathname={pathname} userName={userName} organizations={organizations} activeOrgId={activeOrgId} />
+            </motion.aside>
           </div>
-          <main className="flex flex-1 flex-col overflow-y-auto">
-            {children}
-          </main>
+        )}
+      </AnimatePresence>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile top bar */}
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3 lg:hidden">
+          <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground">
+            <Menu className="size-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex size-5 items-center justify-center border border-primary bg-primary/20">
+              <Lock className="size-3 text-primary" />
+            </div>
+            <span className="text-[15px] font-semibold tracking-tight text-foreground" style={{ fontFamily: "var(--font-bricolage)" }}>
+              llmvault
+            </span>
+          </div>
         </div>
+        <main className="flex flex-1 flex-col overflow-y-auto">
+          {children}
+        </main>
       </div>
-    </DashboardModeProvider>
+    </div>
   );
 }

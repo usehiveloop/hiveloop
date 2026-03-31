@@ -2,22 +2,15 @@
 
 import {
   KeyRound,
-  Coins,
   Users,
   BarChart3,
   TrendingUp,
   TrendingDown,
   Minus,
-  Unplug,
-  Sparkles,
   Cable,
-  DollarSign,
-  Activity,
+  Unplug,
 } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { $api } from "@/api/client";
-import { useDashboardMode } from "@/hooks/use-dashboard-mode";
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -155,7 +148,7 @@ function LoadingSkeleton() {
   return (
     <>
       <header className="flex shrink-0 items-center justify-between border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
-        <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">Home</h1>
+        <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">Dashboard</h1>
       </header>
       <section className="grid shrink-0 grid-cols-1 gap-3 px-4 pt-4 sm:grid-cols-2 sm:gap-4 sm:px-6 sm:pt-6 lg:px-8 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -170,59 +163,7 @@ function LoadingSkeleton() {
   );
 }
 
-/* ── App Mode (static) ── */
-
-const staticRecentActivity = [
-  { time: "2m ago", source: "gpt-4o", detail: "1,247 tokens", cost: "$0.04", icon: Sparkles },
-  { time: "5m ago", source: "GitHub", detail: "create_issue", cost: "200", icon: Unplug },
-  { time: "8m ago", source: "claude-4", detail: "3,891 tokens", cost: "$0.12", icon: Sparkles },
-  { time: "12m ago", source: "Slack", detail: "send_message", cost: "200", icon: Unplug },
-];
-
-function AppHomeContent() {
-  return (
-    <>
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
-        <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">Home</h1>
-        <Link href="/dashboard/connections">
-          <Button size="lg">New Connection</Button>
-        </Link>
-      </header>
-
-      <section className="grid shrink-0 grid-cols-1 gap-3 px-4 pt-4 sm:grid-cols-3 sm:gap-4 sm:px-6 sm:pt-6 lg:px-8">
-        <StatCard label="Connections" value="3" icon={Unplug} />
-        <StatCard label="LLM Keys" value="2" icon={KeyRound} />
-        <StatCard
-          label="Requests Today"
-          value="1,247"
-          icon={BarChart3}
-          change={{ value: "+18%", positive: true }}
-        />
-      </section>
-
-      <section className="px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8 lg:px-8">
-        <div className="flex flex-col border border-border bg-card">
-          <div className="px-4 py-3">
-            <span className="text-sm font-medium text-foreground">Recent Activity</span>
-          </div>
-          {staticRecentActivity.map((item, i) => (
-            <div key={i} className="flex items-center gap-4 border-t border-border px-4 py-3">
-              <span className="w-16 shrink-0 text-xs text-dim">{item.time}</span>
-              <item.icon className="size-4 shrink-0 text-dim" />
-              <span className="flex-1 text-[13px] font-medium text-foreground">{item.source}</span>
-              <span className="font-mono text-[13px] text-muted-foreground">{item.detail}</span>
-              <span className="w-14 shrink-0 text-right font-mono text-[13px] text-foreground">{item.cost}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-/* ── Platform Mode (dynamic) ── */
-
-function PlatformHomeContent() {
+export default function DashboardPage() {
   const { data: usage, isLoading } = $api.useQuery("get", "/v1/usage");
 
   if (isLoading || !usage) return <LoadingSkeleton />;
@@ -238,7 +179,7 @@ function PlatformHomeContent() {
   return (
     <>
       <header className="flex shrink-0 items-center justify-between border-b border-border px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
-        <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">Home</h1>
+        <h1 className="font-mono text-lg font-medium tracking-tight text-foreground sm:text-xl">Dashboard</h1>
       </header>
 
       {/* Top stats row */}
@@ -287,7 +228,7 @@ function PlatformHomeContent() {
         </div>
       </section>
 
-      {/* Tables: Top Models + Top Customers + Latency/Errors */}
+      {/* Tables: Top Models + Top Customers + Summary */}
       <section className="grid shrink-0 grid-cols-1 gap-3 px-4 pt-4 pb-6 sm:gap-4 sm:px-6 sm:pt-6 sm:pb-8 lg:grid-cols-3 lg:px-8">
         {/* Top Models */}
         <div className="flex flex-col border border-border bg-card">
@@ -369,9 +310,4 @@ function PlatformHomeContent() {
       </section>
     </>
   );
-}
-
-export default function DashboardPage() {
-  const { mode } = useDashboardMode();
-  return mode === "app" ? <AppHomeContent /> : <PlatformHomeContent />;
 }

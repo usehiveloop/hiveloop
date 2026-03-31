@@ -21,3 +21,7 @@ fetchactions-oas2
 fetchactions-oas3
 examples/
 certs/
+
+# buildtemplates binary output (not the source in cmd/)
+/buildtemplates
+.next/

@@ -39,6 +39,12 @@ func AutoMigrate(db *gorm.DB) error {
 		&Generation{},
 		&EmailVerification{},
 		&PasswordReset{},
+		&SandboxTemplate{},
+		&Agent{},
+		&Sandbox{},
+		&WorkspaceStorage{},
+		&AgentConversation{},
+		&ConversationEvent{},
 	); err != nil {
 		return err
 	}

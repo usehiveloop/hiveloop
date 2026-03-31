@@ -444,6 +444,122 @@ func TestIntegration_TokenAuth_ExpiredToken(t *testing.T) {
 	}
 }
 
+// TestIntegration_TokenAuth_XApiKey tests Anthropic-style auth (x-api-key header).
+func TestIntegration_TokenAuth_XApiKey(t *testing.T) {
+	db := connectTestDB(t)
+
+	orgID := uuid.New()
+	credID := uuid.New()
+	db.Create(&model.Org{ID: orgID, Name: "token-xapikey-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
+	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://api.anthropic.com", AuthScheme: "x-api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
+
+	signingKey := []byte(testSigningKey)
+	tokenStr, jti, _ := token.Mint(signingKey, orgID.String(), credID.String(), time.Hour)
+	db.Create(&model.Token{ID: uuid.New(), OrgID: orgID, CredentialID: credID, JTI: jti, ExpiresAt: time.Now().Add(time.Hour)})
+
+	var gotClaims *middleware.TokenClaims
+	handler := middleware.TokenAuth(signingKey, db)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotClaims, _ = middleware.ClaimsFromContext(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/proxy/v1/messages", nil)
+	req.Header.Set("x-api-key", "ptok_"+tokenStr)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("x-api-key auth: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if gotClaims.OrgID != orgID.String() {
+		t.Fatalf("org_id mismatch: got %s", gotClaims.OrgID)
+	}
+}
+
+// TestIntegration_TokenAuth_AzureApiKey tests Azure-style auth (api-key header).
+func TestIntegration_TokenAuth_AzureApiKey(t *testing.T) {
+	db := connectTestDB(t)
+
+	orgID := uuid.New()
+	credID := uuid.New()
+	db.Create(&model.Org{ID: orgID, Name: "token-azure-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
+	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://myinstance.openai.azure.com", AuthScheme: "api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
+
+	signingKey := []byte(testSigningKey)
+	tokenStr, jti, _ := token.Mint(signingKey, orgID.String(), credID.String(), time.Hour)
+	db.Create(&model.Token{ID: uuid.New(), OrgID: orgID, CredentialID: credID, JTI: jti, ExpiresAt: time.Now().Add(time.Hour)})
+
+	var gotClaims *middleware.TokenClaims
+	handler := middleware.TokenAuth(signingKey, db)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotClaims, _ = middleware.ClaimsFromContext(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/proxy/v1/chat/completions", nil)
+	req.Header.Set("api-key", "ptok_"+tokenStr)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("api-key auth: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if gotClaims.OrgID != orgID.String() {
+		t.Fatalf("org_id mismatch: got %s", gotClaims.OrgID)
+	}
+}
+
+// TestIntegration_TokenAuth_QueryParam tests Google-style auth (?key= query parameter).
+func TestIntegration_TokenAuth_QueryParam(t *testing.T) {
+	db := connectTestDB(t)
+
+	orgID := uuid.New()
+	credID := uuid.New()
+	db.Create(&model.Org{ID: orgID, Name: "token-google-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
+	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://generativelanguage.googleapis.com", AuthScheme: "query_param", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
+
+	signingKey := []byte(testSigningKey)
+	tokenStr, jti, _ := token.Mint(signingKey, orgID.String(), credID.String(), time.Hour)
+	db.Create(&model.Token{ID: uuid.New(), OrgID: orgID, CredentialID: credID, JTI: jti, ExpiresAt: time.Now().Add(time.Hour)})
+
+	var gotClaims *middleware.TokenClaims
+	handler := middleware.TokenAuth(signingKey, db)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotClaims, _ = middleware.ClaimsFromContext(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/proxy/v1/models/gemini:generateContent?key=ptok_"+tokenStr, nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("query param auth: expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if gotClaims.OrgID != orgID.String() {
+		t.Fatalf("org_id mismatch: got %s", gotClaims.OrgID)
+	}
+}
+
+// TestIntegration_TokenAuth_NoAuth tests that requests without any auth are rejected.
+func TestIntegration_TokenAuth_NoAuth(t *testing.T) {
+	db := connectTestDB(t)
+	signingKey := []byte(testSigningKey)
+
+	handler := middleware.TokenAuth(signingKey, db)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be called without auth")
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/proxy/v1/messages", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("no auth: expected 401, got %d", rr.Code)
+	}
+}
+
 // --------------------------------------------------------------------------
 // Audit — real Postgres
 // --------------------------------------------------------------------------
