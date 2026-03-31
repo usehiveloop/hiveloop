@@ -225,9 +225,11 @@ func run() error {
 	// 13b. Sandbox orchestrator (optional — only if sandbox provider is configured)
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
+	var sandboxEncKey *crypto.SymmetricKey
 	slog.Info("sandbox config check", "provider_key_set", cfg.SandboxProviderKey != "", "encryption_key_set", cfg.SandboxEncryptionKey != "")
 	if cfg.SandboxProviderKey != "" && cfg.SandboxEncryptionKey != "" {
-		sandboxEncKey, err := crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
+		var err error
+		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
 		if err != nil {
 			return fmt.Errorf("invalid SANDBOX_ENCRYPTION_KEY: %w", err)
 		}
@@ -256,6 +258,7 @@ func run() error {
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher)
 	}
+	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -288,6 +291,9 @@ func run() error {
 	r.Get("/v1/catalog/integrations", actionsHandler.ListIntegrations)
 	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
 	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
+
+	// Bridge webhook receiver (no auth middleware — uses HMAC signature verification)
+	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 
 	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
