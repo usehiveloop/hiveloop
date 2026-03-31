@@ -32,6 +32,9 @@ import (
 	"github.com/llmvault/llmvault/internal/nango"
 	"github.com/llmvault/llmvault/internal/proxy"
 	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/llmvault/llmvault/internal/sandbox"
+	"github.com/llmvault/llmvault/internal/sandbox/daytona"
+	"github.com/llmvault/llmvault/internal/turso"
 )
 
 // @title LLMVault API
@@ -172,7 +175,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("loading auth RSA key: %w", err)
 	}
-	slog.Info("embedded auth ready")
+	slog.Info("embedded auth ready") // phase 6 sandbox orchestrator
 
 	// 11. Provider registry (embedded at build time)
 	reg := registry.Global()
@@ -217,6 +220,48 @@ func run() error {
 	generationHandler := handler.NewGenerationHandler(database)
 	reportingHandler := handler.NewReportingHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database)
+
+	// 13b. Sandbox orchestrator (optional — only if sandbox provider is configured)
+	var orchestrator *sandbox.Orchestrator
+	var agentPusher *sandbox.Pusher
+	slog.Info("sandbox config check", "provider_key_set", cfg.SandboxProviderKey != "", "encryption_key_set", cfg.SandboxEncryptionKey != "")
+	if cfg.SandboxProviderKey != "" && cfg.SandboxEncryptionKey != "" {
+		sandboxEncKey, err := crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
+		if err != nil {
+			return fmt.Errorf("invalid SANDBOX_ENCRYPTION_KEY: %w", err)
+		}
+		sandboxProvider, err := daytona.NewDriver(daytona.Config{
+			APIURL: cfg.SandboxProviderURL,
+			APIKey: cfg.SandboxProviderKey,
+			Target: cfg.SandboxTarget,
+		})
+		if err != nil {
+			return fmt.Errorf("creating sandbox provider: %w", err)
+		}
+		var tursoProvisioner *turso.Provisioner
+		if cfg.TursoAPIToken != "" && cfg.TursoOrgSlug != "" {
+			tursoClient := turso.NewClient(cfg.TursoAPIToken, cfg.TursoOrgSlug)
+			tursoProvisioner = turso.NewProvisioner(tursoClient, cfg.TursoGroup, database)
+			slog.Info("turso provisioner ready")
+		} else {
+			slog.Info("turso not configured, sandboxes will run without libsql storage")
+		}
+		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
+		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
+		go orchestrator.StartHealthChecker(ctx)
+		slog.Info("sandbox orchestrator ready")
+	}
+	var conversationHandler *handler.ConversationHandler
+	if orchestrator != nil && agentPusher != nil {
+		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher)
+	}
+
+	var pusherForHandler handler.AgentPusher
+	if agentPusher != nil {
+		pusherForHandler = agentPusher
+	}
+	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler)
 
 	// 14. Router
 	r := chi.NewRouter()
@@ -347,6 +392,42 @@ func run() error {
 				r.Get("/connections/{id}", connectionHandler.Get)
 				r.HandleFunc("/connections/{id}/proxy/*", connectionHandler.Proxy)
 				r.Delete("/connections/{id}", connectionHandler.Revoke)
+			})
+
+			// Agent operations — scope: "agents"
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("agents"))
+				r.Route("/sandbox-templates", func(r chi.Router) {
+					r.Post("/", sandboxTemplateHandler.Create)
+					r.Get("/", sandboxTemplateHandler.List)
+					r.Get("/{id}", sandboxTemplateHandler.Get)
+					r.Put("/{id}", sandboxTemplateHandler.Update)
+					r.Delete("/{id}", sandboxTemplateHandler.Delete)
+				})
+				r.Route("/agents", func(r chi.Router) {
+					r.Post("/", agentHandler.Create)
+					r.Get("/", agentHandler.List)
+					r.Get("/{id}", agentHandler.Get)
+					r.Put("/{id}", agentHandler.Update)
+					r.Delete("/{id}", agentHandler.Delete)
+					// Conversations under agent
+					if conversationHandler != nil {
+						r.Post("/{agentID}/conversations", conversationHandler.Create)
+						r.Get("/{agentID}/conversations", conversationHandler.List)
+					}
+				})
+				// Conversation operations (top-level by conversation ID)
+				if conversationHandler != nil {
+					r.Route("/conversations/{convID}", func(r chi.Router) {
+						r.Get("/", conversationHandler.Get)
+						r.Delete("/", conversationHandler.End)
+						r.Post("/messages", conversationHandler.SendMessage)
+						r.Get("/stream", conversationHandler.Stream)
+						r.Post("/abort", conversationHandler.Abort)
+						r.Get("/approvals", conversationHandler.ListApprovals)
+						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
+					})
+				}
 			})
 
 			// Settings — scope: "all"

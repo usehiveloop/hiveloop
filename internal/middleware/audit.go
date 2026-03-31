@@ -134,3 +134,8 @@ func (sw *statusWriter) WriteHeader(code int) {
 	}
 	sw.ResponseWriter.WriteHeader(code)
 }
+
+// Unwrap returns the underlying ResponseWriter (supports http.ResponseController).
+func (sw *statusWriter) Unwrap() http.ResponseWriter {
+	return sw.ResponseWriter
+}

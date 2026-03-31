@@ -88,7 +88,7 @@ func TestHashAPIKey_DifferentKeys(t *testing.T) {
 }
 
 func TestValidAPIKeyScopes(t *testing.T) {
-	valid := []string{"connect", "credentials", "tokens", "all"}
+	valid := []string{"connect", "credentials", "tokens", "integrations", "agents", "all"}
 	for _, s := range valid {
 		if !model.ValidAPIKeyScopes[s] {
 			t.Fatalf("expected scope %q to be valid", s)

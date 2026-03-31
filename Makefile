@@ -40,6 +40,20 @@ openapi:
 	"
 	@echo "✓ docs/openapi.json updated"
 
+# Build sandbox templates (all 4 sizes)
+# Usage: make build-templates VERSION=0.10.0
+#        make build-templates VERSION=0.10.0 SIZE=small
+#        make build-templates VERSION=0.10.0 SIZE=small,medium
+#        make build-templates VERSION=0.10.0 PROVIDER=daytona
+build-templates:
+	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -provider=$(or $(PROVIDER),daytona) -size=$(or $(SIZE),all)
+
+# Generate Bridge Go client from OpenAPI spec
+generate-bridge-client:
+	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
+		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.json
+
 # Generate all embedded assets
 generate: fetch-models fetch-actions
 

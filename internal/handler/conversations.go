@@ -1,0 +1,480 @@
+package handler
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
+
+	bridgepkg "github.com/llmvault/llmvault/internal/bridge"
+	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/sandbox"
+)
+
+// ConversationHandler proxies conversation operations to Bridge.
+type ConversationHandler struct {
+	db           *gorm.DB
+	orchestrator *sandbox.Orchestrator
+	pusher       *sandbox.Pusher
+}
+
+// NewConversationHandler creates a conversation handler.
+func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *ConversationHandler {
+	return &ConversationHandler{db: db, orchestrator: orchestrator, pusher: pusher}
+}
+
+type createConversationRequest struct {
+	ToolNames        []string `json:"tool_names,omitempty"`
+	McpServerNames   []string `json:"mcp_server_names,omitempty"`
+}
+
+type conversationResponse struct {
+	ID        string  `json:"id"`
+	AgentID   string  `json:"agent_id"`
+	Status    string  `json:"status"`
+	StreamURL string  `json:"stream_url"`
+	CreatedAt string  `json:"created_at"`
+}
+
+// Create handles POST /v1/agents/{agentID}/conversations.
+// For shared agents: reuses existing sandbox.
+// For dedicated agents: creates a new sandbox + pushes agent + creates conversation.
+func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	agentID := chi.URLParam(r, "agentID")
+
+	// Load agent with associations
+	var agent model.Agent
+	if err := h.db.Preload("Credential").Preload("Identity").
+		Where("id = ? AND org_id = ? AND status = 'active'", agentID, org.ID).First(&agent).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load agent"})
+		return
+	}
+
+	if h.orchestrator == nil || h.pusher == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "sandbox orchestrator not configured"})
+		return
+	}
+
+	ctx := r.Context()
+
+	// Resolve sandbox based on agent type
+	var sb *model.Sandbox
+	var err error
+
+	if agent.SandboxType == "shared" {
+		sb, err = h.orchestrator.EnsureSharedSandbox(ctx, org, &agent.Identity)
+		if err != nil {
+			slog.Error("failed to ensure shared sandbox", "agent_id", agent.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
+			return
+		}
+	} else {
+		// Dedicated: create a new sandbox for this conversation
+		sb, err = h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
+		if err != nil {
+			slog.Error("failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
+			return
+		}
+		// Push agent to the new dedicated sandbox
+		if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
+			slog.Error("failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
+			return
+		}
+	}
+
+	// Get Bridge client
+	client, err := h.orchestrator.GetBridgeClient(ctx, sb)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
+		return
+	}
+
+	// Create conversation in Bridge
+	bridgeResp, err := client.CreateConversation(ctx, agent.ID.String())
+	if err != nil {
+		slog.Error("failed to create conversation in bridge", "agent_id", agent.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create conversation"})
+		return
+	}
+
+	// Save conversation record
+	conv := model.AgentConversation{
+		OrgID:                org.ID,
+		AgentID:              agent.ID,
+		SandboxID:            sb.ID,
+		BridgeConversationID: bridgeResp.ConversationId,
+		Status:               "active",
+	}
+	if err := h.db.Create(&conv).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save conversation"})
+		return
+	}
+
+	// Update sandbox last active
+	h.db.Model(sb).Update("last_active_at", time.Now())
+
+	slog.Info("conversation created",
+		"conversation_id", conv.ID,
+		"agent_id", agent.ID,
+		"sandbox_id", sb.ID,
+		"bridge_conversation_id", bridgeResp.ConversationId,
+	)
+
+	writeJSON(w, http.StatusCreated, conversationResponse{
+		ID:        conv.ID.String(),
+		AgentID:   agent.ID.String(),
+		Status:    "active",
+		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
+		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+// List handles GET /v1/agents/{agentID}/conversations.
+func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	agentID := chi.URLParam(r, "agentID")
+	limit, cursor, err := parsePagination(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, agentID)
+	if status := r.URL.Query().Get("status"); status != "" {
+		q = q.Where("status = ?", status)
+	}
+	q = applyPagination(q, cursor, limit)
+
+	var convs []model.AgentConversation
+	if err := q.Find(&convs).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list conversations"})
+		return
+	}
+
+	hasMore := len(convs) > limit
+	if hasMore {
+		convs = convs[:limit]
+	}
+
+	resp := make([]conversationResponse, len(convs))
+	for i, c := range convs {
+		resp[i] = conversationResponse{
+			ID:        c.ID.String(),
+			AgentID:   c.AgentID.String(),
+			Status:    c.Status,
+			StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", c.ID),
+			CreatedAt: c.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	result := paginatedResponse[conversationResponse]{Data: resp, HasMore: hasMore}
+	if hasMore {
+		last := convs[len(convs)-1]
+		c := encodeCursor(last.CreatedAt, last.ID)
+		result.NextCursor = &c
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+// Get handles GET /v1/conversations/{convID}.
+func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, conversationResponse{
+		ID:        conv.ID.String(),
+		AgentID:   conv.AgentID.String(),
+		Status:    conv.Status,
+		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
+		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+// SendMessage handles POST /v1/conversations/{convID}/messages.
+func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Content == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "content is required"})
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	if err := client.SendMessage(r.Context(), conv.BridgeConversationID, req.Content); err != nil {
+		slog.Error("failed to send message to bridge", "conversation_id", conv.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to send message"})
+		return
+	}
+
+	h.db.Model(&conv.Sandbox).Update("last_active_at", time.Now())
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
+}
+
+// Stream handles GET /v1/conversations/{convID}/stream (SSE proxy).
+func (h *ConversationHandler) Stream(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	// Open SSE stream from Bridge
+	body, err := client.SSEStream(r.Context(), conv.BridgeConversationID)
+	if err != nil {
+		slog.Error("failed to open SSE stream", "conversation_id", conv.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to open stream"})
+		return
+	}
+	defer body.Close()
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // disable nginx buffering
+	w.WriteHeader(http.StatusOK)
+
+	// Use ResponseController for flushing — works through any middleware wrapper
+	rc := http.NewResponseController(w)
+
+	h.db.Model(&conv.Sandbox).Update("last_active_at", time.Now())
+
+	// Pipe Bridge SSE → client
+	buf := make([]byte, 4096)
+	for {
+		n, err := body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				slog.Debug("SSE client disconnected", "conversation_id", conv.ID)
+				return
+			}
+			if flushErr := rc.Flush(); flushErr != nil {
+				slog.Debug("SSE flush failed", "conversation_id", conv.ID, "error", flushErr)
+				return
+			}
+		}
+		if err != nil {
+			if err != io.EOF {
+				slog.Debug("SSE stream ended", "conversation_id", conv.ID, "error", err)
+			}
+			return
+		}
+	}
+}
+
+// Abort handles POST /v1/conversations/{convID}/abort.
+func (h *ConversationHandler) Abort(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	if err := client.AbortConversation(r.Context(), conv.BridgeConversationID); err != nil {
+		slog.Error("failed to abort conversation", "conversation_id", conv.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to abort"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "aborted"})
+}
+
+// End handles DELETE /v1/conversations/{convID}.
+func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	if err := client.EndConversation(r.Context(), conv.BridgeConversationID); err != nil {
+		slog.Error("failed to end conversation in bridge", "conversation_id", conv.ID, "error", err)
+		// Continue to update our DB even if Bridge fails
+	}
+
+	now := time.Now()
+	h.db.Model(conv).Updates(map[string]any{
+		"status":   "ended",
+		"ended_at": now,
+	})
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ended"})
+}
+
+// ListApprovals handles GET /v1/conversations/{convID}/approvals.
+func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.BridgeConversationID)
+	if err != nil {
+		slog.Error("failed to list approvals", "conversation_id", conv.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list approvals"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, approvals)
+}
+
+// ResolveApproval handles POST /v1/conversations/{convID}/approvals/{requestID}.
+func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Request) {
+	conv, ok := h.loadConversation(w, r)
+	if !ok {
+		return
+	}
+
+	requestID := chi.URLParam(r, "requestID")
+
+	var req struct {
+		Decision string `json:"decision"` // "approve" or "deny"
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if req.Decision != "approve" && req.Decision != "deny" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "decision must be 'approve' or 'deny'"})
+		return
+	}
+
+	client, ok := h.getBridgeClient(w, r, conv)
+	if !ok {
+		return
+	}
+
+	decision := bridgepkg.ApprovalDecisionApprove
+	if req.Decision == "deny" {
+		decision = bridgepkg.ApprovalDecisionDeny
+	}
+	if err := client.ResolveApproval(r.Context(), conv.AgentID.String(), conv.BridgeConversationID, requestID, decision); err != nil {
+		slog.Error("failed to resolve approval", "conversation_id", conv.ID, "request_id", requestID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve approval"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "resolved"})
+}
+
+// --- helpers ---
+
+// loadConversation loads and validates a conversation from the URL param + org context.
+func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Request) (*model.AgentConversation, bool) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return nil, false
+	}
+
+	convID := chi.URLParam(r, "convID")
+	var conv model.AgentConversation
+	if err := h.db.Preload("Sandbox").Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+			return nil, false
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load conversation"})
+		return nil, false
+	}
+
+	if conv.Status != "active" {
+		writeJSON(w, http.StatusGone, map[string]string{"error": "conversation has ended"})
+		return nil, false
+	}
+
+	return &conv, true
+}
+
+// getFlusher extracts http.Flusher from a ResponseWriter, unwrapping middleware wrappers if needed.
+func getFlusher(w http.ResponseWriter) (http.Flusher, bool) {
+	if f, ok := w.(http.Flusher); ok {
+		return f, true
+	}
+	// Try to unwrap (chi middleware wraps ResponseWriter)
+	type unwrapper interface {
+		Unwrap() http.ResponseWriter
+	}
+	if u, ok := w.(unwrapper); ok {
+		return getFlusher(u.Unwrap())
+	}
+	// Go 1.20+ http.ResponseController can flush any writer
+	rc := http.NewResponseController(w)
+	if rc.Flush() == nil {
+		return &responseControllerFlusher{rc: rc}, true
+	}
+	return nil, false
+}
+
+// responseControllerFlusher wraps http.ResponseController as an http.Flusher.
+type responseControllerFlusher struct {
+	rc *http.ResponseController
+}
+
+func (f *responseControllerFlusher) Flush() {
+	f.rc.Flush()
+}
+
+
+// getBridgeClient returns a Bridge client for the conversation's sandbox.
+func (h *ConversationHandler) getBridgeClient(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) (*bridgepkg.BridgeClient, bool) {
+	client, err := h.orchestrator.GetBridgeClient(r.Context(), &conv.Sandbox)
+	if err != nil {
+		slog.Error("failed to get bridge client", "conversation_id", conv.ID, "sandbox_id", conv.SandboxID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to connect to sandbox"})
+		return nil, false
+	}
+	return client, true
+}
