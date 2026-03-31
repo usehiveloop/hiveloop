@@ -229,6 +229,17 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Lazy token rotation — refresh if near expiry before sending
+	if h.pusher != nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
+		var agent model.Agent
+		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
+			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {
+				slog.Error("failed to rotate agent token", "agent_id", conv.AgentID, "error", err)
+				// Non-fatal — try sending with existing token
+			}
+		}
+	}
+
 	client, ok := h.getBridgeClient(w, r, conv)
 	if !ok {
 		return
@@ -407,6 +418,74 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "resolved"})
+}
+
+// ListEvents handles GET /v1/conversations/{convID}/events.
+func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	convID := chi.URLParam(r, "convID")
+	var conv model.AgentConversation
+	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load conversation"})
+		return
+	}
+
+	limit, cursor, err := parsePagination(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := h.db.Where("conversation_id = ?", conv.ID)
+	if eventType := r.URL.Query().Get("type"); eventType != "" {
+		q = q.Where("event_type = ?", eventType)
+	}
+	q = applyPagination(q, cursor, limit)
+
+	var events []model.ConversationEvent
+	if err := q.Find(&events).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list events"})
+		return
+	}
+
+	hasMore := len(events) > limit
+	if hasMore {
+		events = events[:limit]
+	}
+
+	type eventResponse struct {
+		ID        string     `json:"id"`
+		EventType string     `json:"event_type"`
+		Payload   model.JSON `json:"payload"`
+		CreatedAt string     `json:"created_at"`
+	}
+
+	resp := make([]eventResponse, len(events))
+	for i, e := range events {
+		resp[i] = eventResponse{
+			ID:        e.ID.String(),
+			EventType: e.EventType,
+			Payload:   e.Payload,
+			CreatedAt: e.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	result := paginatedResponse[eventResponse]{Data: resp, HasMore: hasMore}
+	if hasMore {
+		last := events[len(events)-1]
+		c := encodeCursor(last.CreatedAt, last.ID)
+		result.NextCursor = &c
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 // --- helpers ---

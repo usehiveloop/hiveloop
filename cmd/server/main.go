@@ -432,8 +432,19 @@ func run() error {
 						r.Post("/abort", conversationHandler.Abort)
 						r.Get("/approvals", conversationHandler.ListApprovals)
 						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
+						r.Get("/events", conversationHandler.ListEvents)
 					})
 				}
+				// Sandbox management
+				r.Route("/sandboxes", func(r chi.Router) {
+					sandboxHandler := handler.NewSandboxHandler(database, orchestrator)
+					r.Get("/", sandboxHandler.List)
+					r.Get("/{id}", sandboxHandler.Get)
+					if orchestrator != nil {
+						r.Post("/{id}/stop", sandboxHandler.Stop)
+						r.Delete("/{id}", sandboxHandler.Delete)
+					}
+				})
 			})
 
 			// Settings — scope: "all"
