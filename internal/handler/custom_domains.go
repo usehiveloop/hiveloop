@@ -462,6 +462,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 								"name":   "acmedns",
 								"config": acmeDNSConfig,
 							},
+							"resolvers": []string{"1.1.1.1:53", "8.8.8.8:53"},
 						},
 					},
 				},
