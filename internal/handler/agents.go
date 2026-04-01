@@ -133,6 +133,19 @@ var validSandboxTypes = map[string]bool{
 }
 
 // Create handles POST /v1/agents.
+// @Summary Create an agent
+// @Description Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.
+// @Tags agents
+// @Accept json
+// @Produce json
+// @Param body body createAgentRequest true "Agent definition"
+// @Success 201 {object} agentResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents [post]
 func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -219,6 +232,10 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sandbox template not found"})
 			return
 		}
+		if tmpl.BuildStatus != "ready" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("sandbox template is not ready (status: %s)", tmpl.BuildStatus)})
+			return
+		}
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
@@ -247,6 +264,19 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /v1/agents.
+// @Summary List agents
+// @Description Returns agents for the current organization with optional filters.
+// @Tags agents
+// @Produce json
+// @Param identity_id query string false "Filter by identity ID"
+// @Param status query string false "Filter by status (active, archived)"
+// @Param sandbox_type query string false "Filter by sandbox type (shared, dedicated)"
+// @Param limit query int false "Page size (default 50, max 100)"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} paginatedResponse[agentResponse]
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents [get]
 func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -301,6 +331,15 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get handles GET /v1/agents/{id}.
+// @Summary Get an agent
+// @Description Returns a single agent by ID.
+// @Tags agents
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Success 200 {object} agentResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{id} [get]
 func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -323,6 +362,19 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update handles PUT /v1/agents/{id}.
+// @Summary Update an agent
+// @Description Updates an agent. Re-validates credential/model compatibility. Shared agents are re-pushed to Bridge.
+// @Tags agents
+// @Accept json
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Param body body updateAgentRequest true "Fields to update"
+// @Success 200 {object} agentResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{id} [put]
 func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -460,6 +512,15 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete handles DELETE /v1/agents/{id}.
+// @Summary Delete an agent
+// @Description Deletes an agent and removes it from Bridge.
+// @Tags agents
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{id} [delete]
 func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

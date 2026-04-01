@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -10,14 +11,25 @@ import (
 
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
+	"github.com/llmvault/llmvault/internal/sandbox"
 )
 
-type SandboxTemplateHandler struct {
-	db *gorm.DB
+// TemplateBuildable is the interface for building sandbox templates.
+type TemplateBuildable interface {
+	BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate)
+	DeleteTemplate(ctx context.Context, externalID string) error
 }
 
-func NewSandboxTemplateHandler(db *gorm.DB) *SandboxTemplateHandler {
-	return &SandboxTemplateHandler{db: db}
+// Ensure sandbox.Orchestrator satisfies TemplateBuildable.
+var _ TemplateBuildable = (*sandbox.Orchestrator)(nil)
+
+type SandboxTemplateHandler struct {
+	db      *gorm.DB
+	builder TemplateBuildable // nil if sandbox orchestrator not configured
+}
+
+func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable) *SandboxTemplateHandler {
+	return &SandboxTemplateHandler{db: db, builder: builder}
 }
 
 type createSandboxTemplateRequest struct {
@@ -59,6 +71,18 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 }
 
 // Create handles POST /v1/sandbox-templates.
+// @Summary Create a sandbox template
+// @Description Creates a new sandbox template with build commands.
+// @Tags sandbox-templates
+// @Accept json
+// @Produce json
+// @Param body body createSandboxTemplateRequest true "Template details"
+// @Success 201 {object} sandboxTemplateResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates [post]
 func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -93,10 +117,25 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Trigger build in background if builder is configured and commands are provided
+	if h.builder != nil && tmpl.BuildCommands != "" {
+		go h.builder.BuildTemplate(context.Background(), &tmpl)
+	}
+
 	writeJSON(w, http.StatusCreated, toSandboxTemplateResponse(tmpl))
 }
 
 // List handles GET /v1/sandbox-templates.
+// @Summary List sandbox templates
+// @Description Returns sandbox templates for the current organization.
+// @Tags sandbox-templates
+// @Produce json
+// @Param limit query int false "Page size (default 50, max 100)"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} paginatedResponse[sandboxTemplateResponse]
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates [get]
 func (h *SandboxTemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -140,6 +179,15 @@ func (h *SandboxTemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get handles GET /v1/sandbox-templates/{id}.
+// @Summary Get a sandbox template
+// @Description Returns a single sandbox template by ID.
+// @Tags sandbox-templates
+// @Produce json
+// @Param id path string true "Template ID"
+// @Success 200 {object} sandboxTemplateResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/{id} [get]
 func (h *SandboxTemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -162,6 +210,18 @@ func (h *SandboxTemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update handles PUT /v1/sandbox-templates/{id}.
+// @Summary Update a sandbox template
+// @Description Updates a sandbox template. Resets build status if commands change.
+// @Tags sandbox-templates
+// @Accept json
+// @Produce json
+// @Param id path string true "Template ID"
+// @Param body body updateSandboxTemplateRequest true "Fields to update"
+// @Success 200 {object} sandboxTemplateResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/{id} [put]
 func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -201,6 +261,8 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 		updates["config"] = req.Config
 	}
 
+	commandsChanged := req.BuildCommands != nil
+
 	if len(updates) > 0 {
 		if err := h.db.Model(&tmpl).Updates(updates).Error; err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update sandbox template"})
@@ -209,10 +271,25 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 		h.db.Where("id = ?", tmpl.ID).First(&tmpl)
 	}
 
+	// Rebuild if commands changed
+	if commandsChanged && h.builder != nil && tmpl.BuildCommands != "" {
+		go h.builder.BuildTemplate(context.Background(), &tmpl)
+	}
+
 	writeJSON(w, http.StatusOK, toSandboxTemplateResponse(tmpl))
 }
 
 // Delete handles DELETE /v1/sandbox-templates/{id}.
+// @Summary Delete a sandbox template
+// @Description Deletes a template. Fails if agents still reference it.
+// @Tags sandbox-templates
+// @Produce json
+// @Param id path string true "Template ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/{id} [delete]
 func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -228,6 +305,14 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	if agentCount > 0 {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "cannot delete template: agents still reference it"})
 		return
+	}
+
+	// Delete the Daytona snapshot if it was built
+	var tmpl model.SandboxTemplate
+	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&tmpl).Error; err == nil {
+		if tmpl.ExternalID != nil && h.builder != nil {
+			_ = h.builder.DeleteTemplate(r.Context(), *tmpl.ExternalID)
+		}
 	}
 
 	result := h.db.Where("id = ? AND org_id = ?", id, org.ID).Delete(&model.SandboxTemplate{})

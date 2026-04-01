@@ -42,9 +42,25 @@ type conversationResponse struct {
 	CreatedAt string  `json:"created_at"`
 }
 
+type conversationEventResponse struct {
+	ID        string     `json:"id"`
+	EventType string     `json:"event_type"`
+	Payload   model.JSON `json:"payload"`
+	CreatedAt string     `json:"created_at"`
+}
+
 // Create handles POST /v1/agents/{agentID}/conversations.
-// For shared agents: reuses existing sandbox.
-// For dedicated agents: creates a new sandbox + pushes agent + creates conversation.
+// @Summary Create a conversation
+// @Description Creates a new conversation for an agent. For shared agents, reuses the existing sandbox. For dedicated agents, spins up a new sandbox.
+// @Tags conversations
+// @Produce json
+// @Param agentID path string true "Agent ID"
+// @Success 201 {object} conversationResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure 503 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{agentID}/conversations [post]
 func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -148,6 +164,17 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /v1/agents/{agentID}/conversations.
+// @Summary List conversations for an agent
+// @Description Returns conversations for the specified agent.
+// @Tags conversations
+// @Produce json
+// @Param agentID path string true "Agent ID"
+// @Param status query string false "Filter by status (active, ended, error)"
+// @Param limit query int false "Page size"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} paginatedResponse[conversationResponse]
+// @Security BearerAuth
+// @Router /v1/agents/{agentID}/conversations [get]
 func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -200,6 +227,16 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get handles GET /v1/conversations/{convID}.
+// @Summary Get a conversation
+// @Description Returns a conversation by ID.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Success 200 {object} conversationResponse
+// @Failure 404 {object} errorResponse
+// @Failure 410 {object} errorResponse "Conversation has ended"
+// @Security BearerAuth
+// @Router /v1/conversations/{convID} [get]
 func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -215,6 +252,18 @@ func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // SendMessage handles POST /v1/conversations/{convID}/messages.
+// @Summary Send a message
+// @Description Sends a message to the agent in the conversation. Returns 202 immediately; response streams via SSE.
+// @Tags conversations
+// @Accept json
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Param body body object{content=string} true "Message content"
+// @Success 202 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/messages [post]
 func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -257,6 +306,15 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 }
 
 // Stream handles GET /v1/conversations/{convID}/stream (SSE proxy).
+// @Summary Stream conversation events (SSE)
+// @Description Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.
+// @Tags conversations
+// @Produce text/event-stream
+// @Param convID path string true "Conversation ID"
+// @Success 200 {string} string "SSE event stream"
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/stream [get]
 func (h *ConversationHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -313,6 +371,15 @@ func (h *ConversationHandler) Stream(w http.ResponseWriter, r *http.Request) {
 }
 
 // Abort handles POST /v1/conversations/{convID}/abort.
+// @Summary Abort current turn
+// @Description Cancels the current in-flight LLM call or tool execution.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Success 200 {object} map[string]string
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/abort [post]
 func (h *ConversationHandler) Abort(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -334,6 +401,15 @@ func (h *ConversationHandler) Abort(w http.ResponseWriter, r *http.Request) {
 }
 
 // End handles DELETE /v1/conversations/{convID}.
+// @Summary End a conversation
+// @Description Permanently ends a conversation. Subsequent operations return 410.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Success 200 {object} map[string]string
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID} [delete]
 func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -360,6 +436,15 @@ func (h *ConversationHandler) End(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListApprovals handles GET /v1/conversations/{convID}/approvals.
+// @Summary List pending tool approvals
+// @Description Returns pending tool approval requests for the conversation.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Success 200 {array} map[string]interface{}
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/approvals [get]
 func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -382,6 +467,19 @@ func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Reque
 }
 
 // ResolveApproval handles POST /v1/conversations/{convID}/approvals/{requestID}.
+// @Summary Resolve a tool approval
+// @Description Approves or denies a pending tool execution request.
+// @Tags conversations
+// @Accept json
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Param requestID path string true "Approval request ID"
+// @Param body body object{decision=string} true "Decision: approve or deny"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 410 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/approvals/{requestID} [post]
 func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Request) {
 	conv, ok := h.loadConversation(w, r)
 	if !ok {
@@ -421,6 +519,18 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 }
 
 // ListEvents handles GET /v1/conversations/{convID}/events.
+// @Summary List conversation events
+// @Description Returns webhook events persisted for the conversation. Filterable by event type.
+// @Tags conversations
+// @Produce json
+// @Param convID path string true "Conversation ID"
+// @Param type query string false "Filter by event type (e.g. MessageReceived, ResponseCompleted)"
+// @Param limit query int false "Page size"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} paginatedResponse[conversationEventResponse]
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/conversations/{convID}/events [get]
 func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -462,16 +572,9 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 		events = events[:limit]
 	}
 
-	type eventResponse struct {
-		ID        string     `json:"id"`
-		EventType string     `json:"event_type"`
-		Payload   model.JSON `json:"payload"`
-		CreatedAt string     `json:"created_at"`
-	}
-
-	resp := make([]eventResponse, len(events))
+	resp := make([]conversationEventResponse, len(events))
 	for i, e := range events {
-		resp[i] = eventResponse{
+		resp[i] = conversationEventResponse{
 			ID:        e.ID.String(),
 			EventType: e.EventType,
 			Payload:   e.Payload,
@@ -479,7 +582,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	result := paginatedResponse[eventResponse]{Data: resp, HasMore: hasMore}
+	result := paginatedResponse[conversationEventResponse]{Data: resp, HasMore: hasMore}
 	if hasMore {
 		last := events[len(events)-1]
 		c := encodeCursor(last.CreatedAt, last.ID)

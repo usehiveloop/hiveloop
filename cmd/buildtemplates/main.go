@@ -45,15 +45,15 @@ var basePackages = []string{
 type templateSize struct {
 	Name   string
 	CPU    int
-	Memory int // MB
+	Memory int // GB
 	Disk   int // GB
 }
 
 var sizes = map[string]templateSize{
-	"small":  {Name: "small", CPU: 1, Memory: 2048, Disk: 10},
-	"medium": {Name: "medium", CPU: 2, Memory: 4096, Disk: 20},
-	"large":  {Name: "large", CPU: 4, Memory: 8192, Disk: 40},
-	"xlarge": {Name: "xlarge", CPU: 8, Memory: 16384, Disk: 80},
+	"small":  {Name: "small", CPU: 1, Memory: 2, Disk: 10},
+	"medium": {Name: "medium", CPU: 2, Memory: 4, Disk: 20},
+	"large":  {Name: "large", CPU: 4, Memory: 8, Disk: 40},
+	"xlarge": {Name: "xlarge", CPU: 8, Memory: 16, Disk: 80},
 }
 
 func bridgeDownloadURL(version string) string {
@@ -118,12 +118,13 @@ func buildDaytona(ctx context.Context, bridgeVersion string, targetSizes []strin
 		}
 
 		name := snapshotName(bridgeVersion, size.Name)
-		log.Printf("Building snapshot %q (cpu=%d, mem=%dMB, disk=%dGB)...",
+		log.Printf("Building snapshot %q (cpu=%d, mem=%dGB, disk=%dGB)...",
 			name, size.CPU, size.Memory, size.Disk)
 
 		resources := &types.Resources{
-			CPU:  size.CPU,
-			Disk: size.Disk,
+			CPU:    size.CPU,
+			Memory: size.Memory,
+			Disk:   size.Disk,
 		}
 
 		snapshot, logChan, err := client.Snapshot.Create(ctx, &types.CreateSnapshotParams{

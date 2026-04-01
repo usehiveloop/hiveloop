@@ -1,0 +1,8 @@
+- name: Restart Docker
+  systemd:
+    name: docker
+    state: restarted
+    daemon_reload: true
+
+- name: Reload sysctl
+  command: sysctl -p /etc/sysctl.d/99-daytona.conf

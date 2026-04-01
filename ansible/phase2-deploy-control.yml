@@ -1,0 +1,39 @@
+---
+# Phase 2: Deploy Daytona control plane on VPS
+#
+# Usage:
+#   source .env && ansible-playbook phase2-deploy-control.yml
+#
+# Prerequisites:
+#   - Phase 1 completed
+#   - .env sourced with all secrets
+#   - DNS records pointing to VPS (89.167.18.204):
+#     - api.daytona.llmvault.dev
+#     - dex.daytona.llmvault.dev
+#     - *.preview.llmvault.dev
+
+- name: "Phase 2: Deploy Control Plane"
+  hosts: control
+  become: true
+  pre_tasks:
+    - name: Verify required environment variables
+      assert:
+        that:
+          - lookup('env', item) | length > 0
+        fail_msg: "Environment variable {{ item }} is not set. Run: source .env"
+      loop:
+        - DAYTONA_DB_PASSWORD
+        - DAYTONA_ENCRYPTION_KEY
+        - DAYTONA_ENCRYPTION_SALT
+        - DAYTONA_REGISTRY_PASSWORD
+        - DAYTONA_R2_ENDPOINT
+        - DAYTONA_R2_ACCESS_KEY
+        - DAYTONA_R2_SECRET_KEY
+        - DAYTONA_PROXY_API_KEY
+        - DAYTONA_RUNNER_API_KEY
+        - DAYTONA_SSH_GATEWAY_API_KEY
+        - DAYTONA_ADMIN_API_KEY
+        - DAYTONA_DEX_ADMIN_PASSWORD_HASH
+        - CLOUDFLARE_API_TOKEN
+  roles:
+    - deploy-control

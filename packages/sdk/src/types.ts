@@ -84,3 +84,28 @@ export type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"]
 
 export type ErrorResponse = Schemas["errorResponse"];
 export type JSON = Schemas["JSON"];
+
+// Agents
+export type AgentResponse = Schemas["agentResponse"];
+export type CreateAgentRequest = Schemas["createAgentRequest"];
+export type UpdateAgentRequest = Schemas["updateAgentRequest"];
+export type PaginatedAgents = Schemas["paginatedResponse-agentResponse"];
+
+// Sandbox Templates
+export type SandboxTemplateResponse = Schemas["sandboxTemplateResponse"];
+export type CreateSandboxTemplateRequest = Schemas["createSandboxTemplateRequest"];
+export type UpdateSandboxTemplateRequest = Schemas["updateSandboxTemplateRequest"];
+export type PaginatedSandboxTemplates = Schemas["paginatedResponse-sandboxTemplateResponse"];
+
+// Conversations
+export type ConversationResponse = Schemas["conversationResponse"];
+export type ConversationEventResponse = Schemas["conversationEventResponse"];
+export type PaginatedConversations = Schemas["paginatedResponse-conversationResponse"];
+export type PaginatedConversationEvents = Schemas["paginatedResponse-conversationEventResponse"];
+
+// Sandboxes
+export type SandboxResponse = Schemas["sandboxResponse"];
+export type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
+export type ExecRequest = Schemas["execRequest"];
+export type ExecResponse = Schemas["execResponse"];
+export type CommandResult = Schemas["commandResult"];

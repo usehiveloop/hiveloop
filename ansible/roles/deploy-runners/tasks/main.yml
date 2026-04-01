@@ -1,0 +1,88 @@
+---
+# Deploy Daytona runner as a systemd service
+
+# --- Directories ---
+- name: Create runner directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ runner_base_dir }}"
+    - "{{ runner_base_dir }}/dind-data"
+    - "{{ runner_data_dir }}"
+    - "{{ runner_data_dir }}/snapshots"
+    - "{{ runner_data_dir }}/volumes"
+    - "{{ runner_log_dir }}"
+
+# --- Pull images ---
+- name: Pull Daytona runner image
+  shell: docker pull daytonaio/daytona-runner:{{ daytona_version }}
+  register: pull_result
+  changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
+
+- name: Pull sandbox base image (warm cache)
+  shell: docker pull {{ daytona_sandbox_image }}
+  register: pull_sandbox
+  changed_when: "'Pull complete' in pull_sandbox.stdout or 'Downloaded' in pull_sandbox.stdout"
+
+# --- DinD docker daemon config (insecure registry) ---
+- name: Deploy Docker daemon config for runner DinD
+  template:
+    src: docker-daemon.json.j2
+    dest: "{{ runner_base_dir }}/docker-daemon.json"
+    mode: "0644"
+  notify: Restart daytona-runner
+
+# --- DinD Docker registry login ---
+- name: Create DinD Docker config directory
+  file:
+    path: "{{ runner_base_dir }}/docker-config"
+    state: directory
+    mode: "0700"
+
+- name: Login to registry for DinD
+  shell: docker --config {{ runner_base_dir }}/docker-config login {{ hostvars['controlplane']['ansible_host'] }}:{{ registry_port }} -u {{ hostvars['controlplane']['registry_admin_user'] }} -p {{ hostvars['controlplane']['registry_admin_password'] }}
+  args:
+    creates: "{{ runner_base_dir }}/docker-config/config.json"
+
+# --- Systemd service ---
+- name: Deploy daytona-runner systemd service
+  template:
+    src: daytona-runner.service.j2
+    dest: /etc/systemd/system/daytona-runner.service
+    mode: "0644"
+  notify: Restart daytona-runner
+
+- name: Enable and start daytona-runner
+  systemd:
+    name: daytona-runner
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# --- Health check ---
+- name: Wait for runner to be healthy
+  uri:
+    url: "http://localhost:{{ runner_api_port }}/"
+    method: GET
+    status_code: 200
+    timeout: 10
+  register: health
+  until: health.status == 200
+  retries: 12
+  delay: 10
+  ignore_errors: true
+
+# --- Verification ---
+- name: Check runner container status
+  shell: docker ps --filter name=daytona-runner --format "{% raw %}{{.Names}}\t{{.Status}}{% endraw %}"
+  register: runner_status
+  changed_when: false
+
+- name: Print runner status
+  debug:
+    msg:
+      - "Host: {{ inventory_hostname }} ({{ ansible_host }})"
+      - "Runner: {{ runner_status.stdout | default('NOT RUNNING') }}"
+      - "Health: {{ 'OK' if health.status is defined and health.status == 200 else 'FAILED — check logs with: journalctl -u daytona-runner' }}"

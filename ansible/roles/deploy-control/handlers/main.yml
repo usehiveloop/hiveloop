@@ -1,0 +1,4 @@
+- name: Restart docker compose
+  shell: docker compose up -d --build
+  args:
+    chdir: "{{ control_base_dir }}"

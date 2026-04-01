@@ -1,0 +1,5 @@
+- name: Restart daytona-runner
+  systemd:
+    name: daytona-runner
+    state: restarted
+    daemon_reload: true

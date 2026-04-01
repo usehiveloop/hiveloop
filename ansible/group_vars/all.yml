@@ -1,0 +1,75 @@
+---
+# =============================================================================
+# DAYTONA INFRASTRUCTURE — SHARED VARIABLES
+# =============================================================================
+
+# Versions
+daytona_version: "latest"
+daytona_sandbox_image: "daytonaio/sandbox:0.4.3"
+caddy_version: "2"
+postgres_version: "16-alpine"
+redis_version: "7-alpine"
+dex_version: "v2.39.1"
+registry_version: "2"
+
+# =============================================================================
+# DOMAIN CONFIGURATION
+# =============================================================================
+
+api_domain: "api.daytona.llmvault.dev"
+dex_domain: "dex.daytona.llmvault.dev"
+primary_preview_domain: "preview.llmvault.dev"
+proxy_protocol: "https"
+
+# =============================================================================
+# DYNAMIC DOMAIN SUPPORT
+# =============================================================================
+# Dynamic alias domains require NO configuration here.
+# Any domain whose wildcard DNS resolves to the control VPS IP
+# will automatically work via Caddy on-demand TLS + Domain Gatekeeper.
+#
+# To add a new alias domain (e.g., *.preview.clientbrand.com):
+#   → Client adds DNS: *.preview.clientbrand.com A → <control VPS IP>
+#   → Done. First request auto-provisions TLS cert. No server changes needed.
+# =============================================================================
+
+# Region
+region_id: "us"
+region_name: "us-bare-metal"
+
+# Paths on control VPS
+control_base_dir: "/opt/daytona"
+control_data_dir: "/opt/daytona/data"
+control_config_dir: "/opt/daytona/config"
+
+# Paths on runners
+runner_base_dir: "/opt/daytona-runner"
+runner_data_dir: "/var/lib/daytona"
+runner_log_dir: "/var/log/daytona"
+
+# Runner resources (per runner — matches actual hardware: 12 vCPU, 64GB RAM, 436GB disk)
+runner_cpu: 12
+runner_memory: 64
+runner_disk: 400
+
+# Sandbox quotas (effectively unlimited)
+org_quota_total_cpu: 999999
+org_quota_total_memory: 999999
+org_quota_total_disk: 999999
+org_quota_max_cpu_per_sandbox: 12
+org_quota_max_memory_per_sandbox: 64
+org_quota_max_disk_per_sandbox: 400
+
+# Docker network
+docker_network_name: "daytona-net"
+
+# Ports
+api_port: 3000
+proxy_port: 4000
+dex_port: 5556
+registry_port: 6000
+ssh_gateway_port: 2222
+postgres_port: 5432
+redis_port: 6379
+runner_api_port: 3003
+gatekeeper_port: 5555

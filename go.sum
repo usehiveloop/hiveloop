@@ -64,8 +64,8 @@ github.com/daytonaio/daytona/libs/api-client-go v0.158.1 h1:if79dcIkYkwPgcf7HA0u
 github.com/daytonaio/daytona/libs/api-client-go v0.158.1/go.mod h1:1wKpdKRwUzXN7KqR+8MMpq2iEGrprBCgFgFbli89DMo=
 github.com/daytonaio/daytona/libs/sdk-go v0.158.1 h1:jPtkoRkf7ihlTOy9oD+Pfe6H7SXEqLAr+a8cluTj3eE=
 github.com/daytonaio/daytona/libs/sdk-go v0.158.1/go.mod h1:hRfTbYJOu9eKGdw5WkueJywvt+4arKrLvtktR+6z5sw=
-github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.158.1 h1:6IDMb6TN7lSxx6HzyH+KAb8uywijRDsV6qgqYri+/i8=
-github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.158.1/go.mod h1:Y/IJdiDMtmm3Nz6NBiTRJ3uEiRUqNAvEZPNNCFdgkzo=
+github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.159.0 h1:wjHo6B79hbgIzlYQj8x/MFzdYmyoOl/BCL4+Gf3CCP0=
+github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.159.0/go.mod h1:Y/IJdiDMtmm3Nz6NBiTRJ3uEiRUqNAvEZPNNCFdgkzo=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=

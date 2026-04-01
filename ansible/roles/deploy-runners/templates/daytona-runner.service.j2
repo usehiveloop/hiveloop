@@ -1,0 +1,55 @@
+[Unit]
+Description=Daytona Sandbox Runner ({{ runner_name }})
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+TimeoutStartSec=120
+
+ExecStartPre=-/usr/bin/docker stop daytona-runner
+ExecStartPre=-/usr/bin/docker rm daytona-runner
+
+ExecStart=/usr/bin/docker run \
+  --name daytona-runner \
+  --privileged \
+  -p {{ runner_api_port }}:{{ runner_api_port }} \
+  -p 2220:2220 \
+  -e DOCKER_TLS_CERTDIR= \
+  -v {{ runner_base_dir }}/docker-daemon.json:/etc/docker/daemon.json:ro \
+  -v {{ runner_base_dir }}/docker-config:/root/.docker:ro \
+  -v {{ runner_base_dir }}/dind-data:/var/lib/docker \
+  -v {{ runner_log_dir }}:/var/log/daytona \
+  -e DAYTONA_API_URL=https://{{ api_domain }}/api \
+  -e DAYTONA_RUNNER_TOKEN={{ runner_token }} \
+  -e VERSION=0.0.1 \
+  -e ENVIRONMENT=production \
+  -e API_PORT={{ runner_api_port }} \
+  -e LOG_FILE_PATH=/var/log/daytona/runner.log \
+  -e RESOURCE_LIMITS_DISABLED=false \
+  -e AWS_ENDPOINT_URL={{ r2_endpoint }} \
+  -e AWS_REGION=auto \
+  -e AWS_ACCESS_KEY_ID={{ r2_access_key }} \
+  -e AWS_SECRET_ACCESS_KEY={{ r2_secret_key }} \
+  -e AWS_DEFAULT_BUCKET={{ r2_bucket }} \
+  -e DAEMON_START_TIMEOUT_SEC=300 \
+  -e SANDBOX_START_TIMEOUT_SEC=300 \
+  -e RUNNER_DOMAIN={{ ansible_host }} \
+  -e POLL_TIMEOUT=30s \
+  -e POLL_LIMIT=10 \
+  -e HEALTHCHECK_INTERVAL=30s \
+  -e HEALTHCHECK_TIMEOUT=10s \
+  -e API_VERSION=2 \
+  -e INTER_SANDBOX_NETWORK_ENABLED=false \
+  -e VOLUME_CLEANUP_INTERVAL=30s \
+  -e CPU_USAGE_SNAPSHOT_INTERVAL=5s \
+  -e ALLOCATED_RESOURCES_SNAPSHOT_INTERVAL=5s \
+  -e SNAPSHOT_ERROR_CACHE_RETENTION=10m \
+  daytonaio/daytona-runner:{{ daytona_version }}
+
+ExecStop=/usr/bin/docker stop -t 30 daytona-runner
+
+[Install]
+WantedBy=multi-user.target

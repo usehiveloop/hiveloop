@@ -95,6 +95,12 @@ type Config struct {
 	BridgeBaseImagePrefix string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"llmvault-bridge-0-10-0-small-v2"` // full snapshot name (no size suffix appended)
 	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook/proxy URLs
 
+	// Custom preview domains
+	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.llmvault.dev"`
+	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"`  // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
+	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.llmvault.dev)
+	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.llmvault.dev)
+
 	// Sandbox defaults
 	SharedSandboxIdleTimeoutMins    int `env:"SHARED_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`
 	DedicatedSandboxGracePeriodMins int `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
@@ -106,9 +112,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Enforce AWS KMS or Vault in production — AEAD is not allowed.
-	if cfg.Environment == "production" && cfg.KMSType != "awskms" && cfg.KMSType != "vault" {
-		return nil, fmt.Errorf("KMS_TYPE must be 'awskms' or 'vault' in production (got %q)", cfg.KMSType)
+	// Validate KMS type.
+	switch cfg.KMSType {
+	case "aead", "awskms", "vault":
+		// ok
+	default:
+		return nil, fmt.Errorf("KMS_TYPE must be 'aead', 'awskms', or 'vault' (got %q)", cfg.KMSType)
 	}
 
 	// Require at least one Redis connection method.

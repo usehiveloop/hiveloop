@@ -44,6 +44,32 @@ var BaseResource = class {
   }
 };
 
+// src/resources/agents.ts
+var AgentsResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/agents", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/agents", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/agents/{id}", {
+      params: { path: { id } }
+    });
+  }
+  update(id, body) {
+    return this.client.PUT("/v1/agents/{id}", {
+      params: { path: { id } },
+      body
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/agents/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
 // src/resources/api-keys.ts
 var ApiKeysResource = class extends BaseResource {
   create(body) {
@@ -59,64 +85,10 @@ var ApiKeysResource = class extends BaseResource {
   }
 };
 
-// src/resources/credentials.ts
-var CredentialsResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/credentials", { body });
-  }
+// src/resources/audit.ts
+var AuditResource = class extends BaseResource {
   list(query) {
-    return this.client.GET("/v1/credentials", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/credentials/{id}", {
-      params: { path: { id } }
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/credentials/{id}", {
-      params: { path: { id } }
-    });
-  }
-};
-
-// src/resources/tokens.ts
-var TokensResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/tokens", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/tokens", { params: { query } });
-  }
-  delete(jti) {
-    return this.client.DELETE("/v1/tokens/{jti}", {
-      params: { path: { jti } }
-    });
-  }
-};
-
-// src/resources/identities.ts
-var IdentitiesResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/identities", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/identities", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/identities/{id}", {
-      params: { path: { id } }
-    });
-  }
-  update(id, body) {
-    return this.client.PUT("/v1/identities/{id}", {
-      params: { path: { id } },
-      body
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/identities/{id}", {
-      params: { path: { id } }
-    });
+    return this.client.GET("/v1/audit", { params: { query } });
   }
 };
 
@@ -141,35 +113,6 @@ var ConnectResource = class extends BaseResource {
     super(client);
     this.sessions = new ConnectSessionsResource(client);
     this.settings = new ConnectSettingsResource(client);
-  }
-};
-
-// src/resources/integrations.ts
-var IntegrationsResource = class extends BaseResource {
-  create(body) {
-    return this.client.POST("/v1/integrations", { body });
-  }
-  list(query) {
-    return this.client.GET("/v1/integrations", { params: { query } });
-  }
-  get(id) {
-    return this.client.GET("/v1/integrations/{id}", {
-      params: { path: { id } }
-    });
-  }
-  update(id, body) {
-    return this.client.PUT("/v1/integrations/{id}", {
-      params: { path: { id } },
-      body
-    });
-  }
-  delete(id) {
-    return this.client.DELETE("/v1/integrations/{id}", {
-      params: { path: { id } }
-    });
-  }
-  listProviders() {
-    return this.client.GET("/v1/integrations/providers");
   }
 };
 
@@ -246,17 +189,129 @@ var ConnectionsResource = class extends BaseResource {
   }
 };
 
-// src/resources/usage.ts
-var UsageResource = class extends BaseResource {
-  get() {
-    return this.client.GET("/v1/usage");
+// src/resources/conversations.ts
+var ConversationsResource = class extends BaseResource {
+  create(agentID) {
+    return this.client.POST("/v1/agents/{agentID}/conversations", {
+      params: { path: { agentID } }
+    });
+  }
+  list(agentID, query) {
+    return this.client.GET("/v1/agents/{agentID}/conversations", {
+      params: { path: { agentID }, query }
+    });
+  }
+  get(convID) {
+    return this.client.GET("/v1/conversations/{convID}", {
+      params: { path: { convID } }
+    });
+  }
+  sendMessage(convID, content) {
+    return this.client.POST("/v1/conversations/{convID}/messages", {
+      params: { path: { convID } },
+      body: { content }
+    });
+  }
+  abort(convID) {
+    return this.client.POST("/v1/conversations/{convID}/abort", {
+      params: { path: { convID } }
+    });
+  }
+  end(convID) {
+    return this.client.DELETE("/v1/conversations/{convID}", {
+      params: { path: { convID } }
+    });
+  }
+  listApprovals(convID) {
+    return this.client.GET("/v1/conversations/{convID}/approvals", {
+      params: { path: { convID } }
+    });
+  }
+  resolveApproval(convID, requestID, decision) {
+    return this.client.POST("/v1/conversations/{convID}/approvals/{requestID}", {
+      params: { path: { convID, requestID } },
+      body: { decision }
+    });
+  }
+  listEvents(convID, query) {
+    return this.client.GET("/v1/conversations/{convID}/events", {
+      params: { path: { convID }, query }
+    });
   }
 };
 
-// src/resources/audit.ts
-var AuditResource = class extends BaseResource {
+// src/resources/credentials.ts
+var CredentialsResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/credentials", { body });
+  }
   list(query) {
-    return this.client.GET("/v1/audit", { params: { query } });
+    return this.client.GET("/v1/credentials", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/credentials/{id}", {
+      params: { path: { id } }
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/credentials/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/identities.ts
+var IdentitiesResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/identities", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/identities", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/identities/{id}", {
+      params: { path: { id } }
+    });
+  }
+  update(id, body) {
+    return this.client.PUT("/v1/identities/{id}", {
+      params: { path: { id } },
+      body
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/identities/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/integrations.ts
+var IntegrationsResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/integrations", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/integrations", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/integrations/{id}", {
+      params: { path: { id } }
+    });
+  }
+  update(id, body) {
+    return this.client.PUT("/v1/integrations/{id}", {
+      params: { path: { id } },
+      body
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/integrations/{id}", {
+      params: { path: { id } }
+    });
+  }
+  listProviders() {
+    return this.client.GET("/v1/integrations/providers");
   }
 };
 
@@ -284,19 +339,99 @@ var ProvidersResource = class extends BaseResource {
   }
 };
 
+// src/resources/sandboxes.ts
+var SandboxesResource = class extends BaseResource {
+  list(query) {
+    return this.client.GET("/v1/sandboxes", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/sandboxes/{id}", {
+      params: { path: { id } }
+    });
+  }
+  stop(id) {
+    return this.client.POST("/v1/sandboxes/{id}/stop", {
+      params: { path: { id } }
+    });
+  }
+  exec(id, commands) {
+    return this.client.POST("/v1/sandboxes/{id}/exec", {
+      params: { path: { id } },
+      body: { commands }
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/sandboxes/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/sandbox-templates.ts
+var SandboxTemplatesResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/sandbox-templates", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/sandbox-templates", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/sandbox-templates/{id}", {
+      params: { path: { id } }
+    });
+  }
+  update(id, body) {
+    return this.client.PUT("/v1/sandbox-templates/{id}", {
+      params: { path: { id } },
+      body
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/sandbox-templates/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/tokens.ts
+var TokensResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/tokens", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/tokens", { params: { query } });
+  }
+  delete(jti) {
+    return this.client.DELETE("/v1/tokens/{jti}", {
+      params: { path: { jti } }
+    });
+  }
+};
+
+// src/resources/usage.ts
+var UsageResource = class extends BaseResource {
+  get() {
+    return this.client.GET("/v1/usage");
+  }
+};
+
 // src/client.ts
 var LLMVault = class {
+  agents;
   apiKeys;
-  credentials;
-  tokens;
-  identities;
-  connect;
-  integrations;
-  connections;
-  usage;
   audit;
+  connect;
+  connections;
+  conversations;
+  credentials;
+  identities;
+  integrations;
   org;
   providers;
+  sandboxes;
+  sandboxTemplates;
+  tokens;
+  usage;
   constructor(config) {
     const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
     const client = (0, import_openapi_fetch.default)({
@@ -305,17 +440,21 @@ var LLMVault = class {
         Authorization: `Bearer ${config.apiKey}`
       }
     });
+    this.agents = new AgentsResource(client);
     this.apiKeys = new ApiKeysResource(client);
-    this.credentials = new CredentialsResource(client);
-    this.tokens = new TokensResource(client);
-    this.identities = new IdentitiesResource(client);
-    this.connect = new ConnectResource(client);
-    this.integrations = new IntegrationsResource(client);
-    this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
-    this.usage = new UsageResource(client);
     this.audit = new AuditResource(client);
+    this.connect = new ConnectResource(client);
+    this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
+    this.conversations = new ConversationsResource(client);
+    this.credentials = new CredentialsResource(client);
+    this.identities = new IdentitiesResource(client);
+    this.integrations = new IntegrationsResource(client);
     this.org = new OrgResource(client);
     this.providers = new ProvidersResource(client);
+    this.sandboxes = new SandboxesResource(client);
+    this.sandboxTemplates = new SandboxTemplatesResource(client);
+    this.tokens = new TokensResource(client);
+    this.usage = new UsageResource(client);
   }
 };
 // Annotate the CommonJS export names for ESM import in node:

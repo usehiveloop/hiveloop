@@ -1,0 +1,25 @@
+issuer: https://{{ dex_domain }}/dex
+
+storage:
+  type: sqlite3
+  config:
+    file: /var/dex/dex.db
+
+web:
+  http: 0.0.0.0:5556
+
+staticClients:
+  - id: daytona
+    name: Daytona
+    redirectURIs:
+      - https://{{ api_domain }}
+      - https://{{ api_domain }}/api/oauth2-redirect.html
+      - https://{{ primary_preview_domain }}/callback
+    public: true
+
+enablePasswordDB: true
+staticPasswords:
+  - email: "{{ dex_admin_email }}"
+    hash: {{ dex_admin_password_hash | to_json }}
+    username: "admin"
+    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"

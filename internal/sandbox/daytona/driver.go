@@ -237,24 +237,59 @@ func (d *Driver) GetEndpoint(ctx context.Context, externalID string, port int) (
 	return result.URL, nil
 }
 
-// BuildSnapshot creates a new Daytona snapshot from a base image + build commands.
-// Returns the snapshot's external ID.
+// BuildSnapshot creates a new Daytona snapshot with Bridge + customer build commands.
+// Builds a full Docker image: Ubuntu base → system packages → Bridge binary → customer commands → Bridge entrypoint.
+// Returns the snapshot name. The build runs asynchronously — caller should poll until ready.
 func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
 	baseImage := opts.BaseImage
 	if baseImage == "" {
-		baseImage = "llmvault/bridge:latest"
+		baseImage = "ubuntu:24.04"
 	}
 
-	snapshot, _, err := d.client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
+	// Build image with Bridge + customer commands
+	image := daytona.Base(baseImage)
+
+	// System packages
+	image = image.AptGet([]string{"curl", "ca-certificates", "git", "jq", "unzip", "wget", "openssh-client"})
+
+	// GitHub CLI
+	image = image.Run(
+		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
+			`echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && ` +
+			"apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*",
+	)
+
+	// Bridge binary
+	image = image.Run("mkdir -p /home/daytona")
+	image = image.Run(
+		`curl -fsSL "https://github.com/useportal-app/bridge/releases/download/v0.10.0/bridge-v0.10.0-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
+	)
+
+	// Customer build commands
+	if opts.BuildCommands != "" {
+		image = image.Run(opts.BuildCommands)
+	}
+
+	// Working directory + entrypoint
+	image = image.Workdir("/home/daytona")
+	image = image.Entrypoint([]string{"/bin/sh", "-c", "/usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
+
+	snapshot, logChan, err := d.client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
 		Name:  opts.Name,
-		Image: baseImage,
-		// Build commands are executed via entrypoint or post-create setup.
-		// Daytona snapshots are built from images; commands run during image build.
-		Entrypoint: []string{"/bin/sh", "-c", opts.BuildCommands + " && /usr/local/bin/bridge"},
+		Image: image,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating snapshot: %w", err)
 	}
+
+	// Drain build logs (non-blocking — just consume them)
+	if logChan != nil {
+		go func() {
+			for range logChan {
+			}
+		}()
+	}
+
 	return snapshot.Name, nil
 }
 

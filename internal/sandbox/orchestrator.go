@@ -476,6 +476,45 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 	return fmt.Errorf("bridge did not become healthy within %s (%d attempts)", bridgeHealthTimeout, attempt)
 }
 
+// ExecuteCommand runs a command inside a sandbox via the provider.
+func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, command string) (string, error) {
+	return o.provider.ExecuteCommand(ctx, sb.ExternalID, command)
+}
+
+// BuildTemplate builds a sandbox template (snapshot) via the provider.
+// Runs asynchronously — updates the template record with build status.
+func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) {
+	o.db.Model(tmpl).Update("build_status", "building")
+
+	snapshotName := fmt.Sprintf("llmv-tmpl-%s", shortID(tmpl.ID))
+	externalID, err := o.provider.BuildSnapshot(ctx, BuildSnapshotOpts{
+		Name:          snapshotName,
+		BuildCommands: tmpl.BuildCommands,
+	})
+
+	if err != nil {
+		errMsg := err.Error()
+		o.db.Model(tmpl).Updates(map[string]any{
+			"build_status": "failed",
+			"build_error":  errMsg,
+		})
+		slog.Error("template build failed", "template_id", tmpl.ID, "error", err)
+		return
+	}
+
+	o.db.Model(tmpl).Updates(map[string]any{
+		"build_status": "ready",
+		"external_id":  externalID,
+		"build_error":  nil,
+	})
+	slog.Info("template built", "template_id", tmpl.ID, "external_id", externalID)
+}
+
+// DeleteTemplate deletes a sandbox template (snapshot) from the provider.
+func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) error {
+	return o.provider.DeleteSnapshot(ctx, externalID)
+}
+
 // --- utilities ---
 
 func generateRandomHex(nBytes int) (string, error) {

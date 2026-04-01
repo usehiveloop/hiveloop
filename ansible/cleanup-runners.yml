@@ -1,0 +1,31 @@
+---
+# Clean up old Daytona installation on bare metal runners
+# Stops all containers, removes images, volumes, and prunes Docker
+
+- name: "Clean up Daytona on bare metal runners"
+  hosts: runners
+  become: true
+  tasks:
+    - name: Stop all Docker containers
+      shell: docker stop $(docker ps -aq) 2>/dev/null || true
+
+    - name: Remove all Docker containers
+      shell: docker rm $(docker ps -aq) 2>/dev/null || true
+
+    - name: Remove all Docker images
+      shell: docker rmi $(docker images -aq) 2>/dev/null || true
+
+    - name: Remove all Docker volumes
+      shell: docker volume rm $(docker volume ls -q) 2>/dev/null || true
+
+    - name: Docker system prune
+      shell: docker system prune -af --volumes
+
+    - name: Verify clean state
+      command: docker system df
+      register: docker_df
+      changed_when: false
+
+    - name: Show disk usage
+      debug:
+        msg: "{{ docker_df.stdout_lines }}"

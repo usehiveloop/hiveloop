@@ -1,0 +1,71 @@
+---
+# Runner-specific preparation (runs after base role)
+
+# --- Daytona User ---
+- name: Create daytona user
+  user:
+    name: "{{ daytona_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups: docker
+    append: true
+
+# --- Directories ---
+- name: Create Daytona directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ daytona_user }}"
+    group: "{{ daytona_user }}"
+    mode: "0755"
+  loop:
+    - "{{ daytona_runner_dir }}"
+    - "{{ daytona_snapshots_dir }}"
+    - "{{ daytona_volumes_dir }}"
+
+# --- cgroups v2 ---
+- name: Check cgroups version
+  stat:
+    path: /sys/fs/cgroup/cgroup.controllers
+  register: cgroupsv2
+
+- name: Warn if cgroups v2 not enabled
+  debug:
+    msg: >
+      WARNING: cgroups v2 is NOT enabled on {{ inventory_hostname }}.
+      Add 'systemd.unified_cgroup_hierarchy=1' to GRUB_CMDLINE_LINUX in /etc/default/grub,
+      then run 'update-grub && reboot'.
+  when: not cgroupsv2.stat.exists
+
+# --- Firewall: allow port 3003 from control plane VPS only ---
+- name: Allow runner API port from control plane VPS
+  ufw:
+    rule: allow
+    port: "{{ daytona_runner_api_port | string }}"
+    proto: tcp
+    from_ip: "{{ hostvars['controlplane']['ansible_host'] }}"
+
+# --- Pull Runner Image ---
+- name: Pull Daytona runner Docker image
+  docker_image:
+    name: "{{ daytona_runner_image }}"
+    source: pull
+
+# --- Verification ---
+- name: Verify Docker is running
+  command: docker info
+  register: docker_info
+  changed_when: false
+
+- name: Verify Docker image pulled
+  command: docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" {{ daytona_runner_image }}
+  register: docker_images
+  changed_when: false
+
+- name: Print verification summary
+  debug:
+    msg:
+      - "Host: {{ inventory_hostname }} ({{ ansible_host }})"
+      - "Docker: {{ 'OK' if docker_info.rc == 0 else 'FAILED' }}"
+      - "Runner image: {{ docker_images.stdout | default('NOT FOUND') }}"
+      - "cgroups v2: {{ 'YES' if cgroupsv2.stat.exists else 'NO — needs GRUB config + reboot' }}"
