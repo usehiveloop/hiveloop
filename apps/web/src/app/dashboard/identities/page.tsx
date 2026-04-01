@@ -10,6 +10,7 @@ import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { $api } from "@/api/client";
 import type { components } from "@/api/schema";
+import { CreateIdentityDialog } from "./create-identity-dialog";
 
 type IdentityResponse = components["schemas"]["identityResponse"];
 type RateLimitParam = components["schemas"]["identityRateLimitParams"];
@@ -104,6 +105,7 @@ function IdentityMobileCard({ identity }: { identity: IdentityResponse }) {
 
 export default function IdentitiesPage() {
   const [search, setSearch] = useState("");
+  const [modal, setModal] = useState(false);
   const [cursors, setCursors] = useState<string[]>([]);
   const currentCursor = cursors[cursors.length - 1];
 
@@ -219,7 +221,7 @@ export default function IdentitiesPage() {
               className="w-50 pl-9 font-mono text-[13px]"
             />
           </div>
-          <Button size="lg">Create Identity</Button>
+          <Button size="lg" onClick={() => setModal(true)}>Create Identity</Button>
         </div>
       </header>
 
@@ -255,7 +257,7 @@ export default function IdentitiesPage() {
                   credentials to enforce per-user rate limits and track usage.
                 </span>
               </div>
-              <Button size="lg">
+              <Button size="lg" onClick={() => setModal(true)}>
                 Create Identity
                 <ArrowRight className="ml-1.5 size-3.5" />
               </Button>
@@ -308,6 +310,8 @@ export default function IdentitiesPage() {
           </div>
         )}
       </section>
+
+      <CreateIdentityDialog open={modal} onOpenChange={setModal} />
     </>
   );
 }
