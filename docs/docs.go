@@ -2218,6 +2218,175 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/custom-domains": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all custom preview domains for the current organization.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "custom-domains"
+                ],
+                "summary": "List custom domains",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.createDomainResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a new custom preview domain for the current organization. Returns DNS records to create.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "custom-domains"
+                ],
+                "summary": "Add a custom domain",
+                "parameters": [
+                    {
+                        "description": "Domain to add",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createDomainRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createDomainResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/custom-domains/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a custom preview domain and its TLS configuration.",
+                "tags": [
+                    "custom-domains"
+                ],
+                "summary": "Delete a custom domain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/custom-domains/{id}/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks that both DNS CNAME records are correctly configured and triggers wildcard TLS provisioning.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "custom-domains"
+                ],
+                "summary": "Verify a custom domain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.verifyDomainResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/identities": {
             "get": {
                 "security": [
@@ -5664,6 +5833,52 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.createDomainRequest": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.createDomainResponse": {
+            "type": "object",
+            "properties": {
+                "acme_dns_subdomain": {
+                    "type": "string"
+                },
+                "cname_target": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dns_records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.dnsRecord"
+                    }
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.createIdentityRequest": {
             "type": "object",
             "properties": {
@@ -5805,6 +6020,20 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.dnsRecord": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -7079,6 +7308,17 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.verifyDomainResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
                 }
             }
         },

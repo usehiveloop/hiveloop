@@ -2683,6 +2683,207 @@
         }
       }
     },
+    "/v1/custom-domains": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns all custom preview domains for the current organization.",
+        "tags": [
+          "custom-domains"
+        ],
+        "summary": "List custom domains",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/createDomainResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Register a new custom preview domain for the current organization. Returns DNS records to create.",
+        "tags": [
+          "custom-domains"
+        ],
+        "summary": "Add a custom domain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createDomainRequest"
+              }
+            }
+          },
+          "description": "Domain to add",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createDomainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/custom-domains/{id}": {
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Remove a custom preview domain and its TLS configuration.",
+        "tags": [
+          "custom-domains"
+        ],
+        "summary": "Delete a custom domain",
+        "parameters": [
+          {
+            "description": "Domain ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/custom-domains/{id}/verify": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Checks that both DNS CNAME records are correctly configured and triggers wildcard TLS provisioning.",
+        "tags": [
+          "custom-domains"
+        ],
+        "summary": "Verify a custom domain",
+        "parameters": [
+          {
+            "description": "Domain ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/verifyDomainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/identities": {
       "get": {
         "security": [
@@ -6821,6 +7022,52 @@
           }
         }
       },
+      "createDomainRequest": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          }
+        }
+      },
+      "createDomainResponse": {
+        "type": "object",
+        "properties": {
+          "acme_dns_subdomain": {
+            "type": "string"
+          },
+          "cname_target": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "dns_records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/dnsRecord"
+            }
+          },
+          "domain": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "verified_at": {
+            "type": "string"
+          }
+        }
+      },
       "createIdentityRequest": {
         "type": "object",
         "properties": {
@@ -6962,6 +7209,20 @@
             "type": "integer"
           },
           "date": {
+            "type": "string"
+          }
+        }
+      },
+      "dnsRecord": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
             "type": "string"
           }
         }
@@ -8236,6 +8497,17 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "verifyDomainResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
           }
         }
       },

@@ -65,6 +65,18 @@ type acmeDNSRegisterResponse struct {
 }
 
 // Create handles POST /v1/custom-domains.
+// @Summary Add a custom domain
+// @Description Register a new custom preview domain for the current organization. Returns DNS records to create.
+// @Tags custom-domains
+// @Accept json
+// @Produce json
+// @Param body body createDomainRequest true "Domain to add"
+// @Success 201 {object} createDomainResponse
+// @Failure 400 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/custom-domains [post]
 func (h *CustomDomainHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -122,6 +134,14 @@ func (h *CustomDomainHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /v1/custom-domains.
+// @Summary List custom domains
+// @Description Returns all custom preview domains for the current organization.
+// @Tags custom-domains
+// @Produce json
+// @Success 200 {array} createDomainResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/custom-domains [get]
 func (h *CustomDomainHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -155,6 +175,16 @@ func (h *CustomDomainHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // Verify handles POST /v1/custom-domains/{id}/verify.
+// @Summary Verify a custom domain
+// @Description Checks that both DNS CNAME records are correctly configured and triggers wildcard TLS provisioning.
+// @Tags custom-domains
+// @Produce json
+// @Param id path string true "Domain ID"
+// @Success 200 {object} verifyDomainResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/custom-domains/{id}/verify [post]
 func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -237,6 +267,14 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete handles DELETE /v1/custom-domains/{id}.
+// @Summary Delete a custom domain
+// @Description Remove a custom preview domain and its TLS configuration.
+// @Tags custom-domains
+// @Param id path string true "Domain ID"
+// @Success 204
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/custom-domains/{id} [delete]
 func (h *CustomDomainHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
