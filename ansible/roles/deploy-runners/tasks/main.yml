@@ -1,6 +1,17 @@
 ---
 # Deploy Daytona runner as a systemd service
 
+# --- Fetch runner token from control plane VPS ---
+- name: Fetch runner token from control plane
+  slurp:
+    src: "{{ hostvars['controlplane']['control_base_dir'] | default('/opt/daytona') }}/runner-token-{{ runner_name }}"
+  delegate_to: controlplane
+  register: runner_token_raw
+
+- name: Set runner token fact
+  set_fact:
+    runner_token: "{{ runner_token_raw.content | b64decode | trim }}"
+
 # --- Directories ---
 - name: Create runner directories
   file:

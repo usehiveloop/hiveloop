@@ -124,6 +124,66 @@
   retries: 30
   delay: 10
 
+# --- Register runners via Daytona admin API ---
+# Each runner gets a unique API-generated token. Tokens are saved to files on the VPS.
+- name: Register runners via admin API
+  shell: |
+    # Check if runner already registered
+    EXISTING=$(curl -s -H "Authorization: Bearer {{ admin_api_key }}" https://{{ api_domain }}/api/admin/runners | python3 -c "
+    import sys, json
+    runners = json.load(sys.stdin)
+    for r in runners:
+        if r.get('name') == '{{ hostvars[item]['runner_name'] }}':
+            print(r.get('apiKey', ''))
+            break
+    " 2>/dev/null)
+
+    if [ -n "$EXISTING" ]; then
+      echo "$EXISTING" > {{ control_base_dir }}/runner-token-{{ hostvars[item]['runner_name'] }}
+      echo "Runner {{ hostvars[item]['runner_name'] }} already registered"
+    else
+      GENERATED_KEY=$(openssl rand -hex 24)
+      RESULT=$(curl -s -X POST https://{{ api_domain }}/api/admin/runners \
+        -H "Authorization: Bearer {{ admin_api_key }}" \
+        -H "Content-Type: application/json" \
+        -d "{
+          \"apiVersion\": \"2\",
+          \"apiKey\": \"$GENERATED_KEY\",
+          \"regionId\": \"{{ region_id }}\",
+          \"name\": \"{{ hostvars[item]['runner_name'] }}\",
+          \"cpu\": {{ runner_cpu }},
+          \"memoryGiB\": {{ runner_memory }},
+          \"diskGiB\": {{ runner_disk }}
+        }")
+      TOKEN=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('apiKey',''))")
+      if [ -z "$TOKEN" ]; then
+        echo "FAILED to register {{ hostvars[item]['runner_name'] }}: $RESULT"
+        exit 1
+      fi
+      echo "$TOKEN" > {{ control_base_dir }}/runner-token-{{ hostvars[item]['runner_name'] }}
+      echo "Registered {{ hostvars[item]['runner_name'] }}, token saved"
+    fi
+  args:
+    chdir: "{{ control_base_dir }}"
+  loop: "{{ groups['runners'] }}"
+  register: runner_registration
+
+- name: Read runner tokens
+  slurp:
+    src: "{{ control_base_dir }}/runner-token-{{ hostvars[item]['runner_name'] }}"
+  loop: "{{ groups['runners'] }}"
+  register: runner_tokens_raw
+
+- name: Set runner token facts
+  set_fact:
+    runner_tokens: "{{ runner_tokens | default({}) | combine({hostvars[item.item]['runner_name']: item.content | b64decode | trim}) }}"
+  loop: "{{ runner_tokens_raw.results }}"
+
+- name: Print registered runners
+  debug:
+    msg: "{{ hostvars[item]['runner_name'] }}: token={{ runner_tokens[hostvars[item]['runner_name']][:8] }}..."
+  loop: "{{ groups['runners'] }}"
+
 # --- Verification ---
 - name: Check all services are running
   shell: docker compose ps --format "table {% raw %}{{.Name}}\t{{.Status}}{% endraw %}"

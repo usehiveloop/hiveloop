@@ -100,6 +100,12 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 			return
 		}
+		// Ensure agent is pushed to Bridge (idempotent — handles re-push after sandbox recreation)
+		if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
+			slog.Error("failed to push shared agent to sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
+			return
+		}
 	} else {
 		// Dedicated: create a new sandbox for this conversation
 		sb, err = h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
