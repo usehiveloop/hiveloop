@@ -442,7 +442,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 		for i, cd := range customDomains {
 			wildcardDomain := "*." + cd.Domain
 			customSubjects[i] = wildcardDomain
-			acmeDNSConfig[wildcardDomain] = map[string]any{
+			acmeDNSConfig[cd.Domain] = map[string]any{
 				"server_url": "http://acme-dns:443",
 				"username":   cd.AcmeDNSUsername,
 				"password":   cd.AcmeDNSPassword,
