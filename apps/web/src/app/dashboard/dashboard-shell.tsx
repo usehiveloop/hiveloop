@@ -24,6 +24,7 @@ import {
   Menu,
   X,
   LogOut,
+  Bot,
 } from "lucide-react";
 
 type NavItem = { label: string; icon: typeof LayoutDashboard; href: string };
@@ -42,6 +43,12 @@ const navSections: NavSection[] = [
       { label: "Tokens", icon: Coins, href: "/dashboard/tokens" },
       { label: "API Keys", icon: Key, href: "/dashboard/api-keys" },
       { label: "Identities", icon: Users, href: "/dashboard/identities" },
+    ],
+  },
+  {
+    title: "AI",
+    items: [
+      { label: "Agents", icon: Bot, href: "/dashboard/agents" },
     ],
   },
   {
