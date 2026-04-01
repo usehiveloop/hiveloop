@@ -1,0 +1,113 @@
+# =============================================================================
+# GLOBAL OPTIONS
+# =============================================================================
+{
+    email admin@llmvault.dev
+
+    # Enable admin API for dynamic config (custom domain management via /load)
+    admin 0.0.0.0:2019
+}
+
+# =============================================================================
+# STATIC SERVICES
+# Certs provisioned via Cloudflare DNS challenge
+# =============================================================================
+
+# API + Dashboard
+{{ api_domain }} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy api:{{ api_port }} {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up Connection {header.Connection}
+        header_up Upgrade {header.Upgrade}
+    }
+}
+
+# Dex OIDC
+{{ dex_domain }} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    header {
+        Access-Control-Allow-Origin "https://{{ api_domain }}"
+        Access-Control-Allow-Methods "GET, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+
+    @options method OPTIONS
+    handle @options {
+        respond 204
+    }
+
+    reverse_proxy dex:{{ dex_port }} {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# acme-dns API proxy (for LLMVault backend to register subdomains)
+acme-dns-api.daytona.llmvault.dev {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    @auth header X-Internal-Secret {env.LLMVAULT_INTERNAL_SECRET}
+    handle @auth {
+        reverse_proxy acme-dns:443
+    }
+    respond 403
+}
+
+# Caddy admin API proxy (for LLMVault backend to POST /load configs)
+caddy-admin.daytona.llmvault.dev {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    @auth header X-Internal-Secret {env.LLMVAULT_INTERNAL_SECRET}
+    handle @auth {
+        reverse_proxy localhost:2019
+    }
+    respond 403
+}
+
+# =============================================================================
+# PRIMARY PREVIEW DOMAIN — *.{{ primary_preview_domain }}
+# Wildcard cert via Cloudflare DNS challenge
+# =============================================================================
+*.{{ primary_preview_domain }} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    reverse_proxy proxy:{{ proxy_port }} {
+        header_up X-Forwarded-Host {host}
+        header_up X-Daytona-Skip-Preview-Warning true
+        header_up X-Real-IP {remote_host}
+        header_up Connection {header.Connection}
+        header_up Upgrade {header.Upgrade}
+
+        transport http {
+            dial_timeout 30s
+            response_header_timeout 0
+            read_timeout 0
+            write_timeout 0
+        }
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}
+
+# =============================================================================
+# CUSTOM PREVIEW DOMAINS
+# Added dynamically via Caddy admin API /load when users verify domains.
+# LLMVault backend rebuilds full JSON config and POSTs to /load.
+# This Caddyfile is only the initial/base config.
+# =============================================================================

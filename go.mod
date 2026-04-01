@@ -55,7 +55,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/daytonaio/daytona/libs/api-client-go v0.158.1 // indirect
-	github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.158.1 // indirect
+	github.com/daytonaio/daytona/libs/toolbox-api-client-go v0.159.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect

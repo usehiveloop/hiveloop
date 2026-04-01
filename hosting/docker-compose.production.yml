@@ -1,0 +1,214 @@
+# =============================================================================
+# LLMVault — Production Docker Compose (Single VPS)
+# =============================================================================
+#
+# Usage:
+#   cd hosting
+#   cp .env.example .env        # fill in production values
+#   docker compose -f docker-compose.production.yml up -d
+#
+# All configuration is read from .env in this directory.
+# =============================================================================
+
+services:
+  # ── Reverse Proxy (Caddy — automatic HTTPS via Let's Encrypt) ────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 (QUIC)
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      MCP_DOMAIN: ${MCP_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN}
+      CONNECT_DOMAIN: ${CONNECT_DOMAIN}
+      NANGO_DOMAIN: ${NANGO_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── PostgreSQL (shared by API + Nango) ───────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-llmvault}
+      POSTGRES_USER: ${POSTGRES_USER:-llmvault}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-llmvault}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+        --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redisdata:/data
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── API (Go backend + internal Nginx for MCP routing) ────────────────────
+  api:
+    image: ghcr.io/llmvault/llmvault:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      ENVIRONMENT: production
+      PORT: "8080"
+      MCP_PORT: "8081"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:-llmvault}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-llmvault}
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FRONTEND_URL: https://${APP_DOMAIN}
+      MCP_BASE_URL: https://${MCP_DOMAIN}
+      NANGO_ENDPOINT: https://${NANGO_DOMAIN}
+      CORS_ORIGINS: https://${APP_DOMAIN},https://${CONNECT_DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Web (Next.js dashboard) ──────────────────────────────────────────────
+  #
+  # NEXT_PUBLIC_* vars are baked at build time. If using GHCR images, they
+  # must be built with the correct URLs. Alternatively, uncomment the build
+  # section below to build locally on the VPS.
+  web:
+    image: ghcr.io/llmvault/web:latest
+    # build:
+    #   context: ../apps/web
+    #   dockerfile: Dockerfile
+    #   args:
+    #     NEXT_PUBLIC_API_URL: https://${API_DOMAIN}
+    #     NEXT_PUBLIC_CONNECT_URL: https://${CONNECT_DOMAIN}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Connect (Vite SPA widget) ────────────────────────────────────────────
+  #
+  # VITE_* vars are baked at build time. Same consideration as web above.
+  connect:
+    image: ghcr.io/llmvault/connect:latest
+    # build:
+    #   context: ../apps/connect
+    #   dockerfile: Dockerfile
+    #   args:
+    #     VITE_API_URL: https://${API_DOMAIN}
+    #     VITE_INTEGRATIONS_API: https://${NANGO_DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Nango (OAuth integration proxy — custom fork) ────────────────────────
+  nango:
+    image: ghcr.io/llmvault/integrations:latest
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "3003"
+      NANGO_DB_HOST: postgres
+      NANGO_DB_PORT: "5432"
+      NANGO_DB_USER: ${POSTGRES_USER:-llmvault}
+      NANGO_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      NANGO_DB_NAME: nango
+      NANGO_DB_SSL: "false"
+      NANGO_ENCRYPTION_KEY: ${NANGO_ENCRYPTION_KEY}
+      NANGO_SERVER_URL: https://${NANGO_DOMAIN}
+      NANGO_PUBLIC_SERVER_URL: https://${NANGO_DOMAIN}
+      NANGO_DASHBOARD_USERNAME: ${NANGO_DASHBOARD_USERNAME}
+      NANGO_DASHBOARD_PASSWORD: ${NANGO_DASHBOARD_PASSWORD}
+      FLAG_AUTH_ENABLED: "true"
+      FLAG_SERVE_CONNECT_UI: "false"
+      NANGO_LOGS_ENABLED: "false"
+      TELEMETRY: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - llmvault
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  llmvault:
+    driver: bridge

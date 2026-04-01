@@ -69,7 +69,7 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 
 	// Build router with agent routes (no auth middleware — we inject org context directly)
 	reg := registry.Global()
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db)
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil)
 	agentHandler := handler.NewAgentHandler(h.db, reg, nil)
 
 	r := chi.NewRouter()
@@ -450,6 +450,12 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 	json.NewDecoder(rr.Body).Decode(&tmpl)
 	t.Cleanup(func() {
 		h.db.Where("id = ?", tmpl.ID).Delete(&model.SandboxTemplate{})
+	})
+
+	// Mark template as ready (normally done by background build)
+	h.db.Model(&model.SandboxTemplate{}).Where("id = ?", tmpl.ID).Updates(map[string]any{
+		"build_status": "ready",
+		"external_id":  "test-snapshot-id",
 	})
 
 	// Create agent with template

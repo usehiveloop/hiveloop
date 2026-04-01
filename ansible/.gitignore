@@ -1,0 +1,6 @@
+.env
+secrets/
+*.retry
+*.pyc
+__pycache__/
+*.log

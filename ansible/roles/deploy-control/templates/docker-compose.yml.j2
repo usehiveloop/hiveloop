@@ -1,0 +1,289 @@
+networks:
+  {{ docker_network_name }}:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  registry_data:
+  dex_data:
+  caddy_data:
+  caddy_config:
+  acme_dns_data:
+
+services:
+  # =========================================================================
+  # DATABASE
+  # =========================================================================
+  db:
+    image: postgres:{{ postgres_version }}
+    container_name: daytona-db
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+    ports:
+      - "127.0.0.1:{{ postgres_port }}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # REDIS
+  # =========================================================================
+  redis:
+    image: redis:{{ redis_version }}
+    container_name: daytona-redis
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:{{ redis_port }}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  # =========================================================================
+  # DOCKER REGISTRY (INTERNAL SNAPSHOT STORE)
+  # =========================================================================
+  registry:
+    image: registry:{{ registry_version }}
+    container_name: daytona-registry
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - registry_data:/var/lib/registry
+      - {{ control_config_dir }}/registry/htpasswd:/auth/htpasswd:ro
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "Daytona Registry"
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    ports:
+      - "{{ registry_port }}:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://{{ registry_admin_user }}:{{ registry_admin_password }}@localhost:5000/v2/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # DEX (OIDC PROVIDER)
+  # =========================================================================
+  dex:
+    image: dexidp/dex:{{ dex_version }}
+    container_name: daytona-dex
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - {{ control_config_dir }}/dex/config.yml:/etc/dex/config.docker.yaml:ro
+      - dex_data:/var/dex
+    command: ["dex", "serve", "/etc/dex/config.docker.yaml"]
+
+  # =========================================================================
+  # DAYTONA API
+  # =========================================================================
+  api:
+    image: daytonaio/daytona-api:{{ daytona_version }}
+    container_name: daytona-api
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+      dex:
+        condition: service_started
+    environment:
+      PORT: "3000"
+      ENVIRONMENT: "production"
+      ENCRYPTION_KEY: "{{ encryption_key }}"
+      ENCRYPTION_SALT: "{{ encryption_salt }}"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_USERNAME: "{{ postgres_user }}"
+      DB_PASSWORD: "{{ postgres_password }}"
+      DB_DATABASE: "{{ postgres_db }}"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      OIDC_CLIENT_ID: "daytona"
+      OIDC_ISSUER_BASE_URL: "http://dex:5556/dex"
+      PUBLIC_OIDC_DOMAIN: "https://{{ dex_domain }}/dex"
+      OIDC_AUDIENCE: "daytona"
+      DASHBOARD_URL: "https://{{ api_domain }}/dashboard"
+      DASHBOARD_BASE_API_URL: "https://{{ api_domain }}"
+      DEFAULT_SNAPSHOT: "{{ daytona_sandbox_image }}"
+      TRANSIENT_REGISTRY_URL: "http://{{ hostvars['controlplane']['ansible_host'] }}:{{ registry_port }}"
+      TRANSIENT_REGISTRY_ADMIN: "{{ registry_admin_user }}"
+      TRANSIENT_REGISTRY_PASSWORD: "{{ registry_admin_password }}"
+      TRANSIENT_REGISTRY_PROJECT_ID: "daytona"
+      INTERNAL_REGISTRY_URL: "http://{{ hostvars['controlplane']['ansible_host'] }}:{{ registry_port }}"
+      INTERNAL_REGISTRY_ADMIN: "{{ registry_admin_user }}"
+      INTERNAL_REGISTRY_PASSWORD: "{{ registry_admin_password }}"
+      INTERNAL_REGISTRY_PROJECT_ID: "daytona"
+      S3_ENDPOINT: "{{ r2_endpoint }}"
+      S3_REGION: "auto"
+      S3_ACCESS_KEY: "{{ r2_access_key }}"
+      S3_SECRET_KEY: "{{ r2_secret_key }}"
+      S3_DEFAULT_BUCKET: "{{ r2_bucket }}"
+      S3_ACCOUNT_ID: "/"
+      S3_ROLE_NAME: "/"
+      PROXY_DOMAIN: "{{ primary_preview_domain }}"
+      PROXY_PROTOCOL: "{{ proxy_protocol }}"
+      PROXY_API_KEY: "{{ proxy_api_key }}"
+      PROXY_TEMPLATE_URL: "{{ proxy_protocol }}://{% raw %}{{PORT}}-{{sandboxId}}{% endraw %}.{{ primary_preview_domain }}"
+      PROXY_TOOLBOX_BASE_URL: "{{ proxy_protocol }}://{{ primary_preview_domain }}"
+      DEFAULT_RUNNER_NAME: "default"
+      DEFAULT_RUNNER_DOMAIN: "{{ hostvars['runner1']['ansible_host'] }}:{{ runner_api_port }}"
+      DEFAULT_RUNNER_API_URL: "http://{{ hostvars['runner1']['ansible_host'] }}:{{ runner_api_port }}"
+      DEFAULT_RUNNER_PROXY_URL: "http://{{ hostvars['runner1']['ansible_host'] }}:{{ runner_api_port }}"
+      DEFAULT_RUNNER_API_KEY: "{{ default_runner_api_key }}"
+      DEFAULT_RUNNER_API_VERSION: "2"
+      DEFAULT_RUNNER_CPU: "{{ runner_cpu }}"
+      DEFAULT_RUNNER_MEMORY: "{{ runner_memory }}"
+      DEFAULT_RUNNER_DISK: "{{ runner_disk }}"
+      DEFAULT_ORG_QUOTA_TOTAL_CPU_QUOTA: "{{ org_quota_total_cpu }}"
+      DEFAULT_ORG_QUOTA_TOTAL_MEMORY_QUOTA: "{{ org_quota_total_memory }}"
+      DEFAULT_ORG_QUOTA_TOTAL_DISK_QUOTA: "{{ org_quota_total_disk }}"
+      DEFAULT_ORG_QUOTA_MAX_CPU_PER_SANDBOX: "{{ org_quota_max_cpu_per_sandbox }}"
+      DEFAULT_ORG_QUOTA_MAX_MEMORY_PER_SANDBOX: "{{ org_quota_max_memory_per_sandbox }}"
+      DEFAULT_ORG_QUOTA_MAX_DISK_PER_SANDBOX: "{{ org_quota_max_disk_per_sandbox }}"
+      DEFAULT_ORG_QUOTA_SNAPSHOT_QUOTA: "1000"
+      DEFAULT_ORG_QUOTA_MAX_SNAPSHOT_SIZE: "1000"
+      DEFAULT_ORG_QUOTA_VOLUME_QUOTA: "10000"
+      SSH_GATEWAY_API_KEY: "{{ ssh_gateway_api_key }}"
+      SSH_GATEWAY_URL: "{{ api_domain }}:{{ ssh_gateway_port }}"
+      SSH_GATEWAY_COMMAND: "ssh -p {{ ssh_gateway_port }} {% raw %}{{TOKEN}}{% endraw %}@{{ api_domain }}"
+      SSH_GATEWAY_PUBLIC_KEY: "{{ ssh_gateway_public_key }}"
+      DEFAULT_REGION_ID: "{{ region_id }}"
+      DEFAULT_REGION_NAME: "{{ region_name }}"
+      DEFAULT_REGION_ENFORCE_QUOTAS: "false"
+      RUN_MIGRATIONS: "true"
+      SKIP_USER_EMAIL_VERIFICATION: "true"
+      MAX_AUTO_ARCHIVE_INTERVAL: "43200"
+      NOTIFICATION_GATEWAY_DISABLED: "true"
+      MAINTENANCE_MODE: "false"
+      ADMIN_API_KEY: "{{ admin_api_key }}"
+      ADMIN_TOTAL_CPU_QUOTA: "0"
+      ADMIN_TOTAL_MEMORY_QUOTA: "0"
+      ADMIN_TOTAL_DISK_QUOTA: "0"
+      ADMIN_MAX_CPU_PER_SANDBOX: "0"
+      ADMIN_MAX_MEMORY_PER_SANDBOX: "0"
+      ADMIN_MAX_DISK_PER_SANDBOX: "0"
+      ADMIN_SNAPSHOT_QUOTA: "100"
+      ADMIN_MAX_SNAPSHOT_SIZE: "100"
+      ADMIN_VOLUME_QUOTA: "0"
+      POSTHOG_API_KEY: ""
+      POSTHOG_HOST: ""
+      POSTHOG_ENVIRONMENT: "self-hosted"
+      OTEL_ENABLED: "false"
+
+  # =========================================================================
+  # DAYTONA PROXY (internal only — Caddy is the public face)
+  # =========================================================================
+  proxy:
+    image: daytonaio/daytona-proxy:{{ daytona_version }}
+    container_name: daytona-proxy
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      - api
+      - redis
+    environment:
+      DAYTONA_API_URL: "http://api:3000/api"
+      PROXY_PORT: "4000"
+      PROXY_API_KEY: "{{ proxy_api_key }}"
+      PROXY_PROTOCOL: "{{ proxy_protocol }}"
+      COOKIE_DOMAIN: "{{ primary_preview_domain }}"
+      OIDC_CLIENT_ID: "daytona"
+      OIDC_CLIENT_SECRET: ""
+      OIDC_DOMAIN: "http://dex:5556/dex"
+      OIDC_PUBLIC_DOMAIN: "https://{{ dex_domain }}/dex"
+      OIDC_AUDIENCE: "daytona"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      TOOLBOX_ONLY_MODE: "false"
+      PREVIEW_WARNING_ENABLED: "false"
+      SHUTDOWN_TIMEOUT_SEC: "3600"
+
+  # =========================================================================
+  # SSH GATEWAY
+  # =========================================================================
+  ssh-gateway:
+    image: daytonaio/daytona-ssh-gateway:{{ daytona_version }}
+    container_name: daytona-ssh-gateway
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      - api
+    ports:
+      - "{{ ssh_gateway_port }}:2222"
+    environment:
+      API_URL: "http://api:3000/api"
+      API_KEY: "{{ ssh_gateway_api_key }}"
+      SSH_PRIVATE_KEY: "{{ ssh_gateway_private_key }}"
+      SSH_HOST_KEY: "{{ ssh_gateway_host_key }}"
+      SSH_GATEWAY_PORT: "2222"
+
+  # =========================================================================
+  # ACME-DNS (authoritative DNS for certificate challenge delegation)
+  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.llmvault.dev
+  # =========================================================================
+  acme-dns:
+    image: joohoi/acme-dns:latest
+    container_name: daytona-acme-dns
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - acme_dns_data:/var/lib/acme-dns
+      - {{ control_config_dir }}/acme-dns/config.cfg:/etc/acme-dns/config.cfg:ro
+    networks:
+      - {{ docker_network_name }}
+
+  # =========================================================================
+  # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
+  # Custom domains added dynamically via /load from LLMVault backend
+  # =========================================================================
+  caddy:
+    build:
+      context: {{ control_config_dir }}/caddy
+      dockerfile: Dockerfile
+    container_name: daytona-caddy
+    restart: unless-stopped
+    networks:
+      - {{ docker_network_name }}
+    depends_on:
+      - api
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - {{ control_config_dir }}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
+      LLMVAULT_INTERNAL_SECRET: "{{ llmvault_internal_secret | default('') }}"

@@ -1,0 +1,71 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# API — proxied to the API container's internal Nginx (port 80)
+{$API_DOMAIN} {
+	reverse_proxy api:80 {
+		transport http {
+			response_header_timeout 600s
+			dial_timeout 10s
+		}
+		flush_interval -1
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# MCP — same API container, internal Nginx routes by Host header to :8081
+{$MCP_DOMAIN} {
+	reverse_proxy api:80 {
+		transport http {
+			response_header_timeout 600s
+			dial_timeout 10s
+		}
+		flush_interval -1
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}
+
+# Web — Next.js dashboard
+{$APP_DOMAIN} {
+	reverse_proxy web:3000
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# Connect — embeddable widget (no X-Frame-Options)
+{$CONNECT_DOMAIN} {
+	reverse_proxy connect:80
+
+	header {
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}
+
+# Nango — OAuth integration proxy
+{$NANGO_DOMAIN} {
+	reverse_proxy nango:3003
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

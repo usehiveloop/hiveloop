@@ -1,0 +1,27 @@
+---
+# Phase 1: Prepare all machines
+#
+# Usage:
+#   ansible-playbook phase1-prepare-machines.yml
+#
+# Prerequisites:
+#   - Update inventory/hosts.yml with all 4 IPs and SSH key path
+#   - Set management_ip to your IP for SSH firewall whitelist
+
+- name: "Phase 1a: Base setup on all machines"
+  hosts: all
+  become: true
+  roles:
+    - base
+
+- name: "Phase 1b: Runner-specific setup"
+  hosts: runners
+  become: true
+  roles:
+    - prepare-runners
+
+- name: "Phase 1c: Control plane VPS setup"
+  hosts: control
+  become: true
+  roles:
+    - prepare-control

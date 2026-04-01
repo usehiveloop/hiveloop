@@ -1,0 +1,137 @@
+---
+# Deploy Daytona control plane Docker Compose stack
+
+# --- Directory structure ---
+- name: Create control plane directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ control_base_dir }}"
+    - "{{ control_config_dir }}/caddy"
+    - "{{ control_config_dir }}/dex"
+    - "{{ control_config_dir }}/registry"
+    - "{{ control_config_dir }}/acme-dns"
+    - "{{ control_data_dir }}/postgres"
+    - "{{ control_data_dir }}/redis"
+    - "{{ control_data_dir }}/registry"
+    - "{{ control_data_dir }}/dex"
+
+# --- Registry htpasswd ---
+- name: Install apache2-utils for htpasswd
+  apt:
+    name: apache2-utils
+    state: present
+
+- name: Generate registry htpasswd file
+  shell: htpasswd -Bbn {{ registry_admin_user }} {{ registry_admin_password }} > {{ control_config_dir }}/registry/htpasswd
+  args:
+    creates: "{{ control_config_dir }}/registry/htpasswd"
+
+# --- SSH keys for gateway ---
+- name: Generate SSH gateway keypair
+  shell: ssh-keygen -t ed25519 -f {{ control_base_dir }}/ssh_gateway_key -N "" -q
+  args:
+    creates: "{{ control_base_dir }}/ssh_gateway_key"
+
+- name: Read SSH private key (base64)
+  shell: base64 -w0 {{ control_base_dir }}/ssh_gateway_key
+  register: ssh_priv_key_result
+  changed_when: false
+
+- name: Read SSH public key (base64)
+  shell: base64 -w0 {{ control_base_dir }}/ssh_gateway_key.pub
+  register: ssh_pub_key_result
+  changed_when: false
+
+- name: Generate SSH host key
+  shell: ssh-keygen -t ed25519 -f {{ control_base_dir }}/ssh_host_key -N "" -q
+  args:
+    creates: "{{ control_base_dir }}/ssh_host_key"
+
+- name: Read SSH host key (base64)
+  shell: base64 -w0 {{ control_base_dir }}/ssh_host_key
+  register: ssh_host_key_result
+  changed_when: false
+
+- name: Set SSH key facts
+  set_fact:
+    ssh_gateway_private_key: "{{ ssh_priv_key_result.stdout }}"
+    ssh_gateway_public_key: "{{ ssh_pub_key_result.stdout }}"
+    ssh_gateway_host_key: "{{ ssh_host_key_result.stdout }}"
+
+# --- Copy static files ---
+- name: Copy Gatekeeper files
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: "Dockerfile.caddy", dest: "{{ control_config_dir }}/caddy/Dockerfile" }
+  notify: Restart docker compose
+
+# --- Template config files ---
+- name: Deploy Caddyfile
+  template:
+    src: Caddyfile.j2
+    dest: "{{ control_config_dir }}/caddy/Caddyfile"
+    mode: "0644"
+  notify: Restart docker compose
+
+- name: Deploy Dex config
+  template:
+    src: dex-config.yaml.j2
+    dest: "{{ control_config_dir }}/dex/config.yml"
+    mode: "0644"
+  notify: Restart docker compose
+
+- name: Deploy acme-dns config
+  template:
+    src: acme-dns-config.cfg.j2
+    dest: "{{ control_config_dir }}/acme-dns/config.cfg"
+    mode: "0644"
+  notify: Restart docker compose
+
+- name: Deploy docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ control_base_dir }}/docker-compose.yml"
+    mode: "0644"
+  notify: Restart docker compose
+
+# --- UFW: allow registry from runners ---
+- name: Allow registry port from runner IPs
+  ufw:
+    rule: allow
+    port: "{{ registry_port | string }}"
+    proto: tcp
+    from_ip: "{{ hostvars[item]['ansible_host'] }}"
+  loop: "{{ groups['runners'] }}"
+
+# --- Start the stack ---
+- name: Build and start Docker Compose stack
+  shell: docker compose up -d --build
+  args:
+    chdir: "{{ control_base_dir }}"
+
+- name: Wait for API to be healthy
+  shell: docker compose ps --format json api
+  args:
+    chdir: "{{ control_base_dir }}"
+  register: api_status
+  until: "'healthy' in api_status.stdout"
+  retries: 30
+  delay: 10
+
+# --- Verification ---
+- name: Check all services are running
+  shell: docker compose ps --format "table {% raw %}{{.Name}}\t{{.Status}}{% endraw %}"
+  args:
+    chdir: "{{ control_base_dir }}"
+  register: compose_ps
+  changed_when: false
+
+- name: Print service status
+  debug:
+    msg: "{{ compose_ps.stdout_lines }}"

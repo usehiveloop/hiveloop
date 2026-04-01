@@ -1,0 +1,23 @@
+---
+# Runner variables
+runner_token: "{{ lookup('env', 'DAYTONA_RUNNER_API_KEY') }}"
+
+# R2 credentials (runners access R2 directly)
+r2_endpoint: "{{ lookup('env', 'DAYTONA_R2_ENDPOINT') }}"
+r2_access_key: "{{ lookup('env', 'DAYTONA_R2_ACCESS_KEY') }}"
+r2_secret_key: "{{ lookup('env', 'DAYTONA_R2_SECRET_KEY') }}"
+r2_bucket: "daytona"
+
+# sysctl (runner-specific)
+sysctl_params:
+  net.core.somaxconn: 65535
+  net.ipv4.ip_local_port_range: "1024 65535"
+  fs.inotify.max_user_instances: 8192
+  fs.inotify.max_user_watches: 524288
+  vm.max_map_count: 262144
+
+ulimits:
+  - { domain: "*", type: "soft", item: "nofile", value: 65536 }
+  - { domain: "*", type: "hard", item: "nofile", value: 65536 }
+  - { domain: "*", type: "soft", item: "nproc", value: 32768 }
+  - { domain: "*", type: "hard", item: "nproc", value: 32768 }

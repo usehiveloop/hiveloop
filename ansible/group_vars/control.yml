@@ -1,0 +1,48 @@
+---
+# =============================================================================
+# CONTROL PLANE SECRETS (from environment variables)
+# =============================================================================
+
+# Database
+postgres_user: "daytona"
+postgres_db: "daytona"
+postgres_password: "{{ lookup('env', 'DAYTONA_DB_PASSWORD') }}"
+
+# Encryption
+encryption_key: "{{ lookup('env', 'DAYTONA_ENCRYPTION_KEY') }}"
+encryption_salt: "{{ lookup('env', 'DAYTONA_ENCRYPTION_SALT') }}"
+
+# Registry
+registry_admin_user: "admin"
+registry_admin_password: "{{ lookup('env', 'DAYTONA_REGISTRY_PASSWORD') }}"
+
+# Cloudflare R2
+r2_endpoint: "{{ lookup('env', 'DAYTONA_R2_ENDPOINT') }}"
+r2_access_key: "{{ lookup('env', 'DAYTONA_R2_ACCESS_KEY') }}"
+r2_secret_key: "{{ lookup('env', 'DAYTONA_R2_SECRET_KEY') }}"
+r2_bucket: "daytona"
+
+# API keys
+proxy_api_key: "{{ lookup('env', 'DAYTONA_PROXY_API_KEY') }}"
+admin_api_key: "{{ lookup('env', 'DAYTONA_ADMIN_API_KEY') }}"
+default_runner_api_key: "{{ lookup('env', 'DAYTONA_RUNNER_API_KEY') }}"
+ssh_gateway_api_key: "{{ lookup('env', 'DAYTONA_SSH_GATEWAY_API_KEY') }}"
+
+# Dex
+dex_admin_email: "admin@llmvault.dev"
+dex_admin_password_hash: "{{ lookup('env', 'DAYTONA_DEX_ADMIN_PASSWORD_HASH') }}"
+
+# Cloudflare (for Caddy wildcard TLS)
+cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+
+# Shared secret for caddy-admin and acme-dns-api proxy auth
+llmvault_internal_secret: "{{ lookup('env', 'LLMVAULT_INTERNAL_SECRET') }}"
+
+# sysctl (control-specific)
+sysctl_params:
+  net.core.somaxconn: 65535
+  vm.max_map_count: 262144
+
+ulimits:
+  - { domain: "*", type: "soft", item: "nofile", value: 65536 }
+  - { domain: "*", type: "hard", item: "nofile", value: 65536 }

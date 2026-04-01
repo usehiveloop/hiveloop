@@ -207,6 +207,7 @@ func run() error {
 	connectSessionHandler := handler.NewConnectSessionHandler(database)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(database)
+	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
@@ -220,8 +221,6 @@ func run() error {
 	generationHandler := handler.NewGenerationHandler(database)
 	reportingHandler := handler.NewReportingHandler(database)
 	proxyHandler := handler.NewProxyHandler(cacheManager, &proxy.CaptureTransport{Inner: proxy.NewTransport()})
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database)
-
 	// 13b. Sandbox orchestrator (optional — only if sandbox provider is configured)
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
@@ -259,6 +258,12 @@ func run() error {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher)
 	}
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey)
+
+	var templateBuilder handler.TemplateBuildable
+	if orchestrator != nil {
+		templateBuilder = orchestrator
+	}
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -442,6 +447,7 @@ func run() error {
 					r.Get("/{id}", sandboxHandler.Get)
 					if orchestrator != nil {
 						r.Post("/{id}/stop", sandboxHandler.Stop)
+						r.Post("/{id}/exec", sandboxHandler.Exec)
 						r.Delete("/{id}", sandboxHandler.Delete)
 					}
 				})
@@ -452,6 +458,10 @@ func run() error {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
 				r.Get("/settings/connect", settingsHandler.GetConnectSettings)
 				r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
+				r.Post("/custom-domains", customDomainHandler.Create)
+				r.Get("/custom-domains", customDomainHandler.List)
+				r.Post("/custom-domains/{id}/verify", customDomainHandler.Verify)
+				r.Delete("/custom-domains/{id}", customDomainHandler.Delete)
 			})
 		})
 	})

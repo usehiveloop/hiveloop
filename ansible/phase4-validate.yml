@@ -1,0 +1,76 @@
+---
+# Phase 4: End-to-end validation
+#
+# Usage:
+#   source .env && ansible-playbook phase4-validate.yml
+
+- name: "Phase 4: End-to-End Validation"
+  hosts: control
+  become: true
+  tasks:
+    - name: Check API health
+      uri:
+        url: "https://{{ api_domain }}/api/health"
+        method: GET
+        status_code: 200
+        timeout: 30
+      retries: 5
+      delay: 10
+
+    - name: Check Dex OIDC discovery
+      uri:
+        url: "https://{{ dex_domain }}/dex/.well-known/openid-configuration"
+        method: GET
+        status_code: 200
+        timeout: 10
+
+    - name: Check Domain Gatekeeper health
+      uri:
+        url: "http://localhost:{{ gatekeeper_port }}/health"
+        method: GET
+        status_code: 200
+        timeout: 10
+
+    - name: Check primary preview domain responds
+      uri:
+        url: "https://3000-healthcheck.{{ primary_preview_domain }}"
+        method: GET
+        status_code: [200, 404, 502]
+        timeout: 15
+      ignore_errors: true
+
+    - name: Check runners are reachable
+      uri:
+        url: "http://{{ hostvars[item]['ansible_host'] }}:{{ runner_api_port }}/health"
+        method: GET
+        status_code: 200
+        timeout: 10
+      loop: "{{ groups['runners'] }}"
+      ignore_errors: true
+
+    - name: Deployment summary
+      debug:
+        msg: |
+          =====================================================
+          DAYTONA DEPLOYMENT COMPLETE
+          =====================================================
+
+          API:        https://{{ api_domain }}
+          Dashboard:  https://{{ api_domain }}/dashboard
+          Dex OIDC:   https://{{ dex_domain }}/dex
+          Login:      {{ dex_admin_email }}
+
+          Primary Preview Domain:
+            *.{{ primary_preview_domain }}
+            Example: https://3000-<id>.{{ primary_preview_domain }}
+
+          Dynamic Alias Domains:
+            Point *.preview.<yourdomain> A → {{ hostvars['controlplane']['ansible_host'] }}
+            It works instantly. No config changes needed.
+
+          Runners:
+          {% for runner in groups['runners'] %}
+            {{ runner }}: {{ hostvars[runner]['ansible_host'] }}:{{ runner_api_port }}
+          {% endfor %}
+
+          =====================================================

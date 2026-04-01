@@ -58,6 +58,28 @@ interface components {
             parameters?: number[];
             resource_type?: string;
         };
+        agentResponse: {
+            agent_config?: components["schemas"]["JSON"];
+            created_at?: string;
+            credential_id?: string;
+            description?: string;
+            id?: string;
+            identity_id?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            provider_id?: string;
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            skills?: components["schemas"]["JSON"];
+            status?: string;
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
+            updated_at?: string;
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -85,6 +107,14 @@ interface components {
             path?: string;
             status?: number;
         };
+        authResponse: {
+            access_token?: string;
+            /** @description seconds */
+            expires_in?: number;
+            orgs?: components["schemas"]["orgMemberDTO"][];
+            refresh_token?: string;
+            user?: components["schemas"]["userResponse"];
+        };
         availableScopeAction: {
             description?: string;
             display_name?: string;
@@ -108,6 +138,33 @@ interface components {
         availableScopeResourceItem: {
             id?: string;
             name?: string;
+        };
+        changePasswordRequest: {
+            current_password?: string;
+            new_password?: string;
+        };
+        commandResult: {
+            command?: string;
+            error?: string;
+            exit_code?: number;
+            output?: string;
+        };
+        confirmEmailRequest: {
+            token?: string;
+        };
+        connectSessionListItem: {
+            activated_at?: string;
+            allowed_integrations?: string[];
+            allowed_origins?: string[];
+            created_at?: string;
+            expires_at?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            metadata?: components["schemas"]["JSON"];
+            permissions?: string[];
+            session_token?: string;
+            status?: string;
         };
         connectSessionResponse: {
             allowed_integrations?: string[];
@@ -138,6 +195,19 @@ interface components {
             provider_id?: string;
             provider_name?: string;
         };
+        conversationEventResponse: {
+            created_at?: string;
+            event_type?: string;
+            id?: string;
+            payload?: components["schemas"]["JSON"];
+        };
+        conversationResponse: {
+            agent_id?: string;
+            created_at?: string;
+            id?: string;
+            status?: string;
+            stream_url?: string;
+        };
         createAPIKeyRequest: {
             expires_in?: string;
             name?: string;
@@ -151,6 +221,23 @@ interface components {
             key_prefix?: string;
             name?: string;
             scopes?: string[];
+        };
+        createAgentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            identity_id?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
         };
         createConnectSessionRequest: {
             allowed_integrations?: string[];
@@ -199,6 +286,11 @@ interface components {
         createOrgRequest: {
             name?: string;
         };
+        createSandboxTemplateRequest: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
+            name?: string;
+        };
         credentialResponse: {
             auth_scheme?: string;
             base_url?: string;
@@ -231,6 +323,16 @@ interface components {
         };
         errorResponse: {
             error?: string;
+        };
+        execRequest: {
+            commands?: string[];
+        };
+        execResponse: {
+            results?: components["schemas"]["commandResult"][];
+            success?: boolean;
+        };
+        forgotPasswordRequest: {
+            email?: string;
         };
         identityRateLimitParams: {
             /** @description milliseconds */
@@ -304,6 +406,19 @@ interface components {
             date?: string;
             p95_ttfb_ms?: number;
         };
+        loginRequest: {
+            email?: string;
+            /** @description optional: scope token to a specific org */
+            org_id?: string;
+            password?: string;
+        };
+        logoutRequest: {
+            refresh_token?: string;
+        };
+        meResponse: {
+            orgs?: components["schemas"]["orgMemberDTO"][];
+            user?: components["schemas"]["userResponse"];
+        };
         mintTokenRequest: {
             credential_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -335,12 +450,22 @@ interface components {
             structured_output?: boolean;
             tool_call?: boolean;
         };
+        orgMemberDTO: {
+            id?: string;
+            name?: string;
+            role?: string;
+        };
         orgResponse: {
             active?: boolean;
             created_at?: string;
             id?: string;
             name?: string;
             rate_limit?: number;
+        };
+        "paginatedResponse-agentResponse": {
+            data?: components["schemas"]["agentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
         };
         "paginatedResponse-apiKeyResponse": {
             data?: components["schemas"]["apiKeyResponse"][];
@@ -352,8 +477,23 @@ interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-connectSessionListItem": {
+            data?: components["schemas"]["connectSessionListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-connectionResponse": {
             data?: components["schemas"]["connectionResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-conversationEventResponse": {
+            data?: components["schemas"]["conversationEventResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-conversationResponse": {
+            data?: components["schemas"]["conversationResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -374,6 +514,16 @@ interface components {
         };
         "paginatedResponse-integrationResponse": {
             data?: components["schemas"]["integrationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-sandboxResponse": {
+            data?: components["schemas"]["sandboxResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-sandboxTemplateResponse": {
+            data?: components["schemas"]["sandboxTemplateResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -401,6 +551,16 @@ interface components {
             model_count?: number;
             name?: string;
         };
+        refreshRequest: {
+            /** @description optional: switch org */
+            org_id?: string;
+            refresh_token?: string;
+        };
+        registerRequest: {
+            email?: string;
+            name?: string;
+            password?: string;
+        };
         reportRow: {
             avg_ttfb_ms?: number;
             cached_tokens?: number;
@@ -426,12 +586,41 @@ interface components {
             total?: number;
             yesterday?: number;
         };
+        resendConfirmationRequest: {
+            email?: string;
+        };
+        resetPasswordRequest: {
+            new_password?: string;
+            token?: string;
+        };
         resource: {
             description?: string;
             display_name?: string;
             icon?: string;
             id_field?: string;
             name_field?: string;
+        };
+        sandboxResponse: {
+            agent_id?: string;
+            created_at?: string;
+            error_message?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            last_active_at?: string;
+            sandbox_type?: string;
+            status?: string;
+        };
+        sandboxTemplateResponse: {
+            build_commands?: string;
+            build_error?: string;
+            build_status?: string;
+            config?: components["schemas"]["JSON"];
+            created_at?: string;
+            external_id?: string;
+            id?: string;
+            name?: string;
+            updated_at?: string;
         };
         sessionInfoResponse: {
             activated_at?: string;
@@ -445,6 +634,10 @@ interface components {
         spendOverTime: {
             date?: string;
             total_cost?: number;
+        };
+        statusResponse: {
+            message?: string;
+            status?: string;
         };
         tokenListItem: {
             created_at?: string;
@@ -488,6 +681,22 @@ interface components {
             total_cost?: number;
             user_id?: string;
         };
+        updateAgentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
+        };
         updateIdentityRequest: {
             external_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -497,6 +706,11 @@ interface components {
             credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
+        };
+        updateSandboxTemplateRequest: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
+            name?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
@@ -513,6 +727,12 @@ interface components {
             top_credentials?: components["schemas"]["topCredential"][];
             top_models?: components["schemas"]["topModel"][];
             top_users?: components["schemas"]["topUser"][];
+        };
+        userResponse: {
+            email?: string;
+            email_confirmed?: boolean;
+            id?: string;
+            name?: string;
         };
         widgetIntegrationResponse: {
             auth_mode?: string;
@@ -606,11 +826,296 @@ type PaginatedIntegrations = Schemas["paginatedResponse-integrationResponse"];
 type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"];
 type ErrorResponse = Schemas["errorResponse"];
 type JSON = Schemas["JSON"];
+type AgentResponse = Schemas["agentResponse"];
+type CreateAgentRequest = Schemas["createAgentRequest"];
+type UpdateAgentRequest = Schemas["updateAgentRequest"];
+type PaginatedAgents = Schemas["paginatedResponse-agentResponse"];
+type SandboxTemplateResponse = Schemas["sandboxTemplateResponse"];
+type CreateSandboxTemplateRequest = Schemas["createSandboxTemplateRequest"];
+type UpdateSandboxTemplateRequest = Schemas["updateSandboxTemplateRequest"];
+type PaginatedSandboxTemplates = Schemas["paginatedResponse-sandboxTemplateResponse"];
+type ConversationResponse = Schemas["conversationResponse"];
+type ConversationEventResponse = Schemas["conversationEventResponse"];
+type PaginatedConversations = Schemas["paginatedResponse-conversationResponse"];
+type PaginatedConversationEvents = Schemas["paginatedResponse-conversationEventResponse"];
+type SandboxResponse = Schemas["sandboxResponse"];
+type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
+type ExecRequest = Schemas["execRequest"];
+type ExecResponse = Schemas["execResponse"];
+type CommandResult = Schemas["commandResult"];
 
 type ApiClient = ReturnType<typeof openapi_fetch__default<paths>>;
 declare class BaseResource {
     protected client: ApiClient;
     constructor(client: ApiClient);
+}
+
+declare class AgentsResource extends BaseResource {
+    create(body: CreateAgentRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["createAgentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["agentResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            identity_id?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
+        };
+    }, `${string}/${string}`>>;
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        identity_id?: string;
+        status?: string;
+        sandbox_type?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                identity_id?: string;
+                status?: string;
+                sandbox_type?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-agentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                identity_id?: string;
+                status?: string;
+                sandbox_type?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["agentResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    update(id: string, body: UpdateAgentRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["updateAgentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["agentResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
+        };
+    }, `${string}/${string}`>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
 }
 
 declare class ApiKeysResource extends BaseResource {
@@ -782,6 +1287,932 @@ declare class ApiKeysResource extends BaseResource {
             path: {
                 id: string;
             };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class AuditResource extends BaseResource {
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        action?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                action?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-auditEntryResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                action?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class ConnectSessionsResource extends BaseResource {
+    create(body: CreateConnectSessionRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["createConnectSessionRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["connectSessionResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            allowed_integrations?: string[];
+            allowed_origins?: string[];
+            external_id?: string;
+            identity_id?: string;
+            metadata?: components["schemas"]["JSON"];
+            permissions?: string[];
+            ttl?: string;
+        };
+    }, `${string}/${string}`>>;
+}
+declare class ConnectSettingsResource extends BaseResource {
+    get(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["connectSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["connectSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+    update(body: ConnectSettingsRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["connectSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["connectSettingsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            allowed_origins?: string[];
+        };
+    }, `${string}/${string}`>>;
+}
+declare class ConnectResource extends BaseResource {
+    readonly sessions: ConnectSessionsResource;
+    readonly settings: ConnectSettingsResource;
+    constructor(client: ConstructorParameters<typeof BaseResource>[0]);
+}
+
+interface ProxyRequestOptions {
+    method?: string;
+    path: string;
+    body?: unknown;
+    query?: Record<string, string>;
+    headers?: Record<string, string>;
+}
+interface ProxyResponse<T = unknown> {
+    status: number;
+    headers: Headers;
+    body: T;
+}
+declare class ConnectionsResource extends BaseResource {
+    private baseUrl;
+    private apiKey;
+    constructor(client: ApiClient, baseUrl: string, apiKey: string);
+    availableScopes(): Promise<AvailableScopeConnection[]>;
+    create(integrationId: string, body: IntegConnCreateRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["integConnCreateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["integConnResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: {
+            identity_id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(integrationId: string, query?: {
+        limit?: number;
+        cursor?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-integConnResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+            query: {
+                limit?: number;
+                cursor?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["integConnResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    /**
+     * Proxy an arbitrary HTTP request through a connection to the upstream provider API.
+     *
+     * The request is forwarded via Nango with the connection's stored credentials.
+     * The raw upstream response (status, headers, body) is returned as-is.
+     */
+    proxy<T = unknown>(id: string, options: ProxyRequestOptions): Promise<ProxyResponse<T>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class ConversationsResource extends BaseResource {
+    create(agentID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["conversationResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                agentID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    list(agentID: string, query?: {
+        limit?: number;
+        cursor?: string;
+        status?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                agentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-conversationResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                agentID: string;
+            };
+            query: {
+                limit?: number;
+                cursor?: string;
+                status?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(convID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["conversationResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    sendMessage(convID: string, content: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    content?: string;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+        };
+        body: any;
+    }, `${string}/${string}`>>;
+    abort(convID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    end(convID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    listApprovals(convID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    resolveApproval(convID: string, requestID: string, decision: "approve" | "deny"): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convID: string;
+                requestID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    decision?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+                requestID: string;
+            };
+        };
+        body: any;
+    }, `${string}/${string}`>>;
+    listEvents(convID: string, query?: {
+        limit?: number;
+        cursor?: string;
+        type?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                type?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                convID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-conversationEventResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                convID: string;
+            };
+            query: {
+                limit?: number;
+                cursor?: string;
+                type?: string;
+            } | undefined;
         };
     }, `${string}/${string}`>>;
 }
@@ -1036,194 +2467,6 @@ declare class CredentialsResource extends BaseResource {
         params: {
             path: {
                 id: string;
-            };
-        };
-    }, `${string}/${string}`>>;
-}
-
-declare class TokensResource extends BaseResource {
-    create(body: MintTokenRequest): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["mintTokenRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["mintTokenResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        body: {
-            credential_id?: string;
-            meta?: components["schemas"]["JSON"];
-            refill_amount?: number;
-            refill_interval?: string;
-            remaining?: number;
-            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
-            ttl?: string;
-        };
-    }, `${string}/${string}`>>;
-    list(query?: {
-        limit?: number;
-        cursor?: string;
-        credential_id?: string;
-    }): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                credential_id?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            query: {
-                limit?: number;
-                cursor?: string;
-                credential_id?: string;
-            } | undefined;
-        };
-    }, `${string}/${string}`>>;
-    delete(jti: string): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                jti: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                jti: string;
             };
         };
     }, `${string}/${string}`>>;
@@ -1549,185 +2792,6 @@ declare class IdentitiesResource extends BaseResource {
             };
         };
     }, `${string}/${string}`>>;
-}
-
-declare class ConnectSessionsResource extends BaseResource {
-    create(body: CreateConnectSessionRequest): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["createConnectSessionRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["connectSessionResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        body: {
-            allowed_integrations?: string[];
-            allowed_origins?: string[];
-            external_id?: string;
-            identity_id?: string;
-            metadata?: components["schemas"]["JSON"];
-            permissions?: string[];
-            ttl?: string;
-        };
-    }, `${string}/${string}`>>;
-}
-declare class ConnectSettingsResource extends BaseResource {
-    get(): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["connectSettingsResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, openapi_fetch.FetchOptions<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["connectSettingsResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }> | undefined, `${string}/${string}`>>;
-    update(body: ConnectSettingsRequest): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["connectSettingsRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["connectSettingsResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        body: {
-            allowed_origins?: string[];
-        };
-    }, `${string}/${string}`>>;
-}
-declare class ConnectResource extends BaseResource {
-    readonly sessions: ConnectSessionsResource;
-    readonly settings: ConnectSettingsResource;
-    constructor(client: ConstructorParameters<typeof BaseResource>[0]);
 }
 
 declare class IntegrationsResource extends BaseResource {
@@ -2098,407 +3162,6 @@ declare class IntegrationsResource extends BaseResource {
     }> | undefined, `${string}/${string}`>>;
 }
 
-interface ProxyRequestOptions {
-    method?: string;
-    path: string;
-    body?: unknown;
-    query?: Record<string, string>;
-    headers?: Record<string, string>;
-}
-interface ProxyResponse<T = unknown> {
-    status: number;
-    headers: Headers;
-    body: T;
-}
-declare class ConnectionsResource extends BaseResource {
-    private baseUrl;
-    private apiKey;
-    constructor(client: ApiClient, baseUrl: string, apiKey: string);
-    availableScopes(): Promise<AvailableScopeConnection[]>;
-    create(integrationId: string, body: IntegConnCreateRequest): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["integConnCreateRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["integConnResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                id: string;
-            };
-        };
-        body: {
-            identity_id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_connection_id?: string;
-        };
-    }, `${string}/${string}`>>;
-    list(integrationId: string, query?: {
-        limit?: number;
-        cursor?: string;
-    }): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["paginatedResponse-integConnResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                id: string;
-            };
-            query: {
-                limit?: number;
-                cursor?: string;
-            } | undefined;
-        };
-    }, `${string}/${string}`>>;
-    get(id: string): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["integConnResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                id: string;
-            };
-        };
-    }, `${string}/${string}`>>;
-    /**
-     * Proxy an arbitrary HTTP request through a connection to the upstream provider API.
-     *
-     * The request is forwarded via Nango with the connection's stored credentials.
-     * The raw upstream response (status, headers, body) is returned as-is.
-     */
-    proxy<T = unknown>(id: string, options: ProxyRequestOptions): Promise<ProxyResponse<T>>;
-    delete(id: string): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            path: {
-                id: string;
-            };
-        };
-    }, `${string}/${string}`>>;
-}
-
-declare class UsageResource extends BaseResource {
-    get(): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["usageResponse"];
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, openapi_fetch.FetchOptions<{
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["usageResponse"];
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }> | undefined, `${string}/${string}`>>;
-}
-
-declare class AuditResource extends BaseResource {
-    list(query?: {
-        limit?: number;
-        cursor?: string;
-        action?: string;
-    }): Promise<openapi_fetch.FetchResponse<{
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                action?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["paginatedResponse-auditEntryResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["errorResponse"];
-                };
-            };
-        };
-    }, {
-        params: {
-            query: {
-                limit?: number;
-                cursor?: string;
-                action?: string;
-            } | undefined;
-        };
-    }, `${string}/${string}`>>;
-}
-
 declare class OrgResource extends BaseResource {
     getCurrent(): Promise<openapi_fetch.FetchResponse<{
         parameters: {
@@ -2665,19 +3328,717 @@ declare class ProvidersResource extends BaseResource {
     }, `${string}/${string}`>>;
 }
 
+declare class SandboxesResource extends BaseResource {
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        status?: string;
+        identity_id?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                status?: string;
+                identity_id?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-sandboxResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                status?: string;
+                identity_id?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["sandboxResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    stop(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    exec(id: string, commands: string[]): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["execRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["execResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: ExecRequest;
+    }, `${string}/${string}`>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class SandboxTemplatesResource extends BaseResource {
+    create(body: CreateSandboxTemplateRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["createSandboxTemplateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["sandboxTemplateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
+            name?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-sandboxTemplateResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["sandboxTemplateResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    update(id: string, body: UpdateSandboxTemplateRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["updateSandboxTemplateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["sandboxTemplateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
+            name?: string;
+        };
+    }, `${string}/${string}`>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class TokensResource extends BaseResource {
+    create(body: MintTokenRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mintTokenRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mintTokenResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            credential_id?: string;
+            meta?: components["schemas"]["JSON"];
+            refill_amount?: number;
+            refill_interval?: string;
+            remaining?: number;
+            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
+            ttl?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        credential_id?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                credential_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                credential_id?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    delete(jti: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jti: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                jti: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class UsageResource extends BaseResource {
+    get(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["usageResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["usageResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+}
+
 declare class LLMVault {
+    readonly agents: AgentsResource;
     readonly apiKeys: ApiKeysResource;
-    readonly credentials: CredentialsResource;
-    readonly tokens: TokensResource;
-    readonly identities: IdentitiesResource;
-    readonly connect: ConnectResource;
-    readonly integrations: IntegrationsResource;
-    readonly connections: ConnectionsResource;
-    readonly usage: UsageResource;
     readonly audit: AuditResource;
+    readonly connect: ConnectResource;
+    readonly connections: ConnectionsResource;
+    readonly conversations: ConversationsResource;
+    readonly credentials: CredentialsResource;
+    readonly identities: IdentitiesResource;
+    readonly integrations: IntegrationsResource;
     readonly org: OrgResource;
     readonly providers: ProvidersResource;
+    readonly sandboxes: SandboxesResource;
+    readonly sandboxTemplates: SandboxTemplatesResource;
+    readonly tokens: TokensResource;
+    readonly usage: UsageResource;
     constructor(config: LLMVaultConfig);
 }
 
-export { type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CredentialResponse, type ErrorResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type TokenListItem, type TokenScope, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UsageResponse };
+export { type AgentResponse, type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type CommandResult, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type ConversationEventResponse, type ConversationResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateAgentRequest, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CreateSandboxTemplateRequest, type CredentialResponse, type ErrorResponse, type ExecRequest, type ExecResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedAgents, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedConversationEvents, type PaginatedConversations, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedSandboxTemplates, type PaginatedSandboxes, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type SandboxResponse, type SandboxTemplateResponse, type TokenListItem, type TokenScope, type UpdateAgentRequest, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UpdateSandboxTemplateRequest, type UsageResponse };
