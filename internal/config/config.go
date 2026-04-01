@@ -112,12 +112,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Validate KMS type.
-	switch cfg.KMSType {
-	case "aead", "awskms", "vault":
-		// ok
-	default:
-		return nil, fmt.Errorf("KMS_TYPE must be 'aead', 'awskms', or 'vault' (got %q)", cfg.KMSType)
+	// Enforce AWS KMS or Vault in production — AEAD is not allowed.
+	if cfg.Environment == "production" && cfg.KMSType != "awskms" && cfg.KMSType != "vault" {
+		return nil, fmt.Errorf("KMS_TYPE must be 'awskms' or 'vault' in production (got %q)", cfg.KMSType)
 	}
 
 	// Require at least one Redis connection method.
