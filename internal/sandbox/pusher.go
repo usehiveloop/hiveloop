@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -42,6 +43,7 @@ type Pusher struct {
 	orchestrator *Orchestrator
 	signingKey   []byte // JWT signing key for minting proxy tokens
 	cfg          *config.Config
+	pushed       sync.Map // key: "{sandboxID}:{agentID}" → true
 }
 
 // NewPusher creates an agent pusher.
@@ -52,6 +54,17 @@ func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *
 		signingKey:   signingKey,
 		cfg:          cfg,
 	}
+}
+
+// isPushed checks if an agent has already been pushed to a sandbox (in-memory cache).
+func (p *Pusher) isPushed(sandboxID, agentID string) bool {
+	_, ok := p.pushed.Load(sandboxID + ":" + agentID)
+	return ok
+}
+
+// markPushed records that an agent has been pushed to a sandbox.
+func (p *Pusher) markPushed(sandboxID, agentID string) {
+	p.pushed.Store(sandboxID+":"+agentID, true)
 }
 
 // PushAgent ensures the sandbox is running and pushes the agent definition to Bridge.
@@ -82,9 +95,34 @@ func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
 }
 
 // PushAgentToSandbox pushes an agent definition to a specific sandbox.
-// Used by both shared (via PushAgent) and dedicated (via conversation create in Phase 7).
+// Uses a two-layer check to avoid redundant pushes that would cause Bridge
+// to reload the agent and wipe active conversations:
+//  1. In-memory cache (instant, survives within process lifetime)
+//  2. Bridge API check (survives server restarts)
 func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
-	return p.pushAgentToSandbox(ctx, agent, sb)
+	sandboxID := sb.ID.String()
+	agentID := agent.ID.String()
+
+	// Layer 1: in-memory cache
+	if p.isPushed(sandboxID, agentID) {
+		return nil
+	}
+
+	// Layer 2: check Bridge directly
+	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
+	if err == nil {
+		if exists, checkErr := client.HasAgent(ctx, agentID); checkErr == nil && exists {
+			p.markPushed(sandboxID, agentID)
+			return nil
+		}
+	}
+
+	// Not found in either layer — do the full push
+	if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
+		return err
+	}
+	p.markPushed(sandboxID, agentID)
+	return nil
 }
 
 // RemoveAgent removes an agent from Bridge.
