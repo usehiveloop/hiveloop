@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/llmvault/llmvault/internal/goroutine"
 )
 
 // ServerCache caches built MCP server instances by JTI to avoid rebuilding on every request.
@@ -66,7 +68,7 @@ func (c *ServerCache) Evict(jti string) {
 
 // StartCleanup runs a background goroutine that removes expired entries periodically.
 func (c *ServerCache) StartCleanup(ctx context.Context, interval time.Duration) {
-	go func() {
+	goroutine.Go(func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -78,7 +80,7 @@ func (c *ServerCache) StartCleanup(ctx context.Context, interval time.Duration) 
 				c.cleanup()
 			}
 		}
-	}()
+	})
 }
 
 func (c *ServerCache) cleanup() {

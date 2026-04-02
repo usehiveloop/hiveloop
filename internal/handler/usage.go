@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sourcegraph/conc/pool"
 	"gorm.io/gorm"
 
 	"github.com/llmvault/llmvault/internal/middleware"
@@ -143,69 +145,70 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 	orgID := org.ID
 
 	var resp usageResponse
-	var wg sync.WaitGroup
+	p := pool.New().WithErrors().WithMaxGoroutines(12)
 
 	// Query 1: Credentials (single query with conditional aggregation)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var row struct {
 			Total   int64
 			Active  int64
 			Revoked int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT
 				COUNT(*) AS total,
 				COUNT(*) FILTER (WHERE revoked_at IS NULL) AS active,
 				COUNT(*) FILTER (WHERE revoked_at IS NOT NULL) AS revoked
-			FROM credentials WHERE org_id = ?`, orgID).Scan(&row)
+			FROM credentials WHERE org_id = ?`, orgID).Scan(&row).Error; err != nil {
+			return fmt.Errorf("credentials: %w", err)
+		}
 		resp.Credentials = credentialStats{Total: row.Total, Active: row.Active, Revoked: row.Revoked}
-	}()
+		return nil
+	})
 
 	// Query 2: Tokens (single query with conditional aggregation)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var row struct {
 			Total   int64
 			Active  int64
 			Expired int64
 			Revoked int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT
 				COUNT(*) AS total,
 				COUNT(*) FILTER (WHERE revoked_at IS NULL AND expires_at > ?) AS active,
 				COUNT(*) FILTER (WHERE revoked_at IS NULL AND expires_at <= ?) AS expired,
 				COUNT(*) FILTER (WHERE revoked_at IS NOT NULL) AS revoked
-			FROM tokens WHERE org_id = ?`, now, now, orgID).Scan(&row)
+			FROM tokens WHERE org_id = ?`, now, now, orgID).Scan(&row).Error; err != nil {
+			return fmt.Errorf("tokens: %w", err)
+		}
 		resp.Tokens = tokenStats{Total: row.Total, Active: row.Active, Expired: row.Expired, Revoked: row.Revoked}
-	}()
+		return nil
+	})
 
 	// Query 3: API Keys + Identities (single query, two subselects)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var row struct {
-			AKTotal      int64
-			AKActive     int64
-			IdentTotal   int64
+			AKTotal    int64
+			AKActive   int64
+			IdentTotal int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT
 				(SELECT COUNT(*) FROM api_keys WHERE org_id = ?) AS ak_total,
 				(SELECT COUNT(*) FROM api_keys WHERE org_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)) AS ak_active,
 				(SELECT COUNT(*) FROM identities WHERE org_id = ?) AS ident_total`,
-			orgID, orgID, now, orgID).Scan(&row)
+			orgID, orgID, now, orgID).Scan(&row).Error; err != nil {
+			return fmt.Errorf("api_keys_identities: %w", err)
+		}
 		resp.APIKeys = apiKeyStats{Total: row.AKTotal, Active: row.AKActive, Revoked: row.AKTotal - row.AKActive}
 		resp.Identities = identityStats{Total: row.IdentTotal}
-	}()
+		return nil
+	})
 
 	// Query 4: Request counts (single query with conditional aggregation)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var row struct {
 			Total     int64 `gorm:"column:total"`
 			Today     int64 `gorm:"column:today"`
@@ -213,7 +216,7 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 			Last7d    int64 `gorm:"column:last_7d"`
 			Last30d   int64 `gorm:"column:last_30d"`
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT
 				COUNT(*) AS total,
 				COUNT(*) FILTER (WHERE created_at >= ?) AS today,
@@ -221,7 +224,9 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				COUNT(*) FILTER (WHERE created_at >= ?) AS last_7d,
 				COUNT(*) FILTER (WHERE created_at >= ?) AS last_30d
 			FROM audit_log WHERE org_id = ? AND action = 'proxy.request'`,
-			today, yesterday, today, last7d, last30d, orgID).Scan(&row)
+			today, yesterday, today, last7d, last30d, orgID).Scan(&row).Error; err != nil {
+			return fmt.Errorf("request_counts: %w", err)
+		}
 		resp.Requests = requestStats{
 			Total:     row.Total,
 			Today:     row.Today,
@@ -229,23 +234,23 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 			Last7d:    row.Last7d,
 			Last30d:   row.Last30d,
 		}
-	}()
+		return nil
+	})
 
 	// Query 5: Daily request counts (last 30 days)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var dailyRows []struct {
 			Date  time.Time
 			Count int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT DATE(created_at) AS date, COUNT(*) AS count
 			FROM audit_log
 			WHERE org_id = ? AND action = 'proxy.request' AND created_at >= ?
 			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&dailyRows)
-
+			ORDER BY date ASC`, orgID, last30d).Scan(&dailyRows).Error; err != nil {
+			return fmt.Errorf("daily_requests: %w", err)
+		}
 		resp.DailyRequests = make([]dailyRequests, 0, len(dailyRows))
 		for _, row := range dailyRows {
 			resp.DailyRequests = append(resp.DailyRequests, dailyRequests{
@@ -253,27 +258,27 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				Count: row.Count,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 6: Top credentials by request count (last 30 days)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var topRows []struct {
 			CredentialID uuid.UUID
 			Label        string
 			ProviderID   string
 			RequestCount int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT a.credential_id, c.label, c.provider_id, COUNT(*) AS request_count
 			FROM audit_log a
 			JOIN credentials c ON c.id = a.credential_id
 			WHERE a.org_id = ? AND a.action = 'proxy.request' AND a.created_at >= ? AND a.credential_id IS NOT NULL
 			GROUP BY a.credential_id, c.label, c.provider_id
 			ORDER BY request_count DESC
-			LIMIT 5`, orgID, last30d).Scan(&topRows)
-
+			LIMIT 5`, orgID, last30d).Scan(&topRows).Error; err != nil {
+			return fmt.Errorf("top_credentials: %w", err)
+		}
 		resp.TopCredentials = make([]topCredential, 0, len(topRows))
 		for _, row := range topRows {
 			resp.TopCredentials = append(resp.TopCredentials, topCredential{
@@ -283,23 +288,23 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				RequestCount: row.RequestCount,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 7: Spend over time (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			Date      time.Time
 			TotalCost float64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT DATE(created_at) AS date, COALESCE(SUM(cost), 0) AS total_cost
 			FROM generations
 			WHERE org_id = ? AND created_at >= ?
 			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
-
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("spend_over_time: %w", err)
+		}
 		resp.SpendOverTime = make([]spendOverTime, 0, len(rows))
 		for _, row := range rows {
 			resp.SpendOverTime = append(resp.SpendOverTime, spendOverTime{
@@ -307,19 +312,18 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				TotalCost: row.TotalCost,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 8: Token volumes (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			Date         time.Time
 			InputTokens  int64
 			OutputTokens int64
 			CachedTokens int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT DATE(created_at) AS date,
 				COALESCE(SUM(input_tokens), 0) AS input_tokens,
 				COALESCE(SUM(output_tokens), 0) AS output_tokens,
@@ -327,8 +331,9 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 			FROM generations
 			WHERE org_id = ? AND created_at >= ?
 			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
-
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("token_volumes: %w", err)
+		}
 		resp.TokenVolumes = make([]tokenVolumes, 0, len(rows))
 		for _, row := range rows {
 			resp.TokenVolumes = append(resp.TokenVolumes, tokenVolumes{
@@ -338,26 +343,26 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				CachedTokens: row.CachedTokens,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 9: Latency stats (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			Date      time.Time
 			AvgTTFBMs float64
 			P95TTFBMs float64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT DATE(created_at) AS date,
 				COALESCE(AVG(ttfb_ms), 0) AS avg_ttfb_ms,
 				COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY ttfb_ms), 0) AS p95_ttfb_ms
 			FROM generations
 			WHERE org_id = ? AND created_at >= ? AND ttfb_ms IS NOT NULL
 			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
-
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("latency: %w", err)
+		}
 		resp.Latency = make([]latencyStats, 0, len(rows))
 		for _, row := range rows {
 			resp.Latency = append(resp.Latency, latencyStats{
@@ -366,26 +371,26 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				P95TTFBMs: row.P95TTFBMs,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 10: Top models (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			Model        string
 			ProviderID   string
 			RequestCount int64
 			TotalCost    float64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT model, provider_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
 			FROM generations
 			WHERE org_id = ? AND created_at >= ? AND model != ''
 			GROUP BY model, provider_id
 			ORDER BY request_count DESC
-			LIMIT 10`, orgID, last30d).Scan(&rows)
-
+			LIMIT 10`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("top_models: %w", err)
+		}
 		resp.TopModels = make([]topModel, 0, len(rows))
 		for _, row := range rows {
 			resp.TopModels = append(resp.TopModels, topModel{
@@ -395,25 +400,25 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				TotalCost:    row.TotalCost,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 11: Top users by cost (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			UserID       string
 			RequestCount int64
 			TotalCost    float64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT user_id, COUNT(*) AS request_count, COALESCE(SUM(cost), 0) AS total_cost
 			FROM generations
 			WHERE org_id = ? AND created_at >= ? AND user_id != ''
 			GROUP BY user_id
 			ORDER BY total_cost DESC
-			LIMIT 10`, orgID, last30d).Scan(&rows)
-
+			LIMIT 10`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("top_users: %w", err)
+		}
 		resp.TopUsers = make([]topUser, 0, len(rows))
 		for _, row := range rows {
 			resp.TopUsers = append(resp.TopUsers, topUser{
@@ -422,25 +427,25 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				TotalCost:    row.TotalCost,
 			})
 		}
-	}()
+		return nil
+	})
 
 	// Query 12: Error rates (last 30 days, from generations)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	p.Go(func() error {
 		var rows []struct {
 			Date       time.Time
 			Total      int64
 			ErrorCount int64
 		}
-		h.db.Raw(`
+		if err := h.db.Raw(`
 			SELECT DATE(created_at) AS date, COUNT(*) AS total,
 				COUNT(*) FILTER (WHERE error_type != '' AND error_type IS NOT NULL) AS error_count
 			FROM generations
 			WHERE org_id = ? AND created_at >= ?
 			GROUP BY DATE(created_at)
-			ORDER BY date ASC`, orgID, last30d).Scan(&rows)
-
+			ORDER BY date ASC`, orgID, last30d).Scan(&rows).Error; err != nil {
+			return fmt.Errorf("error_rates: %w", err)
+		}
 		resp.ErrorRates = make([]errorRate, 0, len(rows))
 		for _, row := range rows {
 			resp.ErrorRates = append(resp.ErrorRates, errorRate{
@@ -449,9 +454,14 @@ func (h *UsageHandler) Get(w http.ResponseWriter, r *http.Request) {
 				ErrorCount: row.ErrorCount,
 			})
 		}
-	}()
+		return nil
+	})
 
-	wg.Wait()
+	if err := p.Wait(); err != nil {
+		slog.Error("usage queries failed", "org_id", orgID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load usage data"})
+		return
+	}
 
 	// Ensure non-null arrays
 	if resp.DailyRequests == nil {

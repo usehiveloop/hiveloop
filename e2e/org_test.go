@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
@@ -50,6 +51,9 @@ func newOrgHarness(t *testing.T) *orgHarness {
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(h.db, privKey, signingHMAC, orgTestIssuer, orgTestAudience, 15*time.Minute, 24*time.Hour, &email.LogSender{}, "http://localhost:3000", true)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	authHandler.StartCleanup(ctx)
 	orgHandler := handler.NewOrgHandler(h.db)
 
 	// Router with embedded auth

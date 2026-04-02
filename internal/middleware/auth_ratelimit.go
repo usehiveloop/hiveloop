@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
+
+	"github.com/llmvault/llmvault/internal/goroutine"
 )
 
 type ipLimiterEntry struct {
@@ -16,25 +19,32 @@ type ipLimiterEntry struct {
 
 // AuthRateLimit returns middleware that enforces per-IP rate limiting on auth
 // endpoints. It uses an in-memory map keyed by client IP (from chi's RealIP
-// middleware). Stale entries are evicted every 5 minutes.
-func AuthRateLimit(rps float64, burst int) func(http.Handler) http.Handler {
+// middleware). Stale entries are evicted every 5 minutes. The cleanup goroutine
+// stops when ctx is cancelled.
+func AuthRateLimit(ctx context.Context, rps float64, burst int) func(http.Handler) http.Handler {
 	var mu sync.Mutex
 	entries := make(map[string]*ipLimiterEntry)
 
 	// Background cleanup of stale entries.
-	go func() {
+	goroutine.Go(func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
 		for {
-			time.Sleep(5 * time.Minute)
-			mu.Lock()
-			cutoff := time.Now().Add(-10 * time.Minute)
-			for ip, e := range entries {
-				if e.lastSeen.Before(cutoff) {
-					delete(entries, ip)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				mu.Lock()
+				cutoff := time.Now().Add(-10 * time.Minute)
+				for ip, e := range entries {
+					if e.lastSeen.Before(cutoff) {
+						delete(entries, ip)
+					}
 				}
+				mu.Unlock()
 			}
-			mu.Unlock()
 		}
-	}()
+	})
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
