@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type Agent struct {
@@ -30,6 +31,10 @@ type Agent struct {
 	Subagents    JSON   `gorm:"type:jsonb;not null;default:'{}'"`
 	AgentConfig  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
 	Permissions  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
+
+	// Sandbox setup (dedicated agents only — ignored for shared agents)
+	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
+	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
 	Status    string `gorm:"not null;default:'active'"` // active, archived
 	CreatedAt time.Time

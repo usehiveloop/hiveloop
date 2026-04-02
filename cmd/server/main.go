@@ -200,11 +200,21 @@ func run() error {
 	actionsCatalog := catalog.Global()
 	slog.Info("actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
-	// 13. Handlers
+	// 13. Encryption key for sandbox secrets (env vars, bridge API keys)
+	var sandboxEncKey *crypto.SymmetricKey
+	if cfg.SandboxEncryptionKey != "" {
+		var err error
+		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
+		if err != nil {
+			return fmt.Errorf("invalid SANDBOX_ENCRYPTION_KEY: %w", err)
+		}
+	}
+
+	// 13a. Handlers
 	mcpHandler := handler.NewMCPHandler(database, signingKey, actionsCatalog, nangoClient, ctr)
 	credHandler := handler.NewCredentialHandler(database, kms, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
-	identityHandler := handler.NewIdentityHandler(database)
+	identityHandler := handler.NewIdentityHandler(database, sandboxEncKey)
 	providerHandler := handler.NewProviderHandler(reg)
 	connectSessionHandler := handler.NewConnectSessionHandler(database)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
@@ -227,14 +237,8 @@ func run() error {
 	// 13b. Sandbox orchestrator (optional — only if sandbox provider is configured)
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
-	var sandboxEncKey *crypto.SymmetricKey
 	slog.Info("sandbox config check", "provider_key_set", cfg.SandboxProviderKey != "", "encryption_key_set", cfg.SandboxEncryptionKey != "")
-	if cfg.SandboxProviderKey != "" && cfg.SandboxEncryptionKey != "" {
-		var err error
-		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
-		if err != nil {
-			return fmt.Errorf("invalid SANDBOX_ENCRYPTION_KEY: %w", err)
-		}
+	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
 		sandboxProvider, err := daytona.NewDriver(daytona.Config{
 			APIURL: cfg.SandboxProviderURL,
 			APIKey: cfg.SandboxProviderKey,
@@ -281,7 +285,7 @@ func run() error {
 	if agentPusher != nil {
 		pusherForHandler = agentPusher
 	}
-	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler)
+	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey)
 
 	// 14. Router
 	r := chi.NewRouter()
@@ -387,6 +391,8 @@ func run() error {
 				r.Get("/identities/{id}", identityHandler.Get)
 				r.Put("/identities/{id}", identityHandler.Update)
 				r.Delete("/identities/{id}", identityHandler.Delete)
+				r.Get("/identities/{id}/setup", identityHandler.GetSetup)
+				r.Put("/identities/{id}/setup", identityHandler.UpdateSetup)
 			})
 
 			// Connect operations — scope: "connect"
@@ -436,6 +442,8 @@ func run() error {
 					r.Get("/{id}", agentHandler.Get)
 					r.Put("/{id}", agentHandler.Update)
 					r.Delete("/{id}", agentHandler.Delete)
+					r.Get("/{id}/setup", agentHandler.GetSetup)
+					r.Put("/{id}/setup", agentHandler.UpdateSetup)
 					// Conversations under agent
 					if conversationHandler != nil {
 						r.Post("/{agentID}/conversations", conversationHandler.Create)

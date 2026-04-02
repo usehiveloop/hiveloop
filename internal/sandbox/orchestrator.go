@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -234,6 +235,14 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
 	}
 
+	// Merge user-defined env vars (encrypted at rest)
+	// Shared sandboxes: identity env vars. Dedicated sandboxes: agent env vars.
+	if sandboxType == "shared" && identity != nil {
+		o.mergeUserEnvVars(envVars, identity.EncryptedEnvVars)
+	} else if sandboxType == "dedicated" && agent != nil {
+		o.mergeUserEnvVars(envVars, agent.EncryptedEnvVars)
+	}
+
 	// Resolve snapshot
 	snapshotID := o.resolveSnapshot(agent)
 
@@ -307,6 +316,22 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 			"error_message": fmt.Sprintf("bridge failed to start: %v", err),
 		})
 		return nil, fmt.Errorf("waiting for bridge: %w", err)
+	}
+
+	// Run setup commands (identity-level for shared, agent-level for dedicated)
+	var setupCommands []string
+	if sandboxType == "shared" && identity != nil {
+		setupCommands = identity.SetupCommands
+	} else if sandboxType == "dedicated" && agent != nil {
+		setupCommands = agent.SetupCommands
+	}
+	if len(setupCommands) > 0 {
+		if err := o.runSetupCommands(ctx, &sb, setupCommands); err != nil {
+			slog.Warn("setup commands failed but sandbox is still usable",
+				"sandbox_id", sb.ID,
+				"error", err,
+			)
+		}
 	}
 
 	slog.Info("sandbox created",
@@ -533,6 +558,52 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 // DeleteTemplate deletes a sandbox template (snapshot) from the provider.
 func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) error {
 	return o.provider.DeleteSnapshot(ctx, externalID)
+}
+
+// mergeUserEnvVars decrypts and merges user-defined env vars into the system env vars map.
+// System vars (BRIDGE_*) are never overridden.
+func (o *Orchestrator) mergeUserEnvVars(envVars map[string]string, encrypted []byte) {
+	if o.encKey == nil || len(encrypted) == 0 {
+		return
+	}
+	decrypted, err := o.encKey.DecryptString(encrypted)
+	if err != nil {
+		slog.Warn("failed to decrypt user env vars, skipping", "error", err)
+		return
+	}
+	var userVars map[string]string
+	if err := json.Unmarshal([]byte(decrypted), &userVars); err != nil {
+		slog.Warn("failed to parse user env vars, skipping", "error", err)
+		return
+	}
+	for k, v := range userVars {
+		// Never override system vars
+		if strings.HasPrefix(strings.ToUpper(k), "BRIDGE_") {
+			continue
+		}
+		envVars[k] = v
+	}
+}
+
+// runSetupCommands executes a list of shell commands inside the sandbox sequentially.
+func (o *Orchestrator) runSetupCommands(ctx context.Context, sb *model.Sandbox, commands []string) error {
+	for _, cmd := range commands {
+		output, err := o.ExecuteCommand(ctx, sb, cmd)
+		if err != nil {
+			slog.Error("setup command failed",
+				"sandbox_id", sb.ID,
+				"command", cmd,
+				"output", output,
+				"error", err,
+			)
+			return fmt.Errorf("setup command failed: %s: %w", cmd, err)
+		}
+		slog.Info("setup command completed",
+			"sandbox_id", sb.ID,
+			"command", cmd,
+		)
+	}
+	return nil
 }
 
 // --- utilities ---
