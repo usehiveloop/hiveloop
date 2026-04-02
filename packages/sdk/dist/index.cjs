@@ -68,6 +68,17 @@ var AgentsResource = class extends BaseResource {
       params: { path: { id } }
     });
   }
+  getSetup(id) {
+    return this.client.GET("/v1/agents/{id}/setup", {
+      params: { path: { id } }
+    });
+  }
+  updateSetup(id, body) {
+    return this.client.PUT("/v1/agents/{id}/setup", {
+      params: { path: { id } },
+      body
+    });
+  }
 };
 
 // src/resources/api-keys.ts
@@ -92,10 +103,40 @@ var AuditResource = class extends BaseResource {
   }
 };
 
+// src/resources/catalog.ts
+var CatalogResource = class extends BaseResource {
+  listIntegrations() {
+    return this.client.GET("/v1/catalog/integrations");
+  }
+  getIntegration(id) {
+    return this.client.GET("/v1/catalog/integrations/{id}", {
+      params: { path: { id } }
+    });
+  }
+  listActions(id) {
+    return this.client.GET("/v1/catalog/integrations/{id}/actions", {
+      params: { path: { id } }
+    });
+  }
+};
+
 // src/resources/connect.ts
 var ConnectSessionsResource = class extends BaseResource {
   create(body) {
     return this.client.POST("/v1/connect/sessions", { body });
+  }
+  list(query) {
+    return this.client.GET("/v1/connect/sessions", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/connect/sessions/{id}", {
+      params: { path: { id } }
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/connect/sessions/{id}", {
+      params: { path: { id } }
+    });
   }
 };
 var ConnectSettingsResource = class extends BaseResource {
@@ -191,6 +232,13 @@ var ConnectionsResource = class extends BaseResource {
 
 // src/resources/conversations.ts
 var ConversationsResource = class extends BaseResource {
+  baseUrl;
+  apiKey;
+  constructor(client, baseUrl, apiKey) {
+    super(client);
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
   create(agentID) {
     return this.client.POST("/v1/agents/{agentID}/conversations", {
       params: { path: { agentID } }
@@ -238,6 +286,19 @@ var ConversationsResource = class extends BaseResource {
       params: { path: { convID }, query }
     });
   }
+  /**
+   * Opens an SSE stream for real-time conversation events.
+   * Returns the raw Response so callers can consume the ReadableStream.
+   */
+  async stream(convID) {
+    const url = `${this.baseUrl}/v1/conversations/${encodeURIComponent(convID)}/stream`;
+    return fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: "text/event-stream"
+      }
+    });
+  }
 };
 
 // src/resources/credentials.ts
@@ -255,6 +316,38 @@ var CredentialsResource = class extends BaseResource {
   }
   delete(id) {
     return this.client.DELETE("/v1/credentials/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/custom-domains.ts
+var CustomDomainsResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/custom-domains", { body });
+  }
+  list() {
+    return this.client.GET("/v1/custom-domains");
+  }
+  verify(id) {
+    return this.client.POST("/v1/custom-domains/{id}/verify", {
+      params: { path: { id } }
+    });
+  }
+  delete(id) {
+    return this.client.DELETE("/v1/custom-domains/{id}", {
+      params: { path: { id } }
+    });
+  }
+};
+
+// src/resources/generations.ts
+var GenerationsResource = class extends BaseResource {
+  list(query) {
+    return this.client.GET("/v1/generations", { params: { query } });
+  }
+  get(id) {
+    return this.client.GET("/v1/generations/{id}", {
       params: { path: { id } }
     });
   }
@@ -282,6 +375,17 @@ var IdentitiesResource = class extends BaseResource {
   delete(id) {
     return this.client.DELETE("/v1/identities/{id}", {
       params: { path: { id } }
+    });
+  }
+  getSetup(id) {
+    return this.client.GET("/v1/identities/{id}/setup", {
+      params: { path: { id } }
+    });
+  }
+  updateSetup(id, body) {
+    return this.client.PUT("/v1/identities/{id}/setup", {
+      params: { path: { id } },
+      body
     });
   }
 };
@@ -317,6 +421,9 @@ var IntegrationsResource = class extends BaseResource {
 
 // src/resources/org.ts
 var OrgResource = class extends BaseResource {
+  create(body) {
+    return this.client.POST("/v1/orgs", { body });
+  }
   getCurrent() {
     return this.client.GET("/v1/orgs/current");
   }
@@ -336,6 +443,13 @@ var ProvidersResource = class extends BaseResource {
     return this.client.GET("/v1/providers/{id}/models", {
       params: { path: { id } }
     });
+  }
+};
+
+// src/resources/reporting.ts
+var ReportingResource = class extends BaseResource {
+  get(query) {
+    return this.client.GET("/v1/reporting", { params: { query } });
   }
 };
 
@@ -420,14 +534,18 @@ var LLMVault = class {
   agents;
   apiKeys;
   audit;
+  catalog;
   connect;
   connections;
   conversations;
   credentials;
+  customDomains;
+  generations;
   identities;
   integrations;
   org;
   providers;
+  reporting;
   sandboxes;
   sandboxTemplates;
   tokens;
@@ -443,14 +561,18 @@ var LLMVault = class {
     this.agents = new AgentsResource(client);
     this.apiKeys = new ApiKeysResource(client);
     this.audit = new AuditResource(client);
+    this.catalog = new CatalogResource(client);
     this.connect = new ConnectResource(client);
     this.connections = new ConnectionsResource(client, baseUrl, config.apiKey);
-    this.conversations = new ConversationsResource(client);
+    this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
+    this.customDomains = new CustomDomainsResource(client);
+    this.generations = new GenerationsResource(client);
     this.identities = new IdentitiesResource(client);
     this.integrations = new IntegrationsResource(client);
     this.org = new OrgResource(client);
     this.providers = new ProvidersResource(client);
+    this.reporting = new ReportingResource(client);
     this.sandboxes = new SandboxesResource(client);
     this.sandboxTemplates = new SandboxTemplatesResource(client);
     this.tokens = new TokensResource(client);

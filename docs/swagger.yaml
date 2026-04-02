@@ -694,6 +694,57 @@ definitions:
       email:
         type: string
     type: object
+  internal_handler.generationResponse:
+    properties:
+      cached_tokens:
+        type: integer
+      cost:
+        type: number
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      error_message:
+        type: string
+      error_type:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      input_tokens:
+        type: integer
+      ip_address:
+        type: string
+      is_streaming:
+        type: boolean
+      model:
+        type: string
+      org_id:
+        type: string
+      output_tokens:
+        type: integer
+      provider_id:
+        type: string
+      reasoning_tokens:
+        type: integer
+      request_path:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      token_jti:
+        type: string
+      total_ms:
+        type: integer
+      ttfb_ms:
+        type: integer
+      upstream_status:
+        type: integer
+      user_id:
+        type: string
+    type: object
   internal_handler.identityRateLimitParams:
     properties:
       duration:
@@ -1023,6 +1074,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_generationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.generationResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_identityResponse:
     properties:
       data:
@@ -1275,6 +1337,28 @@ definitions:
       identity_id:
         type: string
       permissions:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.setupRequest:
+    properties:
+      env_vars:
+        additionalProperties:
+          type: string
+        type: object
+      setup_commands:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.setupResponse:
+    properties:
+      env_var_keys:
+        items:
+          type: string
+        type: array
+      setup_commands:
         items:
           type: string
         type: array
@@ -2051,6 +2135,68 @@ paths:
       security:
       - BearerAuth: []
       summary: Update an agent
+      tags:
+      - agents
+  /v1/agents/{id}/setup:
+    get:
+      description: Returns setup commands and env var key names for dedicated agents.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.setupResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get agent sandbox setup config
+      tags:
+      - agents
+    put:
+      consumes:
+      - application/json
+      description: Sets setup commands and encrypted environment variables. Only available
+        for dedicated sandbox agents.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Setup configuration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.setupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.setupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update agent sandbox setup config
       tags:
       - agents
   /v1/api-keys:
@@ -3072,6 +3218,96 @@ paths:
       summary: Verify a custom domain
       tags:
       - custom-domains
+  /v1/generations:
+    get:
+      description: Returns generation records for the current organization with cursor
+        pagination and filtering.
+      parameters:
+      - description: Max items per page (1-100, default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor from previous response
+        in: query
+        name: cursor
+        type: string
+      - description: Filter by model name
+        in: query
+        name: model
+        type: string
+      - description: Filter by provider ID
+        in: query
+        name: provider_id
+        type: string
+      - description: Filter by credential ID
+        in: query
+        name: credential_id
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by tag
+        in: query
+        name: tags
+        type: string
+      - description: Filter by error type
+        in: query
+        name: error_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_generationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List generations
+      tags:
+      - generations
+  /v1/generations/{id}:
+    get:
+      description: Returns a single generation record by ID.
+      parameters:
+      - description: Generation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.generationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a generation
+      tags:
+      - generations
   /v1/identities:
     get:
       description: Returns identities for the current organization with cursor-based
@@ -3277,6 +3513,69 @@ paths:
       security:
       - BearerAuth: []
       summary: Update an identity
+      tags:
+      - identities
+  /v1/identities/{id}/setup:
+    get:
+      description: Returns setup commands and env var key names (values are never
+        exposed).
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.setupResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get identity sandbox setup config
+      tags:
+      - identities
+    put:
+      consumes:
+      - application/json
+      description: Sets setup commands and encrypted environment variables for shared
+        sandboxes.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Setup configuration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.setupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.setupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update identity sandbox setup config
       tags:
       - identities
   /v1/integrations:

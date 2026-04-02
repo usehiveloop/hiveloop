@@ -29,15 +29,17 @@ func NewIdentityHandler(db *gorm.DB, encKey *crypto.SymmetricKey) *IdentityHandl
 }
 
 type createIdentityRequest struct {
-	ExternalID string                    `json:"external_id"`
-	Meta       model.JSON                `json:"meta,omitempty"`
-	RateLimits []identityRateLimitParams `json:"ratelimits,omitempty"`
+	ExternalID   string                    `json:"external_id"`
+	Meta         model.JSON                `json:"meta,omitempty"`
+	MemoryConfig model.JSON                `json:"memory_config,omitempty"`
+	RateLimits   []identityRateLimitParams `json:"ratelimits,omitempty"`
 }
 
 type updateIdentityRequest struct {
-	ExternalID *string                   `json:"external_id,omitempty"`
-	Meta       model.JSON                `json:"meta,omitempty"`
-	RateLimits []identityRateLimitParams `json:"ratelimits,omitempty"`
+	ExternalID   *string                   `json:"external_id,omitempty"`
+	Meta         model.JSON                `json:"meta,omitempty"`
+	MemoryConfig model.JSON                `json:"memory_config,omitempty"`
+	RateLimits   []identityRateLimitParams `json:"ratelimits,omitempty"`
 }
 
 type identityRateLimitParams struct {
@@ -50,6 +52,7 @@ type identityResponse struct {
 	ID           string                    `json:"id"`
 	ExternalID   string                    `json:"external_id"`
 	Meta         model.JSON                `json:"meta,omitempty"`
+	MemoryConfig model.JSON                `json:"memory_config,omitempty"`
 	RateLimits   []identityRateLimitParams `json:"ratelimits,omitempty"`
 	RequestCount int64                     `json:"request_count"`
 	LastUsedAt   *string                   `json:"last_used_at,omitempty"`
@@ -59,9 +62,10 @@ type identityResponse struct {
 
 func toIdentityResponse(ident model.Identity) identityResponse {
 	resp := identityResponse{
-		ID:         ident.ID.String(),
-		ExternalID: ident.ExternalID,
-		Meta:       ident.Meta,
+		ID:           ident.ID.String(),
+		ExternalID:   ident.ExternalID,
+		Meta:         ident.Meta,
+		MemoryConfig: ident.MemoryConfig,
 		CreatedAt:  ident.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:  ident.UpdatedAt.Format(time.RFC3339),
 	}
@@ -115,10 +119,11 @@ func (h *IdentityHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ident := model.Identity{
-		ID:         uuid.New(),
-		OrgID:      org.ID,
-		ExternalID: req.ExternalID,
-		Meta:       req.Meta,
+		ID:           uuid.New(),
+		OrgID:        org.ID,
+		ExternalID:   req.ExternalID,
+		Meta:         req.Meta,
+		MemoryConfig: req.MemoryConfig,
 	}
 
 	for _, rl := range req.RateLimits {
@@ -338,6 +343,9 @@ func (h *IdentityHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		if req.Meta != nil {
 			updates["meta"] = req.Meta
+		}
+		if req.MemoryConfig != nil {
+			updates["memory_config"] = req.MemoryConfig
 		}
 		if len(updates) > 0 {
 			if err := tx.Model(&ident).Updates(updates).Error; err != nil {

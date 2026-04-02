@@ -170,7 +170,7 @@ func newHarness(t *testing.T) *testHarness {
 	t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 
 	// Integration + connection handlers
-	integrationHandler := handler.NewIntegrationHandler(db, nangoClient)
+	integrationHandler := handler.NewIntegrationHandler(db, nangoClient, actionsCatalog)
 	connectionHandler := handler.NewConnectionHandler(db, nangoClient, actionsCatalog)
 
 	// Management routes (no JWT auth in E2E — we set org on context directly)

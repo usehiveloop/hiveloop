@@ -12,8 +12,9 @@ type Identity struct {
 	OrgID      uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_identity_org_external"`
 	Org        Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	ExternalID string    `gorm:"not null;uniqueIndex:idx_identity_org_external"`
-	Meta       JSON      `gorm:"type:jsonb;default:'{}'"`
-	CreatedAt  time.Time
+	Meta         JSON      `gorm:"type:jsonb;default:'{}'"`
+	MemoryConfig JSON      `gorm:"type:jsonb;default:'{}'"` // Hindsight memory configuration
+	CreatedAt    time.Time
 	UpdatedAt  time.Time
 
 	// Sandbox setup (applies to shared sandboxes for this identity)

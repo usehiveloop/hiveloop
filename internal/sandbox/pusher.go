@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	bridgepkg "github.com/llmvault/llmvault/internal/bridge"
@@ -39,20 +40,22 @@ const (
 // Pusher constructs Bridge AgentDefinitions from our Agent model
 // and pushes them to Bridge instances running in sandboxes.
 type Pusher struct {
-	db           *gorm.DB
-	orchestrator *Orchestrator
-	signingKey   []byte // JWT signing key for minting proxy tokens
-	cfg          *config.Config
-	pushed       sync.Map // key: "{sandboxID}:{agentID}" → true
+	db              *gorm.DB
+	orchestrator    *Orchestrator
+	signingKey      []byte // JWT signing key for minting proxy tokens
+	cfg             *config.Config
+	pushed          sync.Map // key: "{sandboxID}:{agentID}" → true
+	hindsightMCPURL func(uuid.UUID) string // nil = no memory; returns MCP URL for an agent
 }
 
-// NewPusher creates an agent pusher.
-func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config) *Pusher {
+// NewPusher creates an agent pusher. hindsightMCPURL is optional (nil disables memory MCP injection).
+func NewPusher(db *gorm.DB, orchestrator *Orchestrator, signingKey []byte, cfg *config.Config, hindsightMCPURL func(uuid.UUID) string) *Pusher {
 	return &Pusher{
-		db:           db,
-		orchestrator: orchestrator,
-		signingKey:   signingKey,
-		cfg:          cfg,
+		db:              db,
+		orchestrator:    orchestrator,
+		signingKey:      signingKey,
+		cfg:             cfg,
+		hindsightMCPURL: hindsightMCPURL,
 	}
 }
 
@@ -173,7 +176,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": agent.IdentityID.String(), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing new token: %w", err)
@@ -235,7 +238,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": agent.IdentityID.String(), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing proxy token: %w", err)
@@ -337,6 +340,17 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 			*mcpServers = append(*mcpServers, ourMCP)
 		}
 	}
+	// Add Hindsight memory MCP server (if configured and agent has a team)
+	if p.hindsightMCPURL != nil && agent.Team != "" {
+		hsMCP := buildHindsightMCPServer(p.hindsightMCPURL(agent.ID))
+		if mcpServers == nil {
+			servers := []bridgepkg.McpServerDefinition{hsMCP}
+			mcpServers = &servers
+		} else {
+			*mcpServers = append(*mcpServers, hsMCP)
+		}
+	}
+
 	if mcpServers != nil && len(*mcpServers) > 0 {
 		def.McpServers = mcpServers
 	}
@@ -354,6 +368,20 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	}
 
 	return def
+}
+
+func buildHindsightMCPServer(mcpURL string) bridgepkg.McpServerDefinition {
+	var transport bridgepkg.McpTransport
+	httpTransport := bridgepkg.McpTransport1{
+		Type: bridgepkg.StreamableHttp,
+		Url:  mcpURL,
+	}
+	transport.FromMcpTransport1(httpTransport)
+
+	return bridgepkg.McpServerDefinition{
+		Name:      "memory",
+		Transport: transport,
+	}
 }
 
 func buildLLMVaultMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {

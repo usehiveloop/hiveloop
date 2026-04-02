@@ -85,6 +85,35 @@ export type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"]
 export type ErrorResponse = Schemas["errorResponse"];
 export type JSON = Schemas["JSON"];
 
+// Org
+export type CreateOrgRequest = Schemas["createOrgRequest"];
+
+// Generations
+export type GenerationResponse = Schemas["generationResponse"];
+export type PaginatedGenerations = Schemas["paginatedResponse-generationResponse"];
+
+// Reporting
+export type ReportRow = Schemas["reportRow"];
+
+// Custom Domains
+export type CreateDomainRequest = Schemas["createDomainRequest"];
+export type CreateDomainResponse = Schemas["createDomainResponse"];
+export type VerifyDomainResponse = Schemas["verifyDomainResponse"];
+export type DnsRecord = Schemas["dnsRecord"];
+
+// Connect Sessions
+export type ConnectSessionListItem = Schemas["connectSessionListItem"];
+export type PaginatedConnectSessions = Schemas["paginatedResponse-connectSessionListItem"];
+
+// Catalog
+export type IntegrationSummary = Schemas["integrationSummary"];
+export type IntegrationDetail = Schemas["integrationDetail"];
+export type ActionSummary = Schemas["actionSummary"];
+
+// Setup
+export type SetupRequest = Schemas["setupRequest"];
+export type SetupResponse = Schemas["setupResponse"];
+
 // Agents
 export type AgentResponse = Schemas["agentResponse"];
 export type CreateAgentRequest = Schemas["createAgentRequest"];

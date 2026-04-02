@@ -2,6 +2,7 @@ import { BaseResource } from "./base.js";
 import type {
   CreateIdentityRequest,
   UpdateIdentityRequest,
+  SetupRequest,
 } from "../types.js";
 
 export class IdentitiesResource extends BaseResource {
@@ -34,6 +35,19 @@ export class IdentitiesResource extends BaseResource {
   delete(id: string) {
     return this.client.DELETE("/v1/identities/{id}", {
       params: { path: { id } },
+    });
+  }
+
+  getSetup(id: string) {
+    return this.client.GET("/v1/identities/{id}/setup", {
+      params: { path: { id } },
+    });
+  }
+
+  updateSetup(id: string, body: SetupRequest) {
+    return this.client.PUT("/v1/identities/{id}/setup", {
+      params: { path: { id } },
+      body,
     });
   }
 }
