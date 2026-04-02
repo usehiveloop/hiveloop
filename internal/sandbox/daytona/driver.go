@@ -318,32 +318,12 @@ func (d *Driver) SetAutoStop(ctx context.Context, externalID string, intervalMin
 	return nil
 }
 
-// ExecuteCommand runs a shell command inside the sandbox via the toolbox proxy.
+// ExecuteCommand runs a shell command inside the sandbox via the Daytona API
+// server's toolbox proxy. This routes through the API server rather than the
+// preview proxy domain, which may not be resolvable from all environments.
 func (d *Driver) ExecuteCommand(ctx context.Context, externalID string, command string) (string, error) {
-	// First get the sandbox to find the toolbox proxy URL
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/sandbox/"+externalID, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", "Bearer "+d.apiKey)
-	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
-	if err != nil {
-		return "", fmt.Errorf("getting sandbox: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var sbInfo struct {
-		ToolboxProxyURL string `json:"toolboxProxyUrl"`
-	}
-	json.NewDecoder(resp.Body).Decode(&sbInfo)
-
-	if sbInfo.ToolboxProxyURL == "" {
-		return "", fmt.Errorf("sandbox %s has no toolbox proxy URL", externalID)
-	}
-
-	// Execute command via toolbox
 	cmdBody, _ := json.Marshal(map[string]string{"command": command})
-	execURL := fmt.Sprintf("%s/%s/process/execute", sbInfo.ToolboxProxyURL, externalID)
+	execURL := fmt.Sprintf("%s/toolbox/%s/toolbox/process/execute", d.apiURL, externalID)
 	execReq, err := http.NewRequestWithContext(ctx, http.MethodPost, execURL, bytes.NewReader(cmdBody))
 	if err != nil {
 		return "", err
@@ -351,17 +331,22 @@ func (d *Driver) ExecuteCommand(ctx context.Context, externalID string, command 
 	execReq.Header.Set("Authorization", "Bearer "+d.apiKey)
 	execReq.Header.Set("Content-Type", "application/json")
 
-	execResp, err := (&http.Client{Timeout: 60 * time.Second}).Do(execReq)
+	execResp, err := (&http.Client{Timeout: 120 * time.Second}).Do(execReq)
 	if err != nil {
 		return "", fmt.Errorf("executing command: %w", err)
 	}
 	defer execResp.Body.Close()
 
+	respBody, _ := io.ReadAll(execResp.Body)
+	if execResp.StatusCode >= 400 {
+		return "", fmt.Errorf("execute command failed (status %d): %s", execResp.StatusCode, respBody)
+	}
+
 	var result struct {
 		ExitCode int    `json:"exitCode"`
 		Result   string `json:"result"`
 	}
-	json.NewDecoder(execResp.Body).Decode(&result)
+	json.Unmarshal(respBody, &result)
 
 	if result.ExitCode != 0 {
 		return result.Result, fmt.Errorf("command exited with code %d: %s", result.ExitCode, result.Result)
