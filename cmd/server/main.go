@@ -218,7 +218,7 @@ func run() error {
 	providerHandler := handler.NewProviderHandler(reg)
 	connectSessionHandler := handler.NewConnectSessionHandler(database)
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
-	settingsHandler := handler.NewSettingsHandler(database)
+	settingsHandler := handler.NewSettingsHandler(database, sandboxEncKey)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
@@ -273,7 +273,7 @@ func run() error {
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
-	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey)
+	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey)
 
 	var templateBuilder handler.TemplateBuildable
 	if orchestrator != nil {
@@ -481,6 +481,10 @@ func run() error {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("all"))
 				r.Get("/settings/connect", settingsHandler.GetConnectSettings)
 				r.Put("/settings/connect", settingsHandler.UpdateConnectSettings)
+				r.Get("/settings/webhooks", settingsHandler.GetWebhookSettings)
+				r.Put("/settings/webhooks", settingsHandler.UpdateWebhookSettings)
+				r.Post("/settings/webhooks/rotate-secret", settingsHandler.RotateWebhookSecret)
+				r.Delete("/settings/webhooks", settingsHandler.DeleteWebhookSettings)
 				r.Post("/custom-domains", customDomainHandler.Create)
 				r.Get("/custom-domains", customDomainHandler.List)
 				r.Post("/custom-domains/{id}/verify", customDomainHandler.Verify)

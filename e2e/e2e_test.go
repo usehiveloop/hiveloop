@@ -166,7 +166,7 @@ func newHarness(t *testing.T) *testHarness {
 	}
 
 	connectAPIHandler := handler.NewConnectAPIHandler(db, kms, reg, nangoClient, actionsCatalog)
-	settingsHandler := handler.NewSettingsHandler(db)
+	settingsHandler := handler.NewSettingsHandler(db, nil)
 	t.Logf("Nango provider cache loaded: %d providers", len(nangoClient.GetProviders()))
 
 	// Integration + connection handlers
