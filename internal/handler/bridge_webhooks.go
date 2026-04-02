@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -22,13 +23,19 @@ import (
 
 // BridgeWebhookHandler receives webhook events from Bridge instances.
 type BridgeWebhookHandler struct {
-	db     *gorm.DB
-	encKey *crypto.SymmetricKey
+	db       *gorm.DB
+	encKey   *crypto.SymmetricKey
+	eventBus EventPublisher // nil-safe: if nil, events go directly to Postgres
+}
+
+// EventPublisher is the interface for publishing events to the streaming bus.
+type EventPublisher interface {
+	Publish(ctx context.Context, convID string, eventType string, data json.RawMessage) (string, error)
 }
 
 // NewBridgeWebhookHandler creates a webhook handler.
-func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey) *BridgeWebhookHandler {
-	return &BridgeWebhookHandler{db: db, encKey: encKey}
+func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher) *BridgeWebhookHandler {
+	return &BridgeWebhookHandler{db: db, encKey: encKey, eventBus: eventBus}
 }
 
 // webhookEvent is a single event in a Bridge webhook batch.
@@ -134,27 +141,31 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 		return
 	}
 
-	// Store the event
-	dbEvent := model.ConversationEvent{
-		OrgID:          conv.OrgID,
-		ConversationID: conv.ID,
-		EventType:      event.EventType,
-		Payload: model.JSON{
-			"event_id":        event.EventID,
-			"agent_id":        event.AgentID,
-			"conversation_id": event.ConversationID,
-			"timestamp":       event.Timestamp.Format(time.RFC3339),
-			"sequence_number": event.SequenceNumber,
-			"data":            event.Data,
-		},
+	// Build event payload
+	payload := model.JSON{
+		"event_id":        event.EventID,
+		"agent_id":        event.AgentID,
+		"conversation_id": event.ConversationID,
+		"timestamp":       event.Timestamp.Format(time.RFC3339),
+		"sequence_number": event.SequenceNumber,
+		"data":            event.Data,
 	}
-	if err := h.db.Create(&dbEvent).Error; err != nil {
-		slog.Error("webhook: failed to store event",
-			"event_type", event.EventType,
-			"conversation_id", conv.ID,
-			"error", err,
-		)
-		return
+
+	// Publish to Redis Streams for real-time delivery to SSE subscribers.
+	// The background flusher will batch-write to Postgres.
+	// If Redis is unavailable, fall back to direct Postgres write.
+	if h.eventBus != nil {
+		payloadJSON, _ := json.Marshal(payload)
+		_, err := h.eventBus.Publish(context.Background(), conv.ID.String(), event.EventType, payloadJSON)
+		if err != nil {
+			slog.Warn("webhook: Redis publish failed, falling back to direct DB write",
+				"conversation_id", conv.ID,
+				"error", err,
+			)
+			h.writeEventToPostgres(&conv, event.EventType, payload)
+		}
+	} else {
+		h.writeEventToPostgres(&conv, event.EventType, payload)
 	}
 
 	// Update conversation state for terminal events
@@ -177,6 +188,23 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 		)
 	}
 }
+
+func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversation, eventType string, payload model.JSON) {
+	dbEvent := model.ConversationEvent{
+		OrgID:          conv.OrgID,
+		ConversationID: conv.ID,
+		EventType:      eventType,
+		Payload:        payload,
+	}
+	if err := h.db.Create(&dbEvent).Error; err != nil {
+		slog.Error("webhook: failed to store event",
+			"event_type", eventType,
+			"conversation_id", conv.ID,
+			"error", err,
+		)
+	}
+}
+
 
 // verifyWebhookSignature verifies the HMAC-SHA256 signature.
 // Bridge signs with: HMAC-SHA256("{timestamp}.{payload}", secret), base64-encoded.

@@ -34,6 +34,7 @@ import (
 	"github.com/llmvault/llmvault/internal/registry"
 	"github.com/llmvault/llmvault/internal/sandbox"
 	"github.com/llmvault/llmvault/internal/sandbox/daytona"
+	"github.com/llmvault/llmvault/internal/streaming"
 	"github.com/llmvault/llmvault/internal/turso"
 )
 
@@ -253,11 +254,19 @@ func run() error {
 		go orchestrator.StartHealthChecker(ctx)
 		slog.Info("sandbox orchestrator ready")
 	}
+	// Event streaming via Redis Streams
+	eventBus := streaming.NewEventBus(redisClient)
+	flusher := streaming.NewFlusher(eventBus, database)
+	go flusher.Run(ctx)
+	cleanup := streaming.NewCleanup(eventBus)
+	go cleanup.Run(ctx)
+
 	var conversationHandler *handler.ConversationHandler
 	if orchestrator != nil && agentPusher != nil {
-		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher)
+		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
 	}
-	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey)
+
+	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
 
 	var templateBuilder handler.TemplateBuildable
 	if orchestrator != nil {

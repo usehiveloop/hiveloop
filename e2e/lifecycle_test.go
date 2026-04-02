@@ -86,7 +86,7 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	}
 
 	// Build router with conversation + sandbox handlers
-	convHandler := handler.NewConversationHandler(h.db, nil, nil)
+	convHandler := handler.NewConversationHandler(h.db, nil, nil, nil)
 	sandboxHandler := handler.NewSandboxHandler(h.db, nil)
 
 	r := chi.NewRouter()

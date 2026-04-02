@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/sandbox"
+	"github.com/llmvault/llmvault/internal/streaming"
 )
 
 // ConversationHandler proxies conversation operations to Bridge.
@@ -22,11 +22,12 @@ type ConversationHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
 	pusher       *sandbox.Pusher
+	eventBus     *streaming.EventBus // nil = use legacy Bridge SSE proxy
 }
 
 // NewConversationHandler creates a conversation handler.
-func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *ConversationHandler {
-	return &ConversationHandler{db: db, orchestrator: orchestrator, pusher: pusher}
+func NewConversationHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher, eventBus *streaming.EventBus) *ConversationHandler {
+	return &ConversationHandler{db: db, orchestrator: orchestrator, pusher: pusher, eventBus: eventBus}
 }
 
 type createConversationRequest struct {
@@ -327,54 +328,67 @@ func (h *ConversationHandler) Stream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, ok := h.getBridgeClient(w, r, conv)
-	if !ok {
-		return
-	}
+	h.streamFromRedis(w, r, conv)
+}
 
-	// Open SSE stream from Bridge
-	body, err := client.SSEStream(r.Context(), conv.BridgeConversationID)
-	if err != nil {
-		slog.Error("failed to open SSE stream", "conversation_id", conv.ID, "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to open stream"})
-		return
+// streamFromRedis streams events from Redis Streams (multi-subscriber, resumable).
+func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) {
+	// Parse Last-Event-ID for resume support
+	cursor := r.Header.Get("Last-Event-ID")
+	if cursor == "" {
+		cursor = "0" // replay all available events
 	}
-	defer body.Close()
 
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no") // disable nginx buffering
+	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	// Use ResponseController for flushing — works through any middleware wrapper
 	rc := http.NewResponseController(w)
-
 	h.db.Model(&conv.Sandbox).Update("last_active_at", time.Now())
 
-	// Pipe Bridge SSE → client
-	buf := make([]byte, 4096)
+	// Subscribe to the conversation's Redis Stream
+	events := h.eventBus.Subscribe(r.Context(), conv.ID.String(), cursor)
+
+	// Keep-alive ping ticker
+	pingTicker := time.NewTicker(15 * time.Second)
+	defer pingTicker.Stop()
+
 	for {
-		n, err := body.Read(buf)
-		if n > 0 {
-			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+		select {
+		case event, ok := <-events:
+			if !ok {
+				return // channel closed
+			}
+
+			// Write SSE frame: id, event, data
+			frame := fmt.Sprintf("id: %s\nevent: %s\ndata: %s\n\n",
+				event.ID, event.EventType, string(event.Data))
+
+			if _, err := w.Write([]byte(frame)); err != nil {
 				slog.Debug("SSE client disconnected", "conversation_id", conv.ID)
 				return
 			}
-			if flushErr := rc.Flush(); flushErr != nil {
-				slog.Debug("SSE flush failed", "conversation_id", conv.ID, "error", flushErr)
+			if err := rc.Flush(); err != nil {
 				return
 			}
-		}
-		if err != nil {
-			if err != io.EOF {
-				slog.Debug("SSE stream ended", "conversation_id", conv.ID, "error", err)
+
+		case <-pingTicker.C:
+			if _, err := w.Write([]byte(": ping\n\n")); err != nil {
+				return
 			}
+			if err := rc.Flush(); err != nil {
+				return
+			}
+
+		case <-r.Context().Done():
 			return
 		}
 	}
 }
+
 
 // Abort handles POST /v1/conversations/{convID}/abort.
 // @Summary Abort current turn
