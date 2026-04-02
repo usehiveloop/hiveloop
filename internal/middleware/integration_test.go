@@ -579,7 +579,7 @@ func TestIntegration_Audit_WritesToPostgres(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	aw := middleware.NewAuditWriter(db, 100)
+	aw := middleware.NewAuditWriter(db, 100, 10*time.Millisecond)
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -644,7 +644,7 @@ func TestIntegration_Audit_MultipleRequestsFlushed(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	aw := middleware.NewAuditWriter(db, 100)
+	aw := middleware.NewAuditWriter(db, 100, 10*time.Millisecond)
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

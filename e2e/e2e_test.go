@@ -132,7 +132,7 @@ func newHarness(t *testing.T) *testHarness {
 	signingKey := []byte(testSigningKey)
 
 	// Audit writer
-	aw := middleware.NewAuditWriter(db, 1000)
+	aw := middleware.NewAuditWriter(db, 1000, 10*time.Millisecond)
 
 	// Build the full Chi router
 	r := chi.NewRouter()

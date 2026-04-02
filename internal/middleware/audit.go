@@ -21,17 +21,25 @@ const auditBatchSize = 50
 // AuditWriter is a buffered audit log writer that never blocks the request hot path.
 // Entries are queued via a channel and flushed in a background goroutine.
 type AuditWriter struct {
-	db      *gorm.DB
-	entries chan model.AuditEntry
-	wg      sync.WaitGroup
+	db            *gorm.DB
+	entries       chan model.AuditEntry
+	wg            sync.WaitGroup
+	flushInterval time.Duration
 }
 
 // NewAuditWriter creates an AuditWriter with the given buffer size and starts
 // background flushing. Call Shutdown to flush remaining entries on exit.
-func NewAuditWriter(db *gorm.DB, bufferSize int) *AuditWriter {
+// An optional flushInterval controls how often partial batches are flushed
+// (default 500ms).
+func NewAuditWriter(db *gorm.DB, bufferSize int, flushInterval ...time.Duration) *AuditWriter {
+	interval := 500 * time.Millisecond
+	if len(flushInterval) > 0 {
+		interval = flushInterval[0]
+	}
 	aw := &AuditWriter{
-		db:      db,
-		entries: make(chan model.AuditEntry, bufferSize),
+		db:            db,
+		entries:       make(chan model.AuditEntry, bufferSize),
+		flushInterval: interval,
 	}
 	aw.wg.Add(1)
 	go aw.drain()
@@ -50,7 +58,7 @@ func (aw *AuditWriter) drain() {
 	}()
 
 	batch := make([]model.AuditEntry, 0, auditBatchSize)
-	timer := time.NewTimer(500 * time.Millisecond)
+	timer := time.NewTimer(aw.flushInterval)
 	defer timer.Stop()
 
 	flush := func() {
@@ -79,11 +87,11 @@ func (aw *AuditWriter) drain() {
 					default:
 					}
 				}
-				timer.Reset(500 * time.Millisecond)
+				timer.Reset(aw.flushInterval)
 			}
 		case <-timer.C:
 			flush()
-			timer.Reset(500 * time.Millisecond)
+			timer.Reset(aw.flushInterval)
 		}
 	}
 }

@@ -23,19 +23,27 @@ const generationBatchSize = 50
 
 // GenerationWriter is a buffered generation log writer that never blocks the request hot path.
 type GenerationWriter struct {
-	db      *gorm.DB
-	reg     *registry.Registry
-	entries chan model.Generation
-	wg      sync.WaitGroup
+	db            *gorm.DB
+	reg           *registry.Registry
+	entries       chan model.Generation
+	wg            sync.WaitGroup
+	flushInterval time.Duration
 }
 
 // NewGenerationWriter creates a GenerationWriter with the given buffer size and starts
 // background flushing. Call Shutdown to flush remaining entries on exit.
-func NewGenerationWriter(db *gorm.DB, reg *registry.Registry, bufferSize int) *GenerationWriter {
+// An optional flushInterval controls how often partial batches are flushed
+// (default 500ms).
+func NewGenerationWriter(db *gorm.DB, reg *registry.Registry, bufferSize int, flushInterval ...time.Duration) *GenerationWriter {
+	interval := 500 * time.Millisecond
+	if len(flushInterval) > 0 {
+		interval = flushInterval[0]
+	}
 	gw := &GenerationWriter{
-		db:      db,
-		reg:     reg,
-		entries: make(chan model.Generation, bufferSize),
+		db:            db,
+		reg:           reg,
+		entries:       make(chan model.Generation, bufferSize),
+		flushInterval: interval,
 	}
 	gw.wg.Add(1)
 	go gw.drain()
@@ -54,7 +62,7 @@ func (gw *GenerationWriter) drain() {
 	}()
 
 	batch := make([]model.Generation, 0, generationBatchSize)
-	timer := time.NewTimer(500 * time.Millisecond)
+	timer := time.NewTimer(gw.flushInterval)
 	defer timer.Stop()
 
 	flush := func() {
@@ -83,11 +91,11 @@ func (gw *GenerationWriter) drain() {
 					default:
 					}
 				}
-				timer.Reset(500 * time.Millisecond)
+				timer.Reset(gw.flushInterval)
 			}
 		case <-timer.C:
 			flush()
-			timer.Reset(500 * time.Millisecond)
+			timer.Reset(gw.flushInterval)
 		}
 	}
 }
