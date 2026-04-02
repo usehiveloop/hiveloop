@@ -69,6 +69,17 @@ func (o *Orchestrator) EnsureSharedSandbox(ctx context.Context, org *model.Org, 
 	var existing model.Sandbox
 	err := o.db.Where("identity_id = ? AND sandbox_type = 'shared'", identity.ID).First(&existing).Error
 	if err == nil {
+		// Verify the sandbox still exists in the provider
+		if err := o.verifySandboxExists(ctx, &existing); err != nil {
+			slog.Warn("shared sandbox stale, deleting and recreating",
+				"sandbox_id", existing.ID,
+				"external_id", existing.ExternalID,
+				"error", err,
+			)
+			o.db.Delete(&existing)
+			return o.createSandbox(ctx, org, identity, "shared", nil)
+		}
+
 		switch existing.Status {
 		case "running":
 			return &existing, nil
@@ -85,6 +96,15 @@ func (o *Orchestrator) EnsureSharedSandbox(ctx context.Context, org *model.Org, 
 
 	// No existing sandbox — create a new one
 	return o.createSandbox(ctx, org, identity, "shared", nil)
+}
+
+// verifySandboxExists checks if the sandbox's external ID still exists in the provider.
+func (o *Orchestrator) verifySandboxExists(ctx context.Context, sb *model.Sandbox) error {
+	if sb.ExternalID == "" {
+		return fmt.Errorf("no external ID")
+	}
+	_, err := o.provider.GetEndpoint(ctx, sb.ExternalID, BridgePort)
+	return err
 }
 
 // CreateDedicatedSandbox spins up a new sandbox for a dedicated agent.
