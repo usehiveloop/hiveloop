@@ -95,6 +95,9 @@ type Config struct {
 	BridgeBaseImagePrefix string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"llmvault-bridge-0-10-0-small-v2"` // full snapshot name (no size suffix appended)
 	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook/proxy URLs
 
+	// Hindsight (agent memory)
+	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
+
 	// Custom preview domains
 	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.llmvault.dev"`
 	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"`  // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy

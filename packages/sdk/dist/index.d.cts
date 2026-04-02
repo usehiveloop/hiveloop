@@ -266,6 +266,21 @@ interface components {
             refill_interval?: string;
             remaining?: number;
         };
+        createDomainRequest: {
+            domain?: string;
+        };
+        createDomainResponse: {
+            acme_dns_subdomain?: string;
+            cname_target?: string;
+            created_at?: string;
+            dns_records?: components["schemas"]["dnsRecord"][];
+            domain?: string;
+            id?: string;
+            org_id?: string;
+            updated_at?: string;
+            verified?: boolean;
+            verified_at?: string;
+        };
         createIdentityRequest: {
             external_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -316,6 +331,11 @@ interface components {
             count?: number;
             date?: string;
         };
+        dnsRecord: {
+            name?: string;
+            type?: string;
+            value?: string;
+        };
         errorRate: {
             date?: string;
             error_count?: number;
@@ -333,6 +353,31 @@ interface components {
         };
         forgotPasswordRequest: {
             email?: string;
+        };
+        generationResponse: {
+            cached_tokens?: number;
+            cost?: number;
+            created_at?: string;
+            credential_id?: string;
+            error_message?: string;
+            error_type?: string;
+            id?: string;
+            identity_id?: string;
+            input_tokens?: number;
+            ip_address?: string;
+            is_streaming?: boolean;
+            model?: string;
+            org_id?: string;
+            output_tokens?: number;
+            provider_id?: string;
+            reasoning_tokens?: number;
+            request_path?: string;
+            tags?: string[];
+            token_jti?: string;
+            total_ms?: number;
+            ttfb_ms?: number;
+            upstream_status?: number;
+            user_id?: string;
         };
         identityRateLimitParams: {
             /** @description milliseconds */
@@ -502,6 +547,11 @@ interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-generationResponse": {
+            data?: components["schemas"]["generationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-identityResponse": {
             data?: components["schemas"]["identityResponse"][];
             has_more?: boolean;
@@ -631,6 +681,16 @@ interface components {
             identity_id?: string;
             permissions?: string[];
         };
+        setupRequest: {
+            env_vars?: {
+                [key: string]: string;
+            };
+            setup_commands?: string[];
+        };
+        setupResponse: {
+            env_var_keys?: string[];
+            setup_commands?: string[];
+        };
         spendOverTime: {
             date?: string;
             total_cost?: number;
@@ -734,6 +794,10 @@ interface components {
             id?: string;
             name?: string;
         };
+        verifyDomainResponse: {
+            message?: string;
+            verified?: boolean;
+        };
         widgetIntegrationResponse: {
             auth_mode?: string;
             connection_id?: string;
@@ -756,7 +820,14 @@ interface components {
     };
     responses: never;
     parameters: never;
-    requestBodies: never;
+    requestBodies: {
+        /** @description Setup configuration */
+        setupRequest: {
+            content: {
+                "application/json": components["schemas"]["setupRequest"];
+            };
+        };
+    };
     headers: never;
     pathItems: never;
 }
@@ -826,6 +897,21 @@ type PaginatedIntegrations = Schemas["paginatedResponse-integrationResponse"];
 type PaginatedIntegConns = Schemas["paginatedResponse-integConnResponse"];
 type ErrorResponse = Schemas["errorResponse"];
 type JSON = Schemas["JSON"];
+type CreateOrgRequest = Schemas["createOrgRequest"];
+type GenerationResponse = Schemas["generationResponse"];
+type PaginatedGenerations = Schemas["paginatedResponse-generationResponse"];
+type ReportRow = Schemas["reportRow"];
+type CreateDomainRequest = Schemas["createDomainRequest"];
+type CreateDomainResponse = Schemas["createDomainResponse"];
+type VerifyDomainResponse = Schemas["verifyDomainResponse"];
+type DnsRecord = Schemas["dnsRecord"];
+type ConnectSessionListItem = Schemas["connectSessionListItem"];
+type PaginatedConnectSessions = Schemas["paginatedResponse-connectSessionListItem"];
+type IntegrationSummary = Schemas["integrationSummary"];
+type IntegrationDetail = Schemas["integrationDetail"];
+type ActionSummary = Schemas["actionSummary"];
+type SetupRequest = Schemas["setupRequest"];
+type SetupResponse = Schemas["setupResponse"];
 type AgentResponse = Schemas["agentResponse"];
 type CreateAgentRequest = Schemas["createAgentRequest"];
 type UpdateAgentRequest = Schemas["updateAgentRequest"];
@@ -1116,6 +1202,90 @@ declare class AgentsResource extends BaseResource {
             };
         };
     }, `${string}/${string}`>>;
+    getSetup(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["setupResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    updateSetup(id: string, body: SetupRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["setupRequest"];
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["setupResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: {
+            env_vars?: {
+                [key: string]: string;
+            };
+            setup_commands?: string[];
+        };
+    }, `${string}/${string}`>>;
 }
 
 declare class ApiKeysResource extends BaseResource {
@@ -1353,6 +1523,118 @@ declare class AuditResource extends BaseResource {
     }, `${string}/${string}`>>;
 }
 
+declare class CatalogResource extends BaseResource {
+    listIntegrations(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["integrationSummary"][];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["integrationSummary"][];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+    getIntegration(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["integrationDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    listActions(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                access?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["actionSummary"][];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
 declare class ConnectSessionsResource extends BaseResource {
     create(body: CreateConnectSessionRequest): Promise<openapi_fetch.FetchResponse<{
         parameters: {
@@ -1417,6 +1699,185 @@ declare class ConnectSessionsResource extends BaseResource {
             metadata?: components["schemas"]["JSON"];
             permissions?: string[];
             ttl?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                status?: string;
+                identity_id?: string;
+                external_id?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-connectSessionListItem"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["connectSessionListItem"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
         };
     }, `${string}/${string}`>>;
 }
@@ -1816,6 +2277,9 @@ declare class ConnectionsResource extends BaseResource {
 }
 
 declare class ConversationsResource extends BaseResource {
+    private baseUrl;
+    private apiKey;
+    constructor(client: ApiClient, baseUrl: string, apiKey: string);
     create(agentID: string): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -2215,6 +2679,11 @@ declare class ConversationsResource extends BaseResource {
             } | undefined;
         };
     }, `${string}/${string}`>>;
+    /**
+     * Opens an SSE stream for real-time conversation events.
+     * Returns the raw Response so callers can consume the ReadableStream.
+     */
+    stream(convID: string): Promise<Response>;
 }
 
 declare class CredentialsResource extends BaseResource {
@@ -2455,6 +2924,309 @@ declare class CredentialsResource extends BaseResource {
                 };
             };
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class CustomDomainsResource extends BaseResource {
+    create(body: CreateDomainRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["createDomainRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["createDomainResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            domain?: string;
+        };
+    }, `${string}/${string}`>>;
+    list(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["createDomainResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["createDomainResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+    verify(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["verifyDomainResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    delete(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class GenerationsResource extends BaseResource {
+    list(query?: {
+        limit?: number;
+        cursor?: string;
+        model?: string;
+        provider_id?: string;
+        credential_id?: string;
+        user_id?: string;
+        tags?: string;
+        error_type?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                model?: string;
+                provider_id?: string;
+                credential_id?: string;
+                user_id?: string;
+                tags?: string;
+                error_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["paginatedResponse-generationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                limit?: number;
+                cursor?: string;
+                model?: string;
+                provider_id?: string;
+                credential_id?: string;
+                user_id?: string;
+                tags?: string;
+                error_type?: string;
+            } | undefined;
+        };
+    }, `${string}/${string}`>>;
+    get(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["generationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2790,6 +3562,90 @@ declare class IdentitiesResource extends BaseResource {
             path: {
                 id: string;
             };
+        };
+    }, `${string}/${string}`>>;
+    getSetup(id: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["setupResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    updateSetup(id: string, body: SetupRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["setupRequest"];
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["setupResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                id: string;
+            };
+        };
+        body: {
+            env_vars?: {
+                [key: string]: string;
+            };
+            setup_commands?: string[];
         };
     }, `${string}/${string}`>>;
 }
@@ -3163,6 +4019,57 @@ declare class IntegrationsResource extends BaseResource {
 }
 
 declare class OrgResource extends BaseResource {
+    create(body: CreateOrgRequest): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["createOrgRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["orgResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            name?: string;
+        };
+    }, `${string}/${string}`>>;
     getCurrent(): Promise<openapi_fetch.FetchResponse<{
         parameters: {
             query?: never;
@@ -3324,6 +4231,78 @@ declare class ProvidersResource extends BaseResource {
             path: {
                 id: string;
             };
+        };
+    }, `${string}/${string}`>>;
+}
+
+declare class ReportingResource extends BaseResource {
+    get(query?: {
+        group_by?: string;
+        date_part?: string;
+        start_date?: string;
+        end_date?: string;
+        model?: string;
+        provider_id?: string;
+        credential_id?: string;
+        user_id?: string;
+        tags?: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: {
+                group_by?: string;
+                date_part?: string;
+                start_date?: string;
+                end_date?: string;
+                model?: string;
+                provider_id?: string;
+                credential_id?: string;
+                user_id?: string;
+                tags?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["reportRow"][];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            query: {
+                group_by?: string;
+                date_part?: string;
+                start_date?: string;
+                end_date?: string;
+                model?: string;
+                provider_id?: string;
+                credential_id?: string;
+                user_id?: string;
+                tags?: string;
+            } | undefined;
         };
     }, `${string}/${string}`>>;
 }
@@ -4026,14 +5005,18 @@ declare class LLMVault {
     readonly agents: AgentsResource;
     readonly apiKeys: ApiKeysResource;
     readonly audit: AuditResource;
+    readonly catalog: CatalogResource;
     readonly connect: ConnectResource;
     readonly connections: ConnectionsResource;
     readonly conversations: ConversationsResource;
     readonly credentials: CredentialsResource;
+    readonly customDomains: CustomDomainsResource;
+    readonly generations: GenerationsResource;
     readonly identities: IdentitiesResource;
     readonly integrations: IntegrationsResource;
     readonly org: OrgResource;
     readonly providers: ProvidersResource;
+    readonly reporting: ReportingResource;
     readonly sandboxes: SandboxesResource;
     readonly sandboxTemplates: SandboxTemplatesResource;
     readonly tokens: TokensResource;
@@ -4041,4 +5024,4 @@ declare class LLMVault {
     constructor(config: LLMVaultConfig);
 }
 
-export { type AgentResponse, type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type CommandResult, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type ConversationEventResponse, type ConversationResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateAgentRequest, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateIdentityRequest, type CreateIntegrationRequest, type CreateSandboxTemplateRequest, type CredentialResponse, type ErrorResponse, type ExecRequest, type ExecResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationResponse, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedAgents, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedConversationEvents, type PaginatedConversations, type PaginatedCredentials, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedSandboxTemplates, type PaginatedSandboxes, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type SandboxResponse, type SandboxTemplateResponse, type TokenListItem, type TokenScope, type UpdateAgentRequest, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UpdateSandboxTemplateRequest, type UsageResponse };
+export { type ActionSummary, type AgentResponse, type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type CommandResult, type ConnectSessionListItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type ConversationEventResponse, type ConversationResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateAgentRequest, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateDomainRequest, type CreateDomainResponse, type CreateIdentityRequest, type CreateIntegrationRequest, type CreateOrgRequest, type CreateSandboxTemplateRequest, type CredentialResponse, type DnsRecord, type ErrorResponse, type ExecRequest, type ExecResponse, type GenerationResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationDetail, type IntegrationResponse, type IntegrationSummary, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedAgents, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedConnectSessions, type PaginatedConversationEvents, type PaginatedConversations, type PaginatedCredentials, type PaginatedGenerations, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedSandboxTemplates, type PaginatedSandboxes, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type ReportRow, type SandboxResponse, type SandboxTemplateResponse, type SetupRequest, type SetupResponse, type TokenListItem, type TokenScope, type UpdateAgentRequest, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UpdateSandboxTemplateRequest, type UsageResponse, type VerifyDomainResponse };

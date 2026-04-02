@@ -57,6 +57,8 @@ type createAgentRequest struct {
 	Subagents         model.JSON `json:"subagents,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
+	Team              string     `json:"team,omitempty"`
+	SharedMemory      bool       `json:"shared_memory,omitempty"`
 }
 
 type updateAgentRequest struct {
@@ -74,6 +76,8 @@ type updateAgentRequest struct {
 	Subagents         model.JSON `json:"subagents,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
+	Team              *string    `json:"team,omitempty"`
+	SharedMemory      *bool      `json:"shared_memory,omitempty"`
 }
 
 type agentResponse struct {
@@ -94,6 +98,8 @@ type agentResponse struct {
 	Subagents         model.JSON `json:"subagents"`
 	AgentConfig       model.JSON `json:"agent_config"`
 	Permissions       model.JSON `json:"permissions"`
+	Team              string     `json:"team"`
+	SharedMemory      bool       `json:"shared_memory"`
 	Status            string     `json:"status"`
 	CreatedAt         string     `json:"created_at"`
 	UpdatedAt         string     `json:"updated_at"`
@@ -116,6 +122,8 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Subagents:    a.Subagents,
 		AgentConfig:  a.AgentConfig,
 		Permissions:  a.Permissions,
+		Team:         a.Team,
+		SharedMemory: a.SharedMemory,
 		Status:       a.Status,
 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),
@@ -208,6 +216,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate json_schema in agent_config if present
+	if errMsg := validateJSONSchema(req.AgentConfig); errMsg != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+		return
+	}
+
 	// Validate sandbox template if provided
 	var sandboxTemplateID *interface{ String() string }
 	_ = sandboxTemplateID // unused, we parse directly
@@ -227,6 +241,8 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Subagents:    defaultJSON(req.Subagents),
 		AgentConfig:  defaultJSON(req.AgentConfig),
 		Permissions:  defaultJSON(req.Permissions),
+		Team:         req.Team,
+		SharedMemory: req.SharedMemory,
 		Status:       "active",
 	}
 
@@ -485,10 +501,20 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["subagents"] = req.Subagents
 	}
 	if req.AgentConfig != nil {
+		if errMsg := validateJSONSchema(req.AgentConfig); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
 		updates["agent_config"] = req.AgentConfig
 	}
 	if req.Permissions != nil {
 		updates["permissions"] = req.Permissions
+	}
+	if req.Team != nil {
+		updates["team"] = *req.Team
+	}
+	if req.SharedMemory != nil {
+		updates["shared_memory"] = *req.SharedMemory
 	}
 
 	if len(updates) > 0 {
@@ -565,6 +591,130 @@ func defaultJSON(j model.JSON) model.JSON {
 		return model.JSON{}
 	}
 	return j
+}
+
+// validateJSONSchema validates the json_schema field inside agent_config.
+// Returns an error message if invalid, empty string if valid or absent.
+func validateJSONSchema(agentConfig model.JSON) string {
+	if agentConfig == nil {
+		return ""
+	}
+
+	raw, ok := agentConfig["json_schema"]
+	if !ok || raw == nil {
+		return ""
+	}
+
+	schema, ok := raw.(map[string]any)
+	if !ok {
+		return "json_schema must be an object"
+	}
+
+	// Require "name" field
+	name, _ := schema["name"].(string)
+	if name == "" {
+		return "json_schema.name is required and must be a non-empty string"
+	}
+
+	// Require "schema" field
+	schemaDef, ok := schema["schema"].(map[string]any)
+	if !ok {
+		return "json_schema.schema is required and must be an object"
+	}
+
+	// Top-level type must be "object"
+	schemaType, _ := schemaDef["type"].(string)
+	if schemaType != "object" {
+		return "json_schema.schema.type must be \"object\""
+	}
+
+	// Validate nesting depth and property count
+	if err := validateSchemaDepthAndProperties(schemaDef, 1, new(int)); err != "" {
+		return err
+	}
+
+	// Reject unsupported keywords at any level
+	if err := validateSchemaKeywords(schemaDef); err != "" {
+		return err
+	}
+
+	return ""
+}
+
+// validateSchemaDepthAndProperties walks a JSON Schema object checking depth <= 5 and total properties <= 100.
+func validateSchemaDepthAndProperties(schema map[string]any, depth int, propCount *int) string {
+	if depth > 5 {
+		return "json_schema.schema exceeds maximum nesting depth of 5"
+	}
+
+	props, _ := schema["properties"].(map[string]any)
+	*propCount += len(props)
+	if *propCount > 100 {
+		return "json_schema.schema exceeds maximum of 100 total properties"
+	}
+
+	for _, v := range props {
+		if obj, ok := v.(map[string]any); ok {
+			propType, _ := obj["type"].(string)
+			if propType == "object" {
+				if err := validateSchemaDepthAndProperties(obj, depth+1, propCount); err != "" {
+					return err
+				}
+			}
+			if propType == "array" {
+				if items, ok := obj["items"].(map[string]any); ok {
+					itemType, _ := items["type"].(string)
+					if itemType == "object" {
+						if err := validateSchemaDepthAndProperties(items, depth+1, propCount); err != "" {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// validateSchemaKeywords rejects non-portable JSON Schema keywords.
+func validateSchemaKeywords(schema map[string]any) string {
+	rejected := []string{"$ref", "$defs", "oneOf", "allOf", "not", "if", "then", "else",
+		"pattern", "format", "minLength", "maxLength", "minimum", "maximum",
+		"minItems", "maxItems", "patternProperties"}
+
+	return walkSchemaKeywords(schema, rejected)
+}
+
+func walkSchemaKeywords(obj map[string]any, rejected []string) string {
+	for _, kw := range rejected {
+		if _, exists := obj[kw]; exists {
+			return fmt.Sprintf("json_schema.schema contains unsupported keyword %q (not portable across providers)", kw)
+		}
+	}
+	if props, ok := obj["properties"].(map[string]any); ok {
+		for _, v := range props {
+			if sub, ok := v.(map[string]any); ok {
+				if err := walkSchemaKeywords(sub, rejected); err != "" {
+					return err
+				}
+			}
+		}
+	}
+	if items, ok := obj["items"].(map[string]any); ok {
+		if err := walkSchemaKeywords(items, rejected); err != "" {
+			return err
+		}
+	}
+	if anyOf, ok := obj["anyOf"].([]any); ok {
+		for _, item := range anyOf {
+			if sub, ok := item.(map[string]any); ok {
+				if err := walkSchemaKeywords(sub, rejected); err != "" {
+					return err
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // GetSetup handles GET /v1/agents/{id}/setup.

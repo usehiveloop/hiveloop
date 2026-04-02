@@ -921,6 +921,111 @@
         }
       }
     },
+    "/v1/agents/{id}/setup": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns setup commands and env var key names for dedicated agents.",
+        "tags": [
+          "agents"
+        ],
+        "summary": "Get agent sandbox setup config",
+        "parameters": [
+          {
+            "description": "Agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/setupResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets setup commands and encrypted environment variables. Only available for dedicated sandbox agents.",
+        "tags": [
+          "agents"
+        ],
+        "summary": "Update agent sandbox setup config",
+        "parameters": [
+          {
+            "description": "Agent ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/setupRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/setupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/api-keys": {
       "get": {
         "security": [
@@ -2884,6 +2989,185 @@
         }
       }
     },
+    "/v1/generations": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns generation records for the current organization with cursor pagination and filtering.",
+        "tags": [
+          "generations"
+        ],
+        "summary": "List generations",
+        "parameters": [
+          {
+            "description": "Max items per page (1-100, default 50)",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor from previous response",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by model name",
+            "name": "model",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by provider ID",
+            "name": "provider_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by credential ID",
+            "name": "credential_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by user ID",
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by tag",
+            "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by error type",
+            "name": "error_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-generationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/generations/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns a single generation record by ID.",
+        "tags": [
+          "generations"
+        ],
+        "summary": "Get a generation",
+        "parameters": [
+          {
+            "description": "Generation ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/generationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/identities": {
       "get": {
         "security": [
@@ -3289,6 +3573,111 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/identities/{id}/setup": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns setup commands and env var key names (values are never exposed).",
+        "tags": [
+          "identities"
+        ],
+        "summary": "Get identity sandbox setup config",
+        "parameters": [
+          {
+            "description": "Identity ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/setupResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets setup commands and encrypted environment variables for shared sandboxes.",
+        "tags": [
+          "identities"
+        ],
+        "summary": "Update identity sandbox setup config",
+        "parameters": [
+          {
+            "description": "Identity ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/setupRequest"
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/setupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -6209,6 +6598,19 @@
     }
   ],
   "components": {
+    "requestBodies": {
+      "setupRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/setupRequest"
+            }
+          }
+        },
+        "description": "Setup configuration",
+        "required": true
+      }
+    },
     "securitySchemes": {
       "BearerAuth": {
         "description": "Bearer token (JWT or API key).",
@@ -7282,6 +7684,83 @@
           }
         }
       },
+      "generationResponse": {
+        "type": "object",
+        "properties": {
+          "cached_tokens": {
+            "type": "integer"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "error_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "ip_address": {
+            "type": "string"
+          },
+          "is_streaming": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "reasoning_tokens": {
+            "type": "integer"
+          },
+          "request_path": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "token_jti": {
+            "type": "string"
+          },
+          "total_ms": {
+            "type": "integer"
+          },
+          "ttfb_ms": {
+            "type": "integer"
+          },
+          "upstream_status": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
       "identityRateLimitParams": {
         "type": "object",
         "properties": {
@@ -7787,6 +8266,23 @@
           }
         }
       },
+      "paginatedResponse-generationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/generationResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
       "paginatedResponse-identityResponse": {
         "type": "object",
         "properties": {
@@ -8173,6 +8669,40 @@
             "type": "string"
           },
           "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "setupRequest": {
+        "type": "object",
+        "properties": {
+          "env_vars": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "setup_commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "setupResponse": {
+        "type": "object",
+        "properties": {
+          "env_var_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "setup_commands": {
             "type": "array",
             "items": {
               "type": "string"

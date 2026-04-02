@@ -8,6 +8,22 @@ class ConnectSessionsResource extends BaseResource {
   create(body: CreateConnectSessionRequest) {
     return this.client.POST("/v1/connect/sessions", { body });
   }
+
+  list(query?: { limit?: number; cursor?: string }) {
+    return this.client.GET("/v1/connect/sessions", { params: { query } });
+  }
+
+  get(id: string) {
+    return this.client.GET("/v1/connect/sessions/{id}", {
+      params: { path: { id } },
+    });
+  }
+
+  delete(id: string) {
+    return this.client.DELETE("/v1/connect/sessions/{id}", {
+      params: { path: { id } },
+    });
+  }
 }
 
 class ConnectSettingsResource extends BaseResource {

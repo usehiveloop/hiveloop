@@ -1488,6 +1488,29 @@
         "graphql_field": "documentContentHistory"
       }
     },
+    "document_content_history_entries": {
+      "display_name": "Document Content History Entries",
+      "description": "[Internal] Fetches document content history entries by their IDs, including content data.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "entryIds": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "entryIds"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "documentContentHistoryEntries"
+      }
+    },
     "document_create": {
       "display_name": "Document Create",
       "description": "Creates a new document.",
@@ -3283,7 +3306,7 @@
     },
     "integration_microsoft_personal_connect": {
       "display_name": "Integration Microsoft Personal Connect",
-      "description": "[ALPHA] Connects the user's personal Microsoft account to Linear.",
+      "description": "Connects the user's personal Microsoft account to Linear.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -3299,7 +3322,7 @@
     },
     "integration_microsoft_teams": {
       "display_name": "Integration Microsoft Teams",
-      "description": "[ALPHA] Integrates the organization with Microsoft Teams.",
+      "description": "Integrates the organization with Microsoft Teams.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -8011,7 +8034,7 @@
     },
     "update_integration_slack_scopes": {
       "display_name": "Update Integration Slack Scopes",
-      "description": "[Internal] Updates existing Slack integration scopes.",
+      "description": "[Internal] Updates existing Slack and Asks integration scopes.",
       "access": "write",
       "resource_type": "",
       "parameters": {

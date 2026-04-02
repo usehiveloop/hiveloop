@@ -47,6 +47,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&ConversationEvent{},
 		&CustomDomain{},
 		&OrgWebhookConfig{},
+		&HindsightBank{},
 	); err != nil {
 		return err
 	}

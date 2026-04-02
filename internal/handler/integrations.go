@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/nango"
@@ -19,13 +20,14 @@ import (
 
 // IntegrationHandler manages integration CRUD operations.
 type IntegrationHandler struct {
-	db    *gorm.DB
-	nango *nango.Client
+	db      *gorm.DB
+	nango   *nango.Client
+	catalog *catalog.Catalog
 }
 
 // NewIntegrationHandler creates a new integration handler.
-func NewIntegrationHandler(db *gorm.DB, nangoClient *nango.Client) *IntegrationHandler {
-	return &IntegrationHandler{db: db, nango: nangoClient}
+func NewIntegrationHandler(db *gorm.DB, nangoClient *nango.Client, cat *catalog.Catalog) *IntegrationHandler {
+	return &IntegrationHandler{db: db, nango: nangoClient, catalog: cat}
 }
 
 type createIntegrationRequest struct {
@@ -254,6 +256,12 @@ func (h *IntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	provider, found := h.nango.GetProvider(req.Provider)
 	if !found {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("unknown provider %q", req.Provider)})
+		return
+	}
+
+	// Validate provider has verified action definitions in the catalog.
+	if _, ok := h.catalog.GetProvider(req.Provider); !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("provider %q is not supported — no action definitions available", req.Provider)})
 		return
 	}
 
@@ -614,7 +622,7 @@ type integrationProviderInfo struct {
 // ListProviders handles GET /v1/integrations/providers.
 //
 // @Summary List available providers
-// @Description Returns all Nango providers available for creating integrations.
+// @Description Returns Nango providers that have verified action definitions in the catalog.
 // @Tags integrations
 // @Produce json
 // @Success 200 {array} integrationProviderInfo
@@ -622,16 +630,26 @@ type integrationProviderInfo struct {
 // @Router /v1/integrations/providers [get]
 // @Router /v1/widget/integrations/providers [get]
 func (h *IntegrationHandler) ListProviders(w http.ResponseWriter, r *http.Request) {
+	// Only expose providers that have verified action definitions in the catalog.
+	supported := h.catalog.ListProviders()
+	supportedSet := make(map[string]struct{}, len(supported))
+	for _, name := range supported {
+		supportedSet[name] = struct{}{}
+	}
+
 	providers := h.nango.GetProviders()
-	resp := make([]integrationProviderInfo, len(providers))
-	for i, p := range providers {
-		resp[i] = integrationProviderInfo{
+	resp := make([]integrationProviderInfo, 0, len(supported))
+	for _, p := range providers {
+		if _, ok := supportedSet[p.Name]; !ok {
+			continue
+		}
+		resp = append(resp, integrationProviderInfo{
 			Name:                     p.Name,
 			DisplayName:              p.DisplayName,
 			AuthMode:                 p.AuthMode,
 			WebhookUserDefinedSecret: p.WebhookUserDefinedSecret,
-		}
+		})
 	}
-	slog.Info("listed integration providers", "count", len(resp))
+	slog.Info("listed integration providers", "total_nango", len(providers), "supported", len(resp))
 	writeJSON(w, http.StatusOK, resp)
 }

@@ -19,7 +19,9 @@ import (
 
 	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/google/uuid"
 	"github.com/llmvault/llmvault/internal/goroutine"
+	"github.com/llmvault/llmvault/internal/hindsight"
 	"github.com/llmvault/llmvault/internal/config"
 	"github.com/llmvault/llmvault/internal/counter"
 	"github.com/llmvault/llmvault/internal/crypto"
@@ -220,7 +222,7 @@ func run() error {
 	connectAPIHandler := handler.NewConnectAPIHandler(database, kms, reg, nangoClient, actionsCatalog)
 	settingsHandler := handler.NewSettingsHandler(database, sandboxEncKey)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
-	integrationHandler := handler.NewIntegrationHandler(database, nangoClient)
+	integrationHandler := handler.NewIntegrationHandler(database, nangoClient, actionsCatalog)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
 	emailSender := &email.LogSender{}
@@ -256,7 +258,17 @@ func run() error {
 			slog.Info("turso not configured, sandboxes will run without libsql storage")
 		}
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
-		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
+
+		// Hindsight MCP URL closure (if configured — agents get memory tools via LLMVault MCP server)
+		var hindsightMCPURL func(uuid.UUID) string
+		if cfg.HindsightAPIURL != "" {
+			mcpBase := cfg.MCPBaseURL
+			hindsightMCPURL = func(agentID uuid.UUID) string {
+				return mcpBase + "/memory/" + agentID.String()
+			}
+		}
+
+		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, hindsightMCPURL)
 		goroutine.Go(func() { orchestrator.StartHealthChecker(ctx) })
 		slog.Info("sandbox orchestrator ready")
 	}
@@ -266,6 +278,14 @@ func run() error {
 	goroutine.Go(func() { flusher.Run(ctx) })
 	cleanup := streaming.NewCleanup(eventBus)
 	goroutine.Go(func() { cleanup.Run(ctx) })
+
+	// Hindsight memory retainer (Redis Stream consumer — started after eventBus)
+	if cfg.HindsightAPIURL != "" {
+		hClient := hindsight.NewClient(cfg.HindsightAPIURL)
+		retainer := hindsight.NewRetainer(eventBus, database, hClient)
+		goroutine.Go(func() { retainer.Run(ctx) })
+		slog.Info("hindsight memory retainer started", "url", cfg.HindsightAPIURL)
+	}
 
 	var conversationHandler *handler.ConversationHandler
 	if orchestrator != nil && agentPusher != nil {
@@ -566,6 +586,19 @@ func run() error {
 	mcpRouter.Use(chimw.RealIP)
 	mcpRouter.Use(chimw.Recoverer)
 	mcpRouter.Use(middleware.RequestLog(logger))
+
+	// Hindsight memory MCP tools (if configured)
+	if cfg.HindsightAPIURL != "" {
+		memoryHandler := hindsight.NewMemoryMCPHandler(database, hindsight.NewClient(cfg.HindsightAPIURL))
+		mcpRouter.Route("/memory/{agentID}", func(r chi.Router) {
+			r.Use(middleware.TokenAuth(signingKey, database))
+			r.Use(memoryHandler.ValidateAgentToken)
+			r.Handle("/*", memoryHandler.StreamableHTTPHandler())
+			r.Handle("/", memoryHandler.StreamableHTTPHandler())
+		})
+		memoryHandler.StartCleanup(ctx, 5*time.Minute)
+		slog.Info("hindsight memory MCP tools registered on /memory/{agentID}")
+	}
 
 	// Streamable HTTP transport (primary)
 	mcpRouter.Route("/{jti}", func(r chi.Router) {

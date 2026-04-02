@@ -620,54 +620,6 @@
         "graphql_field": "aiAgentCreate"
       }
     },
-    "ai_agent_destroy": {
-      "display_name": "Ai Agent Destroy",
-      "description": "",
-      "access": "write",
-      "resource_type": "",
-      "parameters": {
-        "properties": {
-          "input": {
-            "type": "string",
-            "description": "Parameters for AiAgentDestroy"
-          }
-        },
-        "required": [
-          "input"
-        ],
-        "type": "object"
-      },
-      "execution": {
-        "method": "POST",
-        "path": "/graphql",
-        "graphql_operation": "mutation",
-        "graphql_field": "aiAgentDestroy"
-      }
-    },
-    "ai_agent_update": {
-      "display_name": "Ai Agent Update",
-      "description": "",
-      "access": "write",
-      "resource_type": "",
-      "parameters": {
-        "properties": {
-          "input": {
-            "type": "string",
-            "description": "Parameters for AiAgentUpdate"
-          }
-        },
-        "required": [
-          "input"
-        ],
-        "type": "object"
-      },
-      "execution": {
-        "method": "POST",
-        "path": "/graphql",
-        "graphql_operation": "mutation",
-        "graphql_field": "aiAgentUpdate"
-      }
-    },
     "ai_catalog_agent_create": {
       "display_name": "Ai Catalog Agent Create",
       "description": "",
@@ -1202,6 +1154,10 @@
           "search": {
             "type": "string",
             "description": "Search items by name and description."
+          },
+          "sort": {
+            "type": "string",
+            "description": "Sort order of items."
           }
         },
         "type": "object"
@@ -1316,6 +1272,39 @@
         "path": "/graphql",
         "graphql_operation": "query",
         "graphql_field": "aiCatalogMcpServers"
+      }
+    },
+    "ai_catalog_mcp_tools": {
+      "display_name": "Ai Catalog Mcp Tools",
+      "description": "List of MCP tools dynamically discovered from the GitLab MCP server. Introduced in GitLab 18.11: **Status**: Experiment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string",
+            "description": "Returns the elements in the list that come after the specified cursor."
+          },
+          "before": {
+            "type": "string",
+            "description": "Returns the elements in the list that come before the specified cursor."
+          },
+          "first": {
+            "type": "integer",
+            "description": "Returns the first _n_ elements from the list."
+          },
+          "last": {
+            "type": "integer",
+            "description": "Returns the last _n_ elements from the list."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "aiCatalogMcpTools"
       }
     },
     "ai_catalog_third_party_flow_create": {
@@ -2162,6 +2151,30 @@
         "graphql_field": "artifactDestroy"
       }
     },
+    "ascp_component_create": {
+      "display_name": "Ascp Component Create",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Parameters for AscpComponentCreate"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "ascpComponentCreate"
+      }
+    },
     "ascp_scan_create": {
       "display_name": "Ascp Scan Create",
       "description": "",
@@ -2184,6 +2197,30 @@
         "path": "/graphql",
         "graphql_operation": "mutation",
         "graphql_field": "ascpScanCreate"
+      }
+    },
+    "ascp_security_context_create": {
+      "display_name": "Ascp Security Context Create",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Parameters for AscpSecurityContextCreate"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "ascpSecurityContextCreate"
       }
     },
     "audit_event_definitions": {
@@ -5326,6 +5363,10 @@
           "organizationId": {
             "type": "string",
             "description": "Organization ID to filter dashboards."
+          },
+          "search": {
+            "type": "string",
+            "description": "Filter dashboards by name."
           }
         },
         "required": [
@@ -6973,6 +7014,10 @@
             "type": "string",
             "description": "Type of flow to filter by (for example, software_development or foundational_chat_agents)."
           },
+          "updatedAfter": {
+            "type": "string",
+            "description": "Filters flows updated after a given date."
+          },
           "workflowId": {
             "type": "string",
             "description": "Flow ID to filter by."
@@ -7569,7 +7614,7 @@
     },
     "feature_flag_enabled": {
       "display_name": "Feature Flag Enabled",
-      "description": "Check if a feature flag is enabled Deprecated in GitLab 17.4: Replaced with metadata.featureFlags.",
+      "description": "Check if a feature flag is enabled. External API consumers should read the [feature flag guidance for external API consumers](https://docs.gitlab.com/development/feature_flags/#do-not-use-feature-f...",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -7690,6 +7735,27 @@
         "path": "/graphql",
         "graphql_operation": "mutation",
         "graphql_field": "geoRegistriesUpdate"
+      }
+    },
+    "gitlab_credits_available": {
+      "display_name": "Gitlab Credits Available",
+      "description": "Whether GitLab credits are available for the current user. Introduced in GitLab 18.11: **Status**: Experiment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "description": "Global ID of the namespace to check credits for."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "gitlabCreditsAvailable"
       }
     },
     "gitlab_subscription_activate": {
@@ -9774,6 +9840,10 @@
           "weightWildcardId": {
             "type": "string",
             "description": "Filter by weight ID wildcard. Incompatible with weight."
+          },
+          "workItemTypeIds": {
+            "type": "string",
+            "description": "Filter issues by work item type global IDs."
           }
         },
         "type": "object"
@@ -10666,6 +10736,30 @@
         "path": "/graphql",
         "graphql_operation": "mutation",
         "graphql_field": "mavenVirtualRegistryUpdate"
+      }
+    },
+    "maven_virtual_registry_upstream_delete": {
+      "display_name": "Maven Virtual Registry Upstream Delete",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Parameters for MavenVirtualRegistryUpstreamDelete"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "mavenVirtualRegistryUpstreamDelete"
       }
     },
     "maven_virtual_registry_upstream_update": {
@@ -11671,6 +11765,30 @@
         "graphql_field": "mlModelVersionEdit"
       }
     },
+    "mutation_pipeline_execution_schedule_policy_test_run": {
+      "display_name": "Mutation Pipeline Execution Schedule Policy Test Run",
+      "description": "Triggers a test-run for a Scheduled Pipeline Execution Policy on a specific project. Introduced in GitLab 18.10: **Status**: Experiment.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Parameters for PipelineExecutionSchedulePolicyTestRun"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "pipelineExecutionSchedulePolicyTestRun"
+      }
+    },
     "namespace": {
       "display_name": "Namespace",
       "description": "Find a namespace.",
@@ -12333,6 +12451,79 @@
         "graphql_field": "package"
       }
     },
+    "package_metadata_advisories": {
+      "display_name": "Package Metadata Advisories",
+      "description": "Get multiple package metadata advisories. Introduced in GitLab 18.11: **Status**: Experiment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string",
+            "description": "Returns the elements in the list that come after the specified cursor."
+          },
+          "before": {
+            "type": "string",
+            "description": "Returns the elements in the list that come before the specified cursor."
+          },
+          "createdAfter": {
+            "type": "string",
+            "description": "Filter advisories created after the datetime."
+          },
+          "first": {
+            "type": "integer",
+            "description": "Returns the first _n_ elements from the list."
+          },
+          "identifiers": {
+            "type": "string",
+            "description": "Array of advisory identifiers."
+          },
+          "last": {
+            "type": "integer",
+            "description": "Returns the last _n_ elements from the list."
+          },
+          "updatedAfter": {
+            "type": "string",
+            "description": "Filter advisories updated after the datetime."
+          }
+        },
+        "required": [
+          "identifiers"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "packageMetadataAdvisories"
+      }
+    },
+    "package_metadata_advisory": {
+      "display_name": "Package Metadata Advisory",
+      "description": "Get a package metadata advisory. Introduced in GitLab 18.11: **Status**: Experiment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Global ID of the advisory."
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Identifier of the advisory."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "packageMetadataAdvisory"
+      }
+    },
     "pages_mark_onboarding_complete": {
       "display_name": "Pages Mark Onboarding Complete",
       "description": "",
@@ -12499,6 +12690,30 @@
         "path": "/graphql",
         "graphql_operation": "mutation",
         "graphql_field": "pipelineDestroy"
+      }
+    },
+    "pipeline_execution_schedule_policy_test_run": {
+      "display_name": "Pipeline Execution Schedule Policy Test Run",
+      "description": "Find a pipeline execution schedule policy test run by ID. Introduced in GitLab 18.10: **Status**: Experiment.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Global ID of the policy schedule test run."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "pipelineExecutionSchedulePolicyTestRun"
       }
     },
     "pipeline_retry": {
@@ -15432,6 +15647,30 @@
         "graphql_field": "securityPolicyProjectUnassign"
       }
     },
+    "security_refs_track": {
+      "display_name": "Security Refs Track",
+      "description": "",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Parameters for SecurityRefsTrack"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "mutation",
+        "graphql_field": "securityRefsTrack"
+      }
+    },
     "security_refs_untrack": {
       "display_name": "Security Refs Untrack",
       "description": "",
@@ -18226,7 +18465,7 @@
           },
           "falsePositive": {
             "type": "boolean",
-            "description": "Returns only the vulnerabilities with false positive flag. To use this argument, you must have Elasticsearch configured and the `advanced_vulnerability_management` feature flag enabled. Not support..."
+            "description": "Returns only the vulnerabilities with false positive flag. To use this argument, you must have advanced search configured and advanced vulnerability management set up. Not supported on Instance Sec..."
           },
           "first": {
             "type": "integer",
@@ -18270,15 +18509,15 @@
           },
           "owaspTopTen2021": {
             "type": "string",
-            "description": "Filter vulnerabilities by OWASP Top 10 2021 category. Wildcard value `NONE` is also supported but it cannot be combined with other OWASP top 10 2021 values. To use this argument, you must have Elas..."
+            "description": "Filter vulnerabilities by OWASP Top 10 2021 category. Wildcard value `NONE` is also supported but it cannot be combined with other OWASP top 10 2021 values. To use this argument, you must have adva..."
           },
           "policyAutoDismissed": {
             "type": "boolean",
-            "description": "Returns only the vulnerabilities which have been auto dismissed by security policies. To use this argument, you must have Elasticsearch configured and the `advanced_vulnerability_management` featur..."
+            "description": "Returns only the vulnerabilities which have been auto dismissed by security policies. To use this argument, you must have advanced search configured and advanced vulnerability management set up. No..."
           },
           "policyViolations": {
             "type": "string",
-            "description": "Filter by security policy violations. To use this argument, you must have Elasticsearch configured and the `advanced_vulnerability_management` feature flag enabled. Not supported on Instance Securi..."
+            "description": "Filter by security policy violations. To use this argument, you must have advanced search configured and advanced vulnerability management set up. Not supported on Instance Security Dashboard queri..."
           },
           "projectId": {
             "type": "string",
@@ -18314,11 +18553,11 @@
           },
           "trackedRefIds": {
             "type": "string",
-            "description": "Filter vulnerabilities by tracked ref IDs. To use this argument, you must have Elasticsearch configured and the `advanced_vulnerability_management` feature flag enabled. Introduced in GitLab 18.10:..."
+            "description": "Filter vulnerabilities by tracked ref IDs. To use this argument, you must have advanced search configured and advanced vulnerability management set up. Introduced in GitLab 18.10: **Status**: Exper..."
           },
           "trackedRefsScope": {
             "type": "string",
-            "description": "Filter by tracked ref scopeTo use this argument, you must have Elasticsearch configured and the `advanced_vulnerability_management` + `vulnerabilities_across_contexts` feature flags enabled. Introd..."
+            "description": "Filter by tracked ref scope. To use this argument, you must have advanced search configured and advanced vulnerability management set up and the `vulnerabilities_across_contexts` feature flag enabl..."
           },
           "validityCheck": {
             "type": "string",

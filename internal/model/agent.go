@@ -31,6 +31,8 @@ type Agent struct {
 	Subagents    JSON   `gorm:"type:jsonb;not null;default:'{}'"`
 	AgentConfig  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
 	Permissions  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
+	Team         string `gorm:"not null;default:''"` // team tag for memory scoping (e.g. "engineering", "sales")
+	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
 	// Sandbox setup (dedicated agents only — ignored for shared agents)
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation

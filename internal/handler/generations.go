@@ -83,6 +83,16 @@ func toGenerationResponse(g model.Generation) generationResponse {
 }
 
 // Get handles GET /v1/generations/{id}.
+// @Summary Get a generation
+// @Description Returns a single generation record by ID.
+// @Tags generations
+// @Produce json
+// @Param id path string true "Generation ID"
+// @Success 200 {object} generationResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/generations/{id} [get]
 func (h *GenerationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -106,6 +116,24 @@ func (h *GenerationHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /v1/generations.
+// @Summary List generations
+// @Description Returns generation records for the current organization with cursor pagination and filtering.
+// @Tags generations
+// @Produce json
+// @Param limit query int false "Max items per page (1-100, default 50)"
+// @Param cursor query string false "Pagination cursor from previous response"
+// @Param model query string false "Filter by model name"
+// @Param provider_id query string false "Filter by provider ID"
+// @Param credential_id query string false "Filter by credential ID"
+// @Param user_id query string false "Filter by user ID"
+// @Param tags query string false "Filter by tag"
+// @Param error_type query string false "Filter by error type"
+// @Success 200 {object} paginatedResponse[generationResponse]
+// @Failure 400 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/generations [get]
 func (h *GenerationHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
