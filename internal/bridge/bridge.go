@@ -97,6 +97,16 @@ func (c *BridgeClient) UpsertAgent(ctx context.Context, agentID string, def Agen
 	return doVoid(c, ctx, http.MethodPut, "/push/agents/"+agentID, def)
 }
 
+// HasAgent checks if Bridge already has this agent loaded.
+func (c *BridgeClient) HasAgent(ctx context.Context, agentID string) (bool, error) {
+	resp, err := c.do(ctx, http.MethodGet, "/agents/"+agentID, nil)
+	if err != nil {
+		return false, err
+	}
+	resp.Body.Close()
+	return resp.StatusCode == http.StatusOK, nil
+}
+
 // RemoveAgentDefinition removes an agent from Bridge.
 func (c *BridgeClient) RemoveAgentDefinition(ctx context.Context, agentID string) error {
 	return doVoid(c, ctx, http.MethodDelete, "/push/agents/"+agentID, nil)
