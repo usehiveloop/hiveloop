@@ -19,6 +19,7 @@ import (
 
 	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/goroutine"
 	"github.com/llmvault/llmvault/internal/config"
 	"github.com/llmvault/llmvault/internal/counter"
 	"github.com/llmvault/llmvault/internal/crypto"
@@ -155,11 +156,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	go func() {
+	goroutine.Go(func() {
 		if err := cacheManager.Invalidator().Subscribe(ctx); err != nil {
 			slog.Error("invalidation subscriber stopped", "error", err)
 		}
-	}()
+	})
 
 	// 8. Request-cap counter (Redis + Postgres lazy refill)
 	ctr := counter.New(redisClient, database)
@@ -216,6 +217,7 @@ func run() error {
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
+	authHandler.StartCleanup(ctx)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
@@ -251,15 +253,15 @@ func run() error {
 		}
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
 		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg)
-		go orchestrator.StartHealthChecker(ctx)
+		goroutine.Go(func() { orchestrator.StartHealthChecker(ctx) })
 		slog.Info("sandbox orchestrator ready")
 	}
 	// Event streaming via Redis Streams
 	eventBus := streaming.NewEventBus(redisClient)
 	flusher := streaming.NewFlusher(eventBus, database)
-	go flusher.Run(ctx)
+	goroutine.Go(func() { flusher.Run(ctx) })
 	cleanup := streaming.NewCleanup(eventBus)
-	go cleanup.Run(ctx)
+	goroutine.Go(func() { cleanup.Run(ctx) })
 
 	var conversationHandler *handler.ConversationHandler
 	if orchestrator != nil && agentPusher != nil {
@@ -267,6 +269,7 @@ func run() error {
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
+	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey)
 
 	var templateBuilder handler.TemplateBuildable
 	if orchestrator != nil {
@@ -309,12 +312,15 @@ func run() error {
 	// Bridge webhook receiver (no auth middleware — uses HMAC signature verification)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 
+	// Nango webhook receiver (no auth middleware — uses HMAC signature verification)
+	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
+
 	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
 	// Auth routes (register, login, refresh, logout, me, email confirmation, password reset)
 	r.Route("/auth", func(r chi.Router) {
-		r.Use(middleware.AuthRateLimit(10, 20)) // 10 rps per IP, burst 20
+		r.Use(middleware.AuthRateLimit(ctx, 10, 20)) // 10 rps per IP, burst 20
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)
@@ -509,7 +515,7 @@ func run() error {
 	})
 
 	// 15. Token cleanup (expired email verifications & password resets)
-	go func() {
+	goroutine.Go(func() {
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
@@ -523,7 +529,7 @@ func run() error {
 				slog.Debug("cleaned up expired verification/reset tokens")
 			}
 		}
-	}()
+	})
 
 	// 16. Server
 	srv := &http.Server{
@@ -534,13 +540,13 @@ func run() error {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	go func() {
+	goroutine.Go(func() {
 		slog.Info("server starting", "port", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "error", err)
 			os.Exit(1)
 		}
-	}()
+	})
 
 	// 16. MCP Server (separate port)
 	mcpRouter := chi.NewRouter()
@@ -575,12 +581,12 @@ func run() error {
 
 	mcpHandler.ServerCache.StartCleanup(ctx, 5*time.Minute)
 
-	go func() {
+	goroutine.Go(func() {
 		slog.Info("mcp server starting", "port", cfg.MCPPort)
 		if err := mcpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("mcp server error", "error", err)
 		}
-	}()
+	})
 
 	// 17. Wait for shutdown signal
 	<-ctx.Done()

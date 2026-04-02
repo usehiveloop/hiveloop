@@ -5,14 +5,18 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/llmvault/llmvault/internal/goroutine"
 	"github.com/llmvault/llmvault/internal/model"
 )
+
+const auditBatchSize = 50
 
 // AuditWriter is a buffered audit log writer that never blocks the request hot path.
 // Entries are queued via a channel and flushed in a background goroutine.
@@ -35,10 +39,51 @@ func NewAuditWriter(db *gorm.DB, bufferSize int) *AuditWriter {
 }
 
 func (aw *AuditWriter) drain() {
-	defer aw.wg.Done()
-	for entry := range aw.entries {
-		if err := aw.db.Create(&entry).Error; err != nil {
-			slog.Error("audit write failed", "error", err, "action", entry.Action)
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("audit drain panicked",
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+		aw.wg.Done()
+	}()
+
+	batch := make([]model.AuditEntry, 0, auditBatchSize)
+	timer := time.NewTimer(500 * time.Millisecond)
+	defer timer.Stop()
+
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+		if err := aw.db.CreateInBatches(batch, auditBatchSize).Error; err != nil {
+			slog.Error("audit batch write failed", "error", err, "count", len(batch))
+		}
+		batch = batch[:0]
+	}
+
+	for {
+		select {
+		case entry, ok := <-aw.entries:
+			if !ok {
+				flush()
+				return
+			}
+			batch = append(batch, entry)
+			if len(batch) >= auditBatchSize {
+				flush()
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				timer.Reset(500 * time.Millisecond)
+			}
+		case <-timer.C:
+			flush()
+			timer.Reset(500 * time.Millisecond)
 		}
 	}
 }
@@ -58,10 +103,10 @@ func (aw *AuditWriter) Shutdown(ctx context.Context) {
 	close(aw.entries)
 
 	done := make(chan struct{})
-	go func() {
+	goroutine.Go(func() {
 		aw.wg.Wait()
 		close(done)
-	}()
+	})
 
 	select {
 	case <-done:

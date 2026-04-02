@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -70,7 +71,16 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 	ch := make(chan StreamEvent, 64)
 
 	go func() {
-		defer close(ch)
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("event bus subscriber panicked",
+					"conversation_id", convID,
+					"panic", r,
+					"stack", string(debug.Stack()),
+				)
+			}
+			close(ch)
+		}()
 
 		pos := cursor
 		if pos == "" {

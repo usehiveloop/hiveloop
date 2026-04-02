@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/llmvault/llmvault/internal/goroutine"
 	"github.com/llmvault/llmvault/internal/model"
 )
 
@@ -50,8 +51,10 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 				r = WithOrg(r, &org)
 				r = WithAPIKeyClaims(r, claims)
 
-				go db.Model(&model.APIKey{}).Where("id = ?", cached.ID).
-					Update("last_used_at", time.Now())
+				goroutine.Go(func() {
+					db.Model(&model.APIKey{}).Where("id = ?", cached.ID).
+						Update("last_used_at", time.Now())
+				})
 
 				next.ServeHTTP(w, r)
 				return
@@ -91,7 +94,9 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 			r = WithOrg(r, &apiKey.Org)
 			r = WithAPIKeyClaims(r, claims)
 
-			go db.Model(&apiKey).Update("last_used_at", time.Now())
+			goroutine.Go(func() {
+				db.Model(&apiKey).Update("last_used_at", time.Now())
+			})
 
 			next.ServeHTTP(w, r)
 		})

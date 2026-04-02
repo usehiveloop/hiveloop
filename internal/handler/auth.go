@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/llmvault/llmvault/internal/auth"
 	"github.com/llmvault/llmvault/internal/email"
+	"github.com/llmvault/llmvault/internal/goroutine"
 	"github.com/llmvault/llmvault/internal/middleware"
 	"github.com/llmvault/llmvault/internal/model"
 )
@@ -56,22 +58,31 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 		loginAttempts:    make(map[string]*loginAttempt),
 	}
 
-	// Cleanup stale login attempts every 5 minutes.
-	go func() {
-		for {
-			time.Sleep(5 * time.Minute)
-			h.loginMu.Lock()
-			cutoff := time.Now().Add(-15 * time.Minute)
-			for email, a := range h.loginAttempts {
-				if a.firstAt.Before(cutoff) {
-					delete(h.loginAttempts, email)
-				}
-			}
-			h.loginMu.Unlock()
-		}
-	}()
-
 	return h
+}
+
+// StartCleanup starts a background goroutine that evicts stale login attempts
+// every 5 minutes. The goroutine stops when ctx is cancelled.
+func (h *AuthHandler) StartCleanup(ctx context.Context) {
+	goroutine.Go(func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				h.loginMu.Lock()
+				cutoff := time.Now().Add(-15 * time.Minute)
+				for email, a := range h.loginAttempts {
+					if a.firstAt.Before(cutoff) {
+						delete(h.loginAttempts, email)
+					}
+				}
+				h.loginMu.Unlock()
+			}
+		}
+	})
 }
 
 // --- Request / Response types ---

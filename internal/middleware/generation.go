@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -12,10 +13,13 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
+	"github.com/llmvault/llmvault/internal/goroutine"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/observe"
 	"github.com/llmvault/llmvault/internal/registry"
 )
+
+const generationBatchSize = 50
 
 // GenerationWriter is a buffered generation log writer that never blocks the request hot path.
 type GenerationWriter struct {
@@ -39,10 +43,51 @@ func NewGenerationWriter(db *gorm.DB, reg *registry.Registry, bufferSize int) *G
 }
 
 func (gw *GenerationWriter) drain() {
-	defer gw.wg.Done()
-	for gen := range gw.entries {
-		if err := gw.db.Create(&gen).Error; err != nil {
-			slog.Error("generation write failed", "error", err, "id", gen.ID)
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("generation drain panicked",
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+		gw.wg.Done()
+	}()
+
+	batch := make([]model.Generation, 0, generationBatchSize)
+	timer := time.NewTimer(500 * time.Millisecond)
+	defer timer.Stop()
+
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+		if err := gw.db.CreateInBatches(batch, generationBatchSize).Error; err != nil {
+			slog.Error("generation batch write failed", "error", err, "count", len(batch))
+		}
+		batch = batch[:0]
+	}
+
+	for {
+		select {
+		case gen, ok := <-gw.entries:
+			if !ok {
+				flush()
+				return
+			}
+			batch = append(batch, gen)
+			if len(batch) >= generationBatchSize {
+				flush()
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				timer.Reset(500 * time.Millisecond)
+			}
+		case <-timer.C:
+			flush()
+			timer.Reset(500 * time.Millisecond)
 		}
 	}
 }
@@ -62,10 +107,10 @@ func (gw *GenerationWriter) Shutdown(ctx context.Context) {
 	close(gw.entries)
 
 	done := make(chan struct{})
-	go func() {
+	goroutine.Go(func() {
 		gw.wg.Wait()
 		close(done)
-	}()
+	})
 
 	select {
 	case <-done:
