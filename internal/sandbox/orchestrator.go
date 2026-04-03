@@ -124,6 +124,121 @@ func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.
 	return o.createSandbox(ctx, &org, &identity, "dedicated", agent)
 }
 
+// CreateForgeSandbox creates a sandbox for forge agents. Unlike dedicated sandboxes,
+// forge sandboxes do NOT configure a webhook URL (forge reads responses via direct SSE)
+// and do not use agent-level setup commands or encrypted env vars.
+func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
+	// Ensure Turso storage for the org (optional)
+	var storageURL, authToken string
+	if o.turso != nil {
+		var err error
+		storageURL, authToken, err = o.turso.EnsureStorage(ctx, org.ID)
+		if err != nil {
+			slog.Warn("turso storage provisioning failed, continuing without libsql", "error", err)
+		}
+	}
+
+	// Generate and encrypt Bridge API key
+	bridgeAPIKey, err := generateRandomHex(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating bridge api key: %w", err)
+	}
+	encryptedKey, err := o.encKey.EncryptString(bridgeAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypting bridge api key: %w", err)
+	}
+
+	sb := model.Sandbox{
+		OrgID:                 org.ID,
+		IdentityID:            identityID,
+		SandboxType:           "dedicated",
+		EncryptedBridgeAPIKey: encryptedKey,
+		Status:                "creating",
+	}
+	if err := o.db.Create(&sb).Error; err != nil {
+		return nil, fmt.Errorf("saving forge sandbox record: %w", err)
+	}
+
+	// Forge sandboxes do NOT set BRIDGE_WEBHOOK_URL — controller reads via direct SSE.
+	envVars := map[string]string{
+		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
+		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_LOG_FORMAT":           "json",
+		"BRIDGE_CODEDB_ENABLED":       "true",
+		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
+	}
+	if storageURL != "" {
+		envVars["BRIDGE_STORAGE_URL"] = storageURL
+		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
+	}
+
+	snapshotID := o.cfg.BridgeBaseImagePrefix
+	name := fmt.Sprintf("llmv-forge-%s", shortID(forgeRunID))
+
+	labels := map[string]string{
+		"org_id":       org.ID.String(),
+		"identity_id":  identityID.String(),
+		"sandbox_type": "forge",
+		"sandbox_id":   sb.ID.String(),
+		"forge_run_id": forgeRunID.String(),
+	}
+
+	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
+		Name:       name,
+		SnapshotID: snapshotID,
+		EnvVars:    envVars,
+		Labels:     labels,
+	})
+	if err != nil {
+		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		return nil, fmt.Errorf("creating forge sandbox via provider: %w", err)
+	}
+
+	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
+	if err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"external_id":   info.ExternalID,
+			"status":        "error",
+			"error_message": fmt.Sprintf("failed to get endpoint: %v", err),
+		})
+		return nil, fmt.Errorf("getting forge sandbox endpoint: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(bridgeURLTTL)
+	if err := o.db.Model(&sb).Updates(map[string]any{
+		"external_id":           info.ExternalID,
+		"bridge_url":            bridgeURL,
+		"bridge_url_expires_at": expiresAt,
+		"status":                "running",
+		"last_active_at":        now,
+	}).Error; err != nil {
+		return nil, fmt.Errorf("updating forge sandbox record: %w", err)
+	}
+
+	sb.ExternalID = info.ExternalID
+	sb.BridgeURL = bridgeURL
+	sb.BridgeURLExpiresAt = &expiresAt
+	sb.Status = "running"
+	sb.LastActiveAt = &now
+
+	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"status":        "error",
+			"error_message": fmt.Sprintf("bridge failed to start: %v", err),
+		})
+		return nil, fmt.Errorf("waiting for forge bridge: %w", err)
+	}
+
+	slog.Info("forge sandbox created",
+		"sandbox_id", sb.ID,
+		"external_id", info.ExternalID,
+		"forge_run_id", forgeRunID,
+	)
+
+	return &sb, nil
+}
+
 // GetBridgeClient returns a BridgeClient connected to the sandbox.
 // If the pre-auth URL is expired or about to expire, it refreshes it first.
 func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
@@ -229,6 +344,8 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
 		"BRIDGE_WEBHOOK_URL":          fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
 		"BRIDGE_LOG_FORMAT":           "json",
+		"BRIDGE_CODEDB_ENABLED":       "true",
+		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL

@@ -265,6 +265,11 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 		`curl -fsSL "https://github.com/useportal-app/bridge/releases/download/v0.10.0/bridge-v0.10.0-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
 	)
 
+	// CodeDB binary (code intelligence for agents)
+	image = image.Run(
+		`curl -fsSL "https://github.com/justrach/codedb/releases/latest/download/codedb-x86_64-linux" -o /usr/local/bin/codedb && chmod +x /usr/local/bin/codedb`,
+	)
+
 	// Customer build commands
 	if opts.BuildCommands != "" {
 		image = image.Run(opts.BuildCommands)

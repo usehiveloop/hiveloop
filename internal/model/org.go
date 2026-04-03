@@ -48,6 +48,11 @@ func AutoMigrate(db *gorm.DB) error {
 		&CustomDomain{},
 		&OrgWebhookConfig{},
 		&HindsightBank{},
+		&ForgeRun{},
+		&ForgeIteration{},
+		&ForgeEvalCase{},
+		&ForgeEvalResult{},
+		&ForgeEvent{},
 	); err != nil {
 		return err
 	}

@@ -35,6 +35,7 @@ import (
 	"github.com/llmvault/llmvault/internal/nango"
 	"github.com/llmvault/llmvault/internal/proxy"
 	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/llmvault/llmvault/internal/forge"
 	"github.com/llmvault/llmvault/internal/sandbox"
 	"github.com/llmvault/llmvault/internal/sandbox/daytona"
 	"github.com/llmvault/llmvault/internal/streaming"
@@ -288,8 +289,14 @@ func run() error {
 	}
 
 	var conversationHandler *handler.ConversationHandler
+	var forgeHandler *handler.ForgeHandler
+	forgeMCPHandler := forge.NewForgeMCPHandler(database)
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
+		forgeCtrl := forge.NewForgeController(database, orchestrator, signingKey, cfg, eventBus, catalog.Global())
+		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus)
+		goroutine.Go(func() { forgeCtrl.ResumeStaleRuns(ctx) })
+		slog.Info("forge controller ready")
 	}
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
@@ -469,7 +476,23 @@ func run() error {
 						r.Post("/{agentID}/conversations", conversationHandler.Create)
 						r.Get("/{agentID}/conversations", conversationHandler.List)
 					}
+					// Forge under agent
+					if forgeHandler != nil {
+						r.Post("/{agentID}/forge", forgeHandler.Start)
+						r.Get("/{agentID}/forge", forgeHandler.ListRuns)
+					}
 				})
+				// Forge run operations (top-level by run ID)
+				if forgeHandler != nil {
+					r.Route("/forge-runs/{runID}", func(r chi.Router) {
+						r.Get("/", forgeHandler.GetRun)
+						r.Get("/stream", forgeHandler.Stream)
+						r.Get("/events", forgeHandler.ListEvents)
+						r.Post("/cancel", forgeHandler.Cancel)
+						r.Post("/apply", forgeHandler.Apply)
+						r.Get("/iterations/{iterationID}/evals", forgeHandler.ListEvals)
+					})
+				}
 				// Conversation operations (top-level by conversation ID)
 				if conversationHandler != nil {
 					r.Route("/conversations/{convID}", func(r chi.Router) {
@@ -599,6 +622,14 @@ func run() error {
 		memoryHandler.StartCleanup(ctx, 5*time.Minute)
 		slog.Info("hindsight memory MCP tools registered on /memory/{agentID}")
 	}
+
+	// Forge MCP server (mock tools for eval execution)
+	mcpRouter.Route("/forge/{forgeRunID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", forgeMCPHandler.StreamableHTTPHandler())
+		r.Handle("/", forgeMCPHandler.StreamableHTTPHandler())
+	})
+	slog.Info("forge MCP tools registered on /forge/{forgeRunID}")
 
 	// Streamable HTTP transport (primary)
 	mcpRouter.Route("/{jti}", func(r chi.Router) {

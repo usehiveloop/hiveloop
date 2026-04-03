@@ -26,19 +26,28 @@ func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Cli
 	// --- memory_recall ---
 	server.AddTool(
 		&mcp.Tool{
-			Name:        "memory_recall",
-			Description: "Search your memory for relevant information. Returns facts, entities, and observations from past conversations and stored knowledge.",
+			Name: "memory_recall",
+			Description: `Search your long-term memory for relevant context. Call this tool:
+- At the START of every conversation to load relevant context before responding
+- When the user references something from a previous conversation ("last time", "as we discussed", "remember when")
+- When you need to check if you already know something before asking the user
+- Before making a recommendation that should account for past preferences, decisions, or history
+- When the user asks about a person, project, or topic you may have encountered before
+
+Returns specific facts, entities, and consolidated observations from past interactions.
+Write a short, focused query (1-2 sentences) describing what you need to know.
+Do NOT recall and retain in the same turn — retained memories are not immediately available.`,
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"query": map[string]any{
 						"type":        "string",
-						"description": "Natural language search query describing what you want to remember",
+						"description": "A focused natural language query describing what you want to remember. Examples: 'What are this user's communication preferences?', 'What decisions were made about the billing system?', 'What do we know about Project Atlas?'",
 					},
 					"budget": map[string]any{
 						"type":        "string",
 						"enum":        []string{"low", "mid", "high"},
-						"description": "Search depth: low=quick lookup, mid=balanced (default), high=thorough analysis",
+						"description": "Search depth. Use 'low' for quick fact checks (50-100ms). Use 'mid' (default) for most queries — balances speed and thoroughness. Use 'high' only for complex questions requiring deep cross-referencing across many memories (300-500ms).",
 					},
 				},
 				"required": []string{"query"},
@@ -74,24 +83,44 @@ func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Cli
 	)
 
 	// --- memory_retain ---
+	retainSharedDesc := "If true, this memory will be visible to ALL agents in the organization, not just your team. Only use for information that is broadly relevant (company announcements, cross-team decisions, org-wide policies). Requires shared memory permission."
+	if !agent.SharedMemory {
+		retainSharedDesc = "This agent does not have shared memory permission. Always omit this field or set to false."
+	}
+
 	server.AddTool(
 		&mcp.Tool{
-			Name:        "memory_retain",
-			Description: "Store important information in memory for future recall. Use this to remember facts, decisions, preferences, or anything worth keeping.",
+			Name: "memory_retain",
+			Description: `Store important information to long-term memory so it persists across conversations. Call this tool when:
+- The user shares a fact, preference, decision, deadline, or commitment you should remember
+- A significant decision is made or a problem is resolved — store the decision AND the reasoning
+- You learn something new about the user, their projects, their team, or their goals
+- The user corrects you or expresses a preference about how you should work — store the correction so you never repeat the mistake
+- Important relationships between people, projects, or concepts are revealed
+- A task outcome, milestone, or status change occurs that future conversations should know about
+
+DO NOT store:
+- Greetings, small talk, or conversational filler
+- Information you have already stored (avoid duplicates)
+- Temporary state or in-progress work details that will change immediately
+- Exact conversation transcripts — distill into clear factual statements instead
+- Anything the user explicitly asks you not to remember
+
+Write the content as a clear, specific factual statement. Bad: "User talked about React." Good: "User's frontend stack is React with Zustand for state management, migrated from Redux in Q1 2026."`,
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"content": map[string]any{
 						"type":        "string",
-						"description": "The information to remember",
+						"description": "A clear, factual statement of what to remember. Write as a specific fact, not a conversation excerpt. Include names, dates, and specifics when available.",
 					},
 					"context": map[string]any{
 						"type":        "string",
-						"description": "Optional context about where this information came from or why it matters",
+						"description": "Describe the nature and source of this information. This significantly improves how the memory is indexed and retrieved. Examples: 'Technical architecture discussion', 'User preference stated during onboarding', 'Decision from Q2 planning meeting'. Do NOT use generic values like 'conversation' or 'chat'.",
 					},
 					"shared": map[string]any{
 						"type":        "boolean",
-						"description": "If true, this memory will be visible to all agents (requires shared memory permission)",
+						"description": retainSharedDesc,
 					},
 				},
 				"required": []string{"content"},
@@ -138,14 +167,22 @@ func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Cli
 	// --- memory_reflect ---
 	server.AddTool(
 		&mcp.Tool{
-			Name:        "memory_reflect",
-			Description: "Get a synthesized, reasoned answer from memory. Unlike recall which returns raw facts, reflect analyzes memories and provides a thoughtful response.",
+			Name: "memory_reflect",
+			Description: `Get a synthesized, reasoned answer by deeply analyzing your full memory. Use this INSTEAD of recall when:
+- You need to analyze patterns or trends across many past interactions ("How has the user's opinion on X changed over time?")
+- The question requires judgment or synthesis, not just fact retrieval ("What should I prioritize based on what I know?")
+- You want a comprehensive summary of everything known about a topic ("What is the full picture of Project Atlas?")
+- You need to detect contradictions or evolving preferences across different conversations
+- The user asks "what do you think?" or "what would you recommend?" based on history
+
+Use recall instead when you need specific facts, quick lookups, or raw citations.
+Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced answers that consider the full breadth of stored knowledge.`,
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"query": map[string]any{
 						"type":        "string",
-						"description": "The question to reason about using available memories",
+						"description": "The question to reason about. Frame as a question that requires analysis, not just lookup. Examples: 'What are this user's top priorities based on our past interactions?', 'How has the team's approach to testing evolved?', 'What patterns do I see in the problems this user brings to me?'",
 					},
 				},
 				"required": []string{"query"},

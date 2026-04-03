@@ -113,26 +113,6 @@
       }
     }
   },
-  "linear": {
-    "display_name": "Linear",
-    "resources": {
-      "team": {
-        "display_name": "Teams",
-        "description": "Linear teams the AI can create issues in",
-        "id_field": "id",
-        "name_field": "name",
-        "icon": "team",
-        "list_action": "/graphql",
-        "request_config": {
-          "method": "POST",
-          "body_template": {
-            "query": "{ teams { nodes { id name key description } } }"
-          },
-          "response_path": "data.teams.nodes"
-        }
-      }
-    }
-  },
   "jira": {
     "display_name": "Jira",
     "resources": {}
@@ -185,36 +165,12 @@
     "display_name": "Cloudflare",
     "resources": {}
   },
-  "microsoft": {
-    "display_name": "Microsoft",
-    "resources": {}
-  },
   "vercel": {
     "display_name": "Vercel",
     "resources": {}
   },
   "zoom": {
     "display_name": "Zoom",
-    "resources": {}
-  },
-  "shopify": {
-    "display_name": "Shopify",
-    "resources": {}
-  },
-  "gitlab": {
-    "display_name": "GitLab",
-    "resources": {}
-  },
-  "monday": {
-    "display_name": "Monday.com",
-    "resources": {}
-  },
-  "contentful": {
-    "display_name": "Contentful",
-    "resources": {}
-  },
-  "braintree": {
-    "display_name": "Braintree",
     "resources": {}
   },
   "salesforce": {
