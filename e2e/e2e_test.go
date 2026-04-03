@@ -562,7 +562,7 @@ func TestE2E_Proxy_Google_Streaming(t *testing.T) {
 		"model": "openai/gpt-4.1-nano",
 		"messages": [{"role": "user", "content": "What is 2+2? Reply with just the number."}],
 		"stream": true,
-		"max_tokens": 10
+		"max_tokens": 20
 	}`
 
 	proxyPath := "/v1/proxy/v1/chat/completions"
