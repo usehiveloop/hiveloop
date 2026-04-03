@@ -790,6 +790,124 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/forge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List forge runs
+         * @description Returns all forge runs for the specified agent, ordered by creation date.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeRunResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Start a forge run
+         * @description Creates and starts a new forge run for the specified agent using the provided models, credentials, and configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Forge configuration */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["startForgeRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeRunResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{id}": {
         parameters: {
             query?: never;
@@ -2881,6 +2999,435 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/forge-runs/{runID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get forge run
+         * @description Returns a forge run with all iterations and their details.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeGetRunResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply forge result
+         * @description Copies the best iteration's result to the target agent's configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel forge run
+         * @description Cancels an active (queued or running) forge run.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List forge events
+         * @description Returns the audit trail of events for a forge run.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvent"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/iterations/{iterationID}/evals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List eval results
+         * @description Returns eval results for all test cases in a specific forge iteration.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                    /** @description Iteration ID */
+                    iterationID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalResult"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream forge events
+         * @description Real-time SSE stream of forge events for a forge run. Supports resume via Last-Event-ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description SSE stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": string;
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/generations": {
         parameters: {
             query?: never;
@@ -3624,7 +4171,7 @@ export interface paths {
         };
         /**
          * List available providers
-         * @description Returns all Nango providers available for creating integrations.
+         * @description Returns Nango providers that have verified action definitions in the catalog.
          */
         get: {
             parameters: {
@@ -5005,6 +5552,254 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/settings/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get webhook settings
+         * @description Returns the webhook configuration for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update webhook settings
+         * @description Creates a new webhook configuration (with generated secret) or updates the URL of an existing configuration.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description URL for webhook delivery */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateWebhookSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsResponse"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete webhook settings
+         * @description Deletes the webhook configuration for the current organization.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/webhooks/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate webhook secret
+         * @description Generates a new webhook secret for the existing configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -5640,7 +6435,7 @@ export interface paths {
         };
         /**
          * List available providers
-         * @description Returns all Nango providers available for creating integrations.
+         * @description Returns Nango providers that have verified action definitions in the catalog.
          */
         get: {
             parameters: {
@@ -6217,6 +7012,67 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ForgeEvalResult: {
+            created_at?: string;
+            /** @description actionable, specific failure explanation */
+            critique?: string;
+            /** @description Deterministic check results (run before LLM judge). */
+            deterministic_results?: number[];
+            /** @description safety, correctness, completeness, tone, tool_usage, none */
+            failure_category?: string;
+            forge_eval_case_id?: string;
+            forge_iteration_id?: string;
+            id?: string;
+            /** @description Multi-sample results. */
+            pass_rate?: number;
+            passed?: boolean;
+            /** @description [{criterion, requirement_type, met, score, explanation}] */
+            rubric_scores?: number[];
+            /** @description [{sample_index, response, tool_calls, passed, score}] */
+            sample_results?: number[];
+            /** @description Judge verdict (from LLM judge, after deterministic checks). */
+            score?: number;
+            /** @description Status tracks result progress: pending → running → judging → completed|failed. */
+            status?: string;
+            updated_at?: string;
+        };
+        ForgeEvent: {
+            created_at?: string;
+            event_type?: string;
+            forge_run_id?: string;
+            id?: string;
+            payload?: number[];
+        };
+        ForgeIteration: {
+            agent_config?: number[];
+            /** @description convenience flag */
+            all_hard_passed?: boolean;
+            architect_reasoning?: string;
+            cost?: number;
+            created_at?: string;
+            /** @description Per-eval score tracking across iterations for regression detection. */
+            eval_score_history?: number[];
+            forge_run_id?: string;
+            /** @description Hard vs soft requirement scoring. */
+            hard_score?: number;
+            id?: string;
+            /** @description Cost for this iteration. */
+            input_tokens?: number;
+            iteration?: number;
+            output_tokens?: number;
+            passed_evals?: number;
+            /** @description Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed. */
+            phase?: string;
+            score?: number;
+            /** @description average score of soft evals */
+            soft_score?: number;
+            /** @description Architect output — persisted after designing phase. */
+            system_prompt?: string;
+            tools?: number[];
+            /** @description Results — persisted after judging phase. */
+            total_evals?: number;
+            updated_at?: string;
+        };
         JSON: {
             [key: string]: unknown;
         };
@@ -6280,10 +7136,12 @@ export interface components {
             provider_id?: string;
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
             updated_at?: string;
         };
@@ -6441,9 +7299,11 @@ export interface components {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
         createConnectSessionRequest: {
@@ -6490,6 +7350,7 @@ export interface components {
         };
         createIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -6558,6 +7419,29 @@ export interface components {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
         };
+        forgeGetRunResponse: {
+            iterations?: components["schemas"]["ForgeIteration"][];
+            run?: components["schemas"]["forgeRunResponse"];
+        };
+        forgeRunResponse: {
+            agent_id?: string;
+            completed_at?: string;
+            convergence_limit?: number;
+            created_at?: string;
+            current_iteration?: number;
+            error_message?: string;
+            final_score?: number;
+            id?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+            started_at?: string;
+            status?: string;
+            stop_reason?: string;
+            stream_url?: string;
+            total_cost?: number;
+            total_input_tokens?: number;
+            total_output_tokens?: number;
+        };
         forgotPasswordRequest: {
             email?: string;
         };
@@ -6597,6 +7481,7 @@ export interface components {
             external_id?: string;
             id?: string;
             last_used_at?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
             request_count?: number;
@@ -6902,6 +7787,18 @@ export interface components {
             date?: string;
             total_cost?: number;
         };
+        startForgeRequest: {
+            architect_credential_id?: string;
+            architect_model?: string;
+            /** @description default 3 */
+            convergence_limit?: number;
+            eval_designer_credential_id?: string;
+            eval_designer_model?: string;
+            judge_credential_id?: string;
+            judge_model?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+        };
         statusResponse: {
             message?: string;
             status?: string;
@@ -6959,13 +7856,16 @@ export interface components {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
         updateIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -6978,6 +7878,9 @@ export interface components {
             build_commands?: string;
             config?: components["schemas"]["JSON"];
             name?: string;
+        };
+        updateWebhookSettingsRequest: {
+            url?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
@@ -7004,6 +7907,19 @@ export interface components {
         verifyDomainResponse: {
             message?: string;
             verified?: boolean;
+        };
+        webhookSettingsCreateResponse: {
+            created_at?: string;
+            /** @description plaintext, shown once */
+            secret?: string;
+            secret_prefix?: string;
+            url?: string;
+        };
+        webhookSettingsResponse: {
+            created_at?: string;
+            secret_prefix?: string;
+            updated_at?: string;
+            url?: string;
         };
         widgetIntegrationResponse: {
             auth_mode?: string;

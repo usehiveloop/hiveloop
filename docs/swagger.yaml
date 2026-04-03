@@ -15,6 +15,125 @@ definitions:
           type: array
         type: object
     type: object
+  github_com_llmvault_llmvault_internal_model.ForgeEvalResult:
+    properties:
+      created_at:
+        type: string
+      critique:
+        description: actionable, specific failure explanation
+        type: string
+      deterministic_results:
+        description: Deterministic check results (run before LLM judge).
+        items:
+          type: integer
+        type: array
+      failure_category:
+        description: safety, correctness, completeness, tone, tool_usage, none
+        type: string
+      forge_eval_case_id:
+        type: string
+      forge_iteration_id:
+        type: string
+      id:
+        type: string
+      pass_rate:
+        description: Multi-sample results.
+        type: number
+      passed:
+        type: boolean
+      rubric_scores:
+        description: '[{criterion, requirement_type, met, score, explanation}]'
+        items:
+          type: integer
+        type: array
+      sample_results:
+        description: '[{sample_index, response, tool_calls, passed, score}]'
+        items:
+          type: integer
+        type: array
+      score:
+        description: Judge verdict (from LLM judge, after deterministic checks).
+        type: number
+      status:
+        description: 'Status tracks result progress: pending → running → judging →
+          completed|failed.'
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_llmvault_llmvault_internal_model.ForgeEvent:
+    properties:
+      created_at:
+        type: string
+      event_type:
+        type: string
+      forge_run_id:
+        type: string
+      id:
+        type: string
+      payload:
+        items:
+          type: integer
+        type: array
+    type: object
+  github_com_llmvault_llmvault_internal_model.ForgeIteration:
+    properties:
+      agent_config:
+        items:
+          type: integer
+        type: array
+      all_hard_passed:
+        description: convenience flag
+        type: boolean
+      architect_reasoning:
+        type: string
+      cost:
+        type: number
+      created_at:
+        type: string
+      eval_score_history:
+        description: Per-eval score tracking across iterations for regression detection.
+        items:
+          type: integer
+        type: array
+      forge_run_id:
+        type: string
+      hard_score:
+        description: Hard vs soft requirement scoring.
+        type: number
+      id:
+        type: string
+      input_tokens:
+        description: Cost for this iteration.
+        type: integer
+      iteration:
+        type: integer
+      output_tokens:
+        type: integer
+      passed_evals:
+        type: integer
+      phase:
+        description: 'Phase within this iteration: designing → eval_designing → evaluating
+          → judging → completed|failed.'
+        type: string
+      score:
+        type: number
+      soft_score:
+        description: average score of soft evals
+        type: number
+      system_prompt:
+        description: Architect output — persisted after designing phase.
+        type: string
+      tools:
+        items:
+          type: integer
+        type: array
+      total_evals:
+        description: Results — persisted after judging phase.
+        type: integer
+      updated_at:
+        type: string
+    type: object
   github_com_llmvault_llmvault_internal_model.JSON:
     additionalProperties: {}
     type: object
@@ -137,6 +256,8 @@ definitions:
         type: string
       sandbox_type:
         type: string
+      shared_memory:
+        type: boolean
       skills:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       status:
@@ -144,6 +265,8 @@ definitions:
       subagents:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       system_prompt:
+        type: string
+      team:
         type: string
       tools:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
@@ -460,11 +583,15 @@ definitions:
         type: string
       sandbox_type:
         type: string
+      shared_memory:
+        type: boolean
       skills:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       subagents:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       system_prompt:
+        type: string
+      team:
         type: string
       tools:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
@@ -560,6 +687,8 @@ definitions:
     properties:
       external_id:
         type: string
+      memory_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       meta:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
@@ -689,6 +818,52 @@ definitions:
       success:
         type: boolean
     type: object
+  internal_handler.forgeGetRunResponse:
+    properties:
+      iterations:
+        items:
+          $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.ForgeIteration'
+        type: array
+      run:
+        $ref: '#/definitions/internal_handler.forgeRunResponse'
+    type: object
+  internal_handler.forgeRunResponse:
+    properties:
+      agent_id:
+        type: string
+      completed_at:
+        type: string
+      convergence_limit:
+        type: integer
+      created_at:
+        type: string
+      current_iteration:
+        type: integer
+      error_message:
+        type: string
+      final_score:
+        type: number
+      id:
+        type: string
+      max_iterations:
+        type: integer
+      pass_threshold:
+        type: number
+      started_at:
+        type: string
+      status:
+        type: string
+      stop_reason:
+        type: string
+      stream_url:
+        type: string
+      total_cost:
+        type: number
+      total_input_tokens:
+        type: integer
+      total_output_tokens:
+        type: integer
+    type: object
   internal_handler.forgotPasswordRequest:
     properties:
       email:
@@ -765,6 +940,8 @@ definitions:
         type: string
       last_used_at:
         type: string
+      memory_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       meta:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
@@ -1370,6 +1547,28 @@ definitions:
       total_cost:
         type: number
     type: object
+  internal_handler.startForgeRequest:
+    properties:
+      architect_credential_id:
+        type: string
+      architect_model:
+        type: string
+      convergence_limit:
+        description: default 3
+        type: integer
+      eval_designer_credential_id:
+        type: string
+      eval_designer_model:
+        type: string
+      judge_credential_id:
+        type: string
+      judge_model:
+        type: string
+      max_iterations:
+        type: integer
+      pass_threshold:
+        type: number
+    type: object
   internal_handler.statusResponse:
     properties:
       message:
@@ -1477,11 +1676,15 @@ definitions:
         type: string
       sandbox_type:
         type: string
+      shared_memory:
+        type: boolean
       skills:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       subagents:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       system_prompt:
+        type: string
+      team:
         type: string
       tools:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
@@ -1490,6 +1693,8 @@ definitions:
     properties:
       external_id:
         type: string
+      memory_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       meta:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       ratelimits:
@@ -1513,6 +1718,11 @@ definitions:
       config:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       name:
+        type: string
+    type: object
+  internal_handler.updateWebhookSettingsRequest:
+    properties:
+      url:
         type: string
     type: object
   internal_handler.usageResponse:
@@ -1578,6 +1788,29 @@ definitions:
         type: string
       verified:
         type: boolean
+    type: object
+  internal_handler.webhookSettingsCreateResponse:
+    properties:
+      created_at:
+        type: string
+      secret:
+        description: plaintext, shown once
+        type: string
+      secret_prefix:
+        type: string
+      url:
+        type: string
+    type: object
+  internal_handler.webhookSettingsResponse:
+    properties:
+      created_at:
+        type: string
+      secret_prefix:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
     type: object
   internal_handler.widgetIntegrationResponse:
     properties:
@@ -2045,6 +2278,79 @@ paths:
       summary: Create a conversation
       tags:
       - conversations
+  /v1/agents/{agentID}/forge:
+    get:
+      description: Returns all forge runs for the specified agent, ordered by creation
+        date.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.forgeRunResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List forge runs
+      tags:
+      - forge
+    post:
+      consumes:
+      - application/json
+      description: Creates and starts a new forge run for the specified agent using
+        the provided models, credentials, and configuration.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Forge configuration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.startForgeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.forgeRunResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start a forge run
+      tags:
+      - forge
   /v1/agents/{id}:
     delete:
       description: Deletes an agent and removes it from Bridge.
@@ -3218,6 +3524,222 @@ paths:
       summary: Verify a custom domain
       tags:
       - custom-domains
+  /v1/forge-runs/{runID}:
+    get:
+      description: Returns a forge run with all iterations and their details.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.forgeGetRunResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get forge run
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/apply:
+    post:
+      description: Copies the best iteration's result to the target agent's configuration.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Apply forge result
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/cancel:
+    post:
+      description: Cancels an active (queued or running) forge run.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel forge run
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/events:
+    get:
+      description: Returns the audit trail of events for a forge run.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.ForgeEvent'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List forge events
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/iterations/{iterationID}/evals:
+    get:
+      description: Returns eval results for all test cases in a specific forge iteration.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      - description: Iteration ID
+        in: path
+        name: iterationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.ForgeEvalResult'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List eval results
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/stream:
+    get:
+      description: Real-time SSE stream of forge events for a forge run. Supports
+        resume via Last-Event-ID.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Stream forge events
+      tags:
+      - forge
   /v1/generations:
     get:
       description: Returns generation records for the current organization with cursor
@@ -3879,7 +4401,8 @@ paths:
       - connections
   /v1/integrations/providers:
     get:
-      description: Returns all Nango providers available for creating integrations.
+      description: Returns Nango providers that have verified action definitions in
+        the catalog.
       produces:
       - application/json
       responses:
@@ -4444,6 +4967,128 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Connect settings
+      tags:
+      - settings
+  /v1/settings/webhooks:
+    delete:
+      description: Deletes the webhook configuration for the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete webhook settings
+      tags:
+      - settings
+    get:
+      description: Returns the webhook configuration for the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.webhookSettingsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get webhook settings
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Creates a new webhook configuration (with generated secret) or
+        updates the URL of an existing configuration.
+      parameters:
+      - description: URL for webhook delivery
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateWebhookSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.webhookSettingsResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.webhookSettingsCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update webhook settings
+      tags:
+      - settings
+  /v1/settings/webhooks/rotate-secret:
+    post:
+      description: Generates a new webhook secret for the existing configuration.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.webhookSettingsCreateResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rotate webhook secret
       tags:
       - settings
   /v1/tokens:
@@ -5013,7 +5658,8 @@ paths:
       - widget
   /v1/widget/integrations/providers:
     get:
-      description: Returns all Nango providers available for creating integrations.
+      description: Returns Nango providers that have verified action definitions in
+        the catalog.
       produces:
       - application/json
       responses:

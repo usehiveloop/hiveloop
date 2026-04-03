@@ -10,6 +10,7 @@ import { ConnectionsResource } from "./resources/connections.js";
 import { ConversationsResource } from "./resources/conversations.js";
 import { CredentialsResource } from "./resources/credentials.js";
 import { CustomDomainsResource } from "./resources/custom-domains.js";
+import { ForgeResource } from "./resources/forge.js";
 import { GenerationsResource } from "./resources/generations.js";
 import { IdentitiesResource } from "./resources/identities.js";
 import { IntegrationsResource } from "./resources/integrations.js";
@@ -20,6 +21,7 @@ import { SandboxesResource } from "./resources/sandboxes.js";
 import { SandboxTemplatesResource } from "./resources/sandbox-templates.js";
 import { TokensResource } from "./resources/tokens.js";
 import { UsageResource } from "./resources/usage.js";
+import { WebhooksResource } from "./resources/webhooks.js";
 
 export class LLMVault {
   public readonly agents: AgentsResource;
@@ -31,6 +33,7 @@ export class LLMVault {
   public readonly conversations: ConversationsResource;
   public readonly credentials: CredentialsResource;
   public readonly customDomains: CustomDomainsResource;
+  public readonly forge: ForgeResource;
   public readonly generations: GenerationsResource;
   public readonly identities: IdentitiesResource;
   public readonly integrations: IntegrationsResource;
@@ -41,6 +44,7 @@ export class LLMVault {
   public readonly sandboxTemplates: SandboxTemplatesResource;
   public readonly tokens: TokensResource;
   public readonly usage: UsageResource;
+  public readonly webhooks: WebhooksResource;
 
   constructor(config: LLMVaultConfig) {
     const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
@@ -60,6 +64,7 @@ export class LLMVault {
     this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
     this.customDomains = new CustomDomainsResource(client);
+    this.forge = new ForgeResource(client, baseUrl, config.apiKey);
     this.generations = new GenerationsResource(client);
     this.identities = new IdentitiesResource(client);
     this.integrations = new IntegrationsResource(client);
@@ -70,5 +75,6 @@ export class LLMVault {
     this.sandboxTemplates = new SandboxTemplatesResource(client);
     this.tokens = new TokensResource(client);
     this.usage = new UsageResource(client);
+    this.webhooks = new WebhooksResource(client);
   }
 }

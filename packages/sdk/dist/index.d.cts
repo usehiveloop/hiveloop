@@ -10,6 +10,67 @@ interface components {
                 [key: string]: string[];
             };
         };
+        ForgeEvalResult: {
+            created_at?: string;
+            /** @description actionable, specific failure explanation */
+            critique?: string;
+            /** @description Deterministic check results (run before LLM judge). */
+            deterministic_results?: number[];
+            /** @description safety, correctness, completeness, tone, tool_usage, none */
+            failure_category?: string;
+            forge_eval_case_id?: string;
+            forge_iteration_id?: string;
+            id?: string;
+            /** @description Multi-sample results. */
+            pass_rate?: number;
+            passed?: boolean;
+            /** @description [{criterion, requirement_type, met, score, explanation}] */
+            rubric_scores?: number[];
+            /** @description [{sample_index, response, tool_calls, passed, score}] */
+            sample_results?: number[];
+            /** @description Judge verdict (from LLM judge, after deterministic checks). */
+            score?: number;
+            /** @description Status tracks result progress: pending → running → judging → completed|failed. */
+            status?: string;
+            updated_at?: string;
+        };
+        ForgeEvent: {
+            created_at?: string;
+            event_type?: string;
+            forge_run_id?: string;
+            id?: string;
+            payload?: number[];
+        };
+        ForgeIteration: {
+            agent_config?: number[];
+            /** @description convenience flag */
+            all_hard_passed?: boolean;
+            architect_reasoning?: string;
+            cost?: number;
+            created_at?: string;
+            /** @description Per-eval score tracking across iterations for regression detection. */
+            eval_score_history?: number[];
+            forge_run_id?: string;
+            /** @description Hard vs soft requirement scoring. */
+            hard_score?: number;
+            id?: string;
+            /** @description Cost for this iteration. */
+            input_tokens?: number;
+            iteration?: number;
+            output_tokens?: number;
+            passed_evals?: number;
+            /** @description Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed. */
+            phase?: string;
+            score?: number;
+            /** @description average score of soft evals */
+            soft_score?: number;
+            /** @description Architect output — persisted after designing phase. */
+            system_prompt?: string;
+            tools?: number[];
+            /** @description Results — persisted after judging phase. */
+            total_evals?: number;
+            updated_at?: string;
+        };
         JSON: {
             [key: string]: unknown;
         };
@@ -73,10 +134,12 @@ interface components {
             provider_id?: string;
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
             updated_at?: string;
         };
@@ -234,9 +297,11 @@ interface components {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
         createConnectSessionRequest: {
@@ -283,6 +348,7 @@ interface components {
         };
         createIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -351,6 +417,29 @@ interface components {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
         };
+        forgeGetRunResponse: {
+            iterations?: components["schemas"]["ForgeIteration"][];
+            run?: components["schemas"]["forgeRunResponse"];
+        };
+        forgeRunResponse: {
+            agent_id?: string;
+            completed_at?: string;
+            convergence_limit?: number;
+            created_at?: string;
+            current_iteration?: number;
+            error_message?: string;
+            final_score?: number;
+            id?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+            started_at?: string;
+            status?: string;
+            stop_reason?: string;
+            stream_url?: string;
+            total_cost?: number;
+            total_input_tokens?: number;
+            total_output_tokens?: number;
+        };
         forgotPasswordRequest: {
             email?: string;
         };
@@ -390,6 +479,7 @@ interface components {
             external_id?: string;
             id?: string;
             last_used_at?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
             request_count?: number;
@@ -695,6 +785,18 @@ interface components {
             date?: string;
             total_cost?: number;
         };
+        startForgeRequest: {
+            architect_credential_id?: string;
+            architect_model?: string;
+            /** @description default 3 */
+            convergence_limit?: number;
+            eval_designer_credential_id?: string;
+            eval_designer_model?: string;
+            judge_credential_id?: string;
+            judge_model?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+        };
         statusResponse: {
             message?: string;
             status?: string;
@@ -752,13 +854,16 @@ interface components {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
         updateIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -771,6 +876,9 @@ interface components {
             build_commands?: string;
             config?: components["schemas"]["JSON"];
             name?: string;
+        };
+        updateWebhookSettingsRequest: {
+            url?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
@@ -797,6 +905,19 @@ interface components {
         verifyDomainResponse: {
             message?: string;
             verified?: boolean;
+        };
+        webhookSettingsCreateResponse: {
+            created_at?: string;
+            /** @description plaintext, shown once */
+            secret?: string;
+            secret_prefix?: string;
+            url?: string;
+        };
+        webhookSettingsResponse: {
+            created_at?: string;
+            secret_prefix?: string;
+            updated_at?: string;
+            url?: string;
         };
         widgetIntegrationResponse: {
             auth_mode?: string;
@@ -929,6 +1050,14 @@ type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
 type ExecRequest = Schemas["execRequest"];
 type ExecResponse = Schemas["execResponse"];
 type CommandResult = Schemas["commandResult"];
+type StartForgeRequest = Schemas["startForgeRequest"];
+type ForgeRunResponse = Schemas["forgeRunResponse"];
+type ForgeGetRunResponse = Schemas["forgeGetRunResponse"];
+type ForgeEvent = Schemas["ForgeEvent"];
+type ForgeEvalResult = Schemas["ForgeEvalResult"];
+type ForgeIteration = Schemas["ForgeIteration"];
+type WebhookSettingsResponse = Schemas["webhookSettingsResponse"];
+type WebhookSettingsCreateResponse = Schemas["webhookSettingsCreateResponse"];
 
 type ApiClient = ReturnType<typeof openapi_fetch__default<paths>>;
 declare class BaseResource {
@@ -1004,9 +1133,11 @@ declare class AgentsResource extends BaseResource {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
     }, `${string}/${string}`>>;
@@ -1159,9 +1290,11 @@ declare class AgentsResource extends BaseResource {
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
             sandbox_type?: string;
+            shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
+            team?: string;
             tools?: components["schemas"]["JSON"];
         };
     }, `${string}/${string}`>>;
@@ -2464,7 +2597,9 @@ declare class ConversationsResource extends BaseResource {
                 convID: string;
             };
         };
-        body: any;
+        body: {
+            content: string;
+        };
     }, `${string}/${string}`>>;
     abort(convID: string): Promise<openapi_fetch.FetchResponse<{
         parameters: {
@@ -2629,7 +2764,9 @@ declare class ConversationsResource extends BaseResource {
                 requestID: string;
             };
         };
-        body: any;
+        body: {
+            decision: "approve" | "deny";
+        };
     }, `${string}/${string}`>>;
     listEvents(convID: string, query?: {
         limit?: number;
@@ -3124,6 +3261,405 @@ declare class CustomDomainsResource extends BaseResource {
     }, `${string}/${string}`>>;
 }
 
+declare class ForgeResource extends BaseResource {
+    private baseUrl;
+    private apiKey;
+    constructor(client: ApiClient, baseUrl: string, apiKey: string);
+    start(agentID: string, body: {
+        architect_credential_id: string;
+        architect_model: string;
+        eval_designer_credential_id: string;
+        eval_designer_model: string;
+        judge_credential_id: string;
+        judge_model: string;
+        max_iterations?: number;
+        pass_threshold?: number;
+        convergence_limit?: number;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["startForgeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["forgeRunResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                agentID: string;
+            };
+        };
+        body: {
+            architect_credential_id: string;
+            architect_model: string;
+            eval_designer_credential_id: string;
+            eval_designer_model: string;
+            judge_credential_id: string;
+            judge_model: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+            convergence_limit?: number;
+        };
+    }, `${string}/${string}`>>;
+    listRuns(agentID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["forgeRunResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                agentID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    getRun(runID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["forgeGetRunResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                runID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    listEvents(runID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeEvent"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                runID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    listEvals(runID: string, iterationID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+                iterationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgeEvalResult"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                runID: string;
+                iterationID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    cancel(runID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                runID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    apply(runID: string): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        params: {
+            path: {
+                runID: string;
+            };
+        };
+    }, `${string}/${string}`>>;
+    /**
+     * Opens an SSE stream for real-time forge events.
+     * Returns the raw Response so callers can consume the ReadableStream.
+     */
+    stream(runID: string): Promise<Response>;
+}
+
 declare class GenerationsResource extends BaseResource {
     list(query?: {
         limit?: number;
@@ -3302,6 +3838,7 @@ declare class IdentitiesResource extends BaseResource {
     }, {
         body: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -3499,6 +4036,7 @@ declare class IdentitiesResource extends BaseResource {
         };
         body: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -5001,6 +5539,329 @@ declare class UsageResource extends BaseResource {
     }> | undefined, `${string}/${string}`>>;
 }
 
+declare class WebhooksResource extends BaseResource {
+    get(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+    update(body: {
+        url: string;
+    }): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["updateWebhookSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, {
+        body: {
+            url: string;
+        };
+    }, `${string}/${string}`>>;
+    rotateSecret(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+    delete(): Promise<openapi_fetch.FetchResponse<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }, openapi_fetch.FetchOptions<{
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["errorResponse"];
+                };
+            };
+        };
+    }> | undefined, `${string}/${string}`>>;
+}
+
 declare class LLMVault {
     readonly agents: AgentsResource;
     readonly apiKeys: ApiKeysResource;
@@ -5011,6 +5872,7 @@ declare class LLMVault {
     readonly conversations: ConversationsResource;
     readonly credentials: CredentialsResource;
     readonly customDomains: CustomDomainsResource;
+    readonly forge: ForgeResource;
     readonly generations: GenerationsResource;
     readonly identities: IdentitiesResource;
     readonly integrations: IntegrationsResource;
@@ -5021,7 +5883,8 @@ declare class LLMVault {
     readonly sandboxTemplates: SandboxTemplatesResource;
     readonly tokens: TokensResource;
     readonly usage: UsageResource;
+    readonly webhooks: WebhooksResource;
     constructor(config: LLMVaultConfig);
 }
 
-export { type ActionSummary, type AgentResponse, type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type CommandResult, type ConnectSessionListItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type ConversationEventResponse, type ConversationResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateAgentRequest, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateDomainRequest, type CreateDomainResponse, type CreateIdentityRequest, type CreateIntegrationRequest, type CreateOrgRequest, type CreateSandboxTemplateRequest, type CredentialResponse, type DnsRecord, type ErrorResponse, type ExecRequest, type ExecResponse, type GenerationResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationDetail, type IntegrationResponse, type IntegrationSummary, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedAgents, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedConnectSessions, type PaginatedConversationEvents, type PaginatedConversations, type PaginatedCredentials, type PaginatedGenerations, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedSandboxTemplates, type PaginatedSandboxes, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type ReportRow, type SandboxResponse, type SandboxTemplateResponse, type SetupRequest, type SetupResponse, type TokenListItem, type TokenScope, type UpdateAgentRequest, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UpdateSandboxTemplateRequest, type UsageResponse, type VerifyDomainResponse };
+export { type ActionSummary, type AgentResponse, type ApiKeyResponse, type AuditEntryResponse, type AvailableScopeAction, type AvailableScopeConnection, type AvailableScopeResource, type AvailableScopeResourceItem, type CommandResult, type ConnectSessionListItem, type ConnectSessionResponse, type ConnectSettingsRequest, type ConnectSettingsResponse, type ConversationEventResponse, type ConversationResponse, type CreateAPIKeyRequest, type CreateAPIKeyResponse, type CreateAgentRequest, type CreateConnectSessionRequest, type CreateCredentialRequest, type CreateDomainRequest, type CreateDomainResponse, type CreateIdentityRequest, type CreateIntegrationRequest, type CreateOrgRequest, type CreateSandboxTemplateRequest, type CredentialResponse, type DnsRecord, type ErrorResponse, type ExecRequest, type ExecResponse, type ForgeEvalResult, type ForgeEvent, type ForgeGetRunResponse, type ForgeIteration, type ForgeRunResponse, type GenerationResponse, type IdentityRateLimitParams, type IdentityResponse, type IntegConnCreateRequest, type IntegConnResponse, type IntegrationDetail, type IntegrationResponse, type IntegrationSummary, type JSON, LLMVault, type LLMVaultConfig, type MintTokenRequest, type MintTokenResponse, type ModelSummary, type NangoCredentials, type OrgResponse, type PaginatedAgents, type PaginatedApiKeys, type PaginatedAuditEntries, type PaginatedConnectSessions, type PaginatedConversationEvents, type PaginatedConversations, type PaginatedCredentials, type PaginatedGenerations, type PaginatedIdentities, type PaginatedIntegConns, type PaginatedIntegrations, type PaginatedSandboxTemplates, type PaginatedSandboxes, type PaginatedTokens, type ProviderDetail, type ProviderSummary, type ProxyRequestOptions, type ProxyResponse, type ReportRow, type SandboxResponse, type SandboxTemplateResponse, type SetupRequest, type SetupResponse, type StartForgeRequest, type TokenListItem, type TokenScope, type UpdateAgentRequest, type UpdateIdentityRequest, type UpdateIntegrationRequest, type UpdateSandboxTemplateRequest, type UsageResponse, type VerifyDomainResponse, type WebhookSettingsCreateResponse, type WebhookSettingsResponse };

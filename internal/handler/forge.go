@@ -60,6 +60,11 @@ type forgeRunResponse struct {
 	CreatedAt         string   `json:"created_at"`
 }
 
+type forgeGetRunResponse struct {
+	Run        forgeRunResponse         `json:"run"`
+	Iterations []model.ForgeIteration   `json:"iterations"`
+}
+
 func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
 	resp := forgeRunResponse{
 		ID:                run.ID.String(),
@@ -90,6 +95,20 @@ func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
 }
 
 // Start creates and starts a new forge run.
+// @Summary Start a forge run
+// @Description Creates and starts a new forge run for the specified agent using the provided models, credentials, and configuration.
+// @Tags forge
+// @Accept json
+// @Produce json
+// @Param agentID path string true "Agent ID"
+// @Param body body startForgeRequest true "Forge configuration"
+// @Success 201 {object} forgeRunResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{agentID}/forge [post]
 func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -203,6 +222,15 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListRuns lists forge runs for an agent.
+// @Summary List forge runs
+// @Description Returns all forge runs for the specified agent, ordered by creation date.
+// @Tags forge
+// @Produce json
+// @Param agentID path string true "Agent ID"
+// @Success 200 {array} forgeRunResponse
+// @Failure 401 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/agents/{agentID}/forge [get]
 func (h *ForgeHandler) ListRuns(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -225,6 +253,17 @@ func (h *ForgeHandler) ListRuns(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetRun returns a forge run with its iterations.
+// @Summary Get forge run
+// @Description Returns a forge run with all iterations and their details.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {object} forgeGetRunResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID} [get]
 func (h *ForgeHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -259,6 +298,18 @@ func (h *ForgeHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 }
 
 // Stream provides an SSE stream of forge events.
+// @Summary Stream forge events
+// @Description Real-time SSE stream of forge events for a forge run. Supports resume via Last-Event-ID.
+// @Tags forge
+// @Produce text/event-stream
+// @Param runID path string true "Forge Run ID"
+// @Header 200 {string} Last-Event-ID "ID of the last received event"
+// @Success 200 {string} string "SSE stream"
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 503 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/stream [get]
 func (h *ForgeHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -324,6 +375,18 @@ func (h *ForgeHandler) Stream(w http.ResponseWriter, r *http.Request) {
 }
 
 // Cancel cancels a running forge.
+// @Summary Cancel forge run
+// @Description Cancels an active (queued or running) forge run.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/cancel [post]
 func (h *ForgeHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -357,6 +420,18 @@ func (h *ForgeHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 }
 
 // Apply copies the forge result to the target agent.
+// @Summary Apply forge result
+// @Description Copies the best iteration's result to the target agent's configuration.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/apply [post]
 func (h *ForgeHandler) Apply(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -404,6 +479,16 @@ func (h *ForgeHandler) Apply(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListEvents returns paginated forge events for a run.
+// @Summary List forge events
+// @Description Returns the audit trail of events for a forge run.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {array} model.ForgeEvent
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/events [get]
 func (h *ForgeHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -428,6 +513,18 @@ func (h *ForgeHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListEvals returns eval results for a specific iteration.
+// @Summary List eval results
+// @Description Returns eval results for all test cases in a specific forge iteration.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Param iterationID path string true "Iteration ID"
+// @Success 200 {array} model.ForgeEvalResult
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/iterations/{iterationID}/evals [get]
 func (h *ForgeHandler) ListEvals(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

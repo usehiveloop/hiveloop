@@ -121,6 +121,16 @@ type updateWebhookSettingsRequest struct {
 }
 
 // GetWebhookSettings handles GET /v1/settings/webhooks.
+// @Summary Get webhook settings
+// @Description Returns the webhook configuration for the current organization.
+// @Tags settings
+// @Produce json
+// @Success 200 {object} webhookSettingsResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/settings/webhooks [get]
 func (h *SettingsHandler) GetWebhookSettings(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -148,6 +158,19 @@ func (h *SettingsHandler) GetWebhookSettings(w http.ResponseWriter, r *http.Requ
 
 // UpdateWebhookSettings handles PUT /v1/settings/webhooks.
 // Creates a new config (with generated secret) if none exists, or updates the URL.
+// @Summary Update webhook settings
+// @Description Creates a new webhook configuration (with generated secret) or updates the URL of an existing configuration.
+// @Tags settings
+// @Accept json
+// @Produce json
+// @Param body body updateWebhookSettingsRequest true "URL for webhook delivery"
+// @Success 201 {object} webhookSettingsCreateResponse
+// @Success 200 {object} webhookSettingsResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/settings/webhooks [put]
 func (h *SettingsHandler) UpdateWebhookSettings(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -226,6 +249,16 @@ func (h *SettingsHandler) UpdateWebhookSettings(w http.ResponseWriter, r *http.R
 }
 
 // RotateWebhookSecret handles POST /v1/settings/webhooks/rotate-secret.
+// @Summary Rotate webhook secret
+// @Description Generates a new webhook secret for the existing configuration.
+// @Tags settings
+// @Produce json
+// @Success 200 {object} webhookSettingsCreateResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/settings/webhooks/rotate-secret [post]
 func (h *SettingsHandler) RotateWebhookSecret(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -277,6 +310,16 @@ func (h *SettingsHandler) RotateWebhookSecret(w http.ResponseWriter, r *http.Req
 }
 
 // DeleteWebhookSettings handles DELETE /v1/settings/webhooks.
+// @Summary Delete webhook settings
+// @Description Deletes the webhook configuration for the current organization.
+// @Tags settings
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/settings/webhooks [delete]
 func (h *SettingsHandler) DeleteWebhookSettings(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {

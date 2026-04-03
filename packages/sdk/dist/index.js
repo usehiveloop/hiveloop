@@ -305,6 +305,66 @@ var CustomDomainsResource = class extends BaseResource {
   }
 };
 
+// src/resources/forge.ts
+var ForgeResource = class extends BaseResource {
+  baseUrl;
+  apiKey;
+  constructor(client, baseUrl, apiKey) {
+    super(client);
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+  start(agentID, body) {
+    return this.client.POST("/v1/agents/{agentID}/forge", {
+      params: { path: { agentID } },
+      body
+    });
+  }
+  listRuns(agentID) {
+    return this.client.GET("/v1/agents/{agentID}/forge", {
+      params: { path: { agentID } }
+    });
+  }
+  getRun(runID) {
+    return this.client.GET("/v1/forge-runs/{runID}", {
+      params: { path: { runID } }
+    });
+  }
+  listEvents(runID) {
+    return this.client.GET("/v1/forge-runs/{runID}/events", {
+      params: { path: { runID } }
+    });
+  }
+  listEvals(runID, iterationID) {
+    return this.client.GET("/v1/forge-runs/{runID}/iterations/{iterationID}/evals", {
+      params: { path: { runID, iterationID } }
+    });
+  }
+  cancel(runID) {
+    return this.client.POST("/v1/forge-runs/{runID}/cancel", {
+      params: { path: { runID } }
+    });
+  }
+  apply(runID) {
+    return this.client.POST("/v1/forge-runs/{runID}/apply", {
+      params: { path: { runID } }
+    });
+  }
+  /**
+   * Opens an SSE stream for real-time forge events.
+   * Returns the raw Response so callers can consume the ReadableStream.
+   */
+  async stream(runID) {
+    const url = `${this.baseUrl}/v1/forge-runs/${encodeURIComponent(runID)}/stream`;
+    return fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: "text/event-stream"
+      }
+    });
+  }
+};
+
 // src/resources/generations.ts
 var GenerationsResource = class extends BaseResource {
   list(query) {
@@ -493,6 +553,22 @@ var UsageResource = class extends BaseResource {
   }
 };
 
+// src/resources/webhooks.ts
+var WebhooksResource = class extends BaseResource {
+  get() {
+    return this.client.GET("/v1/settings/webhooks");
+  }
+  update(body) {
+    return this.client.PUT("/v1/settings/webhooks", { body });
+  }
+  rotateSecret() {
+    return this.client.POST("/v1/settings/webhooks/rotate-secret");
+  }
+  delete() {
+    return this.client.DELETE("/v1/settings/webhooks");
+  }
+};
+
 // src/client.ts
 var LLMVault = class {
   agents;
@@ -504,6 +580,7 @@ var LLMVault = class {
   conversations;
   credentials;
   customDomains;
+  forge;
   generations;
   identities;
   integrations;
@@ -514,6 +591,7 @@ var LLMVault = class {
   sandboxTemplates;
   tokens;
   usage;
+  webhooks;
   constructor(config) {
     const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
     const client = createClient({
@@ -531,6 +609,7 @@ var LLMVault = class {
     this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
     this.customDomains = new CustomDomainsResource(client);
+    this.forge = new ForgeResource(client, baseUrl, config.apiKey);
     this.generations = new GenerationsResource(client);
     this.identities = new IdentitiesResource(client);
     this.integrations = new IntegrationsResource(client);
@@ -541,6 +620,7 @@ var LLMVault = class {
     this.sandboxTemplates = new SandboxTemplatesResource(client);
     this.tokens = new TokensResource(client);
     this.usage = new UsageResource(client);
+    this.webhooks = new WebhooksResource(client);
   }
 };
 export {

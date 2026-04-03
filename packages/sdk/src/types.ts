@@ -138,3 +138,15 @@ export type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
 export type ExecRequest = Schemas["execRequest"];
 export type ExecResponse = Schemas["execResponse"];
 export type CommandResult = Schemas["commandResult"];
+
+// Forge
+export type StartForgeRequest = Schemas["startForgeRequest"];
+export type ForgeRunResponse = Schemas["forgeRunResponse"];
+export type ForgeGetRunResponse = Schemas["forgeGetRunResponse"];
+export type ForgeEvent = Schemas["ForgeEvent"];
+export type ForgeEvalResult = Schemas["ForgeEvalResult"];
+export type ForgeIteration = Schemas["ForgeIteration"];
+
+// Webhooks
+export type WebhookSettingsResponse = Schemas["webhookSettingsResponse"];
+export type WebhookSettingsCreateResponse = Schemas["webhookSettingsCreateResponse"];

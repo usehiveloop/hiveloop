@@ -750,6 +750,142 @@
         }
       }
     },
+    "/v1/agents/{agentID}/forge": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns all forge runs for the specified agent, ordered by creation date.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "List forge runs",
+        "parameters": [
+          {
+            "description": "Agent ID",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/forgeRunResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates and starts a new forge run for the specified agent using the provided models, credentials, and configuration.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Start a forge run",
+        "parameters": [
+          {
+            "description": "Agent ID",
+            "name": "agentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/startForgeRequest"
+              }
+            }
+          },
+          "description": "Forge configuration",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/forgeRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/agents/{id}": {
       "get": {
         "security": [
@@ -2989,6 +3125,439 @@
         }
       }
     },
+    "/v1/forge-runs/{runID}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns a forge run with all iterations and their details.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Get forge run",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/forgeGetRunResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/apply": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Copies the best iteration's result to the target agent's configuration.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Apply forge result",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/cancel": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Cancels an active (queued or running) forge run.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Cancel forge run",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/events": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the audit trail of events for a forge run.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "List forge events",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeEvent"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/iterations/{iterationID}/evals": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns eval results for all test cases in a specific forge iteration.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "List eval results",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Iteration ID",
+            "name": "iterationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeEvalResult"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/stream": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Real-time SSE stream of forge events for a forge run. Supports resume via Last-Event-ID.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Stream forge events",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/generations": {
       "get": {
         "security": [
@@ -3861,7 +4430,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns all Nango providers available for creating integrations.",
+        "description": "Returns Nango providers that have verified action definitions in the catalog.",
         "tags": [
           "integrations"
         ],
@@ -5354,6 +5923,250 @@
         }
       }
     },
+    "/v1/settings/webhooks": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the webhook configuration for the current organization.",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get webhook settings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/webhookSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a new webhook configuration (with generated secret) or updates the URL of an existing configuration.",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Update webhook settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateWebhookSettingsRequest"
+              }
+            }
+          },
+          "description": "URL for webhook delivery",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/webhookSettingsResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/webhookSettingsCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Deletes the webhook configuration for the current organization.",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Delete webhook settings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settings/webhooks/rotate-secret": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Generates a new webhook secret for the existing configuration.",
+        "tags": [
+          "settings"
+        ],
+        "summary": "Rotate webhook secret",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/webhookSettingsCreateResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tokens": {
       "get": {
         "security": [
@@ -6000,7 +6813,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns all Nango providers available for creating integrations.",
+        "description": "Returns Nango providers that have verified action definitions in the catalog.",
         "tags": [
           "integrations"
         ],
@@ -6643,6 +7456,175 @@
           }
         }
       },
+      "ForgeEvalResult": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "critique": {
+            "description": "actionable, specific failure explanation",
+            "type": "string"
+          },
+          "deterministic_results": {
+            "description": "Deterministic check results (run before LLM judge).",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "failure_category": {
+            "description": "safety, correctness, completeness, tone, tool_usage, none",
+            "type": "string"
+          },
+          "forge_eval_case_id": {
+            "type": "string"
+          },
+          "forge_iteration_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "pass_rate": {
+            "description": "Multi-sample results.",
+            "type": "number"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "rubric_scores": {
+            "description": "[{criterion, requirement_type, met, score, explanation}]",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "sample_results": {
+            "description": "[{sample_index, response, tool_calls, passed, score}]",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "score": {
+            "description": "Judge verdict (from LLM judge, after deterministic checks).",
+            "type": "number"
+          },
+          "status": {
+            "description": "Status tracks result progress: pending \u2192 running \u2192 judging \u2192 completed|failed.",
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "ForgeEvent": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "forge_run_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "ForgeIteration": {
+        "type": "object",
+        "properties": {
+          "agent_config": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "all_hard_passed": {
+            "description": "convenience flag",
+            "type": "boolean"
+          },
+          "architect_reasoning": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "eval_score_history": {
+            "description": "Per-eval score tracking across iterations for regression detection.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "forge_run_id": {
+            "type": "string"
+          },
+          "hard_score": {
+            "description": "Hard vs soft requirement scoring.",
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input_tokens": {
+            "description": "Cost for this iteration.",
+            "type": "integer"
+          },
+          "iteration": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "passed_evals": {
+            "type": "integer"
+          },
+          "phase": {
+            "description": "Phase within this iteration: designing \u2192 eval_designing \u2192 evaluating \u2192 judging \u2192 completed|failed.",
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "soft_score": {
+            "description": "average score of soft evals",
+            "type": "number"
+          },
+          "system_prompt": {
+            "description": "Architect output \u2014 persisted after designing phase.",
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_evals": {
+            "description": "Results \u2014 persisted after judging phase.",
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "JSON": {
         "type": "object",
         "additionalProperties": {}
@@ -6828,6 +7810,9 @@
           "sandbox_type": {
             "type": "string"
           },
+          "shared_memory": {
+            "type": "boolean"
+          },
           "skills": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -6838,6 +7823,9 @@
             "$ref": "#/components/schemas/JSON"
           },
           "system_prompt": {
+            "type": "string"
+          },
+          "team": {
             "type": "string"
           },
           "tools": {
@@ -7323,6 +8311,9 @@
           "sandbox_type": {
             "type": "string"
           },
+          "shared_memory": {
+            "type": "boolean"
+          },
           "skills": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -7330,6 +8321,9 @@
             "$ref": "#/components/schemas/JSON"
           },
           "system_prompt": {
+            "type": "string"
+          },
+          "team": {
             "type": "string"
           },
           "tools": {
@@ -7475,6 +8469,9 @@
         "properties": {
           "external_id": {
             "type": "string"
+          },
+          "memory_config": {
+            "$ref": "#/components/schemas/JSON"
           },
           "meta": {
             "$ref": "#/components/schemas/JSON"
@@ -7676,6 +8673,76 @@
           }
         }
       },
+      "forgeGetRunResponse": {
+        "type": "object",
+        "properties": {
+          "iterations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForgeIteration"
+            }
+          },
+          "run": {
+            "$ref": "#/components/schemas/forgeRunResponse"
+          }
+        }
+      },
+      "forgeRunResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string"
+          },
+          "convergence_limit": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "current_iteration": {
+            "type": "integer"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "final_score": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "max_iterations": {
+            "type": "integer"
+          },
+          "pass_threshold": {
+            "type": "number"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "stop_reason": {
+            "type": "string"
+          },
+          "stream_url": {
+            "type": "string"
+          },
+          "total_cost": {
+            "type": "number"
+          },
+          "total_input_tokens": {
+            "type": "integer"
+          },
+          "total_output_tokens": {
+            "type": "integer"
+          }
+        }
+      },
       "forgotPasswordRequest": {
         "type": "object",
         "properties": {
@@ -7790,6 +8857,9 @@
           },
           "last_used_at": {
             "type": "string"
+          },
+          "memory_config": {
+            "$ref": "#/components/schemas/JSON"
           },
           "meta": {
             "$ref": "#/components/schemas/JSON"
@@ -8721,6 +9791,39 @@
           }
         }
       },
+      "startForgeRequest": {
+        "type": "object",
+        "properties": {
+          "architect_credential_id": {
+            "type": "string"
+          },
+          "architect_model": {
+            "type": "string"
+          },
+          "convergence_limit": {
+            "description": "default 3",
+            "type": "integer"
+          },
+          "eval_designer_credential_id": {
+            "type": "string"
+          },
+          "eval_designer_model": {
+            "type": "string"
+          },
+          "judge_credential_id": {
+            "type": "string"
+          },
+          "judge_model": {
+            "type": "string"
+          },
+          "max_iterations": {
+            "type": "integer"
+          },
+          "pass_threshold": {
+            "type": "number"
+          }
+        }
+      },
       "statusResponse": {
         "type": "object",
         "properties": {
@@ -8885,6 +9988,9 @@
           "sandbox_type": {
             "type": "string"
           },
+          "shared_memory": {
+            "type": "boolean"
+          },
           "skills": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -8892,6 +9998,9 @@
             "$ref": "#/components/schemas/JSON"
           },
           "system_prompt": {
+            "type": "string"
+          },
+          "team": {
             "type": "string"
           },
           "tools": {
@@ -8904,6 +10013,9 @@
         "properties": {
           "external_id": {
             "type": "string"
+          },
+          "memory_config": {
+            "$ref": "#/components/schemas/JSON"
           },
           "meta": {
             "$ref": "#/components/schemas/JSON"
@@ -8940,6 +10052,14 @@
             "$ref": "#/components/schemas/JSON"
           },
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "updateWebhookSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
             "type": "string"
           }
         }
@@ -9038,6 +10158,41 @@
           },
           "verified": {
             "type": "boolean"
+          }
+        }
+      },
+      "webhookSettingsCreateResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "secret": {
+            "description": "plaintext, shown once",
+            "type": "string"
+          },
+          "secret_prefix": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "webhookSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "secret_prefix": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
           }
         }
       },
