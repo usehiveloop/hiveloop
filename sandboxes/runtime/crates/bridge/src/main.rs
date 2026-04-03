@@ -408,23 +408,22 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     if let Some(handle) = storage_handle {
         handle.drain().await;
     }
+
     info!("bridge stopped");
 
     Ok(())
 }
 
 /// Initialize tracing/logging based on configuration.
+/// When `BRIDGE_OTEL_ENDPOINT` is set, adds an OpenTelemetry layer that exports
+/// spans via OTLP gRPC — all existing `tracing` spans become OTel spans.
 fn init_logging(config: &RuntimeConfig) {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
     use tracing_subscriber::EnvFilter;
 
     // Build filter: honour RUST_LOG if set, otherwise use config log_level
     // with sensible defaults to suppress noisy library crates.
-    //
-    // rig-core compiles as `rig` (not `rig_core`) due to [lib] name = "rig"
-    // in its Cargo.toml. Its agent/prompt_request module logs full untruncated
-    // tool call arguments, results, system prompts, and completions at info
-    // level. Bridge already logs tool calls with proper truncation in
-    // tool_hook.rs, so rig's verbose output is redundant.
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
         EnvFilter::new(format!(
             "{},rig=warn,h2=info,hyper_util=info,reqwest=info",
@@ -432,17 +431,73 @@ fn init_logging(config: &RuntimeConfig) {
         ))
     });
 
+    // Optionally build OpenTelemetry layer for OTLP trace export
+    let otel_layer = if let Some(ref endpoint) = config.otel_endpoint {
+        match init_otel_tracer(endpoint, &config.otel_service_name) {
+            Ok(tracer) => {
+                eprintln!(
+                    "OpenTelemetry tracing enabled: endpoint={}, service={}",
+                    endpoint, config.otel_service_name
+                );
+                Some(tracing_opentelemetry::layer().with_tracer(tracer))
+            }
+            Err(e) => {
+                eprintln!("Failed to initialize OpenTelemetry: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // Compose: registry + env_filter + otel (optional) + fmt
+    // OTel layer is added before fmt so it has the same subscriber type param.
+    let registry = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(otel_layer);
+
     match config.log_format {
         bridge_core::LogFormat::Json => {
-            tracing_subscriber::fmt()
-                .json()
-                .with_env_filter(env_filter)
+            registry
+                .with(tracing_subscriber::fmt::layer().json())
                 .init();
         }
         bridge_core::LogFormat::Text => {
-            tracing_subscriber::fmt().with_env_filter(env_filter).init();
+            registry.with(tracing_subscriber::fmt::layer()).init();
         }
     }
+}
+
+/// Initialize the OpenTelemetry OTLP tracer pipeline.
+fn init_otel_tracer(
+    endpoint: &str,
+    service_name: &str,
+) -> Result<opentelemetry_sdk::trace::SdkTracer, Box<dyn std::error::Error>> {
+    use opentelemetry::trace::TracerProvider as _;
+    use opentelemetry_otlp::WithExportConfig;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+    use opentelemetry_sdk::Resource;
+
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(endpoint)
+        .build()?;
+
+    let provider = SdkTracerProvider::builder()
+        .with_simple_exporter(exporter)
+        .with_resource(
+            Resource::builder()
+                .with_service_name(service_name.to_string())
+                .build(),
+        )
+        .build();
+
+    let tracer = provider.tracer("bridge");
+
+    // Set as global provider so shutdown can flush
+    opentelemetry::global::set_tracer_provider(provider);
+
+    Ok(tracer)
 }
 
 /// Wait for a shutdown signal (SIGTERM, SIGINT, or cancellation token).

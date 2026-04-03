@@ -55,6 +55,18 @@ pub struct RuntimeConfig {
     /// Configured via `BRIDGE_CODEDB_BINARY` env var.
     #[serde(default = "default_codedb_binary")]
     pub codedb_binary: String,
+
+    /// OpenTelemetry OTLP endpoint for trace export.
+    /// When set, Bridge exports all spans via OTLP gRPC to this endpoint.
+    /// Configured via `BRIDGE_OTEL_ENDPOINT` env var.
+    /// Example: `http://localhost:4317` (Jaeger, Grafana Tempo, Datadog Agent, etc.)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub otel_endpoint: Option<String>,
+
+    /// OpenTelemetry service name. Defaults to "bridge".
+    /// Configured via `BRIDGE_OTEL_SERVICE_NAME` env var.
+    #[serde(default = "default_otel_service_name")]
+    pub otel_service_name: String,
 }
 
 /// Webhook delivery configuration for tuning throughput and resilience.
@@ -111,6 +123,9 @@ fn default_webhook_worker_idle_timeout() -> u64 {
 }
 fn default_codedb_binary() -> String {
     "codedb".to_string()
+}
+fn default_otel_service_name() -> String {
+    "bridge".to_string()
 }
 
 /// LSP configuration: either disabled entirely or per-server config map.
@@ -185,6 +200,8 @@ impl Default for RuntimeConfig {
             websocket_enabled: false,
             codedb_enabled: false,
             codedb_binary: default_codedb_binary(),
+            otel_endpoint: None,
+            otel_service_name: default_otel_service_name(),
         }
     }
 }

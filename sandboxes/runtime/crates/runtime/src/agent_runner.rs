@@ -239,6 +239,13 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         prompt: &str,
         task_id: Option<&str>,
     ) -> Result<AgentTaskResult, String> {
+        debug!(
+            subagent = subagent,
+            parent_conversation_id = %self.conversation_id,
+            mode = "foreground",
+            "gen_ai.agent.execute"
+        );
+
         let entry = self
             .subagents
             .get(subagent)
@@ -309,6 +316,13 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         prompt: &str,
         description: &str,
     ) -> Result<AgentTaskHandle, String> {
+        debug!(
+            subagent = subagent,
+            parent_conversation_id = %self.conversation_id,
+            mode = "background",
+            "gen_ai.agent.execute"
+        );
+
         let entry = self
             .subagents
             .get(subagent)
