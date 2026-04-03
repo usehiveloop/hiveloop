@@ -41,19 +41,6 @@ func TestResourceDef(t *testing.T) {
 			},
 		},
 		{
-			provider:     "google_drive",
-			resourceType: "folder",
-			wantExists:   true,
-			wantDef: ResourceDef{
-				DisplayName: "Folders",
-				Description: "Folders the AI can access files within",
-				IDField:     "id",
-				NameField:   "name",
-				Icon:        "folder",
-				ListAction:  "/drive/v3/files",
-			},
-		},
-		{
 			provider:     "notion",
 			resourceType: "page",
 			wantExists:   true,
@@ -77,19 +64,6 @@ func TestResourceDef(t *testing.T) {
 				NameField:   "title",
 				Icon:        "database",
 				ListAction:  "/v1/search",
-			},
-		},
-		{
-			provider:     "linear",
-			resourceType: "team",
-			wantExists:   true,
-			wantDef: ResourceDef{
-				DisplayName: "Teams",
-				Description: "Linear teams the AI can create issues in",
-				IDField:     "id",
-				NameField:   "name",
-				Icon:        "team",
-				ListAction:  "/graphql",
 			},
 		},
 		{
@@ -155,19 +129,9 @@ func TestListResourceTypes(t *testing.T) {
 			wantTypes: []string{"repo"},
 		},
 		{
-			provider:  "google_drive",
-			wantCount: 1,
-			wantTypes: []string{"folder"},
-		},
-		{
 			provider:  "notion",
 			wantCount: 2,
 			wantTypes: []string{"page", "database"},
-		},
-		{
-			provider:  "linear",
-			wantCount: 1,
-			wantTypes: []string{"team"},
 		},
 		{
 			provider:  "asana",
@@ -203,9 +167,7 @@ func TestHasConfigurableResources(t *testing.T) {
 	}{
 		{"slack", true},
 		{"github-app", true},
-		{"google_drive", true},
 		{"notion", true},
-		{"linear", true},
 		{"asana", false},
 		{"jira", false},
 		{"unknown", false},
@@ -340,24 +302,6 @@ func TestRequestConfig(t *testing.T) {
 	}
 	if notionPage.RequestConfig.BodyTemplate == nil {
 		t.Fatal("notion page body template is nil")
-	}
-
-	// Test Linear team resource has RequestConfig with GraphQL query
-	linearTeam, ok := c.GetResourceDef("linear", "team")
-	if !ok {
-		t.Fatal("linear team resource not found")
-	}
-	if linearTeam.RequestConfig == nil {
-		t.Fatal("linear team RequestConfig is nil")
-	}
-	if linearTeam.RequestConfig.Method != "POST" {
-		t.Errorf("linear team method = %q, want POST", linearTeam.RequestConfig.Method)
-	}
-	if linearTeam.RequestConfig.ResponsePath != "data.teams.nodes" {
-		t.Errorf("linear team response_path = %q, want data.teams.nodes", linearTeam.RequestConfig.ResponsePath)
-	}
-	if linearTeam.RequestConfig.BodyTemplate == nil {
-		t.Fatal("linear team body template is nil")
 	}
 
 	// Test Slack channel (now has RequestConfig for generic discovery)

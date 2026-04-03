@@ -60,6 +60,7 @@ type testHarness struct {
 	router       *chi.Mux
 	signingKey   []byte
 	nangoClient  *nango.Client
+	catalog      *catalog.Catalog
 }
 
 func loadEnv(t *testing.T) {
@@ -249,6 +250,7 @@ func newHarness(t *testing.T) *testHarness {
 		router:       r,
 		signingKey:   signingKey,
 		nangoClient:  nangoClient,
+		catalog:      actionsCatalog,
 	}
 }
 

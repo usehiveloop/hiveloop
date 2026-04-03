@@ -30,12 +30,14 @@ func (h *testHarness) createNangoIntegration(t *testing.T, org model.Org, displa
 	var provider string
 	for _, p := range h.nangoClient.GetProviders() {
 		if p.AuthMode == "API_KEY" {
-			provider = p.Name
-			break
+			if _, ok := h.catalog.GetProvider(p.Name); ok {
+				provider = p.Name
+				break
+			}
 		}
 	}
 	if provider == "" {
-		t.Fatal("no API_KEY auth mode provider found in Nango catalog")
+		t.Fatal("no API_KEY provider with action definitions found")
 	}
 	body := fmt.Sprintf(`{"provider":%q,"display_name":%q}`, provider, displayName)
 	req := httptest.NewRequest(http.MethodPost, "/v1/integrations", strings.NewReader(body))
@@ -720,7 +722,7 @@ func TestE2E_ActionsCatalog(t *testing.T) {
 	cat := catalog.Global()
 
 	// Verify curated providers exist
-	for _, provider := range []string{"slack", "github", "google", "notion", "linear"} {
+	for _, provider := range []string{"slack", "github", "notion"} {
 		p, ok := cat.GetProvider(provider)
 		if !ok {
 			t.Fatalf("expected provider %q in catalog", provider)

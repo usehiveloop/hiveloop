@@ -149,9 +149,9 @@ func TestE2E_Widget_ListIntegrations_Resources(t *testing.T) {
 	token, _ := h.createConnectSession(t, org, `{"external_id":"u1","ttl":"15m"}`)
 
 	// Create integrations with resource configs via HTTP API
-	// Use linear (OAUTH2, has "team" resources in catalog) instead of github-app (APP mode, needs RSA key)
+	// Use github (OAUTH2, has "repo" resources in catalog) instead of github-app (APP mode, needs RSA key)
 	h.createNangoIntegrationForProvider(t, org, "slack", "Slack Workspace")
-	h.createNangoIntegrationForProvider(t, org, "linear", "Linear Org")
+	h.createNangoIntegrationForProvider(t, org, "github", "GitHub Org")
 	h.createNangoIntegrationForProvider(t, org, "asana", "Asana")
 
 	rr := h.connectRequest(t, http.MethodGet, "/v1/widget/integrations", token, nil)
@@ -191,18 +191,18 @@ func TestE2E_Widget_ListIntegrations_Resources(t *testing.T) {
 				t.Errorf("slack expected icon 'hash', got %v", res["icon"])
 			}
 
-		case "linear":
+		case "github":
 			if !hasResources {
-				t.Error("linear integration should have resources")
+				t.Error("github integration should have resources")
 				continue
 			}
 			if len(resources) != 1 {
-				t.Errorf("linear expected 1 resource type, got %d", len(resources))
+				t.Errorf("github expected 1 resource type, got %d", len(resources))
 				continue
 			}
 			res := resources[0].(map[string]interface{})
-			if res["type"] != "team" {
-				t.Errorf("linear expected resource type 'team', got %v", res["type"])
+			if res["type"] != "repo" {
+				t.Errorf("github expected resource type 'repo', got %v", res["type"])
 			}
 
 		case "asana":

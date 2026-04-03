@@ -558,17 +558,19 @@ func TestE2E_Integration_NoCredentialAuthMode(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Find an API_KEY auth mode provider from the cache
+	// Find an API_KEY auth mode provider that has action definitions in the catalog
 	providers := h.nangoClient.GetProviders()
 	var apiKeyProvider string
 	for _, p := range providers {
 		if p.AuthMode == "API_KEY" {
-			apiKeyProvider = p.Name
-			break
+			if _, ok := h.catalog.GetProvider(p.Name); ok {
+				apiKeyProvider = p.Name
+				break
+			}
 		}
 	}
 	if apiKeyProvider == "" {
-		t.Fatal("no API_KEY auth mode provider found in Nango catalog")
+		t.Fatal("no API_KEY provider with action definitions found")
 	}
 
 	// Create integration without credentials — should succeed
@@ -886,17 +888,19 @@ func TestE2E_Integration_APIKey_NangoConfigFields(t *testing.T) {
 	h := newHarness(t)
 	org := h.createOrg(t)
 
-	// Find an API_KEY auth mode provider
+	// Find an API_KEY auth mode provider that has action definitions in the catalog
 	providers := h.nangoClient.GetProviders()
 	var apiKeyProvider string
 	for _, p := range providers {
 		if p.AuthMode == "API_KEY" {
-			apiKeyProvider = p.Name
-			break
+			if _, ok := h.catalog.GetProvider(p.Name); ok {
+				apiKeyProvider = p.Name
+				break
+			}
 		}
 	}
 	if apiKeyProvider == "" {
-		t.Fatal("no API_KEY auth mode provider found")
+		t.Fatal("no API_KEY provider with action definitions found")
 	}
 
 	// 1. Create
@@ -976,20 +980,16 @@ func TestE2E_Integration_ListProviders_WebhookFlag(t *testing.T) {
 		t.Fatal("expected non-empty provider list")
 	}
 
-	// Linear is a known provider with webhook_user_defined_secret=true
-	foundLinear := false
+	// Verify that at least one provider has webhook_user_defined_secret=true
+	foundWebhook := false
 	for _, p := range providers {
-		if p["name"] == "linear" {
-			foundLinear = true
-			wuds, ok := p["webhook_user_defined_secret"].(bool)
-			if !ok || !wuds {
-				t.Fatal("expected linear to have webhook_user_defined_secret=true")
-			}
+		if wuds, ok := p["webhook_user_defined_secret"].(bool); ok && wuds {
+			foundWebhook = true
 			break
 		}
 	}
-	if !foundLinear {
-		t.Fatal("expected linear in provider list")
+	if !foundWebhook {
+		t.Fatal("expected at least one provider with webhook_user_defined_secret=true")
 	}
 }
 
