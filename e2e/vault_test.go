@@ -479,7 +479,7 @@ func TestVaultE2E_Proxy_OpenAI_NonStreaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "meta-llama/llama-3.3-70b-instruct:free",
+		"model": "openai/gpt-4.1-nano",
 		"messages": [{"role": "user", "content": "Say hello."}],
 		"stream": false,
 		"max_tokens": 20
@@ -521,7 +521,7 @@ func TestVaultE2E_Proxy_Anthropic_Streaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "qwen/qwen-2.5-7b-instruct:free",
+		"model": "openai/gpt-4o-mini",
 		"messages": [{"role": "user", "content": "Count from 1 to 3, one number per line."}],
 		"stream": true,
 		"max_tokens": 50
