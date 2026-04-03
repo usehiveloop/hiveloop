@@ -35,9 +35,7 @@ pub async fn ws_events(
     let broadcaster = state
         .ws_broadcaster
         .as_ref()
-        .ok_or_else(|| {
-            BridgeError::InvalidRequest("WebSocket event stream is not enabled".into())
-        })?
+        .ok_or_else(|| BridgeError::InvalidRequest("WebSocket event stream is not enabled".into()))?
         .clone();
 
     let rx = broadcaster.subscribe();
@@ -109,9 +107,7 @@ async fn handle_socket(
 }
 
 /// Strip webhook-specific sensitive fields before sending over WebSocket.
-fn strip_secrets(
-    payload: &bridge_core::webhook::WebhookPayload,
-) -> serde_json::Value {
+fn strip_secrets(payload: &bridge_core::webhook::WebhookPayload) -> serde_json::Value {
     let mut value = serde_json::to_value(payload).unwrap_or_default();
     if let Some(obj) = value.as_object_mut() {
         obj.remove("webhook_url");

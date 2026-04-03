@@ -193,44 +193,43 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     // Create webhook dispatcher if webhooks or WebSocket are enabled.
     // The dispatcher is the single fan-out point — WebSocket piggybacks
     // on every dispatch() call via the attached broadcaster.
-    let webhook_ctx: Option<WebhookContext> = if config.webhook_url.is_some()
-        || config.websocket_enabled
-    {
-        let webhook_config = config.webhook_config.clone().unwrap_or_default();
-        let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
-        let client = dispatcher.client();
-        let dispatcher = Arc::new(
-            dispatcher
-                .with_storage(storage_handle.clone())
-                .with_ws_broadcaster(ws_broadcaster.clone()),
-        );
+    let webhook_ctx: Option<WebhookContext> =
+        if config.webhook_url.is_some() || config.websocket_enabled {
+            let webhook_config = config.webhook_config.clone().unwrap_or_default();
+            let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
+            let client = dispatcher.client();
+            let dispatcher = Arc::new(
+                dispatcher
+                    .with_storage(storage_handle.clone())
+                    .with_ws_broadcaster(ws_broadcaster.clone()),
+            );
 
-        if let Some(ref url) = config.webhook_url {
-            // Webhooks enabled — spawn the HTTP delivery loop
-            tokio::spawn(WebhookDispatcher::run(
-                rx,
-                client,
-                cancel.clone(),
-                webhook_config,
-                storage_handle.clone(),
-            ));
-            info!(url = %url, "webhook dispatcher started");
+            if let Some(ref url) = config.webhook_url {
+                // Webhooks enabled — spawn the HTTP delivery loop
+                tokio::spawn(WebhookDispatcher::run(
+                    rx,
+                    client,
+                    cancel.clone(),
+                    webhook_config,
+                    storage_handle.clone(),
+                ));
+                info!(url = %url, "webhook dispatcher started");
+            } else {
+                // WebSocket-only: drain the webhook channel so it doesn't fill up
+                tokio::spawn(async move {
+                    let mut rx = rx;
+                    while rx.recv().await.is_some() {}
+                });
+            }
+
+            Some(WebhookContext {
+                dispatcher,
+                url: config.webhook_url.clone().unwrap_or_default(),
+                secret: config.control_plane_api_key.clone(),
+            })
         } else {
-            // WebSocket-only: drain the webhook channel so it doesn't fill up
-            tokio::spawn(async move {
-                let mut rx = rx;
-                while rx.recv().await.is_some() {}
-            });
-        }
-
-        Some(WebhookContext {
-            dispatcher,
-            url: config.webhook_url.clone().unwrap_or_default(),
-            secret: config.control_plane_api_key.clone(),
-        })
-    } else {
-        None
-    };
+            None
+        };
 
     // Create shared services
     let mcp_manager = Arc::new(McpManager::new());

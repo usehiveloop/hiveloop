@@ -184,11 +184,7 @@ impl AgentSupervisor {
     async fn load_single_agent(&self, mut definition: AgentDefinition) -> Result<(), BridgeError> {
         let agent_id = definition.id.clone();
 
-        inject_codedb_if_enabled(
-            &mut definition,
-            self.codedb_enabled,
-            &self.codedb_binary,
-        );
+        inject_codedb_if_enabled(&mut definition, self.codedb_enabled, &self.codedb_binary);
 
         // Connect to MCP servers
         self.mcp_manager
@@ -711,11 +707,7 @@ impl AgentSupervisor {
     ) -> Result<Arc<AgentState>, BridgeError> {
         let agent_id = definition.id.clone();
 
-        inject_codedb_if_enabled(
-            &mut definition,
-            self.codedb_enabled,
-            &self.codedb_binary,
-        );
+        inject_codedb_if_enabled(&mut definition, self.codedb_enabled, &self.codedb_binary);
 
         self.mcp_manager
             .connect_agent(&agent_id, &definition.mcp_servers)

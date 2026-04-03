@@ -747,7 +747,11 @@ impl TestHarness {
 
         let bridge_process = bridge_command.spawn().context("failed to start bridge")?;
 
-        tracing::info!(port = bridge_port, with_webhooks = with_webhooks, "bridge process started (ws mode)");
+        tracing::info!(
+            port = bridge_port,
+            with_webhooks = with_webhooks,
+            "bridge process started (ws mode)"
+        );
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -896,8 +900,10 @@ impl TestHarness {
             .build()
             .context("failed to build reqwest client")?;
 
-        let log_dir = std::env::temp_dir()
-            .join(format!("bridge-e2e-codedb-conversation-logs-{}", bridge_port));
+        let log_dir = std::env::temp_dir().join(format!(
+            "bridge-e2e-codedb-conversation-logs-{}",
+            bridge_port
+        ));
         let _ = std::fs::remove_dir_all(&log_dir);
         let _ = std::fs::create_dir_all(&log_dir);
 
@@ -2590,7 +2596,9 @@ impl WsEvent {
     /// The event type (e.g. "conversation_created", "response_started").
     pub fn event_type(&self) -> Option<&str> {
         // Could be a normal event or a "lagged" warning
-        self.data.get("event_type").and_then(|v| v.as_str())
+        self.data
+            .get("event_type")
+            .and_then(|v| v.as_str())
             .or_else(|| self.data.get("type").and_then(|v| v.as_str()))
     }
 
@@ -2676,11 +2684,7 @@ impl WsEventStream {
     }
 
     /// Wait until at least `min_count` events have been received, or timeout.
-    pub async fn wait_for_event_count(
-        &self,
-        min_count: usize,
-        timeout: Duration,
-    ) -> Vec<WsEvent> {
+    pub async fn wait_for_event_count(&self, min_count: usize, timeout: Duration) -> Vec<WsEvent> {
         let deadline = Instant::now() + timeout;
         loop {
             {

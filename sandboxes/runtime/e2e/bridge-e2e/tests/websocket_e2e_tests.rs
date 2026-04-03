@@ -293,10 +293,7 @@ async fn test_ws_multiplexes_multiple_agents() {
     let body1: serde_json::Value = resp1.json().await.unwrap();
     let conv_id_1 = body1["conversation_id"].as_str().unwrap().to_string();
 
-    let resp2 = harness
-        .create_conversation("agent_mock_llm")
-        .await
-        .unwrap();
+    let resp2 = harness.create_conversation("agent_mock_llm").await.unwrap();
     let body2: serde_json::Value = resp2.json().await.unwrap();
     let conv_id_2 = body2["conversation_id"].as_str().unwrap().to_string();
 
@@ -356,10 +353,7 @@ async fn test_ws_sequence_numbers_are_monotonic() {
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     let events = ws.events();
-    let seq_numbers: Vec<u64> = events
-        .iter()
-        .filter_map(|e| e.sequence_number())
-        .collect();
+    let seq_numbers: Vec<u64> = events.iter().filter_map(|e| e.sequence_number()).collect();
 
     assert!(
         seq_numbers.len() >= 4,
@@ -476,10 +470,7 @@ async fn test_ws_client_disconnect_does_not_crash_bridge() {
     let created = ws2
         .wait_for_event_type("conversation_created", Duration::from_secs(5))
         .await;
-    assert!(
-        created.is_some(),
-        "new WS connection should receive events"
-    );
+    assert!(created.is_some(), "new WS connection should receive events");
     assert_eq!(
         created.unwrap().conversation_id(),
         Some(conv_id2),

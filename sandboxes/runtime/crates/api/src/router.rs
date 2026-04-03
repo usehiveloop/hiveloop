@@ -4,7 +4,9 @@ use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::handlers::{agents, conversations, health, metrics, permissions, push, stream, ws_handler};
+use crate::handlers::{
+    agents, conversations, health, metrics, permissions, push, stream, ws_handler,
+};
 use crate::middleware::bearer_auth;
 use crate::state::AppState;
 

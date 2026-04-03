@@ -17,7 +17,14 @@ fn test_state() -> AppState {
     let mcp_manager = Arc::new(McpManager::new());
     let cancel = CancellationToken::new();
     let supervisor = Arc::new(AgentSupervisor::new(mcp_manager, cancel.clone()));
-    AppState::new(supervisor, "valid-control-plane-token".to_string(), None, None, None, cancel)
+    AppState::new(
+        supervisor,
+        "valid-control-plane-token".to_string(),
+        None,
+        None,
+        None,
+        cancel,
+    )
 }
 
 /// Build the application router with the request-id middleware applied,

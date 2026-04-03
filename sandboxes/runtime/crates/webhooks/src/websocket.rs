@@ -23,6 +23,12 @@ pub struct WsBroadcaster {
     sequence: AtomicU64,
 }
 
+impl Default for WsBroadcaster {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WsBroadcaster {
     /// Create a new broadcaster with the default buffer size.
     pub fn new() -> Self {

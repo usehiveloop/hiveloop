@@ -344,7 +344,8 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         assert!(
             !called_tools.iter().any(|t| t == tool),
             "excluded tool {} was called but should not be available. Tools called: {:?}",
-            tool, called_tools
+            tool,
+            called_tools
         );
     }
 
