@@ -57,6 +57,8 @@ pub struct ToolCallEmitter {
     pub agent_permissions: HashMap<String, ToolPermission>,
     /// Shared metrics for recording per-tool stats.
     pub metrics: Arc<AgentMetrics>,
+    /// Per-conversation metrics for token/tool tracking.
+    pub conversation_metrics: Option<Arc<bridge_core::metrics::ConversationMetrics>>,
     /// Pending tool call start times, keyed by tool_call_id.
     /// Used to measure latency for rig-core dispatched tools where
     /// timing spans on_tool_call → on_tool_result.
@@ -369,6 +371,9 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         if let Some(dur) = duration_ms {
             self.metrics
                 .record_tool_call_detailed(&effective_name, false, dur);
+            if let Some(ref cm) = self.conversation_metrics {
+                cm.record_tool_call(dur);
+            }
         }
 
         info!(
@@ -1222,6 +1227,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1265,6 +1271,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1310,6 +1317,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1344,6 +1352,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1379,6 +1388,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1458,6 +1468,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1533,6 +1544,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1609,6 +1621,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1685,6 +1698,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1738,6 +1752,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1768,6 +1783,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1826,6 +1842,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 
@@ -1905,6 +1922,7 @@ mod tests {
             permission_manager: Arc::new(PermissionManager::new()),
             agent_permissions: HashMap::new(),
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
+            conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
         };
 

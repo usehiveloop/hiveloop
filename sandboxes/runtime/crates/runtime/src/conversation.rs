@@ -1,4 +1,5 @@
 use bridge_core::conversation::{Message, Role};
+use bridge_core::metrics::ConversationMetrics;
 use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
 use dashmap::DashMap;
@@ -94,6 +95,8 @@ pub struct ConversationParams {
     pub storage: Option<StorageHandle>,
     /// When true, empty text responses are accepted as success if tool calls were made.
     pub tool_calls_only: bool,
+    /// Per-conversation metrics for token/tool tracking.
+    pub conversation_metrics: Arc<ConversationMetrics>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -133,6 +136,7 @@ pub async fn run_conversation(params: ConversationParams) {
         initial_persisted_messages,
         storage,
         tool_calls_only,
+        conversation_metrics,
     } = params;
 
     info!(
@@ -383,6 +387,7 @@ pub async fn run_conversation(params: ConversationParams) {
         let permission_manager_clone = permission_manager.clone();
         let agent_permissions_clone = agent_permissions.clone();
         let metrics_for_task = metrics.clone();
+        let conversation_metrics_for_task = conversation_metrics.clone();
         let msg_id_clone = msg_id.clone();
         // Acquire LLM semaphore permit before spawning the task.
         // This provides global backpressure on concurrent LLM API calls.
@@ -427,6 +432,7 @@ pub async fn run_conversation(params: ConversationParams) {
                     permission_manager: permission_manager_clone,
                     agent_permissions: agent_permissions_clone,
                     metrics: metrics_for_task,
+                    conversation_metrics: Some(conversation_metrics_for_task),
                     pending_tool_timings: Arc::new(DashMap::new()),
                 };
 
@@ -732,6 +738,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         let permission_manager_clone = permission_manager.clone();
                         let agent_permissions_clone = agent_permissions.clone();
                         let metrics_for_cont = metrics.clone();
+                        let conversation_metrics_for_cont = conversation_metrics.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
                         let cont_prompt = if tool_calls_only {
@@ -758,6 +765,7 @@ pub async fn run_conversation(params: ConversationParams) {
                                 permission_manager: permission_manager_clone,
                                 agent_permissions: agent_permissions_clone,
                                 metrics: metrics_for_cont,
+                                conversation_metrics: Some(conversation_metrics_for_cont.clone()),
                                 pending_tool_timings: Arc::new(DashMap::new()),
                             };
                             let fut = async {
@@ -906,9 +914,10 @@ pub async fn run_conversation(params: ConversationParams) {
                 // subsequent turns preserve full tool-call context.
                 history = enriched_history;
 
-                // Record metrics
+                // Record metrics (dual-write to agent + conversation)
                 token_tracker::record_request(
                     &metrics,
+                    Some(&conversation_metrics),
                     initial_input_tokens,
                     initial_output_tokens,
                     latency_ms,
@@ -925,16 +934,39 @@ pub async fn run_conversation(params: ConversationParams) {
                     })
                     .await;
                 if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::response_completed(&agent_id, &conversation_id, json!({"input_tokens": initial_input_tokens, "output_tokens": initial_output_tokens, "full_response": &response}), &wh.url, &wh.secret));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
+                    wh.dispatcher.dispatch(webhooks::events::response_completed(
                         &agent_id,
                         &conversation_id,
+                        json!({
+                            "input_tokens": initial_input_tokens,
+                            "output_tokens": initial_output_tokens,
+                            "model": &conversation_metrics.model,
+                            "timestamp": chrono::Utc::now().to_rfc3339(),
+                            "full_response": &response,
+                        }),
                         &wh.url,
                         &wh.secret,
                     ));
+                }
+                let _ = sse_tx.send(SseEvent::Done).await;
+                if let Some(ref wh) = webhook_ctx {
+                    let cm = conversation_metrics.snapshot();
+                    wh.dispatcher
+                        .dispatch(webhooks::events::turn_completed_with_data(
+                            &agent_id,
+                            &conversation_id,
+                            json!({
+                                "input_tokens": initial_input_tokens,
+                                "output_tokens": initial_output_tokens,
+                                "model": &cm.model,
+                                "timestamp": chrono::Utc::now().to_rfc3339(),
+                                "turn_number": turn_count,
+                                "cumulative_input_tokens": cm.input_tokens,
+                                "cumulative_output_tokens": cm.output_tokens,
+                            }),
+                            &wh.url,
+                            &wh.secret,
+                        ));
                 }
             }
         }
@@ -959,10 +991,18 @@ pub async fn run_conversation(params: ConversationParams) {
 
     token_tracker::decrement_active_conversations(&metrics);
 
+    // Log final conversation metrics summary.
+    // Note: the conversation_ended webhook is emitted by the DELETE handler
+    // in the API layer — not here — to avoid duplicate events.
+    let cm = conversation_metrics.snapshot();
     info!(
         agent_id = agent_id,
         conversation_id = conversation_id,
         turns = turn_count,
+        input_tokens = cm.input_tokens,
+        output_tokens = cm.output_tokens,
+        model = %cm.model,
+        duration_ms = cm.duration_ms,
         "conversation ended"
     );
 }

@@ -278,6 +278,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
             agent_permissions: std::collections::HashMap::new(),
             metrics: self.metrics.clone(),
+            conversation_metrics: None,
             pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
         };
 
@@ -412,6 +413,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
                 agent_permissions: std::collections::HashMap::new(),
                 metrics: metrics_clone,
+                conversation_metrics: None,
                 pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
             };
 

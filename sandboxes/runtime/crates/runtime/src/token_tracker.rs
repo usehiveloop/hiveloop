@@ -1,9 +1,12 @@
+use bridge_core::metrics::ConversationMetrics;
 use bridge_core::AgentMetrics;
 use std::sync::atomic::Ordering;
 
 /// Record a completed LLM request's token usage and latency.
+/// Writes to both the agent-level aggregate and per-conversation metrics.
 pub fn record_request(
     metrics: &AgentMetrics,
+    conv_metrics: Option<&ConversationMetrics>,
     input_tokens: u64,
     output_tokens: u64,
     latency_ms: u64,
@@ -19,6 +22,10 @@ pub fn record_request(
         .latency_sum_ms
         .fetch_add(latency_ms, Ordering::Relaxed);
     metrics.latency_count.fetch_add(1, Ordering::Relaxed);
+
+    if let Some(cm) = conv_metrics {
+        cm.record_turn(input_tokens, output_tokens, latency_ms);
+    }
 }
 
 /// Record a failed request.
@@ -48,7 +55,7 @@ mod tests {
     #[test]
     fn test_record_request_increments_all_counters() {
         let metrics = AgentMetrics::new();
-        record_request(&metrics, 100, 200, 50);
+        record_request(&metrics, None, 100, 200, 50);
 
         assert_eq!(metrics.input_tokens.load(Ordering::Relaxed), 100);
         assert_eq!(metrics.output_tokens.load(Ordering::Relaxed), 200);
@@ -60,14 +67,36 @@ mod tests {
     #[test]
     fn test_record_multiple_requests_accumulates() {
         let metrics = AgentMetrics::new();
-        record_request(&metrics, 100, 200, 50);
-        record_request(&metrics, 50, 100, 30);
+        record_request(&metrics, None, 100, 200, 50);
+        record_request(&metrics, None, 50, 100, 30);
 
         assert_eq!(metrics.input_tokens.load(Ordering::Relaxed), 150);
         assert_eq!(metrics.output_tokens.load(Ordering::Relaxed), 300);
         assert_eq!(metrics.total_requests.load(Ordering::Relaxed), 2);
         assert_eq!(metrics.latency_sum_ms.load(Ordering::Relaxed), 80);
         assert_eq!(metrics.latency_count.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn test_record_request_dual_write_conversation_metrics() {
+        let metrics = AgentMetrics::new();
+        let conv = ConversationMetrics::new(
+            "conv-1".to_string(),
+            "agent-1".to_string(),
+            "claude-4".to_string(),
+        );
+        record_request(&metrics, Some(&conv), 100, 200, 50);
+        record_request(&metrics, Some(&conv), 50, 100, 30);
+
+        // Agent metrics
+        assert_eq!(metrics.input_tokens.load(Ordering::Relaxed), 150);
+        assert_eq!(metrics.output_tokens.load(Ordering::Relaxed), 300);
+
+        // Conversation metrics
+        assert_eq!(conv.input_tokens.load(Ordering::Relaxed), 150);
+        assert_eq!(conv.output_tokens.load(Ordering::Relaxed), 300);
+        assert_eq!(conv.total_turns.load(Ordering::Relaxed), 2);
+        assert_eq!(conv.llm_latency_sum_ms.load(Ordering::Relaxed), 80);
     }
 
     #[test]

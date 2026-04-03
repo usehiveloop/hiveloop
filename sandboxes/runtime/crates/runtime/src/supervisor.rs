@@ -458,6 +458,7 @@ impl AgentSupervisor {
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
+        let model_name = def.provider.model.clone();
 
         // Build a conversation-scoped agent when filters are active so the LLM
         // only sees the allowed tools. When unfiltered, share the agent-wide instance.
@@ -508,6 +509,12 @@ impl AgentSupervisor {
             crate::system_reminder::create_reminder_with_skills(&skills, &subagent_list)
         };
 
+        let conv_metrics = Arc::new(bridge_core::metrics::ConversationMetrics::new(
+            conv_id.clone(),
+            agent_id.to_string(),
+            model_name.clone(),
+        ));
+
         state.tracker.spawn(async move {
             // Hold the conversation permit for the lifetime of the conversation.
             // When the conversation ends, the permit is dropped, freeing a slot.
@@ -540,6 +547,7 @@ impl AgentSupervisor {
                 initial_persisted_messages: None,
                 storage,
                 tool_calls_only,
+                conversation_metrics: conv_metrics,
             })
             .await;
         });
@@ -952,6 +960,7 @@ impl AgentSupervisor {
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
+        let model_name = def.provider.model.clone();
         drop(def); // release read lock before spawning
 
         // Extract subagent names and descriptions, filtering out __self__
@@ -970,6 +979,12 @@ impl AgentSupervisor {
         // Build system reminder with available skills and sub-agents
         let system_reminder =
             crate::system_reminder::create_reminder_with_skills(&skills, &subagent_list);
+
+        let conv_metrics = Arc::new(bridge_core::metrics::ConversationMetrics::new(
+            conv_id.clone(),
+            agent_id.to_string(),
+            model_name.clone(),
+        ));
 
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
@@ -999,6 +1014,7 @@ impl AgentSupervisor {
                 initial_persisted_messages: Some(initial_persisted_messages),
                 storage,
                 tool_calls_only,
+                conversation_metrics: conv_metrics,
             })
             .await;
         });

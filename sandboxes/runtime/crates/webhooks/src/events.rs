@@ -142,6 +142,24 @@ pub fn conversation_ended(
     )
 }
 
+/// Create a webhook payload for a conversation_ended event with metrics data.
+pub fn conversation_ended_with_data(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::ConversationEnded,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
 /// Create a webhook payload for a todo_updated event.
 pub fn todo_updated(
     agent_id: &str,
@@ -172,6 +190,24 @@ pub fn turn_completed(
         agent_id,
         conv_id,
         json!({}),
+        webhook_url,
+        webhook_secret,
+    )
+}
+
+/// Create a webhook payload for a turn_completed event with metrics data.
+pub fn turn_completed_with_data(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::TurnCompleted,
+        agent_id,
+        conv_id,
+        data,
         webhook_url,
         webhook_secret,
     )
