@@ -25,29 +25,33 @@ fn maybe_register(
 /// WebSearch is registered only when SEARCH_ENDPOINT env var is set.
 /// If an `LspManager` is provided, the LSP tool is also registered.
 pub fn register_builtin_tools(registry: &mut ToolRegistry) {
-    register_builtin_tools_with_lsp(registry, None);
+    register_builtin_tools_with_lsp(registry, None, false);
 }
 
 /// Register all built-in tools, optionally including the LSP tool.
+/// When `codedb_enabled` is true, Grep/Read/Glob are skipped (replaced by codedb MCP tools).
 pub fn register_builtin_tools_with_lsp(
     registry: &mut ToolRegistry,
     lsp_manager: Option<Arc<LspManager>>,
+    codedb_enabled: bool,
 ) {
     let tracker = FileTracker::new();
     let boundary = ProjectBoundary::new(std::env::current_dir().unwrap_or_default());
 
-    // Filesystem tools
-    registry.register(Arc::new(
-        crate::grep::GrepTool::new().with_boundary(boundary.clone()),
-    ));
-    registry.register(Arc::new(
-        crate::read::ReadTool::new()
-            .with_file_tracker(tracker.clone())
-            .with_boundary(boundary.clone()),
-    ));
-    registry.register(Arc::new(
-        crate::glob::GlobTool::new().with_boundary(boundary.clone()),
-    ));
+    // Filesystem search tools — skipped when codedb MCP server replaces them
+    if !codedb_enabled {
+        registry.register(Arc::new(
+            crate::grep::GrepTool::new().with_boundary(boundary.clone()),
+        ));
+        registry.register(Arc::new(
+            crate::read::ReadTool::new()
+                .with_file_tracker(tracker.clone())
+                .with_boundary(boundary.clone()),
+        ));
+        registry.register(Arc::new(
+            crate::glob::GlobTool::new().with_boundary(boundary.clone()),
+        ));
+    }
     registry.register(Arc::new(crate::ls::LsTool::new()));
 
     // Write-side tools (with LSP manager for diagnostics)
@@ -177,14 +181,16 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
 /// the agent intentionally has no built-in tools.
 /// Unknown tool names in the list are silently ignored.
 pub fn register_filtered_builtin_tools(registry: &mut ToolRegistry, allowed_tools: &[String]) {
-    register_filtered_builtin_tools_with_lsp(registry, allowed_tools, None);
+    register_filtered_builtin_tools_with_lsp(registry, allowed_tools, None, false);
 }
 
 /// Register filtered built-in tools, optionally including the LSP tool.
+/// When `codedb_enabled` is true, Grep/Read/Glob are skipped (replaced by codedb MCP tools).
 pub fn register_filtered_builtin_tools_with_lsp(
     registry: &mut ToolRegistry,
     allowed_tools: &[String],
     lsp_manager: Option<Arc<LspManager>>,
+    codedb_enabled: bool,
 ) {
     if allowed_tools.is_empty() {
         return;
@@ -194,26 +200,28 @@ pub fn register_filtered_builtin_tools_with_lsp(
     let tracker = FileTracker::new();
     let boundary = ProjectBoundary::new(std::env::current_dir().unwrap_or_default());
 
-    // Filesystem tools
-    maybe_register(
-        registry,
-        Arc::new(crate::grep::GrepTool::new().with_boundary(boundary.clone())),
-        filter,
-    );
-    maybe_register(
-        registry,
-        Arc::new(
-            crate::read::ReadTool::new()
-                .with_file_tracker(tracker.clone())
-                .with_boundary(boundary.clone()),
-        ),
-        filter,
-    );
-    maybe_register(
-        registry,
-        Arc::new(crate::glob::GlobTool::new().with_boundary(boundary.clone())),
-        filter,
-    );
+    // Filesystem search tools — skipped when codedb MCP server replaces them
+    if !codedb_enabled {
+        maybe_register(
+            registry,
+            Arc::new(crate::grep::GrepTool::new().with_boundary(boundary.clone())),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(
+                crate::read::ReadTool::new()
+                    .with_file_tracker(tracker.clone())
+                    .with_boundary(boundary.clone()),
+            ),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(crate::glob::GlobTool::new().with_boundary(boundary.clone())),
+            filter,
+        );
+    }
     maybe_register(registry, Arc::new(crate::ls::LsTool::new()), filter);
 
     // Write-side tools (with LSP manager for diagnostics)
@@ -351,6 +359,44 @@ mod tests {
         assert!(registry.get("Read").is_some());
         assert!(registry.get("edit").is_none());
         assert!(registry.get("write").is_none());
+    }
+
+    #[test]
+    fn test_codedb_enabled_skips_filesystem_search_tools() {
+        let mut registry = ToolRegistry::new();
+        register_builtin_tools_with_lsp(&mut registry, None, true);
+        assert!(registry.get("Grep").is_none());
+        assert!(registry.get("Read").is_none());
+        assert!(registry.get("Glob").is_none());
+        assert!(registry.get("bash").is_some());
+        assert!(registry.get("edit").is_some());
+        assert!(registry.get("LS").is_some());
+    }
+
+    #[test]
+    fn test_codedb_disabled_registers_all_tools() {
+        let mut registry = ToolRegistry::new();
+        register_builtin_tools_with_lsp(&mut registry, None, false);
+        assert!(registry.get("Grep").is_some());
+        assert!(registry.get("Read").is_some());
+        assert!(registry.get("Glob").is_some());
+        assert!(registry.get("bash").is_some());
+    }
+
+    #[test]
+    fn test_codedb_enabled_filtered_skips_filesystem_search_tools() {
+        let mut registry = ToolRegistry::new();
+        let allowed = vec![
+            "Grep".to_string(),
+            "Read".to_string(),
+            "Glob".to_string(),
+            "bash".to_string(),
+        ];
+        register_filtered_builtin_tools_with_lsp(&mut registry, &allowed, None, true);
+        assert!(registry.get("Grep").is_none());
+        assert!(registry.get("Read").is_none());
+        assert!(registry.get("Glob").is_none());
+        assert!(registry.get("bash").is_some());
     }
 
     #[test]

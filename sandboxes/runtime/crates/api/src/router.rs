@@ -4,7 +4,7 @@ use axum::Router;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::handlers::{agents, conversations, health, metrics, permissions, push, stream};
+use crate::handlers::{agents, conversations, health, metrics, permissions, push, stream, ws_handler};
 use crate::middleware::bearer_auth;
 use crate::state::AppState;
 
@@ -67,6 +67,8 @@ pub fn build_router(state: AppState) -> Router {
             "/conversations/{conv_id}/stream",
             get(stream::stream_conversation),
         )
+        // WebSocket event stream (all events, all agents, all conversations)
+        .route("/ws/events", get(ws_handler::ws_events))
         // Metrics
         .route("/metrics", get(metrics::get_metrics))
         // Push (authenticated)

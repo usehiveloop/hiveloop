@@ -28,6 +28,7 @@ Later sources override earlier ones.
 | `BRIDGE_LOG_FORMAT` | `text` | Log format: `text` or `json` |
 | `BRIDGE_CONTROL_PLANE_URL` | `http://localhost:3000` | Your control plane URL (used by integration tools) |
 | `BRIDGE_WEBHOOK_URL` | — | Where to send webhook events |
+| `BRIDGE_WEBSOCKET_ENABLED` | `false` | Enable WebSocket event stream on `/ws/events` |
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | `60` | How long to wait for conversations to finish before shutdown |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | unlimited | Limit concurrent conversations |
 
@@ -66,6 +67,9 @@ control_plane_url = "https://your-api.com"
 
 # Optional: Webhook delivery
 webhook_url = "https://your-api.com/webhooks/bridge"
+
+# Optional: WebSocket event stream (all events on a single connection)
+websocket_enabled = true
 
 # Optional: Graceful shutdown timeout
 drain_timeout_secs = 60
@@ -144,6 +148,9 @@ export BRIDGE_DRAIN_TIMEOUT_SECS="120"
 
 # If using webhooks
 export BRIDGE_WEBHOOK_URL="https://api.yourservice.com/webhooks/bridge"
+
+# If using WebSocket event stream (alternative or complement to webhooks)
+export BRIDGE_WEBSOCKET_ENABLED="true"
 
 # Optional: limit resources
 export BRIDGE_MAX_CONCURRENT_CONVERSATIONS="1000"

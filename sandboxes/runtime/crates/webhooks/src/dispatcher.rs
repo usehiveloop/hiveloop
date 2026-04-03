@@ -24,6 +24,8 @@ pub struct WebhookDispatcher {
     storage: Option<StorageHandle>,
     /// High-water-mark: tracks the peak queue depth for observability.
     enqueued: Arc<AtomicU64>,
+    /// Optional WebSocket broadcaster for real-time event fan-out.
+    ws_broadcaster: Option<Arc<crate::WsBroadcaster>>,
 }
 
 impl WebhookDispatcher {
@@ -51,6 +53,7 @@ impl WebhookDispatcher {
             event_tx: tx,
             storage: None,
             enqueued,
+            ws_broadcaster: None,
         };
         (dispatcher, rx)
     }
@@ -58,6 +61,12 @@ impl WebhookDispatcher {
     /// Attach an optional non-blocking persistence handle.
     pub fn with_storage(mut self, storage: Option<StorageHandle>) -> Self {
         self.storage = storage;
+        self
+    }
+
+    /// Attach an optional WebSocket broadcaster for real-time event fan-out.
+    pub fn with_ws_broadcaster(mut self, broadcaster: Option<Arc<crate::WsBroadcaster>>) -> Self {
+        self.ws_broadcaster = broadcaster;
         self
     }
 
@@ -81,6 +90,11 @@ impl WebhookDispatcher {
             storage.enqueue_webhook(payload.clone());
         }
 
+        // Fan out to WebSocket subscribers (before moving into webhook channel)
+        if let Some(ref ws) = self.ws_broadcaster {
+            ws.broadcast(payload.clone());
+        }
+
         self.dispatch_internal(payload, &event_type, &agent_id, &conversation_id);
     }
 
@@ -89,6 +103,11 @@ impl WebhookDispatcher {
         let event_type = format!("{:?}", payload.event_type);
         let agent_id = payload.agent_id.clone();
         let conversation_id = payload.conversation_id.clone();
+
+        if let Some(ref ws) = self.ws_broadcaster {
+            ws.broadcast(payload.clone());
+        }
+
         self.dispatch_internal(payload, &event_type, &agent_id, &conversation_id);
     }
 

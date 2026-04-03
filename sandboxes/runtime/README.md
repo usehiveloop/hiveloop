@@ -36,6 +36,7 @@ Bridge loads configuration in this order (later sources override earlier ones):
 | `BRIDGE_LOG_LEVEL` | No | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 | `BRIDGE_LOG_FORMAT` | No | `text` | Log format (`text` or `json`) |
 | `BRIDGE_WEBHOOK_URL` | No | — | Webhook URL for event delivery (HMAC-signed) |
+| `BRIDGE_WEBSOCKET_ENABLED` | No | `false` | Enable WebSocket event stream on `/ws/events` |
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | No | `60` | Graceful shutdown timeout in seconds |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | No | unlimited | Max concurrent conversations |
 
@@ -49,6 +50,7 @@ log_level = "info"
 log_format = "text"
 drain_timeout_secs = 60
 webhook_url = "https://your-control-plane/webhooks"
+websocket_enabled = true  # Enable /ws/events endpoint
 
 # Optional: LSP servers for code intelligence tools
 # Set to false to disable, or configure per-server:
@@ -128,6 +130,7 @@ Installation runs **non-blocking** in the background after bridge starts. Alread
 | POST | `/agents/{agent_id}/conversations` | Create a new conversation |
 | POST | `/conversations/{conv_id}/messages` | Send a message |
 | GET | `/conversations/{conv_id}/stream` | SSE stream for real-time events |
+| GET | `/ws/events?token={api_key}` | WebSocket stream for all events (all agents/conversations) |
 | POST | `/conversations/{conv_id}/abort` | Abort the current turn |
 | DELETE | `/conversations/{conv_id}` | End a conversation |
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **WebSocket Event Stream:** New `/ws/events` endpoint that delivers all events from all agents and conversations over a single persistent WebSocket connection. Efficient alternative to webhooks for high-throughput control planes.
+  - Enable with `BRIDGE_WEBSOCKET_ENABLED=true`
+  - Authenticate via `?token=<api_key>` query parameter
+  - Global monotonic sequence numbers for ordering
+  - Supports multiple concurrent clients
+  - Lagged client detection with warning messages
+  - Can be used alongside webhooks or as the sole event delivery mechanism
+
 ## [0.3.0] - 2026-03-18
 
 ### Added

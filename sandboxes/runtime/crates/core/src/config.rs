@@ -37,6 +37,24 @@ pub struct RuntimeConfig {
     /// Webhook delivery configuration. Ignored when webhook_url is not set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_config: Option<WebhookConfig>,
+
+    /// Enable the WebSocket event stream endpoint (`/ws/events`).
+    /// When true, all events are broadcast over a single WebSocket connection.
+    /// Configured via `BRIDGE_WEBSOCKET_ENABLED` env var.
+    #[serde(default)]
+    pub websocket_enabled: bool,
+
+    /// Replace built-in filesystem search tools (Grep, Read, Glob) with codedb MCP server.
+    /// When true, codedb is auto-injected as an MCP server for all agents and
+    /// the built-in Grep, Read, and Glob tools are not registered.
+    /// Configured via `BRIDGE_CODEDB_ENABLED` env var.
+    #[serde(default)]
+    pub codedb_enabled: bool,
+
+    /// Path to the codedb binary. Defaults to "codedb" (looked up in PATH).
+    /// Configured via `BRIDGE_CODEDB_BINARY` env var.
+    #[serde(default = "default_codedb_binary")]
+    pub codedb_binary: String,
 }
 
 /// Webhook delivery configuration for tuning throughput and resilience.
@@ -90,6 +108,9 @@ fn default_webhook_max_retries() -> usize {
 }
 fn default_webhook_worker_idle_timeout() -> u64 {
     300
+}
+fn default_codedb_binary() -> String {
+    "codedb".to_string()
 }
 
 /// LSP configuration: either disabled entirely or per-server config map.
@@ -161,6 +182,9 @@ impl Default for RuntimeConfig {
             webhook_url: None,
             max_concurrent_llm_calls: None,
             webhook_config: None,
+            websocket_enabled: false,
+            codedb_enabled: false,
+            codedb_binary: default_codedb_binary(),
         }
     }
 }
@@ -286,6 +310,45 @@ mod tests {
         // Defaults for unset fields
         assert_eq!(wh.max_idle_connections, 20);
         assert_eq!(wh.max_retries, 5);
+    }
+
+    #[test]
+    fn test_codedb_defaults() {
+        let config = RuntimeConfig::default();
+        assert!(!config.codedb_enabled);
+        assert_eq!(config.codedb_binary, "codedb");
+    }
+
+    #[test]
+    fn test_codedb_enabled_from_json() {
+        let json = r#"{
+            "control_plane_url": "http://localhost",
+            "control_plane_api_key": "key",
+            "listen_addr": "0.0.0.0:8080",
+            "drain_timeout_secs": 60,
+            "log_level": "info",
+            "log_format": "text",
+            "codedb_enabled": true,
+            "codedb_binary": "/usr/local/bin/codedb"
+        }"#;
+        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
+        assert!(config.codedb_enabled);
+        assert_eq!(config.codedb_binary, "/usr/local/bin/codedb");
+    }
+
+    #[test]
+    fn test_backwards_compat_without_codedb_fields() {
+        let json = r#"{
+            "control_plane_url": "http://localhost",
+            "control_plane_api_key": "key",
+            "listen_addr": "0.0.0.0:8080",
+            "drain_timeout_secs": 60,
+            "log_level": "info",
+            "log_format": "text"
+        }"#;
+        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
+        assert!(!config.codedb_enabled);
+        assert_eq!(config.codedb_binary, "codedb");
     }
 
     #[test]

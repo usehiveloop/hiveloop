@@ -1,4 +1,5 @@
 use bridge_core::conversation::{ContentBlock, ConversationRecord, Message, Role};
+use bridge_core::mcp::{McpServerDefinition, McpTransport};
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
 use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
@@ -46,6 +47,10 @@ pub struct AgentSupervisor {
     storage: Option<StorageHandle>,
     /// Optional persistence backend for startup/restore reads.
     storage_backend: Option<Arc<dyn StorageBackend>>,
+    /// When true, auto-inject codedb MCP server and skip built-in Grep/Read/Glob.
+    codedb_enabled: bool,
+    /// Path to the codedb binary (default: "codedb").
+    codedb_binary: String,
 }
 
 /// Default maximum concurrent LLM calls when not configured.
@@ -67,6 +72,8 @@ impl AgentSupervisor {
             )),
             storage: None,
             storage_backend: None,
+            codedb_enabled: false,
+            codedb_binary: "codedb".to_string(),
         }
     }
 
@@ -89,6 +96,8 @@ impl AgentSupervisor {
             )),
             storage: None,
             storage_backend: None,
+            codedb_enabled: false,
+            codedb_binary: "codedb".to_string(),
         }
     }
 
@@ -116,6 +125,8 @@ impl AgentSupervisor {
             .max_concurrent_llm_calls
             .unwrap_or(DEFAULT_MAX_CONCURRENT_LLM_CALLS);
         self.llm_semaphore = Arc::new(tokio::sync::Semaphore::new(max_llm));
+        self.codedb_enabled = config.codedb_enabled;
+        self.codedb_binary = config.codedb_binary.clone();
         self
     }
 
@@ -173,10 +184,20 @@ impl AgentSupervisor {
     async fn load_single_agent(&self, mut definition: AgentDefinition) -> Result<(), BridgeError> {
         let agent_id = definition.id.clone();
 
+        inject_codedb_if_enabled(
+            &mut definition,
+            self.codedb_enabled,
+            &self.codedb_binary,
+        );
+
         // Connect to MCP servers
         self.mcp_manager
             .connect_agent(&agent_id, &definition.mcp_servers)
             .await?;
+
+        // Extract tool allow-list early — used for both MCP and built-in tool filtering
+        let builtin_tool_names: Vec<String> =
+            definition.tools.iter().map(|t| t.name.clone()).collect();
 
         // Build tool registry with MCP tools (each connection's tools bridged to its own connection)
         let mut tool_registry = ToolRegistry::new();
@@ -186,28 +207,37 @@ impl AgentSupervisor {
         for conn in &connections {
             if let Ok(tools) = conn.list_tools().await {
                 let server_name = conn.server_name().to_string();
+                let is_codedb = self.codedb_enabled && server_name == "codedb";
                 let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
                 mcp_server_tools.insert(server_name, tool_names);
                 let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
                 for tool in bridged {
+                    // When codedb is auto-injected, treat its tools like built-ins:
+                    // filter them by the agent's tool allow-list.
+                    if is_codedb
+                        && !builtin_tool_names.is_empty()
+                        && !builtin_tool_names.iter().any(|n| n == tool.name())
+                    {
+                        continue;
+                    }
                     tool_registry.register(tool);
                 }
             }
         }
 
         // Register built-in tools — filtered by the agent's tool list if non-empty
-        let builtin_tool_names: Vec<String> =
-            definition.tools.iter().map(|t| t.name.clone()).collect();
         if builtin_tool_names.is_empty() {
             tools::builtin::register_builtin_tools_with_lsp(
                 &mut tool_registry,
                 self.lsp_manager.clone(),
+                self.codedb_enabled,
             );
         } else {
             tools::builtin::register_filtered_builtin_tools_with_lsp(
                 &mut tool_registry,
                 &builtin_tool_names,
                 self.lsp_manager.clone(),
+                self.codedb_enabled,
             );
         }
 
@@ -681,9 +711,19 @@ impl AgentSupervisor {
     ) -> Result<Arc<AgentState>, BridgeError> {
         let agent_id = definition.id.clone();
 
+        inject_codedb_if_enabled(
+            &mut definition,
+            self.codedb_enabled,
+            &self.codedb_binary,
+        );
+
         self.mcp_manager
             .connect_agent(&agent_id, &definition.mcp_servers)
             .await?;
+
+        // Extract tool allow-list early — used for both MCP and built-in tool filtering
+        let builtin_tool_names: Vec<String> =
+            definition.tools.iter().map(|t| t.name.clone()).collect();
 
         let mut tool_registry = ToolRegistry::new();
         let mut mcp_server_tools: std::collections::HashMap<String, Vec<String>> =
@@ -692,28 +732,35 @@ impl AgentSupervisor {
         for conn in &connections {
             if let Ok(tools) = conn.list_tools().await {
                 let server_name = conn.server_name().to_string();
+                let is_codedb = self.codedb_enabled && server_name == "codedb";
                 let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
                 mcp_server_tools.insert(server_name, tool_names);
                 let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
                 for tool in bridged {
+                    if is_codedb
+                        && !builtin_tool_names.is_empty()
+                        && !builtin_tool_names.iter().any(|n| n == tool.name())
+                    {
+                        continue;
+                    }
                     tool_registry.register(tool);
                 }
             }
         }
 
         // Register built-in tools — filtered by the agent's tool list if non-empty
-        let builtin_tool_names: Vec<String> =
-            definition.tools.iter().map(|t| t.name.clone()).collect();
         if builtin_tool_names.is_empty() {
             tools::builtin::register_builtin_tools_with_lsp(
                 &mut tool_registry,
                 self.lsp_manager.clone(),
+                self.codedb_enabled,
             );
         } else {
             tools::builtin::register_filtered_builtin_tools_with_lsp(
                 &mut tool_registry,
                 &builtin_tool_names,
                 self.lsp_manager.clone(),
+                self.codedb_enabled,
             );
         }
 
@@ -1051,6 +1098,24 @@ impl AgentSupervisor {
     /// Get the number of loaded agents.
     pub fn agent_count(&self) -> usize {
         self.agent_map.len()
+    }
+}
+
+/// Inject a codedb MCP server definition into the agent when codedb is enabled.
+fn inject_codedb_if_enabled(
+    definition: &mut AgentDefinition,
+    codedb_enabled: bool,
+    codedb_binary: &str,
+) {
+    if codedb_enabled {
+        definition.mcp_servers.push(McpServerDefinition {
+            name: "codedb".to_string(),
+            transport: McpTransport::Stdio {
+                command: codedb_binary.to_string(),
+                args: vec!["mcp".to_string()],
+                env: std::collections::HashMap::new(),
+            },
+        });
     }
 }
 
@@ -1678,5 +1743,65 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("no_such_agent"));
+    }
+
+    // ── codedb injection ─────────────────────────────────────────────────────
+
+    fn make_test_agent_definition(id: &str) -> AgentDefinition {
+        serde_json::from_value(serde_json::json!({
+            "id": id,
+            "name": id,
+            "system_prompt": "test",
+            "provider": {
+                "provider_type": "open_ai",
+                "model": "test",
+                "api_key": "key"
+            }
+        }))
+        .expect("valid agent definition")
+    }
+
+    #[test]
+    fn inject_codedb_adds_mcp_server_when_enabled() {
+        let mut def = make_test_agent_definition("agent1");
+        assert!(def.mcp_servers.is_empty());
+
+        inject_codedb_if_enabled(&mut def, true, "/usr/local/bin/codedb");
+
+        assert_eq!(def.mcp_servers.len(), 1);
+        assert_eq!(def.mcp_servers[0].name, "codedb");
+        match &def.mcp_servers[0].transport {
+            McpTransport::Stdio { command, args, .. } => {
+                assert_eq!(command, "/usr/local/bin/codedb");
+                assert_eq!(args, &["mcp"]);
+            }
+            _ => panic!("expected stdio transport"),
+        }
+    }
+
+    #[test]
+    fn inject_codedb_does_nothing_when_disabled() {
+        let mut def = make_test_agent_definition("agent1");
+        inject_codedb_if_enabled(&mut def, false, "codedb");
+        assert!(def.mcp_servers.is_empty());
+    }
+
+    #[test]
+    fn inject_codedb_preserves_existing_mcp_servers() {
+        let mut def = make_test_agent_definition("agent1");
+        def.mcp_servers.push(McpServerDefinition {
+            name: "existing".to_string(),
+            transport: McpTransport::Stdio {
+                command: "some-server".to_string(),
+                args: vec![],
+                env: std::collections::HashMap::new(),
+            },
+        });
+
+        inject_codedb_if_enabled(&mut def, true, "codedb");
+
+        assert_eq!(def.mcp_servers.len(), 2);
+        assert_eq!(def.mcp_servers[0].name, "existing");
+        assert_eq!(def.mcp_servers[1].name, "codedb");
     }
 }

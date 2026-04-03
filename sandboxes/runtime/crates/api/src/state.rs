@@ -5,7 +5,8 @@ use std::sync::Arc;
 use storage::StorageBackend;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
-use webhooks::WebhookContext;
+use tokio_util::sync::CancellationToken;
+use webhooks::{WebhookContext, WsBroadcaster};
 
 /// Shared application state for all request handlers.
 #[derive(Clone)]
@@ -26,6 +27,10 @@ pub struct AppState {
     pub storage_backend: Option<Arc<dyn StorageBackend>>,
     /// Shared permission manager for tool approval requests.
     pub permission_manager: Arc<PermissionManager>,
+    /// Optional WebSocket broadcaster for the `/ws/events` endpoint.
+    pub ws_broadcaster: Option<Arc<WsBroadcaster>>,
+    /// Global cancellation token for graceful shutdown.
+    pub cancel: CancellationToken,
 }
 
 impl AppState {
@@ -35,6 +40,8 @@ impl AppState {
         control_plane_api_key: String,
         webhook_ctx: Option<WebhookContext>,
         storage_backend: Option<Arc<dyn StorageBackend>>,
+        ws_broadcaster: Option<Arc<WsBroadcaster>>,
+        cancel: CancellationToken,
     ) -> Self {
         let permission_manager = supervisor.permission_manager();
         Self {
@@ -45,6 +52,8 @@ impl AppState {
             webhook_ctx,
             storage_backend,
             permission_manager,
+            ws_broadcaster,
+            cancel,
         }
     }
 }

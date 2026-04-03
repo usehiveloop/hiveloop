@@ -11,7 +11,7 @@ use storage::{StorageBackend, StorageHandle};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
-use webhooks::{WebhookContext, WebhookDispatcher};
+use webhooks::{WebhookContext, WebhookDispatcher, WsBroadcaster};
 
 /// Bridge - AI Agent Runtime
 #[derive(Parser)]
@@ -181,23 +181,51 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
         info!("storage persistence disabled");
     }
 
-    // Create webhook dispatcher if BRIDGE_WEBHOOK_URL is set
-    let webhook_ctx: Option<WebhookContext> = if let Some(ref url) = config.webhook_url {
+    // Create WebSocket broadcaster if enabled
+    let ws_broadcaster: Option<Arc<WsBroadcaster>> = if config.websocket_enabled {
+        let broadcaster = Arc::new(WsBroadcaster::new());
+        info!("WebSocket event stream enabled on /ws/events");
+        Some(broadcaster)
+    } else {
+        None
+    };
+
+    // Create webhook dispatcher if webhooks or WebSocket are enabled.
+    // The dispatcher is the single fan-out point — WebSocket piggybacks
+    // on every dispatch() call via the attached broadcaster.
+    let webhook_ctx: Option<WebhookContext> = if config.webhook_url.is_some()
+        || config.websocket_enabled
+    {
         let webhook_config = config.webhook_config.clone().unwrap_or_default();
         let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
         let client = dispatcher.client();
-        let dispatcher = Arc::new(dispatcher.with_storage(storage_handle.clone()));
-        tokio::spawn(WebhookDispatcher::run(
-            rx,
-            client,
-            cancel.clone(),
-            webhook_config,
-            storage_handle.clone(),
-        ));
-        info!(url = %url, "webhook dispatcher started");
+        let dispatcher = Arc::new(
+            dispatcher
+                .with_storage(storage_handle.clone())
+                .with_ws_broadcaster(ws_broadcaster.clone()),
+        );
+
+        if let Some(ref url) = config.webhook_url {
+            // Webhooks enabled — spawn the HTTP delivery loop
+            tokio::spawn(WebhookDispatcher::run(
+                rx,
+                client,
+                cancel.clone(),
+                webhook_config,
+                storage_handle.clone(),
+            ));
+            info!(url = %url, "webhook dispatcher started");
+        } else {
+            // WebSocket-only: drain the webhook channel so it doesn't fill up
+            tokio::spawn(async move {
+                let mut rx = rx;
+                while rx.recv().await.is_some() {}
+            });
+        }
+
         Some(WebhookContext {
             dispatcher,
-            url: url.clone(),
+            url: config.webhook_url.clone().unwrap_or_default(),
             secret: config.control_plane_api_key.clone(),
         })
     } else {
@@ -249,6 +277,8 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
         config.control_plane_api_key.clone(),
         webhook_ctx,
         storage_backend.clone(),
+        ws_broadcaster,
+        cancel.clone(),
     );
 
     if let Some(backend) = &storage_backend {

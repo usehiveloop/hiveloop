@@ -411,7 +411,24 @@ Use webhook.site or similar to inspect payloads:
 
 ---
 
+## WebSocket Alternative
+
+For high-throughput control planes, Bridge also supports a **WebSocket event stream** that delivers all events over a single persistent connection — eliminating per-event HTTP overhead, HMAC signing, and connection churn.
+
+Enable it with:
+
+```bash
+export BRIDGE_WEBSOCKET_ENABLED="true"
+```
+
+Then connect to `ws://<bridge>/ws/events?token=<api_key>`. The WebSocket delivers the same event types as webhooks, with a global monotonic `sequence_number` for ordering.
+
+You can use webhooks, WebSocket, or both simultaneously. See the [WebSocket Events](../api-reference/websocket-events.md) reference for details.
+
+---
+
 ## See Also
 
 - [Handling Webhooks](../control-plane/handling-webhooks.md) — Complete integration guide
+- [WebSocket Events](../api-reference/websocket-events.md) — WebSocket event stream reference
 - [API Reference](../api-reference/index.md) — Bridge API

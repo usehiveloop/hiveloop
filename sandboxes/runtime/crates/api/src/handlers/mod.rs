@@ -5,3 +5,4 @@ pub mod metrics;
 pub mod permissions;
 pub mod push;
 pub mod stream;
+pub mod ws_handler;

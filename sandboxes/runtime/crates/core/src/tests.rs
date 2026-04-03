@@ -1057,6 +1057,9 @@ mod serde_roundtrip_tests {
             webhook_url: None,
             max_concurrent_llm_calls: Some(500),
             webhook_config: None,
+            websocket_enabled: false,
+            codedb_enabled: false,
+            codedb_binary: "codedb".to_string(),
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize RuntimeConfig");

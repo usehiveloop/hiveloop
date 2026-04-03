@@ -695,6 +695,21 @@ fn configure_and_build<M: CompletionModel>(
         builder
     };
 
+    // Wire json_schema for structured output
+    let builder = if let Some(ref json_schema) = definition.config.json_schema {
+        // Extract the inner "schema" field (OpenAI format: {name, schema})
+        let schema_value = json_schema.get("schema").unwrap_or(json_schema);
+        match serde_json::from_value::<schemars::Schema>(schema_value.clone()) {
+            Ok(schema) => builder.output_schema_raw(schema),
+            Err(e) => {
+                tracing::warn!("invalid json_schema, skipping structured output: {}", e);
+                builder
+            }
+        }
+    } else {
+        builder
+    };
+
     if tools.is_empty() {
         builder.build()
     } else {

@@ -82,6 +82,19 @@ Where to send webhook events. When set, all SSE events are also dispatched as we
 export BRIDGE_WEBHOOK_URL="https://api.example.com/webhooks/bridge"
 ```
 
+### `BRIDGE_WEBSOCKET_ENABLED`
+
+Enable the WebSocket event stream endpoint at `/ws/events`. When enabled, a single WebSocket connection receives ALL events from ALL agents and conversations — a more efficient alternative to webhooks for high-throughput control planes.
+
+- **Default:** `false`
+- **Valid values:** `true`, `false`
+
+```bash
+export BRIDGE_WEBSOCKET_ENABLED="true"
+```
+
+Can be used alongside webhooks (both enabled) or as the sole event delivery mechanism (no `BRIDGE_WEBHOOK_URL`). Clients authenticate via the `?token=` query parameter using the control plane API key.
+
 ### `BRIDGE_DRAIN_TIMEOUT_SECS`
 
 Graceful shutdown timeout.
@@ -210,6 +223,7 @@ export BRIDGE_LOG_LEVEL="info"
 export BRIDGE_LOG_FORMAT="json"
 export BRIDGE_DRAIN_TIMEOUT_SECS="120"
 export BRIDGE_WEBHOOK_URL="https://api.example.com/webhooks/bridge"
+export BRIDGE_WEBSOCKET_ENABLED="true"
 export BRIDGE_CONTROL_PLANE_URL="https://api.example.com"
 
 # Optional limits

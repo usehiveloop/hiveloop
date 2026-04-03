@@ -29,7 +29,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 tokio-stream = "0.1"
 
 # HTTP server
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tower = { version = "0.5", features = ["timeout", "limit"] }
 tower-http = { version = "0.6", features = ["trace", "cors", "request-id"] }
 
@@ -141,6 +141,9 @@ runtime = { path = "crates/runtime" }
 api = { path = "crates/api" }
 webhooks = { path = "crates/webhooks" }
 storage = { path = "crates/storage" }
+
+# WebSocket client (for e2e tests)
+tokio-tungstenite = { version = "0.26", features = ["connect"] }
 
 # Dev dependencies
 tokio-test = "0.4"

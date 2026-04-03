@@ -42,6 +42,7 @@ Bearer token required:
 | `/agents/{id}/conversations` | POST | No | Create conversation |
 | `/conversations/{id}/messages` | POST | No | Send message |
 | `/conversations/{id}/stream` | GET | No | SSE stream |
+| `/ws/events?token={key}` | GET | Token | WebSocket event stream (all events) |
 | `/conversations/{id}` | DELETE | No | End conversation |
 | `/push/agents` | POST | Yes | Bulk load agents |
 | `/push/agents/{id}` | PUT | Yes | Update single agent |
@@ -118,3 +119,4 @@ curl http://localhost:8080/openapi.json
 - [Conversations API](conversations-api.md) — Conversations and messaging
 - [Push API](push-api.md) — Control plane integration
 - [SSE Events](sse-events.md) — Streaming event reference
+- [WebSocket Events](websocket-events.md) — WebSocket event stream reference
