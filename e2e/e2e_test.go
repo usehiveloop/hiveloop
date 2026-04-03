@@ -462,7 +462,7 @@ func TestE2E_Proxy_OpenAI_NonStreaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "Reply with exactly: hello proxy"}],
 		"stream": false,
 		"max_tokens": 20
@@ -498,7 +498,7 @@ func TestE2E_Proxy_Anthropic_Streaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "anthropic/claude-haiku-4.5",
+		"model": "qwen/qwen-2.5-7b-instruct:free",
 		"messages": [{"role": "user", "content": "Count from 1 to 5, one number per line."}],
 		"stream": true,
 		"max_tokens": 50
@@ -559,7 +559,7 @@ func TestE2E_Proxy_Google_Streaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "google/gemini-2.0-flash-lite-001",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "What is 2+2? Reply with just the number."}],
 		"stream": true,
 		"max_tokens": 10
@@ -592,7 +592,7 @@ func TestE2E_Proxy_OpenAI_ToolCalls(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "What is the weather in San Francisco?"}],
 		"tools": [{
 			"type": "function",
@@ -669,7 +669,7 @@ func TestE2E_Proxy_Anthropic_StreamingToolCalls(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "anthropic/claude-haiku-4.5",
+		"model": "qwen/qwen-2.5-7b-instruct:free",
 		"messages": [{"role": "user", "content": "What is the weather in Tokyo?"}],
 		"tools": [{
 			"type": "function",
@@ -755,7 +755,7 @@ func TestE2E_Proxy_Meta_NonStreaming(t *testing.T) {
 	tok := h.mintToken(t, org, cred.ID)
 
 	payload := `{
-		"model": "meta-llama/llama-3.3-70b-instruct",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "Say hello in Japanese. Reply with just the greeting."}],
 		"stream": false,
 		"max_tokens": 30
@@ -793,7 +793,7 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 
 	// Turn 1
 	payload1 := `{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "My name is Alice. Remember it."}],
 		"stream": false,
 		"max_tokens": 30
@@ -808,7 +808,7 @@ func TestE2E_Proxy_MultiTurn(t *testing.T) {
 
 	// Turn 2 — include conversation history
 	payload2 := fmt.Sprintf(`{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [
 			{"role": "user", "content": "My name is Alice. Remember it."},
 			{"role": "assistant", "content": %q},

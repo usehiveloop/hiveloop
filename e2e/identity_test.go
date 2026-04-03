@@ -688,7 +688,7 @@ func TestE2E_Identity_SharedRateLimit_LiveLLM(t *testing.T) {
 	tok := h.mintToken(t, org, credUUID)
 
 	payload := `{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "Say hi"}],
 		"stream": false,
 		"max_tokens": 20
@@ -763,7 +763,7 @@ func TestE2E_Identity_RequestCaps_LiveLLM(t *testing.T) {
 	tok := h.mintToken(t, org, credUUID)
 
 	payload := `{
-		"model": "openai/gpt-4.1-nano",
+		"model": "meta-llama/llama-3.3-70b-instruct:free",
 		"messages": [{"role": "user", "content": "Say ok"}],
 		"stream": false,
 		"max_tokens": 20
