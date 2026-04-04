@@ -1824,7 +1824,13 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", Some(vec!["totally_fake_tool".to_string()]), None, None, None)
+            .create_conversation(
+                "agent1",
+                Some(vec!["totally_fake_tool".to_string()]),
+                None,
+                None,
+                None,
+            )
             .await;
 
         assert!(result.is_err());
@@ -1842,7 +1848,13 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, Some(vec!["nonexistent-mcp".to_string()]), None, None)
+            .create_conversation(
+                "agent1",
+                None,
+                Some(vec!["nonexistent-mcp".to_string()]),
+                None,
+                None,
+            )
             .await;
 
         assert!(result.is_err());
@@ -1899,13 +1911,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation(
-                "agent1",
-                None,
-                None,
-                Some("".to_string()),
-                None,
-            )
+            .create_conversation("agent1", None, None, Some("".to_string()), None)
             .await;
 
         assert!(result.is_err());
@@ -1922,13 +1928,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation(
-                "agent1",
-                None,
-                None,
-                Some("   ".to_string()),
-                None,
-            )
+            .create_conversation("agent1", None, None, Some("   ".to_string()), None)
             .await;
 
         assert!(result.is_err());
@@ -1972,10 +1972,7 @@ mod tests {
             .unwrap();
 
         let mut overrides = std::collections::HashMap::new();
-        overrides.insert(
-            "nonexistent_subagent".to_string(),
-            "<provider-api-key>".to_string(),
-        );
+        overrides.insert("nonexistent_subagent".to_string(), "<provider-api-key>".to_string());
 
         let result = supervisor
             .create_conversation("agent1", None, None, None, Some(overrides))
