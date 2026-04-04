@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -61,14 +60,14 @@ func mockTursoServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/databases"):
+		case r.Method == http.MethodPost && r.URL.Path != "" && r.URL.Path[len(r.URL.Path)-9:] == "databases":
 			var body struct{ Name, Group string }
 			json.NewDecoder(r.Body).Decode(&body)
 			w.WriteHeader(200)
 			json.NewEncoder(w).Encode(map[string]any{
 				"database": map[string]any{"Name": body.Name, "DbId": "db-" + body.Name, "Hostname": body.Name + ".turso.io"},
 			})
-		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/auth/tokens"):
+		case r.Method == http.MethodPost:
 			w.WriteHeader(200)
 			json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-turso-jwt"})
 		case r.Method == http.MethodDelete:
@@ -83,7 +82,6 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	t.Helper()
 	db := setupTestDB(t)
 
-	// Mock Bridge health endpoint — all mock sandbox URLs point here
 	bridgeSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
 			w.WriteHeader(200)
@@ -95,19 +93,21 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	t.Cleanup(bridgeSrv.Close)
 
 	provider := newMockProvider()
-	provider.endpointOverride = bridgeSrv.URL // all sandboxes return this URL
+	provider.endpointOverride = bridgeSrv.URL
 	tursoSrv := mockTursoServer(t)
 	t.Cleanup(tursoSrv.Close)
 
 	tursoClient := turso.NewClient("token", "org")
-	tursoClient.SetBaseURL(tursoSrv.URL) // we'll need to add this method
+	tursoClient.SetBaseURL(tursoSrv.URL)
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix: "llmvault-bridge-0-10-0",
-		BridgeHost:            "test.llmvault.dev",
+		BridgeBaseImagePrefix:           "llmvault-bridge-0-10-0",
+		BridgeHost:                      "test.llmvault.dev",
 		SharedSandboxIdleTimeoutMins:    30,
 		DedicatedSandboxGracePeriodMins: 5,
+		PoolSandboxResourceThreshold:    80.0,
+		PoolSandboxIdleTimeoutMins:      30,
 	}
 
 	orch := NewOrchestrator(db, provider, tursoProvisioner, testEncKey(t), cfg)
@@ -136,8 +136,8 @@ func createTestAgent(t *testing.T, db *gorm.DB, orgID, identityID, credID uuid.U
 	t.Helper()
 	suffix := uuid.New().String()[:8]
 	agent := model.Agent{
-		OrgID: orgID, IdentityID: identityID, Name: "agent-" + suffix,
-		CredentialID: credID, SandboxType: sandboxType,
+		OrgID: &orgID, IdentityID: &identityID, Name: "agent-" + suffix,
+		CredentialID: &credID, SandboxType: sandboxType,
 		SystemPrompt: "test", Model: "gpt-4o",
 	}
 	db.Create(&agent)
@@ -156,119 +156,466 @@ func createTestCred(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Credential
 	return cred
 }
 
-func TestEnsureSharedSandbox_CreateNew(t *testing.T) {
+// seedSharedSandbox inserts a shared sandbox directly into the DB with specified resource usage.
+// Returns the sandbox for cleanup/assertion. Does NOT go through the provider.
+func seedSharedSandbox(t *testing.T, db *gorm.DB, memUsed, memLimit int64) model.Sandbox {
+	t.Helper()
+	encKey := testEncKey(t)
+	apiKey, _ := generateRandomHex(32)
+	encrypted, _ := encKey.EncryptString(apiKey)
+
+	sb := model.Sandbox{
+		SandboxType:           "shared",
+		ExternalID:            "seed-" + uuid.New().String()[:8],
+		BridgeURL:             "https://mock:25434",
+		EncryptedBridgeAPIKey: encrypted,
+		Status:                "running",
+		MemoryUsedBytes:       memUsed,
+		MemoryLimitBytes:      memLimit,
+	}
+	if err := db.Create(&sb).Error; err != nil {
+		t.Fatalf("seed sandbox: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
+	return sb
+}
+
+// --- Selection Logic Tests (DB-seeded, no mock provider) ---
+
+func TestSelection_PicksLowestMemoryUsage(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	gb := int64(1024 * 1024 * 1024)
+
+	// Seed 3 sandboxes with different memory usage
+	sbHigh := seedSharedSandbox(t, db, 70*gb/100, gb)   // 70%
+	sbLow := seedSharedSandbox(t, db, 20*gb/100, gb)    // 20% — should be picked
+	sbMid := seedSharedSandbox(t, db, 50*gb/100, gb)    // 50%
+	_ = sbHigh
+	_ = sbMid
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
+	}
+
+	if picked.ID != sbLow.ID {
+		t.Errorf("should pick lowest usage sandbox (20%%): got %s, want %s", picked.ID, sbLow.ID)
+	}
+
+	// Verify agent is assigned in DB
+	var reloaded model.Agent
+	db.Where("id = ?", agent.ID).First(&reloaded)
+	if reloaded.SandboxID == nil || *reloaded.SandboxID != sbLow.ID {
+		t.Error("agent.SandboxID should point to the lowest-usage sandbox")
+	}
+}
+
+func TestSelection_SkipsOverThreshold(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	gb := int64(1024 * 1024 * 1024)
+
+	// Threshold is 80%. Seed one at 90% and one at 50%.
+	sbOver := seedSharedSandbox(t, db, 90*gb/100, gb)  // 90% — over threshold
+	sbUnder := seedSharedSandbox(t, db, 50*gb/100, gb) // 50% — under threshold
+	_ = sbOver
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
+	}
+
+	if picked.ID != sbUnder.ID {
+		t.Errorf("should skip over-threshold sandbox: got %s, want %s", picked.ID, sbUnder.ID)
+	}
+}
+
+func TestSelection_AllOverThreshold_CreatesNew(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	gb := int64(1024 * 1024 * 1024)
+
+	// Both over 80% threshold
+	seedSharedSandbox(t, db, 85*gb/100, gb) // 85%
+	seedSharedSandbox(t, db, 95*gb/100, gb) // 95%
 
 	ctx := context.Background()
-	sb, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
 	if err != nil {
-		t.Fatalf("EnsureSharedSandbox: %v", err)
+		t.Fatalf("AssignPoolSandbox: %v", err)
 	}
-	t.Cleanup(func() {
-		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
+	t.Cleanup(func() { db.Where("id = ?", picked.ID).Delete(&model.Sandbox{}) })
 
-	if sb.Status != "running" {
-		t.Errorf("status: got %q, want running", sb.Status)
+	// Should have created a new sandbox via provider
+	if provider.count() != 1 {
+		t.Errorf("provider should have created 1 new sandbox, got %d", provider.count())
 	}
-	if sb.SandboxType != "shared" {
-		t.Errorf("type: got %q", sb.SandboxType)
+	if picked.SandboxType != "shared" {
+		t.Errorf("new sandbox type: got %q, want shared", picked.SandboxType)
 	}
-	if sb.IdentityID != identity.ID {
-		t.Errorf("identity_id mismatch")
+}
+
+func TestSelection_UnmeasuredSandboxesPreferred(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	gb := int64(1024 * 1024 * 1024)
+
+	// One measured at 50%, one unmeasured (memory_limit_bytes=0)
+	sbMeasured := seedSharedSandbox(t, db, 50*gb/100, gb)
+	sbUnmeasured := seedSharedSandbox(t, db, 0, 0) // no resource data yet
+	_ = sbMeasured
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
 	}
-	if sb.ExternalID == "" {
-		t.Error("external_id should be set")
+
+	// Unmeasured sandboxes sort as 0% usage, so they're picked first
+	if picked.ID != sbUnmeasured.ID {
+		t.Errorf("should prefer unmeasured sandbox: got %s, want %s", picked.ID, sbUnmeasured.ID)
 	}
-	if sb.BridgeURL == "" {
-		t.Error("bridge_url should be set")
+}
+
+func TestSelection_SkipsNonRunningSandboxes(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	// Seed one stopped, one running
+	sbStopped := seedSharedSandbox(t, db, 0, 0)
+	db.Model(&sbStopped).Update("status", "stopped")
+
+	sbRunning := seedSharedSandbox(t, db, 0, 0)
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
 	}
-	if sb.BridgeURLExpiresAt == nil {
-		t.Error("bridge_url_expires_at should be set")
+
+	if picked.ID != sbRunning.ID {
+		t.Errorf("should skip stopped sandbox: got %s, want %s", picked.ID, sbRunning.ID)
 	}
-	if len(sb.EncryptedBridgeAPIKey) == 0 {
-		t.Error("encrypted_bridge_api_key should be set")
+}
+
+func TestSelection_SkipsDedicatedSandboxes(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	// Seed a dedicated sandbox (should be ignored) and a shared one
+	encKey := testEncKey(t)
+	apiKey, _ := generateRandomHex(32)
+	encrypted, _ := encKey.EncryptString(apiKey)
+	dedicated := model.Sandbox{
+		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "dedicated",
+		ExternalID: "ded-" + uuid.New().String()[:8], BridgeURL: "https://mock:25434",
+		EncryptedBridgeAPIKey: encrypted, Status: "running",
+	}
+	db.Create(&dedicated)
+	t.Cleanup(func() { db.Where("id = ?", dedicated.ID).Delete(&model.Sandbox{}) })
+
+	sbShared := seedSharedSandbox(t, db, 0, 0)
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
+	}
+
+	if picked.ID != sbShared.ID {
+		t.Errorf("should only pick shared sandboxes: got %s, want %s", picked.ID, sbShared.ID)
+	}
+}
+
+func TestSelection_CrossOrg(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+
+	// Two different orgs, each with an agent
+	org1 := createTestOrg(t, db)
+	identity1 := createTestIdentity(t, db, org1.ID)
+	cred1 := createTestCred(t, db, org1.ID)
+	agent1 := createTestAgent(t, db, org1.ID, identity1.ID, cred1.ID, "shared")
+
+	org2 := createTestOrg(t, db)
+	identity2 := createTestIdentity(t, db, org2.ID)
+	cred2 := createTestCred(t, db, org2.ID)
+	agent2 := createTestAgent(t, db, org2.ID, identity2.ID, cred2.ID, "shared")
+
+	// One shared sandbox in the pool (no org ownership)
+	sbPool := seedSharedSandbox(t, db, 0, 0)
+
+	ctx := context.Background()
+
+	// Agent from org1 gets the pool sandbox
+	picked1, err := orch.AssignPoolSandbox(ctx, &agent1)
+	if err != nil {
+		t.Fatalf("org1 assign: %v", err)
+	}
+	if picked1.ID != sbPool.ID {
+		t.Errorf("org1 agent should get pool sandbox: got %s, want %s", picked1.ID, sbPool.ID)
+	}
+
+	// Agent from org2 also gets the same pool sandbox
+	picked2, err := orch.AssignPoolSandbox(ctx, &agent2)
+	if err != nil {
+		t.Fatalf("org2 assign: %v", err)
+	}
+	if picked2.ID != sbPool.ID {
+		t.Errorf("org2 agent should get same pool sandbox: got %s, want %s", picked2.ID, sbPool.ID)
+	}
+}
+
+// --- Assignment Lifecycle Tests ---
+
+func TestAssign_AgentWithExistingSandbox_ReturnsIt(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	sbExisting := seedSharedSandbox(t, db, 0, 0)
+	sbOther := seedSharedSandbox(t, db, 0, 0)
+	_ = sbOther
+
+	// Pre-assign agent to sbExisting
+	db.Model(&agent).Update("sandbox_id", sbExisting.ID)
+	agent.SandboxID = &sbExisting.ID
+
+	ctx := context.Background()
+	picked, err := orch.AssignPoolSandbox(ctx, &agent)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
+	}
+
+	// Should return the already-assigned sandbox, not pick a new one
+	if picked.ID != sbExisting.ID {
+		t.Errorf("should return existing assignment: got %s, want %s", picked.ID, sbExisting.ID)
+	}
+}
+
+func TestRelease_ClearsAgentSandboxID(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	sb := seedSharedSandbox(t, db, 0, 0)
+	db.Model(&agent).Update("sandbox_id", sb.ID)
+	agent.SandboxID = &sb.ID
+
+	ctx := context.Background()
+	if err := orch.ReleasePoolSandbox(ctx, &agent); err != nil {
+		t.Fatalf("release: %v", err)
+	}
+
+	var reloaded model.Agent
+	db.Where("id = ?", agent.ID).First(&reloaded)
+	if reloaded.SandboxID != nil {
+		t.Error("agent.SandboxID should be nil after release")
+	}
+}
+
+func TestRelease_NilSandboxID_Noop(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	ctx := context.Background()
+	if err := orch.ReleasePoolSandbox(ctx, &agent); err != nil {
+		t.Fatalf("release with nil SandboxID should be noop: %v", err)
+	}
+}
+
+// --- On-Demand Creation Tests ---
+
+func TestAssign_EmptyPool_CreatesAndPersistsSandbox(t *testing.T) {
+	orch, provider, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	// No seeded sandboxes — pool is empty
+
+	ctx := context.Background()
+	sb, err := orch.AssignPoolSandbox(ctx, &agent1)
+	if err != nil {
+		t.Fatalf("AssignPoolSandbox: %v", err)
+	}
+	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
+
+	// Verify provider was called
+	if provider.count() != 1 {
+		t.Fatalf("provider should have created 1 sandbox, got %d", provider.count())
+	}
+
+	// Verify the sandbox was persisted to DB with correct fields
+	var persisted model.Sandbox
+	if err := db.Where("id = ?", sb.ID).First(&persisted).Error; err != nil {
+		t.Fatalf("sandbox should be persisted in DB: %v", err)
+	}
+	if persisted.SandboxType != "shared" {
+		t.Errorf("persisted type: got %q, want shared", persisted.SandboxType)
+	}
+	if persisted.OrgID != nil {
+		t.Error("persisted sandbox should have nil OrgID (pool sandbox)")
+	}
+	if persisted.IdentityID != nil {
+		t.Error("persisted sandbox should have nil IdentityID (pool sandbox)")
+	}
+	if persisted.Status != "running" {
+		t.Errorf("persisted status: got %q, want running", persisted.Status)
+	}
+	if persisted.ExternalID == "" {
+		t.Error("persisted sandbox should have an external_id from the provider")
+	}
+	if persisted.BridgeURL == "" {
+		t.Error("persisted sandbox should have a bridge_url")
+	}
+	if persisted.BridgeURLExpiresAt == nil {
+		t.Error("persisted sandbox should have bridge_url_expires_at set")
+	}
+	if len(persisted.EncryptedBridgeAPIKey) == 0 {
+		t.Error("persisted sandbox should have encrypted bridge API key")
+	}
+	if persisted.LastActiveAt == nil {
+		t.Error("persisted sandbox should have last_active_at set")
+	}
+
+	// Verify agent1 is assigned
+	var a1 model.Agent
+	db.Where("id = ?", agent1.ID).First(&a1)
+	if a1.SandboxID == nil || *a1.SandboxID != sb.ID {
+		t.Error("agent1 should be assigned to the new sandbox")
+	}
+
+	// Verify a second agent assignment reuses the auto-provisioned sandbox
+	// (proves the sandbox is visible to the selection query)
+	sb2, err := orch.AssignPoolSandbox(ctx, &agent2)
+	if err != nil {
+		t.Fatalf("second AssignPoolSandbox: %v", err)
+	}
+	if sb2.ID != sb.ID {
+		t.Errorf("second agent should reuse the auto-provisioned sandbox: got %s, want %s", sb2.ID, sb.ID)
 	}
 	if provider.count() != 1 {
-		t.Errorf("provider should have 1 sandbox, got %d", provider.count())
-	}
-
-	// Verify WorkspaceStorage was created
-	var ws model.WorkspaceStorage
-	if err := db.Where("org_id = ?", org.ID).First(&ws).Error; err != nil {
-		t.Errorf("workspace storage should have been created: %v", err)
+		t.Errorf("provider should still have 1 sandbox (reused), got %d", provider.count())
 	}
 }
 
-func TestEnsureSharedSandbox_ReturnExisting(t *testing.T) {
+// --- Health Checker Tests ---
+
+func TestHealthCheck_SharedSandboxWithAgents_NotStopped(t *testing.T) {
+	orch, _, db := setupOrchestrator(t)
+	org := createTestOrg(t, db)
+	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	sb := seedSharedSandbox(t, db, 0, 0)
+	// Assign the agent to the sandbox
+	db.Model(&agent).Update("sandbox_id", sb.ID)
+
+	// Set last_active_at to long ago
+	old := time.Now().Add(-2 * time.Hour)
+	db.Model(&sb).Update("last_active_at", old)
+	sb.LastActiveAt = &old
+
+	ctx := context.Background()
+	orch.checkSandboxHealth(ctx, &sb)
+
+	var reloaded model.Sandbox
+	db.Where("id = ?", sb.ID).First(&reloaded)
+	if reloaded.Status != "running" {
+		t.Errorf("shared sandbox with agents should stay running, got %q", reloaded.Status)
+	}
+}
+
+func TestHealthCheck_SharedSandboxEmpty_Stopped(t *testing.T) {
+	orch, provider, db := setupOrchestrator(t)
+	orch.cfg.PoolSandboxIdleTimeoutMins = 1
+
+	sb := seedSharedSandbox(t, db, 0, 0)
+	provider.registerSandbox(sb.ExternalID, StatusRunning)
+	// No agents assigned
+
+	old := time.Now().Add(-2 * time.Hour)
+	db.Model(&sb).Update("last_active_at", old)
+	sb.LastActiveAt = &old
+
+	ctx := context.Background()
+	orch.checkSandboxHealth(ctx, &sb)
+
+	var reloaded model.Sandbox
+	db.Where("id = ?", sb.ID).First(&reloaded)
+	if reloaded.Status != "stopped" {
+		t.Errorf("empty shared sandbox should be stopped, got %q", reloaded.Status)
+	}
+}
+
+func TestHealthCheck_SharedSandboxError_UnassignsAgents(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	identity := createTestIdentity(t, db, org.ID)
+	cred := createTestCred(t, db, org.ID)
+	agent1 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+	agent2 := createTestAgent(t, db, org.ID, identity.ID, cred.ID, "shared")
+
+	sb := seedSharedSandbox(t, db, 0, 0)
+	provider.registerSandbox(sb.ExternalID, StatusError)
+	db.Model(&agent1).Update("sandbox_id", sb.ID)
+	db.Model(&agent2).Update("sandbox_id", sb.ID)
+
+	// Simulate error state
+	db.Model(&sb).Update("status", "error")
+	sb.Status = "error"
 
 	ctx := context.Background()
-	sb1, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("first call: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id = ?", sb1.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
+	orch.checkSandboxHealth(ctx, &sb)
 
-	sb2, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("second call: %v", err)
+	// Both agents should be unassigned
+	var a1, a2 model.Agent
+	db.Where("id = ?", agent1.ID).First(&a1)
+	db.Where("id = ?", agent2.ID).First(&a2)
+	if a1.SandboxID != nil {
+		t.Error("agent1 should be unassigned after sandbox error")
 	}
-
-	if sb1.ID != sb2.ID {
-		t.Errorf("should return same sandbox: got %s and %s", sb1.ID, sb2.ID)
-	}
-	if provider.count() != 1 {
-		t.Errorf("provider should still have 1 sandbox, got %d", provider.count())
+	if a2.SandboxID != nil {
+		t.Error("agent2 should be unassigned after sandbox error")
 	}
 }
 
-func TestEnsureSharedSandbox_WakeStopped(t *testing.T) {
-	orch, provider, db := setupOrchestrator(t)
-	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
-
-	ctx := context.Background()
-	sb, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("create: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
-
-	// Stop it
-	if err := orch.StopSandbox(ctx, sb); err != nil {
-		t.Fatalf("stop: %v", err)
-	}
-	if provider.getStatus(sb.ExternalID) != StatusStopped {
-		t.Fatal("provider should show stopped")
-	}
-
-	// EnsureSharedSandbox should wake it
-	woken, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("wake: %v", err)
-	}
-	if woken.ID != sb.ID {
-		t.Error("should return same sandbox")
-	}
-	if woken.Status != "running" {
-		t.Errorf("status after wake: got %q", woken.Status)
-	}
-	if provider.getStatus(sb.ExternalID) != StatusRunning {
-		t.Error("provider should show running after wake")
-	}
-}
+// --- Dedicated Sandbox Tests ---
 
 func TestCreateDedicatedSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
@@ -293,132 +640,16 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	if sb.AgentID == nil || *sb.AgentID != agent.ID {
 		t.Error("agent_id should be set")
 	}
-	if sb.IdentityID != identity.ID {
+	if sb.IdentityID == nil || *sb.IdentityID != identity.ID {
 		t.Error("identity_id should match agent's identity")
+	}
+	if sb.OrgID == nil || *sb.OrgID != org.ID {
+		t.Error("org_id should be set for dedicated sandboxes")
 	}
 	if sb.Status != "running" {
 		t.Errorf("status: got %q", sb.Status)
 	}
 	if provider.count() != 1 {
 		t.Errorf("expected 1 sandbox, got %d", provider.count())
-	}
-}
-
-func TestGetBridgeClient(t *testing.T) {
-	orch, _, db := setupOrchestrator(t)
-	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
-
-	ctx := context.Background()
-	sb, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("create sandbox: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
-
-	client, err := orch.GetBridgeClient(ctx, sb)
-	if err != nil {
-		t.Fatalf("GetBridgeClient: %v", err)
-	}
-	if client == nil {
-		t.Fatal("client should not be nil")
-	}
-}
-
-func TestGetBridgeClient_RefreshesExpiredURL(t *testing.T) {
-	orch, _, db := setupOrchestrator(t)
-	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
-
-	ctx := context.Background()
-	sb, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("create: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
-
-	// Expire the URL
-	expired := time.Now().Add(-1 * time.Hour)
-	db.Model(sb).Update("bridge_url_expires_at", expired)
-	sb.BridgeURLExpiresAt = &expired
-
-	oldURL := sb.BridgeURL
-
-	_, err = orch.GetBridgeClient(ctx, sb)
-	if err != nil {
-		t.Fatalf("GetBridgeClient with expired URL: %v", err)
-	}
-
-	// URL should have been refreshed
-	var refreshed model.Sandbox
-	db.Where("id = ?", sb.ID).First(&refreshed)
-	if refreshed.BridgeURLExpiresAt == nil || refreshed.BridgeURLExpiresAt.Before(time.Now()) {
-		t.Error("bridge_url_expires_at should be refreshed to the future")
-	}
-	// URL stays the same in mock (same endpoint returned), but expiry changed
-	_ = oldURL
-}
-
-func TestDeleteSandbox(t *testing.T) {
-	orch, provider, db := setupOrchestrator(t)
-	org := createTestOrg(t, db)
-	identity := createTestIdentity(t, db, org.ID)
-
-	ctx := context.Background()
-	sb, err := orch.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		t.Fatalf("create: %v", err)
-	}
-	// No cleanup needed — we're testing delete
-	db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-
-	if err := orch.DeleteSandbox(ctx, sb); err != nil {
-		t.Fatalf("DeleteSandbox: %v", err)
-	}
-
-	// Provider should have no sandboxes
-	if provider.count() != 0 {
-		t.Errorf("provider should have 0 sandboxes, got %d", provider.count())
-	}
-
-	// DB record should be gone
-	var count int64
-	db.Model(&model.Sandbox{}).Where("id = ?", sb.ID).Count(&count)
-	if count != 0 {
-		t.Error("sandbox record should be deleted from DB")
-	}
-}
-
-func TestMultipleIdentities_SeparateSharedSandboxes(t *testing.T) {
-	orch, provider, db := setupOrchestrator(t)
-	org := createTestOrg(t, db)
-	id1 := createTestIdentity(t, db, org.ID)
-	id2 := createTestIdentity(t, db, org.ID)
-
-	ctx := context.Background()
-	sb1, err := orch.EnsureSharedSandbox(ctx, &org, &id1)
-	if err != nil {
-		t.Fatalf("identity1: %v", err)
-	}
-	sb2, err := orch.EnsureSharedSandbox(ctx, &org, &id2)
-	if err != nil {
-		t.Fatalf("identity2: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("id IN ?", []uuid.UUID{sb1.ID, sb2.ID}).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
-	})
-
-	if sb1.ID == sb2.ID {
-		t.Error("different identities should get different shared sandboxes")
-	}
-	if provider.count() != 2 {
-		t.Errorf("expected 2 sandboxes, got %d", provider.count())
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	xEndpoints "golang.org/x/oauth2/endpoints"
 	githubOAuth "golang.org/x/oauth2/github"
 	googleOAuth "golang.org/x/oauth2/google"
 	"gorm.io/gorm"
@@ -30,7 +31,16 @@ type oauthProfile struct {
 	Name           string
 }
 
-// OAuthHandler implements the social-login OAuth flow for GitHub and Google.
+// placeholderEmailDomain is the domain used for placeholder emails when a
+// provider (e.g. X/Twitter) does not return a user email.
+const placeholderEmailDomain = "@placeholder-email.com"
+
+// isPlaceholderEmail reports whether the email is a generated placeholder.
+func isPlaceholderEmail(email string) bool {
+	return strings.HasSuffix(email, placeholderEmailDomain)
+}
+
+// OAuthHandler implements the social-login OAuth flow for GitHub, Google, and X.
 type OAuthHandler struct {
 	db           *gorm.DB
 	privateKey   *rsa.PrivateKey
@@ -43,6 +53,7 @@ type OAuthHandler struct {
 	secure       bool // true when cookies should be Secure (HTTPS)
 	githubConfig *oauth2.Config
 	googleConfig *oauth2.Config
+	xConfig      *oauth2.Config
 }
 
 // NewOAuthHandler creates an OAuthHandler. If a provider's client ID or secret
@@ -57,6 +68,7 @@ func NewOAuthHandler(
 	frontendURL string,
 	githubClientID, githubClientSecret string,
 	googleClientID, googleClientSecret string,
+	xClientID, xClientSecret string,
 ) *OAuthHandler {
 	h := &OAuthHandler{
 		db:          db,
@@ -92,6 +104,16 @@ func NewOAuthHandler(
 		}
 	}
 
+	if xClientID != "" && xClientSecret != "" {
+		h.xConfig = &oauth2.Config{
+			ClientID:     xClientID,
+			ClientSecret: xClientSecret,
+			Endpoint:     xEndpoints.X,
+			RedirectURL:  base + "/oauth/x/callback",
+			Scopes:       []string{"tweet.read", "users.read", "offline.access"},
+		}
+	}
+
 	return h
 }
 
@@ -99,12 +121,37 @@ func NewOAuthHandler(
 // Login endpoints — redirect the browser to the provider's authorize URL.
 // ---------------------------------------------------------------------------
 
+// GitHubLogin handles GET /oauth/github.
+// @Summary Start GitHub OAuth login
+// @Description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
+// @Tags oauth
+// @Success 307 "Redirect to GitHub"
+// @Failure 404 {object} errorResponse "Provider not configured"
+// @Router /oauth/github [get]
 func (h *OAuthHandler) GitHubLogin(w http.ResponseWriter, r *http.Request) {
 	h.beginLogin(w, r, h.githubConfig)
 }
 
+// GoogleLogin handles GET /oauth/google.
+// @Summary Start Google OAuth login
+// @Description Redirects the browser to Google's authorization page. Sets a state cookie for CSRF protection.
+// @Tags oauth
+// @Success 307 "Redirect to Google"
+// @Failure 404 {object} errorResponse "Provider not configured"
+// @Router /oauth/google [get]
 func (h *OAuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	h.beginLogin(w, r, h.googleConfig)
+}
+
+// XLogin handles GET /oauth/x.
+// @Summary Start X (Twitter) OAuth login
+// @Description Redirects the browser to X's authorization page. Sets state and PKCE verifier cookies.
+// @Tags oauth
+// @Success 307 "Redirect to X"
+// @Failure 404 {object} errorResponse "Provider not configured"
+// @Router /oauth/x [get]
+func (h *OAuthHandler) XLogin(w http.ResponseWriter, r *http.Request) {
+	h.beginLogin(w, r, h.xConfig)
 }
 
 func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *oauth2.Config) {
@@ -120,6 +167,9 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 		return
 	}
 
+	// Generate PKCE verifier (required by X, harmless for GitHub/Google).
+	verifier := oauth2.GenerateVerifier()
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
@@ -129,20 +179,60 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 		Secure:   h.secure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_verifier",
+		Value:    verifier,
+		Path:     "/oauth/",
+		MaxAge:   600,
+		HttpOnly: true,
+		Secure:   h.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
 
-	http.Redirect(w, r, cfg.AuthCodeURL(state), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
 }
 
 // ---------------------------------------------------------------------------
 // Callback endpoints — handle the redirect back from the provider.
 // ---------------------------------------------------------------------------
 
+// GitHubCallback handles GET /oauth/github/callback.
+// @Summary GitHub OAuth callback
+// @Description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+// @Tags oauth
+// @Param code query string true "Authorization code from GitHub"
+// @Param state query string true "CSRF state parameter"
+// @Success 307 "Redirect to frontend with exchange token"
+// @Failure 307 "Redirect to frontend with error"
+// @Router /oauth/github/callback [get]
 func (h *OAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Request) {
 	h.handleCallback(w, r, "github", h.githubConfig)
 }
 
+// GoogleCallback handles GET /oauth/google/callback.
+// @Summary Google OAuth callback
+// @Description Handles the redirect from Google after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+// @Tags oauth
+// @Param code query string true "Authorization code from Google"
+// @Param state query string true "CSRF state parameter"
+// @Success 307 "Redirect to frontend with exchange token"
+// @Failure 307 "Redirect to frontend with error"
+// @Router /oauth/google/callback [get]
 func (h *OAuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	h.handleCallback(w, r, "google", h.googleConfig)
+}
+
+// XCallback handles GET /oauth/x/callback.
+// @Summary X (Twitter) OAuth callback
+// @Description Handles the redirect from X after authorization. Exchanges the code for a token using PKCE, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+// @Tags oauth
+// @Param code query string true "Authorization code from X"
+// @Param state query string true "CSRF state parameter"
+// @Success 307 "Redirect to frontend with exchange token"
+// @Failure 307 "Redirect to frontend with error"
+// @Router /oauth/x/callback [get]
+func (h *OAuthHandler) XCallback(w http.ResponseWriter, r *http.Request) {
+	h.handleCallback(w, r, "x", h.xConfig)
 }
 
 func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, provider string, cfg *oauth2.Config) {
@@ -159,27 +249,35 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 	}
 	h.clearStateCookie(w)
 
-	// 2. Check for error from provider.
+	// 2. Read PKCE verifier.
+	verifierCookie, err := r.Cookie("oauth_verifier")
+	if err != nil || verifierCookie.Value == "" {
+		h.redirectError(w, r, "missing_verifier")
+		return
+	}
+	h.clearVerifierCookie(w)
+
+	// 3. Check for error from provider.
 	if errMsg := r.URL.Query().Get("error"); errMsg != "" {
 		h.redirectError(w, r, errMsg)
 		return
 	}
 
-	// 3. Exchange authorisation code for a token.
+	// 4. Exchange authorisation code for a token (with PKCE).
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.redirectError(w, r, "missing_code")
 		return
 	}
 
-	token, err := cfg.Exchange(r.Context(), code)
+	token, err := cfg.Exchange(r.Context(), code, oauth2.VerifierOption(verifierCookie.Value))
 	if err != nil {
 		slog.Error("oauth code exchange failed", "provider", provider, "error", err)
 		h.redirectError(w, r, "exchange_failed")
 		return
 	}
 
-	// 4. Fetch user profile from provider.
+	// 5. Fetch user profile from provider.
 	profile, err := h.fetchProfile(r.Context(), provider, token)
 	if err != nil {
 		slog.Error("oauth profile fetch failed", "provider", provider, "error", err)
@@ -187,12 +285,16 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
+	// 6. If the provider didn't return an email (e.g. X/Twitter), generate a placeholder.
 	if profile.Email == "" {
-		h.redirectError(w, r, "email_not_available")
-		return
+		name := profile.Name
+		if name == "" {
+			name = profile.ProviderUserID
+		}
+		profile.Email = strings.ToLower(name) + placeholderEmailDomain
 	}
 
-	// 5. Find or create user + link OAuth account.
+	// 7. Find or create user + link OAuth account.
 	user, err := h.findOrCreateUser(provider, profile)
 	if err != nil {
 		slog.Error("oauth user creation failed", "provider", provider, "error", err)
@@ -200,7 +302,11 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 6. Generate a short-lived exchange token.
+	// 8. Issue exchange token and redirect to frontend.
+	h.issueExchangeTokenAndRedirect(w, r, provider, user)
+}
+
+func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *http.Request, provider string, user *model.User) {
 	plaintext, hash, err := model.GenerateExchangeToken()
 	if err != nil {
 		slog.Error("failed to generate exchange token", "error", err)
@@ -219,7 +325,6 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request, pr
 		return
 	}
 
-	// 7. Redirect to frontend with the exchange token.
 	redirectURL := fmt.Sprintf("%s/oauth/%s/callback?token=%s", h.frontendURL, provider, plaintext)
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
@@ -233,6 +338,17 @@ type exchangeRequest struct {
 }
 
 // Exchange handles POST /oauth/exchange.
+// @Summary Exchange OAuth token for access and refresh tokens
+// @Description Exchanges a short-lived, single-use OAuth exchange token for an access/refresh token pair. The exchange token is obtained from the OAuth callback redirect.
+// @Tags oauth
+// @Accept json
+// @Produce json
+// @Param body body exchangeRequest true "Exchange token"
+// @Success 200 {object} authResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 403 {object} errorResponse
+// @Router /oauth/exchange [post]
 func (h *OAuthHandler) Exchange(w http.ResponseWriter, r *http.Request) {
 	var req exchangeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -372,8 +488,8 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		if err := h.db.Create(&oauthAcct).Error; err != nil {
 			return nil, fmt.Errorf("linking oauth account: %w", err)
 		}
-		// Mark email as confirmed if not already (provider verified it).
-		if user.EmailConfirmedAt == nil {
+		// Mark email as confirmed if not already and provider verified it.
+		if user.EmailConfirmedAt == nil && !isPlaceholderEmail(email) {
 			now := time.Now()
 			h.db.Model(&user).Update("email_confirmed_at", &now)
 			user.EmailConfirmedAt = &now
@@ -388,11 +504,16 @@ func (h *OAuthHandler) findOrCreateUser(provider string, profile *oauthProfile) 
 		name = strings.Split(email, "@")[0]
 	}
 
+	var emailConfirmedAt *time.Time
+	if !isPlaceholderEmail(email) {
+		emailConfirmedAt = &now
+	}
+
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		user = model.User{
 			Email:            email,
 			Name:             name,
-			EmailConfirmedAt: &now,
+			EmailConfirmedAt: emailConfirmedAt,
 		}
 		if err := tx.Create(&user).Error; err != nil {
 			return fmt.Errorf("creating user: %w", err)
@@ -442,6 +563,8 @@ func (h *OAuthHandler) fetchProfile(ctx context.Context, provider string, token 
 		return fetchGitHubProfile(ctx, token)
 	case "google":
 		return fetchGoogleProfile(ctx, token)
+	case "x":
+		return fetchXProfile(ctx, token)
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
@@ -556,18 +679,67 @@ func fetchGoogleProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile
 	}, nil
 }
 
+func fetchXProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, error) {
+	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
+
+	resp, err := client.Get("https://api.twitter.com/2/users/me?user.fields=id,name,username")
+	if err != nil {
+		return nil, fmt.Errorf("fetching x user: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("x /users/me returned %d", resp.StatusCode)
+	}
+
+	var body struct {
+		Data struct {
+			ID       string `json:"id"`
+			Name     string `json:"name"`
+			Username string `json:"username"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return nil, fmt.Errorf("decoding x user: %w", err)
+	}
+
+	name := body.Data.Name
+	if name == "" {
+		name = body.Data.Username
+	}
+
+	return &oauthProfile{
+		ProviderUserID: body.Data.ID,
+		Email:          "", // X does not provide email via API v2
+		Name:           name,
+	}, nil
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 func (h *OAuthHandler) redirectError(w http.ResponseWriter, r *http.Request, errCode string) {
 	h.clearStateCookie(w)
+	h.clearVerifierCookie(w)
 	http.Redirect(w, r, fmt.Sprintf("%s/auth?error=%s", h.frontendURL, errCode), http.StatusTemporaryRedirect)
 }
 
 func (h *OAuthHandler) clearStateCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
+		Value:    "",
+		Path:     "/oauth/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (h *OAuthHandler) clearVerifierCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_verifier",
 		Value:    "",
 		Path:     "/oauth/",
 		MaxAge:   -1,

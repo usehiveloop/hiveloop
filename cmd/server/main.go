@@ -40,6 +40,7 @@ import (
 	"github.com/llmvault/llmvault/internal/sandbox"
 	"github.com/llmvault/llmvault/internal/sandbox/daytona"
 	"github.com/llmvault/llmvault/internal/streaming"
+	systemagents "github.com/llmvault/llmvault/internal/system-agents"
 	"github.com/llmvault/llmvault/internal/turso"
 )
 
@@ -93,6 +94,15 @@ func run() error {
 		return fmt.Errorf("running migrations: %w", err)
 	}
 	slog.Info("database ready")
+
+	// Seed system agents (non-blocking)
+	goroutine.Go(func() {
+		if err := systemagents.Seed(database); err != nil {
+			slog.Error("failed to seed system agents", "error", err)
+		} else {
+			slog.Info("system agents seeded")
+		}
+	})
 
 	// 4. KMS wrapper (envelope encryption for DEKs)
 	var kms *crypto.KeyWrapper
@@ -233,12 +243,16 @@ func run() error {
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
+	if cfg.AdminAPIEnabled && cfg.PlatformAdminEmails != "" {
+		authHandler.SetAdminMode(strings.Split(cfg.PlatformAdminEmails, ","))
+	}
 	authHandler.StartCleanup(ctx)
 	oauthHandler := handler.NewOAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		cfg.FrontendURL,
 		cfg.OAuthGitHubClientID, cfg.OAuthGitHubClientSecret,
-		cfg.OAuthGoogleClientID, cfg.OAuthGoogleClientSecret)
+		cfg.OAuthGoogleClientID, cfg.OAuthGoogleClientSecret,
+		cfg.OAuthXClientID, cfg.OAuthXClientSecret)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
@@ -279,6 +293,7 @@ func run() error {
 
 		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, hindsightMCPURL)
 		goroutine.Go(func() { orchestrator.StartHealthChecker(ctx) })
+		goroutine.Go(func() { orchestrator.StartResourceChecker(ctx) })
 		slog.Info("sandbox orchestrator ready")
 	}
 	// Event streaming via Redis Streams
@@ -298,9 +313,11 @@ func run() error {
 
 	var conversationHandler *handler.ConversationHandler
 	var forgeHandler *handler.ForgeHandler
+	var systemConvHandler *handler.SystemConversationHandler
 	forgeMCPHandler := forge.NewForgeMCPHandler(database)
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
+		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
 		forgeCtrl := forge.NewForgeController(database, orchestrator, signingKey, cfg, eventBus, catalog.Global())
 		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus)
 		goroutine.Go(func() { forgeCtrl.ResumeStaleRuns(ctx) })
@@ -378,13 +395,15 @@ func run() error {
 		})
 	})
 
-	// OAuth social login (GitHub, Google)
+	// OAuth social login (GitHub, Google, X)
 	r.Route("/oauth", func(r chi.Router) {
 		r.Use(middleware.AuthRateLimit(ctx, 10, 20))
 		r.Get("/github", oauthHandler.GitHubLogin)
 		r.Get("/github/callback", oauthHandler.GitHubCallback)
 		r.Get("/google", oauthHandler.GoogleLogin)
 		r.Get("/google/callback", oauthHandler.GoogleCallback)
+		r.Get("/x", oauthHandler.XLogin)
+		r.Get("/x/callback", oauthHandler.XCallback)
 		r.Post("/exchange", oauthHandler.Exchange)
 	})
 
@@ -439,8 +458,6 @@ func run() error {
 				r.Get("/identities/{id}", identityHandler.Get)
 				r.Put("/identities/{id}", identityHandler.Update)
 				r.Delete("/identities/{id}", identityHandler.Delete)
-				r.Get("/identities/{id}/setup", identityHandler.GetSetup)
-				r.Put("/identities/{id}/setup", identityHandler.UpdateSetup)
 			})
 
 			// Connect operations — scope: "connect"
@@ -527,6 +544,10 @@ func run() error {
 						r.Get("/events", conversationHandler.ListEvents)
 					})
 				}
+				// System agent conversations
+				if systemConvHandler != nil {
+					r.Post("/system-agents/{type}/conversations", systemConvHandler.Create)
+				}
 				// Sandbox management
 				r.Route("/sandboxes", func(r chi.Router) {
 					sandboxHandler := handler.NewSandboxHandler(database, orchestrator)
@@ -607,6 +628,122 @@ func run() error {
 		r.Get("/connections/{id}", inConnectionHandler.Get)
 		r.Delete("/connections/{id}", inConnectionHandler.Revoke)
 	})
+
+	// Admin API (disabled by default — only mounted when ADMIN_API_ENABLED=true)
+	if cfg.AdminAPIEnabled {
+		adminHandler := handler.NewAdminHandler(database, orchestrator, nangoClient, actionsCatalog)
+		r.Route("/admin/v1", func(r chi.Router) {
+			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
+			r.Use(middleware.RequireEmailConfirmed(database))
+			r.Use(middleware.ResolveUser(database))
+			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
+			r.Use(middleware.AdminAudit(database))
+
+			// Platform stats
+			r.Get("/stats", adminHandler.Stats)
+
+			// Users
+			r.Get("/users", adminHandler.ListUsers)
+			r.Get("/users/{id}", adminHandler.GetUser)
+			r.Put("/users/{id}", adminHandler.UpdateUser)
+			r.Post("/users/{id}/ban", adminHandler.BanUser)
+			r.Post("/users/{id}/unban", adminHandler.UnbanUser)
+			r.Post("/users/{id}/confirm-email", adminHandler.ConfirmUserEmail)
+			r.Delete("/users/{id}", adminHandler.DeleteUser)
+
+			// Organizations
+			r.Get("/orgs", adminHandler.ListOrgs)
+			r.Get("/orgs/{id}", adminHandler.GetOrg)
+			r.Put("/orgs/{id}", adminHandler.UpdateOrgFull)
+			r.Post("/orgs/{id}/deactivate", adminHandler.DeactivateOrg)
+			r.Post("/orgs/{id}/activate", adminHandler.ActivateOrg)
+			r.Get("/orgs/{id}/members", adminHandler.ListOrgMembers)
+			r.Delete("/orgs/{id}", adminHandler.DeleteOrg)
+
+			// Credentials
+			r.Get("/credentials", adminHandler.ListCredentials)
+			r.Get("/credentials/{id}", adminHandler.GetCredential)
+			r.Put("/credentials/{id}", adminHandler.UpdateCredential)
+			r.Post("/credentials/{id}/revoke", adminHandler.RevokeCredential)
+
+			// API Keys
+			r.Get("/api-keys", adminHandler.ListAPIKeys)
+			r.Post("/api-keys/{id}/revoke", adminHandler.RevokeAPIKey)
+
+			// Tokens
+			r.Get("/tokens", adminHandler.ListTokens)
+			r.Post("/tokens/{id}/revoke", adminHandler.RevokeToken)
+
+			// Identities
+			r.Get("/identities", adminHandler.ListIdentities)
+			r.Get("/identities/{id}", adminHandler.GetIdentity)
+			r.Put("/identities/{id}", adminHandler.UpdateIdentity)
+			r.Delete("/identities/{id}", adminHandler.DeleteIdentity)
+
+			// Agents
+			r.Get("/agents", adminHandler.ListAgents)
+			r.Get("/agents/{id}", adminHandler.GetAgent)
+			r.Put("/agents/{id}", adminHandler.UpdateAgent)
+			r.Post("/agents/{id}/archive", adminHandler.ArchiveAgent)
+			r.Delete("/agents/{id}", adminHandler.DeleteAgent)
+
+			// Sandboxes
+			r.Get("/sandboxes", adminHandler.ListSandboxes)
+			r.Get("/sandboxes/{id}", adminHandler.GetSandbox)
+			r.Post("/sandboxes/{id}/stop", adminHandler.StopSandbox)
+			r.Delete("/sandboxes/{id}", adminHandler.DeleteSandbox)
+			r.Post("/sandboxes/cleanup", adminHandler.CleanupSandboxes)
+
+			// Sandbox Templates
+			r.Get("/sandbox-templates", adminHandler.ListSandboxTemplates)
+			r.Put("/sandbox-templates/{id}", adminHandler.UpdateSandboxTemplate)
+			r.Delete("/sandbox-templates/{id}", adminHandler.DeleteSandboxTemplate)
+
+			// Conversations
+			r.Get("/conversations", adminHandler.ListConversations)
+			r.Get("/conversations/{id}", adminHandler.GetConversation)
+			r.Delete("/conversations/{id}", adminHandler.EndConversation)
+
+			// Forge Runs
+			r.Get("/forge-runs", adminHandler.ListForgeRuns)
+			r.Get("/forge-runs/{id}", adminHandler.GetForgeRun)
+			r.Post("/forge-runs/{id}/cancel", adminHandler.CancelForgeRun)
+
+			// Generations
+			r.Get("/generations", adminHandler.ListGenerations)
+			r.Get("/generations/stats", adminHandler.GenerationStats)
+
+			// Integrations & Connections
+			r.Get("/integrations", adminHandler.ListIntegrations)
+			r.Get("/connections", adminHandler.ListConnections)
+			r.Post("/connections/{id}/revoke", adminHandler.RevokeConnection)
+			r.Get("/in-integration-providers", adminHandler.ListInIntegrationProviders)
+			r.Post("/in-integrations", adminHandler.CreateInIntegration)
+			r.Get("/in-integrations", adminHandler.ListInIntegrations)
+			r.Get("/in-integrations/{id}", adminHandler.GetInIntegration)
+			r.Put("/in-integrations/{id}", adminHandler.UpdateInIntegration)
+			r.Delete("/in-integrations/{id}", adminHandler.DeleteInIntegration)
+			r.Get("/in-connections", adminHandler.ListInConnections)
+
+			// Connect Sessions
+			r.Get("/connect-sessions", adminHandler.ListConnectSessions)
+			r.Delete("/connect-sessions/{id}", adminHandler.DeleteConnectSession)
+
+			// Custom Domains
+			r.Get("/custom-domains", adminHandler.ListCustomDomains)
+			r.Delete("/custom-domains/{id}", adminHandler.DeleteCustomDomain)
+
+			// Audit & Usage
+			r.Get("/audit", adminHandler.ListAudit)
+			r.Get("/usage", adminHandler.ListUsage)
+			r.Get("/admin-audit", adminHandler.ListAdminAudit)
+
+			// Workspace Storage
+			r.Get("/workspace-storage", adminHandler.ListWorkspaceStorage)
+			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)
+		})
+		slog.Info("admin API enabled", "path", "/admin/v1")
+	}
 
 	// Sandbox-authenticated routes (proxy) — token auth via JWT
 	r.Route("/v1/proxy", func(r chi.Router) {

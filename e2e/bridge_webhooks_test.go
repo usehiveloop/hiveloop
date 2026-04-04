@@ -66,8 +66,8 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 
 	// Create agent
 	agent := model.Agent{
-		OrgID: org.ID, IdentityID: identity.ID, Name: "wh-agent-" + suffix,
-		CredentialID: cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
+		OrgID: &org.ID, IdentityID: &identity.ID, Name: "wh-agent-" + suffix,
+		CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
 	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
@@ -76,7 +76,7 @@ func newWebhookTestHarness(t *testing.T) *webhookTestHarness {
 	bridgeSecret := "test-bridge-secret-" + suffix
 	encryptedKey, _ := encKey.EncryptString(bridgeSecret)
 	sandbox := model.Sandbox{
-		OrgID: org.ID, IdentityID: identity.ID, SandboxType: "shared",
+		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
 		ExternalID: "wh-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: encryptedKey, Status: "running",
 	}

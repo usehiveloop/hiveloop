@@ -256,7 +256,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		ID           string         `json:"id"`
 		Name         string         `json:"name"`
 		Description  *string        `json:"description"`
-		IdentityID   string         `json:"identity_id"`
+		IdentityID   *string        `json:"identity_id"`
 		CredentialID string         `json:"credential_id"`
 		ProviderID   string         `json:"provider_id"`
 		SandboxType  string         `json:"sandbox_type"`
@@ -278,8 +278,8 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	if created.Description == nil || *created.Description != "Customer support bot" {
 		t.Errorf("description: got %v", created.Description)
 	}
-	if created.IdentityID != h.identity.ID.String() {
-		t.Errorf("identity_id: got %q", created.IdentityID)
+	if created.IdentityID == nil || *created.IdentityID != h.identity.ID.String() {
+		t.Errorf("identity_id: got %v, want %s", created.IdentityID, h.identity.ID)
 	}
 	if created.CredentialID != h.cred.ID.String() {
 		t.Errorf("credential_id: got %q", created.CredentialID)

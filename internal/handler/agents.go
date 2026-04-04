@@ -84,10 +84,11 @@ type agentResponse struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
 	Description       *string    `json:"description,omitempty"`
-	IdentityID        string     `json:"identity_id"`
+	IdentityID        *string    `json:"identity_id,omitempty"`
 	CredentialID      string     `json:"credential_id"`
 	ProviderID        string     `json:"provider_id"`
 	SandboxType       string     `json:"sandbox_type"`
+	SandboxID         *string    `json:"sandbox_id,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string     `json:"system_prompt"`
 	Model             string     `json:"model"`
@@ -110,8 +111,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 		ID:           a.ID.String(),
 		Name:         a.Name,
 		Description:  a.Description,
-		IdentityID:   a.IdentityID.String(),
-		CredentialID: a.CredentialID.String(),
 		SandboxType:  a.SandboxType,
 		SystemPrompt: a.SystemPrompt,
 		Model:        a.Model,
@@ -128,12 +127,23 @@ func toAgentResponse(a model.Agent) agentResponse {
 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),
 	}
+	if a.CredentialID != nil {
+		resp.CredentialID = a.CredentialID.String()
+	}
+	if a.IdentityID != nil {
+		s := a.IdentityID.String()
+		resp.IdentityID = &s
+	}
+	if a.SandboxID != nil {
+		s := a.SandboxID.String()
+		resp.SandboxID = &s
+	}
 	if a.SandboxTemplateID != nil {
 		s := a.SandboxTemplateID.String()
 		resp.SandboxTemplateID = &s
 	}
 	// Include provider_id from the credential association if loaded
-	if a.Credential.ProviderID != "" {
+	if a.Credential != nil && a.Credential.ProviderID != "" {
 		resp.ProviderID = a.Credential.ProviderID
 	}
 	return resp
@@ -172,8 +182,8 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.Name == "" || req.IdentityID == "" || req.CredentialID == "" || req.SystemPrompt == "" || req.Model == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name, identity_id, credential_id, system_prompt, and model are required"})
+	if req.Name == "" || req.CredentialID == "" || req.SystemPrompt == "" || req.Model == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name, credential_id, system_prompt, and model are required"})
 		return
 	}
 	if !validSandboxTypes[req.SandboxType] {
@@ -181,15 +191,19 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate identity exists and belongs to org
-	var identity model.Identity
-	if err := h.db.Where("id = ? AND org_id = ?", req.IdentityID, org.ID).First(&identity).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "identity not found"})
+	// Validate identity exists and belongs to org (optional)
+	var identity *model.Identity
+	if req.IdentityID != "" {
+		var ident model.Identity
+		if err := h.db.Where("id = ? AND org_id = ?", req.IdentityID, org.ID).First(&ident).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "identity not found"})
+				return
+			}
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate identity"})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate identity"})
-		return
+		identity = &ident
 	}
 
 	// Validate credential exists, belongs to org, and is not revoked
@@ -226,11 +240,10 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var sandboxTemplateID *interface{ String() string }
 	_ = sandboxTemplateID // unused, we parse directly
 	agent := model.Agent{
-		OrgID:        org.ID,
-		IdentityID:   identity.ID,
+		OrgID:        &org.ID,
 		Name:         req.Name,
 		Description:  req.Description,
-		CredentialID: cred.ID,
+		CredentialID: &cred.ID,
 		SandboxType:  req.SandboxType,
 		SystemPrompt: req.SystemPrompt,
 		Model:        req.Model,
@@ -244,6 +257,9 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Team:         req.Team,
 		SharedMemory: req.SharedMemory,
 		Status:       "active",
+	}
+	if identity != nil {
+		agent.IdentityID = &identity.ID
 	}
 
 	if req.SandboxTemplateID != nil && *req.SandboxTemplateID != "" {
@@ -310,7 +326,7 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Preload("Credential").Preload("Identity").Where("agents.org_id = ?", org.ID)
+	q := h.db.Preload("Credential").Preload("Identity").Where("agents.org_id = ? AND agents.is_system = false", org.ID)
 
 	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
 		q = q.Where("agents.identity_id = ?", identityID)
@@ -369,7 +385,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Preload("Credential").Preload("Identity").Where("id = ? AND org_id = ?", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Preload("Credential").Preload("Identity").Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -404,7 +420,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -447,7 +463,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "credential not found or revoked"})
 			return
 		}
-		credID = cred.ID
+		credID = &cred.ID
 		updates["credential_id"] = cred.ID
 	}
 	if req.Model != nil {
@@ -456,9 +472,9 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate model/provider compatibility if either changed
-	if req.CredentialID != nil || req.Model != nil {
+	if (req.CredentialID != nil || req.Model != nil) && credID != nil {
 		var cred model.Credential
-		h.db.Where("id = ?", credID).First(&cred)
+		h.db.Where("id = ?", *credID).First(&cred)
 		if cred.ProviderID != "" {
 			provider, ok := h.registry.GetProvider(cred.ProviderID)
 			if ok {
@@ -517,6 +533,20 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["shared_memory"] = *req.SharedMemory
 	}
 
+	// Detect sandbox_type transition before applying update
+	oldSandboxType := agent.SandboxType
+	newSandboxType := oldSandboxType
+	if v, ok := updates["sandbox_type"]; ok {
+		newSandboxType = v.(string)
+	}
+
+	// If transitioning shared → dedicated, remove from pool sandbox first
+	if h.pusher != nil && oldSandboxType == "shared" && newSandboxType == "dedicated" {
+		if err := h.pusher.RemoveAgent(r.Context(), &agent); err != nil {
+			slog.Error("failed to remove agent from pool sandbox during type transition", "agent_id", agent.ID, "error", err)
+		}
+	}
+
 	if len(updates) > 0 {
 		if err := h.db.Model(&agent).Updates(updates).Error; err != nil {
 			if isDuplicateKeyError(err) {
@@ -531,7 +561,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Reload with credential
 	h.db.Preload("Credential").Preload("Identity").Where("id = ?", agent.ID).First(&agent)
 
-	// Re-push shared agents to Bridge on update
+	// Re-push shared agents to Bridge on update (including dedicated → shared transition)
 	if h.pusher != nil && agent.SandboxType == "shared" && len(updates) > 0 {
 		if err := h.pusher.PushAgent(r.Context(), &agent); err != nil {
 			slog.Error("failed to push agent update to bridge", "agent_id", agent.ID, "error", err)
@@ -562,7 +592,7 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Load agent before deleting so we can remove from Bridge
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -735,7 +765,7 @@ func (h *AgentHandler) GetSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ?", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}
@@ -783,7 +813,7 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ?", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}

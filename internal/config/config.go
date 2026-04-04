@@ -62,8 +62,8 @@ type Config struct {
 	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
 	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
 
-	// Frontend (for building email links)
-	FrontendURL string `env:"FRONTEND_URL" envDefault:"http://localhost:3000"`
+	// Frontend (for building email links and OAuth redirects)
+	FrontendURL string `env:"FRONTEND_URL,required"`
 
 	// Auth: auto-confirm email on registration (useful for self-hosted deployments)
 	AutoConfirmEmail bool `env:"AUTO_CONFIRM_EMAIL" envDefault:"false"`
@@ -73,6 +73,8 @@ type Config struct {
 	OAuthGitHubClientSecret string `env:"OAUTH_GITHUB_CLIENT_SECRET"`
 	OAuthGoogleClientID     string `env:"OAUTH_GOOGLE_CLIENT_ID"`
 	OAuthGoogleClientSecret string `env:"OAUTH_GOOGLE_CLIENT_SECRET"`
+	OAuthXClientID          string `env:"OAUTH_X_CLIENT_ID"`
+	OAuthXClientSecret      string `env:"OAUTH_X_CLIENT_SECRET"`
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
@@ -113,9 +115,17 @@ type Config struct {
 	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.llmvault.dev)
 	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.llmvault.dev)
 
+	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
+	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
+
 	// Sandbox defaults
-	SharedSandboxIdleTimeoutMins    int `env:"SHARED_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`
-	DedicatedSandboxGracePeriodMins int `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
+	SharedSandboxIdleTimeoutMins    int           `env:"SHARED_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`
+	DedicatedSandboxGracePeriodMins int           `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
+	SandboxResourceCheckInterval    time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
+
+	// Sandbox pool
+	PoolSandboxResourceThreshold float64 `env:"POOL_SANDBOX_RESOURCE_THRESHOLD" envDefault:"80.0"` // max CPU/RAM % before sandbox considered full
+	PoolSandboxIdleTimeoutMins   int     `env:"POOL_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`    // auto-stop pool sandboxes with 0 agents after this
 }
 
 func Load() (*Config, error) {

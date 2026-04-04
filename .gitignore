@@ -25,4 +25,5 @@ certs/
 # buildtemplates binary output (not the source in cmd/)
 /buildtemplates
 .next/
-.technical-docs-guide/
+.ignored/*
+

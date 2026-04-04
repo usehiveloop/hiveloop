@@ -8,11 +8,11 @@ import (
 
 type Sandbox struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             uuid.UUID        `gorm:"type:uuid;not null;index"`
-	Org               Org              `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	IdentityID        uuid.UUID        `gorm:"type:uuid;not null;index:idx_sandbox_identity_type"`
-	Identity          Identity         `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
-	SandboxType       string           `gorm:"not null;index:idx_sandbox_identity_type"` // "shared" or "dedicated"
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index"`                          // nil for pool sandboxes
+	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	IdentityID        *uuid.UUID       `gorm:"type:uuid;index"`                          // nil for pool sandboxes
+	Identity          *Identity        `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
+	SandboxType       string           `gorm:"not null;index"` // "shared" or "dedicated"
 	AgentID           *uuid.UUID       `gorm:"type:uuid;index"`
 	Agent             *Agent           `gorm:"foreignKey:AgentID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
@@ -24,6 +24,17 @@ type Sandbox struct {
 	Status            string           `gorm:"not null;default:'creating'"` // creating, running, stopped, starting, error
 	ErrorMessage      *string
 	LastActiveAt      *time.Time
+
+	// Resource usage (populated by resource checker cron)
+	MemoryLimitBytes  int64      `gorm:"not null;default:0"`
+	MemoryUsedBytes   int64      `gorm:"not null;default:0"`
+	MemoryPeakBytes   int64      `gorm:"not null;default:0"`
+	CPUQuota          string     `gorm:"not null;default:''"` // e.g. "100000 100000"
+	CPUUsageUsec      int64      `gorm:"not null;default:0"`
+	CPUThrottledCount int64      `gorm:"not null;default:0"`
+	PIDCount          int64      `gorm:"column:pid_count;not null;default:0"`
+	ResourceCheckedAt *time.Time // last time resource usage was collected
+
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

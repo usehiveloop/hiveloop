@@ -12,6 +12,8 @@ type User struct {
 	PasswordHash     string
 	Name             string
 	EmailConfirmedAt *time.Time
+	BannedAt         *time.Time
+	BanReason        string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }

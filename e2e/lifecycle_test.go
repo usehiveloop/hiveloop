@@ -50,14 +50,14 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
 	agent := model.Agent{
-		OrgID: org.ID, IdentityID: identity.ID, Name: "lc-agent-" + suffix,
-		CredentialID: cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
+		OrgID: &org.ID, IdentityID: &identity.ID, Name: "lc-agent-" + suffix,
+		CredentialID: &cred.ID, SandboxType: "shared", SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
 	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
 	sandbox := model.Sandbox{
-		OrgID: org.ID, IdentityID: identity.ID, SandboxType: "shared",
+		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
 		ExternalID: "lc-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: []byte("enc-key"), Status: "running",
 	}

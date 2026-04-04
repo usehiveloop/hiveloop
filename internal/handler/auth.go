@@ -39,6 +39,11 @@ type AuthHandler struct {
 	frontendURL      string
 	autoConfirmEmail bool
 
+	// Admin mode: when true, login is restricted to platform admin emails only.
+	// Used by the admin panel deployment to prevent non-admin users from logging in.
+	adminMode          bool
+	platformAdminEmails map[string]bool
+
 	loginMu       sync.Mutex
 	loginAttempts map[string]*loginAttempt // keyed by email
 }
@@ -59,6 +64,19 @@ func NewAuthHandler(db *gorm.DB, privateKey *rsa.PrivateKey, signingKey []byte, 
 	}
 
 	return h
+}
+
+// SetAdminMode restricts login to the given platform admin emails only.
+// When enabled, non-admin users receive a 403 on login/register.
+func (h *AuthHandler) SetAdminMode(emails []string) {
+	h.adminMode = true
+	h.platformAdminEmails = make(map[string]bool, len(emails))
+	for _, e := range emails {
+		trimmed := strings.TrimSpace(e)
+		if trimmed != "" {
+			h.platformAdminEmails[trimmed] = true
+		}
+	}
 }
 
 // StartCleanup starts a background goroutine that evicts stale login attempts
@@ -168,6 +186,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(req.Password) < 8 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+		return
+	}
+
+	// Admin mode: reject non-admin users
+	if h.adminMode && !h.platformAdminEmails[req.Email] {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
 		return
 	}
 
@@ -305,6 +329,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.clearLoginFailures(req.Email)
+
+	// Admin mode: reject non-admin users
+	if h.adminMode && !h.platformAdminEmails[user.Email] {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
+		return
+	}
 
 	// Get user's memberships.
 	var memberships []model.OrgMembership

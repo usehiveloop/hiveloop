@@ -242,7 +242,7 @@ type MockSandboxCreator struct {
 	encKey    *crypto.SymmetricKey
 }
 
-func (m *MockSandboxCreator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
+func (m *MockSandboxCreator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID *uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
 	apiKey := "test-bridge-api-key"
 	encAPIKey, err := m.encKey.EncryptString(apiKey)
 	if err != nil {
@@ -250,7 +250,7 @@ func (m *MockSandboxCreator) CreateForgeSandbox(ctx context.Context, org *model.
 	}
 
 	sb := model.Sandbox{
-		OrgID:                org.ID,
+		OrgID:                &org.ID,
 		IdentityID:           identityID,
 		SandboxType:          "dedicated",
 		ExternalID:           "mock-sandbox-" + forgeRunID.String()[:8],
@@ -368,10 +368,10 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 
 	// Create target agent
 	agent := model.Agent{
-		OrgID:        org.ID,
-		IdentityID:   identity.ID,
+		OrgID:        &org.ID,
+		IdentityID:   &identity.ID,
 		Name:         "forge-target-agent-" + suffix,
-		CredentialID: targetCred.ID,
+		CredentialID: &targetCred.ID,
 		SandboxType:  "shared",
 		SystemPrompt: "You are a helpful assistant.",
 		Model:        "gpt-4o",

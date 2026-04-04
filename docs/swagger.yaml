@@ -226,6 +226,510 @@ definitions:
       resource_type:
         type: string
     type: object
+  internal_handler.adminAPIKeyResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      key_prefix:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      revoked_at:
+        type: string
+      scopes:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.adminAgentResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      sandbox_id:
+        type: string
+      sandbox_type:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_handler.adminConnectSessionResponse:
+    properties:
+      activated_at:
+        type: string
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      org_id:
+        type: string
+    type: object
+  internal_handler.adminConnectionResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      integration_id:
+        type: string
+      org_id:
+        type: string
+      revoked_at:
+        type: string
+    type: object
+  internal_handler.adminConversationResponse:
+    properties:
+      agent_id:
+        type: string
+      created_at:
+        type: string
+      ended_at:
+        type: string
+      id:
+        type: string
+      org_id:
+        type: string
+      sandbox_id:
+        type: string
+      status:
+        type: string
+      token_id:
+        type: string
+    type: object
+  internal_handler.adminCreateInIntegrationRequest:
+    properties:
+      credentials:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials'
+      display_name:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      provider:
+        type: string
+    type: object
+  internal_handler.adminCredentialResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      label:
+        type: string
+      org_id:
+        type: string
+      provider_id:
+        type: string
+      revoked_at:
+        type: string
+    type: object
+  internal_handler.adminCustomDomainResponse:
+    properties:
+      created_at:
+        type: string
+      domain:
+        type: string
+      id:
+        type: string
+      org_id:
+        type: string
+      verified:
+        type: boolean
+      verified_at:
+        type: string
+    type: object
+  internal_handler.adminForgeRunResponse:
+    properties:
+      agent_id:
+        type: string
+      created_at:
+        type: string
+      current_iteration:
+        type: integer
+      error_message:
+        type: string
+      final_score:
+        type: number
+      id:
+        type: string
+      max_iterations:
+        type: integer
+      org_id:
+        type: string
+      status:
+        type: string
+      total_cost:
+        type: number
+    type: object
+  internal_handler.adminGenerationStatsResponse:
+    properties:
+      by_model:
+        items:
+          $ref: '#/definitions/internal_handler.adminModelStatEntry'
+        type: array
+      by_provider:
+        items:
+          $ref: '#/definitions/internal_handler.adminProviderStatEntry'
+        type: array
+      total_cost:
+        type: number
+      total_generations:
+        type: integer
+      total_input_tokens:
+        type: integer
+      total_output_tokens:
+        type: integer
+    type: object
+  internal_handler.adminIdentityResponse:
+    properties:
+      created_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      org_id:
+        type: string
+    type: object
+  internal_handler.adminInIntegrationResponse:
+    properties:
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      nango_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      provider:
+        type: string
+      unique_key:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  internal_handler.adminIntegrationResponse:
+    properties:
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      org_id:
+        type: string
+      provider:
+        type: string
+      unique_key:
+        type: string
+    type: object
+  internal_handler.adminModelStatEntry:
+    properties:
+      cost:
+        type: number
+      count:
+        type: integer
+      input_tokens:
+        type: integer
+      model:
+        type: string
+      output_tokens:
+        type: integer
+    type: object
+  internal_handler.adminOrgDetailResponse:
+    properties:
+      active:
+        type: boolean
+      agent_count:
+        type: integer
+      allowed_origins:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      credential_count:
+        type: integer
+      id:
+        type: string
+      member_count:
+        type: integer
+      name:
+        type: string
+      rate_limit:
+        type: integer
+      sandbox_count:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_handler.adminOrgResponse:
+    properties:
+      active:
+        type: boolean
+      allowed_origins:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      rate_limit:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_handler.adminProviderStatEntry:
+    properties:
+      cost:
+        type: number
+      count:
+        type: integer
+      input_tokens:
+        type: integer
+      output_tokens:
+        type: integer
+      provider_id:
+        type: string
+    type: object
+  internal_handler.adminSandboxResponse:
+    properties:
+      agent_id:
+        type: string
+      cpu_usage_usec:
+        type: integer
+      created_at:
+        type: string
+      error_message:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      identity_id:
+        type: string
+      last_active_at:
+        type: string
+      memory_limit_bytes:
+        type: integer
+      memory_used_bytes:
+        type: integer
+      org_id:
+        type: string
+      sandbox_type:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_handler.adminSandboxTemplateResponse:
+    properties:
+      build_error:
+        type: string
+      build_status:
+        type: string
+      created_at:
+        type: string
+      external_id:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+    type: object
+  internal_handler.adminStatsResponse:
+    properties:
+      total_agents:
+        type: integer
+      total_conversations_active:
+        type: integer
+      total_cost:
+        type: number
+      total_credentials:
+        type: integer
+      total_generations:
+        type: integer
+      total_orgs:
+        type: integer
+      total_sandboxes_error:
+        type: integer
+      total_sandboxes_running:
+        type: integer
+      total_sandboxes_stopped:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  internal_handler.adminTokenResponse:
+    properties:
+      created_at:
+        type: string
+      credential_id:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      jti:
+        type: string
+      org_id:
+        type: string
+      revoked_at:
+        type: string
+    type: object
+  internal_handler.adminUpdateAgentRequest:
+    properties:
+      agent_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      credential_id:
+        type: string
+      description:
+        type: string
+      integrations:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      mcp_servers:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      model:
+        type: string
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      sandbox_template_id:
+        type: string
+      sandbox_type:
+        type: string
+      shared_memory:
+        type: boolean
+      skills:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      status:
+        type: string
+      subagents:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      system_prompt:
+        type: string
+      team:
+        type: string
+      tools:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+    type: object
+  internal_handler.adminUpdateCredentialRequest:
+    properties:
+      identity_id:
+        type: string
+      label:
+        type: string
+    type: object
+  internal_handler.adminUpdateIdentityRequest:
+    properties:
+      external_id:
+        type: string
+      memory_config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      ratelimits:
+        items:
+          properties:
+            duration:
+              type: integer
+            limit:
+              type: integer
+            name:
+              type: string
+          type: object
+        type: array
+    type: object
+  internal_handler.adminUpdateInIntegrationRequest:
+    properties:
+      credentials:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials'
+      display_name:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+    type: object
+  internal_handler.adminUpdateOrgRequest:
+    properties:
+      active:
+        type: boolean
+      allowed_origins:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      rate_limit:
+        type: integer
+    type: object
+  internal_handler.adminUpdateSandboxTemplateRequest:
+    properties:
+      config:
+        $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
+      name:
+        type: string
+    type: object
+  internal_handler.adminUpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.adminUserResponse:
+    properties:
+      ban_reason:
+        type: string
+      banned_at:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      email_confirmed_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.agentResponse:
     properties:
       agent_config:
@@ -251,6 +755,8 @@ definitions:
       permissions:
         $ref: '#/definitions/github_com_llmvault_llmvault_internal_model.JSON'
       provider_id:
+        type: string
+      sandbox_id:
         type: string
       sandbox_template_id:
         type: string
@@ -802,6 +1308,11 @@ definitions:
       error:
         type: string
     type: object
+  internal_handler.exchangeRequest:
+    properties:
+      token:
+        type: string
+    type: object
   internal_handler.execRequest:
     properties:
       commands:
@@ -1162,6 +1673,171 @@ definitions:
         type: string
       rate_limit:
         type: integer
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminAPIKeyResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminAPIKeyResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminAgentResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminAgentResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminConnectSessionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminConnectSessionResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminConnectionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminConnectionResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminConversationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminConversationResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminCredentialResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminCredentialResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminCustomDomainResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminCustomDomainResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminForgeRunResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminForgeRunResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminIdentityResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminIdentityResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminIntegrationResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminIntegrationResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminOrgResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminOrgResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminSandboxResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminSandboxResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminSandboxTemplateResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminSandboxTemplateResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminTokenResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminTokenResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminUserResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminUserResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
     type: object
   internal_handler.paginatedResponse-internal_handler_agentResponse:
     properties:
@@ -1857,6 +2533,1931 @@ info:
   title: LLMVault API
   version: "1.0"
 paths:
+  /admin/v1/admin-audit:
+    get:
+      description: Returns admin operation audit entries with filters.
+      parameters:
+      - description: Filter by resource (users, orgs, agents, etc.)
+        in: query
+        name: resource
+        type: string
+      - description: Filter by action (update_user, ban_user, delete_org, etc.)
+        in: query
+        name: action
+        type: string
+      - description: Filter by admin user ID
+        in: query
+        name: admin_id
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List admin audit log
+      tags:
+      - admin
+  /admin/v1/agents:
+    get:
+      description: Returns agents across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by status (active, archived)
+        in: query
+        name: status
+        type: string
+      - description: Filter by sandbox type (shared, dedicated)
+        in: query
+        name: sandbox_type
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminAgentResponse'
+      security:
+      - BearerAuth: []
+      summary: List all agents
+      tags:
+      - admin
+  /admin/v1/agents/{id}:
+    delete:
+      description: Permanently deletes an agent.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an agent
+      tags:
+      - admin
+    get:
+      description: Returns agent details.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminAgentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get agent details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates agent configuration with full validation.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminAgentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an agent
+      tags:
+      - admin
+  /admin/v1/agents/{id}/archive:
+    post:
+      description: Force-archives an active agent.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Archive an agent
+      tags:
+      - admin
+  /admin/v1/api-keys:
+    get:
+      description: Returns API keys across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by revoked status (true/false)
+        in: query
+        name: revoked
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminAPIKeyResponse'
+      security:
+      - BearerAuth: []
+      summary: List all API keys
+      tags:
+      - admin
+  /admin/v1/api-keys/{id}/revoke:
+    post:
+      description: Force-revokes an API key.
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke an API key
+      tags:
+      - admin
+  /admin/v1/audit:
+    get:
+      description: Returns audit entries across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by action
+        in: query
+        name: action
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all audit entries
+      tags:
+      - admin
+  /admin/v1/connect-sessions:
+    get:
+      description: Returns connect sessions across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by expired status (true/false)
+        in: query
+        name: expired
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminConnectSessionResponse'
+      security:
+      - BearerAuth: []
+      summary: List all connect sessions
+      tags:
+      - admin
+  /admin/v1/connect-sessions/{id}:
+    delete:
+      description: Force-deletes a connect session.
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a connect session
+      tags:
+      - admin
+  /admin/v1/connections:
+    get:
+      description: Returns OAuth connections across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by revoked status (true/false)
+        in: query
+        name: revoked
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminConnectionResponse'
+      security:
+      - BearerAuth: []
+      summary: List all connections
+      tags:
+      - admin
+  /admin/v1/connections/{id}/revoke:
+    post:
+      description: Force-revokes an OAuth connection.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a connection
+      tags:
+      - admin
+  /admin/v1/conversations:
+    get:
+      description: Returns agent conversations across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by agent ID
+        in: query
+        name: agent_id
+        type: string
+      - description: Filter by status (active, ended, error)
+        in: query
+        name: status
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminConversationResponse'
+      security:
+      - BearerAuth: []
+      summary: List all conversations
+      tags:
+      - admin
+  /admin/v1/conversations/{id}:
+    delete:
+      description: Force-ends an active conversation.
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: End a conversation
+      tags:
+      - admin
+    get:
+      description: Returns conversation details with event count.
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminConversationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get conversation details
+      tags:
+      - admin
+  /admin/v1/credentials:
+    get:
+      description: Returns credentials across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by provider ID
+        in: query
+        name: provider_id
+        type: string
+      - description: Filter by revoked status (true/false)
+        in: query
+        name: revoked
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminCredentialResponse'
+      security:
+      - BearerAuth: []
+      summary: List all credentials
+      tags:
+      - admin
+  /admin/v1/credentials/{id}:
+    get:
+      description: Returns credential metadata (no decrypted key).
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminCredentialResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get credential details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates credential label and/or identity assignment.
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateCredentialRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminCredentialResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a credential
+      tags:
+      - admin
+  /admin/v1/credentials/{id}/revoke:
+    post:
+      description: Force-revokes a credential.
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a credential
+      tags:
+      - admin
+  /admin/v1/custom-domains:
+    get:
+      description: Returns custom domains across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by verified status (true/false)
+        in: query
+        name: verified
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminCustomDomainResponse'
+      security:
+      - BearerAuth: []
+      summary: List all custom domains
+      tags:
+      - admin
+  /admin/v1/custom-domains/{id}:
+    delete:
+      description: Force-deletes a custom domain.
+      parameters:
+      - description: Domain ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a custom domain
+      tags:
+      - admin
+  /admin/v1/forge-runs:
+    get:
+      description: Returns forge optimization runs across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by status (pending, running, completed, cancelled, failed)
+        in: query
+        name: status
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminForgeRunResponse'
+      security:
+      - BearerAuth: []
+      summary: List all forge runs
+      tags:
+      - admin
+  /admin/v1/forge-runs/{id}:
+    get:
+      description: Returns forge run details.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminForgeRunResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get forge run details
+      tags:
+      - admin
+  /admin/v1/forge-runs/{id}/cancel:
+    post:
+      description: Force-cancels a pending or running forge run.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a forge run
+      tags:
+      - admin
+  /admin/v1/generations:
+    get:
+      description: Returns LLM generations across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by provider ID
+        in: query
+        name: provider_id
+        type: string
+      - description: Filter by model name
+        in: query
+        name: model
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all generations
+      tags:
+      - admin
+  /admin/v1/generations/stats:
+    get:
+      description: Returns aggregate generation statistics by provider and model.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminGenerationStatsResponse'
+      security:
+      - BearerAuth: []
+      summary: Generation statistics
+      tags:
+      - admin
+  /admin/v1/identities:
+    get:
+      description: Returns identities across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by external ID
+        in: query
+        name: external_id
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminIdentityResponse'
+      security:
+      - BearerAuth: []
+      summary: List all identities
+      tags:
+      - admin
+  /admin/v1/identities/{id}:
+    delete:
+      description: Permanently deletes an identity and cascades to related data.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an identity
+      tags:
+      - admin
+    get:
+      description: Returns identity details with rate limits.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminIdentityResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get identity details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates identity external_id, metadata, memory config, and rate
+        limits.
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminIdentityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an identity
+      tags:
+      - admin
+  /admin/v1/in-connections:
+    get:
+      description: Returns all user connections to app-owned integrations.
+      parameters:
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by revoked status (true/false)
+        in: query
+        name: revoked
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List user connections to platform integrations
+      tags:
+      - admin
+  /admin/v1/in-integration-providers:
+    get:
+      description: Returns providers supported for platform integrations (filtered
+        by action catalog).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List available integration providers
+      tags:
+      - admin
+  /admin/v1/in-integrations:
+    get:
+      description: Returns all app-owned (platform) integrations.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List platform integrations
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      description: Creates a new app-owned integration with OAuth credentials via
+        Nango.
+      parameters:
+      - description: Integration details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminCreateInIntegrationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.adminInIntegrationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a platform integration
+      tags:
+      - admin
+  /admin/v1/in-integrations/{id}:
+    delete:
+      description: Soft-deletes a platform integration and removes it from Nango.
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a platform integration
+      tags:
+      - admin
+    get:
+      description: Returns a single platform integration by ID.
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminInIntegrationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a platform integration
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates display name, credentials, or metadata for a platform integration.
+      parameters:
+      - description: Integration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateInIntegrationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminInIntegrationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a platform integration
+      tags:
+      - admin
+  /admin/v1/integrations:
+    get:
+      description: Returns org integrations across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminIntegrationResponse'
+      security:
+      - BearerAuth: []
+      summary: List all integrations
+      tags:
+      - admin
+  /admin/v1/orgs:
+    get:
+      description: Returns all organizations with optional filters.
+      parameters:
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      - description: Filter by active status (true/false)
+        in: query
+        name: active
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminOrgResponse'
+      security:
+      - BearerAuth: []
+      summary: List all organizations
+      tags:
+      - admin
+  /admin/v1/orgs/{id}:
+    delete:
+      description: Permanently deletes an organization and cascades to related data.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete organization
+      tags:
+      - admin
+    get:
+      description: Returns org details with member, credential, agent, and sandbox
+        counts.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminOrgDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get organization details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates org name, rate_limit, active status, and allowed_origins.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateOrgRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminOrgResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update organization
+      tags:
+      - admin
+  /admin/v1/orgs/{id}/activate:
+    post:
+      description: Reactivates a previously deactivated organization.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Activate organization
+      tags:
+      - admin
+  /admin/v1/orgs/{id}/deactivate:
+    post:
+      description: Deactivates an organization, blocking all API access.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate organization
+      tags:
+      - admin
+  /admin/v1/orgs/{id}/members:
+    get:
+      description: Returns all members of an organization.
+      parameters:
+      - description: Org ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List organization members
+      tags:
+      - admin
+  /admin/v1/sandbox-templates:
+    get:
+      description: Returns sandbox templates across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by build status (pending, building, ready, failed)
+        in: query
+        name: build_status
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminSandboxTemplateResponse'
+      security:
+      - BearerAuth: []
+      summary: List all sandbox templates
+      tags:
+      - admin
+  /admin/v1/sandbox-templates/{id}:
+    delete:
+      description: Permanently deletes a sandbox template.
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a sandbox template
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates sandbox template name and configuration.
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateSandboxTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminSandboxTemplateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a sandbox template
+      tags:
+      - admin
+  /admin/v1/sandboxes:
+    get:
+      description: Returns sandboxes across all organizations with resource metrics.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by status (running, stopped, error)
+        in: query
+        name: status
+        type: string
+      - description: Filter by type (shared, dedicated)
+        in: query
+        name: sandbox_type
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminSandboxResponse'
+      security:
+      - BearerAuth: []
+      summary: List all sandboxes
+      tags:
+      - admin
+  /admin/v1/sandboxes/{id}:
+    delete:
+      description: Force-deletes a sandbox from the provider and DB.
+      parameters:
+      - description: Sandbox ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a sandbox
+      tags:
+      - admin
+    get:
+      description: Returns sandbox details with resource metrics.
+      parameters:
+      - description: Sandbox ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminSandboxResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get sandbox details
+      tags:
+      - admin
+  /admin/v1/sandboxes/{id}/stop:
+    post:
+      description: Force-stops a running sandbox.
+      parameters:
+      - description: Sandbox ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Stop a sandbox
+      tags:
+      - admin
+  /admin/v1/sandboxes/cleanup:
+    post:
+      description: Deletes all errored and stale stopped sandboxes (stopped > 24h).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk cleanup sandboxes
+      tags:
+      - admin
+  /admin/v1/stats:
+    get:
+      description: Returns platform-wide aggregate statistics.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminStatsResponse'
+      security:
+      - BearerAuth: []
+      summary: Platform stats
+      tags:
+      - admin
+  /admin/v1/tokens:
+    get:
+      description: Returns proxy tokens across all organizations.
+      parameters:
+      - description: Filter by org ID
+        in: query
+        name: org_id
+        type: string
+      - description: Filter by revoked status (true/false)
+        in: query
+        name: revoked
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminTokenResponse'
+      security:
+      - BearerAuth: []
+      summary: List all proxy tokens
+      tags:
+      - admin
+  /admin/v1/tokens/{id}/revoke:
+    post:
+      description: Force-revokes a proxy token.
+      parameters:
+      - description: Token ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a proxy token
+      tags:
+      - admin
+  /admin/v1/usage:
+    get:
+      description: Returns aggregate request counts grouped by organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Aggregate usage by org
+      tags:
+      - admin
+  /admin/v1/users:
+    get:
+      description: Returns all users across the platform with optional filters.
+      parameters:
+      - description: Search by email or name
+        in: query
+        name: search
+        type: string
+      - description: Filter by banned status (true/false)
+        in: query
+        name: banned
+        type: string
+      - description: Filter by email confirmed status (true/false)
+        in: query
+        name: confirmed
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminUserResponse'
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - admin
+  /admin/v1/users/{id}:
+    delete:
+      description: Permanently deletes a user and all associated data.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - admin
+    get:
+      description: Returns user details including org memberships.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminUserResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates user name and/or email with validation.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a user
+      tags:
+      - admin
+  /admin/v1/users/{id}/ban:
+    post:
+      consumes:
+      - application/json
+      description: Bans a user account and revokes all refresh tokens.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminUserResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Ban a user
+      tags:
+      - admin
+  /admin/v1/users/{id}/confirm-email:
+    post:
+      description: Administratively confirms a user's email address.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminUserResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Force-confirm user email
+      tags:
+      - admin
+  /admin/v1/users/{id}/unban:
+    post:
+      description: Removes the ban from a user account.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminUserResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unban a user
+      tags:
+      - admin
+  /admin/v1/workspace-storage:
+    get:
+      description: Returns all provisioned workspace databases.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all workspace storage
+      tags:
+      - admin
+  /admin/v1/workspace-storage/{id}:
+    delete:
+      description: Deletes a workspace storage record.
+      parameters:
+      - description: Storage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete workspace storage
+      tags:
+      - admin
   /auth/change-password:
     post:
       consumes:
@@ -2132,6 +4733,150 @@ paths:
       summary: Reset password
       tags:
       - auth
+  /oauth/exchange:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a short-lived, single-use OAuth exchange token for an
+        access/refresh token pair. The exchange token is obtained from the OAuth callback
+        redirect.
+      parameters:
+      - description: Exchange token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.exchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Exchange OAuth token for access and refresh tokens
+      tags:
+      - oauth
+  /oauth/github:
+    get:
+      description: Redirects the browser to GitHub's authorization page. Sets a state
+        cookie for CSRF protection.
+      responses:
+        "307":
+          description: Redirect to GitHub
+        "404":
+          description: Provider not configured
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Start GitHub OAuth login
+      tags:
+      - oauth
+  /oauth/github/callback:
+    get:
+      description: Handles the redirect from GitHub after authorization. Exchanges
+        the code for a token, creates or links the user account, and redirects to
+        the frontend with a short-lived exchange token.
+      parameters:
+      - description: Authorization code from GitHub
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: CSRF state parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Redirect to frontend with error
+      summary: GitHub OAuth callback
+      tags:
+      - oauth
+  /oauth/google:
+    get:
+      description: Redirects the browser to Google's authorization page. Sets a state
+        cookie for CSRF protection.
+      responses:
+        "307":
+          description: Redirect to Google
+        "404":
+          description: Provider not configured
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Start Google OAuth login
+      tags:
+      - oauth
+  /oauth/google/callback:
+    get:
+      description: Handles the redirect from Google after authorization. Exchanges
+        the code for a token, creates or links the user account, and redirects to
+        the frontend with a short-lived exchange token.
+      parameters:
+      - description: Authorization code from Google
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: CSRF state parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Redirect to frontend with error
+      summary: Google OAuth callback
+      tags:
+      - oauth
+  /oauth/x:
+    get:
+      description: Redirects the browser to X's authorization page. Sets state and
+        PKCE verifier cookies.
+      responses:
+        "307":
+          description: Redirect to X
+        "404":
+          description: Provider not configured
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Start X (Twitter) OAuth login
+      tags:
+      - oauth
+  /oauth/x/callback:
+    get:
+      description: Handles the redirect from X after authorization. Exchanges the
+        code for a token using PKCE, creates or links the user account, and redirects
+        to the frontend with a short-lived exchange token.
+      parameters:
+      - description: Authorization code from X
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: CSRF state parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Redirect to frontend with error
+      summary: X (Twitter) OAuth callback
+      tags:
+      - oauth
   /v1/agents:
     get:
       description: Returns agents for the current organization with optional filters.
@@ -4035,69 +6780,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Update an identity
-      tags:
-      - identities
-  /v1/identities/{id}/setup:
-    get:
-      description: Returns setup commands and env var key names (values are never
-        exposed).
-      parameters:
-      - description: Identity ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.setupResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get identity sandbox setup config
-      tags:
-      - identities
-    put:
-      consumes:
-      - application/json
-      description: Sets setup commands and encrypted environment variables for shared
-        sandboxes.
-      parameters:
-      - description: Identity ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Setup configuration
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.setupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.setupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update identity sandbox setup config
       tags:
       - identities
   /v1/integrations:

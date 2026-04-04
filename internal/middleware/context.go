@@ -18,6 +18,7 @@ const (
 	apiKeyClaimsKey
 	credentialIdentityKey
 	userKey
+	adminAuditChangesKey
 )
 
 // OrgFromContext retrieves the authenticated Org from the request context.
@@ -109,4 +110,37 @@ func UserFromContext(ctx context.Context) (*model.User, bool) {
 // WithUser sets the User on the request context.
 func WithUser(r *http.Request, user *model.User) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userKey, user))
+}
+
+// AdminAuditChanges is a map of field→{old,new} diffs set by admin update
+// handlers so the audit middleware logs only what actually changed.
+type AdminAuditChanges map[string]any
+
+// AdminAuditBucket is a shared pointer that the middleware allocates and places
+// on the context. Handlers write their diff into it. Because it's a pointer,
+// the middleware can read the result after the handler returns without needing
+// the handler's replacement *http.Request.
+type AdminAuditBucket struct {
+	Changes AdminAuditChanges
+}
+
+// AdminAuditBucketFromContext retrieves the shared audit bucket from context.
+func AdminAuditBucketFromContext(ctx context.Context) *AdminAuditBucket {
+	b, _ := ctx.Value(adminAuditChangesKey).(*AdminAuditBucket)
+	return b
+}
+
+// WithAdminAuditBucket places a shared audit bucket on the request context.
+// Called by the middleware before the handler runs.
+func WithAdminAuditBucket(r *http.Request, bucket *AdminAuditBucket) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), adminAuditChangesKey, bucket))
+}
+
+// SetAdminAuditChanges writes the computed diff into the shared bucket on the
+// request context. This does NOT create a new request — the handler's local r
+// is sufficient because the bucket is a shared pointer.
+func SetAdminAuditChanges(r *http.Request, changes AdminAuditChanges) {
+	if bucket := AdminAuditBucketFromContext(r.Context()); bucket != nil {
+		bucket.Changes = changes
+	}
 }

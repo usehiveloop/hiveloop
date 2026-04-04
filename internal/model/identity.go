@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 type Identity struct {
@@ -16,10 +15,6 @@ type Identity struct {
 	MemoryConfig JSON      `gorm:"type:jsonb;default:'{}'"` // Hindsight memory configuration
 	CreatedAt    time.Time
 	UpdatedAt  time.Time
-
-	// Sandbox setup (applies to shared sandboxes for this identity)
-	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on sandbox creation
-	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
 	RateLimits []IdentityRateLimit `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
 }
