@@ -5,6 +5,7 @@ use dashmap::DashMap;
 use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
 use lsp::LspManager;
 use mcp::McpManager;
+use std::collections::HashMap;
 use std::sync::Arc;
 use storage::{StorageBackend, StorageHandle};
 use tokio::sync::mpsc;
@@ -341,6 +342,8 @@ impl AgentSupervisor {
         agent_id: &str,
         filter_tool_names: Option<Vec<String>>,
         filter_mcp_server_names: Option<Vec<String>>,
+        api_key_override: Option<String>,
+        subagent_api_key_overrides: Option<HashMap<String, String>>,
     ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
         let state = self
             .agent_map
@@ -368,6 +371,31 @@ impl AgentSupervisor {
                     return Err(BridgeError::CapacityExhausted(format!(
                         "agent {} at max concurrent conversations ({})",
                         agent_id, max
+                    )));
+                }
+            }
+        }
+
+        // --- Validate API key overrides ---
+        if let Some(ref key) = api_key_override {
+            if key.trim().is_empty() {
+                return Err(BridgeError::InvalidRequest(
+                    "api_key cannot be empty".to_string(),
+                ));
+            }
+        }
+        if let Some(ref overrides) = subagent_api_key_overrides {
+            for (name, key) in overrides {
+                if key.trim().is_empty() {
+                    return Err(BridgeError::InvalidRequest(format!(
+                        "subagent_api_keys: key for '{}' cannot be empty",
+                        name
+                    )));
+                }
+                if !state.subagents.contains_key(name) {
+                    return Err(BridgeError::InvalidRequest(format!(
+                        "subagent_api_keys: unknown subagent '{}'",
+                        name
                     )));
                 }
             }
@@ -408,9 +436,75 @@ impl AgentSupervisor {
         let max_tasks = def.config.max_tasks_per_conversation.unwrap_or(50) as usize;
         let task_budget = Arc::new(tools::TaskBudget::new(max_tasks));
 
+        // Build conversation-scoped subagent map when API key overrides are provided.
+        let conversation_subagents = if let Some(ref overrides) = subagent_api_key_overrides {
+            let scoped_map = Arc::new(DashMap::new());
+            let control_plane_url = std::env::var("BRIDGE_CONTROL_PLANE_URL")
+                .unwrap_or_else(|_| "http://localhost:3000".to_string());
+            let integration_tools =
+                tools::integration::create_integration_tools(&def.integrations, &control_plane_url);
+
+            for entry in state.subagents.iter() {
+                let name = entry.key().clone();
+                let original = entry.value();
+                if let Some(override_key) = overrides.get(&name) {
+                    // Find the subagent definition and rebuild with overridden key
+                    if let Some(sub_def) = def.subagents.iter().find(|s| s.name == name) {
+                        let mut overridden_def = sub_def.clone();
+                        overridden_def.provider.api_key = override_key.clone();
+
+                        let mut sub_registry = tools::ToolRegistry::new();
+                        tools::builtin::register_builtin_tools_for_subagent(&mut sub_registry);
+                        for (tool, _) in &integration_tools {
+                            sub_registry.register(tool.clone());
+                        }
+                        let sub_executors: Vec<Arc<dyn tools::ToolExecutor>> = sub_registry
+                            .list()
+                            .iter()
+                            .filter_map(|(n, _)| sub_registry.get(n))
+                            .collect();
+                        let sub_dynamic = adapt_tools(sub_executors)?;
+                        let sub_agent = build_agent(&overridden_def, sub_dynamic)?;
+
+                        scoped_map.insert(
+                            name,
+                            SubAgentEntry {
+                                name: original.name.clone(),
+                                description: original.description.clone(),
+                                agent: Arc::new(sub_agent),
+                            },
+                        );
+                    } else {
+                        // Subagent name exists in runtime but not in definition (e.g. __self__)
+                        scoped_map.insert(
+                            name,
+                            SubAgentEntry {
+                                name: original.name.clone(),
+                                description: original.description.clone(),
+                                agent: original.agent.clone(),
+                            },
+                        );
+                    }
+                } else {
+                    // No override — share original entry
+                    scoped_map.insert(
+                        name,
+                        SubAgentEntry {
+                            name: original.name.clone(),
+                            description: original.description.clone(),
+                            agent: original.agent.clone(),
+                        },
+                    );
+                }
+            }
+            scoped_map
+        } else {
+            state.subagents.clone()
+        };
+
         let runner = Arc::new(
             ConversationSubAgentRunner::new(
-                state.subagents.clone(),
+                conversation_subagents,
                 state.session_store.clone(),
                 notification_tx.clone(),
                 cancel.clone(),
@@ -436,7 +530,9 @@ impl AgentSupervisor {
         };
         let session_store = state.session_store.clone();
 
-        let has_filters = filter_tool_names.is_some() || filter_mcp_server_names.is_some();
+        let has_filters = filter_tool_names.is_some()
+            || filter_mcp_server_names.is_some()
+            || api_key_override.is_some();
 
         let mut tool_names: std::collections::HashSet<String> =
             state.tool_registry.tool_names().into_iter().collect();
@@ -461,23 +557,33 @@ impl AgentSupervisor {
         let storage = self.storage.clone();
         let model_name = def.provider.model.clone();
 
+        // If an API key override is provided, clone the definition and swap the key.
+        let scoped_def: Option<AgentDefinition> = api_key_override.map(|key| {
+            let mut d = (*def).clone();
+            d.provider.api_key = key;
+            d
+        });
+        let effective_def: &AgentDefinition = scoped_def.as_ref().unwrap_or(&def);
+
         // Build a conversation-scoped agent when filters are active so the LLM
         // only sees the allowed tools. When unfiltered, share the agent-wide instance.
         let conversation_agent = if has_filters {
             let scoped_executors: Vec<Arc<dyn tools::ToolExecutor>> =
                 tool_executors.values().cloned().collect();
             let scoped_dynamic = adapt_tools(scoped_executors)?;
-            Arc::new(tokio::sync::RwLock::new(build_agent(&def, scoped_dynamic)?))
+            Arc::new(tokio::sync::RwLock::new(build_agent(
+                effective_def,
+                scoped_dynamic,
+            )?))
         } else {
             state.rig_agent.clone()
         };
 
-        drop(def); // release read lock before spawning
-
-        // Build a no-tools retry agent for recovering from empty responses
-        let def = state.definition.read().await;
-        let retry_agent =
-            Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
+        // Build a no-tools retry agent for recovering from empty responses.
+        // Uses effective_def so it shares the API key override when present.
+        let retry_agent = Arc::new(
+            build_agent(effective_def, vec![]).expect("no-tools agent build should not fail"),
+        );
         drop(def);
 
         // Check if todo tools are enabled
@@ -1669,7 +1775,9 @@ mod tests {
             .await
             .unwrap();
 
-        let result = supervisor.create_conversation("agent1", None, None).await;
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None)
+            .await;
 
         assert!(result.is_ok());
         let (conv_id, _sse_rx) = result.unwrap();
@@ -1697,7 +1805,7 @@ mod tests {
         let filter = all_tools.iter().take(2).cloned().collect::<Vec<_>>();
 
         let result = supervisor
-            .create_conversation("agent1", Some(filter.clone()), None)
+            .create_conversation("agent1", Some(filter.clone()), None, None, None)
             .await;
 
         assert!(result.is_ok());
@@ -1716,7 +1824,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", Some(vec!["totally_fake_tool".to_string()]), None)
+            .create_conversation("agent1", Some(vec!["totally_fake_tool".to_string()]), None, None, None)
             .await;
 
         assert!(result.is_err());
@@ -1734,7 +1842,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, Some(vec!["nonexistent-mcp".to_string()]))
+            .create_conversation("agent1", None, Some(vec!["nonexistent-mcp".to_string()]), None, None)
             .await;
 
         assert!(result.is_err());
@@ -1747,12 +1855,221 @@ mod tests {
         let supervisor = make_test_supervisor();
 
         let result = supervisor
-            .create_conversation("no_such_agent", None, None)
+            .create_conversation("no_such_agent", None, None, None, None)
             .await;
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("no_such_agent"));
+    }
+
+    // ── per-conversation API key override ──────────────────────────────────
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_api_key_override_succeeds() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor
+            .create_conversation(
+                "agent1",
+                None,
+                None,
+                Some("sk-custom-override-key".to_string()),
+                None,
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let (conv_id, _sse_rx) = result.unwrap();
+        assert!(!conv_id.is_empty());
+
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_empty_api_key_returns_error() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor
+            .create_conversation(
+                "agent1",
+                None,
+                None,
+                Some("".to_string()),
+                None,
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("api_key cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_whitespace_api_key_returns_error() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let result = supervisor
+            .create_conversation(
+                "agent1",
+                None,
+                None,
+                Some("   ".to_string()),
+                None,
+            )
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("api_key cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_api_key_and_tool_filter_succeeds() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let state = supervisor.get_agent("agent1").unwrap();
+        let all_tools: Vec<String> = state.tool_registry.tool_names();
+        let filter = all_tools.iter().take(2).cloned().collect::<Vec<_>>();
+
+        let result = supervisor
+            .create_conversation(
+                "agent1",
+                Some(filter),
+                None,
+                Some("sk-custom-key".to_string()),
+                None,
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let (conv_id, _sse_rx) = result.unwrap();
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_invalid_subagent_name_returns_error() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let mut overrides = std::collections::HashMap::new();
+        overrides.insert(
+            "nonexistent_subagent".to_string(),
+            "<provider-api-key>".to_string(),
+        );
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, Some(overrides))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("nonexistent_subagent"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_empty_subagent_api_key_returns_error() {
+        let supervisor = make_test_supervisor();
+
+        let mut def = make_test_definition("agent1");
+        def.subagents.push(AgentDefinition {
+            id: "sub1".to_string(),
+            name: "sub1".to_string(),
+            description: Some("A test subagent".to_string()),
+            system_prompt: "You are a sub agent.".to_string(),
+            provider: bridge_core::provider::ProviderConfig {
+                provider_type: bridge_core::provider::ProviderType::OpenAI,
+                model: "gpt-4o".to_string(),
+                api_key: "sub-key".to_string(),
+                base_url: Some("https://api.openai.com/v1".to_string()),
+            },
+            tools: vec![],
+            mcp_servers: vec![],
+            skills: vec![],
+            integrations: vec![],
+            config: bridge_core::agent::AgentConfig::default(),
+            subagents: vec![],
+            permissions: std::collections::HashMap::new(),
+            webhook_url: None,
+            webhook_secret: None,
+            version: None,
+            updated_at: None,
+        });
+
+        supervisor.load_agents(vec![def]).await.unwrap();
+
+        let mut overrides = std::collections::HashMap::new();
+        overrides.insert("sub1".to_string(), "".to_string());
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, Some(overrides))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn supervisor_create_conversation_with_subagent_api_key_override_succeeds() {
+        let supervisor = make_test_supervisor();
+
+        let mut def = make_test_definition("agent1");
+        def.subagents.push(AgentDefinition {
+            id: "sub1".to_string(),
+            name: "sub1".to_string(),
+            description: Some("A test subagent".to_string()),
+            system_prompt: "You are a sub agent.".to_string(),
+            provider: bridge_core::provider::ProviderConfig {
+                provider_type: bridge_core::provider::ProviderType::OpenAI,
+                model: "gpt-4o".to_string(),
+                api_key: "sub-key".to_string(),
+                base_url: Some("https://api.openai.com/v1".to_string()),
+            },
+            tools: vec![],
+            mcp_servers: vec![],
+            skills: vec![],
+            integrations: vec![],
+            config: bridge_core::agent::AgentConfig::default(),
+            subagents: vec![],
+            permissions: std::collections::HashMap::new(),
+            webhook_url: None,
+            webhook_secret: None,
+            version: None,
+            updated_at: None,
+        });
+
+        supervisor.load_agents(vec![def]).await.unwrap();
+
+        let mut overrides = std::collections::HashMap::new();
+        overrides.insert("sub1".to_string(), "sk-overridden-sub-key".to_string());
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, Some(overrides))
+            .await;
+
+        assert!(result.is_ok());
+        let (conv_id, _sse_rx) = result.unwrap();
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
     }
 
     // ── codedb injection ─────────────────────────────────────────────────────

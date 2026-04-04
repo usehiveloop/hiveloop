@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -61,6 +63,15 @@ pub struct CreateConversationRequest {
     /// Server names must match the agent's configured MCP server names.
     #[serde(default)]
     pub mcp_server_names: Option<Vec<String>>,
+
+    /// When provided, overrides the agent's LLM API key for this conversation only.
+    #[serde(default)]
+    pub api_key: Option<String>,
+
+    /// Per-subagent API key overrides. Key = subagent name, Value = API key.
+    /// Only named subagents are overridden; others keep their configured keys.
+    #[serde(default)]
+    pub subagent_api_keys: Option<HashMap<String, String>>,
 }
 
 /// Request body for creating a message.
@@ -91,7 +102,13 @@ pub async fn create_conversation(
     let request = body.map(|b| b.0).unwrap_or_default();
     let (conv_id, sse_rx) = state
         .supervisor
-        .create_conversation(&agent_id, request.tool_names, request.mcp_server_names)
+        .create_conversation(
+            &agent_id,
+            request.tool_names,
+            request.mcp_server_names,
+            request.api_key,
+            request.subagent_api_keys,
+        )
         .await?;
 
     // Store the SSE receiver for the stream handler to pick up
