@@ -82,6 +82,13 @@ pub enum SseEvent {
         /// The decision: "approve" or "deny".
         decision: String,
     },
+    /// A chunk of reasoning/thinking text from the model.
+    ReasoningDelta {
+        /// The reasoning text chunk
+        delta: String,
+        /// Provider-assigned message ID
+        message_id: String,
+    },
     /// The response stream is complete.
     Done,
     /// A background task (bash or subagent) completed.

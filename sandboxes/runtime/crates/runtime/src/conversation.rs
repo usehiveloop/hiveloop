@@ -468,6 +468,25 @@ pub async fn run_conversation(params: ConversationParams) {
                                     ));
                                 }
                             }
+                            BridgeStreamItem::ReasoningDelta(delta) => {
+                                // Emit SSE reasoning delta in real time
+                                let _ = sse_tx_for_text
+                                    .send(SseEvent::ReasoningDelta {
+                                        delta: delta.clone(),
+                                        message_id: msg_id_clone.clone(),
+                                    })
+                                    .await;
+                                // Emit webhook for reasoning text
+                                if let Some(ref wh) = webhook_ctx_for_text {
+                                    wh.dispatcher.dispatch(webhooks::events::reasoning_delta(
+                                        &agent_id_for_text,
+                                        &conversation_id_for_text,
+                                        json!({"delta": &delta}),
+                                        &wh.url,
+                                        &wh.secret,
+                                    ));
+                                }
+                            }
                             BridgeStreamItem::StreamFinished {
                                 response,
                                 usage,

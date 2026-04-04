@@ -303,6 +303,24 @@ pub fn background_task_completed(
     )
 }
 
+/// Create a webhook payload for a reasoning_delta event.
+pub fn reasoning_delta(
+    agent_id: &str,
+    conv_id: &str,
+    data: serde_json::Value,
+    webhook_url: &str,
+    webhook_secret: &str,
+) -> WebhookPayload {
+    WebhookPayload::new(
+        WebhookEventType::ReasoningDelta,
+        agent_id,
+        conv_id,
+        data,
+        webhook_url,
+        webhook_secret,
+    )
+}
+
 /// Create a webhook payload for a sub_agent_started event.
 pub fn sub_agent_started(
     agent_id: &str,

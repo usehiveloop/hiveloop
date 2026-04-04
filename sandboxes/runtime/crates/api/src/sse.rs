@@ -15,6 +15,7 @@ pub fn to_sse_event(event: &SseEvent) -> Result<Event, serde_json::Error> {
         SseEvent::Error { .. } => "error",
         SseEvent::Done => "done",
         SseEvent::BackgroundTaskCompleted { .. } => "background_task_completed",
+        SseEvent::ReasoningDelta { .. } => "reasoning_delta",
     };
 
     let data = serde_json::to_string(event)?;

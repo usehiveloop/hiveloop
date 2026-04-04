@@ -66,6 +66,8 @@ pub struct PromptResponse {
 pub enum BridgeStreamItem {
     /// Incremental text token from the assistant.
     TextDelta(String),
+    /// Incremental reasoning/thinking text from the model.
+    ReasoningDelta(String),
     /// The stream finished. Contains final text, aggregated token usage, and
     /// the enriched conversation history (if history was provided).
     StreamFinished {
@@ -139,8 +141,37 @@ macro_rules! dispatch_stream {
                         history: f.history().map(|h: &[Message]| h.to_vec()),
                     })
                 }
+                Ok(MultiTurnStreamItem::StreamAssistantItem(
+                    StreamedAssistantContent::ReasoningDelta { reasoning, .. },
+                )) => {
+                    if reasoning.is_empty() {
+                        None
+                    } else {
+                        Some(BridgeStreamItem::ReasoningDelta(reasoning))
+                    }
+                }
+                Ok(MultiTurnStreamItem::StreamAssistantItem(
+                    StreamedAssistantContent::Reasoning(reasoning),
+                )) => {
+                    let text = reasoning
+                        .content
+                        .iter()
+                        .filter_map(|c| match c {
+                            rig::completion::message::ReasoningContent::Text { text, .. } => {
+                                Some(text.as_str())
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("");
+                    if text.is_empty() {
+                        None
+                    } else {
+                        Some(BridgeStreamItem::ReasoningDelta(text))
+                    }
+                }
                 Err(e) => Some(BridgeStreamItem::StreamError(format!("{}", e))),
-                _ => None, // tool events, reasoning — handled by ToolCallEmitter hook
+                _ => None, // tool events — handled by ToolCallEmitter hook
             }
         });
 
