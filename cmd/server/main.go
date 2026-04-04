@@ -318,7 +318,7 @@ func run() error {
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
-		forgeCtrl := forge.NewForgeController(database, orchestrator, signingKey, cfg, eventBus, catalog.Global())
+		forgeCtrl := forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global())
 		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus)
 		goroutine.Go(func() { forgeCtrl.ResumeStaleRuns(ctx) })
 		slog.Info("forge controller ready")

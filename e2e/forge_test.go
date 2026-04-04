@@ -23,6 +23,7 @@ import (
 	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/streaming"
+	systemagents "github.com/llmvault/llmvault/internal/system-agents"
 )
 
 // ---------------------------------------------------------------------------
@@ -233,39 +234,33 @@ func jsonEscape(s string) string {
 }
 
 // ---------------------------------------------------------------------------
-// MockSandboxCreator — implements forge.SandboxCreator
+// MockForgeOrchestrator — implements forge.ForgeOrchestrator
 // ---------------------------------------------------------------------------
 
-type MockSandboxCreator struct {
-	db        *gorm.DB
+type MockForgeOrchestrator struct {
 	bridgeURL string
-	encKey    *crypto.SymmetricKey
 }
 
-func (m *MockSandboxCreator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID *uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
-	apiKey := "test-bridge-api-key"
-	encAPIKey, err := m.encKey.EncryptString(apiKey)
-	if err != nil {
-		return nil, fmt.Errorf("encrypting bridge API key: %w", err)
-	}
-
-	sb := model.Sandbox{
-		OrgID:                &org.ID,
-		IdentityID:           identityID,
-		SandboxType:          "dedicated",
-		ExternalID:           "mock-sandbox-" + forgeRunID.String()[:8],
-		BridgeURL:            m.bridgeURL,
-		EncryptedBridgeAPIKey: encAPIKey,
-		Status:               "running",
-	}
-	if err := m.db.Create(&sb).Error; err != nil {
-		return nil, fmt.Errorf("creating sandbox record: %w", err)
-	}
-	return &sb, nil
+func (m *MockForgeOrchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
+	return bridge.NewBridgeClient(m.bridgeURL, "test-api-key"), nil
 }
 
-func (m *MockSandboxCreator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
-	return bridge.NewBridgeClient(sb.BridgeURL, "test-api-key"), nil
+func (m *MockForgeOrchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	return sb, nil
+}
+
+// ---------------------------------------------------------------------------
+// MockForgePusher — implements forge.ForgePusher
+// ---------------------------------------------------------------------------
+
+type MockForgePusher struct{}
+
+func (m *MockForgePusher) PushAgent(ctx context.Context, agent *model.Agent) error {
+	return nil // system agents already have sandboxes assigned in test setup
+}
+
+func (m *MockForgePusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	return nil // no-op in tests, mock Bridge handles agent registration
 }
 
 // ---------------------------------------------------------------------------
@@ -384,12 +379,27 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 	// Start MockBridgeServer
 	mockBridge := NewMockBridgeServer()
 
-	// Create MockSandboxCreator
-	orchestrator := &MockSandboxCreator{
-		db:        db,
-		bridgeURL: mockBridge.URL(),
-		encKey:    encKey,
+	// Create a shared pool sandbox pointing to MockBridgeServer.
+	apiKey := "test-bridge-api-key"
+	encAPIKey, _ := encKey.EncryptString(apiKey)
+	poolSandbox := model.Sandbox{
+		SandboxType:          "shared",
+		ExternalID:           "mock-pool-sandbox-" + suffix,
+		BridgeURL:            mockBridge.URL(),
+		EncryptedBridgeAPIKey: encAPIKey,
+		Status:               "running",
 	}
+	if err := db.Create(&poolSandbox).Error; err != nil {
+		t.Fatalf("create pool sandbox: %v", err)
+	}
+
+	// Seed system agents and assign them to the pool sandbox.
+	systemagents.Seed(db)
+	db.Model(&model.Agent{}).Where("is_system = true").Update("sandbox_id", poolSandbox.ID)
+
+	// Create mock orchestrator and pusher
+	mockOrchestrator := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
+	mockPusher := &MockForgePusher{}
 
 	// EventBus
 	eventBus := streaming.NewEventBus(rc)
@@ -403,7 +413,7 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 	// ForgeController
 	cat := catalog.Global()
 	signingKey := []byte(testSigningKey)
-	controller := forge.NewForgeController(db, orchestrator, signingKey, cfg, eventBus, cat)
+	controller := forge.NewForgeController(db, mockOrchestrator, mockPusher, signingKey, cfg, eventBus, cat)
 
 	h := &forgeTestHarness{
 		t:          t,
@@ -613,11 +623,8 @@ func TestForge_HappyPath_ThresholdMet(t *testing.T) {
 	defer mockBridge.Close()
 
 	// Replace the controller's orchestrator to use the new mock bridge.
-	orchestrator := &MockSandboxCreator{
-		db:        h.db,
-		bridgeURL: mockBridge.URL(),
-		encKey:    h.encKey,
-	}
+	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
+	mockPush := &MockForgePusher{}
 
 	eventBus := streaming.NewEventBus(h.redis)
 	cfg := &config.Config{
@@ -625,7 +632,7 @@ func TestForge_HappyPath_ThresholdMet(t *testing.T) {
 		MCPBaseURL: "http://localhost:8081",
 	}
 	cat := catalog.Global()
-	controller := forge.NewForgeController(h.db, orchestrator, []byte(testSigningKey), cfg, eventBus, cat)
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, cat)
 
 	// Queue responses in the order the controller will consume them.
 	//
@@ -768,17 +775,14 @@ func TestForge_Convergence(t *testing.T) {
 	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal)
 	defer mockBridge.Close()
 
-	orchestrator := &MockSandboxCreator{
-		db:        h.db,
-		bridgeURL: mockBridge.URL(),
-		encKey:    h.encKey,
-	}
+	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
+	mockPush := &MockForgePusher{}
 	eventBus := streaming.NewEventBus(h.redis)
 	cfg := &config.Config{
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, orchestrator, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
 
 	// Queue same 60% scores for 3 iterations. Convergence should trigger after
 	// iteration 3 (iterations 2 and 3 have no improvement over iteration 1).
@@ -839,17 +843,14 @@ func TestForge_MaxIterations(t *testing.T) {
 	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal)
 	defer mockBridge.Close()
 
-	orchestrator := &MockSandboxCreator{
-		db:        h.db,
-		bridgeURL: mockBridge.URL(),
-		encKey:    h.encKey,
-	}
+	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
+	mockPush := &MockForgePusher{}
 	eventBus := streaming.NewEventBus(h.redis)
 	cfg := &config.Config{
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, orchestrator, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
 
 	// Iteration 1: scores improve but never reach 0.99
 	queueGlobal.Push(validArchitectJSON("System prompt v1"))
@@ -910,17 +911,14 @@ func TestForge_EvalDesigner_OnlyRunsOnce(t *testing.T) {
 	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal)
 	defer mockBridge.Close()
 
-	orchestrator := &MockSandboxCreator{
-		db:        h.db,
-		bridgeURL: mockBridge.URL(),
-		encKey:    h.encKey,
-	}
+	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
+	mockPush := &MockForgePusher{}
 	eventBus := streaming.NewEventBus(h.redis)
 	cfg := &config.Config{
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, orchestrator, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
 
 	// Iteration 1
 	queueGlobal.Push(validArchitectJSON("System prompt v1"))
