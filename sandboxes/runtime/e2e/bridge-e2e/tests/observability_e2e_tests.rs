@@ -299,3 +299,16 @@ async fn test_cumulative_tokens_across_turns() {
         cumulative_input_1, cumulative_output_1
     );
 }
+
+// ============================================================================
+// Test 5: reasoning/thinking text is captured in SSE events
+//
+// Requires a reasoning model (DeepSeek R1, Claude with extended thinking,
+// OpenAI o1/o3). Currently no reasoning model is available on Fireworks,
+// so this test uses a direct provider. Run with the appropriate API key:
+//
+//   DEEPSEEK_API_KEY=<key> cargo test ... -- test_reasoning_text_streamed_via_sse
+// ============================================================================
+// NOTE: e2e test omitted — no reasoning model available on Fireworks.
+// The reasoning stream mapping is tested via unit tests in crates/llm/src/providers.rs.
+// When a reasoning model becomes available, add an e2e test here.

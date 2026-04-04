@@ -226,4 +226,16 @@ mod tests {
         assert!(json.contains("test result: ok"));
         assert!(json.contains("\"is_error\":false"));
     }
+
+    #[test]
+    fn test_reasoning_delta_serialization() {
+        let event = SseEvent::ReasoningDelta {
+            delta: "Let me think about this...".to_string(),
+            message_id: "msg-1".to_string(),
+        };
+        let json = serde_json::to_string(&event).expect("serialize");
+        assert!(json.contains("\"type\":\"reasoning_delta\""));
+        assert!(json.contains("Let me think about this..."));
+        assert!(json.contains("msg-1"));
+    }
 }
