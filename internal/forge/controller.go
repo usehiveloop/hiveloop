@@ -16,6 +16,7 @@ import (
 	"github.com/llmvault/llmvault/internal/mcp/catalog"
 	"github.com/llmvault/llmvault/internal/model"
 	"github.com/llmvault/llmvault/internal/streaming"
+	systemagents "github.com/llmvault/llmvault/internal/system-agents"
 	"github.com/llmvault/llmvault/internal/token"
 )
 
@@ -54,18 +55,25 @@ type EvalScoreEntry struct {
 	Scores   []float64 `json:"scores"`
 }
 
-// SandboxCreator abstracts sandbox provisioning so tests can inject a mock.
-// The real *sandbox.Orchestrator satisfies this interface.
-type SandboxCreator interface {
-	CreateForgeSandbox(ctx context.Context, org *model.Org, identityID *uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error)
+// ForgeOrchestrator abstracts sandbox operations so tests can inject mocks.
+type ForgeOrchestrator interface {
 	GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridgepkg.BridgeClient, error)
+	WakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error)
+}
+
+// ForgePusher abstracts agent push operations so tests can inject mocks.
+type ForgePusher interface {
+	PushAgent(ctx context.Context, agent *model.Agent) error
+	PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
 }
 
 // ForgeController orchestrates forge runs — a persistent state machine
 // that manages the design→eval→judge iteration loop.
+// Uses system agents (seeded to DB) for architect, eval-designer, and judge roles.
 type ForgeController struct {
 	db           *gorm.DB
-	orchestrator SandboxCreator
+	orchestrator ForgeOrchestrator
+	pusher       ForgePusher
 	catalog      *catalog.Catalog
 	signingKey   []byte
 	cfg          *config.Config
@@ -80,7 +88,8 @@ type ForgeController struct {
 // NewForgeController creates a forge controller.
 func NewForgeController(
 	db *gorm.DB,
-	orchestrator SandboxCreator,
+	orchestrator ForgeOrchestrator,
+	pusher ForgePusher,
 	signingKey []byte,
 	cfg *config.Config,
 	eventBus *streaming.EventBus,
@@ -89,6 +98,7 @@ func NewForgeController(
 	return &ForgeController{
 		db:           db,
 		orchestrator: orchestrator,
+		pusher:       pusher,
 		catalog:      cat,
 		signingKey:   signingKey,
 		cfg:          cfg,
@@ -169,86 +179,91 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 
 	// Load the target agent's credential (for eval execution).
 	var targetCred model.Credential
-	if err := fc.db.Where("id = ?", run.Agent.CredentialID).First(&targetCred).Error; err != nil {
+	if run.Agent.CredentialID == nil {
+		fc.failRun(runID, "target agent has no credential")
+		return
+	}
+	if err := fc.db.Where("id = ?", *run.Agent.CredentialID).First(&targetCred).Error; err != nil {
 		fc.failRun(runID, fmt.Sprintf("loading target credential: %v", err))
 		return
 	}
 
-	// Phase: PROVISIONING
+	// Phase: PROVISIONING — load system agents and create conversations.
 	fc.updateRunStatus(&run, model.ForgeStatusProvisioning)
 
-	// Load org for sandbox creation.
-	var org model.Org
-	if err := fc.db.Where("id = ?", run.OrgID).First(&org).Error; err != nil {
-		fc.failRun(runID, fmt.Sprintf("loading org: %v", err))
-		return
-	}
+	targetProviderID := targetCred.ProviderID
+	providerGroup := systemagents.MapProviderToGroup(targetProviderID)
 
-	// Create forge sandbox.
-	sb, err := fc.orchestrator.CreateForgeSandbox(ctx, &org, run.Agent.IdentityID, run.ID)
+	// Load the 3 system agents from DB.
+	archAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-architect-%s", providerGroup))
 	if err != nil {
-		fc.failRun(runID, fmt.Sprintf("creating forge sandbox: %v", err))
+		fc.failRun(runID, fmt.Sprintf("loading architect system agent: %v", err))
 		return
 	}
-	run.SandboxID = &sb.ID
-	fc.db.Model(&run).Update("sandbox_id", sb.ID)
-
-	// Get Bridge client.
-	client, err := fc.orchestrator.GetBridgeClient(ctx, sb)
+	evalDesignerAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-eval-designer-%s", providerGroup))
 	if err != nil {
-		fc.failRun(runID, fmt.Sprintf("getting bridge client: %v", err))
+		fc.failRun(runID, fmt.Sprintf("loading eval designer system agent: %v", err))
+		return
+	}
+	judgeAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-judge-%s", providerGroup))
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("loading judge system agent: %v", err))
 		return
 	}
 
-	// Mint proxy tokens for forge agents.
+	// Ensure each system agent has a sandbox and is pushed to Bridge.
+	archClient, err := fc.ensureSystemAgentReady(ctx, archAgent)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("preparing architect agent: %v", err))
+		return
+	}
+	evalDesignerClient, err := fc.ensureSystemAgentReady(ctx, evalDesignerAgent)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("preparing eval designer agent: %v", err))
+		return
+	}
+	judgeClient, err := fc.ensureSystemAgentReady(ctx, judgeAgent)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("preparing judge agent: %v", err))
+		return
+	}
+
+	// Mint proxy tokens from user's credentials.
 	archToken, archJTI, err := fc.mintToken(run.OrgID, archCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting architect token: %v", err))
 		return
 	}
-	evalToken, evalJTI, err := fc.mintToken(run.OrgID, evalCred.ID)
+	_, evalJTI, err := fc.mintToken(run.OrgID, evalCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting eval designer token: %v", err))
 		return
 	}
-	judgeToken, judgeJTI, err := fc.mintToken(run.OrgID, judgeCred.ID)
+	_, judgeJTI, err := fc.mintToken(run.OrgID, judgeCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting judge token: %v", err))
 		return
 	}
+	// TODO: Pass tokens as per-conversation auth override when Bridge supports it.
+	_ = archToken
 
-	// Mint eval target token (for direct proxy calls).
+	// Mint eval target token (for direct proxy calls during eval execution).
 	evalTargetToken, evalTargetJTI, err := fc.mintToken(run.OrgID, targetCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting eval target token: %v", err))
 		return
 	}
 
-	// Store token JTIs and agent IDs for resume.
-	targetProviderID := targetCred.ProviderID
-	archAgentID := uuid.New().String()
-	evalAgentID := uuid.New().String()
-	judgeAgentID := uuid.New().String()
-
+	// Store token JTIs and system agent IDs.
 	fc.db.Model(&run).Updates(map[string]any{
 		"architect_token_jti":     archJTI,
 		"eval_designer_token_jti": evalJTI,
 		"judge_token_jti":         judgeJTI,
 		"eval_target_token_jti":   evalTargetJTI,
-		"architect_agent_id":      archAgentID,
-		"eval_designer_agent_id":  evalAgentID,
-		"judge_agent_id":          judgeAgentID,
+		"architect_agent_id":      archAgent.ID.String(),
+		"eval_designer_agent_id":  evalDesignerAgent.ID.String(),
+		"judge_agent_id":          judgeAgent.ID.String(),
 	})
-
-	// Build and push forge agent definitions.
-	if err := fc.pushForgeAgents(ctx, client, targetProviderID, &run,
-		archAgentID, evalAgentID, judgeAgentID,
-		archToken, evalToken, judgeToken,
-		archCred, evalCred, judgeCred,
-	); err != nil {
-		fc.failRun(runID, fmt.Sprintf("pushing forge agents: %v", err))
-		return
-	}
 
 	now := time.Now()
 	fc.db.Model(&run).Updates(map[string]any{
@@ -258,11 +273,13 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	run.Status = model.ForgeStatusRunning
 	run.StartedAt = &now
 	fc.events.emit(ctx, runID, EventProvisioned, map[string]any{
-		"sandbox_id": sb.ID,
+		"architect_agent":      archAgent.Name,
+		"eval_designer_agent":  evalDesignerAgent.Name,
+		"judge_agent":          judgeAgent.Name,
 	})
 
 	// Create architect conversation (reused across iterations).
-	archConv, err := client.CreateConversation(ctx, archAgentID)
+	archConv, err := archClient.CreateConversation(ctx, archAgent.ID.String())
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating architect conversation: %v", err))
 		return
@@ -285,8 +302,10 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 			"iteration": i,
 		})
 
-		iter, err := fc.runIteration(ctx, &run, i, client,
-			evalAgentID, judgeAgentID,
+		iter, err := fc.runIteration(ctx, &run, i,
+			archAgent, archClient,
+			evalDesignerAgent, evalDesignerClient,
+			judgeAgent, judgeClient,
 			targetProviderID, evalTargetToken,
 		)
 		if err != nil {
@@ -356,10 +375,12 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 // runIteration executes a single design→eval→judge cycle.
 func (fc *ForgeController) runIteration(
 	ctx context.Context, run *model.ForgeRun, iteration int,
-	client *bridgepkg.BridgeClient,
-	evalAgentID, judgeAgentID string,
+	archAgent *model.Agent, archClient *bridgepkg.BridgeClient,
+	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient,
+	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient,
 	targetProviderID, evalTargetToken string,
 ) (*model.ForgeIteration, error) {
+	_ = archAgent // architect uses persistent conversation from run.ArchitectConversationID
 	log := slog.With("forge_run_id", run.ID, "iteration", iteration)
 
 	// Create iteration record.
@@ -376,7 +397,7 @@ func (fc *ForgeController) runIteration(
 	fc.events.emit(ctx, run.ID, EventArchitectStarted, map[string]any{"iteration": iteration})
 
 	archMessage := fc.buildArchitectMessage(run, iteration)
-	archResponse, err := fc.reader.ReadFullResponse(ctx, client, run.ArchitectConversationID, archMessage)
+	archResponse, err := fc.reader.ReadFullResponse(ctx, archClient, run.ArchitectConversationID, archMessage)
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("architect response: %w", err)
@@ -386,7 +407,7 @@ func (fc *ForgeController) runIteration(
 	if err != nil {
 		log.Warn("architect returned invalid JSON, retrying", "error", err)
 		// Retry with corrective message.
-		archResponse, err = fc.reader.ReadFullResponse(ctx, client, run.ArchitectConversationID,
+		archResponse, err = fc.reader.ReadFullResponse(ctx, archClient, run.ArchitectConversationID,
 			"Your previous response was not valid JSON. Please respond with valid JSON matching the required schema.")
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
@@ -426,14 +447,14 @@ func (fc *ForgeController) runIteration(
 	if iteration == 1 {
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
-		evalConv, err := client.CreateConversation(ctx, evalAgentID)
+		evalConv, err := evalDesignerClient.CreateConversation(ctx, evalDesignerAgent.ID.String())
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("creating eval designer conversation: %w", err)
 		}
 
 		evalMessage := fc.buildEvalDesignerMessage(archOutput, &run.Agent)
-		evalResponse, err := fc.reader.ReadFullResponse(ctx, client, evalConv.ConversationId, evalMessage)
+		evalResponse, err := fc.reader.ReadFullResponse(ctx, evalDesignerClient, evalConv.ConversationId, evalMessage)
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("eval designer response: %w", err)
@@ -442,7 +463,7 @@ func (fc *ForgeController) runIteration(
 		evalOutput, err := ParseEvalDesignerOutput(evalResponse)
 		if err != nil {
 			log.Warn("eval designer returned invalid JSON, retrying", "error", err)
-			evalResponse, err = fc.reader.ReadFullResponse(ctx, client, evalConv.ConversationId,
+			evalResponse, err = fc.reader.ReadFullResponse(ctx, evalDesignerClient, evalConv.ConversationId,
 				"Your previous response was not valid JSON. Please respond with valid JSON matching the required schema.")
 			if err != nil {
 				fc.updateIterPhase(&iter, model.ForgePhaseFailed)
@@ -508,7 +529,7 @@ func (fc *ForgeController) runIteration(
 		})
 
 		// End eval designer conversation (no longer needed).
-		_ = client.EndConversation(ctx, evalConv.ConversationId)
+		_ = evalDesignerClient.EndConversation(ctx, evalConv.ConversationId)
 	} else {
 		// Iterations 2+: load existing ForgeEvalCase records from the run.
 		fc.db.Where("forge_run_id = ?", run.ID).Find(&evalCases)
@@ -517,9 +538,7 @@ func (fc *ForgeController) runIteration(
 		iter.Phase = model.ForgePhaseEvaluating
 	}
 
-	// PHASE: EVALUATING — use Bridge with forge MCP server for tool mocking.
-	// Push a temporary eval-target agent to Bridge with the architect's system prompt
-	// and the forge MCP server for tool call mocking.
+	// PHASE: EVALUATING — push eval-target agent to a pool sandbox with MCP mocks.
 	evalTargetAgentID := uuid.New().String()
 	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
 	mcpURL := fmt.Sprintf("%s/forge/%s", fc.cfg.MCPBaseURL, run.ID.String())
@@ -558,12 +577,15 @@ func (fc *ForgeController) runIteration(
 		McpServers: &mcpServers,
 	}
 
-	if err := client.UpsertAgent(ctx, evalTargetAgentID, evalTargetDef); err != nil {
+	// Get a pool sandbox for the eval-target and push the agent.
+	evalTargetSb, evalTargetClient, err := fc.pushEvalTargetToPool(ctx, evalTargetAgentID, evalTargetDef)
+	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
-		return nil, fmt.Errorf("pushing eval target agent: %w", err)
+		return nil, fmt.Errorf("pushing eval target to pool: %w", err)
 	}
+	_ = evalTargetSb // used for cleanup
 	defer func() {
-		_ = client.RemoveAgentDefinition(ctx, evalTargetAgentID)
+		_ = evalTargetClient.RemoveAgentDefinition(ctx, evalTargetAgentID)
 	}()
 
 	// Create ForgeEvalResult records for each eval case in this iteration.
@@ -620,7 +642,7 @@ func (fc *ForgeController) runIteration(
 			}
 
 			// Create conversation, send test prompt, read response.
-			evalConvResp, err := client.CreateConversation(ctx, evalTargetAgentID)
+			evalConvResp, err := evalTargetClient.CreateConversation(ctx, evalTargetAgentID)
 			if err != nil {
 				log.Warn("eval conversation creation failed",
 					"eval_name", evalCase.TestName, "sample", s, "error", err)
@@ -632,8 +654,8 @@ func (fc *ForgeController) runIteration(
 				continue
 			}
 
-			bridgeResp, err := fc.reader.ReadFullResponseWithTools(ctx, client, evalConvResp.ConversationId, evalCase.TestPrompt)
-			_ = client.EndConversation(ctx, evalConvResp.ConversationId)
+			bridgeResp, err := fc.reader.ReadFullResponseWithTools(ctx, evalTargetClient, evalConvResp.ConversationId, evalCase.TestPrompt)
+			_ = evalTargetClient.EndConversation(ctx, evalConvResp.ConversationId)
 
 			if err != nil {
 				log.Warn("eval execution failed",
@@ -697,7 +719,7 @@ func (fc *ForgeController) runIteration(
 	fc.db.Where("forge_iteration_id = ? AND status = ?", iter.ID, model.ForgeEvalJudging).Find(&judgingResults)
 
 	// Create a judge conversation for this iteration.
-	judgeConv, err := client.CreateConversation(ctx, judgeAgentID)
+	judgeConv, err := judgeClient.CreateConversation(ctx, judgeAgent.ID.String())
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("creating judge conversation: %w", err)
@@ -719,7 +741,7 @@ func (fc *ForgeController) runIteration(
 		})
 
 		judgeMessage := fc.buildJudgeMessage(&evalCase, result)
-		judgeResponse, err := fc.reader.ReadFullResponse(ctx, client, judgeConv.ConversationId, judgeMessage)
+		judgeResponse, err := fc.reader.ReadFullResponse(ctx, judgeClient, judgeConv.ConversationId, judgeMessage)
 		if err != nil {
 			log.Warn("judge failed", "eval_name", evalCase.TestName, "error", err)
 			fc.db.Model(result).Update("status", model.ForgeEvalFailed)
@@ -780,7 +802,7 @@ func (fc *ForgeController) runIteration(
 		})
 	}
 
-	_ = client.EndConversation(ctx, judgeConv.ConversationId)
+	_ = judgeClient.EndConversation(ctx, judgeConv.ConversationId)
 
 	// Compute tiered scoring.
 	var completedResults []model.ForgeEvalResult
@@ -1239,67 +1261,77 @@ Score this response against each rubric criterion.`,
 		sampleStr, detStr, rubricStr)
 }
 
-// pushForgeAgents builds and pushes 3 ephemeral agent definitions to Bridge.
-func (fc *ForgeController) pushForgeAgents(
-	ctx context.Context, client *bridgepkg.BridgeClient,
-	targetProviderID string, run *model.ForgeRun,
-	archAgentID, evalAgentID, judgeAgentID string,
-	archToken, evalToken, judgeToken string,
-	archCred, evalCred, judgeCred model.Credential,
-) error {
-	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
+// loadSystemAgent loads a system agent from the DB by name.
+func (fc *ForgeController) loadSystemAgent(name string) (*model.Agent, error) {
+	var agent model.Agent
+	if err := fc.db.Where("name = ? AND is_system = true AND status = 'active'", name).First(&agent).Error; err != nil {
+		return nil, fmt.Errorf("system agent %q not found: %w", name, err)
+	}
+	return &agent, nil
+}
 
-	// Helper to build an agent definition for a forge agent.
-	buildDef := func(agentID, name, systemPrompt, model, proxyToken string, cred model.Credential, schema map[string]any) bridgepkg.AgentDefinition {
-		providerType := bridgepkg.Custom
-		if pt, ok := providerTypeMap[cred.ProviderID]; ok {
-			providerType = pt
+// ensureSystemAgentReady ensures a system agent has a pool sandbox and is pushed to Bridge.
+// Returns the Bridge client for the system agent's sandbox.
+func (fc *ForgeController) ensureSystemAgentReady(ctx context.Context, agent *model.Agent) (*bridgepkg.BridgeClient, error) {
+	// Assign pool sandbox if not already assigned.
+	if agent.SandboxID == nil {
+		if err := fc.pusher.PushAgent(ctx, agent); err != nil {
+			return nil, fmt.Errorf("assigning sandbox for %s: %w", agent.Name, err)
 		}
-		def := bridgepkg.AgentDefinition{
-			Id:           agentID,
-			Name:         name,
-			SystemPrompt: systemPrompt,
-			Provider: bridgepkg.ProviderConfig{
-				ProviderType: providerType,
-				Model:        model,
-				ApiKey:       proxyToken,
-				BaseUrl:      &proxyBaseURL,
-			},
+		// Reload to get updated SandboxID.
+		fc.db.Where("id = ?", agent.ID).First(agent)
+	}
+
+	if agent.SandboxID == nil {
+		return nil, fmt.Errorf("system agent %s has no sandbox after assignment", agent.Name)
+	}
+
+	// Load sandbox and wake if stopped.
+	var sb model.Sandbox
+	if err := fc.db.Where("id = ?", *agent.SandboxID).First(&sb).Error; err != nil {
+		return nil, fmt.Errorf("loading sandbox for %s: %w", agent.Name, err)
+	}
+	if sb.Status == "stopped" {
+		woken, err := fc.orchestrator.WakeSandbox(ctx, &sb)
+		if err != nil {
+			return nil, fmt.Errorf("waking sandbox for %s: %w", agent.Name, err)
 		}
-		if schema != nil {
-			cfg := &bridgepkg.AgentConfig{
-				JsonSchema: schema,
-			}
-			def.Config = cfg
-		}
-		return def
+		sb = *woken
 	}
 
-	// Load system prompts.
-	archPrompt, err := LoadSystemPrompt(RoleArchitect, targetProviderID)
-	if err != nil {
-		return fmt.Errorf("loading architect prompt: %w", err)
-	}
-	evalPrompt, err := LoadSystemPrompt(RoleEvalDesigner, targetProviderID)
-	if err != nil {
-		return fmt.Errorf("loading eval designer prompt: %w", err)
-	}
-	judgePrompt, err := LoadSystemPrompt(RoleJudge, "")
-	if err != nil {
-		return fmt.Errorf("loading judge prompt: %w", err)
+	// Ensure agent is pushed to Bridge (idempotent).
+	if err := fc.pusher.PushAgentToSandbox(ctx, agent, &sb); err != nil {
+		return nil, fmt.Errorf("pushing %s to bridge: %w", agent.Name, err)
 	}
 
-	// Build and push all 3 agent definitions.
-	agents := []bridgepkg.AgentDefinition{
-		buildDef(archAgentID, "forge-architect", archPrompt, run.ArchitectModel, archToken, archCred, ArchitectSchema()),
-		buildDef(evalAgentID, "forge-eval-designer", evalPrompt, run.EvalDesignerModel, evalToken, evalCred, EvalDesignerSchema()),
-		buildDef(judgeAgentID, "forge-judge", judgePrompt, run.JudgeModel, judgeToken, judgeCred, JudgeSchema()),
+	// Get Bridge client.
+	client, err := fc.orchestrator.GetBridgeClient(ctx, &sb)
+	if err != nil {
+		return nil, fmt.Errorf("getting bridge client for %s: %w", agent.Name, err)
+	}
+	return client, nil
+}
+
+// pushEvalTargetToPool pushes a temporary eval-target agent to a pool sandbox.
+// Returns the sandbox and Bridge client for eval execution.
+func (fc *ForgeController) pushEvalTargetToPool(ctx context.Context, agentID string, def bridgepkg.AgentDefinition) (*model.Sandbox, *bridgepkg.BridgeClient, error) {
+	// Find any running pool sandbox.
+	var sb model.Sandbox
+	if err := fc.db.Where("sandbox_type = 'shared' AND status = 'running'").
+		Order("memory_used_bytes ASC").First(&sb).Error; err != nil {
+		return nil, nil, fmt.Errorf("no pool sandbox available: %w", err)
 	}
 
-	if err := client.PushAgents(ctx, agents); err != nil {
-		return fmt.Errorf("pushing agents to bridge: %w", err)
+	client, err := fc.orchestrator.GetBridgeClient(ctx, &sb)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting bridge client: %w", err)
 	}
-	return nil
+
+	if err := client.UpsertAgent(ctx, agentID, def); err != nil {
+		return nil, nil, fmt.Errorf("pushing eval target to bridge: %w", err)
+	}
+
+	return &sb, client, nil
 }
 
 // mintToken mints a proxy token for a forge agent.
