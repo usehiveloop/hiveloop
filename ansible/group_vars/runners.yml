@@ -2,6 +2,14 @@
 # Runner variables
 runner_token: "{{ lookup('env', 'DAYTONA_RUNNER_API_KEY') }}"
 
+# Runner prepare-role variables
+daytona_user: "daytona"
+daytona_runner_dir: "/opt/daytona-runner"
+daytona_snapshots_dir: "/var/lib/daytona/snapshots"
+daytona_volumes_dir: "/var/lib/daytona/volumes"
+daytona_runner_image: "daytonaio/daytona-runner:{{ daytona_version }}"
+daytona_runner_api_port: "{{ runner_api_port }}"
+
 # R2 credentials (runners access R2 directly)
 r2_endpoint: "{{ lookup('env', 'DAYTONA_R2_ENDPOINT') }}"
 r2_access_key: "{{ lookup('env', 'DAYTONA_R2_ACCESS_KEY') }}"

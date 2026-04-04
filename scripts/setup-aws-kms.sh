@@ -69,7 +69,7 @@ get_aws_region() {
 
 create_kms_key() {
     local env=$1
-    local key_alias="alias/${PROJECT_NAME}-${env}-master"
+    local key_alias="alias/${PROJECT_NAME}"
     local key_description="ZiraLoop master key for credential encryption (${env} environment)"
 
     log_info "Creating KMS key for ${env} environment..."
@@ -254,7 +254,7 @@ AWS_REGION=$(get_aws_region)
 
 # ZiraLoop Configuration
 KMS_TYPE=awskms
-KMS_KEY=alias/${PROJECT_NAME}-${env}-master
+KMS_KEY=alias/${PROJECT_NAME}
 EOF
 
     chmod 600 "$output_file"
@@ -281,13 +281,13 @@ print_summary() {
     echo ""
     echo "KMS Key ID:     ${key_id}"
     echo "KMS Key ARN:    ${key_arn}"
-    echo "KMS Alias:      alias/${PROJECT_NAME}-${env}-master"
+    echo "KMS Alias:      alias/${PROJECT_NAME}"
     echo "AWS Region:     ${region}"
     echo "IAM User:       ${username}"
     echo ""
     echo "Environment Variables:"
     echo "  KMS_TYPE=awskms"
-    echo "  KMS_KEY=alias/${PROJECT_NAME}-${env}-master"
+    echo "  KMS_KEY=alias/${PROJECT_NAME}"
     echo "  AWS_REGION=${region}"
     echo ""
     echo "Credentials file: aws-credentials-${env}.env"
