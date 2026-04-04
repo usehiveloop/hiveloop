@@ -37,6 +37,10 @@ pub enum WebhookEventType {
     ConversationCompacted,
     /// A background task (bash or subagent) completed.
     BackgroundTaskCompleted,
+    /// A subagent was spawned (foreground or background)
+    SubAgentStarted,
+    /// A subagent completed execution
+    SubAgentCompleted,
 }
 
 /// Payload for a webhook delivery.

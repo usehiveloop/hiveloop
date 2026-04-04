@@ -422,7 +422,8 @@ impl AgentSupervisor {
             )
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())
-            .with_task_budget(task_budget.clone()),
+            .with_task_budget(task_budget.clone())
+            .with_webhook_ctx(agent_id.to_string(), self.webhook_ctx.clone()),
         );
 
         let agent_context = AgentContext {
@@ -928,7 +929,8 @@ impl AgentSupervisor {
             )
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())
-            .with_task_budget(task_budget.clone()),
+            .with_task_budget(task_budget.clone())
+            .with_webhook_ctx(agent_id.to_string(), self.webhook_ctx.clone()),
         );
 
         let agent_context = AgentContext {

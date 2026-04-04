@@ -165,6 +165,10 @@ pub struct ConversationSubAgentRunner {
     task_registry: Option<Arc<TaskRegistry>>,
     task_budget: Arc<TaskBudget>,
     metrics: Arc<bridge_core::AgentMetrics>,
+    /// Agent ID for webhook payloads.
+    agent_id: String,
+    /// Webhook context for emitting subagent trace events.
+    webhook_ctx: Option<webhooks::WebhookContext>,
 }
 
 impl ConversationSubAgentRunner {
@@ -193,7 +197,20 @@ impl ConversationSubAgentRunner {
             task_registry: None,
             task_budget: Arc::new(TaskBudget::new(50)),
             metrics,
+            agent_id: String::new(),
+            webhook_ctx: None,
         }
+    }
+
+    /// Set the agent ID and webhook context for subagent trace events.
+    pub fn with_webhook_ctx(
+        mut self,
+        agent_id: String,
+        ctx: Option<webhooks::WebhookContext>,
+    ) -> Self {
+        self.agent_id = agent_id;
+        self.webhook_ctx = ctx;
+        self
     }
 
     /// Set the compaction configuration for subagent sessions.
@@ -239,12 +256,30 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         prompt: &str,
         task_id: Option<&str>,
     ) -> Result<AgentTaskResult, String> {
+        let start = std::time::Instant::now();
+
         debug!(
             subagent = subagent,
             parent_conversation_id = %self.conversation_id,
             mode = "foreground",
             "gen_ai.agent.execute"
         );
+
+        // Emit SubAgentStarted webhook
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::sub_agent_started(
+                &self.agent_id,
+                &self.conversation_id,
+                serde_json::json!({
+                    "subagent_name": subagent,
+                    "mode": "foreground",
+                    "parent_conversation_id": &self.conversation_id,
+                    "depth": self.depth,
+                }),
+                &wh.url,
+                &wh.secret,
+            ));
+        }
 
         let entry = self
             .subagents
@@ -305,6 +340,28 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         // Save history regardless of outcome (for resumption)
         self.session_store.save(task_id.clone(), history);
 
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let is_error = result.is_err();
+
+        // Emit SubAgentCompleted webhook
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher
+                .dispatch(webhooks::events::sub_agent_completed(
+                    &self.agent_id,
+                    &self.conversation_id,
+                    serde_json::json!({
+                        "subagent_name": subagent,
+                        "mode": "foreground",
+                        "task_id": &task_id,
+                        "parent_conversation_id": &self.conversation_id,
+                        "duration_ms": duration_ms,
+                        "is_error": is_error,
+                    }),
+                    &wh.url,
+                    &wh.secret,
+                ));
+        }
+
         match result {
             Ok(output) => Ok(AgentTaskResult { task_id, output }),
             Err(e) => Err(e),
@@ -323,6 +380,22 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             mode = "background",
             "gen_ai.agent.execute"
         );
+
+        // Emit SubAgentStarted webhook
+        if let Some(ref wh) = self.webhook_ctx {
+            wh.dispatcher.dispatch(webhooks::events::sub_agent_started(
+                &self.agent_id,
+                &self.conversation_id,
+                serde_json::json!({
+                    "subagent_name": subagent,
+                    "mode": "background",
+                    "parent_conversation_id": &self.conversation_id,
+                    "depth": self.depth,
+                }),
+                &wh.url,
+                &wh.secret,
+            ));
+        }
 
         let entry = self
             .subagents
@@ -357,9 +430,14 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let task_registry = self.task_registry.clone();
         let task_budget = self.task_budget.clone();
         let metrics_clone = self.metrics.clone();
+        let webhook_ctx_clone = self.webhook_ctx.clone();
+        let agent_id_clone = self.agent_id.clone();
+        let subagent_name = subagent.to_string();
 
         tokio::spawn(async move {
+            let bg_start = std::time::Instant::now();
             let emitter_conv_id = conversation_id.clone();
+            let webhook_conv_id = conversation_id.clone();
             // Build nested AgentContext for the background task
             let nested_runner = Arc::new(ConversationSubAgentRunner::new(
                 subagents,
@@ -445,6 +523,25 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             // Mark task as complete in registry (for join tool)
             if let Some(registry) = task_registry {
                 registry.complete(task_id_clone.clone(), result.clone());
+            }
+
+            // Emit SubAgentCompleted webhook
+            if let Some(ref wh) = webhook_ctx_clone {
+                let duration_ms = bg_start.elapsed().as_millis() as u64;
+                wh.dispatcher
+                    .dispatch(webhooks::events::sub_agent_completed(
+                        &agent_id_clone,
+                        &webhook_conv_id,
+                        serde_json::json!({
+                            "subagent_name": &subagent_name,
+                            "mode": "background",
+                            "task_id": &task_id_clone,
+                            "duration_ms": duration_ms,
+                            "is_error": result.is_err(),
+                        }),
+                        &wh.url,
+                        &wh.secret,
+                    ));
             }
 
             // Send notification
