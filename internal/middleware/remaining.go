@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/llmvault/llmvault/internal/counter"
+	"github.com/ziraloop/ziraloop/internal/counter"
 )
 
 // RemainingCheck returns middleware that enforces request caps on both the token

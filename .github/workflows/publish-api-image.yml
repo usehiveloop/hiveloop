@@ -30,7 +30,7 @@ jobs:
       - name: determine tags
         id: tags
         run: |
-          IMAGE=ghcr.io/llmvault/llmvault
+          IMAGE=ghcr.io/ziraloop/ziraloop
           COMMIT=${GITHUB_SHA::7}
 
           if [[ "${{ github.event_name }}" == "release" ]]; then

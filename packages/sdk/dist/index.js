@@ -570,7 +570,7 @@ var WebhooksResource = class extends BaseResource {
 };
 
 // src/client.ts
-var LLMVault = class {
+var ZiraLoop = class {
   agents;
   apiKeys;
   audit;
@@ -593,7 +593,7 @@ var LLMVault = class {
   usage;
   webhooks;
   constructor(config) {
-    const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
+    const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
     const client = createClient({
       baseUrl,
       headers: {
@@ -624,6 +624,6 @@ var LLMVault = class {
   }
 };
 export {
-  LLMVault
+  ZiraLoop
 };
 //# sourceMappingURL=index.js.map

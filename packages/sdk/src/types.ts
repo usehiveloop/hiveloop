@@ -1,6 +1,6 @@
 import type { components } from "./generated/schema.js";
 
-export interface LLMVaultConfig {
+export interface ZiraLoopConfig {
   apiKey: string;
   baseUrl?: string;
 }
@@ -19,7 +19,7 @@ export type MintTokenRequest = Schemas["mintTokenRequest"];
 export type MintTokenResponse = Schemas["mintTokenResponse"];
 export type TokenListItem = Schemas["tokenListItem"];
 export type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
-export type TokenScope = Schemas["github_com_llmvault_llmvault_internal_mcp.TokenScope"];
+export type TokenScope = Schemas["github_com_ziraloop_ziraloop_internal_mcp.TokenScope"];
 
 // Available scopes for token minting (used by scope selection UI)
 export interface AvailableScopeAction {
@@ -61,7 +61,7 @@ export type ConnectSettingsResponse = Schemas["connectSettingsResponse"];
 export type IntegrationResponse = Schemas["integrationResponse"];
 export type CreateIntegrationRequest = Schemas["createIntegrationRequest"];
 export type UpdateIntegrationRequest = Schemas["updateIntegrationRequest"];
-export type NangoCredentials = Schemas["github_com_llmvault_llmvault_internal_nango.Credentials"];
+export type NangoCredentials = Schemas["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
 
 export type IntegConnResponse = Schemas["integConnResponse"];
 export type IntegConnCreateRequest = Schemas["integConnCreateRequest"];

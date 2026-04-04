@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { LLMVault } from "../src/index.js";
+import { ZiraLoop } from "../src/index.js";
 
-describe("LLMVault client", () => {
-  it("defaults baseUrl to https://api.llmvault.dev", () => {
-    const vault = new LLMVault({ apiKey: "llmv_sk_test" });
+describe("ZiraLoop client", () => {
+  it("defaults baseUrl to https://api.ziraloop.com", () => {
+    const vault = new ZiraLoop({ apiKey: "zira_sk_test" });
     // The client is created — we just verify it has all resource namespaces
     expect(vault.apiKeys).toBeDefined();
     expect(vault.credentials).toBeDefined();
@@ -21,9 +21,9 @@ describe("LLMVault client", () => {
   });
 
   it("accepts a custom baseUrl", () => {
-    const vault = new LLMVault({
-      apiKey: "llmv_sk_test",
-      baseUrl: "https://api.dev.llmvault.dev",
+    const vault = new ZiraLoop({
+      apiKey: "zira_sk_test",
+      baseUrl: "https://api.dev.ziraloop.com",
     });
     expect(vault.apiKeys).toBeDefined();
   });

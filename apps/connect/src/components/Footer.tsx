@@ -1,6 +1,6 @@
 /** Exact replica of Paper "Footer" node — appears on every screen.
- *  Light: logo=#8B5CF6, "Secured by"=#A1A1AA, "llmvault"=#09090B
- *  Dark:  logo=#A78BFA, "Secured by"=#71717A, "llmvault"=#F5F5F4
+ *  Light: logo=#8B5CF6, "Secured by"=#A1A1AA, "ziraloop"=#09090B
+ *  Dark:  logo=#A78BFA, "Secured by"=#71717A, "ziraloop"=#F5F5F4
  */
 export function Footer() {
   return (
@@ -16,7 +16,7 @@ export function Footer() {
             <path d="M42 48L42 30L66 30L66 48" stroke="var(--color-cw-logo)" strokeWidth="7" strokeLinecap="square" fill="none" />
           </svg>
           <div className="text-xs tracking-tight leading-3.5 text-cw-heading connect-logo-text font-semibold">
-            llmvault
+            ziraloop
           </div>
         </div>
       </div>

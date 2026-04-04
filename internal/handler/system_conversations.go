@@ -10,13 +10,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/sandbox"
-	"github.com/llmvault/llmvault/internal/streaming"
-	systemagents "github.com/llmvault/llmvault/internal/system-agents"
-	"github.com/llmvault/llmvault/internal/token"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/streaming"
+	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 // SystemConversationHandler handles conversation creation with system agents.

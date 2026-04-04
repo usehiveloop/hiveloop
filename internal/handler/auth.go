@@ -15,11 +15,11 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/email"
-	"github.com/llmvault/llmvault/internal/goroutine"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/email"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 type loginAttempt struct {

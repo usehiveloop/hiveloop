@@ -1,4 +1,4 @@
-import { LLMVaultConnect } from '../src/index'
+import { ZiraLoopConnect } from '../src/index'
 
 const SESSION_TOKEN = import.meta.env.VITE_SESSION_TOKEN as string
 
@@ -16,8 +16,8 @@ if (!SESSION_TOKEN) {
   appendLog('ERROR: No session token. Set VITE_SESSION_TOKEN env var.')
 }
 
-const connect = new LLMVaultConnect({
-  baseURL: 'https://connect.dev.llmvault.dev',
+const connect = new ZiraLoopConnect({
+  baseURL: 'https://connect.dev.ziraloop.com',
 })
 
 document.getElementById('open')!.addEventListener('click', () => {

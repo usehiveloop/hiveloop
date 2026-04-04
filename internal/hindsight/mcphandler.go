@@ -10,9 +10,9 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/mcpserver"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/mcpserver"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // MemoryMCPHandler serves MCP memory tools (recall, retain, reflect) for agents.

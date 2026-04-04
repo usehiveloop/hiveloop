@@ -8,9 +8,9 @@
 #   - Phase 1 completed
 #   - .env sourced with all secrets
 #   - DNS records pointing to VPS (89.167.18.204):
-#     - api.daytona.llmvault.dev
-#     - dex.daytona.llmvault.dev
-#     - *.preview.llmvault.dev
+#     - api.daytona.ziraloop.com
+#     - dex.daytona.ziraloop.com
+#     - *.preview.ziraloop.com
 
 - name: "Phase 2: Deploy Control Plane"
   hosts: control

@@ -1,10 +1,10 @@
-import { LLMVaultConnect } from '../connect'
+import { ZiraLoopConnect } from '../connect'
 import { ConnectError } from '../errors'
 
-const DEFAULT_ORIGIN = 'https://connect.llmvault.dev'
+const DEFAULT_ORIGIN = 'https://connect.ziraloop.com'
 
 function getIframe(): HTMLIFrameElement {
-  return document.getElementById('llmvault-connect-iframe') as HTMLIFrameElement
+  return document.getElementById('ziraloop-connect-iframe') as HTMLIFrameElement
 }
 
 function dispatchMessage(data: unknown, origin: string = DEFAULT_ORIGIN) {
@@ -13,8 +13,8 @@ function dispatchMessage(data: unknown, origin: string = DEFAULT_ORIGIN) {
   )
 }
 
-describe('LLMVaultConnect', () => {
-  let connect: LLMVaultConnect
+describe('ZiraLoopConnect', () => {
+  let connect: ZiraLoopConnect
 
   afterEach(() => {
     const iframe = getIframe()
@@ -25,16 +25,16 @@ describe('LLMVaultConnect', () => {
   })
 
   describe('constructor', () => {
-    it('default baseURL is https://connect.llmvault.dev', () => {
-      connect = new LLMVaultConnect()
+    it('default baseURL is https://connect.ziraloop.com', () => {
+      connect = new ZiraLoopConnect()
       connect.open({ sessionToken: 'tok_test', onClose: () => {} })
       const iframe = getIframe()
-      expect(iframe.src).toContain('https://connect.llmvault.dev')
+      expect(iframe.src).toContain('https://connect.ziraloop.com')
       connect.close()
     })
 
     it('custom baseURL stores correctly', () => {
-      connect = new LLMVaultConnect({ baseURL: 'https://custom.example.com' })
+      connect = new ZiraLoopConnect({ baseURL: 'https://custom.example.com' })
       connect.open({ sessionToken: 'tok_test', onClose: () => {} })
       const iframe = getIframe()
       expect(iframe.src).toContain('https://custom.example.com')
@@ -42,7 +42,7 @@ describe('LLMVaultConnect', () => {
     })
 
     it('default theme is system', () => {
-      connect = new LLMVaultConnect()
+      connect = new ZiraLoopConnect()
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()
       const url = new URL(iframe.src)
@@ -51,7 +51,7 @@ describe('LLMVaultConnect', () => {
     })
 
     it('custom theme stores correctly', () => {
-      connect = new LLMVaultConnect({ theme: 'dark' })
+      connect = new ZiraLoopConnect({ theme: 'dark' })
       connect.open({ sessionToken: 'tok_test' })
       const iframe = getIframe()
       const url = new URL(iframe.src)
@@ -62,7 +62,7 @@ describe('LLMVaultConnect', () => {
 
   describe('open()', () => {
     beforeEach(() => {
-      connect = new LLMVaultConnect()
+      connect = new ZiraLoopConnect()
     })
 
     afterEach(() => {
@@ -74,7 +74,7 @@ describe('LLMVaultConnect', () => {
       const iframe = getIframe()
       expect(iframe).not.toBeNull()
       const url = new URL(iframe.src)
-      expect(url.origin).toBe('https://connect.llmvault.dev')
+      expect(url.origin).toBe('https://connect.ziraloop.com')
       expect(url.searchParams.get('session')).toBe('my_session_token')
       expect(url.searchParams.get('theme')).toBe('system')
     })
@@ -210,7 +210,7 @@ describe('LLMVaultConnect', () => {
 
   describe('messages', () => {
     beforeEach(() => {
-      connect = new LLMVaultConnect()
+      connect = new ZiraLoopConnect()
     })
 
     afterEach(() => {
@@ -349,7 +349,7 @@ describe('LLMVaultConnect', () => {
 
   describe('close()', () => {
     beforeEach(() => {
-      connect = new LLMVaultConnect()
+      connect = new ZiraLoopConnect()
     })
 
     it('removes iframe from DOM', () => {
@@ -390,7 +390,7 @@ describe('LLMVaultConnect', () => {
 
   describe('edge cases', () => {
     beforeEach(() => {
-      connect = new LLMVaultConnect()
+      connect = new ZiraLoopConnect()
     })
 
     afterEach(() => {
@@ -429,13 +429,13 @@ describe('LLMVaultConnect', () => {
     })
 
     it('custom baseURL origin is used for message validation', () => {
-      const customConnect = new LLMVaultConnect({ baseURL: 'https://my-vault.example.com/connect' })
+      const customConnect = new ZiraLoopConnect({ baseURL: 'https://my-vault.example.com/connect' })
       const onSuccess = vi.fn()
       customConnect.open({ sessionToken: 'tok_test', onSuccess })
 
       dispatchMessage(
         { type: 'success', payload: { providerId: 'p', connectionId: 'c' } },
-        'https://connect.llmvault.dev'
+        'https://connect.ziraloop.com'
       )
       expect(onSuccess).not.toHaveBeenCalled()
 

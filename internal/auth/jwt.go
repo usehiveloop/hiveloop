@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// AuthClaims represents the claims embedded in an LLMVault access token.
+// AuthClaims represents the claims embedded in an ZiraLoop access token.
 type AuthClaims struct {
 	UserID string `json:"user_id"`
 	OrgID  string `json:"org_id"`

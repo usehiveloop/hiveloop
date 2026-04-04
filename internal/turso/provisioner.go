@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // Provisioner manages per-workspace Turso database provisioning.
@@ -37,7 +37,7 @@ func (p *Provisioner) EnsureStorage(ctx context.Context, orgID uuid.UUID) (stora
 	}
 
 	// Create a new Turso database
-	dbName := "llmv-" + shortID(orgID)
+	dbName := "zira-" + shortID(orgID)
 	database, err := p.client.CreateDatabase(ctx, dbName, p.group)
 	if err != nil {
 		return "", "", fmt.Errorf("provisioning turso database: %w", err)

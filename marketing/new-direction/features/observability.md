@@ -24,7 +24,7 @@ This is not an edge case. It's the norm.
 
 ## The Solution
 
-LLMVault Observability automatically tracks every request flowing through the proxy — token usage, cost, latency, errors, model, provider, user, and more. No SDK instrumentation required. Because the proxy sees every request, observability is a free byproduct of the architecture.
+ZiraLoop Observability automatically tracks every request flowing through the proxy — token usage, cost, latency, errors, model, provider, user, and more. No SDK instrumentation required. Because the proxy sees every request, observability is a free byproduct of the architecture.
 
 ---
 

@@ -1,7 +1,7 @@
 {
-  "name": "@llmvault/sdk",
+  "name": "@ziraloop/sdk",
   "version": "1.1.1",
-  "description": "Server-side SDK for the LLMVault API",
+  "description": "Server-side SDK for the ZiraLoop API",
   "type": "module",
   "exports": {
     ".": {

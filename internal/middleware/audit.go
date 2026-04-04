@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/goroutine"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const auditBatchSize = 50

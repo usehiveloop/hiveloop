@@ -25,7 +25,7 @@ AI agent credentials are the new secrets sprawl — and the numbers are staggeri
 
 ## The Solution
 
-LLMVault Vault is a purpose-built credential custody layer for AI agents. It stores both LLM API keys and SaaS OAuth tokens with enterprise-grade encryption, and proxies all requests so credentials never touch application code, agent memory, or logs.
+ZiraLoop Vault is a purpose-built credential custody layer for AI agents. It stores both LLM API keys and SaaS OAuth tokens with enterprise-grade encryption, and proxies all requests so credentials never touch application code, agent memory, or logs.
 
 ---
 
@@ -66,7 +66,7 @@ Even the in-memory cache uses memguard to prevent keys from being extracted via 
 
 ## Dual Credential Types
 
-LLMVault stores two categories of credentials through the same security model:
+ZiraLoop stores two categories of credentials through the same security model:
 
 ### LLM API Keys (Encrypted Locally)
 
@@ -97,7 +97,7 @@ POST /v1/integrations
 }
 ```
 
-OAuth credentials are stored in Nango (source of truth). Nango handles token refresh, re-authentication, and provider-specific flows. LLMVault stores reference records with metadata.
+OAuth credentials are stored in Nango (source of truth). Nango handles token refresh, re-authentication, and provider-specific flows. ZiraLoop stores reference records with metadata.
 
 ---
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/llmvault/llmvault/internal/observe"
+	"github.com/ziraloop/ziraloop/internal/observe"
 )
 
 func TestCaptureTransport_NonStreaming_OpenAI(t *testing.T) {

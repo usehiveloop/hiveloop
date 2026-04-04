@@ -1,7 +1,7 @@
 {
-  "name": "@llmvault/frontend",
+  "name": "@ziraloop/frontend",
   "version": "1.0.6",
-  "description": "Frontend SDK for embedding the LLMVault connect widget",
+  "description": "Frontend SDK for embedding the ZiraLoop connect widget",
   "type": "module",
   "exports": {
     ".": {

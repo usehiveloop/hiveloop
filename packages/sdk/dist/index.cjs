@@ -30,7 +30,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
-  LLMVault: () => LLMVault
+  ZiraLoop: () => ZiraLoop
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -606,7 +606,7 @@ var WebhooksResource = class extends BaseResource {
 };
 
 // src/client.ts
-var LLMVault = class {
+var ZiraLoop = class {
   agents;
   apiKeys;
   audit;
@@ -629,7 +629,7 @@ var LLMVault = class {
   usage;
   webhooks;
   constructor(config) {
-    const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
+    const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
     const client = (0, import_openapi_fetch.default)({
       baseUrl,
       headers: {
@@ -661,6 +661,6 @@ var LLMVault = class {
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  LLMVault
+  ZiraLoop
 });
 //# sourceMappingURL=index.cjs.map

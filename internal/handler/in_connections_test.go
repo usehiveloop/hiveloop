@@ -16,11 +16,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 // nangoConnMockConfig configures the Nango mock for connection tests.
@@ -90,7 +90,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 			}
 			json.NewEncoder(w).Encode(map[string]any{
 				"provider":          "github",
-				"connection_config": map[string]any{"org": "llmvault"},
+				"connection_config": map[string]any{"org": "ziraloop"},
 				"credentials":      map[string]any{"access_token": "gho_xxxx"},
 			})
 			return
@@ -330,7 +330,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{
 		"nango_connection_id": "nango-conn-meta",
-		"meta":               map[string]any{"resources": map[string]any{"repos": []string{"llmvault"}}},
+		"meta":               map[string]any{"resources": map[string]any{"repos": []string{"ziraloop"}}},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

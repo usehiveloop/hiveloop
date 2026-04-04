@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/llmvault/llmvault/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
 )
 
 type ipLimiterEntry struct {

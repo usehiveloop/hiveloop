@@ -26,7 +26,7 @@ Platforms end up with spaghetti auth code, keys stored in plaintext, and broken 
 
 ## The Solution
 
-LLMVault Auth is an embeddable connect widget and session API that handles the entire "Connect Your Provider" flow — for both LLM providers (API keys) and SaaS apps (OAuth) — in a single, drop-in component.
+ZiraLoop Auth is an embeddable connect widget and session API that handles the entire "Connect Your Provider" flow — for both LLM providers (API keys) and SaaS apps (OAuth) — in a single, drop-in component.
 
 ---
 
@@ -59,9 +59,9 @@ The session controls exactly what the widget can do:
 Drop the React component into your app:
 
 ```jsx
-import { LLMVaultConnect } from '@llmvault/react'
+import { ZiraLoopConnect } from '@ziraloop/react'
 
-<LLMVaultConnect
+<ZiraLoopConnect
   sessionToken="sess_..."
   onConnect={(connection) => console.log('Connected:', connection.id)}
   onDisconnect={(connection) => console.log('Disconnected:', connection.id)}

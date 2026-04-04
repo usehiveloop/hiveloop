@@ -106,7 +106,7 @@ describe('Provider selection', () => {
 
   it('shows an error screen when providers fail to load', async () => {
     server.use(
-      http.get('https://api.dev.llmvault.dev/v1/widget/providers', () =>
+      http.get('https://api.dev.ziraloop.com/v1/widget/providers', () =>
         HttpResponse.json({ error: 'server error' }, { status: 500 }),
       ),
     )
@@ -124,7 +124,7 @@ describe('Provider selection', () => {
     let callCount = 0
 
     server.use(
-      http.get('https://api.dev.llmvault.dev/v1/widget/providers', () => {
+      http.get('https://api.dev.ziraloop.com/v1/widget/providers', () => {
         callCount++
         if (callCount === 1) {
           return HttpResponse.json({ error: 'server error' }, { status: 500 })
@@ -311,7 +311,7 @@ describe('Submitting a connection', () => {
     let capturedBody: Record<string, unknown> | null = null
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', async ({ request }) => {
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', async ({ request }) => {
         capturedBody = await request.json() as Record<string, unknown>
         return HttpResponse.json(
           {
@@ -352,7 +352,7 @@ describe('Submitting a connection', () => {
     let capturedBody: Record<string, unknown> | null = null
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', async ({ request }) => {
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', async ({ request }) => {
         capturedBody = await request.json() as Record<string, unknown>
         return HttpResponse.json(
           {
@@ -393,7 +393,7 @@ describe('Connection errors', () => {
     const user = userEvent.setup()
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', () =>
         HttpResponse.json({ error: 'invalid key' }, { status: 401 }),
       ),
     )
@@ -417,7 +417,7 @@ describe('Connection errors', () => {
     const user = userEvent.setup()
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', () =>
         HttpResponse.json({ error: 'invalid key' }, { status: 401 }),
       ),
     )
@@ -446,7 +446,7 @@ describe('Connection errors', () => {
     const onClose = vi.fn()
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', () =>
         HttpResponse.json({ error: 'fail' }, { status: 500 }),
       ),
     )
@@ -483,7 +483,7 @@ describe('Navigation from connected list', () => {
 
   it('shows the empty state when there are no connections', async () => {
     server.use(
-      http.get('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+      http.get('https://api.dev.ziraloop.com/v1/widget/connections', () =>
         HttpResponse.json({ data: [], has_more: false }),
       ),
     )
@@ -558,7 +558,7 @@ describe('Navigation from connected list', () => {
     const user = userEvent.setup()
 
     server.use(
-      http.post('https://api.dev.llmvault.dev/v1/widget/connections', () =>
+      http.post('https://api.dev.ziraloop.com/v1/widget/connections', () =>
         HttpResponse.json({ error: 'fail' }, { status: 500 }),
       ),
     )

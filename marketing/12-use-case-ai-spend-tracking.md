@@ -1,12 +1,12 @@
-# LLMVault — Use Case: Manage & Track Your AI Spend in One Place
+# ZiraLoop — Use Case: Manage & Track Your AI Spend in One Place
 
 ---
 
 ## The Opportunity
 
-LLMVault's existing architecture — encrypted credential storage + multi-provider proxy — means every LLM API request already flows through a single control point. This is exactly what companies need to solve their #1 AI operations problem: **they have no idea what they're spending on AI**.
+ZiraLoop's existing architecture — encrypted credential storage + multi-provider proxy — means every LLM API request already flows through a single control point. This is exactly what companies need to solve their #1 AI operations problem: **they have no idea what they're spending on AI**.
 
-This use case doesn't require a new product. It requires surfacing the data LLMVault already touches and adding budget controls on top. The proxy *is* the spend tracking layer — companies just need it framed that way.
+This use case doesn't require a new product. It requires surfacing the data ZiraLoop already touches and adding budget controls on top. The proxy *is* the spend tracking layer — companies just need it framed that way.
 
 ---
 
@@ -37,13 +37,13 @@ Three forces are converging:
 
 ### The Core Insight
 
-> Most tools track AI spend *after the invoice arrives*. LLMVault controls spend *at the credential layer* — if every key lives in the vault and every request flows through the proxy, you get cost attribution by design, not by instrumentation.
+> Most tools track AI spend *after the invoice arrives*. ZiraLoop controls spend *at the credential layer* — if every key lives in the vault and every request flows through the proxy, you get cost attribution by design, not by instrumentation.
 
 ---
 
 ## Target Personas
 
-This use case expands LLMVault's buyer beyond platform engineers into finance and operations roles. It introduces two new personas while deepening relevance for existing ones.
+This use case expands ZiraLoop's buyer beyond platform engineers into finance and operations roles. It introduces two new personas while deepening relevance for existing ones.
 
 ### New Persona: "FinOps Fiona"
 
@@ -87,27 +87,27 @@ This use case expands LLMVault's buyer beyond platform engineers into finance an
 
 ### Landscape
 
-| Category | Players | What They Do | LLMVault's Differentiator |
+| Category | Players | What They Do | ZiraLoop's Differentiator |
 |----------|---------|-------------|---------------------------|
-| **LLM Observability** | Helicone, Langfuse, LangSmith | Log requests, calculate cost post-hoc | LLMVault controls access at the credential layer — you can't spend what you can't reach. Observability tools tell you what happened; LLMVault prevents overspend before it happens. |
-| **AI Gateways** | Portkey, LiteLLM, Braintrust | Proxy + routing + cost tracking | These manage *your* keys. LLMVault manages *your customers'* keys with enterprise-grade encryption. Same proxy benefits, plus credential custody and multi-tenant isolation. |
-| **Enterprise APM** | Datadog LLM Observability | Bolt-on LLM monitoring to existing APM | Requires a $50K+ Datadog contract. LLMVault is purpose-built and standalone. Also: Datadog monitors your infra, not your customers' credentials. |
+| **LLM Observability** | Helicone, Langfuse, LangSmith | Log requests, calculate cost post-hoc | ZiraLoop controls access at the credential layer — you can't spend what you can't reach. Observability tools tell you what happened; ZiraLoop prevents overspend before it happens. |
+| **AI Gateways** | Portkey, LiteLLM, Braintrust | Proxy + routing + cost tracking | These manage *your* keys. ZiraLoop manages *your customers'* keys with enterprise-grade encryption. Same proxy benefits, plus credential custody and multi-tenant isolation. |
+| **Enterprise APM** | Datadog LLM Observability | Bolt-on LLM monitoring to existing APM | Requires a $50K+ Datadog contract. ZiraLoop is purpose-built and standalone. Also: Datadog monitors your infra, not your customers' credentials. |
 | **Cloud FinOps** | CloudHealth, Spot.io, Kubecost | Cloud infrastructure cost management | These tools don't understand LLM-specific costs (tokens, models, per-request pricing). AI spend requires AI-native tooling. |
-| **Encrypted Vaults** | Mozilla any-llm | Encrypted credential storage + tracking | Closest competitor. any-llm is a developer tool; LLMVault is enterprise infrastructure with per-tenant isolation, budget controls, and audit trails. |
+| **Encrypted Vaults** | Mozilla any-llm | Encrypted credential storage + tracking | Closest competitor. any-llm is a developer tool; ZiraLoop is enterprise infrastructure with per-tenant isolation, budget controls, and audit trails. |
 | **Edge Gateways** | Cloudflare AI Gateway | Edge-proxied AI requests | No credential custody. No multi-tenant isolation. Good for simple caching/rate-limiting, not for managing customer credentials or per-team cost attribution. |
 
 ### The Positioning Statement (for this use case)
 
 **For** engineering and finance leaders who need to understand, control, and optimize their company's AI spend across multiple providers and teams,
 **who** currently rely on scattered provider dashboards, shared API keys, and end-of-month invoice surprises,
-**LLMVault is** the centralized AI spend management layer
+**ZiraLoop is** the centralized AI spend management layer
 **that** gives every team scoped credentials, tracks every request with cost attribution, and enforces budget caps before overspend — all through a single proxy with sub-5ms overhead.
 **Unlike** observability tools that report costs after the fact or generic gateways that don't manage credentials,
-**LLMVault** controls spend at the source — because every key is encrypted in the vault and every request flows through the proxy, cost attribution and budget enforcement are architectural guarantees, not afterthoughts.
+**ZiraLoop** controls spend at the source — because every key is encrypted in the vault and every request flows through the proxy, cost attribution and budget enforcement are architectural guarantees, not afterthoughts.
 
 ### Key Differentiator (One Line)
 
-> "Other tools watch the money leave. LLMVault controls the door."
+> "Other tools watch the money leave. ZiraLoop controls the door."
 
 ---
 
@@ -119,21 +119,21 @@ This use case expands LLMVault's buyer beyond platform engineers into finance an
 |----------|-------|
 | "Know exactly what your company spends on AI." | Clarity / visibility |
 | "Every AI dollar, tracked. Every team, accountable." | Attribution / governance |
-| "Your AI spend has a blind spot. LLMVault removes it." | Problem-aware |
+| "Your AI spend has a blind spot. ZiraLoop removes it." | Problem-aware |
 | "Stop guessing what AI costs. Start knowing." | Frustration / relief |
 | "One proxy. Every provider. Total cost visibility." | Product / how-it-works |
 | "AI budgets that actually hold." | Budget controls |
 
 ### Subheadlines
 
-- "LLMVault is a single proxy layer for all your LLM API calls. Every request is tracked, attributed, and capped — so the bill never surprises you."
+- "ZiraLoop is a single proxy layer for all your LLM API calls. Every request is tracked, attributed, and capped — so the bill never surprises you."
 - "Centralize credentials, proxy requests, and track spend per team, project, and provider — without changing how your engineers call LLMs."
 - "Encrypted credential storage + intelligent proxy = cost attribution by design, not by instrumentation."
 
 ### Value Props (Specific to This Use Case)
 
 #### 1. Cost Attribution by Design
-Every LLM request flows through LLMVault's proxy. You get per-team, per-project, per-credential cost breakdowns automatically — no SDK instrumentation, no log parsing, no manual tagging. If it goes through the proxy, it's tracked.
+Every LLM request flows through ZiraLoop's proxy. You get per-team, per-project, per-credential cost breakdowns automatically — no SDK instrumentation, no log parsing, no manual tagging. If it goes through the proxy, it's tracked.
 
 #### 2. Budget Caps That Prevent Overspend
 Set dollar or token limits per credential, per team, or per time period. Configure actions at the threshold: alert, throttle, or block. A runaway agent loop hits the cap, not your invoice.
@@ -151,8 +151,8 @@ Historical usage data per team and provider makes AI budget forecasting possible
 
 | Objection | Response |
 |-----------|----------|
-| "We can build cost tracking ourselves" | You can. Most teams do — and it takes 3-6 months of senior eng time. Then you maintain it forever. Meanwhile, credentials sit unencrypted in your database. LLMVault gives you cost tracking AND enterprise-grade security in a single integration. |
-| "We already use Datadog / Helicone" | Great — those tools show you what happened. LLMVault controls what *can* happen. Observability tells you that Team X spent $2,000 yesterday. Budget caps would have stopped them at $500. They're complementary: use both. |
+| "We can build cost tracking ourselves" | You can. Most teams do — and it takes 3-6 months of senior eng time. Then you maintain it forever. Meanwhile, credentials sit unencrypted in your database. ZiraLoop gives you cost tracking AND enterprise-grade security in a single integration. |
+| "We already use Datadog / Helicone" | Great — those tools show you what happened. ZiraLoop controls what *can* happen. Observability tells you that Team X spent $2,000 yesterday. Budget caps would have stopped them at $500. They're complementary: use both. |
 | "Can't we just check each provider's dashboard?" | You can, if you have 3 providers, 8 teams, and enjoy spreadsheets. At scale, per-provider dashboards don't give you per-team attribution, cross-provider totals, or budget enforcement. That requires a single control point. |
 | "Adding a proxy adds latency" | Sub-5ms overhead (p95). Three-tier cache architecture means the hot path is in-memory. Your users won't notice it — but your finance team will notice the visibility. |
 | "We only use one provider" | Today. 73% of enterprises use multiple LLM providers. When you add a second, you'll need centralized tracking. Better to set up the foundation now. Plus, even with one provider, per-team cost attribution requires a proxy layer. |
@@ -192,21 +192,21 @@ This creates a new content pillar alongside the existing four (LLM Key Security,
 - Budget controls and alerting
 - Forecasting AI spend from historical data
 - Negotiating with providers using usage data
-- CTA: Download PDF / Try LLMVault free
+- CTA: Download PDF / Try ZiraLoop free
 
 #### 3. "LLM API Pricing Comparison 2026" (SEO Traffic Magnet)
 
 **Format**: Interactive comparison page, updated monthly
 **Target**: Platform Pete, Sandbox Sam, anyone evaluating LLM costs
 **Keywords**: "LLM API pricing comparison", "GPT vs Claude cost", "cheapest LLM API", "cost per token"
-**Data source**: LLMVault already has a provider/model registry (101 providers, 3,183 models from models.dev) — this is a natural content asset
+**Data source**: ZiraLoop already has a provider/model registry (101 providers, 3,183 models from models.dev) — this is a natural content asset
 **Features**:
 - Sortable table: provider, model, input token price, output token price, context window
 - Calculator: estimate monthly cost based on request volume
 - Updated monthly (build credibility as the canonical source)
 - CTA: "Track your actual spend across all these providers →"
 
-**Why this works**: Multiple competitors have pricing pages that rank well (pricepertoken.com, helicone.ai/llm-cost, costgoat.com). LLMVault has the registry data to build a better one and own this search intent.
+**Why this works**: Multiple competitors have pricing pages that rank well (pricepertoken.com, helicone.ai/llm-cost, costgoat.com). ZiraLoop has the registry data to build a better one and own this search intent.
 
 #### 4. "How We Cut Our AI Spend 40% Without Changing a Line of Code" (Case Study Template)
 
@@ -215,7 +215,7 @@ This creates a new content pillar alongside the existing four (LLM Key Security,
 **Keywords**: "reduce AI costs", "AI cost optimization case study"
 **Story arc**:
 - Before: 12 teams, 5 providers, API keys in .env files, $47K/month with no breakdown
-- Migration: Centralized credentials in LLMVault, assigned per-team budgets
+- Migration: Centralized credentials in ZiraLoop, assigned per-team budgets
 - After: Full cost attribution revealed 3 teams driving 70% of spend. Budget caps prevented 2 runaway agent incidents. Total savings: 40% through visibility-driven optimization
 - CTA: "Get the same visibility for your team →"
 
@@ -253,7 +253,7 @@ This creates a new content pillar alongside the existing four (LLM Key Security,
 
 ## Free Tool: AI Spend Calculator
 
-A lead-generation tool hosted on llmvault.dev that converts traffic into signups.
+A lead-generation tool hosted on ziraloop.com that converts traffic into signups.
 
 ### How It Works
 
@@ -265,11 +265,11 @@ A lead-generation tool hosted on llmvault.dev that converts traffic into signups
    - Cost breakdown by model tier (frontier vs. mid-tier vs. lightweight)
    - Potential savings from caching (estimated 20-30% for repeated queries)
    - Potential savings from model routing (using cheaper models where quality is sufficient)
-4. CTA: "Get your real numbers — connect your providers to LLMVault and see actual spend, not estimates."
+4. CTA: "Get your real numbers — connect your providers to ZiraLoop and see actual spend, not estimates."
 
 ### Why This Works
 
-- LLMVault already has the models.dev registry with pricing data for 3,183 models
+- ZiraLoop already has the models.dev registry with pricing data for 3,183 models
 - Calculator pages rank well for high-intent keywords ("LLM cost calculator", "AI API pricing")
 - Captures emails from people actively thinking about AI costs — highest-intent leads possible
 - Can be built quickly as a static page with client-side calculation
@@ -313,7 +313,7 @@ This isn't a standalone product — it's a horizontal layer that makes every exi
 
 ### The Compound Effect
 
-When a prospect evaluates LLMVault for spend tracking, they also get:
+When a prospect evaluates ZiraLoop for spend tracking, they also get:
 - Enterprise-grade credential encryption (solves security)
 - Multi-provider proxy (solves integration complexity)
 - Scoped tokens for sandboxes (solves agent security)
@@ -351,8 +351,8 @@ The "AI costs are out of control" narrative performs exceptionally well on Linke
 
 ### Integration Partnerships
 
-- **FinOps platforms** (CloudHealth, Spot.io, Vantage): Position LLMVault as the AI-specific data source that feeds into their broader cloud cost dashboards
-- **Billing platforms** (Stripe, Orb, Metronome): LLMVault metering data → usage-based billing for AI features
+- **FinOps platforms** (CloudHealth, Spot.io, Vantage): Position ZiraLoop as the AI-specific data source that feeds into their broader cloud cost dashboards
+- **Billing platforms** (Stripe, Orb, Metronome): ZiraLoop metering data → usage-based billing for AI features
 
 ---
 
@@ -360,7 +360,7 @@ The "AI costs are out of control" narrative performs exceptionally well on Linke
 
 | Week | Deliverable | Owner |
 |------|-------------|-------|
-| **Week 1** | Write the AI Spend Tracking use case page for llmvault.dev. Publish Blog #1: "The $8.4B Blind Spot." | Content |
+| **Week 1** | Write the AI Spend Tracking use case page for ziraloop.com. Publish Blog #1: "The $8.4B Blind Spot." | Content |
 | **Week 2** | Build the LLM Pricing Comparison page using models.dev registry data. Draft Blog #2: "FinOps for AI Playbook." | Content + Engineering |
 | **Week 3** | Build the AI Spend Calculator free tool. Publish Blog #2. Start LinkedIn content series (3 posts). | Content + Engineering |
 | **Week 4** | Add spend tracking messaging to homepage (secondary headline rotation). Publish Blog #5 (bridge piece). Submit to r/finops, HN. | Content + Marketing |
@@ -383,7 +383,7 @@ The "AI costs are out of control" narrative performs exceptionally well on Linke
 
 ## Key Takeaway
 
-LLMVault doesn't need to become a different product to win the AI spend management market. The proxy architecture already ensures every request flows through a single control point. The vault architecture already ensures every credential is centrally managed. **Spend tracking is the natural output of infrastructure LLMVault has already built.**
+ZiraLoop doesn't need to become a different product to win the AI spend management market. The proxy architecture already ensures every request flows through a single control point. The vault architecture already ensures every credential is centrally managed. **Spend tracking is the natural output of infrastructure ZiraLoop has already built.**
 
 The opportunity is in the framing: today's positioning leads with security ("your keys deserve a vault"). The spend tracking angle leads with visibility ("know what you spend on AI"). Same product, different door — and the spend door opens to a much larger room: FinOps teams, CFOs, and the 98% of organizations that now consider AI cost management a priority.
 

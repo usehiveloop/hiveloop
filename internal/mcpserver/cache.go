@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/llmvault/llmvault/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
 )
 
 // ServerCache caches built MCP server instances by JTI to avoid rebuilding on every request.

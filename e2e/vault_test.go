@@ -8,7 +8,7 @@
 //
 // These tests require:
 //   - Running Docker Compose stack with Vault service (Postgres, Redis, Vault)
-//   - Vault Transit engine enabled with 'llmvault-key' encryption key
+//   - Vault Transit engine enabled with 'ziraloop-key' encryption key
 //   - OPENROUTER_API_KEY env var set for live LLM tests (optional)
 package e2e
 
@@ -30,24 +30,24 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/counter"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/proxy"
-	"github.com/llmvault/llmvault/internal/registry"
-	"github.com/llmvault/llmvault/internal/token"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/counter"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/proxy"
+	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 const (
-	vaultTestDBURL     = "postgres://llmvault:localdev@localhost:5433/llmvault_vault_test?sslmode=disable"
+	vaultTestDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_vault_test?sslmode=disable"
 	vaultTestRedisAddr = "localhost:6379"
 	vaultTestVaultAddr = "http://localhost:8200"
-	vaultTestToken     = "llmvault-dev-token"
-	vaultTestKeyName   = "llmvault-key"
+	vaultTestToken     = "ziraloop-dev-token"
+	vaultTestKeyName   = "ziraloop-key"
 	vaultSigningKey    = "vault-test-signing-key-for-e2e"
 )
 

@@ -1,4 +1,4 @@
-# LLMVault — Homepage Copy
+# ZiraLoop — Homepage Copy
 
 ---
 
@@ -8,7 +8,7 @@
 Your customers' LLM keys deserve a vault, not a database column.
 
 ### Subheadline
-LLMVault is the secure proxy layer for platforms that handle LLM API keys. Store credentials with envelope encryption, mint scoped tokens for sandboxes, and proxy requests to any provider — with sub-5ms overhead.
+ZiraLoop is the secure proxy layer for platforms that handle LLM API keys. Store credentials with envelope encryption, mint scoped tokens for sandboxes, and proxy requests to any provider — with sub-5ms overhead.
 
 ### Primary CTA
 Get Started — Free
@@ -20,7 +20,7 @@ Read the Docs
 
 ```bash
 # 1. Store a customer's API key (encrypted automatically)
-curl -X POST https://api.llmvault.dev/v1/credentials \
+curl -X POST https://api.ziraloop.com/v1/credentials \
   -H "Authorization: Bearer org_your_api_key" \
   -d '{
     "label": "customer_42_anthropic",
@@ -30,14 +30,14 @@ curl -X POST https://api.llmvault.dev/v1/credentials \
   }'
 
 # 2. Mint a short-lived token for the sandbox
-curl -X POST https://api.llmvault.dev/v1/tokens \
+curl -X POST https://api.ziraloop.com/v1/tokens \
   -H "Authorization: Bearer org_your_api_key" \
   -d '{ "credential_id": "cred_uuid", "ttl": "1h" }'
 
 # → { "token": "ptok_eyJhbG...", "expires_at": "..." }
 
 # 3. Proxy LLM requests using the scoped token
-curl -X POST https://api.llmvault.dev/v1/proxy/v1/messages \
+curl -X POST https://api.ziraloop.com/v1/proxy/v1/messages \
   -H "Authorization: Bearer ptok_eyJhbG..." \
   -d '{ "model": "claude-sonnet-4-6", "messages": [...] }'
 
@@ -82,7 +82,7 @@ Three API calls. Full LLM credential security.
 
 ### Step 1: Store
 **Your customer connects their LLM provider.**
-One API call stores the credential. LLMVault generates a unique data encryption key, encrypts the API key with AES-256-GCM, wraps the DEK with Vault Transit KMS, and stores only encrypted blobs. The plaintext key is zeroed from memory immediately.
+One API call stores the credential. ZiraLoop generates a unique data encryption key, encrypts the API key with AES-256-GCM, wraps the DEK with Vault Transit KMS, and stores only encrypted blobs. The plaintext key is zeroed from memory immediately.
 
 ```json
 POST /v1/credentials
@@ -107,14 +107,14 @@ POST /v1/tokens
 ```
 
 ### Step 3: Proxy
-**Your app sends LLM requests through LLMVault. The proxy handles auth.**
-The sandbox uses the scoped token to make requests. LLMVault resolves the real API key from its encrypted store, attaches the correct auth header for the provider, and streams the response back. The sandbox never sees the real key.
+**Your app sends LLM requests through ZiraLoop. The proxy handles auth.**
+The sandbox uses the scoped token to make requests. ZiraLoop resolves the real API key from its encrypted store, attaches the correct auth header for the provider, and streams the response back. The sandbox never sees the real key.
 
 ```bash
 POST /v1/proxy/v1/messages
 Authorization: Bearer ptok_eyJhbG...
 { "model": "claude-sonnet-4-6", "messages": [{ "role": "user", "content": "Hello" }] }
-// → Streamed response from Anthropic, through LLMVault, to your app.
+// → Streamed response from Anthropic, through ZiraLoop, to your app.
 ```
 
 ---
@@ -136,7 +136,7 @@ Three-tier cache: in-memory (sealed with memguard) → Redis → Postgres/Vault.
 Mint JWTs bound to a single credential with TTLs from seconds to 24 hours. Perfect for sandboxes, agent sessions, and temporary access. Auto-expire. Instant revocation.
 
 #### Any Provider, One Interface
-OpenAI (Bearer), Anthropic (x-api-key), Google (query_param), Fireworks (Bearer), OpenRouter (Bearer) — and any custom provider. LLMVault handles auth scheme differences automatically.
+OpenAI (Bearer), Anthropic (x-api-key), Google (query_param), Fireworks (Bearer), OpenRouter (Bearer) — and any custom provider. ZiraLoop handles auth scheme differences automatically.
 
 #### Instant Revocation
 Customer disconnects their key? Revocation propagates to every proxy instance in sub-millisecond time via Redis pub/sub. No stale credentials. No cache window vulnerabilities.
@@ -157,7 +157,7 @@ We don't ask you to trust our marketing. We show you the architecture.
 ### Visual: Architecture Diagram
 
 ```
-Your App                    LLMVault                         LLM Provider
+Your App                    ZiraLoop                         LLM Provider
   │                            │                                  │
   │  POST /v1/credentials      │                                  │
   │  (plaintext key)           │                                  │
@@ -201,7 +201,7 @@ Your App                    LLMVault                         LLM Provider
 Built for these exact problems.
 
 ### Card 1: Bring Your Own Key
-Your SaaS product lets customers use their own LLM keys. LLMVault stores them securely and proxies every request — so your application code never handles plaintext credentials.
+Your SaaS product lets customers use their own LLM keys. ZiraLoop stores them securely and proxies every request — so your application code never handles plaintext credentials.
 [Learn more →](/use-cases/bring-your-own-key)
 
 ### Card 2: Sandbox & Agent Credentials
@@ -209,7 +209,7 @@ Your AI agents run in sandboxed environments. Give each sandbox a short-lived, s
 [Learn more →](/use-cases/sandbox-credentials)
 
 ### Card 3: "Connect Provider" Widget
-Add a polished "Connect Your LLM Provider" flow to your app. Customers pick a provider, enter their key, and they're connected. LLMVault handles encryption and proxying behind the scenes.
+Add a polished "Connect Your LLM Provider" flow to your app. Customers pick a provider, enter their key, and they're connected. ZiraLoop handles encryption and proxying behind the scenes.
 [Learn more →](/use-cases/connect-provider-widget)
 
 ### Card 4: Multi-Tenant AI Platforms
@@ -225,7 +225,7 @@ Build a platform where each tenant has isolated LLM access. Separate credentials
 [Join the waitlist →]
 
 ### After first customers
-Logos + quote: "LLMVault let us ship BYOK support in 3 days instead of 3 months." — [Name], [Title], [Company]
+Logos + quote: "ZiraLoop let us ship BYOK support in 3 days instead of 3 months." — [Name], [Title], [Company]
 
 ---
 
@@ -235,7 +235,7 @@ Logos + quote: "LLMVault let us ship BYOK support in 3 days instead of 3 months.
 Open architecture. No black boxes.
 
 ### Copy
-LLMVault's security model is documented down to the encryption algorithm and cache invalidation protocol. We believe the best security is transparent security.
+ZiraLoop's security model is documented down to the encryption algorithm and cache invalidation protocol. We believe the best security is transparent security.
 
 Read the architecture docs. Review the encryption model. Understand exactly how every customer key is protected at every layer.
 
@@ -261,7 +261,7 @@ Get Started — Free
 
 ## SEO Metadata
 
-**Title tag**: LLMVault — Secure Proxy Layer for LLM API Keys
+**Title tag**: ZiraLoop — Secure Proxy Layer for LLM API Keys
 **Meta description**: Store LLM API keys with envelope encryption, mint scoped tokens for sandboxes, and proxy requests to any provider with sub-5ms overhead. Built for platforms with BYOK.
 **OG Title**: Your customers' LLM keys deserve a vault, not a database column.
 **OG Description**: The secure proxy layer for AI platforms. Store keys. Mint tokens. Proxy requests.

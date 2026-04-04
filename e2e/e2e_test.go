@@ -31,21 +31,21 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/counter"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
-	"github.com/llmvault/llmvault/internal/proxy"
-	"github.com/llmvault/llmvault/internal/registry"
-	"github.com/llmvault/llmvault/internal/token"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/counter"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/proxy"
+	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+	testDBURL      = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 	testRedisAddr  = "localhost:6379"
 	testSigningKey = "e2e-signing-key-for-tests"
 )

@@ -1,11 +1,11 @@
-# LLMVault — Go-to-Market Strategy
+# ZiraLoop — Go-to-Market Strategy
 
 ---
 
 ## GTM Model: Product-Led Growth (PLG) with Enterprise Overlay
 
-LLMVault's primary GTM motion is **product-led growth**:
-1. Developer discovers LLMVault (content, community, word-of-mouth)
+ZiraLoop's primary GTM motion is **product-led growth**:
+1. Developer discovers ZiraLoop (content, community, word-of-mouth)
 2. Developer signs up for free tier
 3. Developer integrates into their project
 4. Usage grows → hits free tier limits → upgrades to Pro
@@ -25,7 +25,7 @@ The secondary motion is **enterprise sales** for large platform companies that n
 1. **Landing page** with email capture (show the headline, the problem, and the 3-step code snippet)
 2. **"Building in public" content**:
    - Twitter/X thread: "I'm building the infrastructure layer for LLM key management. Here's why." (share architecture decisions, design trade-offs)
-   - Dev.to or personal blog: "Why I'm Building LLMVault" (founder story)
+   - Dev.to or personal blog: "Why I'm Building ZiraLoop" (founder story)
 3. **Early access program**: Invite 10-20 developers from your network to use the beta. Get feedback. Get testimonials.
 4. **Prepare launch content**: 5 blog posts ready to publish, docs complete, quickstart tested by beta users
 
@@ -37,7 +37,7 @@ The secondary motion is **enterprise sales** for large platform companies that n
 
 **Launch channels** (in order of impact):
 
-1. **Hacker News**: "Show HN: LLMVault — Secure proxy layer for LLM API keys"
+1. **Hacker News**: "Show HN: ZiraLoop — Secure proxy layer for LLM API keys"
    - Post on Tuesday 9am ET (peak HN traffic)
    - Title should be clear and technical, not hypey
    - Founder should be in comments answering questions for 6+ hours
@@ -59,7 +59,7 @@ The secondary motion is **enterprise sales** for large platform companies that n
 5. **Dev newsletters**: Submit to TLDR, Changelog, Bytes, Pointer
    - Submit 1-2 weeks before launch for inclusion timing
 
-6. **Launch blog post**: "Introducing LLMVault" — publish on your blog, cross-post to Dev.to and Hashnode
+6. **Launch blog post**: "Introducing ZiraLoop" — publish on your blog, cross-post to Dev.to and Hashnode
 
 **Metrics**: Website traffic, signups, stars (if open source), HN points
 
@@ -182,7 +182,7 @@ The secondary motion is **enterprise sales** for large platform companies that n
 
 ### If LLM providers build native key delegation
 - This is actually good — it validates the need
-- Position LLMVault as the multi-provider layer (provider-native solutions are single-provider)
+- Position ZiraLoop as the multi-provider layer (provider-native solutions are single-provider)
 - Emphasize the sandbox token pattern (providers won't build this)
 
 ---

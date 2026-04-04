@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/llmvault/llmvault/internal/observe"
+	"github.com/ziraloop/ziraloop/internal/observe"
 )
 
 // CaptureTransport wraps an http.RoundTripper to capture response metadata

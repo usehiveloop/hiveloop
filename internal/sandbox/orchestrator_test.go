@@ -14,13 +14,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/turso"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/turso"
 )
 
-const testDBURL = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+const testDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -102,8 +102,8 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "llmvault-bridge-0-10-0",
-		BridgeHost:                      "test.llmvault.dev",
+		BridgeBaseImagePrefix:           "ziraloop-bridge-0-10-0",
+		BridgeHost:                      "test.ziraloop.com",
 		SharedSandboxIdleTimeoutMins:    30,
 		DedicatedSandboxGracePeriodMins: 5,
 		PoolSandboxResourceThreshold:    80.0,

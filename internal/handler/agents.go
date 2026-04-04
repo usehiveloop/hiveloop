@@ -13,11 +13,11 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/registry"
-	"github.com/llmvault/llmvault/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
 )
 
 // AgentPusher is the interface the handler needs to push agents to Bridge.

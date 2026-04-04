@@ -1,20 +1,20 @@
-# LLMVault — Product Positioning
+# ZiraLoop — Product Positioning
 
 ## One-Liner
 
-LLMVault is the secure proxy layer that lets platforms store, manage, and proxy LLM API keys — so customer credentials never touch your code.
+ZiraLoop is the secure proxy layer that lets platforms store, manage, and proxy LLM API keys — so customer credentials never touch your code.
 
 ## Elevator Pitch (30 seconds)
 
 Every AI-powered platform that supports "Bring Your Own Key" faces the same problem: how do you securely store your customers' LLM API keys, proxy requests without exposing credentials, and give sandboxed agents scoped access — without building months of security infrastructure yourself?
 
-LLMVault handles all of it. Store keys with envelope encryption, mint short-lived tokens for sandboxes, and proxy requests to any LLM provider with sub-5ms overhead. Your customers' keys never touch your application code.
+ZiraLoop handles all of it. Store keys with envelope encryption, mint short-lived tokens for sandboxes, and proxy requests to any LLM provider with sub-5ms overhead. Your customers' keys never touch your application code.
 
 ## Category
 
 **Developer Infrastructure / AI Security**
 
-LLMVault creates a new sub-category: **LLM Credential Management & Proxy**.
+ZiraLoop creates a new sub-category: **LLM Credential Management & Proxy**.
 
 It sits at the intersection of:
 - Secret management (like Vault, but purpose-built for LLM keys)
@@ -25,10 +25,10 @@ It sits at the intersection of:
 
 **For** platform engineers building AI products with bring-your-own-key or sandboxed LLM access,
 **who** need to securely handle customer API keys without building custom infrastructure,
-**LLMVault is** a secure proxy layer
+**ZiraLoop is** a secure proxy layer
 **that** stores LLM credentials with enterprise-grade encryption, mints scoped short-lived tokens, and proxies requests to any provider with sub-5ms latency.
 **Unlike** building in-house or using generic secret managers,
-**LLMVault** is purpose-built for LLM workflows — handling auth scheme differences across providers, multi-tenant isolation, and instant credential revocation out of the box.
+**ZiraLoop** is purpose-built for LLM workflows — handling auth scheme differences across providers, multi-tenant isolation, and instant credential revocation out of the box.
 
 ## Core Value Propositions
 
@@ -42,7 +42,7 @@ Three-tier cache architecture (in-memory → Redis → Postgres/Vault) means the
 Mint JWT tokens scoped to specific credentials with configurable TTLs (up to 24h). Perfect for giving AI agents in sandboxes just enough access, for just long enough. Revoke instantly — propagates across all instances in milliseconds.
 
 ### 4. Any Provider, One Interface
-OpenAI (Bearer), Anthropic (x-api-key), Google (query param), and any other provider — LLMVault abstracts away auth scheme differences. Store the credential once, proxy everywhere.
+OpenAI (Bearer), Anthropic (x-api-key), Google (query param), and any other provider — ZiraLoop abstracts away auth scheme differences. Store the credential once, proxy everywhere.
 
 ### 5. Instant Revocation
 Redis pub/sub propagates credential and token revocations across all proxy instances in sub-millisecond time. When a customer disconnects their key, it's dead everywhere immediately.
@@ -67,14 +67,14 @@ Building this properly requires envelope encryption, KMS integration, sealed mem
 
 ### The Shift
 
-LLMVault exists because **LLM credential management is infrastructure, not a feature**. Just like you don't build your own payment processing (you use Stripe) or your own auth system (you use Auth0/Clerk), you shouldn't build your own LLM key management.
+ZiraLoop exists because **LLM credential management is infrastructure, not a feature**. Just like you don't build your own payment processing (you use Stripe) or your own auth system (you use Auth0/Clerk), you shouldn't build your own LLM key management.
 
 ### The New World
 
-With LLMVault, a platform engineer can:
+With ZiraLoop, a platform engineer can:
 1. Store a customer's API key with a single API call (encrypted automatically)
 2. Mint a scoped sandbox token in one more call
-3. Proxy LLM requests through LLMVault — it handles auth, streaming, and cleanup
+3. Proxy LLM requests through ZiraLoop — it handles auth, streaming, and cleanup
 4. Revoke access instantly when needed
 
 The developer never touches plaintext keys. The sandbox never sees real credentials. The customer sees audit logs of exactly how their key was used.

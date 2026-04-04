@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 func TestBuildNangoConfig_ExtractsWebhookSecretFromCredentials(t *testing.T) {

@@ -29,7 +29,7 @@ When a pull request is opened or updated, the agent receives a webhook from GitH
 
 ## What you need
 
-- A GitHub integration connected to your LLMVault workspace
+- A GitHub integration connected to your ZiraLoop workspace
 - A Slack integration (optional) for notifications
 - A Linear integration (optional) for auto-creating issues from review findings
 

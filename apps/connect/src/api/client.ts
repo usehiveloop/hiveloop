@@ -2,7 +2,7 @@ import createFetchClient, { type Middleware } from 'openapi-fetch'
 import createClient from 'openapi-react-query'
 import type { paths } from './schema'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.dev.llmvault.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.dev.ziraloop.com'
 
 let onUnauthorized: (() => void) | null = null
 

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/registry"
 )
 
 func TestCalculateCost_OpenAI(t *testing.T) {

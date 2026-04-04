@@ -27,7 +27,7 @@ Building BYOK properly — with envelope encryption, KMS integration, sealed mem
 
 ## The Solution
 
-LLMVault makes BYOK a feature you ship in days. Your customers connect their LLM provider, LLMVault encrypts and stores the key, and your app proxies all LLM requests through LLMVault — never touching the plaintext key.
+ZiraLoop makes BYOK a feature you ship in days. Your customers connect their LLM provider, ZiraLoop encrypts and stores the key, and your app proxies all LLM requests through ZiraLoop — never touching the plaintext key.
 
 ---
 
@@ -38,9 +38,9 @@ LLMVault makes BYOK a feature you ship in days. Your customers connect their LLM
 Embed the Connect widget in your app. Your customer picks a provider and enters their API key:
 
 ```jsx
-import { LLMVaultConnect } from '@llmvault/react'
+import { ZiraLoopConnect } from '@ziraloop/react'
 
-<LLMVaultConnect
+<ZiraLoopConnect
   sessionToken="sess_..."
   onConnect={(connection) => {
     // connection.id is the credential ID
@@ -76,7 +76,7 @@ Returns a `ptok_` token that:
 
 ### Step 3: Proxy LLM Requests
 
-Your app sends LLM requests through LLMVault using the proxy token:
+Your app sends LLM requests through ZiraLoop using the proxy token:
 
 ```bash
 POST /v1/proxy/v1/chat/completions
@@ -89,7 +89,7 @@ Content-Type: application/json
 }
 ```
 
-LLMVault:
+ZiraLoop:
 1. Validates the token
 2. Resolves the encrypted credential from cache (sub-5ms)
 3. Decrypts the API key in memory
@@ -104,7 +104,7 @@ LLMVault:
 
 ## Why This Beats Building In-House
 
-| Concern | Build In-House | LLMVault |
+| Concern | Build In-House | ZiraLoop |
 |---|---|---|
 | **Encryption** | Basic AES, key in env var | Envelope encryption, KMS-wrapped DEK, sealed memory |
 | **Key exposure** | Key in app memory, logs, caches | Key never leaves the proxy, zeroed after use |

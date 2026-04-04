@@ -15,9 +15,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // CustomDomainHandler manages custom preview domain configuration.
@@ -385,19 +385,19 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 	routes := []any{}
 
 	// Static: acme-dns API proxy
-	routes = append(routes, h.authProxyRoute("acme-dns-api.daytona.llmvault.dev", "acme-dns:443"))
+	routes = append(routes, h.authProxyRoute("acme-dns-api.daytona.ziraloop.com", "acme-dns:443"))
 
 	// Static: Caddy admin API proxy
-	routes = append(routes, h.authProxyRoute("caddy-admin.daytona.llmvault.dev", "localhost:2019"))
+	routes = append(routes, h.authProxyRoute("caddy-admin.daytona.ziraloop.com", "localhost:2019"))
 
 	// Static: API + Dashboard
-	routes = append(routes, h.simpleProxyRoute("api.daytona.llmvault.dev", "api:3000", true))
+	routes = append(routes, h.simpleProxyRoute("api.daytona.ziraloop.com", "api:3000", true))
 
 	// Static: Dex OIDC (with CORS)
 	routes = append(routes, h.dexRoute())
 
 	// Static: Primary preview domain
-	routes = append(routes, h.previewProxyRoute("*.preview.llmvault.dev"))
+	routes = append(routes, h.previewProxyRoute("*.preview.ziraloop.com"))
 
 	// Dynamic: Custom preview domains
 	for _, cd := range customDomains {
@@ -407,11 +407,11 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 	// --- TLS Automation Policies ---
 	// Policy 0: Static domains via Cloudflare DNS
 	staticSubjects := []string{
-		"acme-dns-api.daytona.llmvault.dev",
-		"caddy-admin.daytona.llmvault.dev",
-		"api.daytona.llmvault.dev",
-		"dex.daytona.llmvault.dev",
-		"*.preview.llmvault.dev",
+		"acme-dns-api.daytona.ziraloop.com",
+		"caddy-admin.daytona.ziraloop.com",
+		"api.daytona.ziraloop.com",
+		"dex.daytona.ziraloop.com",
+		"*.preview.ziraloop.com",
 	}
 
 	policies := []any{
@@ -420,7 +420,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 			"issuers": []any{
 				map[string]any{
 					"module": "acme",
-					"email":  "admin@llmvault.dev",
+					"email":  "admin@ziraloop.com",
 					"challenges": map[string]any{
 						"dns": map[string]any{
 							"provider": map[string]any{
@@ -455,7 +455,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 			"issuers": []any{
 				map[string]any{
 					"module": "acme",
-					"email":  "admin@llmvault.dev",
+					"email":  "admin@ziraloop.com",
 					"challenges": map[string]any{
 						"dns": map[string]any{
 							"provider": map[string]any{
@@ -516,7 +516,7 @@ func (h *CustomDomainHandler) authProxyRoute(host, upstream string) map[string]a
 				"handler": "subroute",
 				"routes": []any{
 					map[string]any{
-						"match": []any{map[string]any{"header": map[string][]string{"X-Internal-Secret": {"{env.LLMVAULT_INTERNAL_SECRET}"}}}},
+						"match": []any{map[string]any{"header": map[string][]string{"X-Internal-Secret": {"{env.ZIRALOOP_INTERNAL_SECRET}"}}}},
 						"handle": []any{map[string]any{
 							"handler":   "reverse_proxy",
 							"upstreams": []any{map[string]string{"dial": upstream}},
@@ -558,7 +558,7 @@ func (h *CustomDomainHandler) simpleProxyRoute(host, upstream string, websocket 
 
 func (h *CustomDomainHandler) dexRoute() map[string]any {
 	return map[string]any{
-		"match": []any{map[string]any{"host": []string{"dex.daytona.llmvault.dev"}}},
+		"match": []any{map[string]any{"host": []string{"dex.daytona.ziraloop.com"}}},
 		"handle": []any{
 			map[string]any{
 				"handler": "subroute",
@@ -568,7 +568,7 @@ func (h *CustomDomainHandler) dexRoute() map[string]any {
 							"handler": "headers",
 							"response": map[string]any{
 								"set": map[string][]string{
-									"Access-Control-Allow-Origin":  {"https://api.daytona.llmvault.dev"},
+									"Access-Control-Allow-Origin":  {"https://api.daytona.ziraloop.com"},
 									"Access-Control-Allow-Methods": {"GET, OPTIONS"},
 									"Access-Control-Allow-Headers": {"Content-Type, Authorization"},
 								},

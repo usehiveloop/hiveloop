@@ -1,11 +1,11 @@
-# LLMVault — Content Strategy
+# ZiraLoop — Content Strategy
 
 ---
 
 ## Content Goals
 
 1. **SEO**: Rank for high-intent developer keywords around LLM key management, BYOK, and API proxying
-2. **Authority**: Establish LLMVault as the definitive voice on LLM credential security
+2. **Authority**: Establish ZiraLoop as the definitive voice on LLM credential security
 3. **Conversion**: Drive developers from content → docs → signup → first proxy request
 4. **Education**: Create the category of "LLM credential management" (it doesn't formally exist yet)
 
@@ -36,33 +36,33 @@ Working with multiple LLM providers — auth schemes, streaming differences, fai
    - Audience: Platform Pete, CTO Chris
    - Keywords: "store api keys securely", "api key encryption best practices"
    - Content: Walk through common mistakes (plaintext in env vars, simple AES without KMS, keys in logs, cached plaintext), explain what proper key management looks like
-   - CTA: "LLMVault handles this → Get Started"
+   - CTA: "ZiraLoop handles this → Get Started"
 
 2. **"Envelope Encryption for API Keys: A Practical Guide"**
    - Type: Technical education
    - Audience: Platform Pete, Sandbox Sam
    - Keywords: "envelope encryption", "api key encryption kms"
-   - Content: Deep technical walkthrough of envelope encryption pattern — DEK generation, AES-GCM encryption, KMS wrapping, key rotation. Show how LLMVault implements it.
-   - CTA: "See how LLMVault implements this → Architecture Docs"
+   - Content: Deep technical walkthrough of envelope encryption pattern — DEK generation, AES-GCM encryption, KMS wrapping, key rotation. Show how ZiraLoop implements it.
+   - CTA: "See how ZiraLoop implements this → Architecture Docs"
 
 3. **"Building BYOK (Bring Your Own Key) for Your AI Product"**
    - Type: Architecture guide
    - Audience: Platform Pete, CTO Chris
    - Keywords: "bring your own key", "byok saas", "customer api key management"
-   - Content: Full architecture guide for BYOK — key ingestion, storage, proxying, revocation, audit trails. Show the build-it-yourself approach, then show the LLMVault approach.
+   - Content: Full architecture guide for BYOK — key ingestion, storage, proxying, revocation, audit trails. Show the build-it-yourself approach, then show the ZiraLoop approach.
    - CTA: "Ship BYOK in days → Quick Start"
 
 4. **"Scoped Credentials for AI Agents: Why Short-Lived Tokens Matter"**
    - Type: Problem-solution
    - Audience: Sandbox Sam
    - Keywords: "ai agent credentials", "sandbox api key", "short lived tokens"
-   - Content: Why real API keys don't belong in sandboxes. Blast radius analysis. How scoped, short-lived tokens limit damage. LLMVault's token minting and revocation.
+   - Content: Why real API keys don't belong in sandboxes. Blast radius analysis. How scoped, short-lived tokens limit damage. ZiraLoop's token minting and revocation.
    - CTA: "Give agents tokens, not keys → Get Started"
 
-5. **"Introducing LLMVault: The Missing Layer Between Your App and LLM Providers"** (Launch Announcement)
+5. **"Introducing ZiraLoop: The Missing Layer Between Your App and LLM Providers"** (Launch Announcement)
    - Type: Product launch
    - Audience: All personas
-   - Keywords: "llmvault", "llm proxy", "llm key management"
+   - Keywords: "ziraloop", "llm proxy", "llm key management"
    - Content: What we built, why we built it, who it's for, how to get started
    - Distribution: Hacker News, Twitter, Reddit, dev newsletters
 
@@ -127,9 +127,9 @@ Working with multiple LLM providers — auth schemes, streaming differences, fai
 ## Distribution Channels
 
 ### Owned
-- Blog (llmvault.dev/blog)
-- Documentation (llmvault.dev/docs)
-- Changelog (llmvault.dev/changelog)
+- Blog (ziraloop.com/blog)
+- Documentation (ziraloop.com/docs)
+- Changelog (ziraloop.com/changelog)
 - Email newsletter (for updates and new content)
 
 ### Earned

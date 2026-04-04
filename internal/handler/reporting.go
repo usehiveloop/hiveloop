@@ -8,7 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/middleware"
 )
 
 // ReportingHandler serves analytics reporting from the generations table.

@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/registry"
 )
 
 // Cached token discount factors by provider.

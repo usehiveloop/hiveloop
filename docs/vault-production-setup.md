@@ -1,6 +1,6 @@
-# HashiCorp Vault Production Setup for LLMVault
+# HashiCorp Vault Production Setup for ZiraLoop
 
-This guide covers setting up HashiCorp Vault in production for envelope encryption with LLMVault.
+This guide covers setting up HashiCorp Vault in production for envelope encryption with ZiraLoop.
 
 ## Table of Contents
 
@@ -38,7 +38,7 @@ This guide covers setting up HashiCorp Vault in production for envelope encrypti
 │  ┌───────────────────────────┼─────────────────────────────┐   │
 │  │        Private Subnet     │                             │   │
 │  │  ┌──────────────────────┐ │  ┌──────────────────────┐   │   │
-│  │  │   LLMVault ECS/EKS   │◄┘  │   LLMVault ECS/EKS   │   │   │
+│  │  │   ZiraLoop ECS/EKS   │◄┘  │   ZiraLoop ECS/EKS   │   │   │
 │  │  │   (Task 1)           │    │   (Task 2)           │   │   │
 │  │  └──────────────────────┘    └──────────────────────┘   │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -63,8 +63,8 @@ This guide covers setting up HashiCorp Vault in production for envelope encrypti
 1. Sign up at [portal.cloud.hashicorp.com](https://portal.cloud.hashicorp.com)
 2. Create a Vault cluster in your preferred region
 3. Enable Transit engine via UI or API
-4. Create `llmvault-key` encryption key
-5. Create AppRole auth for LLMVault
+4. Create `ziraloop-key` encryption key
+5. Create AppRole auth for ZiraLoop
 
 **Pros:**
 - Zero operational overhead
@@ -418,51 +418,51 @@ vault login -method=userpass username=admin
 # Enable Transit engine
 vault secrets enable -path=transit transit
 
-# Create the encryption key for LLMVault
-vault write -f transit/keys/llmvault-key
+# Create the encryption key for ZiraLoop
+vault write -f transit/keys/ziraloop-key
 
 # Enable automatic key rotation (recommended)
-vault write transit/keys/llmvault-key/config \
+vault write transit/keys/ziraloop-key/config \
   auto_rotate_period=768h  # Rotate every 32 days
 
 # Verify key
-vault read transit/keys/llmvault-key
+vault read transit/keys/ziraloop-key
 ```
 
-### 2. Create Vault Policies for LLMVault
+### 2. Create Vault Policies for ZiraLoop
 
 ```hcl
-# llmvault-policy.hcl
+# ziraloop-policy.hcl
 
 # Read key metadata (needed for operations)
-path "transit/keys/llmvault-key" {
+path "transit/keys/ziraloop-key" {
   capabilities = ["read"]
 }
 
 # Encrypt DEKs
-path "transit/encrypt/llmvault-key" {
+path "transit/encrypt/ziraloop-key" {
   capabilities = ["update"]
 }
 
 # Decrypt DEKs
-path "transit/decrypt/llmvault-key" {
+path "transit/decrypt/ziraloop-key" {
   capabilities = ["update"]
 }
 
 # Generate data keys (optional - if you want Vault to generate DEKs)
-path "transit/datakey/plaintext/llmvault-key" {
+path "transit/datakey/plaintext/ziraloop-key" {
   capabilities = ["update"]
 }
 
 # Rotate key (if you want application to trigger rotation)
-path "transit/keys/llmvault-key/rotate" {
+path "transit/keys/ziraloop-key/rotate" {
   capabilities = ["update"]
 }
 ```
 
 ```bash
 # Create the policy
-vault policy write llmvault-production llmvault-policy.hcl
+vault policy write ziraloop-production ziraloop-policy.hcl
 ```
 
 ### 3. Configure Authentication
@@ -473,25 +473,25 @@ vault policy write llmvault-production llmvault-policy.hcl
 # Enable AppRole auth
 vault auth enable approle
 
-# Create AppRole for LLMVault
-vault write auth/approle/role/llmvault \
-  token_policies="llmvault-production" \
+# Create AppRole for ZiraLoop
+vault write auth/approle/role/ziraloop \
+  token_policies="ziraloop-production" \
   token_ttl=1h \
   token_max_ttl=4h \
   secret_id_ttl=24h \
   secret_id_num_uses=0
 
 # Get RoleID
-vault read auth/approle/role/llmvault/role-id
+vault read auth/approle/role/ziraloop/role-id
 
 # Generate SecretID
-vault write -f auth/approle/role/llmvault/secret-id
+vault write -f auth/approle/role/ziraloop/secret-id
 ```
 
 **Application configuration:**
 ```bash
 KMS_TYPE=vault
-KMS_KEY=llmvault-key
+KMS_KEY=ziraloop-key
 VAULT_ADDRESS=https://vault.internal.yourcompany.com:8200
 VAULT_AUTH_METHOD=approle
 VAULT_ROLE_ID=your-role-id
@@ -510,11 +510,11 @@ vault write auth/kubernetes/config \
   token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
   kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-# Create role for LLMVault service account
-vault write auth/kubernetes/role/llmvault \
-  bound_service_account_names=llmvault \
+# Create role for ZiraLoop service account
+vault write auth/kubernetes/role/ziraloop \
+  bound_service_account_names=ziraloop \
   bound_service_account_namespaces=production \
-  policies=llmvault-production \
+  policies=ziraloop-production \
   ttl=1h
 ```
 
@@ -524,20 +524,20 @@ vault write auth/kubernetes/role/llmvault \
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: llmvault
+  name: ziraloop
 spec:
   template:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "llmvault"
+        vault.hashicorp.com/role: "ziraloop"
         vault.hashicorp.com/agent-inject-secret-vault-token: "auth/token/lookup-self"
         vault.hashicorp.com/agent-inject-template-vault-token: |
           {{ with secret "auth/token/lookup-self" }}{{ .Data.id }}{{ end }}
     spec:
-      serviceAccountName: llmvault
+      serviceAccountName: ziraloop
       containers:
-      - name: llmvault
+      - name: ziraloop
         env:
         - name: VAULT_TOKEN
           value: "/vault/secrets/vault-token"
@@ -556,10 +556,10 @@ vault write auth/aws/config/client \
   iam_server_id_header_value="vault.yourcompany.com"
 
 # Create role
-vault write auth/aws/role/llmvault-ecs \
+vault write auth/aws/role/ziraloop-ecs \
   auth_type=iam \
-  bound_iam_principal_arn="arn:aws:iam::ACCOUNT:role/llmvault-ecs-task-role" \
-  policies=llmvault-production \
+  bound_iam_principal_arn="arn:aws:iam::ACCOUNT:role/ziraloop-ecs-task-role" \
+  policies=ziraloop-production \
   ttl=1h
 ```
 
@@ -717,7 +717,7 @@ telemetry {
 ```bash
 # Required
 export KMS_TYPE=vault
-export KMS_KEY=llmvault-key
+export KMS_KEY=ziraloop-key
 export VAULT_ADDRESS=https://vault.internal.yourcompany.com:8200
 export VAULT_TOKEN=s.token_from_auth_method
 
@@ -731,7 +731,7 @@ export VAULT_CLIENT_TIMEOUT=30s
 export VAULT_MAX_RETRIES=3
 ```
 
-### Health Check for LLMVault
+### Health Check for ZiraLoop
 
 ```go
 // Add to your health check endpoint
@@ -758,14 +758,14 @@ func vaultHealthCheck(ctx context.Context, vaultWrapper *crypto.KeyWrapper) erro
 
 ```bash
 # 1. Rotate Vault Transit key (creates new key version)
-vault write -f transit/keys/llmvault-key/rotate
+vault write -f transit/keys/ziraloop-key/rotate
 
 # 2. Re-encrypt existing DEKs (optional, gradual migration)
 # This is typically not needed - old ciphertext decrypts with old key version
 # Only new DEKs use the new key version
 
 # 3. Update min_decryption_version to prevent downgrade attacks
-vault write transit/keys/llmvault-key/config \
+vault write transit/keys/ziraloop-key/config \
   min_decryption_version=2
 
 # 4. Monitor for any decryption failures
@@ -791,10 +791,10 @@ vault write transit/keys/llmvault-key/config \
 curl https://vault.internal:8200/v1/sys/health
 
 # Check key status
-vault read transit/keys/llmvault-key
+vault read transit/keys/ziraloop-key
 
 # Rotate key
-vault write -f transit/keys/llmvault-key/rotate
+vault write -f transit/keys/ziraloop-key/rotate
 
 # View audit logs
 vault audit list
@@ -806,7 +806,7 @@ vault token lookup
 vault token renew
 
 # Revoke token (emergency)
-vault token revoke -mode=path auth/approle/role/llmvault
+vault token revoke -mode=path auth/approle/role/ziraloop
 
 # Seal Vault (emergency - stops all operations!)
 vault operator seal

@@ -18,14 +18,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const (
-	testDBURL     = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+	testDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 	testRedisAddr = "localhost:6379"
 )
 
@@ -167,8 +167,8 @@ func TestAPIKeyHandler_Create_Success(t *testing.T) {
 
 	// Plaintext key must be present and have correct prefix
 	key, ok := resp["key"].(string)
-	if !ok || !strings.HasPrefix(key, "llmv_sk_") {
-		t.Fatalf("expected key with llmv_sk_ prefix, got %v", resp["key"])
+	if !ok || !strings.HasPrefix(key, "zira_sk_") {
+		t.Fatalf("expected key with zira_sk_ prefix, got %v", resp["key"])
 	}
 	if len(key) != 72 {
 		t.Fatalf("expected key length 72, got %d", len(key))

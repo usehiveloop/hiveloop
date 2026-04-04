@@ -12,7 +12,7 @@ import (
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types" // used for snapshot creation
 
-	"github.com/llmvault/llmvault/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
 )
 
 const (
@@ -71,7 +71,7 @@ func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOp
 	if opts.SnapshotID != "" {
 		body["snapshot"] = opts.SnapshotID
 	} else {
-		body["image"] = "llmvault/bridge:latest"
+		body["image"] = "ziraloop/bridge:latest"
 	}
 
 	b, _ := json.Marshal(body)

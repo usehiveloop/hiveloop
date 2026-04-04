@@ -20,8 +20,8 @@ import (
 	googleOAuth "golang.org/x/oauth2/google"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // oauthProfile holds the normalised user info fetched from an OAuth provider.

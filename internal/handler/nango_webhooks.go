@@ -17,8 +17,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
@@ -52,7 +52,7 @@ type nangoWebhook struct {
 }
 
 // webhookPayload is the enriched payload sent to the org's webhook endpoint.
-// Nango-specific fields are stripped; LLMVault IDs are used instead.
+// Nango-specific fields are stripped; ZiraLoop IDs are used instead.
 type webhookPayload struct {
 	Type      string          `json:"type"`
 	Provider  string          `json:"provider"`
@@ -221,7 +221,7 @@ func (h *NangoWebhookHandler) forwardToOrg(
 		return http.StatusBadGateway, nil, true
 	}
 
-	// Build enriched payload (LLMVault IDs, no Nango internals).
+	// Build enriched payload (ZiraLoop IDs, no Nango internals).
 	provider := wh.Provider
 	payload := webhookPayload{
 		Type:      wh.Type,
@@ -263,8 +263,8 @@ func (h *NangoWebhookHandler) forwardToOrg(
 		return http.StatusBadGateway, nil, true
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-LLMVault-Signature", signature)
-	req.Header.Set("X-LLMVault-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Set("X-ZiraLoop-Signature", signature)
+	req.Header.Set("X-ZiraLoop-Timestamp", fmt.Sprintf("%d", timestamp))
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {

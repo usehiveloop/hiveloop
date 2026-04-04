@@ -27,7 +27,7 @@ This isn't a theoretical risk. It's the defining cybersecurity challenge of 2026
 
 ## The Solution
 
-LLMVault Permissions enforces action-level, resource-level, time-limited scoping for every agent credential — validated against an embedded catalog of provider actions. Agents can only do what they're explicitly allowed to do, for as long as they're allowed to do it.
+ZiraLoop Permissions enforces action-level, resource-level, time-limited scoping for every agent credential — validated against an embedded catalog of provider actions. Agents can only do what they're explicitly allowed to do, for as long as they're allowed to do it.
 
 ---
 
@@ -110,7 +110,7 @@ If any validation fails, the token is not minted. There is no way to create an o
 
 ## Permission Layers
 
-LLMVault enforces permissions at five layers:
+ZiraLoop enforces permissions at five layers:
 
 ### Layer 1: Token Scopes (Action + Resource Level)
 Per-action, per-resource, per-connection scoping on every minted token. Validated against the catalog.
@@ -160,7 +160,7 @@ Per-identity rate limits configured as an array of `{name, limit, duration_ms}` 
 
 ## The Catalog
 
-LLMVault ships with embedded action catalogs for 45+ providers, compiled at build time via `go:embed`. Each catalog defines:
+ZiraLoop ships with embedded action catalogs for 45+ providers, compiled at build time via `go:embed`. Each catalog defines:
 
 - **Actions** — key, display_name, description, access level (read/write), resource_type, JSON Schema parameters, execution config (HTTP method, path, body/query mapping, headers, response_path)
 - **Resources** — resource types with display_name, id_field, name_field, list_action, and optional request_config for discovery

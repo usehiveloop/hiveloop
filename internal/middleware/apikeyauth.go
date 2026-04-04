@@ -8,12 +8,12 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/goroutine"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
-// APIKeyAuth returns middleware that authenticates requests using self-issued API keys (llmv_sk_*).
+// APIKeyAuth returns middleware that authenticates requests using self-issued API keys (zira_sk_*).
 // It checks the in-memory cache first, then falls back to the database.
 func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -24,7 +24,7 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 				return
 			}
 
-			if !strings.HasPrefix(rawKey, "llmv_sk_") {
+			if !strings.HasPrefix(rawKey, "zira_sk_") {
 				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid api key format"})
 				return
 			}
@@ -104,7 +104,7 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 }
 
 // MultiAuth dispatches authentication based on the bearer token prefix:
-// - "llmv_sk_*" → API Key auth
+// - "zira_sk_*" → API Key auth
 // - everything else → Embedded JWT auth (RS256)
 func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
 	authMW := RequireAuth(pubKey, issuer, audience)
@@ -118,7 +118,7 @@ func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyC
 				return
 			}
 
-			if strings.HasPrefix(token, "llmv_sk_") {
+			if strings.HasPrefix(token, "zira_sk_") {
 				apiKeyMW(next).ServeHTTP(w, r)
 			} else {
 				authMW(next).ServeHTTP(w, r)

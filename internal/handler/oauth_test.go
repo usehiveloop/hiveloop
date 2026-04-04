@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ func newOAuthHarness(t *testing.T) *oauthTestHarness {
 
 	h := handler.NewOAuthHandler(
 		db, pk, signingKey,
-		"llmvault-test", "http://localhost:8080",
+		"ziraloop-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		"http://localhost:3000",
 		"", "", // no GitHub creds
@@ -80,7 +80,7 @@ func newOAuthHarnessWithProviders(t *testing.T) *oauthTestHarness {
 
 	h := handler.NewOAuthHandler(
 		db, pk, signingKey,
-		"llmvault-test", "http://localhost:8080",
+		"ziraloop-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		"http://localhost:3000",
 		"gh-client-id", "gh-client-secret",
