@@ -123,6 +123,16 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 // identify resolves the org, integration, and connection from the webhook.
 func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
+	// Handle in-integration webhooks (in_{uniqueKey} prefix)
+	if strings.HasPrefix(wh.ProviderConfigKey, "in_") {
+		slog.Info("nango webhook received for in-integration",
+			"webhook_type", wh.Type,
+			"provider_config_key", wh.ProviderConfigKey,
+			"connection_id", wh.ConnectionID,
+		)
+		return nil // acknowledged — no forwarding for in-integrations yet
+	}
+
 	orgID, uniqueKey, ok := parseProviderConfigKey(wh.ProviderConfigKey)
 	if !ok {
 		slog.Warn("nango webhook: unable to parse providerConfigKey",

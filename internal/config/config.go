@@ -68,6 +68,12 @@ type Config struct {
 	// Auth: auto-confirm email on registration (useful for self-hosted deployments)
 	AutoConfirmEmail bool `env:"AUTO_CONFIRM_EMAIL" envDefault:"false"`
 
+	// OAuth (social login)
+	OAuthGitHubClientID     string `env:"OAUTH_GITHUB_CLIENT_ID"`
+	OAuthGitHubClientSecret string `env:"OAUTH_GITHUB_CLIENT_SECRET"`
+	OAuthGoogleClientID     string `env:"OAUTH_GOOGLE_CLIENT_ID"`
+	OAuthGoogleClientSecret string `env:"OAUTH_GOOGLE_CLIENT_SECRET"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:","`
 
@@ -97,6 +103,9 @@ type Config struct {
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
+
+	// Platform admin (comma-separated email allowlist)
+	PlatformAdminEmails string `env:"PLATFORM_ADMIN_EMAILS"`
 
 	// Custom preview domains
 	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.llmvault.dev"`

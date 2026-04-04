@@ -297,7 +297,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !auth.CheckPassword(user.PasswordHash, req.Password) {
+	if user.PasswordHash == "" || !auth.CheckPassword(user.PasswordHash, req.Password) {
 		h.recordLoginFailure(req.Email)
 		slog.Warn("login failed", "email", req.Email, "reason", "invalid_credentials")
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
@@ -837,6 +837,11 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	if err := h.db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+		return
+	}
+
+	if user.PasswordHash == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password login not configured for this account"})
 		return
 	}
 

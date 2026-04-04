@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -71,6 +72,54 @@ func ResolveOrgFromClaims(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(w, WithOrg(r, &org))
+		})
+	}
+}
+
+// ResolveUser returns middleware that reads user_id from AuthClaims,
+// loads the User by primary key, and sets it on the context.
+func ResolveUser(db *gorm.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := AuthClaimsFromContext(r.Context())
+			if !ok || claims.UserID == "" {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
+				return
+			}
+
+			var user model.User
+			if err := db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "user not found"})
+				return
+			}
+
+			next.ServeHTTP(w, WithUser(r, &user))
+		})
+	}
+}
+
+// RequirePlatformAdmin returns middleware that checks if the authenticated user's
+// email is in the platform admin allowlist.
+func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler {
+	emailSet := make(map[string]bool, len(adminEmails))
+	for _, e := range adminEmails {
+		trimmed := strings.TrimSpace(e)
+		if trimmed != "" {
+			emailSet[trimmed] = true
+		}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user, ok := UserFromContext(r.Context())
+			if !ok {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
+				return
+			}
+			if !emailSet[user.Email] {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "platform admin access required"})
+				return
+			}
+			next.ServeHTTP(w, r)
 		})
 	}
 }
