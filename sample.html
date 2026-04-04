@@ -1,0 +1,1689 @@
+<html lang="en" class="dark" vid="0" style="background-color: rgb(46, 46, 46);"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">LLMVault - Production Grade AI Agents</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="6">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="7">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" vid="8">
+    <script src="https://unpkg.com/@phosphor-icons/web" vid="9"></script><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/thin/style.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/light/style.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css"><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
+    <style vid="10">
+        :root {
+            --background: oklch(.185 .015 55);
+            --foreground: #F0EDE6;
+            --card: oklch(.22 .013 55);
+            --card-foreground: #F0EDE6;
+            --popover: oklch(.22 .013 55);
+            --popover-foreground: #F0EDE6;
+            --primary: oklch(.6329 .2075 31.49);
+            --primary-foreground: #F0EDE6;
+            --secondary: oklch(.24 .011 55);
+            --secondary-foreground: #F0EDE6;
+            --muted: oklch(.22 .013 55);
+            --muted-foreground: rgba(240, 237, 230, .4);
+            --accent: oklch(.25 .011 55);
+            --accent-foreground: #F0EDE6;
+            --destructive: oklch(.6329 .2075 31.49);
+            --border: rgba(240, 237, 230, .14);
+            --input: rgba(240, 237, 230, .14);
+            --ring: oklch(.6329 .2075 31.49);
+            --chart-1: oklch(.6329 .2075 31.49);
+            --chart-2: oklch(.6329 .2075 31.49 / 60%);
+            --chart-3: oklch(.5312 .260273 266.7713);
+            --chart-4: oklch(.8003 .1821 151.71);
+            --chart-5: oklch(.8003 .1821 151.71 / 75%);
+            --surface: oklch(.22 .013 55);
+            --dim: rgba(240, 237, 230, .35);
+            --success: oklch(.8003 .1821 151.71);
+            --success-foreground: oklch(.8003 .1821 151.71 / 75%);
+            --warning: #EAB308;
+            --warning-foreground: #FACC15;
+            --info: oklch(.5312 .260273 266.7713);
+            --info-foreground: oklch(.5312 .260273 266.7713);
+            --code: oklch(.16 .015 55);
+            --radius: 4px;
+            --sidebar: oklch(.185 .015 55);
+            --sidebar-foreground: #F0EDE6;
+            --sidebar-primary: oklch(.6329 .2075 31.49);
+            --sidebar-primary-foreground: #F0EDE6;
+            --sidebar-accent: oklch(.25 .011 55);
+            --sidebar-accent-foreground: #F0EDE6;
+            --sidebar-border: rgba(240, 237, 230, .14);
+            --sidebar-ring: oklch(.6329 .2075 31.49);
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 20px -5px var(--primary);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background-color: var(--secondary);
+        }
+
+        .glass-card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .grid-bg {
+            background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+        }
+
+        .hero-glow {
+            background: radial-gradient(circle at 50% 50%, oklch(.6329 .2075 31.49 / 0.12) 0%, transparent 70%);
+        }
+
+        .glow-dot {
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted-foreground);
+        }
+    </style>
+    
+
+  <style type="text/css">
+*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  tab-size: 4; /* 3 */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.fixed {
+  position: fixed;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.inset-0 {
+  inset: 0px;
+}
+.-bottom-12 {
+  bottom: -3rem;
+}
+.-left-12 {
+  left: -3rem;
+}
+.-right-12 {
+  right: -3rem;
+}
+.-top-12 {
+  top: -3rem;
+}
+.bottom-6 {
+  bottom: 1.5rem;
+}
+.left-1\/2 {
+  left: 50%;
+}
+.right-6 {
+  right: 1.5rem;
+}
+.top-0 {
+  top: 0px;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-50 {
+  z-index: 50;
+}
+.col-span-1 {
+  grid-column: span 1 / span 1;
+}
+.col-span-3 {
+  grid-column: span 3 / span 3;
+}
+.col-span-9 {
+  grid-column: span 9 / span 9;
+}
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+.mb-10 {
+  margin-bottom: 2.5rem;
+}
+.mb-12 {
+  margin-bottom: 3rem;
+}
+.mb-16 {
+  margin-bottom: 4rem;
+}
+.mb-24 {
+  margin-bottom: 6rem;
+}
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+.mb-8 {
+  margin-bottom: 2rem;
+}
+.ml-4 {
+  margin-left: 1rem;
+}
+.flex {
+  display: flex;
+}
+.inline-flex {
+  display: inline-flex;
+}
+.grid {
+  display: grid;
+}
+.hidden {
+  display: none;
+}
+.h-1 {
+  height: 0.25rem;
+}
+.h-1\.5 {
+  height: 0.375rem;
+}
+.h-12 {
+  height: 3rem;
+}
+.h-2 {
+  height: 0.5rem;
+}
+.h-20 {
+  height: 5rem;
+}
+.h-24 {
+  height: 6rem;
+}
+.h-3 {
+  height: 0.75rem;
+}
+.h-32 {
+  height: 8rem;
+}
+.h-6 {
+  height: 1.5rem;
+}
+.h-8 {
+  height: 2rem;
+}
+.h-\[300px\] {
+  height: 300px;
+}
+.h-full {
+  height: 100%;
+}
+.min-h-screen {
+  min-height: 100vh;
+}
+.w-1\.5 {
+  width: 0.375rem;
+}
+.w-12 {
+  width: 3rem;
+}
+.w-2 {
+  width: 0.5rem;
+}
+.w-24 {
+  width: 6rem;
+}
+.w-3 {
+  width: 0.75rem;
+}
+.w-32 {
+  width: 8rem;
+}
+.w-4 {
+  width: 1rem;
+}
+.w-56 {
+  width: 14rem;
+}
+.w-6 {
+  width: 1.5rem;
+}
+.w-8 {
+  width: 2rem;
+}
+.w-\[600px\] {
+  width: 600px;
+}
+.w-full {
+  width: 100%;
+}
+.max-w-2xl {
+  max-width: 42rem;
+}
+.max-w-4xl {
+  max-width: 56rem;
+}
+.max-w-6xl {
+  max-width: 72rem;
+}
+.max-w-\[1280px\] {
+  max-width: 1280px;
+}
+.max-w-xl {
+  max-width: 36rem;
+}
+.-translate-x-1\/2 {
+  --tw-translate-x: -50%;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+@keyframes ping {
+
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes pulse {
+
+  50% {
+    opacity: .5;
+  }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.cursor-default {
+  cursor: default;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.select-none {
+  user-select: none;
+}
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-12 {
+  gap: 3rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-2\.5 {
+  gap: 0.625rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.gap-8 {
+  gap: 2rem;
+}
+.gap-x-20 {
+  column-gap: 5rem;
+}
+.gap-y-12 {
+  row-gap: 3rem;
+}
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.rounded-brand {
+  border-radius: var(--radius);
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.border {
+  border-width: 1px;
+}
+.border-2 {
+  border-width: 2px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-r {
+  border-right-width: 1px;
+}
+.border-t {
+  border-top-width: 1px;
+}
+.border-border {
+  border-color: var(--border);
+}
+.bg-accent {
+  background-color: var(--accent);
+}
+.bg-background {
+  background-color: var(--background);
+}
+.bg-border {
+  background-color: var(--border);
+}
+.bg-code {
+  background-color: var(--code);
+}
+.bg-info {
+  background-color: var(--info);
+}
+.bg-primary {
+  background-color: var(--primary);
+}
+.bg-success {
+  background-color: var(--success);
+}
+.bg-surface {
+  background-color: var(--surface);
+}
+.p-16 {
+  padding: 4rem;
+}
+.p-2 {
+  padding: 0.5rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-8 {
+  padding: 2rem;
+}
+.px-10 {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.py-2\.5 {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+.py-20 {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.py-3\.5 {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+.pb-32 {
+  padding-bottom: 8rem;
+}
+.pb-40 {
+  padding-bottom: 10rem;
+}
+.pt-20 {
+  padding-top: 5rem;
+}
+.pt-24 {
+  padding-top: 6rem;
+}
+.pt-8 {
+  padding-top: 2rem;
+}
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+.text-6xl {
+  font-size: 3.75rem;
+  line-height: 1;
+}
+.text-\[10px\] {
+  font-size: 10px;
+}
+.text-\[11px\] {
+  font-size: 11px;
+}
+.text-\[9px\] {
+  font-size: 9px;
+}
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.font-bold {
+  font-weight: 700;
+}
+.font-medium {
+  font-weight: 500;
+}
+.font-normal {
+  font-weight: 400;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.italic {
+  font-style: italic;
+}
+.leading-\[1\.05\] {
+  line-height: 1.05;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.tracking-\[0\.2em\] {
+  letter-spacing: 0.2em;
+}
+.tracking-\[0\.4em\] {
+  letter-spacing: 0.4em;
+}
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+.tracking-tighter {
+  letter-spacing: -0.05em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+.text-foreground {
+  color: var(--foreground);
+}
+.text-info {
+  color: var(--info);
+}
+.text-muted-foreground {
+  color: var(--muted-foreground);
+}
+.text-primary {
+  color: var(--primary);
+}
+.text-success {
+  color: var(--success);
+}
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.opacity-10 {
+  opacity: 0.1;
+}
+.opacity-40 {
+  opacity: 0.4;
+}
+.opacity-50 {
+  opacity: 0.5;
+}
+.opacity-75 {
+  opacity: 0.75;
+}
+.shadow-2xl {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-\[0_32px_64px_-16px_rgba\(0\2c 0\2c 0\2c 0\.5\)\] {
+  --tw-shadow: 0 32px 64px -16px rgba(0,0,0,0.5);
+  --tw-shadow-colored: 0 32px 64px -16px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-sm {
+  --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.shadow-xl {
+  --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+.blur-3xl {
+  --tw-blur: blur(64px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.blur-\[100px\] {
+  --tw-blur: blur(100px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.grayscale {
+  --tw-grayscale: grayscale(100%);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.backdrop-blur-md {
+  --tw-backdrop-blur: blur(12px);
+  -webkit-backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+  backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+}
+.backdrop-blur-xl {
+  --tw-backdrop-blur: blur(24px);
+  -webkit-backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+  backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+}
+.transition {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.duration-300 {
+  transition-duration: 300ms;
+}
+.duration-700 {
+  transition-duration: 700ms;
+}
+.selection\:text-white *::selection {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.selection\:text-white::selection {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.hover\:bg-surface:hover {
+  background-color: var(--surface);
+}
+.hover\:text-foreground:hover {
+  color: var(--foreground);
+}
+.hover\:text-primary:hover {
+  color: var(--primary);
+}
+.hover\:opacity-100:hover {
+  opacity: 1;
+}
+.hover\:grayscale-0:hover {
+  --tw-grayscale: grayscale(0);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.group:hover .group-hover\:scale-105 {
+  --tw-scale-x: 1.05;
+  --tw-scale-y: 1.05;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.group:hover .group-hover\:bg-info {
+  background-color: var(--info);
+}
+.group:hover .group-hover\:bg-primary {
+  background-color: var(--primary);
+}
+.group:hover .group-hover\:bg-success {
+  background-color: var(--success);
+}
+.group:hover .group-hover\:text-info {
+  color: var(--info);
+}
+.group:hover .group-hover\:text-primary {
+  color: var(--primary);
+}
+.group:hover .group-hover\:text-success {
+  color: var(--success);
+}
+.group:hover .group-hover\:text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+@media (min-width: 640px) {
+
+  .sm\:flex-row {
+    flex-direction: row;
+  }
+}
+@media (min-width: 768px) {
+
+  .md\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .md\:flex {
+    display: flex;
+  }
+
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .md\:flex-row {
+    flex-direction: row;
+  }
+
+  .md\:text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  .md\:text-5xl {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .md\:text-7xl {
+    font-size: 4.5rem;
+    line-height: 1;
+  }
+}* {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style></head>
+<body class="w-full h-full min-h-screen selection:bg-primary/30 selection:text-white" vid="12">
+
+    
+    <nav class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border" vid="13">
+        <div class="max-w-[1280px] mx-auto px-8 h-20 flex items-center justify-between" vid="14">
+            <div class="flex items-center gap-8" vid="15">
+                <a href="#" class="flex items-center gap-2 group" vid="16">
+                    <div class="w-8 h-8 bg-primary rounded-brand flex items-center justify-center transition-transform group-hover:scale-105" vid="17">
+                        <i class="ph-fill ph-vault text-white text-lg" vid="18"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight" vid="19">LLMVault</span>
+                </a>
+                
+                <div class="hidden md:flex items-center gap-6" vid="20">
+                    <a href="#" class="text-sm font-medium hover:text-primary transition-colors" vid="21">Platform</a>
+                    <a href="#" class="text-sm font-medium hover:text-primary transition-colors" vid="22">Solutions</a>
+                    <a href="#" class="text-sm font-medium hover:text-primary transition-colors" vid="23">Documentation</a>
+                    <a href="#" class="text-sm font-medium hover:text-primary transition-colors" vid="24">Pricing</a>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4" vid="25">
+                <button class="text-sm font-medium px-4 py-2 hover:text-primary transition-colors" vid="26">Sign in</button>
+                <button class="btn-primary text-sm font-semibold px-5 py-2.5" vid="27">
+                    Start Building
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="w-full pt-20" vid="28">
+        
+        <section class="relative pt-24 pb-32 overflow-hidden" vid="29">
+            <div class="absolute inset-0 grid-bg pointer-events-none" vid="30" style="
+    /* display: none; */
+"></div>
+            <div class="absolute inset-0 hero-glow pointer-events-none" vid="31" style="
+    /* display: none; */
+"></div>
+
+            <div class="max-w-[1280px] mx-auto px-8 relative z-10" vid="32" style="
+    /* display: none; */
+">
+                <div class="flex flex-col items-center text-center" vid="33">
+                    <div class="inline-flex items-center gap-2.5 px-4 py-1.5 bg-surface border border-border rounded-full mb-8 shadow-sm" vid="34">
+                        <span class="flex h-2 w-2 rounded-full bg-primary relative" vid="35">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" vid="36"></span>
+                        </span>
+                        <span class="text-[11px] font-bold uppercase tracking-widest text-muted-foreground" vid="37">Version 2.4 Production Ready</span>
+                    </div>
+
+                    <h1 class="text-6xl md:text-7xl font-bold tracking-tighter leading-[1.05] mb-8 max-w-4xl" vid="38">
+                        Build production grade <br vid="39">
+                        <span class="text-primary" vid="40">AI agents</span> at scale.
+                    </h1>
+
+                    <p class="text-xl md:text-2xl text-muted-foreground max-w-2xl mb-12 leading-relaxed font-normal" vid="41">
+                        The complete platform for building and running real-world agents with memory, observability and access control.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-4 mb-24" vid="42">
+                        <button class="btn-primary text-lg font-bold px-10 py-4 flex items-center gap-2 shadow-xl shadow-primary/20" vid="43">
+                            Get Started Free
+                            <i class="ph-bold ph-arrow-right" vid="44"></i>
+                        </button>
+                        <button class="btn-secondary text-lg font-medium px-10 py-4" vid="45">
+                            Book a Demo
+                        </button>
+                    </div>
+                </div>
+
+                
+                <div class="relative w-full max-w-6xl mx-auto" vid="46">
+                    
+                    <div class="glass-card overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]" vid="47">
+                        
+                        <div class="bg-surface/50 border-b border-border px-4 py-3 flex items-center justify-between" vid="48">
+                            <div class="flex items-center gap-2" vid="49">
+                                <div class="w-3 h-3 rounded-full bg-border" vid="50"></div>
+                                <div class="w-3 h-3 rounded-full bg-border" vid="51"></div>
+                                <div class="w-3 h-3 rounded-full bg-border" vid="52"></div>
+                                <span class="ml-4 text-xs font-medium text-muted-foreground mono tracking-wider" vid="53">deploy_agent.py</span>
+                            </div>
+                            <div class="flex items-center gap-6" vid="54">
+                                <div class="flex items-center gap-2" vid="55">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-success glow-dot animate-pulse" vid="56"></span>
+                                    <span class="text-[10px] mono text-success font-bold uppercase tracking-widest" vid="57">Connected: Prod-Cluster-01</span>
+                                </div>
+                                <i class="ph ph-dots-three-outline text-muted-foreground cursor-pointer hover:text-foreground" vid="58"></i>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-12" vid="59">
+                            
+                            <div class="col-span-3 border-r border-border bg-background/30 p-4 space-y-6" vid="60">
+                                <div vid="61">
+                                    <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4" vid="62">Memory Banks</h4>
+                                    <div class="space-y-2" vid="63">
+                                        <div class="flex items-center gap-2 p-2 bg-accent rounded-brand border border-border" vid="64">
+                                            <i class="ph ph-database text-info" vid="65"></i>
+                                            <span class="text-xs font-medium" vid="66">vector_store_primary</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 p-2 hover:bg-surface transition-colors cursor-pointer rounded-brand" vid="67">
+                                            <i class="ph ph-clock-counter-clockwise text-muted-foreground" vid="68"></i>
+                                            <span class="text-xs text-muted-foreground" vid="69">episodic_cache</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 p-2 hover:bg-surface transition-colors cursor-pointer rounded-brand" vid="70">
+                                            <i class="ph ph-shield-check text-muted-foreground" vid="71"></i>
+                                            <span class="text-xs text-muted-foreground" vid="72">pii_filter_layer</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div vid="73">
+                                    <h4 class="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4" vid="74">Active Agents</h4>
+                                    <div class="space-y-3" vid="75">
+                                        <div class="flex items-center justify-between" vid="76">
+                                            <div class="flex items-center gap-2" vid="77">
+                                                <div class="w-2 h-2 rounded-full bg-success" vid="78"></div>
+                                                <span class="text-xs font-mono" vid="79">support_alpha</span>
+                                            </div>
+                                            <span class="text-[9px] text-muted-foreground tracking-tighter" vid="80">842ms</span>
+                                        </div>
+                                        <div class="flex items-center justify-between opacity-50" vid="81">
+                                            <div class="flex items-center gap-2" vid="82">
+                                                <div class="w-2 h-2 rounded-full bg-background border border-border" vid="83"></div>
+                                                <span class="text-xs font-mono" vid="84">analyst_v2</span>
+                                            </div>
+                                            <span class="text-[9px] text-muted-foreground tracking-tighter" vid="85">OFF</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="col-span-9 bg-code p-8 text-left mono text-sm leading-relaxed relative overflow-hidden" vid="86">
+                                <div class="space-y-1" vid="87">
+                                    <div class="flex gap-4" vid="88">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="89">01</span>
+                                        <p vid="90"><span class="text-primary" vid="91">import</span> llmvault <span class="text-primary" vid="92">as</span> vault</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="93">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="94">02</span>
+                                        <p vid="95">&nbsp;</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="96">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="97">03</span>
+                                        <p vid="98"><span class="text-muted-foreground italic" vid="99"># Initialize a production-ready vault with RAG &amp; Guardrails</span></p>
+                                    </div>
+                                    <div class="flex gap-4" vid="100">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="101">04</span>
+                                        <p vid="102">agent = vault.<span class="text-info" vid="103">Agent</span>(</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="104">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="105">05</span>
+                                        <p vid="106">&nbsp;&nbsp;&nbsp;&nbsp;name=<span class="text-success" vid="107">"Customer_Concierge_V4"</span>,</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="108">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="109">06</span>
+                                        <p vid="110">&nbsp;&nbsp;&nbsp;&nbsp;memory=vault.<span class="text-info" vid="111">LongTermMemory</span>(),</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="112">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="113">07</span>
+                                        <p vid="114">&nbsp;&nbsp;&nbsp;&nbsp;observability=<span class="text-primary" vid="115">True</span>,</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="116">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="117">08</span>
+                                        <p vid="118">&nbsp;&nbsp;&nbsp;&nbsp;guardrails=[<span class="text-success" vid="119">"pii_masking"</span>, <span class="text-success" vid="120">"toxicity_filter"</span>]</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="121">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="122">09</span>
+                                        <p vid="123">)</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="124">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="125">10</span>
+                                        <p vid="126">&nbsp;</p>
+                                    </div>
+                                    <div class="flex gap-4" vid="127">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="128">11</span>
+                                        <p vid="129"><span class="text-muted-foreground italic" vid="130"># Secure deployment to global edge nodes</span></p>
+                                    </div>
+                                    <div class="flex gap-4" vid="131">
+                                        <span class="text-muted-foreground/30 w-4 text-right select-none" vid="132">12</span>
+                                        <p vid="133">agent.<span class="text-info" vid="134">deploy</span>(scale_factor=<span class="text-primary" vid="135">10</span>, region=<span class="text-success" vid="136">"us-east-1"</span>)</p>
+                                    </div>
+                                </div>
+
+                                
+                                <div class="absolute bottom-6 right-6 w-56 glass-card p-4 shadow-2xl bg-surface/80 backdrop-blur-xl animate-float" vid="137">
+                                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-border" vid="138">
+                                        <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" vid="139">Real-time Telemetry</span>
+                                        <i class="ph ph-chart-line-up text-primary" vid="140"></i>
+                                    </div>
+                                    <div class="space-y-3" vid="141">
+                                        <div class="flex justify-between items-center" vid="142">
+                                            <span class="text-[10px] text-muted-foreground" vid="143">Latency</span>
+                                            <span class="text-xs font-bold text-success" vid="144">142ms</span>
+                                        </div>
+                                        <div class="w-full bg-background rounded-full h-1 border border-border" vid="145">
+                                            <div class="bg-success h-full rounded-full" style="width: 75%" vid="146"></div>
+                                        </div>
+                                        <div class="flex justify-between items-center" vid="147">
+                                            <span class="text-[10px] text-muted-foreground" vid="148">Token/Sec</span>
+                                            <span class="text-xs font-bold text-info" vid="149">12.4k</span>
+                                        </div>
+                                        <div class="w-full bg-background rounded-full h-1 border border-border" vid="150">
+                                            <div class="bg-info h-full rounded-full" style="width: 42%" vid="151"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="absolute -top-12 -left-12 w-24 h-24 bg-primary/20 rounded-full blur-3xl" vid="152"></div>
+                    <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-info/20 rounded-full blur-3xl" vid="153"></div>
+                </div>
+            </div>
+        </section>
+
+        
+        <section class="max-w-[1280px] mx-auto px-8 pb-32" vid="154">
+            <div class="text-center mb-16" vid="155">
+                <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mb-12" vid="156">Trusted by Infrastructure &amp; AI Teams</p>
+                <div class="flex flex-wrap justify-center items-center gap-x-20 gap-y-12 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-700" vid="157">
+                    <div class="flex items-center gap-2 group cursor-default" vid="158">
+                        <i class="ph-bold ph-hexagon text-3xl group-hover:text-primary transition-colors" vid="159"></i>
+                        <span class="text-xl font-bold tracking-tighter uppercase" vid="160">Quantum</span>
+                    </div>
+                    <div class="flex items-center gap-2 group cursor-default" vid="161">
+                        <i class="ph-bold ph-atom text-3xl group-hover:text-info transition-colors" vid="162"></i>
+                        <span class="text-xl font-bold tracking-tighter uppercase" vid="163">Nexus</span>
+                    </div>
+                    <div class="flex items-center gap-2 group cursor-default" vid="164">
+                        <i class="ph-bold ph-planet text-3xl group-hover:text-success transition-colors" vid="165"></i>
+                        <span class="text-xl font-bold tracking-tighter uppercase" vid="166">Aether</span>
+                    </div>
+                    <div class="flex items-center gap-2 group cursor-default" vid="167">
+                        <i class="ph-bold ph-cube text-3xl group-hover:text-primary transition-colors" vid="168"></i>
+                        <span class="text-xl font-bold tracking-tighter uppercase" vid="169">Terminal</span>
+                    </div>
+                    <div class="flex items-center gap-2 group cursor-default" vid="170">
+                        <i class="ph-bold ph-circles-three text-3xl group-hover:text-info transition-colors" vid="171"></i>
+                        <span class="text-xl font-bold tracking-tighter uppercase" vid="172">Synapse</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+        <section class="max-w-[1280px] mx-auto px-8 pb-40" vid="173">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8" vid="174">
+                <div class="glass-card p-8 group hover:border-primary/50 transition-all duration-300" vid="175">
+                    <div class="w-12 h-12 rounded-brand bg-surface flex items-center justify-center mb-6 text-primary border border-border group-hover:bg-primary group-hover:text-white transition-all" vid="176">
+                        <i class="ph ph-brain text-2xl" vid="177"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 tracking-tight" vid="178">Persistent Memory</h3>
+                    <p class="text-muted-foreground leading-relaxed text-sm" vid="179">
+                        Enable agents to remember user preferences and past interactions across sessions with automatic vector indexing and retrieval.
+                    </p>
+                </div>
+
+                <div class="glass-card p-8 group hover:border-info/50 transition-all duration-300" vid="180">
+                    <div class="w-12 h-12 rounded-brand bg-surface flex items-center justify-center mb-6 text-info border border-border group-hover:bg-info group-hover:text-white transition-all" vid="181">
+                        <i class="ph ph-eye text-2xl" vid="182"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 tracking-tight" vid="183">Total Observability</h3>
+                    <p class="text-muted-foreground leading-relaxed text-sm" vid="184">
+                        Full-stack tracing for every agent decision. Debug latency, monitor costs, and audit reasoning paths in real-time.
+                    </p>
+                </div>
+
+                <div class="glass-card p-8 group hover:border-success/50 transition-all duration-300" vid="185">
+                    <div class="w-12 h-12 rounded-brand bg-surface flex items-center justify-center mb-6 text-success border border-border group-hover:bg-success group-hover:text-white transition-all" vid="186">
+                        <i class="ph ph-lock-key text-2xl" vid="187"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 tracking-tight" vid="188">Granular Access Control</h3>
+                    <p class="text-muted-foreground leading-relaxed text-sm" vid="189">
+                        Enterprise-grade security for your LLMs. Define role-based tool permissions and data access rights for every instance.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        
+        <section class="max-w-[1280px] mx-auto px-8 pb-32" vid="190">
+            <div class="glass-card p-16 text-center relative overflow-hidden border-2 border-primary/20" vid="191">
+                <div class="absolute inset-0 grid-bg opacity-10" vid="192"></div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/10 blur-[100px] pointer-events-none" vid="193"></div>
+                
+                <h2 class="text-4xl md:text-5xl font-bold tracking-tight mb-6 relative z-10" vid="194">Ready to build?</h2>
+                <p class="text-muted-foreground text-lg mb-10 max-w-xl mx-auto relative z-10" vid="195">
+                    Join thousands of developers building the next generation of autonomous AI applications on LLMVault.
+                </p>
+                <div class="flex justify-center gap-4 relative z-10" vid="196">
+                    <button class="btn-primary px-8 py-3.5 font-bold" vid="197">Start Deploying Free</button>
+                    <button class="btn-secondary px-8 py-3.5 font-medium" vid="198">Join Community</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    
+    <footer class="border-t border-border py-20 bg-background" vid="199">
+        <div class="max-w-[1280px] mx-auto px-8" vid="200">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16" vid="201">
+                <div class="col-span-1 md:col-span-1" vid="202">
+                    <div class="flex items-center gap-2 mb-6" vid="203">
+                        <div class="w-6 h-6 bg-primary rounded-brand flex items-center justify-center" vid="204">
+                            <i class="ph-fill ph-vault text-white text-sm" vid="205"></i>
+                        </div>
+                        <span class="text-lg font-bold tracking-tight" vid="206">LLMVault</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground leading-relaxed" vid="207">
+                        Securing the future of agentic AI with enterprise-grade infrastructure and observability.
+                    </p>
+                </div>
+                <div vid="208">
+                    <h4 class="text-[10px] font-bold text-foreground uppercase tracking-widest mb-6" vid="209">Product</h4>
+                    <ul class="space-y-4 text-xs text-muted-foreground" vid="210">
+                        <li vid="211"><a href="#" class="hover:text-primary transition-colors" vid="212">Platform</a></li>
+                        <li vid="213"><a href="#" class="hover:text-primary transition-colors" vid="214">Managed Memory</a></li>
+                        <li vid="215"><a href="#" class="hover:text-primary transition-colors" vid="216">Agent Observability</a></li>
+                        <li vid="217"><a href="#" class="hover:text-primary transition-colors" vid="218">Guardrails</a></li>
+                    </ul>
+                </div>
+                <div vid="219">
+                    <h4 class="text-[10px] font-bold text-foreground uppercase tracking-widest mb-6" vid="220">Resources</h4>
+                    <ul class="space-y-4 text-xs text-muted-foreground" vid="221">
+                        <li vid="222"><a href="#" class="hover:text-primary transition-colors" vid="223">API Reference</a></li>
+                        <li vid="224"><a href="#" class="hover:text-primary transition-colors" vid="225">SDK Documentation</a></li>
+                        <li vid="226"><a href="#" class="hover:text-primary transition-colors" vid="227">Changelog</a></li>
+                        <li vid="228"><a href="#" class="hover:text-primary transition-colors" vid="229">Community</a></li>
+                    </ul>
+                </div>
+                <div vid="230">
+                    <h4 class="text-[10px] font-bold text-foreground uppercase tracking-widest mb-6" vid="231">Company</h4>
+                    <ul class="space-y-4 text-xs text-muted-foreground" vid="232">
+                        <li vid="233"><a href="#" class="hover:text-primary transition-colors" vid="234">About Us</a></li>
+                        <li vid="235"><a href="#" class="hover:text-primary transition-colors" vid="236">Privacy Policy</a></li>
+                        <li vid="237"><a href="#" class="hover:text-primary transition-colors" vid="238">Security</a></li>
+                        <li vid="239"><a href="#" class="hover:text-primary transition-colors" vid="240">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4" vid="241">
+                <p class="text-[10px] text-muted-foreground" vid="242">© 2024 LLMVault AI Inc. All rights reserved.</p>
+                <div class="flex items-center gap-6" vid="243">
+                    <a href="#" class="text-muted-foreground hover:text-foreground transition-colors" vid="244"><i class="ph-bold ph-twitter-logo text-lg" vid="245"></i></a>
+                    <a href="#" class="text-muted-foreground hover:text-foreground transition-colors" vid="246"><i class="ph-bold ph-github-logo text-lg" vid="247"></i></a>
+                    <a href="#" class="text-muted-foreground hover:text-foreground transition-colors" vid="248"><i class="ph-bold ph-linkedin-logo text-lg" vid="249"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+</body></html>

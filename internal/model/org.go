@@ -53,6 +53,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&ForgeEvalCase{},
 		&ForgeEvalResult{},
 		&ForgeEvent{},
+		&InIntegration{},
+		&InConnection{},
+		&OAuthAccount{},
+		&OAuthExchangeToken{},
 	); err != nil {
 		return err
 	}
@@ -67,6 +71,9 @@ func AutoMigrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_meta ON tokens USING GIN (meta jsonb_path_ops)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_identities_meta ON identities USING GIN (meta jsonb_path_ops)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_integrations_meta ON integrations USING GIN (meta jsonb_path_ops)")
+
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_in_integrations_meta ON in_integrations USING GIN (meta jsonb_path_ops)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_in_connections_meta ON in_connections USING GIN (meta jsonb_path_ops)")
 
 	// GIN index for generation tags array filtering
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_gen_tags ON generations USING GIN (tags)")

@@ -17,6 +17,7 @@ const (
 	identityKey
 	apiKeyClaimsKey
 	credentialIdentityKey
+	userKey
 )
 
 // OrgFromContext retrieves the authenticated Org from the request context.
@@ -97,4 +98,15 @@ func CredentialIdentityIDFromContext(ctx context.Context) (*uuid.UUID, bool) {
 // WithCredentialIdentityID sets the credential's identity ID on the request context.
 func WithCredentialIdentityID(r *http.Request, id *uuid.UUID) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), credentialIdentityKey, id))
+}
+
+// UserFromContext retrieves the authenticated User from the request context.
+func UserFromContext(ctx context.Context) (*model.User, bool) {
+	user, ok := ctx.Value(userKey).(*model.User)
+	return user, ok
+}
+
+// WithUser sets the User on the request context.
+func WithUser(r *http.Request, user *model.User) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), userKey, user))
 }

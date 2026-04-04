@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -225,12 +226,19 @@ func run() error {
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient, actionsCatalog)
 	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
+	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
+	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
 	emailSender := &email.LogSender{}
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
 	authHandler.StartCleanup(ctx)
+	oauthHandler := handler.NewOAuthHandler(database, rsaKey, signingKey,
+		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
+		cfg.FrontendURL,
+		cfg.OAuthGitHubClientID, cfg.OAuthGitHubClientSecret,
+		cfg.OAuthGoogleClientID, cfg.OAuthGoogleClientSecret)
 	apiKeyHandler := handler.NewAPIKeyHandler(database, apiKeyCache, cacheManager)
 	usageHandler := handler.NewUsageHandler(database)
 	auditHandler := handler.NewAuditHandler(database)
@@ -334,6 +342,9 @@ func run() error {
 	r.Get("/v1/providers/{id}", providerHandler.Get)
 	r.Get("/v1/providers/{id}/models", providerHandler.Models)
 
+	// In-integration discovery (no auth — used by frontend)
+	r.Get("/v1/in/integrations/available", inIntegrationHandler.ListAvailable)
+
 	// Integration catalog discovery (no auth — MCP actions/resources catalog)
 	actionsHandler := handler.NewActionsHandler(actionsCatalog)
 	r.Get("/v1/catalog/integrations", actionsHandler.ListIntegrations)
@@ -365,6 +376,16 @@ func run() error {
 			r.Get("/me", authHandler.Me)
 			r.Post("/change-password", authHandler.ChangePassword)
 		})
+	})
+
+	// OAuth social login (GitHub, Google)
+	r.Route("/oauth", func(r chi.Router) {
+		r.Use(middleware.AuthRateLimit(ctx, 10, 20))
+		r.Get("/github", oauthHandler.GitHubLogin)
+		r.Get("/github/callback", oauthHandler.GitHubCallback)
+		r.Get("/google", oauthHandler.GoogleLogin)
+		r.Get("/google/callback", oauthHandler.GoogleCallback)
+		r.Post("/exchange", oauthHandler.Exchange)
 	})
 
 	// Org-authenticated routes (JWT or API Key) — credential & token management
@@ -559,6 +580,34 @@ func run() error {
 		r.Post("/connections/{id}/verify", connectAPIHandler.VerifyConnection)
 	})
 
+	// In-integrations & in-connections (app-owned, user-scoped)
+	var platformAdminEmails []string
+	if cfg.PlatformAdminEmails != "" {
+		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
+	}
+	r.Route("/v1/in", func(r chi.Router) {
+		r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
+		r.Use(middleware.RequireEmailConfirmed(database))
+		r.Use(middleware.ResolveUser(database))
+
+		// Admin CRUD for in-integrations
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
+			r.Post("/integrations", inIntegrationHandler.Create)
+			r.Get("/integrations", inIntegrationHandler.List)
+			r.Get("/integrations/{id}", inIntegrationHandler.Get)
+			r.Put("/integrations/{id}", inIntegrationHandler.Update)
+			r.Delete("/integrations/{id}", inIntegrationHandler.Delete)
+		})
+
+		// User connections (any authenticated user)
+		r.Post("/integrations/{id}/connect-session", inConnectionHandler.CreateConnectSession)
+		r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
+		r.Get("/connections", inConnectionHandler.List)
+		r.Get("/connections/{id}", inConnectionHandler.Get)
+		r.Delete("/connections/{id}", inConnectionHandler.Revoke)
+	})
+
 	// Sandbox-authenticated routes (proxy) — token auth via JWT
 	r.Route("/v1/proxy", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
@@ -581,6 +630,7 @@ func run() error {
 				cutoff := time.Now().Add(-7 * 24 * time.Hour)
 				database.Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.EmailVerification{})
 				database.Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.PasswordReset{})
+				database.Where("expires_at < ? OR used_at < ?", cutoff, cutoff).Delete(&model.OAuthExchangeToken{})
 				slog.Debug("cleaned up expired verification/reset tokens")
 			}
 		}
