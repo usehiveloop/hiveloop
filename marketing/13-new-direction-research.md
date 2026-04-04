@@ -1,4 +1,4 @@
-# LLMVault — New Direction Research
+# ZiraLoop — New Direction Research
 
 ## Rebrand: "The Secure Access Layer for Your AI Agents"
 
@@ -20,7 +20,7 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 
 **Key stats:** 47,856 tools, 255 platforms, 17,000+ developers, 99.9% uptime, <100ms p95 latency
 
-**Where LLMVault is stronger:**
+**Where ZiraLoop is stronger:**
 1. Security depth — envelope encryption, AES-256-GCM, KMS wrapping, sealed memory, 3-tier cache, instant revocation. One claims "end-to-end encryption" with no architecture detail.
 2. Scoping granularity — per-action, per-connection, per-resource scoping validated against an embedded catalog. One offers "tenant isolation with scoped credentials."
 3. LLM-native features — short-lived proxy tokens, auth scheme abstraction across LLM providers, streaming proxy with sub-5ms overhead, token usage capture (input/output/cached/reasoning). One doesn't do this.
@@ -35,7 +35,7 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 
 ---
 
-## Three Core Problems LLMVault Solves
+## Three Core Problems ZiraLoop Solves
 
 ### Problem 1: Agents Run with God-Mode Credentials
 
@@ -54,7 +54,7 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 
 **The pattern:** Developers give agents a full API key. The agent only needs to send messages in one Slack channel, but it has access to every channel, every workspace, every admin action. When that agent is compromised — through prompt injection, supply chain attack, or sandbox escape — the blast radius is everything.
 
-**How LLMVault solves this (existing API surface):**
+**How ZiraLoop solves this (existing API surface):**
 
 | API Endpoint / Feature | What It Does |
 |---|---|
@@ -93,7 +93,7 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 
 **The pattern:** Agents need access to LLM providers AND SaaS apps. The keys end up in env vars, config files, .env files, MCP configs, log output, and chat threads. Each is a point of exposure. When a dev tool, a sandbox, or a CI runner is compromised, those keys give attackers access to everything. And they stay valid for years because nobody rotates them.
 
-**How LLMVault solves this (existing API surface):**
+**How ZiraLoop solves this (existing API surface):**
 
 | API Endpoint / Feature | What It Does |
 |---|---|
@@ -133,7 +133,7 @@ One (withone.ai) positions as "Command center for your AI workforce" — agent i
 
 **The pattern:** Platforms need agents to connect to Slack, GitHub, HubSpot, Stripe, and dozens of other services. Each has a different auth flow (OAuth 2.0, API keys, webhook secrets, app installations). Developers build custom integration code, hardcode credentials, skip token refresh, and create ungoverned access paths. The result: a sprawling, fragmented, unauditable web of agent-to-app connections with no central point of control.
 
-**How LLMVault solves this (existing API surface):**
+**How ZiraLoop solves this (existing API surface):**
 
 | API Endpoint / Feature | What It Does |
 |---|---|

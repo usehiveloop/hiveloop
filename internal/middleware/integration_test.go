@@ -16,14 +16,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/token"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+	testDBURL      = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 	testSigningKey = "local-dev-signing-key-change-in-prod"
 )
 
@@ -85,7 +85,7 @@ func newAuthHelper(t *testing.T) *authTestHelper {
 	}
 }
 
-// createTestOrg creates an LLMVault Org in Postgres and mints a JWT for it.
+// createTestOrg creates an ZiraLoop Org in Postgres and mints a JWT for it.
 func (ah *authTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name, role string) (model.Org, string) {
 	t.Helper()
 

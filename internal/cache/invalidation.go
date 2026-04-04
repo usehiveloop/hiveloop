@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	CredentialChannel = "llmvault:invalidate:credential"
-	TokenChannel      = "llmvault:invalidate:token"
-	APIKeyChannel     = "llmvault:invalidate:apikey"
+	CredentialChannel = "ziraloop:invalidate:credential"
+	TokenChannel      = "ziraloop:invalidate:token"
+	APIKeyChannel     = "ziraloop:invalidate:apikey"
 )
 
 // Invalidator handles cross-instance cache invalidation via Redis pub/sub.

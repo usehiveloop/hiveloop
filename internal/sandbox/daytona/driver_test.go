@@ -3,7 +3,7 @@ package daytona
 import (
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
 )
 
 // TestDriverImplementsProvider verifies at compile time that Driver satisfies sandbox.Provider.

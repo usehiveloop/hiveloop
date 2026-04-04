@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/observe"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/observe"
 )
 
 // NewDirector returns an httputil.ReverseProxy Director function.

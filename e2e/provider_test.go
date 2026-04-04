@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/registry"
 )
 
 // --------------------------------------------------------------------------

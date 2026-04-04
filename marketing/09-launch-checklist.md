@@ -1,4 +1,4 @@
-# LLMVault — Launch Checklist
+# ZiraLoop — Launch Checklist
 
 ---
 
@@ -28,7 +28,7 @@
 - [ ] Conversion tracking: signup events, quickstart completion
 
 ### Content
-- [ ] Launch blog post: "Introducing LLMVault" — drafted and reviewed
+- [ ] Launch blog post: "Introducing ZiraLoop" — drafted and reviewed
 - [ ] HN "Show HN" post drafted
 - [ ] Twitter/X launch thread drafted
 - [ ] Reddit posts drafted (r/programming, r/devops, r/SideProject)
@@ -41,7 +41,7 @@
 - [ ] Discord or Slack community created (optional for launch, useful for post-launch)
 
 ### Operations
-- [ ] Support email set up (support@llmvault.dev)
+- [ ] Support email set up (support@ziraloop.com)
 - [ ] Monitoring and alerting in place (uptime, error rates, latency)
 - [ ] Status page live (e.g., Instatus, Statuspage)
 - [ ] Legal: Terms of Service, Privacy Policy published
@@ -56,11 +56,11 @@
 - [ ] Publish Twitter/X launch thread
 - [ ] Post to Reddit
 - [ ] Submit to Product Hunt (if doing same-day)
-- [ ] Email waitlist: "LLMVault is live"
+- [ ] Email waitlist: "ZiraLoop is live"
 - [ ] Cross-post launch blog to Dev.to and Hashnode
 
 ### HN Post (Target: Tuesday 9am ET)
-- [ ] Post "Show HN: LLMVault — Secure proxy layer for LLM API keys"
+- [ ] Post "Show HN: ZiraLoop — Secure proxy layer for LLM API keys"
 - [ ] Founder in HN comments for 6+ hours answering questions
 - [ ] Prepared answers for likely questions:
   - "Why not just use Vault directly?"
@@ -84,7 +84,7 @@
 - [ ] Review signup numbers and conversion funnel
 - [ ] Identify where users drop off (signup → quickstart → first proxy)
 - [ ] Read all HN/Reddit/Twitter comments for product feedback
-- [ ] Survey new signups: "What made you try LLMVault?"
+- [ ] Survey new signups: "What made you try ZiraLoop?"
 
 ### Iterate
 - [ ] Fix any issues discovered during launch

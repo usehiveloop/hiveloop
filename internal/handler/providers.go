@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/llmvault/llmvault/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/registry"
 )
 
 // ProviderHandler serves the embedded provider/model catalog.

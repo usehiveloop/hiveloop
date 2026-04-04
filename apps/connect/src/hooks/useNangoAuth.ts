@@ -3,7 +3,7 @@ import Nango from '@nangohq/frontend'
 import { useConnect } from './useConnect'
 import { createWidgetFetchClient } from '../api/client'
 
-const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.llmvault.dev'
+const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.ziraloop.com'
 
 export interface ConnectionResult {
   id: string

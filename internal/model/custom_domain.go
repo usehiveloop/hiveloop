@@ -10,7 +10,7 @@ import (
 // CustomDomain represents a user-configured preview domain for sandbox URLs.
 // Users create two CNAMEs:
 //  1. *.{Domain} → CNAMETarget (traffic routing)
-//  2. _acme-challenge.{Domain} → {AcmeDNSSubdomain}.acme.llmvault.dev (cert challenges)
+//  2. _acme-challenge.{Domain} → {AcmeDNSSubdomain}.acme.ziraloop.com (cert challenges)
 type CustomDomain struct {
 	ID               uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	OrgID            uuid.UUID  `gorm:"type:uuid;not null;index" json:"org_id"`
@@ -35,5 +35,5 @@ func (d *CustomDomain) BeforeCreate(tx *gorm.DB) error {
 
 // AcmeChallengeCNAME returns the CNAME record users need to create for cert challenges.
 func (d *CustomDomain) AcmeChallengeCNAME() string {
-	return d.AcmeDNSSubdomain + ".acme.llmvault.dev"
+	return d.AcmeDNSSubdomain + ".acme.ziraloop.com"
 }

@@ -43,7 +43,7 @@ export interface ErrorPayload {
   providerId?: string
 }
 
-export interface LLMVaultConnectConfig {
+export interface ZiraLoopConnectConfig {
   baseURL?: string
   theme?: ThemeOption
 }

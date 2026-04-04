@@ -1,12 +1,12 @@
 [general]
 listen = "0.0.0.0:53"
 protocol = "both"
-domain = "acme.llmvault.dev"
-nsname = "auth.acme.llmvault.dev"
-nsadmin = "admin.llmvault.dev"
+domain = "acme.ziraloop.com"
+nsname = "auth.acme.ziraloop.com"
+nsadmin = "admin.ziraloop.com"
 records = [
-    "acme.llmvault.dev. A {{ hostvars['controlplane']['ansible_host'] }}",
-    "auth.acme.llmvault.dev. A {{ hostvars['controlplane']['ansible_host'] }}"
+    "acme.ziraloop.com. A {{ hostvars['controlplane']['ansible_host'] }}",
+    "auth.acme.ziraloop.com. A {{ hostvars['controlplane']['ansible_host'] }}"
 ]
 debug = false
 

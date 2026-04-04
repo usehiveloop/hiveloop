@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/proxy"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/proxy"
 )
 
 // NewProxyHandler creates the streaming reverse proxy handler.

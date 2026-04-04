@@ -18,36 +18,36 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/cache"
 	"github.com/google/uuid"
-	"github.com/llmvault/llmvault/internal/goroutine"
-	"github.com/llmvault/llmvault/internal/hindsight"
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/counter"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/db"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/logging"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/email"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
-	"github.com/llmvault/llmvault/internal/proxy"
-	"github.com/llmvault/llmvault/internal/registry"
-	"github.com/llmvault/llmvault/internal/forge"
-	"github.com/llmvault/llmvault/internal/sandbox"
-	"github.com/llmvault/llmvault/internal/sandbox/daytona"
-	"github.com/llmvault/llmvault/internal/streaming"
-	systemagents "github.com/llmvault/llmvault/internal/system-agents"
-	"github.com/llmvault/llmvault/internal/turso"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/hindsight"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/counter"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/db"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/logging"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/email"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/proxy"
+	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/sandbox/daytona"
+	"github.com/ziraloop/ziraloop/internal/streaming"
+	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
+	"github.com/ziraloop/ziraloop/internal/turso"
 )
 
-// @title LLMVault API
+// @title ZiraLoop API
 // @version 1.0
 // @description Proxy bridge for LLM API credentials.
-// @host api.dev.llmvault.dev
+// @host api.dev.ziraloop.com
 // @BasePath /
 // @schemes https
 //
@@ -83,7 +83,7 @@ func run() error {
 	// 2. Logging — must be initialized before anything else logs
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
 	logger := slog.Default()
-	slog.Info("starting llmvault", "version", version, "commit", commit)
+	slog.Info("starting ziraloop", "version", version, "commit", commit)
 
 	// 3. Database
 	database, err := db.New(cfg.DatabaseDSN())
@@ -282,7 +282,7 @@ func run() error {
 		}
 		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
 
-		// Hindsight MCP URL closure (if configured — agents get memory tools via LLMVault MCP server)
+		// Hindsight MCP URL closure (if configured — agents get memory tools via ZiraLoop MCP server)
 		var hindsightMCPURL func(uuid.UUID) string
 		if cfg.HindsightAPIURL != "" {
 			mcpBase := cfg.MCPBaseURL

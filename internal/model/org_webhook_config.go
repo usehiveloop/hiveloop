@@ -30,7 +30,7 @@ func GenerateWebhookSecret() (plaintext, prefix string, err error) {
 		return "", "", fmt.Errorf("generating webhook secret: %w", err)
 	}
 	raw := hex.EncodeToString(b)
-	plaintext = "llmv_whs_" + raw
-	prefix = plaintext[:17] // "llmv_whs_" + first 8 hex chars
+	plaintext = "zira_whs_" + raw
+	prefix = plaintext[:17] // "zira_whs_" + first 8 hex chars
 	return plaintext, prefix, nil
 }

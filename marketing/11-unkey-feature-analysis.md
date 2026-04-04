@@ -1,16 +1,16 @@
-# Unkey Feature Analysis — What LLMVault Should Steal
+# Unkey Feature Analysis — What ZiraLoop Should Steal
 
 ---
 
 ## What Unkey Is
 
-Unkey is an open-source API key management platform for developers. It handles key creation, verification, rate limiting, usage tracking, and permissions. It's general-purpose — not LLM-specific — but several of their features map beautifully to LLMVault's use cases.
+Unkey is an open-source API key management platform for developers. It handles key creation, verification, rate limiting, usage tracking, and permissions. It's general-purpose — not LLM-specific — but several of their features map beautifully to ZiraLoop's use cases.
 
-**Key insight**: Unkey thinks about API keys as *configurable objects with behavior* (rate limits, usage caps, expiration, metadata, permissions). LLMVault currently thinks about credentials as *encrypted blobs to proxy through*. Adopting Unkey's "smart key" philosophy would make LLMVault dramatically more powerful.
+**Key insight**: Unkey thinks about API keys as *configurable objects with behavior* (rate limits, usage caps, expiration, metadata, permissions). ZiraLoop currently thinks about credentials as *encrypted blobs to proxy through*. Adopting Unkey's "smart key" philosophy would make ZiraLoop dramatically more powerful.
 
 ---
 
-## Features to Adopt (Ranked by Impact for LLMVault)
+## Features to Adopt (Ranked by Impact for ZiraLoop)
 
 ---
 
@@ -18,7 +18,7 @@ Unkey is an open-source API key management platform for developers. It handles k
 
 **What Unkey does**: Every API key can have a `remaining` counter — a hard cap on how many times it can be used. When it hits 0, the key is rejected. You can configure automatic refills on a schedule (e.g., 10,000 uses, refills monthly on the 1st).
 
-**Why this is perfect for LLMVault**: This is the simplest, most elegant implementation of usage caps for LLM tokens. Instead of complex dollar-based budgeting (which requires parsing provider responses for token counts), you can ship request-based caps immediately:
+**Why this is perfect for ZiraLoop**: This is the simplest, most elegant implementation of usage caps for LLM tokens. Instead of complex dollar-based budgeting (which requires parsing provider responses for token counts), you can ship request-based caps immediately:
 
 ```json
 POST /v1/tokens
@@ -42,7 +42,7 @@ POST /v1/credentials
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - **Sandbox use case**: "This sandbox agent gets 200 requests, then it's cut off." No runaway loops.
 - **Tiered plans**: Free customers get 1,000 requests/month (auto-refill), Pro gets 50,000.
 - **Simple to implement**: Just an atomic counter in Redis. Decrement on each proxy request. No need to parse LLM response bodies for token counts on day one.
@@ -56,10 +56,10 @@ POST /v1/credentials
 
 **What Unkey does**: Instead of each request costing 1 "use," different requests can cost different amounts. You can specify a `cost` per verification call. A cheap operation costs 1 credit, an expensive one costs 10.
 
-**Why this is perfect for LLMVault**: Different LLM models cost wildly different amounts. A GPT-4o-mini request and a Claude Opus request shouldn't consume the same number of credits from a budget.
+**Why this is perfect for ZiraLoop**: Different LLM models cost wildly different amounts. A GPT-4o-mini request and a Claude Opus request shouldn't consume the same number of credits from a budget.
 
 ```json
-// When proxying, LLMVault could assign cost based on the model in the request body:
+// When proxying, ZiraLoop could assign cost based on the model in the request body:
 POST /v1/proxy/v1/chat/completions
 {
   "model": "gpt-4o-mini",     // → costs 1 credit
@@ -73,7 +73,7 @@ POST /v1/proxy/v1/chat/completions
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - Platforms can define cost tables per model: `{ "gpt-4o-mini": 1, "gpt-4o": 5, "gpt-4": 10, "claude-opus": 15 }`
 - Combines with the `remaining` counter: "This token has 1,000 credits. A mini request costs 1, an opus request costs 15."
 - Enables **fair usage metering** without dollar-level precision — good enough for 90% of use cases and way simpler to implement than parsing provider billing responses
@@ -87,7 +87,7 @@ POST /v1/proxy/v1/chat/completions
 
 **What Unkey does**: An "Identity" groups multiple API keys under a single user or organization. The identity can have shared metadata and — critically — **shared rate limits across all keys**.
 
-**Why this is perfect for LLMVault**: A single customer of your platform might connect multiple LLM providers (OpenAI + Anthropic + Google). With Identities:
+**Why this is perfect for ZiraLoop**: A single customer of your platform might connect multiple LLM providers (OpenAI + Anthropic + Google). With Identities:
 
 - **Shared rate limits**: "Customer X can't exceed 500 requests/minute across ALL their providers combined." Prevents abuse through provider-switching.
 - **Shared budgets**: "Customer X has 50,000 credits/month, shared across all their connected providers."
@@ -117,13 +117,13 @@ POST /v1/credentials
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - Solves the "one customer, many providers" problem elegantly
-- Cross-provider rate limiting — unique to LLMVault (no LLM gateway does this)
+- Cross-provider rate limiting — unique to ZiraLoop (no LLM gateway does this)
 - Cross-provider usage budgets — "50K credits across all providers"
 - Makes analytics and billing natural: group by identity, not by individual credential
 
-**Priority**: Build after remaining uses / variable cost. This is the feature that turns LLMVault from "per-credential management" to "per-customer platform."
+**Priority**: Build after remaining uses / variable cost. This is the feature that turns ZiraLoop from "per-credential management" to "per-customer platform."
 
 ---
 
@@ -131,7 +131,7 @@ POST /v1/credentials
 
 **What Unkey does**: API keys can have roles and permissions attached. On verification, you can check if a key has a specific permission. Permissions propagate globally in seconds.
 
-**Why this is perfect for LLMVault**: Scoped tokens should carry more than just "can access credential X." They should carry fine-grained permissions about WHAT they can do through that credential:
+**Why this is perfect for ZiraLoop**: Scoped tokens should carry more than just "can access credential X." They should carry fine-grained permissions about WHAT they can do through that credential:
 
 ```json
 POST /v1/tokens
@@ -148,7 +148,7 @@ POST /v1/tokens
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - **Model restrictions**: Sandbox token can only use cheap models (GPT-4o-mini), not expensive ones (GPT-4)
 - **Endpoint restrictions**: Token can do chat completions but not image generation or fine-tuning
 - **Replaces the entire "policy engine" concept** from our future features doc with a simpler, per-token permissions model
@@ -162,7 +162,7 @@ POST /v1/tokens
 
 **What Unkey does**: Every key can carry arbitrary JSON metadata. This metadata is returned on verification and can be used for filtering, analytics, and business logic.
 
-**Why this is perfect for LLMVault**: Credentials and tokens in LLMVault currently have minimal metadata (just a `label`). Rich metadata enables:
+**Why this is perfect for ZiraLoop**: Credentials and tokens in ZiraLoop currently have minimal metadata (just a `label`). Rich metadata enables:
 
 ```json
 POST /v1/credentials
@@ -193,10 +193,10 @@ POST /v1/tokens
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - **Audit enrichment**: Audit logs show WHO connected the key, WHICH sandbox used it, for WHAT purpose
 - **Analytics grouping**: "Show me usage by department" or "by agent_name" — without schema changes
-- **Customer integration**: Platforms can attach their own IDs and context, making LLMVault data joinable with their own systems
+- **Customer integration**: Platforms can attach their own IDs and context, making ZiraLoop data joinable with their own systems
 - **Filtering**: "List all credentials where meta.plan = 'enterprise'"
 - **Low effort, high flexibility**: Just a JSONB column. No schema migrations when customer needs change.
 
@@ -208,7 +208,7 @@ POST /v1/tokens
 
 **What Unkey does**: Rate limiting works independently of API key management. You can rate-limit by any identifier — IP address, user ID, session ID, endpoint — without creating an API key first.
 
-**Why this is useful for LLMVault**: LLMVault currently rate-limits per org. But platforms need more granular control:
+**Why this is useful for ZiraLoop**: ZiraLoop currently rate-limits per org. But platforms need more granular control:
 
 ```json
 // Rate limit by end-user (not just by org)
@@ -236,13 +236,13 @@ POST /v1/ratelimit
 }
 ```
 
-**LLMVault-specific value**:
-- **End-user rate limiting**: "Each end-user of the platform can make 100 LLM requests/minute" — the platform passes the user ID, LLMVault enforces the limit
+**ZiraLoop-specific value**:
+- **End-user rate limiting**: "Each end-user of the platform can make 100 LLM requests/minute" — the platform passes the user ID, ZiraLoop enforces the limit
 - **Model-specific limits**: "Only 50 GPT-4 requests per hour across the whole org" — controls expensive model usage
 - **Widget protection**: Rate-limit the Connect Provider widget by IP to prevent abuse
-- **Globally distributed**: If LLMVault deploys at the edge, rate limits work globally
+- **Globally distributed**: If ZiraLoop deploys at the edge, rate limits work globally
 
-**Priority**: Medium. Useful but not critical for MVP. Per-org rate limiting (which LLMVault already has) covers the basics.
+**Priority**: Medium. Useful but not critical for MVP. Per-org rate limiting (which ZiraLoop already has) covers the basics.
 
 ---
 
@@ -250,12 +250,12 @@ POST /v1/ratelimit
 
 **What Unkey does**: Their "Vault" feature lets you recover (decrypt) stored API keys via an API call with the `?decrypt=true` query parameter. Requires explicit opt-in and specific permissions.
 
-**Why this is useful for LLMVault**: LLMVault's current stance is "we never return the plaintext key after storage." This is maximally secure but creates friction:
+**Why this is useful for ZiraLoop**: ZiraLoop's current stance is "we never return the plaintext key after storage." This is maximally secure but creates friction:
 - Customer wants to migrate to another platform — can't export their key
 - Platform needs to audit that the stored key matches what the customer intended
 - Customer wants to rotate their key by seeing the old one first
 
-**How to adapt for LLMVault**:
+**How to adapt for ZiraLoop**:
 ```json
 // Opt-in at credential creation time
 POST /v1/credentials
@@ -271,7 +271,7 @@ GET /v1/credentials/cred_abc?decrypt=true
 // Audit log: "credential.decrypted" with IP, timestamp, user
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - Reduces customer lock-in anxiety ("what if I need my key back?")
 - Enables key migration between platforms
 - Useful for compliance audits
@@ -285,7 +285,7 @@ GET /v1/credentials/cred_abc?decrypt=true
 
 **What Unkey does**: Enterprise feature that restricts key usage to specific IP addresses or CIDR ranges.
 
-**Why this is useful for LLMVault**: For sandbox environments, you know the IP range of your sandbox infrastructure. Restricting a scoped token to only work from specific IPs adds defense-in-depth:
+**Why this is useful for ZiraLoop**: For sandbox environments, you know the IP range of your sandbox infrastructure. Restricting a scoped token to only work from specific IPs adds defense-in-depth:
 
 ```json
 POST /v1/tokens
@@ -296,7 +296,7 @@ POST /v1/tokens
 }
 ```
 
-**LLMVault-specific value**:
+**ZiraLoop-specific value**:
 - If a scoped token leaks outside the sandbox, it's useless — wrong IP
 - Enterprise customers love this for compliance
 - Pairs well with the token's TTL and remaining uses for triple protection (time + usage + network)
@@ -307,7 +307,7 @@ POST /v1/tokens
 
 ## Summary: What to Build & When
 
-| Phase | Feature (from Unkey) | LLMVault Adaptation | Effort |
+| Phase | Feature (from Unkey) | ZiraLoop Adaptation | Effort |
 |-------|---------------------|---------------------|--------|
 | **Next sprint** | Remaining uses + refill | Per-token and per-credential request caps with auto-refill | Low |
 | **Next sprint** | Per-key metadata | JSONB `meta` field on credentials and tokens | Very Low |
@@ -336,4 +336,4 @@ These features don't just add value individually — they **multiply** when comb
 
 That token is **incredibly specific, maximally safe, and fully auditable**. No other product in the market can create a credential with this level of granular control for LLM access.
 
-This is LLMVault's moat: **not just a proxy, but the most granular, secure, and controllable way to give anything access to an LLM.**
+This is ZiraLoop's moat: **not just a proxy, but the most granular, secure, and controllable way to give anything access to an LLM.**

@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/llmvault/llmvault/internal/bridge"
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/streaming"
-	systemagents "github.com/llmvault/llmvault/internal/system-agents"
-	"github.com/llmvault/llmvault/internal/token"
+	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/streaming"
+	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 const (

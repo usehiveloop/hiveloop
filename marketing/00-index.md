@@ -1,6 +1,6 @@
-# LLMVault — Marketing Documentation
+# ZiraLoop — Marketing Documentation
 
-Core marketing documents for llmvault.dev. Read in order for the full picture, or jump to what you need.
+Core marketing documents for ziraloop.com. Read in order for the full picture, or jump to what you need.
 
 ---
 
@@ -18,7 +18,7 @@ Core marketing documents for llmvault.dev. Read in order for the full picture, o
 | 08 | [Competitive Landscape](./08-competitive-landscape.md) | Competitive matrix, detailed analysis vs. 5 alternatives, defensibility/moats, comparison page strategy |
 | 09 | [Launch Checklist](./09-launch-checklist.md) | Pre-launch, launch day, post-launch checklists with success criteria |
 | 10 | [Future Features & Use Cases](./10-future-features-and-use-cases.md) | 15 future features across 3 tiers, 6 new use cases, feature prioritization, revised pricing |
-| 11 | [Unkey Feature Analysis](./11-unkey-feature-analysis.md) | 8 Unkey features adapted for LLMVault, build order, compound effect analysis |
+| 11 | [Unkey Feature Analysis](./11-unkey-feature-analysis.md) | 8 Unkey features adapted for ZiraLoop, build order, compound effect analysis |
 | 12 | [Use Case: AI Spend Tracking](./12-use-case-ai-spend-tracking.md) | Market context ($8.4B opportunity), 2 new personas (FinOps Fiona, Budget Brian), competitive positioning, 5-piece content strategy, free tool spec, 30-day sprint |
 
 ---

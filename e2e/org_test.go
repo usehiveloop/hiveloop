@@ -15,16 +15,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/email"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/email"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const (
-	orgTestIssuer   = "llmvault-e2e-org-test"
-	orgTestAudience = "llmvault-e2e"
+	orgTestIssuer   = "ziraloop-e2e-org-test"
+	orgTestAudience = "ziraloop-e2e"
 )
 
 // orgHarness bundles infrastructure for org E2E tests using the embedded auth system.

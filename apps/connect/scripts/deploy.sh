@@ -31,11 +31,11 @@ fi
 case "$ENV" in
     dev|development)
         ENV="dev"
-        STACK_NAME="LlmVault-Dev-Connect"
+        STACK_NAME="ZiraLoop-Dev-Connect"
         ;;
     prod|production)
         ENV="prod"
-        STACK_NAME="LlmVault-Prod-Connect"
+        STACK_NAME="ZiraLoop-Prod-Connect"
         ;;
     *)
         log_error "Unknown environment: $ENV"
@@ -95,7 +95,7 @@ aws cloudfront create-invalidation \
 
 log_success "Atomic deployment complete!"
 log_info "Version: v${VERSION}"
-log_info "URL: https://connect.${ENV}.llmvault.dev"
+log_info "URL: https://connect.${ENV}.ziraloop.com"
 
 # NOTE: Old versions are kept for quick rollback
 # To rollback: aws s3 cp s3://bucket/v{old-version}/index.html s3://bucket/index.html

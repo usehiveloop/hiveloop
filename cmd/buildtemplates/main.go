@@ -100,7 +100,7 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 }
 
 func snapshotName(bridgeVersion, size string) string {
-	return fmt.Sprintf("llmvault-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
+	return fmt.Sprintf("ziraloop-bridge-%s-%s", strings.ReplaceAll(bridgeVersion, ".", "-"), size)
 }
 
 func buildDaytona(ctx context.Context, bridgeVersion string, targetSizes []string) error {

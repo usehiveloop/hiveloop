@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 // Discovery handles resource discovery for providers.

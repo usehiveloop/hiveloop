@@ -1,10 +1,10 @@
-# LLMVault — Future Features & Use Cases
+# ZiraLoop — Future Features & Use Cases
 
 ---
 
 ## Strategic Framework
 
-Today, LLMVault is **infrastructure** — it stores keys, mints tokens, proxies requests. That's valuable but replaceable. The goal of future features is to move LLMVault from "infrastructure" to "platform" — becoming the layer that platforms can't operate without.
+Today, ZiraLoop is **infrastructure** — it stores keys, mints tokens, proxies requests. That's valuable but replaceable. The goal of future features is to move ZiraLoop from "infrastructure" to "platform" — becoming the layer that platforms can't operate without.
 
 The progression:
 
@@ -14,13 +14,13 @@ Phase 2 (Next):   + Meter → Bill → Control     (Platform — revenue value)
 Phase 3 (Later):  + Translate → Route → Guard   (Intelligence layer — product value)
 ```
 
-Each phase makes LLMVault stickier, more valuable, and harder to replace.
+Each phase makes ZiraLoop stickier, more valuable, and harder to replace.
 
 ---
 
 ## Tier 1: High-Impact Features (Build Next)
 
-These features transform LLMVault from a cost center into a revenue enabler.
+These features transform ZiraLoop from a cost center into a revenue enabler.
 
 ---
 
@@ -51,7 +51,7 @@ GET /v1/usage?credential_id=cred_abc&period=2026-03
 }
 ```
 
-**Positioning**: "LLMVault doesn't just secure your customers' keys — it tells you exactly how they're being used. Meter every token. Bill with confidence."
+**Positioning**: "ZiraLoop doesn't just secure your customers' keys — it tells you exactly how they're being used. Meter every token. Bill with confidence."
 
 ---
 
@@ -88,9 +88,9 @@ POST /v1/credentials
 
 ### 3. The Connect Provider Widget (Embeddable)
 
-**What**: A drop-in, embeddable UI component (React, Web Component, or iframe) that handles the entire "Connect Your LLM Provider" flow. The customer selects a provider, enters their API key, and LLMVault handles validation, storage, and connection.
+**What**: A drop-in, embeddable UI component (React, Web Component, or iframe) that handles the entire "Connect Your LLM Provider" flow. The customer selects a provider, enters their API key, and ZiraLoop handles validation, storage, and connection.
 
-**Why this is transformative**: This is LLMVault's "Stripe Elements" moment. Instead of every platform building their own "connect your LLM" UI, they embed one component and it works. This becomes the primary entry point for LLMVault adoption.
+**Why this is transformative**: This is ZiraLoop's "Stripe Elements" moment. Instead of every platform building their own "connect your LLM" UI, they embed one component and it works. This becomes the primary entry point for ZiraLoop adoption.
 
 **Widget features**:
 - Provider picker with logos and setup instructions
@@ -104,7 +104,7 @@ POST /v1/credentials
 
 **Example integration**:
 ```jsx
-import { ConnectProvider } from '@llmvault/react'
+import { ConnectProvider } from '@ziraloop/react'
 
 <ConnectProvider
   orgToken="org_..."
@@ -132,7 +132,7 @@ import { ConnectProvider } from '@llmvault/react'
 - Reduces support tickets ("my AI feature isn't working" → key was revoked)
 
 **How it works**:
-- LLMVault runs a lightweight health check (e.g., list models endpoint) every N hours
+- ZiraLoop runs a lightweight health check (e.g., list models endpoint) every N hours
 - Results stored: `healthy`, `invalid`, `rate_limited`, `expired`, `unknown`
 - Webhook: `credential.health_changed` with old/new status
 - Dashboard shows key health status at a glance
@@ -150,13 +150,13 @@ import { ConnectProvider } from '@llmvault/react'
 }
 ```
 
-**Positioning**: "Know before your customers do. LLMVault monitors key health and alerts you the moment something breaks."
+**Positioning**: "Know before your customers do. ZiraLoop monitors key health and alerts you the moment something breaks."
 
 ---
 
 ### 5. Drop-In SDK Wrappers (OpenAI/Anthropic SDK Compatible)
 
-**What**: SDKs that are drop-in replacements for the official OpenAI and Anthropic SDKs. Instead of `new OpenAI({ apiKey })`, developers use `new LLMVaultOpenAI({ token: 'ptok_...' })`. Same API surface, routed through LLMVault.
+**What**: SDKs that are drop-in replacements for the official OpenAI and Anthropic SDKs. Instead of `new OpenAI({ apiKey })`, developers use `new ZiraLoopOpenAI({ token: 'ptok_...' })`. Same API surface, routed through ZiraLoop.
 
 **Why this matters**:
 - Developers already use OpenAI/Anthropic SDKs — they don't want to learn a new API
@@ -169,8 +169,8 @@ import { ConnectProvider } from '@llmvault/react'
 import OpenAI from 'openai'
 const client = new OpenAI({ apiKey: 'sk-...' })
 
-// After (through LLMVault — same API, secure proxy)
-import { OpenAI } from '@llmvault/openai'
+// After (through ZiraLoop — same API, secure proxy)
+import { OpenAI } from '@ziraloop/openai'
 const client = new OpenAI({ token: 'ptok_eyJhbG...' })
 
 // Usage is identical
@@ -180,19 +180,19 @@ const response = await client.chat.completions.create({
 })
 ```
 
-**Positioning**: "Change one import. Keep your existing code. Every request is now secured through LLMVault."
+**Positioning**: "Change one import. Keep your existing code. Every request is now secured through ZiraLoop."
 
 ---
 
 ## Tier 2: Expansion Features (Build in 3-6 Months)
 
-These features expand LLMVault's value and create new use cases.
+These features expand ZiraLoop's value and create new use cases.
 
 ---
 
 ### 6. Request Translation (Provider-Agnostic API)
 
-**What**: Send requests in OpenAI's format, and LLMVault translates them to whatever provider the credential is for. A customer connects Anthropic, but your app sends OpenAI-format requests — LLMVault handles the conversion.
+**What**: Send requests in OpenAI's format, and ZiraLoop translates them to whatever provider the credential is for. A customer connects Anthropic, but your app sends OpenAI-format requests — ZiraLoop handles the conversion.
 
 **Why this is powerful**:
 - Platforms code against ONE API format, regardless of which provider the customer uses
@@ -203,18 +203,18 @@ These features expand LLMVault's value and create new use cases.
 ```
 App sends: POST /v1/proxy/chat/completions (OpenAI format)
 Credential is for: Anthropic (x-api-key, /v1/messages format)
-LLMVault: translates request → Anthropic format → proxies → translates response → OpenAI format
+ZiraLoop: translates request → Anthropic format → proxies → translates response → OpenAI format
 ```
 
 **Scope**: Start with OpenAI ↔ Anthropic ↔ Google translation (covers 90% of usage). Add more as demand appears.
 
-**Positioning**: "Your customers choose the provider. You write code once. LLMVault translates between any LLM API format automatically."
+**Positioning**: "Your customers choose the provider. You write code once. ZiraLoop translates between any LLM API format automatically."
 
 ---
 
 ### 7. Multi-Key Load Balancing & Failover
 
-**What**: Store multiple API keys for the same provider under one credential group. LLMVault distributes requests across them (round-robin or least-loaded) and fails over to the next key if one hits rate limits or errors.
+**What**: Store multiple API keys for the same provider under one credential group. ZiraLoop distributes requests across them (round-robin or least-loaded) and fails over to the next key if one hits rate limits or errors.
 
 **Why this matters**:
 - High-volume platforms hit provider rate limits with a single key
@@ -307,7 +307,7 @@ proxy.error (upstream 4xx/5xx)
 - Platform operators need visibility into how their customers use LLMs
 - Useful for capacity planning, pricing decisions, and identifying power users
 - Embeddable dashboard means platforms can show usage to their own customers
-- Differentiation: turns LLMVault from "invisible infrastructure" to "visible value"
+- Differentiation: turns ZiraLoop from "invisible infrastructure" to "visible value"
 
 **Positioning**: "See everything. Requests, costs, models, errors — in real time. Embed the dashboard for your customers or use it internally."
 
@@ -315,13 +315,13 @@ proxy.error (upstream 4xx/5xx)
 
 ## Tier 3: Future Vision Features (6-12+ Months)
 
-These features expand LLMVault into adjacent markets and create defensible moats.
+These features expand ZiraLoop into adjacent markets and create defensible moats.
 
 ---
 
 ### 11. LLM Key Marketplace / OAuth-Style Provider Connection
 
-**What**: Instead of customers manually copying API keys, build OAuth-style connections to LLM providers. Customer clicks "Connect OpenAI," authenticates with OpenAI, and LLMVault receives a scoped token automatically — no key copy-paste.
+**What**: Instead of customers manually copying API keys, build OAuth-style connections to LLM providers. Customer clicks "Connect OpenAI," authenticates with OpenAI, and ZiraLoop receives a scoped token automatically — no key copy-paste.
 
 **Why this is visionary**:
 - Eliminates the most friction-heavy part of BYOK (finding and copying the API key)
@@ -337,13 +337,13 @@ These features expand LLMVault into adjacent markets and create defensible moats
 
 ### 12. Platform-Managed Keys (Hybrid BYOK)
 
-**What**: Platforms can offer a hybrid model — customers who don't have their own keys can use the platform's pooled keys (with metered billing), while power users connect their own. LLMVault manages both flows.
+**What**: Platforms can offer a hybrid model — customers who don't have their own keys can use the platform's pooled keys (with metered billing), while power users connect their own. ZiraLoop manages both flows.
 
 **Why this matters**:
 - Not every customer has LLM API keys. Smaller customers want the platform to handle it.
 - Enables a freemium model: "Use our included AI credits, or connect your own key for unlimited usage"
 - The platform becomes an LLM reseller (additional revenue stream)
-- LLMVault manages both pools — BYOK and platform-owned — with the same security model
+- ZiraLoop manages both pools — BYOK and platform-owned — with the same security model
 
 **Example flow**:
 ```
@@ -352,7 +352,7 @@ Customer grows → Hits usage limits → Prompted to connect own key (BYOK)
 Customer connects own key → Seamless transition, same proxy, same API
 ```
 
-**Positioning**: "Offer AI out of the box with pooled keys. Let power users bring their own. LLMVault manages both — one API, one security model."
+**Positioning**: "Offer AI out of the box with pooled keys. Let power users bring their own. ZiraLoop manages both — one API, one security model."
 
 ---
 
@@ -403,9 +403,9 @@ Customer connects own key → Seamless transition, same proxy, same API
 
 **Why this matters**:
 - Platforms don't want to build a full "manage your LLM connections" UI
-- White-label portal means LLMVault handles the entire customer-facing experience
+- White-label portal means ZiraLoop handles the entire customer-facing experience
 - Reduces platform development time dramatically
-- Increases LLMVault's surface area and stickiness
+- Increases ZiraLoop's surface area and stickiness
 
 **Positioning**: "Give your customers a full LLM management portal. White-label, customizable, zero frontend code from you."
 

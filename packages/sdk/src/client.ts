@@ -1,6 +1,6 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema.js";
-import type { LLMVaultConfig } from "./types.js";
+import type { ZiraLoopConfig } from "./types.js";
 import { AgentsResource } from "./resources/agents.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { AuditResource } from "./resources/audit.js";
@@ -23,7 +23,7 @@ import { TokensResource } from "./resources/tokens.js";
 import { UsageResource } from "./resources/usage.js";
 import { WebhooksResource } from "./resources/webhooks.js";
 
-export class LLMVault {
+export class ZiraLoop {
   public readonly agents: AgentsResource;
   public readonly apiKeys: ApiKeysResource;
   public readonly audit: AuditResource;
@@ -46,8 +46,8 @@ export class LLMVault {
   public readonly usage: UsageResource;
   public readonly webhooks: WebhooksResource;
 
-  constructor(config: LLMVaultConfig) {
-    const baseUrl = config.baseUrl ?? "https://api.llmvault.dev";
+  constructor(config: ZiraLoopConfig) {
+    const baseUrl = config.baseUrl ?? "https://api.ziraloop.com";
     const client = createClient<paths>({
       baseUrl,
       headers: {

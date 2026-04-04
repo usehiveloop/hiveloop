@@ -1,6 +1,6 @@
 # Sandbox Orchestrator — Manual Integration Test Plan
 
-Tests the real end-to-end flow: LLMVault → Daytona → Bridge running in sandbox → Turso.
+Tests the real end-to-end flow: ZiraLoop → Daytona → Bridge running in sandbox → Turso.
 
 ## Prerequisites
 
@@ -24,8 +24,8 @@ TURSO_GROUP=default
 SANDBOX_ENCRYPTION_KEY=<output of: openssl rand -base64 32>
 
 # Bridge
-BRIDGE_BASE_IMAGE_PREFIX=llmvault-bridge-0-10-0
-BRIDGE_HOST=llmvault.outray.app
+BRIDGE_BASE_IMAGE_PREFIX=ziraloop-bridge-0-10-0
+BRIDGE_HOST=ziraloop.outray.app
 
 # Timeouts
 SHARED_SANDBOX_IDLE_TIMEOUT_MINS=30
@@ -44,7 +44,7 @@ make build-templates VERSION=0.10.0 SIZE=small
 
 ### Tunnel
 
-`https://llmvault.outray.app` must be pointing to `localhost:8080`.
+`https://ziraloop.outray.app` must be pointing to `localhost:8080`.
 
 ---
 
@@ -112,7 +112,7 @@ Check the Daytona dashboard or API:
 ```bash
 source .env
 curl -s "https://app.daytona.io/api/sandbox" \
-  -H "Authorization: Bearer $SANDBOX_PROVIDER_KEY" | python3 -m json.tool | grep llmv
+  -H "Authorization: Bearer $SANDBOX_PROVIDER_KEY" | python3 -m json.tool | grep zira
 ```
 
 ### 2b. Bridge is running inside the sandbox
@@ -120,7 +120,7 @@ curl -s "https://app.daytona.io/api/sandbox" \
 Use the pre-auth URL from the sandbox record to hit Bridge's health endpoint:
 ```bash
 # Get the BridgeURL from the sandbox record in Postgres
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "SELECT id, bridge_url, status FROM sandboxes ORDER BY created_at DESC LIMIT 1;"
 
 # Hit Bridge health endpoint
@@ -128,12 +128,12 @@ curl -s <BRIDGE_URL>/health
 # Expected: {"status":"ok","uptime_secs":...}
 ```
 
-### 2c. Bridge can reach LLMVault via tunnel
+### 2c. Bridge can reach ZiraLoop via tunnel
 
 Check server logs for any incoming webhook test or push from Bridge. Or manually trigger:
 ```bash
 # From inside sandbox (via Daytona SSH or exec):
-curl -s https://llmvault.outray.app/healthz
+curl -s https://ziraloop.outray.app/healthz
 # Expected: {"status":"ok"}
 ```
 
@@ -142,7 +142,7 @@ curl -s https://llmvault.outray.app/healthz
 ## Test 3: Turso Database Provisioned
 
 ```bash
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "SELECT org_id, turso_database_name, storage_url FROM workspace_storages ORDER BY created_at DESC LIMIT 5;"
 ```
 
@@ -150,7 +150,7 @@ Verify the Turso database exists:
 ```bash
 source .env
 curl -s "https://api.turso.tech/v1/organizations/$TURSO_ORG_SLUG/databases" \
-  -H "Authorization: Bearer $TURSO_API_TOKEN" | python3 -m json.tool | grep llmv
+  -H "Authorization: Bearer $TURSO_API_TOKEN" | python3 -m json.tool | grep zira
 ```
 
 ---
@@ -160,7 +160,7 @@ curl -s "https://api.turso.tech/v1/organizations/$TURSO_ORG_SLUG/databases" \
 ```bash
 # Stop the sandbox via Daytona
 source .env
-EXTERNAL_ID=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault -t \
+EXTERNAL_ID=$(PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop -t \
   -c "SELECT external_id FROM sandboxes WHERE status='running' ORDER BY created_at DESC LIMIT 1;" | xargs)
 
 curl -s -X POST "https://app.daytona.io/api/sandbox/$EXTERNAL_ID/stop" \
@@ -168,7 +168,7 @@ curl -s -X POST "https://app.daytona.io/api/sandbox/$EXTERNAL_ID/stop" \
 
 # Verify DB shows stopped (health checker should pick it up within 30s)
 sleep 35
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "SELECT id, status FROM sandboxes ORDER BY created_at DESC LIMIT 1;"
 
 # Re-call EnsureSharedSandbox (via test or future API) — should wake it
@@ -181,7 +181,7 @@ PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
 
 ```bash
 # Expire the URL manually in DB
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "UPDATE sandboxes SET bridge_url_expires_at = NOW() - INTERVAL '1 hour' WHERE status='running';"
 
 # Next GetBridgeClient call should refresh it
@@ -203,7 +203,7 @@ IDENT2=$(curl -s -X POST http://localhost:8080/v1/identities \
 IDENT2_ID=$(echo "$IDENT2" | python3 -c "import sys,json; print(json.load(sys.stdin.buffer)['id'])")
 
 # After Phase 6, creating agents for both identities should result in 2 sandboxes
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "SELECT id, identity_id, sandbox_type, status FROM sandboxes ORDER BY created_at DESC;"
 ```
 
@@ -218,7 +218,7 @@ PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
 # Create a sandbox, then wait 2 minutes without activity
 # Health checker should auto-stop it
 
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "SELECT id, status, last_active_at, NOW() - last_active_at AS idle_duration FROM sandboxes;"
 ```
 
@@ -255,7 +255,7 @@ After testing, clean up:
 
 ```bash
 # Delete sandboxes from DB
-PGPASSWORD=localdev psql -h localhost -p 5433 -U llmvault -d llmvault \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U ziraloop -d ziraloop \
   -c "DELETE FROM sandboxes;"
 
 # Delete test Turso databases
@@ -265,7 +265,7 @@ curl -s "https://api.turso.tech/v1/organizations/$TURSO_ORG_SLUG/databases" \
 import sys, json
 dbs = json.load(sys.stdin.buffer).get('databases', [])
 for db in dbs:
-    if db['Name'].startswith('llmv-'):
+    if db['Name'].startswith('zira-'):
         print(f'  Delete: {db[\"Name\"]}')
 "
 
@@ -276,7 +276,7 @@ import sys, json
 sbs = json.load(sys.stdin.buffer).get('items', [])
 for sb in sbs:
     name = sb.get('name', '')
-    if name.startswith('llmv-'):
+    if name.startswith('zira-'):
         print(f'  Delete: {name} (id={sb[\"id\"]})')
 "
 ```

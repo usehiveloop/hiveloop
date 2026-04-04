@@ -23,7 +23,7 @@ The Model Context Protocol (MCP) has become the standard for connecting AI model
 
 ## The Solution
 
-LLMVault MCP takes the opposite approach from static, shared MCP servers. Every minted token gets its own dynamically-scoped MCP server instance that exposes only the tools that token's scopes allow. An agent connecting via MCP literally cannot see, discover, or call tools it doesn't have permission to use.
+ZiraLoop MCP takes the opposite approach from static, shared MCP servers. Every minted token gets its own dynamically-scoped MCP server instance that exposes only the tools that token's scopes allow. An agent connecting via MCP literally cannot see, discover, or call tools it doesn't have permission to use.
 
 ---
 
@@ -60,7 +60,7 @@ Response includes the MCP endpoint:
   "token": "ptok_eyJhbG...",
   "jti": "tok_xyz789",
   "expires_at": "2026-03-28T16:00:00Z",
-  "mcp_endpoint": "https://mcp.llmvault.dev/tok_xyz789"
+  "mcp_endpoint": "https://mcp.ziraloop.com/tok_xyz789"
 }
 ```
 
@@ -103,7 +103,7 @@ Agent (Claude, Cursor, etc.)
   │  Authorization: Bearer ptok_...
   │
   ▼
-LLMVault MCP Server (scoped to this token)
+ZiraLoop MCP Server (scoped to this token)
   │
   │  1. Validate JTI matches URL
   │  2. Validate token has scopes
@@ -135,7 +135,7 @@ MCP servers are cached per JTI via `mcpserver.ServerCache`:
 
 ### What Makes This Different from Other MCP Servers
 
-| Concern | Standard MCP Server | LLMVault MCP |
+| Concern | Standard MCP Server | ZiraLoop MCP |
 |---|---|---|
 | **Tool visibility** | All tools visible to all clients | Only scoped tools visible per token |
 | **Credential handling** | Credentials in config files or env vars | Credentials never exposed — managed proxy |
@@ -157,7 +157,7 @@ Every MCP request passes through:
 
 ## The Action Catalog
 
-LLMVault ships with embedded action catalogs for 45+ providers (`internal/mcp/catalog/providers/*.actions.json`). Each provider defines:
+ZiraLoop ships with embedded action catalogs for 45+ providers (`internal/mcp/catalog/providers/*.actions.json`). Each provider defines:
 
 ### Actions
 ```json

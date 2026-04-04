@@ -1,4 +1,4 @@
-# LLMVault — Buyer Personas
+# ZiraLoop — Buyer Personas
 
 ---
 
@@ -74,7 +74,7 @@ Chris's startup is building an AI-first product. They've chosen to support BYOK 
 ### What Wins Chris Over
 - **ROI math**: "3-6 months of senior eng time" vs. a monthly fee
 - **Compliance story**: SOC 2, audit logs, encryption at rest — things that make enterprise sales easier
-- **Case studies**: Other startups in his space using LLMVault
+- **Case studies**: Other startups in his space using ZiraLoop
 - **Clear pricing**: No surprises, scales with usage
 
 ### How Chris Evaluates
@@ -187,7 +187,7 @@ Wendy is building the "Connect Your LLM Provider" flow in her company's app. She
 | Widget Wendy | User & Influencer | P2 | Medium — drives adoption once purchased |
 
 ### Typical Buying Flow
-1. **Pete** discovers LLMVault (search, HN, Twitter, dev community)
+1. **Pete** discovers ZiraLoop (search, HN, Twitter, dev community)
 2. **Pete** evaluates technically, builds a proof-of-concept
 3. **Pete** champions it internally, presents to **Chris**
 4. **Chris** evaluates ROI, security posture, and pricing

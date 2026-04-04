@@ -13,10 +13,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
-const testDBURL = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+const testDBURL = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 
 func setupDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -108,8 +108,8 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 	if ws.StorageURL != storageURL {
 		t.Errorf("DB storage URL mismatch: got %q", ws.StorageURL)
 	}
-	if !strings.HasPrefix(ws.TursoDatabaseName, "llmv-") {
-		t.Errorf("DB name should start with llmv-, got %q", ws.TursoDatabaseName)
+	if !strings.HasPrefix(ws.TursoDatabaseName, "zira-") {
+		t.Errorf("DB name should start with zira-, got %q", ws.TursoDatabaseName)
 	}
 
 	// Second call should return existing (idempotent)
@@ -146,7 +146,7 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 
 	ws := model.WorkspaceStorage{
 		OrgID:             org.ID,
-		TursoDatabaseName: "llmv-del-" + suffix,
+		TursoDatabaseName: "zira-del-" + suffix,
 		StorageURL:        "libsql://del.turso.io",
 		StorageAuthToken:  "token",
 	}

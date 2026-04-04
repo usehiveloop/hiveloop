@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -182,7 +182,7 @@ func TestAdminAuditBucket_NoBucket(t *testing.T) {
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://llmvault:localdev@localhost:5433/llmvault?sslmode=disable"
+	dsn := "postgres://ziraloop:localdev@localhost:5433/ziraloop?sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skipf("skipping: cannot connect to test DB: %v", err)

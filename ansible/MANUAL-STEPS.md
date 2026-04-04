@@ -10,9 +10,9 @@ Create A records pointing to the control plane VPS IP before running Phase 2.
 
 | Record | Type | Value |
 |--------|------|-------|
-| `api.daytona.llmvault.dev` | A | `<VPS_IP>` |
-| `dex.daytona.llmvault.dev` | A | `<VPS_IP>` |
-| `*.preview.llmvault.dev` | A | `<VPS_IP>` |
+| `api.daytona.ziraloop.com` | A | `<VPS_IP>` |
+| `dex.daytona.ziraloop.com` | A | `<VPS_IP>` |
+| `*.preview.ziraloop.com` | A | `<VPS_IP>` |
 
 For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record pointing to the same VPS IP. No server-side changes needed — Caddy auto-provisions TLS via on-demand HTTP-01 challenge.
 
@@ -38,10 +38,10 @@ For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record poin
 
 1. Go to Cloudflare Dashboard → My Profile → API Tokens → Create Token
 2. Use "Edit zone DNS" template
-3. Zone Resources: Include → Specific zone → `llmvault.dev`
+3. Zone Resources: Include → Specific zone → `ziraloop.com`
 4. Copy the token into `.env` as `CLOUDFLARE_API_TOKEN`
 
-This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.llmvault.dev`, `api.daytona.llmvault.dev`, and `dex.daytona.llmvault.dev`.
+This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.ziraloop.com`, `api.daytona.ziraloop.com`, and `dex.daytona.ziraloop.com`.
 
 ---
 
@@ -60,7 +60,7 @@ export DAYTONA_DEX_ADMIN_PASSWORD_HASH='$2y$10$...'
 ```
 
 Login credentials for the Daytona dashboard:
-- Email: `admin@llmvault.dev`
+- Email: `admin@ziraloop.com`
 - Password: whatever you entered when generating the hash
 
 ---
@@ -69,7 +69,7 @@ Login credentials for the Daytona dashboard:
 
 After Phase 2 deploys the control plane and you log into the dashboard:
 
-1. Go to `https://api.daytona.llmvault.dev/dashboard`
+1. Go to `https://api.daytona.ziraloop.com/dashboard`
 2. Log in with the Dex admin credentials
 3. Navigate to the dashboard and set the **default region** to `us-bare-metal` (required — without this, snapshot creation returns 428)
 4. Navigate to API Keys section
@@ -100,11 +100,11 @@ The DinD data is persisted at `/opt/daytona-runner/dind-data/`, so the image sur
 
 ## 7. Repo `.env` — Sandbox Provider Configuration
 
-Update the LLMVault repo's `.env` (not the ansible `.env`) to point to the self-hosted Daytona:
+Update the ZiraLoop repo's `.env` (not the ansible `.env`) to point to the self-hosted Daytona:
 
 ```
 SANDBOX_PROVIDER_ID=daytona
-SANDBOX_PROVIDER_URL=https://api.daytona.llmvault.dev/api
+SANDBOX_PROVIDER_URL=https://api.daytona.ziraloop.com/api
 SANDBOX_PROVIDER_KEY=dtn_<api-key-from-dashboard>
 SANDBOX_TARGET=us
 ```

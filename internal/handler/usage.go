@@ -10,7 +10,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/middleware"
 )
 
 // UsageHandler serves org usage and stats.

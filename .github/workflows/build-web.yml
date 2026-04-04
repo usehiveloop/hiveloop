@@ -20,5 +20,5 @@ jobs:
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=http://localhost:8080 \
             --build-arg NEXT_PUBLIC_CONNECT_URL=http://localhost:5173 \
-            -t llmvault-web \
+            -t ziraloop-web \
             ./apps/web

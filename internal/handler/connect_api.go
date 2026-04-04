@@ -11,14 +11,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
-	"github.com/llmvault/llmvault/internal/proxy"
-	"github.com/llmvault/llmvault/internal/registry"
-	"github.com/llmvault/llmvault/internal/resources"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/proxy"
+	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/resources"
 )
 
 // ConnectAPIHandler serves the Connect widget's API endpoints.

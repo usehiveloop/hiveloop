@@ -6047,7 +6047,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.ForgeEvent"
+                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvent"
                             }
                         }
                     },
@@ -6103,7 +6103,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.ForgeEvalResult"
+                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult"
                             }
                         }
                     },
@@ -9049,7 +9049,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_llmvault_llmvault_internal_resources.DiscoveryResult"
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"
                         }
                     },
                     "400": {
@@ -9152,7 +9152,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
+        "github_com_ziraloop_ziraloop_internal_mcp.TokenScope": {
             "type": "object",
             "properties": {
                 "actions": {
@@ -9175,7 +9175,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_model.ForgeEvalResult": {
+        "github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -9239,7 +9239,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_model.ForgeEvent": {
+        "github_com_ziraloop_ziraloop_internal_model.ForgeEvent": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -9262,7 +9262,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_model.ForgeIteration": {
+        "github_com_ziraloop_ziraloop_internal_model.ForgeIteration": {
             "type": "object",
             "properties": {
                 "agent_config": {
@@ -9344,11 +9344,11 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_model.JSON": {
+        "github_com_ziraloop_ziraloop_internal_model.JSON": {
             "type": "object",
             "additionalProperties": {}
         },
-        "github_com_llmvault_llmvault_internal_nango.Credentials": {
+        "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -9394,7 +9394,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_registry.Cost": {
+        "github_com_ziraloop_ziraloop_internal_registry.Cost": {
             "type": "object",
             "properties": {
                 "input": {
@@ -9405,7 +9405,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_registry.Limit": {
+        "github_com_ziraloop_ziraloop_internal_registry.Limit": {
             "type": "object",
             "properties": {
                 "context": {
@@ -9416,7 +9416,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_registry.Modalities": {
+        "github_com_ziraloop_ziraloop_internal_registry.Modalities": {
             "type": "object",
             "properties": {
                 "input": {
@@ -9433,7 +9433,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_resources.AvailableResource": {
+        "github_com_ziraloop_ziraloop_internal_resources.AvailableResource": {
             "type": "object",
             "properties": {
                 "id": {
@@ -9447,13 +9447,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
+        "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
             "type": "object",
             "properties": {
                 "resources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_llmvault_llmvault_internal_resources.AvailableResource"
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_resources.AvailableResource"
                     }
                 }
             }
@@ -9630,13 +9630,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -9769,7 +9769,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "org_id": {
                     "type": "string"
@@ -9789,10 +9789,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "nango_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -9818,7 +9818,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "org_id": {
                     "type": "string"
@@ -10076,7 +10076,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -10085,10 +10085,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -10097,7 +10097,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -10109,13 +10109,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "status": {
                     "type": "string"
                 },
                 "subagents": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -10124,7 +10124,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -10146,10 +10146,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "memory_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -10174,13 +10174,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -10208,7 +10208,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "name": {
                     "type": "string"
@@ -10259,7 +10259,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "created_at": {
                     "type": "string"
@@ -10277,10 +10277,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -10289,7 +10289,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -10307,13 +10307,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "status": {
                     "type": "string"
                 },
                 "subagents": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -10322,7 +10322,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "updated_at": {
                     "type": "string"
@@ -10575,7 +10575,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "permissions": {
                     "type": "array",
@@ -10698,7 +10698,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "payload": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -10772,7 +10772,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -10784,10 +10784,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -10796,7 +10796,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -10808,10 +10808,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "subagents": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -10820,7 +10820,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -10846,7 +10846,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "permissions": {
                     "type": "array",
@@ -10895,7 +10895,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -10964,10 +10964,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "memory_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -10998,13 +10998,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -11026,7 +11026,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "name": {
                     "type": "string"
@@ -11058,7 +11058,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider_id": {
                     "type": "string"
@@ -11180,7 +11180,7 @@ const docTemplate = `{
                 "iterations": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.ForgeIteration"
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeIteration"
                     }
                 },
                 "run": {
@@ -11360,10 +11360,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "memory_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -11394,7 +11394,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
@@ -11417,13 +11417,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "nango_connection_id": {
                     "type": "string"
                 },
                 "provider_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "revoked_at": {
                     "type": "string"
@@ -11486,10 +11486,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "nango_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider": {
                     "type": "string"
@@ -11583,7 +11583,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -11597,7 +11597,7 @@ const docTemplate = `{
                 "scopes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_llmvault_llmvault_internal_mcp.TokenScope"
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp.TokenScope"
                     }
                 },
                 "ttl": {
@@ -11627,7 +11627,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "cost": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Cost"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Cost"
                 },
                 "family": {
                     "type": "string"
@@ -11639,10 +11639,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "limit": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Limit"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Limit"
                 },
                 "modalities": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_registry.Modalities"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_registry.Modalities"
                 },
                 "name": {
                     "type": "string"
@@ -12451,7 +12451,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "created_at": {
                     "type": "string"
@@ -12610,7 +12610,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "refill_amount": {
                     "type": "integer"
@@ -12625,7 +12625,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "scopes": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -12715,7 +12715,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "agent_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "credential_id": {
                     "type": "string"
@@ -12724,10 +12724,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "integrations": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "mcp_servers": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "model": {
                     "type": "string"
@@ -12736,7 +12736,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "permissions": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -12748,10 +12748,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "subagents": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -12760,7 +12760,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tools": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -12771,10 +12771,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "memory_config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "ratelimits": {
                     "type": "array",
@@ -12788,13 +12788,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "credentials": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_nango.Credentials"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_nango.Credentials"
                 },
                 "display_name": {
                     "type": "string"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -12805,7 +12805,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "config": {
-                    "$ref": "#/definitions/github_com_llmvault_llmvault_internal_model.JSON"
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "name": {
                     "type": "string"
@@ -13024,10 +13024,10 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "api.dev.llmvault.dev",
+	Host:             "api.dev.ziraloop.com",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
-	Title:            "LLMVault API",
+	Title:            "ZiraLoop API",
 	Description:      "Proxy bridge for LLM API credentials.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

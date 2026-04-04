@@ -1,4 +1,4 @@
-# LLMVault — Website Strategy & Architecture
+# ZiraLoop — Website Strategy & Architecture
 
 ---
 
@@ -14,7 +14,7 @@
 ## Site Architecture
 
 ```
-llmvault.dev/
+ziraloop.com/
 ├── / (Homepage)
 ├── /docs (Documentation — separate subdomain or subpath)
 │   ├── /docs/quickstart
@@ -42,7 +42,7 @@ llmvault.dev/
 
 ### Homepage (/)
 
-**Purpose**: Convert developers to try LLMVault. Explain what it is, why it matters, and get them to the docs/quickstart.
+**Purpose**: Convert developers to try ZiraLoop. Explain what it is, why it matters, and get them to the docs/quickstart.
 
 **Structure**:
 
@@ -54,7 +54,7 @@ llmvault.dev/
 
 2. **Problem Statement**
    - "Your customers trust you with their API keys. Are you handling them right?"
-   - Visual showing the common (insecure) approach vs. the LLMVault approach
+   - Visual showing the common (insecure) approach vs. the ZiraLoop approach
 
 3. **How It Works** (3 steps)
    - Step 1: Store credentials (encrypted automatically)
@@ -134,7 +134,7 @@ llmvault.dev/
 
 **Each page follows this structure**:
 1. Problem statement specific to the use case
-2. How LLMVault solves it
+2. How ZiraLoop solves it
 3. Architecture diagram for this use case
 4. Code example specific to this use case
 5. Relevant features highlighted

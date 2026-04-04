@@ -1,4 +1,4 @@
-export { LLMVaultConnect } from './connect'
+export { ZiraLoopConnect } from './connect'
 export { ConnectError } from './errors'
 export type {
   ThemeOption,
@@ -9,7 +9,7 @@ export type {
   IntegrationSuccessPayload,
   ResourceSelectionPayload,
   ErrorPayload,
-  LLMVaultConnectConfig,
+  ZiraLoopConnectConfig,
   ConnectOpenOptions,
 } from './types'
 export type { ConnectErrorType } from './errors'

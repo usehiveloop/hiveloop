@@ -4,6 +4,4786 @@
  */
 
 export interface paths {
+    "/admin/v1/admin-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List admin audit log
+         * @description Returns admin operation audit entries with filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by resource (users, orgs, agents, etc.) */
+                    resource?: string;
+                    /** @description Filter by action (update_user, ban_user, delete_org, etc.) */
+                    action?: string;
+                    /** @description Filter by admin user ID */
+                    admin_id?: string;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all agents
+         * @description Returns agents across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by status (active, archived) */
+                    status?: string;
+                    /** @description Filter by sandbox type (shared, dedicated) */
+                    sandbox_type?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminAgentResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/agents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get agent details
+         * @description Returns agent details.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminAgentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update an agent
+         * @description Updates agent configuration with full validation.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminAgentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete an agent
+         * @description Permanently deletes an agent.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/agents/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive an agent
+         * @description Force-archives an active agent.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all API keys
+         * @description Returns API keys across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by revoked status (true/false) */
+                    revoked?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminAPIKeyResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/api-keys/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke an API key
+         * @description Force-revokes an API key.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description API Key ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all audit entries
+         * @description Returns audit entries across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by action */
+                    action?: string;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/connect-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all connect sessions
+         * @description Returns connect sessions across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by expired status (true/false) */
+                    expired?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminConnectSessionResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/connect-sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a connect session
+         * @description Force-deletes a connect session.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Session ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all connections
+         * @description Returns OAuth connections across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by revoked status (true/false) */
+                    revoked?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminConnectionResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/connections/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a connection
+         * @description Force-revokes an OAuth connection.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all conversations
+         * @description Returns agent conversations across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by agent ID */
+                    agent_id?: string;
+                    /** @description Filter by status (active, ended, error) */
+                    status?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminConversationResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get conversation details
+         * @description Returns conversation details with event count.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminConversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * End a conversation
+         * @description Force-ends an active conversation.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all credentials
+         * @description Returns credentials across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by provider ID */
+                    provider_id?: string;
+                    /** @description Filter by revoked status (true/false) */
+                    revoked?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminCredentialResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/credentials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get credential details
+         * @description Returns credential metadata (no decrypted key).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminCredentialResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update a credential
+         * @description Updates credential label and/or identity assignment.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateCredentialRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminCredentialResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/credentials/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a credential
+         * @description Force-revokes a credential.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Credential ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/custom-domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all custom domains
+         * @description Returns custom domains across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by verified status (true/false) */
+                    verified?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminCustomDomainResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/custom-domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a custom domain
+         * @description Force-deletes a custom domain.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Domain ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/forge-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all forge runs
+         * @description Returns forge optimization runs across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by status (pending, running, completed, cancelled, failed) */
+                    status?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminForgeRunResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/forge-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get forge run details
+         * @description Returns forge run details.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminForgeRunResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/forge-runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a forge run
+         * @description Force-cancels a pending or running forge run.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all generations
+         * @description Returns LLM generations across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by provider ID */
+                    provider_id?: string;
+                    /** @description Filter by model name */
+                    model?: string;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/generations/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Generation statistics
+         * @description Returns aggregate generation statistics by provider and model.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminGenerationStatsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all identities
+         * @description Returns identities across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by external ID */
+                    external_id?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminIdentityResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get identity details
+         * @description Returns identity details with rate limits.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Identity ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminIdentityResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update an identity
+         * @description Updates identity external_id, metadata, memory config, and rate limits.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Identity ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateIdentityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminIdentityResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete an identity
+         * @description Permanently deletes an identity and cascades to related data.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Identity ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/in-connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user connections to platform integrations
+         * @description Returns all user connections to app-owned integrations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by user ID */
+                    user_id?: string;
+                    /** @description Filter by revoked status (true/false) */
+                    revoked?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/in-integration-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available integration providers
+         * @description Returns providers supported for platform integrations (filtered by action catalog).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        }[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/in-integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List platform integrations
+         * @description Returns all app-owned (platform) integrations.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a platform integration
+         * @description Creates a new app-owned integration with OAuth credentials via Nango.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Integration details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminCreateInIntegrationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminInIntegrationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/in-integrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a platform integration
+         * @description Returns a single platform integration by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminInIntegrationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update a platform integration
+         * @description Updates display name, credentials, or metadata for a platform integration.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateInIntegrationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminInIntegrationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a platform integration
+         * @description Soft-deletes a platform integration and removes it from Nango.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all integrations
+         * @description Returns org integrations across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminIntegrationResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/orgs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all organizations
+         * @description Returns all organizations with optional filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Search by name */
+                    search?: string;
+                    /** @description Filter by active status (true/false) */
+                    active?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminOrgResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/orgs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get organization details
+         * @description Returns org details with member, credential, agent, and sandbox counts.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminOrgDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update organization
+         * @description Updates org name, rate_limit, active status, and allowed_origins.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateOrgRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminOrgResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete organization
+         * @description Permanently deletes an organization and cascades to related data.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/orgs/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate organization
+         * @description Reactivates a previously deactivated organization.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/orgs/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate organization
+         * @description Deactivates an organization, blocking all API access.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/orgs/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organization members
+         * @description Returns all members of an organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Org ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandbox-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all sandbox templates
+         * @description Returns sandbox templates across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by build status (pending, building, ready, failed) */
+                    build_status?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminSandboxTemplateResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandbox-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a sandbox template
+         * @description Updates sandbox template name and configuration.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateSandboxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a sandbox template
+         * @description Permanently deletes a sandbox template.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all sandboxes
+         * @description Returns sandboxes across all organizations with resource metrics.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by status (running, stopped, error) */
+                    status?: string;
+                    /** @description Filter by type (shared, dedicated) */
+                    sandbox_type?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminSandboxResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandboxes/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk cleanup sandboxes
+         * @description Deletes all errored and stale stopped sandboxes (stopped > 24h).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandboxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get sandbox details
+         * @description Returns sandbox details with resource metrics.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a sandbox
+         * @description Force-deletes a sandbox from the provider and DB.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandboxes/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a sandbox
+         * @description Force-stops a running sandbox.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform stats
+         * @description Returns platform-wide aggregate statistics.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminStatsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all proxy tokens
+         * @description Returns proxy tokens across all organizations.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by org ID */
+                    org_id?: string;
+                    /** @description Filter by revoked status (true/false) */
+                    revoked?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminTokenResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/tokens/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a proxy token
+         * @description Force-revokes a proxy token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Token ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate usage by org
+         * @description Returns aggregate request counts grouped by organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all users
+         * @description Returns all users across the platform with optional filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Search by email or name */
+                    search?: string;
+                    /** @description Filter by banned status (true/false) */
+                    banned?: string;
+                    /** @description Filter by email confirmed status (true/false) */
+                    confirmed?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminUserResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user details
+         * @description Returns user details including org memberships.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminUserResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update a user
+         * @description Updates user name and/or email with validation.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateUserRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminUserResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a user
+         * @description Permanently deletes a user and all associated data.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/users/{id}/ban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ban a user
+         * @description Bans a user account and revokes all refresh tokens.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminUserResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/users/{id}/confirm-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-confirm user email
+         * @description Administratively confirms a user's email address.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminUserResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/users/{id}/unban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unban a user
+         * @description Removes the ban from a user account.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminUserResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/workspace-storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all workspace storage
+         * @description Returns all provisioned workspace databases.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/workspace-storage/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete workspace storage
+         * @description Deletes a workspace storage record.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Storage ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change password
+         * @description Changes the authenticated user's password. Revokes all sessions.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Current and new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["changePasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/confirm-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm email address
+         * @description Confirms a user's email address using a verification token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Confirmation token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["confirmEmailRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request password reset
+         * @description Sends a password reset link to the email address if an account exists.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Email address */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["forgotPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in
+         * @description Authenticates a user with email and password.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Login parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["loginRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log out
+         * @description Revokes a refresh token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Logout parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["logoutRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user
+         * @description Returns the current user and their organization memberships.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["meResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh tokens
+         * @description Exchanges a refresh token for new access and refresh tokens.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Refresh parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["refreshRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a new user
+         * @description Creates a new user account, organization, and sends a confirmation email.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Registration parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["registerRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/resend-confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend confirmation email
+         * @description Sends a new email confirmation link. Rate limited to 1 per 60 seconds.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Email address */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["resendConfirmationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset password
+         * @description Resets a user's password using a reset token. Revokes all sessions.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Reset token and new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["resetPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange OAuth token for access and refresh tokens
+         * @description Exchanges a short-lived, single-use OAuth exchange token for an access/refresh token pair. The exchange token is obtained from the OAuth callback redirect.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Exchange token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["exchangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start GitHub OAuth login
+         * @description Redirects the browser to GitHub's authorization page. Sets a state cookie for CSRF protection.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to GitHub */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Provider not configured */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/github/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GitHub OAuth callback
+         * @description Handles the redirect from GitHub after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Authorization code from GitHub */
+                    code: string;
+                    /** @description CSRF state parameter */
+                    state: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to frontend with error */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start Google OAuth login
+         * @description Redirects the browser to Google's authorization page. Sets a state cookie for CSRF protection.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to Google */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Provider not configured */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Google OAuth callback
+         * @description Handles the redirect from Google after authorization. Exchanges the code for a token, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Authorization code from Google */
+                    code: string;
+                    /** @description CSRF state parameter */
+                    state: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to frontend with error */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/x": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start X (Twitter) OAuth login
+         * @description Redirects the browser to X's authorization page. Sets state and PKCE verifier cookies.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to X */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Provider not configured */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/x/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * X (Twitter) OAuth callback
+         * @description Handles the redirect from X after authorization. Exchanges the code for a token using PKCE, creates or links the user account, and redirects to the frontend with a short-lived exchange token.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Authorization code from X */
+                    code: string;
+                    /** @description CSRF state parameter */
+                    state: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to frontend with error */
+                307: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List agents
+         * @description Returns agents for the current organization with optional filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by identity ID */
+                    identity_id?: string;
+                    /** @description Filter by status (active, archived) */
+                    status?: string;
+                    /** @description Filter by sandbox type (shared, dedicated) */
+                    sandbox_type?: string;
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-agentResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create an agent
+         * @description Creates a new agent tied to an identity and credential. Shared agents are pushed to Bridge immediately.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Agent definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List conversations for an agent
+         * @description Returns conversations for the specified agent.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status (active, ended, error) */
+                    status?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-conversationResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a conversation
+         * @description Creates a new conversation for an agent. For shared agents, reuses the existing sandbox. For dedicated agents, spins up a new sandbox.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["conversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/forge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List forge runs
+         * @description Returns all forge runs for the specified agent, ordered by creation date.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeRunResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Start a forge run
+         * @description Creates and starts a new forge run for the specified agent using the provided models, credentials, and configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Forge configuration */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["startForgeRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeRunResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an agent
+         * @description Returns a single agent by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update an agent
+         * @description Updates an agent. Re-validates credential/model compatibility. Shared agents are re-pushed to Bridge.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete an agent
+         * @description Deletes an agent and removes it from Bridge.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{id}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get agent sandbox setup config
+         * @description Returns setup commands and env var key names for dedicated agents.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["setupResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update agent sandbox setup config
+         * @description Sets setup commands and encrypted environment variables. Only available for dedicated sandbox agents.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Setup configuration */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["setupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["setupResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api-keys": {
         parameters: {
             query?: never;
@@ -434,7 +5214,68 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List connect sessions
+         * @description Returns connect sessions for the current organization with cursor-based pagination.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status: active, activated, expired */
+                    status?: string;
+                    /** @description Filter by identity ID */
+                    identity_id?: string;
+                    /** @description Filter by external ID */
+                    external_id?: string;
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-connectSessionListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Create a connect session
@@ -502,6 +5343,148 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connect/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a connect session
+         * @description Returns a single connect session by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Session ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["connectSessionListItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a connect session
+         * @description Deletes a connect session, immediately invalidating it.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Session ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -701,6 +5684,458 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a conversation
+         * @description Returns a conversation by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["conversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conversation has ended */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * End a conversation
+         * @description Permanently ends a conversation. Subsequent operations return 410.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abort current turn
+         * @description Cancels the current in-flight LLM call or tool execution.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pending tool approvals
+         * @description Returns pending tool approval requests for the conversation.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        }[];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/approvals/{requestID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a tool approval
+         * @description Approves or denies a pending tool execution request.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                    /** @description Approval request ID */
+                    requestID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Decision: approve or deny */
+            requestBody: {
+                content: {
+                    "application/json": {
+                        decision?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List conversation events
+         * @description Returns webhook events persisted for the conversation. Filterable by event type.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by event type (e.g. MessageReceived, ResponseCompleted) */
+                    type?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-conversationEventResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a message
+         * @description Sends a message to the agent in the conversation. Returns 202 immediately; response streams via SSE.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Message content */
+            requestBody: {
+                content: {
+                    "application/json": {
+                        content?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{convID}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream conversation events (SSE)
+         * @description Opens a Server-Sent Events stream for real-time agent responses. Events include message_start, content_delta, tool_call_start, tool_call_result, message_end, done.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Conversation ID */
+                    convID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description SSE event stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": string;
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -982,6 +6417,790 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/custom-domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List custom domains
+         * @description Returns all custom preview domains for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["createDomainResponse"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Add a custom domain
+         * @description Register a new custom preview domain for the current organization. Returns DNS records to create.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Domain to add */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createDomainRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["createDomainResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/custom-domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a custom domain
+         * @description Remove a custom preview domain and its TLS configuration.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Domain ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/custom-domains/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a custom domain
+         * @description Checks that both DNS CNAME records are correctly configured and triggers wildcard TLS provisioning.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Domain ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["verifyDomainResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get forge run
+         * @description Returns a forge run with all iterations and their details.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["forgeGetRunResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply forge result
+         * @description Copies the best iteration's result to the target agent's configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel forge run
+         * @description Cancels an active (queued or running) forge run.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List forge events
+         * @description Returns the audit trail of events for a forge run.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvent"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/iterations/{iterationID}/evals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List eval results
+         * @description Returns eval results for all test cases in a specific forge iteration.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                    /** @description Iteration ID */
+                    iterationID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalResult"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream forge events
+         * @description Real-time SSE stream of forge events for a forge run. Supports resume via Last-Event-ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description SSE stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": string;
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List generations
+         * @description Returns generation records for the current organization with cursor pagination and filtering.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max items per page (1-100, default 50) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
+                    /** @description Filter by model name */
+                    model?: string;
+                    /** @description Filter by provider ID */
+                    provider_id?: string;
+                    /** @description Filter by credential ID */
+                    credential_id?: string;
+                    /** @description Filter by user ID */
+                    user_id?: string;
+                    /** @description Filter by tag */
+                    tags?: string;
+                    /** @description Filter by error type */
+                    error_type?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-generationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/generations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a generation
+         * @description Returns a single generation record by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Generation ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["generationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1492,7 +7711,7 @@ export interface paths {
         };
         /**
          * List available providers
-         * @description Returns all Nango providers available for creating integrations.
+         * @description Returns Nango providers that have verified action definitions in the catalog.
          */
         get: {
             parameters: {
@@ -2235,6 +8454,541 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sandbox-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sandbox templates
+         * @description Returns sandbox templates for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-sandboxTemplateResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a sandbox template
+         * @description Creates a new sandbox template with build commands.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Template details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSandboxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["sandboxTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandbox-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a sandbox template
+         * @description Returns a single sandbox template by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["sandboxTemplateResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update a sandbox template
+         * @description Updates a sandbox template. Resets build status if commands change.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateSandboxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["sandboxTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a sandbox template
+         * @description Deletes a template. Fails if agents still reference it.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sandboxes
+         * @description Returns sandboxes for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status (running, stopped, error) */
+                    status?: string;
+                    /** @description Filter by identity ID */
+                    identity_id?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-sandboxResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandboxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a sandbox
+         * @description Returns sandbox details by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["sandboxResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a sandbox
+         * @description Deletes a sandbox from the provider and removes the DB record.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandboxes/{id}/exec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute commands in a sandbox
+         * @description Runs an array of shell commands sequentially inside the sandbox. Stops on first failure.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Commands to execute */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["execRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["execResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sandboxes/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a sandbox
+         * @description Stops a running sandbox via the sandbox provider.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Sandbox ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/settings/connect": {
         parameters: {
             query?: never;
@@ -2332,6 +9086,254 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get webhook settings
+         * @description Returns the webhook configuration for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update webhook settings
+         * @description Creates a new webhook configuration (with generated secret) or updates the URL of an existing configuration.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description URL for webhook delivery */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateWebhookSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsResponse"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete webhook settings
+         * @description Deletes the webhook configuration for the current organization.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/webhooks/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate webhook secret
+         * @description Generates a new webhook secret for the existing configuration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["webhookSettingsCreateResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2973,7 +9975,7 @@ export interface paths {
         };
         /**
          * List available providers
-         * @description Returns all Nango providers available for creating integrations.
+         * @description Returns Nango providers that have verified action definitions in the catalog.
          */
         get: {
             parameters: {
@@ -3385,7 +10387,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["github_com_llmvault_llmvault_internal_resources.DiscoveryResult"];
+                        "application/json": components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"];
                     };
                 };
                 /** @description Bad Request */
@@ -3543,17 +10545,78 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_llmvault_llmvault_internal_mcp.TokenScope": {
+        "github_com_ziraloop_ziraloop_internal_mcp.TokenScope": {
             actions?: string[];
             connection_id?: string;
             resources?: {
                 [key: string]: string[];
             };
         };
+        ForgeEvalResult: {
+            created_at?: string;
+            /** @description actionable, specific failure explanation */
+            critique?: string;
+            /** @description Deterministic check results (run before LLM judge). */
+            deterministic_results?: number[];
+            /** @description safety, correctness, completeness, tone, tool_usage, none */
+            failure_category?: string;
+            forge_eval_case_id?: string;
+            forge_iteration_id?: string;
+            id?: string;
+            /** @description Multi-sample results. */
+            pass_rate?: number;
+            passed?: boolean;
+            /** @description [{criterion, requirement_type, met, score, explanation}] */
+            rubric_scores?: number[];
+            /** @description [{sample_index, response, tool_calls, passed, score}] */
+            sample_results?: number[];
+            /** @description Judge verdict (from LLM judge, after deterministic checks). */
+            score?: number;
+            /** @description Status tracks result progress: pending → running → judging → completed|failed. */
+            status?: string;
+            updated_at?: string;
+        };
+        ForgeEvent: {
+            created_at?: string;
+            event_type?: string;
+            forge_run_id?: string;
+            id?: string;
+            payload?: number[];
+        };
+        ForgeIteration: {
+            agent_config?: number[];
+            /** @description convenience flag */
+            all_hard_passed?: boolean;
+            architect_reasoning?: string;
+            cost?: number;
+            created_at?: string;
+            /** @description Per-eval score tracking across iterations for regression detection. */
+            eval_score_history?: number[];
+            forge_run_id?: string;
+            /** @description Hard vs soft requirement scoring. */
+            hard_score?: number;
+            id?: string;
+            /** @description Cost for this iteration. */
+            input_tokens?: number;
+            iteration?: number;
+            output_tokens?: number;
+            passed_evals?: number;
+            /** @description Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed. */
+            phase?: string;
+            score?: number;
+            /** @description average score of soft evals */
+            soft_score?: number;
+            /** @description Architect output — persisted after designing phase. */
+            system_prompt?: string;
+            tools?: number[];
+            /** @description Results — persisted after judging phase. */
+            total_evals?: number;
+            updated_at?: string;
+        };
         JSON: {
             [key: string]: unknown;
         };
-        "github_com_llmvault_llmvault_internal_nango.Credentials": {
+        "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
             client_id?: string;
@@ -3582,13 +10645,13 @@ export interface components {
             input?: string[];
             output?: string[];
         };
-        "github_com_llmvault_llmvault_internal_resources.AvailableResource": {
+        "github_com_ziraloop_ziraloop_internal_resources.AvailableResource": {
             id?: string;
             name?: string;
             type?: string;
         };
-        "github_com_llmvault_llmvault_internal_resources.DiscoveryResult": {
-            resources?: components["schemas"]["github_com_llmvault_llmvault_internal_resources.AvailableResource"][];
+        "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
+            resources?: components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.AvailableResource"][];
         };
         actionSummary: {
             access?: string;
@@ -3597,6 +10660,291 @@ export interface components {
             key?: string;
             parameters?: number[];
             resource_type?: string;
+        };
+        adminAPIKeyResponse: {
+            created_at?: string;
+            expires_at?: string;
+            id?: string;
+            key_prefix?: string;
+            name?: string;
+            org_id?: string;
+            revoked_at?: string;
+            scopes?: string[];
+        };
+        adminAgentResponse: {
+            created_at?: string;
+            id?: string;
+            identity_id?: string;
+            model?: string;
+            name?: string;
+            org_id?: string;
+            sandbox_id?: string;
+            sandbox_type?: string;
+            status?: string;
+        };
+        adminConnectSessionResponse: {
+            activated_at?: string;
+            created_at?: string;
+            expires_at?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            org_id?: string;
+        };
+        adminConnectionResponse: {
+            created_at?: string;
+            id?: string;
+            identity_id?: string;
+            integration_id?: string;
+            org_id?: string;
+            revoked_at?: string;
+        };
+        adminConversationResponse: {
+            agent_id?: string;
+            created_at?: string;
+            ended_at?: string;
+            id?: string;
+            org_id?: string;
+            sandbox_id?: string;
+            status?: string;
+            token_id?: string;
+        };
+        adminCreateInIntegrationRequest: {
+            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
+            display_name?: string;
+            meta?: components["schemas"]["JSON"];
+            provider?: string;
+        };
+        adminCredentialResponse: {
+            created_at?: string;
+            id?: string;
+            identity_id?: string;
+            label?: string;
+            org_id?: string;
+            provider_id?: string;
+            revoked_at?: string;
+        };
+        adminCustomDomainResponse: {
+            created_at?: string;
+            domain?: string;
+            id?: string;
+            org_id?: string;
+            verified?: boolean;
+            verified_at?: string;
+        };
+        adminForgeRunResponse: {
+            agent_id?: string;
+            created_at?: string;
+            current_iteration?: number;
+            error_message?: string;
+            final_score?: number;
+            id?: string;
+            max_iterations?: number;
+            org_id?: string;
+            status?: string;
+            total_cost?: number;
+        };
+        adminGenerationStatsResponse: {
+            by_model?: components["schemas"]["adminModelStatEntry"][];
+            by_provider?: components["schemas"]["adminProviderStatEntry"][];
+            total_cost?: number;
+            total_generations?: number;
+            total_input_tokens?: number;
+            total_output_tokens?: number;
+        };
+        adminIdentityResponse: {
+            created_at?: string;
+            external_id?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            org_id?: string;
+        };
+        adminInIntegrationResponse: {
+            created_at?: string;
+            display_name?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["JSON"];
+            provider?: string;
+            unique_key?: string;
+            updated_at?: string;
+        };
+        adminIntegrationResponse: {
+            created_at?: string;
+            display_name?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            org_id?: string;
+            provider?: string;
+            unique_key?: string;
+        };
+        adminModelStatEntry: {
+            cost?: number;
+            count?: number;
+            input_tokens?: number;
+            model?: string;
+            output_tokens?: number;
+        };
+        adminOrgDetailResponse: {
+            active?: boolean;
+            agent_count?: number;
+            allowed_origins?: string[];
+            created_at?: string;
+            credential_count?: number;
+            id?: string;
+            member_count?: number;
+            name?: string;
+            rate_limit?: number;
+            sandbox_count?: number;
+            updated_at?: string;
+        };
+        adminOrgResponse: {
+            active?: boolean;
+            allowed_origins?: string[];
+            created_at?: string;
+            id?: string;
+            name?: string;
+            rate_limit?: number;
+            updated_at?: string;
+        };
+        adminProviderStatEntry: {
+            cost?: number;
+            count?: number;
+            input_tokens?: number;
+            output_tokens?: number;
+            provider_id?: string;
+        };
+        adminSandboxResponse: {
+            agent_id?: string;
+            cpu_usage_usec?: number;
+            created_at?: string;
+            error_message?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            last_active_at?: string;
+            memory_limit_bytes?: number;
+            memory_used_bytes?: number;
+            org_id?: string;
+            sandbox_type?: string;
+            status?: string;
+        };
+        adminSandboxTemplateResponse: {
+            build_error?: string;
+            build_status?: string;
+            created_at?: string;
+            external_id?: string;
+            id?: string;
+            name?: string;
+            org_id?: string;
+        };
+        adminStatsResponse: {
+            total_agents?: number;
+            total_conversations_active?: number;
+            total_cost?: number;
+            total_credentials?: number;
+            total_generations?: number;
+            total_orgs?: number;
+            total_sandboxes_error?: number;
+            total_sandboxes_running?: number;
+            total_sandboxes_stopped?: number;
+            total_users?: number;
+        };
+        adminTokenResponse: {
+            created_at?: string;
+            credential_id?: string;
+            expires_at?: string;
+            id?: string;
+            jti?: string;
+            org_id?: string;
+            revoked_at?: string;
+        };
+        adminUpdateAgentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            status?: string;
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+        };
+        adminUpdateCredentialRequest: {
+            identity_id?: string;
+            label?: string;
+        };
+        adminUpdateIdentityRequest: {
+            external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
+            meta?: components["schemas"]["JSON"];
+            ratelimits?: {
+                duration?: number;
+                limit?: number;
+                name?: string;
+            }[];
+        };
+        adminUpdateInIntegrationRequest: {
+            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
+            display_name?: string;
+            meta?: components["schemas"]["JSON"];
+        };
+        adminUpdateOrgRequest: {
+            active?: boolean;
+            allowed_origins?: string[];
+            name?: string;
+            rate_limit?: number;
+        };
+        adminUpdateSandboxTemplateRequest: {
+            config?: components["schemas"]["JSON"];
+            name?: string;
+        };
+        adminUpdateUserRequest: {
+            email?: string;
+            name?: string;
+        };
+        adminUserResponse: {
+            ban_reason?: string;
+            banned_at?: string;
+            created_at?: string;
+            email?: string;
+            email_confirmed_at?: string;
+            id?: string;
+            name?: string;
+            updated_at?: string;
+        };
+        agentResponse: {
+            agent_config?: components["schemas"]["JSON"];
+            created_at?: string;
+            credential_id?: string;
+            description?: string;
+            id?: string;
+            identity_id?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            provider_id?: string;
+            sandbox_id?: string;
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            status?: string;
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+            updated_at?: string;
         };
         apiKeyResponse: {
             created_at?: string;
@@ -3625,6 +10973,14 @@ export interface components {
             path?: string;
             status?: number;
         };
+        authResponse: {
+            access_token?: string;
+            /** @description seconds */
+            expires_in?: number;
+            orgs?: components["schemas"]["orgMemberDTO"][];
+            refresh_token?: string;
+            user?: components["schemas"]["userResponse"];
+        };
         availableScopeAction: {
             description?: string;
             display_name?: string;
@@ -3648,6 +11004,33 @@ export interface components {
         availableScopeResourceItem: {
             id?: string;
             name?: string;
+        };
+        changePasswordRequest: {
+            current_password?: string;
+            new_password?: string;
+        };
+        commandResult: {
+            command?: string;
+            error?: string;
+            exit_code?: number;
+            output?: string;
+        };
+        confirmEmailRequest: {
+            token?: string;
+        };
+        connectSessionListItem: {
+            activated_at?: string;
+            allowed_integrations?: string[];
+            allowed_origins?: string[];
+            created_at?: string;
+            expires_at?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            metadata?: components["schemas"]["JSON"];
+            permissions?: string[];
+            session_token?: string;
+            status?: string;
         };
         connectSessionResponse: {
             allowed_integrations?: string[];
@@ -3678,6 +11061,19 @@ export interface components {
             provider_id?: string;
             provider_name?: string;
         };
+        conversationEventResponse: {
+            created_at?: string;
+            event_type?: string;
+            id?: string;
+            payload?: components["schemas"]["JSON"];
+        };
+        conversationResponse: {
+            agent_id?: string;
+            created_at?: string;
+            id?: string;
+            status?: string;
+            stream_url?: string;
+        };
         createAPIKeyRequest: {
             expires_in?: string;
             name?: string;
@@ -3691,6 +11087,25 @@ export interface components {
             key_prefix?: string;
             name?: string;
             scopes?: string[];
+        };
+        createAgentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            identity_id?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            team?: string;
+            tools?: components["schemas"]["JSON"];
         };
         createConnectSessionRequest: {
             allowed_integrations?: string[];
@@ -3719,8 +11134,24 @@ export interface components {
             refill_interval?: string;
             remaining?: number;
         };
+        createDomainRequest: {
+            domain?: string;
+        };
+        createDomainResponse: {
+            acme_dns_subdomain?: string;
+            cname_target?: string;
+            created_at?: string;
+            dns_records?: components["schemas"]["dnsRecord"][];
+            domain?: string;
+            id?: string;
+            org_id?: string;
+            updated_at?: string;
+            verified?: boolean;
+            verified_at?: string;
+        };
         createIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
@@ -3731,12 +11162,17 @@ export interface components {
             };
         };
         createIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
         };
         createOrgRequest: {
+            name?: string;
+        };
+        createSandboxTemplateRequest: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
             name?: string;
         };
         credentialResponse: {
@@ -3764,6 +11200,11 @@ export interface components {
             count?: number;
             date?: string;
         };
+        dnsRecord: {
+            name?: string;
+            type?: string;
+            value?: string;
+        };
         errorRate: {
             date?: string;
             error_count?: number;
@@ -3771,6 +11212,67 @@ export interface components {
         };
         errorResponse: {
             error?: string;
+        };
+        exchangeRequest: {
+            token?: string;
+        };
+        execRequest: {
+            commands?: string[];
+        };
+        execResponse: {
+            results?: components["schemas"]["commandResult"][];
+            success?: boolean;
+        };
+        forgeGetRunResponse: {
+            iterations?: components["schemas"]["ForgeIteration"][];
+            run?: components["schemas"]["forgeRunResponse"];
+        };
+        forgeRunResponse: {
+            agent_id?: string;
+            completed_at?: string;
+            convergence_limit?: number;
+            created_at?: string;
+            current_iteration?: number;
+            error_message?: string;
+            final_score?: number;
+            id?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+            started_at?: string;
+            status?: string;
+            stop_reason?: string;
+            stream_url?: string;
+            total_cost?: number;
+            total_input_tokens?: number;
+            total_output_tokens?: number;
+        };
+        forgotPasswordRequest: {
+            email?: string;
+        };
+        generationResponse: {
+            cached_tokens?: number;
+            cost?: number;
+            created_at?: string;
+            credential_id?: string;
+            error_message?: string;
+            error_type?: string;
+            id?: string;
+            identity_id?: string;
+            input_tokens?: number;
+            ip_address?: string;
+            is_streaming?: boolean;
+            model?: string;
+            org_id?: string;
+            output_tokens?: number;
+            provider_id?: string;
+            reasoning_tokens?: number;
+            request_path?: string;
+            tags?: string[];
+            token_jti?: string;
+            total_ms?: number;
+            ttfb_ms?: number;
+            upstream_status?: number;
+            user_id?: string;
         };
         identityRateLimitParams: {
             /** @description milliseconds */
@@ -3783,6 +11285,7 @@ export interface components {
             external_id?: string;
             id?: string;
             last_used_at?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
             request_count?: number;
@@ -3844,13 +11347,26 @@ export interface components {
             date?: string;
             p95_ttfb_ms?: number;
         };
+        loginRequest: {
+            email?: string;
+            /** @description optional: scope token to a specific org */
+            org_id?: string;
+            password?: string;
+        };
+        logoutRequest: {
+            refresh_token?: string;
+        };
+        meResponse: {
+            orgs?: components["schemas"]["orgMemberDTO"][];
+            user?: components["schemas"]["userResponse"];
+        };
         mintTokenRequest: {
             credential_id?: string;
             meta?: components["schemas"]["JSON"];
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_llmvault_llmvault_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp.TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -3875,12 +11391,97 @@ export interface components {
             structured_output?: boolean;
             tool_call?: boolean;
         };
+        orgMemberDTO: {
+            id?: string;
+            name?: string;
+            role?: string;
+        };
         orgResponse: {
             active?: boolean;
             created_at?: string;
             id?: string;
             name?: string;
             rate_limit?: number;
+        };
+        "paginatedResponse-adminAPIKeyResponse": {
+            data?: components["schemas"]["adminAPIKeyResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminAgentResponse": {
+            data?: components["schemas"]["adminAgentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminConnectSessionResponse": {
+            data?: components["schemas"]["adminConnectSessionResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminConnectionResponse": {
+            data?: components["schemas"]["adminConnectionResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminConversationResponse": {
+            data?: components["schemas"]["adminConversationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminCredentialResponse": {
+            data?: components["schemas"]["adminCredentialResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminCustomDomainResponse": {
+            data?: components["schemas"]["adminCustomDomainResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminForgeRunResponse": {
+            data?: components["schemas"]["adminForgeRunResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminIdentityResponse": {
+            data?: components["schemas"]["adminIdentityResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminIntegrationResponse": {
+            data?: components["schemas"]["adminIntegrationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminOrgResponse": {
+            data?: components["schemas"]["adminOrgResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminSandboxResponse": {
+            data?: components["schemas"]["adminSandboxResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminSandboxTemplateResponse": {
+            data?: components["schemas"]["adminSandboxTemplateResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminTokenResponse": {
+            data?: components["schemas"]["adminTokenResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminUserResponse": {
+            data?: components["schemas"]["adminUserResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-agentResponse": {
+            data?: components["schemas"]["agentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
         };
         "paginatedResponse-apiKeyResponse": {
             data?: components["schemas"]["apiKeyResponse"][];
@@ -3892,13 +11493,33 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-connectSessionListItem": {
+            data?: components["schemas"]["connectSessionListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-connectionResponse": {
             data?: components["schemas"]["connectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-conversationEventResponse": {
+            data?: components["schemas"]["conversationEventResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-conversationResponse": {
+            data?: components["schemas"]["conversationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-credentialResponse": {
             data?: components["schemas"]["credentialResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-generationResponse": {
+            data?: components["schemas"]["generationResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -3914,6 +11535,16 @@ export interface components {
         };
         "paginatedResponse-integrationResponse": {
             data?: components["schemas"]["integrationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-sandboxResponse": {
+            data?: components["schemas"]["sandboxResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-sandboxTemplateResponse": {
+            data?: components["schemas"]["sandboxTemplateResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -3941,6 +11572,16 @@ export interface components {
             model_count?: number;
             name?: string;
         };
+        refreshRequest: {
+            /** @description optional: switch org */
+            org_id?: string;
+            refresh_token?: string;
+        };
+        registerRequest: {
+            email?: string;
+            name?: string;
+            password?: string;
+        };
         reportRow: {
             avg_ttfb_ms?: number;
             cached_tokens?: number;
@@ -3966,12 +11607,41 @@ export interface components {
             total?: number;
             yesterday?: number;
         };
+        resendConfirmationRequest: {
+            email?: string;
+        };
+        resetPasswordRequest: {
+            new_password?: string;
+            token?: string;
+        };
         resource: {
             description?: string;
             display_name?: string;
             icon?: string;
             id_field?: string;
             name_field?: string;
+        };
+        sandboxResponse: {
+            agent_id?: string;
+            created_at?: string;
+            error_message?: string;
+            external_id?: string;
+            id?: string;
+            identity_id?: string;
+            last_active_at?: string;
+            sandbox_type?: string;
+            status?: string;
+        };
+        sandboxTemplateResponse: {
+            build_commands?: string;
+            build_error?: string;
+            build_status?: string;
+            config?: components["schemas"]["JSON"];
+            created_at?: string;
+            external_id?: string;
+            id?: string;
+            name?: string;
+            updated_at?: string;
         };
         sessionInfoResponse: {
             activated_at?: string;
@@ -3982,9 +11652,35 @@ export interface components {
             identity_id?: string;
             permissions?: string[];
         };
+        setupRequest: {
+            env_vars?: {
+                [key: string]: string;
+            };
+            setup_commands?: string[];
+        };
+        setupResponse: {
+            env_var_keys?: string[];
+            setup_commands?: string[];
+        };
         spendOverTime: {
             date?: string;
             total_cost?: number;
+        };
+        startForgeRequest: {
+            architect_credential_id?: string;
+            architect_model?: string;
+            /** @description default 3 */
+            convergence_limit?: number;
+            eval_designer_credential_id?: string;
+            eval_designer_model?: string;
+            judge_credential_id?: string;
+            judge_model?: string;
+            max_iterations?: number;
+            pass_threshold?: number;
+        };
+        statusResponse: {
+            message?: string;
+            status?: string;
         };
         tokenListItem: {
             created_at?: string;
@@ -4028,15 +11724,42 @@ export interface components {
             total_cost?: number;
             user_id?: string;
         };
+        updateAgentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            credential_id?: string;
+            description?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            sandbox_template_id?: string;
+            sandbox_type?: string;
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+        };
         updateIdentityRequest: {
             external_id?: string;
+            memory_config?: components["schemas"]["JSON"];
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
         updateIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_llmvault_llmvault_internal_nango.Credentials"];
+            credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
+        };
+        updateSandboxTemplateRequest: {
+            build_commands?: string;
+            config?: components["schemas"]["JSON"];
+            name?: string;
+        };
+        updateWebhookSettingsRequest: {
+            url?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];
@@ -4053,6 +11776,29 @@ export interface components {
             top_credentials?: components["schemas"]["topCredential"][];
             top_models?: components["schemas"]["topModel"][];
             top_users?: components["schemas"]["topUser"][];
+        };
+        userResponse: {
+            email?: string;
+            email_confirmed?: boolean;
+            id?: string;
+            name?: string;
+        };
+        verifyDomainResponse: {
+            message?: string;
+            verified?: boolean;
+        };
+        webhookSettingsCreateResponse: {
+            created_at?: string;
+            /** @description plaintext, shown once */
+            secret?: string;
+            secret_prefix?: string;
+            url?: string;
+        };
+        webhookSettingsResponse: {
+            created_at?: string;
+            secret_prefix?: string;
+            updated_at?: string;
+            url?: string;
         };
         widgetIntegrationResponse: {
             auth_mode?: string;

@@ -9,8 +9,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 type authClaimsKey struct{}

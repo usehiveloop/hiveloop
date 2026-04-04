@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/token"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/token"
 )
 
 // TokenAuth returns middleware that authenticates requests using sandbox proxy tokens (JWTs).

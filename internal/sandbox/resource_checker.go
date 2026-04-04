@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // cgroupCommand is the shell command executed inside each sandbox to collect

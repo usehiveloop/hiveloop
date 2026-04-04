@@ -13,8 +13,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/streaming"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/streaming"
 )
 
 const (

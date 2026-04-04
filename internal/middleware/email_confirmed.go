@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // RequireEmailConfirmed blocks JWT-authenticated users whose email is not yet

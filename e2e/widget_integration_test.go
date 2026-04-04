@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 // --------------------------------------------------------------------------

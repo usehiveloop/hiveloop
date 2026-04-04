@@ -13,8 +13,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/forge"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // forgeTestDB opens a connection to the test Postgres database and runs

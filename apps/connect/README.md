@@ -6,7 +6,7 @@ Static Vite React app deployed to AWS S3 + CloudFront with custom domain.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  User → connect.dev.llmvault.dev / connect.llmvault.dev     │
+│  User → connect.dev.ziraloop.com / connect.ziraloop.com     │
 │       ↓                                                     │
 │  Cloudflare DNS (CNAME → CloudFront)                        │
 │       ↓                                                     │
@@ -34,8 +34,8 @@ npm run dev
 
 | Environment | Trigger | URL |
 |-------------|---------|-----|
-| Development | Push to `main` | https://connect.dev.llmvault.dev |
-| Production | GitHub Release published | https://connect.llmvault.dev |
+| Development | Push to `main` | https://connect.dev.ziraloop.com |
+| Production | GitHub Release published | https://connect.ziraloop.com |
 
 #### Manual
 
@@ -55,16 +55,16 @@ npm run deploy:prod
 cd infrastructure/cdk
 
 # Development
-npx cdk deploy LlmVault-Dev-Connect
+npx cdk deploy ZiraLoop-Dev-Connect
 
 # Production  
-npx cdk deploy LlmVault-Prod-Connect
+npx cdk deploy ZiraLoop-Prod-Connect
 ```
 
 **Save these outputs:**
 - `CloudFrontDomain` (e.g., `d2jeixo95enek0.cloudfront.net`)
 - `DistributionId` (e.g., `E1SRM0XYQG4Y06`)
-- `S3BucketName` (e.g., `llmvault-dev-connect-assets`)
+- `S3BucketName` (e.g., `ziraloop-dev-connect-assets`)
 
 ### 2. Create & Validate Certificate
 
@@ -80,7 +80,7 @@ cd infrastructure/cdk
 **Output will show DNS validation CNAME:**
 ```
 Type:  CNAME
-Name:  _abc123.connect.dev.llmvault.dev
+Name:  _abc123.connect.dev.ziraloop.com
 Value: _xyz789.acm-validations.aws
 ```
 
@@ -96,7 +96,7 @@ After certificate shows status `ISSUED`:
 
 # Option B: Update config and redeploy
 # Edit infrastructure/cdk/config/certificates.json
-npx cdk deploy LlmVault-Dev-Connect
+npx cdk deploy ZiraLoop-Dev-Connect
 ```
 
 ### 4. Add DNS Record
@@ -133,8 +133,8 @@ npm run deploy:prod
 | `npm run build` | Build for development |
 | `npm run build:prod` | Build for production |
 | `npm run preview` | Preview production build locally |
-| `npm run deploy:dev` | Deploy to connect.dev.llmvault.dev |
-| `npm run deploy:prod` | Deploy to connect.llmvault.dev |
+| `npm run deploy:dev` | Deploy to connect.dev.ziraloop.com |
+| `npm run deploy:prod` | Deploy to connect.ziraloop.com |
 
 ## Project Structure
 
@@ -179,7 +179,7 @@ Add production certificate ARN here after creating it.
 
 ## Environment Checklist
 
-### Development (connect.dev.llmvault.dev)
+### Development (connect.dev.ziraloop.com)
 
 - [ ] CDK stack deployed
 - [ ] Certificate created in us-east-1
@@ -189,7 +189,7 @@ Add production certificate ARN here after creating it.
 - [ ] App DNS CNAME added to Cloudflare
 - [ ] App deployed successfully
 
-### Production (connect.llmvault.dev)
+### Production (connect.ziraloop.com)
 
 - [ ] CDK stack deployed
 - [ ] Certificate created in us-east-1
@@ -245,7 +245,7 @@ aws cloudfront create-invalidation \
 ### Deployment fails
 
 - Check AWS credentials are configured
-- Ensure stack is deployed: `aws cloudformation describe-stacks --stack-name LlmVault-Dev-Connect`
+- Ensure stack is deployed: `aws cloudformation describe-stacks --stack-name ZiraLoop-Dev-Connect`
 
 ## Technologies
 

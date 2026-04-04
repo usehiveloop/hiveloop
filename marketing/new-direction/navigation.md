@@ -1,13 +1,13 @@
-# LLMVault — Navigation Plan (New Direction)
+# ZiraLoop — Navigation Plan (New Direction)
 
 ---
 
 ## Core Concept
 
-LLMVault has two modes: **App** and **Platform**. They share the same dashboard shell (sidebar, org selector, user menu) but render completely different navigation, pages, and hit different API endpoints.
+ZiraLoop has two modes: **App** and **Platform**. They share the same dashboard shell (sidebar, org selector, user menu) but render completely different navigation, pages, and hit different API endpoints.
 
-- **App mode** (default) — A developer using LLMVault directly. They connect their own accounts, store their own LLM keys, get MCP servers for their own agents.
-- **Platform mode** — A startup building on LLMVault. They install their own OAuth apps, embed the Connect Widget, mint scoped tokens for their customers' sandboxed agents.
+- **App mode** (default) — A developer using ZiraLoop directly. They connect their own accounts, store their own LLM keys, get MCP servers for their own agents.
+- **Platform mode** — A startup building on ZiraLoop. They install their own OAuth apps, embed the Connect Widget, mint scoped tokens for their customers' sandboxed agents.
 
 The switch lives in the **user profile menu** (bottom of sidebar or top-right avatar dropdown). No interruption, no onboarding gate. Toggle at any time, persisted to user preferences.
 
@@ -41,7 +41,7 @@ The switch:
 
 ## App Mode Navigation
 
-**For developers using LLMVault directly.**
+**For developers using ZiraLoop directly.**
 
 ```
 Home
@@ -93,7 +93,7 @@ const appNav: NavSection[] = [
 ```
 /dashboard                          Home (personal usage stats, recent activity)
 /dashboard/connections              My connected apps (MCP URLs front and center)
-/dashboard/connections/new          Browse LLMVault's apps, start OAuth flow
+/dashboard/connections/new          Browse ZiraLoop's apps, start OAuth flow
 /dashboard/connections/[id]         Connection detail: MCP URL, scopes, resources, activity
 /dashboard/llm-keys                 My stored LLM API keys
 /dashboard/llm-keys/new             Add a new LLM key (provider picker, key input, validation)
@@ -110,7 +110,7 @@ const appNav: NavSection[] = [
 These are **new endpoints** separate from the existing platform endpoints. They are simpler, opinionated, and handle the full flow (OAuth + token minting + MCP server creation) in fewer calls.
 
 ```
-GET    /v1/app/providers                  List available apps to connect (LLMVault's pre-installed OAuth apps)
+GET    /v1/app/providers                  List available apps to connect (ZiraLoop's pre-installed OAuth apps)
 GET    /v1/app/providers/{id}             Get app detail (actions, resources, auth mode)
 
 POST   /v1/app/connections                Start a new connection (initiates OAuth or accepts API key)
@@ -139,7 +139,7 @@ GET    /v1/app/usage                       My usage summary (requests, tokens, c
 |---|---|---|
 | Auth | JWT (user session) | API key or JWT |
 | Identity | Implicit (the logged-in user) | Explicit (identity_id parameter) |
-| OAuth apps | LLMVault's pre-installed apps | Builder's own installed apps |
+| OAuth apps | ZiraLoop's pre-installed apps | Builder's own installed apps |
 | MCP token | Auto-minted on connect | Manually minted via `POST /v1/tokens` |
 | Scopes | Configured via UI, stored on connection | Passed at token mint time |
 | Complexity | 3 calls to go from zero to MCP URL | 5+ calls across integrations/connections/tokens |
@@ -148,7 +148,7 @@ GET    /v1/app/usage                       My usage summary (requests, tokens, c
 
 ## Platform Mode Navigation
 
-**For startups building on LLMVault.**
+**For startups building on ZiraLoop.**
 
 ```
 Home
@@ -267,7 +267,7 @@ const platformNav: NavSection[] = [
 
 ### API Endpoints (Existing — Platform Mode)
 
-Platform mode uses the **existing** LLMVault API endpoints:
+Platform mode uses the **existing** ZiraLoop API endpoints:
 
 ```
 # Integrations (your OAuth apps)
@@ -385,7 +385,7 @@ These routes and pages are the same regardless of mode:
 
 ### `GET /v1/app/providers`
 
-Returns LLMVault's pre-installed OAuth apps available for the user to connect. These are apps where LLMVault owns the OAuth credentials.
+Returns ZiraLoop's pre-installed OAuth apps available for the user to connect. These are apps where ZiraLoop owns the OAuth credentials.
 
 ```json
 [
@@ -425,7 +425,7 @@ POST /v1/app/connections
 }
 ```
 
-After OAuth callback, LLMVault:
+After OAuth callback, ZiraLoop:
 1. Stores the connection
 2. Auto-mints a scoped MCP token with all available actions
 3. Sets status to "active"
@@ -443,7 +443,7 @@ POST /v1/app/connections
   "connection_id": "conn_def456",
   "status": "active",
   "proxy_token": "ptok_eyJhbG...",
-  "proxy_url": "https://api.llmvault.dev/v1/proxy"
+  "proxy_url": "https://api.ziraloop.com/v1/proxy"
 }
 ```
 
@@ -459,7 +459,7 @@ Returns the user's connections with MCP/proxy URLs.
     "provider_name": "GitHub",
     "status": "active",
     "account": "@bahdcoder",
-    "mcp_url": "https://mcp.llmvault.dev/tok_xyz789",
+    "mcp_url": "https://mcp.ziraloop.com/tok_xyz789",
     "actions": ["create_issue", "list_issues", "create_pr", "list_prs"],
     "resources": {
       "repo": [
@@ -476,7 +476,7 @@ Returns the user's connections with MCP/proxy URLs.
     "provider_name": "OpenAI",
     "status": "active",
     "proxy_token": "ptok_eyJhbG...",
-    "proxy_url": "https://api.llmvault.dev/v1/proxy",
+    "proxy_url": "https://api.ziraloop.com/v1/proxy",
     "created_at": "2026-03-29T11:00:00Z"
   }
 ]
@@ -498,7 +498,7 @@ PATCH /v1/app/connections/conn_abc123
 → 200
 {
   "id": "conn_abc123",
-  "mcp_url": "https://mcp.llmvault.dev/tok_newtoken",
+  "mcp_url": "https://mcp.ziraloop.com/tok_newtoken",
   "actions": ["create_issue", "list_issues"],
   "resources": { "repo": [{ "id": "org/frontend", "name": "org/frontend" }] }
 }
@@ -513,7 +513,7 @@ POST /v1/app/connections/conn_abc123/regenerate
 
 → 200
 {
-  "mcp_url": "https://mcp.llmvault.dev/tok_freshtoken",
+  "mcp_url": "https://mcp.ziraloop.com/tok_freshtoken",
   "token_expires_at": "2026-04-28T00:00:00Z"
 }
 ```
@@ -574,7 +574,7 @@ AgentDesk Platform
 
 | Endpoint | Priority | Description |
 |---|---|---|
-| `GET /v1/app/providers` | **P0** | List LLMVault's pre-installed apps available for connection |
+| `GET /v1/app/providers` | **P0** | List ZiraLoop's pre-installed apps available for connection |
 | `POST /v1/app/connections` | **P0** | Start OAuth flow or accept API key, auto-mint token |
 | `GET /v1/app/connections` | **P0** | List user's connections with MCP/proxy URLs |
 | `GET /v1/app/connections/{id}` | **P0** | Connection detail |
@@ -594,7 +594,7 @@ AgentDesk Platform
 
 | Requirement | Priority | Description |
 |---|---|---|
-| LLMVault's own OAuth apps | **P0** | Register LLMVault as an OAuth app on GitHub, Slack, Linear, Notion, etc. Store credentials as system-level integrations (not org-level). |
+| ZiraLoop's own OAuth apps | **P0** | Register ZiraLoop as an OAuth app on GitHub, Slack, Linear, Notion, etc. Store credentials as system-level integrations (not org-level). |
 | OAuth callback handling | **P0** | `/v1/app/connections` needs to handle the OAuth redirect → callback → connection creation → auto-token-mint flow. |
 | User preference storage | **P0** | Store "app vs platform" mode preference per user. Expose via `GET /v1/app/preferences` or include in session/user object. |
 | Auto-switch heuristic | **P2** | Detect platform actions (create API key, create integration, create connect session) and suggest switching to Platform mode. |
@@ -698,10 +698,10 @@ Routes are never blocked. If a user navigates to a platform route while in app m
 | Aspect | App Mode | Platform Mode |
 |---|---|---|
 | **Default** | Yes | No (opt-in) |
-| **Target user** | Developer using LLMVault directly | Startup building on LLMVault |
+| **Target user** | Developer using ZiraLoop directly | Startup building on ZiraLoop |
 | **Nav items** | 5 | 14 |
 | **API prefix** | `/v1/app/*` (new) | `/v1/*` (existing) |
-| **OAuth apps** | LLMVault's pre-installed | Builder's own installed |
+| **OAuth apps** | ZiraLoop's pre-installed | Builder's own installed |
 | **Identity** | Implicit (logged-in user) | Explicit (identity_id parameter) |
 | **MCP tokens** | Auto-minted on connect | Manually minted via API |
 | **Customers concept** | No | Yes (Connections, Identities) |

@@ -3,7 +3,7 @@ package e2e
 import (
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/forge"
 )
 
 func TestDeterministic_ToolCalled(t *testing.T) {

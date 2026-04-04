@@ -23,7 +23,7 @@ Meanwhile, the performance overhead of routing through a proxy matters. LLM resp
 
 ## The Solution
 
-LLMVault Proxy is a Go-based streaming reverse proxy that handles both LLM providers and SaaS apps. It resolves encrypted credentials from a 3-tier cache, attaches the correct auth header for the provider, streams responses with `FlushInterval: -1`, and captures token usage from streaming chunks in real-time — all with sub-5ms hot-path overhead.
+ZiraLoop Proxy is a Go-based streaming reverse proxy that handles both LLM providers and SaaS apps. It resolves encrypted credentials from a 3-tier cache, attaches the correct auth header for the provider, streams responses with `FlushInterval: -1`, and captures token usage from streaming chunks in real-time — all with sub-5ms hot-path overhead.
 
 ---
 

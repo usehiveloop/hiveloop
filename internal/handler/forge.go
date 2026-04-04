@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/forge"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/streaming"
+	"github.com/ziraloop/ziraloop/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/streaming"
 )
 
 // ForgeHandler handles forge-related HTTP endpoints.

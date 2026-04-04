@@ -16,14 +16,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/bridge"
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/forge"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/streaming"
-	systemagents "github.com/llmvault/llmvault/internal/system-agents"
+	"github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/streaming"
+	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
 
 // ---------------------------------------------------------------------------

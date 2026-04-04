@@ -2,9 +2,9 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o ./tmp/llmvault ./cmd/server"
-  bin = "./tmp/llmvault"
-  full_bin = "LOG_LEVEL=debug LOG_FORMAT=text ./tmp/llmvault"
+  cmd = "go build -o ./tmp/ziraloop ./cmd/server"
+  bin = "./tmp/ziraloop"
+  full_bin = "LOG_LEVEL=debug LOG_FORMAT=text ./tmp/ziraloop"
   include_ext = ["go", "json"]
   exclude_dir = ["tmp", "bin", "node_modules", "apps", "packages", "docs", "scripts", "docker", "examples", "marketing", "patches", "strix_runs", "certs"]
   exclude_regex = ["_test\\.go$"]

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/llmvault/llmvault/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/goroutine"
 )
 
 func TestGo_RecoversPanic(t *testing.T) {

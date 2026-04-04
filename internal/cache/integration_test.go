@@ -13,13 +13,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const (
-	testDBURL     = "postgres://llmvault:localdev@localhost:5433/llmvault_test?sslmode=disable"
+	testDBURL     = "postgres://ziraloop:localdev@localhost:5433/ziraloop_test?sslmode=disable"
 	testRedisAddr = "localhost:6379"
 )
 

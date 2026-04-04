@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-const API_URL = 'https://api.dev.llmvault.dev'
+const API_URL = 'https://api.dev.ziraloop.com'
 
 export const mockProviders = [
   { id: 'openai', name: 'OpenAI', doc: 'https://platform.openai.com/api-keys', model_count: 45 },

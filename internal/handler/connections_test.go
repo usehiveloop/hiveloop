@@ -15,10 +15,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 type connTestHarness struct {
@@ -146,7 +146,7 @@ func nangoProxyCapture(captured *capturedRequest, mu *sync.Mutex, statusCode int
 func TestProxy_Success_GET(t *testing.T) {
 	var captured capturedRequest
 	var mu sync.Mutex
-	respBody := []byte(`{"repos": [{"name": "llmvault"}]}`)
+	respBody := []byte(`{"repos": [{"name": "ziraloop"}]}`)
 	nangoHandler := nangoProxyCapture(&captured, &mu, http.StatusOK, "application/json", respBody)
 
 	h := newConnHarness(t, nangoHandler)

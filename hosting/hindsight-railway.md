@@ -1,12 +1,12 @@
 # Hindsight Self-Hosted on Railway
 
-Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight) — a biomimetic memory system for AI agents — running on Railway within the LLMVault production project.
+Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight) — a biomimetic memory system for AI agents — running on Railway within the ZiraLoop production project.
 
 ## Architecture
 
 ```
 +--------------------------------------------------------+
-|  Railway Project (llmvault.dev / production)           |
+|  Railway Project (ziraloop.dev / production)           |
 |                                                        |
 |  +-------------------------+   +---------------------+ |
 |  |  hindsight (slim)       |   |  Railway Postgres   | |
@@ -16,7 +16,7 @@ Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight)
 |               ^                                        |
 |               | private network                        |
 |  +------------+------------+                           |
-|  |  llmvault (Go backend)  |                           |
+|  |  ziraloop (Go backend)  |                           |
 |  +-------------------------+                           |
 +--------------------------------------------------------+
          |              |              |
@@ -55,7 +55,7 @@ The **slim** image (~500MB) does not bundle local ML models. It requires externa
 
 | Port | Access | Used by |
 |------|--------|---------|
-| **8888** (API) | Private only (`hindsight.railway.internal:8888`) | LLMVault backend, CP (localhost) |
+| **8888** (API) | Private only (`hindsight.railway.internal:8888`) | ZiraLoop backend, CP (localhost) |
 | **9999** (Control Plane) | Public domain (temporary) | Browser — memory bank management UI |
 
 The API is never exposed publicly. Security is provided by Railway's private networking.
@@ -152,9 +152,9 @@ Expected output:
  pg_trgm | public
 ```
 
-## LLMVault Integration
+## ZiraLoop Integration
 
-LLMVault connects to the Hindsight API over Railway's private network:
+ZiraLoop connects to the Hindsight API over Railway's private network:
 
 ```
 HINDSIGHT_API_URL=http://hindsight.railway.internal:8888
@@ -181,7 +181,7 @@ No API key is needed — the API is not authenticated (private networking provid
 
 ```bash
 # 1. Link to the Railway project
-railway link --project <llmvault-project-id>
+railway link --project <ziraloop-project-id>
 
 # 2. Provision Postgres
 railway add --database postgres

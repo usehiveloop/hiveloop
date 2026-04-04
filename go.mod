@@ -1,4 +1,4 @@
-module github.com/llmvault/llmvault
+module github.com/ziraloop/ziraloop
 
 go 1.25.4
 

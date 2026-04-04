@@ -18,9 +18,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/handler"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/handler"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const testNangoSecretFwd = "test-nango-secret-fwd"
@@ -283,7 +283,7 @@ func TestNangoWebhookForwarding_EnrichedPayload(t *testing.T) {
 		t.Fatalf("failed to parse captured body: %v", err)
 	}
 
-	// LLMVault fields present with correct values
+	// ZiraLoop fields present with correct values
 	if enriched["org_id"] != fh.org.ID.String() {
 		t.Errorf("org_id: got %v, want %s", enriched["org_id"], fh.org.ID)
 	}
@@ -342,14 +342,14 @@ func TestNangoWebhookForwarding_SignatureValid(t *testing.T) {
 	fh.signedRequest(t, payload)
 
 	headers := fh.capturedHeaders()
-	sig := headers.Get("X-LLMVault-Signature")
-	tsStr := headers.Get("X-LLMVault-Timestamp")
+	sig := headers.Get("X-ZiraLoop-Signature")
+	tsStr := headers.Get("X-ZiraLoop-Timestamp")
 
 	if sig == "" {
-		t.Fatal("X-LLMVault-Signature header missing")
+		t.Fatal("X-ZiraLoop-Signature header missing")
 	}
 	if tsStr == "" {
-		t.Fatal("X-LLMVault-Timestamp header missing")
+		t.Fatal("X-ZiraLoop-Timestamp header missing")
 	}
 
 	ts, err := strconv.ParseInt(tsStr, 10, 64)
@@ -488,8 +488,8 @@ func TestNangoWebhookForwarding_SecretRotation(t *testing.T) {
 
 	// Verify old secret works
 	headers1 := fh.capturedHeaders()
-	sig1 := headers1.Get("X-LLMVault-Signature")
-	ts1, _ := strconv.ParseInt(headers1.Get("X-LLMVault-Timestamp"), 10, 64)
+	sig1 := headers1.Get("X-ZiraLoop-Signature")
+	ts1, _ := strconv.ParseInt(headers1.Get("X-ZiraLoop-Timestamp"), 10, 64)
 	body1 := fh.capturedBody()
 
 	msg1 := fmt.Sprintf("%d.%s", ts1, string(body1))
@@ -511,8 +511,8 @@ func TestNangoWebhookForwarding_SecretRotation(t *testing.T) {
 	fh.signedRequest(t, payload)
 
 	headers2 := fh.capturedHeaders()
-	sig2 := headers2.Get("X-LLMVault-Signature")
-	ts2, _ := strconv.ParseInt(headers2.Get("X-LLMVault-Timestamp"), 10, 64)
+	sig2 := headers2.Get("X-ZiraLoop-Signature")
+	ts2, _ := strconv.ParseInt(headers2.Get("X-ZiraLoop-Timestamp"), 10, 64)
 	body2 := fh.capturedBody()
 
 	// New secret should verify

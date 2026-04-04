@@ -9,11 +9,11 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/counter"
-	mcppkg "github.com/llmvault/llmvault/internal/mcp"
-	"github.com/llmvault/llmvault/internal/mcp/catalog"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/nango"
+	"github.com/ziraloop/ziraloop/internal/counter"
+	mcppkg "github.com/ziraloop/ziraloop/internal/mcp"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/nango"
 )
 
 // BuildServer creates an MCP server with tools registered from token scopes.
@@ -27,7 +27,7 @@ func BuildServer(
 	ctr *counter.Counter,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "llmvault",
+		Name:    "ziraloop",
 		Version: "v1.0.0",
 	}, nil)
 

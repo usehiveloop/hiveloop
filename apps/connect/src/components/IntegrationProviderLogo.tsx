@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.llmvault.dev'
+const INTEGRATIONS_API = import.meta.env.VITE_INTEGRATIONS_API || 'https://integrations.dev.ziraloop.com'
 
 interface Props {
   providerName: string

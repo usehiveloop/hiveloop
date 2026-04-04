@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 func TestValidateJSONSchema_Nil(t *testing.T) {

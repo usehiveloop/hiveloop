@@ -243,7 +243,7 @@ services:
 
   # =========================================================================
   # ACME-DNS (authoritative DNS for certificate challenge delegation)
-  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.llmvault.dev
+  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.ziraloop.com
   # =========================================================================
   acme-dns:
     image: joohoi/acme-dns:latest
@@ -260,7 +260,7 @@ services:
 
   # =========================================================================
   # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
-  # Custom domains added dynamically via /load from LLMVault backend
+  # Custom domains added dynamically via /load from ZiraLoop backend
   # =========================================================================
   caddy:
     build:
@@ -282,4 +282,4 @@ services:
       - caddy_config:/config
     environment:
       CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
-      LLMVAULT_INTERNAL_SECRET: "{{ llmvault_internal_secret | default('') }}"
+      ZIRALOOP_INTERNAL_SECRET: "{{ ziraloop_internal_secret | default('') }}"

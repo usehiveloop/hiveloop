@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/llmvault/llmvault/internal/auth"
-	"github.com/llmvault/llmvault/internal/cache"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // --------------------------------------------------------------------------
@@ -173,7 +173,7 @@ func TestIntegration_APIKeyAuth_InvalidKey(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer llmv_sk_0000000000000000000000000000000000000000000000000000000000000000")
+	req.Header.Set("Authorization", "Bearer zira_sk_0000000000000000000000000000000000000000000000000000000000000000")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 

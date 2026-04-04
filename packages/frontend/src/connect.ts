@@ -1,14 +1,14 @@
 import type {
-  LLMVaultConnectConfig,
+  ZiraLoopConnectConfig,
   ConnectOpenOptions,
   ConnectEvent,
   ThemeOption,
 } from './types'
 import { ConnectError } from './errors'
 
-const DEFAULT_BASE_URL = 'https://connect.llmvault.dev'
+const DEFAULT_BASE_URL = 'https://connect.ziraloop.com'
 
-export class LLMVaultConnect {
+export class ZiraLoopConnect {
   private iframe: HTMLIFrameElement | null = null
   private listener: ((event: MessageEvent) => void) | null = null
   private baseURL: string
@@ -17,7 +17,7 @@ export class LLMVaultConnect {
   private options: ConnectOpenOptions | null = null
   private previousOverflow: string = ''
 
-  constructor(config?: LLMVaultConnectConfig) {
+  constructor(config?: ZiraLoopConnectConfig) {
     this.baseURL = config?.baseURL ?? DEFAULT_BASE_URL
     this.baseOrigin = new URL(this.baseURL).origin
     this.theme = config?.theme ?? 'system'
@@ -50,7 +50,7 @@ export class LLMVaultConnect {
       url.searchParams.set('preview', 'true')
     }
     iframe.src = url.toString()
-    iframe.id = 'llmvault-connect-iframe'
+    iframe.id = 'ziraloop-connect-iframe'
     iframe.style.position = 'fixed'
     iframe.style.top = '0'
     iframe.style.left = '0'

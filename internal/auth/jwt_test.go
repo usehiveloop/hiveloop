@@ -19,13 +19,13 @@ func generateTestKey(t *testing.T) *rsa.PrivateKey {
 func TestAccessToken_RoundTrip(t *testing.T) {
 	key := generateTestKey(t)
 
-	tokenStr, err := IssueAccessToken(key, "llmvault", "https://api.llmvault.dev",
+	tokenStr, err := IssueAccessToken(key, "ziraloop", "https://api.ziraloop.com",
 		"user-123", "org-456", "admin", 15*time.Minute)
 	if err != nil {
 		t.Fatalf("IssueAccessToken: %v", err)
 	}
 
-	claims, err := ValidateAccessToken(&key.PublicKey, "llmvault", "https://api.llmvault.dev", tokenStr)
+	claims, err := ValidateAccessToken(&key.PublicKey, "ziraloop", "https://api.ziraloop.com", tokenStr)
 	if err != nil {
 		t.Fatalf("ValidateAccessToken: %v", err)
 	}
@@ -47,13 +47,13 @@ func TestAccessToken_RoundTrip(t *testing.T) {
 func TestAccessToken_WrongIssuer(t *testing.T) {
 	key := generateTestKey(t)
 
-	tokenStr, err := IssueAccessToken(key, "llmvault", "https://api.llmvault.dev",
+	tokenStr, err := IssueAccessToken(key, "ziraloop", "https://api.ziraloop.com",
 		"user-123", "org-456", "admin", 15*time.Minute)
 	if err != nil {
 		t.Fatalf("IssueAccessToken: %v", err)
 	}
 
-	_, err = ValidateAccessToken(&key.PublicKey, "wrong-issuer", "https://api.llmvault.dev", tokenStr)
+	_, err = ValidateAccessToken(&key.PublicKey, "wrong-issuer", "https://api.ziraloop.com", tokenStr)
 	if err == nil {
 		t.Fatal("expected error for wrong issuer")
 	}
@@ -62,13 +62,13 @@ func TestAccessToken_WrongIssuer(t *testing.T) {
 func TestAccessToken_WrongAudience(t *testing.T) {
 	key := generateTestKey(t)
 
-	tokenStr, err := IssueAccessToken(key, "llmvault", "https://api.llmvault.dev",
+	tokenStr, err := IssueAccessToken(key, "ziraloop", "https://api.ziraloop.com",
 		"user-123", "org-456", "admin", 15*time.Minute)
 	if err != nil {
 		t.Fatalf("IssueAccessToken: %v", err)
 	}
 
-	_, err = ValidateAccessToken(&key.PublicKey, "llmvault", "https://wrong.audience", tokenStr)
+	_, err = ValidateAccessToken(&key.PublicKey, "ziraloop", "https://wrong.audience", tokenStr)
 	if err == nil {
 		t.Fatal("expected error for wrong audience")
 	}
@@ -77,13 +77,13 @@ func TestAccessToken_WrongAudience(t *testing.T) {
 func TestAccessToken_Expired(t *testing.T) {
 	key := generateTestKey(t)
 
-	tokenStr, err := IssueAccessToken(key, "llmvault", "https://api.llmvault.dev",
+	tokenStr, err := IssueAccessToken(key, "ziraloop", "https://api.ziraloop.com",
 		"user-123", "org-456", "admin", -1*time.Minute)
 	if err != nil {
 		t.Fatalf("IssueAccessToken: %v", err)
 	}
 
-	_, err = ValidateAccessToken(&key.PublicKey, "llmvault", "https://api.llmvault.dev", tokenStr)
+	_, err = ValidateAccessToken(&key.PublicKey, "ziraloop", "https://api.ziraloop.com", tokenStr)
 	if err == nil {
 		t.Fatal("expected error for expired token")
 	}
@@ -93,13 +93,13 @@ func TestAccessToken_WrongKey(t *testing.T) {
 	key1 := generateTestKey(t)
 	key2 := generateTestKey(t)
 
-	tokenStr, err := IssueAccessToken(key1, "llmvault", "https://api.llmvault.dev",
+	tokenStr, err := IssueAccessToken(key1, "ziraloop", "https://api.ziraloop.com",
 		"user-123", "org-456", "admin", 15*time.Minute)
 	if err != nil {
 		t.Fatalf("IssueAccessToken: %v", err)
 	}
 
-	_, err = ValidateAccessToken(&key2.PublicKey, "llmvault", "https://api.llmvault.dev", tokenStr)
+	_, err = ValidateAccessToken(&key2.PublicKey, "ziraloop", "https://api.ziraloop.com", tokenStr)
 	if err == nil {
 		t.Fatal("expected error for wrong signing key")
 	}

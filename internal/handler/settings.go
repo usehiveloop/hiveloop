@@ -9,9 +9,9 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // SettingsHandler manages org-level settings.

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/llmvault/llmvault/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/bridge"
 )
 
 // BridgeReader reads forge agent responses via direct SSE connection to Bridge.

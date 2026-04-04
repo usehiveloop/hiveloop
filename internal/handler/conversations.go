@@ -10,11 +10,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/llmvault/llmvault/internal/bridge"
-	"github.com/llmvault/llmvault/internal/middleware"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/sandbox"
-	"github.com/llmvault/llmvault/internal/streaming"
+	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/middleware"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/streaming"
 )
 
 // ConversationHandler proxies conversation operations to Bridge.

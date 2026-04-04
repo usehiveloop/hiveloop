@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/llmvault/llmvault/internal/model"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // BuildMemoryServer creates an MCP server with memory tools (recall, retain, reflect)
@@ -21,7 +21,7 @@ func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Cli
 	}
 
 	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "llmvault-memory",
+		Name:    "ziraloop-memory",
 		Version: "v1.0.0",
 	}, nil)
 

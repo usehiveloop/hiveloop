@@ -1,4 +1,4 @@
-# LLMVault — Brand Guide (New Direction)
+# ZiraLoop — Brand Guide (New Direction)
 
 > "The secure access layer for your AI agents."
 
@@ -41,7 +41,7 @@ Before defining our brand, here's what the funded competitors look like — and 
 
 ## Brand Positioning
 
-**LLMVault is not another developer tool. It's the security layer.**
+**ZiraLoop is not another developer tool. It's the security layer.**
 
 The brand should feel like:
 - **Stripe** — premium, clean, trustworthy, confident
@@ -105,7 +105,7 @@ Dark mode is supported but **not the default**. Light mode is the primary experi
 
 ### Why Teal, Not Purple
 
-- **Purple is the default** for AI/dev tools (Composio, StackOne, current LLMVault, dozens of others). It's invisible.
+- **Purple is the default** for AI/dev tools (Composio, StackOne, current ZiraLoop, dozens of others). It's invisible.
 - **Teal communicates trust and security** — it's the color of fintech (Stripe's blue-green), healthcare compliance, and banking UIs. It says "your credentials are safe here."
 - **Teal + white reads as premium** — clean, confident, not trying too hard.
 - **It pairs beautifully with warm neutrals** — slate grays, cream accents — creating a palette that feels human, not robotic.
@@ -299,13 +299,13 @@ The lock icon remains the brand mark. It communicates security, trust, and custo
 ### Wordmark
 
 - Font: **Inter**, weight 600 (semibold)
-- Casing: "LLMVault" (capital LLM, capital V) or "llmvault" (all lowercase for informal contexts)
+- Casing: "ZiraLoop" (capital Z, capital L) or "ziraloop" (all lowercase for informal contexts)
 - The wordmark should stand alone without the lock mark in space-constrained contexts
 
 ### Logo Lockup
 
 ```
-[Lock Mark]  LLMVault
+[Lock Mark]  ZiraLoop
 ```
 
 - 8px gap between mark and wordmark
@@ -452,7 +452,7 @@ Bad:   "Seamless multi-provider authentication widget"
 
 ## What Makes This Brand Different
 
-| Competitor Pattern | LLMVault Choice | Why |
+| Competitor Pattern | ZiraLoop Choice | Why |
 |---|---|---|
 | Dark mode default | **Light mode default** | Every competitor is dark. Light reads as confident, premium, and trustworthy. |
 | Purple/blue accent | **Deep teal accent** | Teal communicates trust and security (fintech association). Purple is invisible in this market. |

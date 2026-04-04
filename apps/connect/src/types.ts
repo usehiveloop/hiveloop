@@ -6,9 +6,9 @@ export type IntegrationProvider = components['schemas']['widgetIntegrationRespon
 
 export type IntegrationResource = components['schemas']['widgetResourceResponse']
 
-export type AvailableResource = components['schemas']['github_com_llmvault_llmvault_internal_resources.AvailableResource']
+export type AvailableResource = components['schemas']['github_com_ziraloop_ziraloop_internal_resources.AvailableResource']
 
-export type DiscoveryResult = components['schemas']['github_com_llmvault_llmvault_internal_resources.DiscoveryResult']
+export type DiscoveryResult = components['schemas']['github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult']
 
 export type View =
   | { type: 'provider-selection' }

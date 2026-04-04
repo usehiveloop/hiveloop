@@ -14,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/llmvault/llmvault/internal/bridge"
-	"github.com/llmvault/llmvault/internal/config"
-	"github.com/llmvault/llmvault/internal/crypto"
-	"github.com/llmvault/llmvault/internal/model"
-	"github.com/llmvault/llmvault/internal/turso"
+	"github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/config"
+	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/turso"
 )
 
 const (
@@ -186,7 +186,7 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 	}
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("llmv-pool-%s", shortID(sb.ID))
+	name := fmt.Sprintf("zira-pool-%s", shortID(sb.ID))
 
 	labels := map[string]string{
 		"sandbox_type": "pool",
@@ -332,7 +332,7 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 	}
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
-	name := fmt.Sprintf("llmv-forge-%s", shortID(forgeRunID))
+	name := fmt.Sprintf("zira-forge-%s", shortID(forgeRunID))
 
 	labels := map[string]string{
 		"org_id":       org.ID.String(),
@@ -684,10 +684,10 @@ func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
 func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.Agent) string {
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("llmv-ded-%s-%s", safeName, shortID(agent.ID))
+		return fmt.Sprintf("zira-ded-%s-%s", safeName, shortID(agent.ID))
 	}
 	short := shortID(identity.ID)
-	return fmt.Sprintf("llmv-ded-%s", short)
+	return fmt.Sprintf("zira-ded-%s", short)
 }
 
 func (o *Orchestrator) runHealthCheck(ctx context.Context) {
@@ -826,7 +826,7 @@ func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, co
 func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) {
 	o.db.Model(tmpl).Update("build_status", "building")
 
-	snapshotName := fmt.Sprintf("llmv-tmpl-%s", shortID(tmpl.ID))
+	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
 	externalID, err := o.provider.BuildSnapshot(ctx, BuildSnapshotOpts{
 		Name:          snapshotName,
 		BuildCommands: tmpl.BuildCommands,
