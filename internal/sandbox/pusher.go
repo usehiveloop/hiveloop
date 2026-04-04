@@ -70,27 +70,23 @@ func (p *Pusher) markPushed(sandboxID, agentID string) {
 	p.pushed.Store(sandboxID+":"+agentID, true)
 }
 
-// PushAgent ensures the sandbox is running and pushes the agent definition to Bridge.
+// PushAgent assigns a pool sandbox to the agent and pushes the agent definition to Bridge.
 // For shared agents only — called on agent create/update.
 func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
 	if agent.SandboxType != "shared" {
 		return nil // dedicated agents are pushed lazily on conversation create
 	}
 
-	// Load associations we need
-	var org model.Org
-	if err := p.db.Where("id = ?", agent.OrgID).First(&org).Error; err != nil {
-		return fmt.Errorf("loading org: %w", err)
-	}
-	var identity model.Identity
-	if err := p.db.Where("id = ?", agent.IdentityID).First(&identity).Error; err != nil {
-		return fmt.Errorf("loading identity: %w", err)
+	// Assign a pool sandbox (reuses existing if already assigned)
+	sb, err := p.orchestrator.AssignPoolSandbox(ctx, agent)
+	if err != nil {
+		return fmt.Errorf("assigning pool sandbox: %w", err)
 	}
 
-	// Ensure shared sandbox is running
-	sb, err := p.orchestrator.EnsureSharedSandbox(ctx, &org, &identity)
-	if err != nil {
-		return fmt.Errorf("ensuring shared sandbox: %w", err)
+	// System agents don't have credentials — push without a proxy token.
+	// Per-conversation auth token override will supply the real token.
+	if agent.IsSystem {
+		return p.pushSystemAgentToSandbox(ctx, agent, sb)
 	}
 
 	// Build and push
@@ -121,44 +117,64 @@ func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	}
 
 	// Not found in either layer — do the full push
-	if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
-		return err
+	if agent.IsSystem {
+		if err := p.pushSystemAgentToSandbox(ctx, agent, sb); err != nil {
+			return err
+		}
+	} else {
+		if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
+			return err
+		}
 	}
 	p.markPushed(sandboxID, agentID)
 	return nil
 }
 
-// RemoveAgent removes an agent from Bridge.
+// RemoveAgent removes an agent from Bridge and releases its pool sandbox assignment.
 // For shared agents only — dedicated sandboxes are deleted entirely.
 func (p *Pusher) RemoveAgent(ctx context.Context, agent *model.Agent) error {
 	if agent.SandboxType != "shared" {
 		return nil
 	}
 
-	// Find the shared sandbox for this identity
-	var sb model.Sandbox
-	if err := p.db.Where("identity_id = ? AND sandbox_type = 'shared' AND status = 'running'",
-		agent.IdentityID).First(&sb).Error; err != nil {
-		return nil // no running sandbox — nothing to remove from
+	if agent.SandboxID == nil {
+		return nil // not assigned to any sandbox
 	}
 
+	// Load the assigned sandbox
+	var sb model.Sandbox
+	if err := p.db.Where("id = ? AND status = 'running'", *agent.SandboxID).First(&sb).Error; err != nil {
+		// Sandbox not found or not running — just release the assignment
+		_ = p.orchestrator.ReleasePoolSandbox(ctx, agent)
+		return nil
+	}
+
+	// Remove from Bridge
 	client, err := p.orchestrator.GetBridgeClient(ctx, &sb)
 	if err != nil {
-		return fmt.Errorf("getting bridge client: %w", err)
+		slog.Warn("failed to get bridge client for agent removal", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+	} else {
+		if err := client.RemoveAgentDefinition(ctx, agent.ID.String()); err != nil {
+			slog.Warn("failed to remove agent from bridge", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+		}
 	}
 
-	if err := client.RemoveAgentDefinition(ctx, agent.ID.String()); err != nil {
-		slog.Warn("failed to remove agent from bridge", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
-		// Non-fatal — agent is deleted from our DB regardless
-	}
-	return nil
+	// Clear in-memory push cache
+	p.pushed.Delete(sb.ID.String() + ":" + agent.ID.String())
+
+	// Release pool sandbox assignment (decrements agent count, clears agent.SandboxID)
+	return p.orchestrator.ReleasePoolSandbox(ctx, agent)
 }
 
 // RotateAgentToken mints a new proxy token for an agent and pushes it to Bridge.
 // Called lazily when a token is near expiry.
 func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	if agent.CredentialID == nil || agent.OrgID == nil {
+		return fmt.Errorf("cannot rotate token for agent without credential and org")
+	}
+
 	var cred model.Credential
-	if err := p.db.Where("id = ?", agent.CredentialID).First(&cred).Error; err != nil {
+	if err := p.db.Where("id = ?", *agent.CredentialID).First(&cred).Error; err != nil {
 		return fmt.Errorf("loading credential: %w", err)
 	}
 
@@ -172,11 +188,11 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 	now := time.Now()
 	expiresAt := now.Add(agentTokenTTL)
 	dbToken := model.Token{
-		OrgID:        agent.OrgID,
+		OrgID:        *agent.OrgID,
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": agent.IdentityID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing new token: %w", err)
@@ -218,9 +234,13 @@ func (p *Pusher) NeedsTokenRotation(agentID string) bool {
 }
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	if agent.CredentialID == nil || agent.OrgID == nil {
+		return fmt.Errorf("cannot push agent without credential and org")
+	}
+
 	// Load credential for provider info
 	var cred model.Credential
-	if err := p.db.Where("id = ?", agent.CredentialID).First(&cred).Error; err != nil {
+	if err := p.db.Where("id = ?", *agent.CredentialID).First(&cred).Error; err != nil {
 		return fmt.Errorf("loading credential: %w", err)
 	}
 
@@ -234,11 +254,11 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	now := time.Now()
 	expiresAt := now.Add(agentTokenTTL)
 	dbToken := model.Token{
-		OrgID:        agent.OrgID,
+		OrgID:        *agent.OrgID,
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": agent.IdentityID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"agent_id": agent.ID.String(), "identity_id": ptrToString(agent.IdentityID), "type": "agent_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing proxy token: %w", err)
@@ -267,10 +287,91 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	return nil
 }
 
+// pushSystemAgentToSandbox builds and pushes a system agent definition to Bridge
+// without a credential. Uses agent.ProviderGroup for the Bridge ProviderType and
+// sets an empty API key — per-conversation auth token override will supply the real one.
+func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	providerType := bridgepkg.Custom
+	if pt, ok := providerTypeMap[agent.ProviderGroup]; ok {
+		providerType = pt
+	}
+
+	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", p.cfg.BridgeHost)
+
+	def := bridgepkg.AgentDefinition{
+		Id:           agent.ID.String(),
+		Name:         agent.Name,
+		Description:  agent.Description,
+		SystemPrompt: agent.SystemPrompt,
+		Provider: bridgepkg.ProviderConfig{
+			ProviderType: providerType,
+			Model:        agent.Model,
+			ApiKey:       "", // per-conversation override will supply this
+			BaseUrl:      &proxyBaseURL,
+		},
+	}
+
+	// Set config if present
+	agentConfig := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
+	if agentConfig != nil {
+		def.Config = agentConfig
+	}
+
+	// Set tools if present
+	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
+	if tools != nil && len(*tools) > 0 {
+		def.Tools = tools
+	}
+
+	// Set MCP servers if present
+	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
+	if mcpServers != nil && len(*mcpServers) > 0 {
+		def.McpServers = mcpServers
+	}
+
+	// Set skills if present
+	skills := decodeJSONAs[[]bridgepkg.SkillDefinition](agent.Skills)
+	if skills != nil && len(*skills) > 0 {
+		def.Skills = skills
+	}
+
+	// Set subagents if present
+	subagents := decodeJSONAs[[]bridgepkg.AgentDefinition](agent.Subagents)
+	if subagents != nil && len(*subagents) > 0 {
+		def.Subagents = subagents
+	}
+
+	// Set permissions if present
+	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
+	if permissions != nil && len(*permissions) > 0 {
+		def.Permissions = permissions
+	}
+
+	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
+	if err != nil {
+		return fmt.Errorf("getting bridge client: %w", err)
+	}
+
+	if err := client.UpsertAgent(ctx, agent.ID.String(), def); err != nil {
+		return fmt.Errorf("pushing system agent to bridge: %w", err)
+	}
+
+	slog.Info("system agent pushed to bridge",
+		"agent_id", agent.ID,
+		"agent_name", agent.Name,
+		"sandbox_id", sb.ID,
+	)
+
+	return nil
+}
+
 func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tokenStr, jti string, err error) {
+	if agent.OrgID == nil {
+		return "", "", fmt.Errorf("cannot mint token for agent without org_id")
+	}
 	tokenStr, jti, err = token.Mint(
 		p.signingKey,
-		agent.OrgID.String(),
+		(*agent.OrgID).String(),
 		cred.ID.String(),
 		agentTokenTTL,
 	)
@@ -399,6 +500,13 @@ func buildLLMVaultMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 		Name:      "llmvault",
 		Transport: transport,
 	}
+}
+
+func ptrToString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
 }
 
 // decodeJSONAs converts a model.JSON (map[string]any) to a typed struct via JSON round-trip.

@@ -95,13 +95,38 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if agent.SandboxType == "shared" {
-		sb, err = h.orchestrator.EnsureSharedSandbox(ctx, org, &agent.Identity)
-		if err != nil {
-			slog.Error("failed to ensure shared sandbox", "agent_id", agent.ID, "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
+		// Agent should already have a pool sandbox assigned from PushAgent at creation.
+		// If not, reassign now.
+		if agent.SandboxID == nil {
+			if pushErr := h.pusher.PushAgent(ctx, &agent); pushErr != nil {
+				slog.Error("failed to assign pool sandbox", "agent_id", agent.ID, "error", pushErr)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
+				return
+			}
+			// Reload agent to get updated SandboxID
+			h.db.Where("id = ?", agent.ID).First(&agent)
+		}
+
+		var existing model.Sandbox
+		if err := h.db.Where("id = ?", *agent.SandboxID).First(&existing).Error; err != nil {
+			slog.Error("failed to load assigned sandbox", "agent_id", agent.ID, "sandbox_id", *agent.SandboxID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
 			return
 		}
-		// Ensure agent is pushed to Bridge (idempotent — handles re-push after sandbox recreation)
+		sb = &existing
+
+		// Wake if stopped
+		if sb.Status == "stopped" {
+			woken, wakeErr := h.orchestrator.WakeSandbox(ctx, sb)
+			if wakeErr != nil {
+				slog.Error("failed to wake sandbox", "sandbox_id", sb.ID, "error", wakeErr)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to wake sandbox"})
+				return
+			}
+			sb = woken
+		}
+
+		// Ensure agent is pushed to Bridge (idempotent)
 		if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
 			slog.Error("failed to push shared agent to sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
@@ -285,8 +310,9 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Lazy token rotation — refresh if near expiry before sending
-	if h.pusher != nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
+	// Lazy token rotation — refresh if near expiry before sending.
+	// Skip for system agent conversations (per-conversation token override TODO).
+	if h.pusher != nil && conv.CredentialID == nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
 		var agent model.Agent
 		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
 			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {
@@ -295,6 +321,7 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 			}
 		}
 	}
+	// TODO: Add per-conversation token rotation for system agents when Bridge supports it
 
 	client, ok := h.getBridgeClient(w, r, conv)
 	if !ok {

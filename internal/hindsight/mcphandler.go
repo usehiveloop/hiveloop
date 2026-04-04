@@ -60,7 +60,7 @@ func (h *MemoryMCPHandler) serverFactory(r *http.Request) *mcpsdk.Server {
 			return nil, time.Time{}, err
 		}
 
-		server := BuildMemoryServer(&agent, &agent.Identity, h.client)
+		server := BuildMemoryServer(&agent, agent.Identity, h.client)
 
 		// Cache for 1 hour (agent config rarely changes mid-conversation)
 		return server, time.Now().Add(1 * time.Hour), nil

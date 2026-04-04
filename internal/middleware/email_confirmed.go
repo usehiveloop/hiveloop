@@ -29,12 +29,22 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			var user model.User
-			if err := db.Select("id", "email_confirmed_at").Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+			if err := db.Select("id", "email_confirmed_at", "banned_at").Where("id = ?", claims.UserID).First(&user).Error; err != nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{
 					"error":   "email_not_confirmed",
 					"message": "Please confirm your email address before accessing this resource.",
+				})
+				return
+			}
+
+			if user.BannedAt != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error":   "account_banned",
+					"message": "Your account has been suspended.",
 				})
 				return
 			}

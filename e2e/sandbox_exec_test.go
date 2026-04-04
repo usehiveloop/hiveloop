@@ -38,7 +38,7 @@ func newExecHarness(t *testing.T) *execHarness {
 	t.Cleanup(func() { h.db.Where("id = ?", identity.ID).Delete(&model.Identity{}) })
 
 	sandbox := model.Sandbox{
-		OrgID: org.ID, IdentityID: identity.ID, SandboxType: "shared",
+		OrgID: &org.ID, IdentityID: &identity.ID, SandboxType: "shared",
 		ExternalID: "exec-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: []byte("enc"), Status: "running",
 	}

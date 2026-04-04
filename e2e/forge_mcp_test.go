@@ -82,10 +82,10 @@ func createForgeScaffold(t *testing.T, db *gorm.DB) forgeIDs {
 	}
 
 	agent := model.Agent{
-		OrgID:        org.ID,
-		IdentityID:   identity.ID,
+		OrgID:        &org.ID,
+		IdentityID:   &identity.ID,
 		Name:         fmt.Sprintf("forge-test-agent-%s", suffix),
-		CredentialID: cred.ID,
+		CredentialID: &cred.ID,
 		SandboxType:  "shared",
 		SystemPrompt: "You are a test agent.",
 		Model:        "gpt-4o",

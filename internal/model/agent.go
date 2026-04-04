@@ -9,15 +9,16 @@ import (
 
 type Agent struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             uuid.UUID        `gorm:"type:uuid;not null;uniqueIndex:idx_agent_org_name"`
-	Org               Org              `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	IdentityID        uuid.UUID        `gorm:"type:uuid;not null;index"`
-	Identity          Identity         `gorm:"foreignKey:IdentityID;constraint:OnDelete:CASCADE"`
-	Name              string           `gorm:"not null;uniqueIndex:idx_agent_org_name"`
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id"` // nil for system agents
+	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	IdentityID        *uuid.UUID       `gorm:"type:uuid;index"`
+	Identity          *Identity        `gorm:"foreignKey:IdentityID;constraint:OnDelete:SET NULL"`
+	Name              string           `gorm:"not null"`
 	Description       *string          `gorm:"type:text"`
-	CredentialID      uuid.UUID        `gorm:"type:uuid;not null;index"`
-	Credential        Credential       `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
+	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents
+	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxType       string           `gorm:"not null"` // "dedicated" or "shared"
+	SandboxID         *uuid.UUID       `gorm:"type:uuid;index"` // set for shared agents (points to pool sandbox)
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 
@@ -38,9 +39,11 @@ type Agent struct {
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
-	Status    string `gorm:"not null;default:'active'"` // active, archived
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Status        string `gorm:"not null;default:'active'"` // active, archived
+	IsSystem      bool   `gorm:"not null;default:false;index"`
+	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 func (Agent) TableName() string { return "agents" }

@@ -26,6 +26,7 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("JWT_SIGNING_KEY", "test-signing-key")
 	t.Setenv("CORS_ORIGINS", "http://localhost:3000")
 	t.Setenv("AUTH_RSA_PRIVATE_KEY", base64.StdEncoding.EncodeToString([]byte("test-pem")))
+	t.Setenv("FRONTEND_URL", "http://localhost:3000")
 }
 
 func TestLoad_AllRequired(t *testing.T) {

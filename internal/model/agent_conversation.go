@@ -15,6 +15,8 @@ type AgentConversation struct {
 	SandboxID            uuid.UUID  `gorm:"type:uuid;not null"`
 	Sandbox              Sandbox    `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 	BridgeConversationID string     `gorm:"not null;index"`
+	CredentialID         *uuid.UUID `gorm:"type:uuid;index"` // user's credential for system agent conversations
+	Credential           *Credential `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	TokenID              *uuid.UUID `gorm:"type:uuid"`
 	Token                *Token     `gorm:"foreignKey:TokenID;constraint:OnDelete:SET NULL"`
 	Status               string     `gorm:"not null;default:'active'"` // active, ended, error

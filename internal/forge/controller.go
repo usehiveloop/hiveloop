@@ -57,7 +57,7 @@ type EvalScoreEntry struct {
 // SandboxCreator abstracts sandbox provisioning so tests can inject a mock.
 // The real *sandbox.Orchestrator satisfies this interface.
 type SandboxCreator interface {
-	CreateForgeSandbox(ctx context.Context, org *model.Org, identityID, forgeRunID uuid.UUID) (*model.Sandbox, error)
+	CreateForgeSandbox(ctx context.Context, org *model.Org, identityID *uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error)
 	GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridgepkg.BridgeClient, error)
 }
 

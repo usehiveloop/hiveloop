@@ -24,6 +24,9 @@ import {
   Search01Icon,
   Tick02Icon,
   Key01Icon,
+  Store01Icon,
+  Download04Icon,
+  CheckmarkBadge01Icon,
 } from "@hugeicons/core-free-icons"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,11 +35,12 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 // --- Types ---
 
-type CreationMode = "scratch" | "forge"
-type Step = "mode" | "sandbox" | "integrations" | "llm-key" | "basics" | "system-prompt" | "instructions" | "forge-judge" | "summary"
+type CreationMode = "scratch" | "forge" | "marketplace"
+type Step = "mode" | "sandbox" | "integrations" | "llm-key" | "basics" | "system-prompt" | "instructions" | "forge-judge" | "summary" | "marketplace-browse" | "marketplace-detail"
 
 const scratchSteps: Step[] = ["mode", "sandbox", "integrations", "llm-key", "basics", "system-prompt", "instructions", "summary"]
 const forgeSteps: Step[] = ["mode", "sandbox", "integrations", "llm-key", "basics", "forge-judge", "summary"]
+const marketplaceSteps: Step[] = ["mode", "marketplace-browse", "marketplace-detail"]
 
 type Integration = {
   id: string
@@ -52,6 +56,73 @@ type IntegrationAction = {
   description: string
   type: "read" | "write" | "delete"
 }
+
+type MarketplaceAgent = {
+  slug: string
+  name: string
+  description: string
+  publisher: { name: string; avatar: string }
+  installs: number
+  integrations: string[]
+  verified: boolean
+}
+
+const marketplaceAgents: MarketplaceAgent[] = [
+  {
+    slug: "pr-review-agent",
+    name: "PR Review Agent",
+    description: "Automatically reviews pull requests, checks for code quality issues, security vulnerabilities, and suggests improvements based on your team's standards.",
+    publisher: { name: "Sarah Chen", avatar: "https://i.pravatar.cc/80?u=sarah" },
+    installs: 12400,
+    integrations: ["GitHub", "Slack", "Linear"],
+    verified: true,
+  },
+  {
+    slug: "customer-support-agent",
+    name: "Customer Support Agent",
+    description: "Handles incoming support tickets by searching your knowledge base, drafting responses, and escalating complex issues to the right team member.",
+    publisher: { name: "Alex Rivera", avatar: "https://i.pravatar.cc/80?u=alex" },
+    installs: 8900,
+    integrations: ["Intercom", "Notion", "Slack"],
+    verified: true,
+  },
+  {
+    slug: "incident-responder",
+    name: "Incident Responder",
+    description: "Monitors your infrastructure alerts, correlates events, creates incident channels, and coordinates response workflows automatically.",
+    publisher: { name: "Ziraloop", avatar: "https://i.pravatar.cc/80?u=ziraloop" },
+    installs: 6200,
+    integrations: ["Slack", "Linear", "GitHub"],
+    verified: true,
+  },
+  {
+    slug: "daily-standup-bot",
+    name: "Daily Standup Bot",
+    description: "Collects async standup updates from your team, summarizes blockers and progress, and posts a digest to your team channel every morning.",
+    publisher: { name: "Maria Santos", avatar: "https://i.pravatar.cc/80?u=maria" },
+    installs: 5100,
+    integrations: ["Slack", "Linear"],
+    verified: false,
+  },
+  {
+    slug: "release-manager",
+    name: "Release Manager",
+    description: "Tracks your release pipeline, generates changelogs from merged PRs, notifies stakeholders, and manages deployment approvals across environments.",
+    publisher: { name: "Ziraloop", avatar: "https://i.pravatar.cc/80?u=ziraloop2" },
+    installs: 4500,
+    integrations: ["GitHub", "Slack"],
+    verified: true,
+  },
+  {
+    slug: "meeting-summarizer",
+    name: "Meeting Summarizer",
+    description: "Joins your calendar meetings, records key decisions and action items, and posts structured summaries to the relevant Notion page.",
+    publisher: { name: "Tom Wilson", avatar: "https://i.pravatar.cc/80?u=tom" },
+    installs: 7300,
+    integrations: ["Google Calendar", "Notion", "Slack"],
+    verified: true,
+  },
+]
 
 type LlmKey = {
   id: string
@@ -216,7 +287,7 @@ function StepChooseMode({ onSelect }: { onSelect: (mode: CreationMode) => void }
       <DialogHeader>
         <DialogTitle>Create a new agent</DialogTitle>
         <DialogDescription className="mt-2">
-          Create an agent manually with full control, or use Forge to automatically generate and optimize your agent&apos;s system prompt through iterative AI evaluation.
+          Build from scratch, let AI generate one for you, or install a ready-made agent from the marketplace.
         </DialogDescription>
       </DialogHeader>
 
@@ -232,6 +303,12 @@ function StepChooseMode({ onSelect }: { onSelect: (mode: CreationMode) => void }
           title="Forge with AI"
           description="Describe what you want and let AI generate an optimized agent for you."
           onClick={() => onSelect("forge")}
+        />
+        <ChoiceCard
+          icon={Store01Icon}
+          title="Install from marketplace"
+          description="Browse community-built agents and install one in seconds."
+          onClick={() => onSelect("marketplace")}
         />
       </div>
     </div>
@@ -809,6 +886,216 @@ function StepInstructions({ onBack, onNext }: { onBack: () => void; onNext: () =
   )
 }
 
+// --- Step: Marketplace Browse ---
+
+function formatInstalls(n: number) {
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`
+  return n.toString()
+}
+
+function StepMarketplaceBrowse({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void
+  onSelect: (slug: string) => void
+}) {
+  const [search, setSearch] = useState("")
+
+  const filtered = marketplaceAgents.filter(
+    (a) =>
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.description.toLowerCase().includes(search.toLowerCase()) ||
+      a.integrations.some((i) => i.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  return (
+    <div className="flex flex-col h-full">
+      <DialogHeader>
+        <div className="flex items-center gap-2">
+          <button onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
+          </button>
+          <DialogTitle>Marketplace</DialogTitle>
+        </div>
+        <DialogDescription className="mt-2">
+          Browse community-built agents. Install one to get started instantly.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="relative mt-4">
+        <HugeiconsIcon icon={Search01Icon} size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search agents..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+        {filtered.map((agent) => (
+          <button
+            key={agent.slug}
+            onClick={() => onSelect(agent.slug)}
+            className="group flex items-start gap-3 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground truncate">{agent.name}</p>
+                {agent.verified && (
+                  <HugeiconsIcon icon={CheckmarkBadge01Icon} size={13} className="text-green-500 shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{agent.description}</p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={agent.publisher.avatar} alt="" className="h-3.5 w-3.5 rounded-full" />
+                  {agent.publisher.name}
+                </span>
+                <span className="text-[10px] text-muted-foreground/30">·</span>
+                <span className="font-mono text-[10px] text-muted-foreground/40">
+                  {formatInstalls(agent.installs)} installs
+                </span>
+                <span className="flex items-center -space-x-1.5 ml-auto">
+                  {agent.integrations.map((name) => {
+                    const integ = integrations.find((i) => i.name === name)
+                    return integ ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={name} src={integ.logo} alt={name} className="h-4 w-4 rounded-full border-2 border-muted/50 dark:invert" />
+                    ) : (
+                      <span key={name} className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-muted/50 bg-muted text-[7px] font-bold text-muted-foreground">
+                        {name[0]}
+                      </span>
+                    )
+                  })}
+                </span>
+              </div>
+            </div>
+            <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-muted-foreground">No agents found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- Step: Marketplace Detail ---
+
+// TODO: replace with real connected integrations from API
+const connectedIntegrations = new Set(["GitHub", "Slack"])
+
+function StepMarketplaceDetail({
+  slug,
+  onBack,
+  onInstall,
+}: {
+  slug: string
+  onBack: () => void
+  onInstall: () => void
+}) {
+  const agent = marketplaceAgents.find((a) => a.slug === slug)
+
+  if (!agent) return null
+
+  const missing = agent.integrations.filter((i) => !connectedIntegrations.has(i))
+  const canInstall = missing.length === 0
+
+  return (
+    <div className="flex flex-col h-full">
+      <DialogHeader>
+        <div className="flex items-center gap-2">
+          <button onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
+          </button>
+          <DialogTitle>Agent details</DialogTitle>
+        </div>
+      </DialogHeader>
+
+      <div className="flex flex-col gap-6 mt-6 flex-1 overflow-y-auto">
+        {/* Agent header */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold text-foreground">{agent.name}</h3>
+            {agent.verified && (
+              <HugeiconsIcon icon={CheckmarkBadge01Icon} size={14} className="text-green-500 shrink-0" />
+            )}
+          </div>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground/50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={agent.publisher.avatar} alt="" className="h-4 w-4 rounded-full" />
+            {agent.publisher.name}
+          </span>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {agent.description}
+        </p>
+
+        {/* Stats */}
+        <div className="flex gap-6">
+          <div className="flex flex-col">
+            <span className="font-mono text-xs text-muted-foreground/60 uppercase tracking-wide">Installs</span>
+            <span className="text-sm font-semibold text-foreground mt-0.5">{formatInstalls(agent.installs)}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="font-mono text-xs text-muted-foreground/60 uppercase tracking-wide">Integrations</span>
+            <span className="text-sm font-semibold text-foreground mt-0.5">{agent.integrations.length}</span>
+          </div>
+        </div>
+
+        {/* Integrations */}
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-[1px]">Required integrations</span>
+          <div className="flex flex-wrap gap-2">
+            {agent.integrations.map((name) => {
+              const connected = connectedIntegrations.has(name)
+              return (
+                <span
+                  key={name}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    connected
+                      ? "bg-muted text-foreground"
+                      : "bg-destructive/5 text-destructive border border-destructive/10"
+                  }`}
+                >
+                  {name}
+                  {connected && (
+                    <HugeiconsIcon icon={Tick02Icon} size={12} className="text-green-500" />
+                  )}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Missing integrations warning */}
+        {missing.length > 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <p className="text-sm text-amber-500/90 leading-snug">
+              You are missing {missing.length} {missing.length === 1 ? "integration" : "integrations"} to install this agent. Please connect {missing.join(", ")} and try again.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-4 shrink-0">
+        <Button onClick={onInstall} disabled={!canInstall} className="w-full">
+          <HugeiconsIcon icon={Download04Icon} size={16} data-icon="inline-start" />
+          Install agent
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // --- Step: Summary ---
 
 function StepSummary({
@@ -941,9 +1228,10 @@ export function CreateAgentDialog() {
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null)
   const [judgeKeyId, setJudgeKeyId] = useState<string | null>(null)
   const [judgeModel, setJudgeModel] = useState<string | null>(null)
+  const [selectedMarketplaceAgent, setSelectedMarketplaceAgent] = useState<string | null>(null)
   const direction = useRef<1 | -1>(1)
 
-  const currentSteps = mode === "forge" ? forgeSteps : scratchSteps
+  const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
 
   function goTo(next: Step) {
     direction.current = currentSteps.indexOf(next) > currentSteps.indexOf(step) ? 1 : -1
@@ -969,6 +1257,7 @@ export function CreateAgentDialog() {
     setSelectedKeyId(null)
     setJudgeKeyId(null)
     setJudgeModel(null)
+    setSelectedMarketplaceAgent(null)
   }
 
   const variants = {
@@ -1014,8 +1303,29 @@ export function CreateAgentDialog() {
                 <StepChooseMode
                   onSelect={(m) => {
                     setMode(m)
-                    goTo("sandbox")
+                    direction.current = 1
+                    if (m === "marketplace") {
+                      setStep("marketplace-browse")
+                    } else {
+                      setStep("sandbox")
+                    }
                   }}
+                />
+              )}
+              {step === "marketplace-browse" && (
+                <StepMarketplaceBrowse
+                  onBack={() => goTo("mode")}
+                  onSelect={(slug) => {
+                    setSelectedMarketplaceAgent(slug)
+                    goTo("marketplace-detail")
+                  }}
+                />
+              )}
+              {step === "marketplace-detail" && selectedMarketplaceAgent && (
+                <StepMarketplaceDetail
+                  slug={selectedMarketplaceAgent}
+                  onBack={() => goTo("marketplace-browse")}
+                  onInstall={() => setOpen(false)}
                 />
               )}
               {step === "sandbox" && (

@@ -13,7 +13,12 @@ import (
 // BuildMemoryServer creates an MCP server with memory tools (recall, retain, reflect)
 // scoped to a specific agent's identity bank.
 func BuildMemoryServer(agent *model.Agent, identity *model.Identity, client *Client) *mcp.Server {
-	bankID := "identity-" + identity.ID.String()
+	var bankID string
+	if identity != nil {
+		bankID = "identity-" + identity.ID.String()
+	} else {
+		bankID = "agent-" + agent.ID.String()
+	}
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "llmvault-memory",
@@ -142,6 +147,9 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 			// Build tags based on agent permissions
 			tags := []string{"team:" + agent.Team, "agent:" + agent.ID.String()}
 			if params.Shared {
+				if identity == nil {
+					return toolError("shared memory requires an identity"), nil
+				}
 				if !agent.SharedMemory {
 					return toolError("this agent does not have permission to store shared memories"), nil
 				}

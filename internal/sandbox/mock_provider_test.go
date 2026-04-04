@@ -13,6 +13,7 @@ type mockProvider struct {
 	endpoints        map[string]string // externalID → URL
 	endpointOverride string            // if set, all GetEndpoint calls return this URL
 	nextID           int
+	executeCommandFn func(ctx context.Context, externalID, command string) (string, error)
 }
 
 type mockSandbox struct {
@@ -110,7 +111,10 @@ func (m *mockProvider) SetAutoStop(_ context.Context, _ string, _ int) error {
 	return nil
 }
 
-func (m *mockProvider) ExecuteCommand(_ context.Context, _ string, _ string) (string, error) {
+func (m *mockProvider) ExecuteCommand(ctx context.Context, externalID string, command string) (string, error) {
+	if m.executeCommandFn != nil {
+		return m.executeCommandFn(ctx, externalID, command)
+	}
 	return "", nil
 }
 
@@ -120,6 +124,13 @@ func (m *mockProvider) count() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.sandboxes)
+}
+
+// registerSandbox adds a sandbox to the mock so GetStatus/StopSandbox work on seeded DB records.
+func (m *mockProvider) registerSandbox(externalID string, status SandboxStatus) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.sandboxes[externalID] = &mockSandbox{name: externalID, status: status}
 }
 
 func (m *mockProvider) getStatus(externalID string) SandboxStatus {

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
+import { apiUrl } from "@/lib/api/client"
 
 export default function AuthPage() {
   return (
@@ -23,7 +24,7 @@ export default function AuthPage() {
           </div>
 
           <div className="flex flex-col gap-3 mt-4 max-w-sm w-full mx-auto">
-            <Button variant="outline" size="default" className="w-full h-12 cursor-pointer">
+            <Button variant="outline" size="default" className="w-full h-12 cursor-pointer" render={<a href={apiUrl("/oauth/github")} />}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="mr-2.5 opacity-70">
                 <title>github</title>
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -31,7 +32,7 @@ export default function AuthPage() {
               Continue with GitHub
             </Button>
 
-            <Button variant="outline" size="default" className="w-full h-12 cursor-pointer">
+            <Button variant="outline" size="default" className="w-full h-12 cursor-pointer" render={<a href={apiUrl("/oauth/google")} />}>
               <svg width="18" height="18" viewBox="0 0 24 24" className="mr-2.5">
                 <title>google</title>
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -41,16 +42,24 @@ export default function AuthPage() {
               </svg>
               Continue with Google
             </Button>
+
+            <Button variant="outline" size="default" className="w-full h-12 cursor-pointer" render={<a href={apiUrl("/oauth/x")} />}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="mr-2.5 opacity-70">
+                <title>x</title>
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              Continue with X
+            </Button>
           </div>
 
           <div className="flex items-center justify-center">
             <p className="text-xs text-muted-foreground/60 leading-relaxed">
               By continuing, you agree to our{" "}
-              <a href="https://llmvault.dev" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+              <a href="https://ziraloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="https://llmvault.dev" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+              <a href="https://ziraloop.com" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
                 Privacy Policy
               </a>
               .

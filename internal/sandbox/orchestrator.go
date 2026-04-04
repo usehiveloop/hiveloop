@@ -63,40 +63,86 @@ func NewOrchestrator(db *gorm.DB, provider Provider, turso *turso.Provisioner, e
 	}
 }
 
-// EnsureSharedSandbox returns the identity's shared sandbox, creating or waking it if needed.
-// This is synchronous — it blocks until the sandbox is running or returns an error.
-func (o *Orchestrator) EnsureSharedSandbox(ctx context.Context, org *model.Org, identity *model.Identity) (*model.Sandbox, error) {
-	// Check for existing shared sandbox for this identity
-	var existing model.Sandbox
-	err := o.db.Where("identity_id = ? AND sandbox_type = 'shared'", identity.ID).First(&existing).Error
+// AssignPoolSandbox assigns a pool sandbox to a shared agent.
+// If the agent already has a sandbox assigned, it returns that one (waking if needed).
+// Otherwise, it picks the least-loaded pool sandbox under the resource threshold,
+// or creates a new one on demand.
+func (o *Orchestrator) AssignPoolSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
+	// If agent already has a sandbox assigned, try to use it
+	if agent.SandboxID != nil {
+		var existing model.Sandbox
+		if err := o.db.Where("id = ?", *agent.SandboxID).First(&existing).Error; err == nil {
+			// Verify it still exists in the provider
+			if err := o.verifySandboxExists(ctx, &existing); err == nil {
+				switch existing.Status {
+				case "running":
+					return &existing, nil
+				default:
+					// stopped, creating, starting, error — try to wake
+					woken, err := o.WakeSandbox(ctx, &existing)
+					if err == nil {
+						return woken, nil
+					}
+					slog.Warn("failed to wake assigned sandbox, will reassign",
+						"sandbox_id", existing.ID, "error", err)
+				}
+			} else {
+				slog.Warn("assigned sandbox stale, will reassign",
+					"sandbox_id", existing.ID, "error", err)
+			}
+		}
+		// Clear stale assignment
+		o.db.Model(agent).Update("sandbox_id", nil)
+		agent.SandboxID = nil
+	}
+
+	// Select from pool: lowest memory usage under threshold, with row-level lock
+	threshold := o.cfg.PoolSandboxResourceThreshold
+	var sb model.Sandbox
+	err := o.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Raw(`
+			SELECT * FROM sandboxes
+			WHERE sandbox_type = 'shared'
+			  AND status = 'running'
+			  AND (memory_limit_bytes = 0 OR (memory_used_bytes * 100.0 / memory_limit_bytes) < ?)
+			ORDER BY CASE WHEN memory_limit_bytes = 0 THEN 0 ELSE (memory_used_bytes * 100.0 / memory_limit_bytes) END ASC
+			LIMIT 1
+			FOR UPDATE SKIP LOCKED
+		`, threshold).Scan(&sb).Error; err != nil {
+			return err
+		}
+
+		if sb.ID == uuid.Nil {
+			return gorm.ErrRecordNotFound
+		}
+
+		// Assign agent to this sandbox
+		if err := tx.Model(agent).Update("sandbox_id", sb.ID).Error; err != nil {
+			return err
+		}
+		agent.SandboxID = &sb.ID
+		return nil
+	})
+
 	if err == nil {
-		// Verify the sandbox still exists in the provider
-		if err := o.verifySandboxExists(ctx, &existing); err != nil {
-			slog.Warn("shared sandbox stale, deleting and recreating",
-				"sandbox_id", existing.ID,
-				"external_id", existing.ExternalID,
-				"error", err,
-			)
-			o.db.Delete(&existing)
-			return o.createSandbox(ctx, org, identity, "shared", nil)
-		}
-
-		switch existing.Status {
-		case "running":
-			return &existing, nil
-		case "stopped":
-			return o.wakeSandbox(ctx, &existing)
-		default:
-			// creating, starting, error — try to wake anyway
-			return o.wakeSandbox(ctx, &existing)
-		}
+		return &sb, nil
 	}
+
 	if err != gorm.ErrRecordNotFound {
-		return nil, fmt.Errorf("querying shared sandbox: %w", err)
+		return nil, fmt.Errorf("selecting shared sandbox: %w", err)
 	}
 
-	// No existing sandbox — create a new one
-	return o.createSandbox(ctx, org, identity, "shared", nil)
+	// No available sandbox — create one on demand
+	newSb, err := o.createPoolSandbox(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("creating shared sandbox on demand: %w", err)
+	}
+
+	// Assign agent to the new sandbox
+	o.db.Model(agent).Update("sandbox_id", newSb.ID)
+	agent.SandboxID = &newSb.ID
+
+	return newSb, nil
 }
 
 // verifySandboxExists checks if the sandbox's external ID still exists in the provider.
@@ -108,26 +154,139 @@ func (o *Orchestrator) verifySandboxExists(ctx context.Context, sb *model.Sandbo
 	return err
 }
 
+// createPoolSandbox provisions a new sandbox for the global pool.
+// No org, no identity — pool sandboxes are cross-tenant.
+func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, error) {
+	// Generate and encrypt Bridge API key
+	bridgeAPIKey, err := generateRandomHex(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating bridge api key: %w", err)
+	}
+	encryptedKey, err := o.encKey.EncryptString(bridgeAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypting bridge api key: %w", err)
+	}
+
+	sb := model.Sandbox{
+		SandboxType:           "shared",
+		EncryptedBridgeAPIKey: encryptedKey,
+		Status:                "creating",
+	}
+	if err := o.db.Create(&sb).Error; err != nil {
+		return nil, fmt.Errorf("saving pool sandbox record: %w", err)
+	}
+
+	envVars := map[string]string{
+		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
+		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_WEBHOOK_URL":          fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
+		"BRIDGE_LOG_FORMAT":           "json",
+		"BRIDGE_CODEDB_ENABLED":       "true",
+		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
+	}
+
+	snapshotID := o.cfg.BridgeBaseImagePrefix
+	name := fmt.Sprintf("llmv-pool-%s", shortID(sb.ID))
+
+	labels := map[string]string{
+		"sandbox_type": "pool",
+		"sandbox_id":   sb.ID.String(),
+	}
+
+	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
+		Name:       name,
+		SnapshotID: snapshotID,
+		EnvVars:    envVars,
+		Labels:     labels,
+	})
+	if err != nil {
+		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		return nil, fmt.Errorf("creating pool sandbox via provider: %w", err)
+	}
+
+	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
+	if err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"external_id":   info.ExternalID,
+			"status":        "error",
+			"error_message": fmt.Sprintf("failed to get endpoint: %v", err),
+		})
+		return nil, fmt.Errorf("getting pool sandbox endpoint: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(bridgeURLTTL)
+	if err := o.db.Model(&sb).Updates(map[string]any{
+		"external_id":           info.ExternalID,
+		"bridge_url":            bridgeURL,
+		"bridge_url_expires_at": expiresAt,
+		"status":                "running",
+		"last_active_at":        now,
+	}).Error; err != nil {
+		return nil, fmt.Errorf("updating pool sandbox record: %w", err)
+	}
+
+	sb.ExternalID = info.ExternalID
+	sb.BridgeURL = bridgeURL
+	sb.BridgeURLExpiresAt = &expiresAt
+	sb.Status = "running"
+	sb.LastActiveAt = &now
+
+	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"status":        "error",
+			"error_message": fmt.Sprintf("bridge failed to start: %v", err),
+		})
+		return nil, fmt.Errorf("waiting for pool bridge: %w", err)
+	}
+
+	slog.Info("pool sandbox created",
+		"sandbox_id", sb.ID,
+		"external_id", info.ExternalID,
+	)
+
+	return &sb, nil
+}
+
+// ReleasePoolSandbox clears an agent's sandbox assignment.
+func (o *Orchestrator) ReleasePoolSandbox(ctx context.Context, agent *model.Agent) error {
+	if agent.SandboxID == nil {
+		return nil
+	}
+
+	o.db.Model(agent).Update("sandbox_id", nil)
+	agent.SandboxID = nil
+
+	return nil
+}
+
 // CreateDedicatedSandbox spins up a new sandbox for a dedicated agent.
 // Synchronous — blocks until running or returns an error.
 func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
-	// Load org and identity
+	if agent.OrgID == nil {
+		return nil, fmt.Errorf("cannot create dedicated sandbox for agent without org_id")
+	}
 	var org model.Org
-	if err := o.db.Where("id = ?", agent.OrgID).First(&org).Error; err != nil {
+	if err := o.db.Where("id = ?", *agent.OrgID).First(&org).Error; err != nil {
 		return nil, fmt.Errorf("loading org: %w", err)
 	}
-	var identity model.Identity
-	if err := o.db.Where("id = ?", agent.IdentityID).First(&identity).Error; err != nil {
-		return nil, fmt.Errorf("loading identity: %w", err)
+
+	var identity *model.Identity
+	if agent.IdentityID != nil {
+		var ident model.Identity
+		if err := o.db.Where("id = ?", *agent.IdentityID).First(&ident).Error; err != nil {
+			return nil, fmt.Errorf("loading identity: %w", err)
+		}
+		identity = &ident
 	}
 
-	return o.createSandbox(ctx, &org, &identity, "dedicated", agent)
+	return o.createSandbox(ctx, &org, identity, agent)
 }
 
 // CreateForgeSandbox creates a sandbox for forge agents. Unlike dedicated sandboxes,
 // forge sandboxes do NOT configure a webhook URL (forge reads responses via direct SSE)
 // and do not use agent-level setup commands or encrypted env vars.
-func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
+func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, identityID *uuid.UUID, forgeRunID uuid.UUID) (*model.Sandbox, error) {
 	// Ensure Turso storage for the org (optional)
 	var storageURL, authToken string
 	if o.turso != nil {
@@ -149,7 +308,7 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 	}
 
 	sb := model.Sandbox{
-		OrgID:                 org.ID,
+		OrgID:                 &org.ID,
 		IdentityID:            identityID,
 		SandboxType:           "dedicated",
 		EncryptedBridgeAPIKey: encryptedKey,
@@ -177,10 +336,12 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 
 	labels := map[string]string{
 		"org_id":       org.ID.String(),
-		"identity_id":  identityID.String(),
 		"sandbox_type": "forge",
 		"sandbox_id":   sb.ID.String(),
 		"forge_run_id": forgeRunID.String(),
+	}
+	if identityID != nil {
+		labels["identity_id"] = identityID.String()
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
@@ -297,7 +458,9 @@ func (o *Orchestrator) StartHealthChecker(ctx context.Context) {
 
 // --- internal helpers ---
 
-func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identity *model.Identity, sandboxType string, agent *model.Agent) (*model.Sandbox, error) {
+// createSandbox creates a dedicated sandbox for an agent.
+// Pool/shared sandboxes use createPoolSandbox instead.
+func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identity *model.Identity, agent *model.Agent) (*model.Sandbox, error) {
 	// Ensure Turso storage for the org (optional — Bridge works without it)
 	var storageURL, authToken string
 	if o.turso != nil {
@@ -318,15 +481,14 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		return nil, fmt.Errorf("encrypting bridge api key: %w", err)
 	}
 
-	// Build sandbox ID (we create the record first to get the UUID for webhook URL)
 	sb := model.Sandbox{
-		OrgID:                 org.ID,
-		IdentityID:            identity.ID,
-		SandboxType:           sandboxType,
-		ExternalID:            "", // set after provider creates it
-		BridgeURL:             "", // set after we get the endpoint
+		OrgID:                 &org.ID,
+		SandboxType:           "dedicated",
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "creating",
+	}
+	if identity != nil {
+		sb.IdentityID = &identity.ID
 	}
 	if agent != nil {
 		sb.AgentID = &agent.ID
@@ -352,11 +514,8 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
 	}
 
-	// Merge user-defined env vars (encrypted at rest)
-	// Shared sandboxes: identity env vars. Dedicated sandboxes: agent env vars.
-	if sandboxType == "shared" && identity != nil {
-		o.mergeUserEnvVars(envVars, identity.EncryptedEnvVars)
-	} else if sandboxType == "dedicated" && agent != nil {
+	// Merge agent-level env vars for dedicated sandboxes
+	if agent != nil {
 		o.mergeUserEnvVars(envVars, agent.EncryptedEnvVars)
 	}
 
@@ -364,14 +523,16 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	snapshotID := o.resolveSnapshot(agent)
 
 	// Build sandbox name
-	name := o.buildSandboxName(sandboxType, identity, agent)
+	name := o.buildSandboxName(identity, agent)
 
 	// Build labels
 	labels := map[string]string{
 		"org_id":       org.ID.String(),
-		"identity_id":  identity.ID.String(),
-		"sandbox_type": sandboxType,
+		"sandbox_type": "dedicated",
 		"sandbox_id":   sb.ID.String(),
+	}
+	if identity != nil {
+		labels["identity_id"] = identity.ID.String()
 	}
 	if agent != nil {
 		labels["agent_id"] = agent.ID.String()
@@ -385,19 +546,16 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		Labels:     labels,
 	})
 	if err != nil {
-		// Clean up DB record on failure
 		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
 		return nil, fmt.Errorf("creating sandbox via provider: %w", err)
 	}
 
-	// Get pre-authenticated endpoint URL
 	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
 	if err != nil {
-		// Sandbox was created but we can't reach it — update with error
 		o.db.Model(&sb).Updates(map[string]any{
-			"external_id":    info.ExternalID,
-			"status":         "error",
-			"error_message":  fmt.Sprintf("failed to get endpoint: %v", err),
+			"external_id":   info.ExternalID,
+			"status":        "error",
+			"error_message": fmt.Sprintf("failed to get endpoint: %v", err),
 		})
 		return nil, fmt.Errorf("getting sandbox endpoint: %w", err)
 	}
@@ -426,7 +584,6 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
-	// Wait for Bridge to become healthy (it starts automatically via entrypoint)
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
 			"status":        "error",
@@ -435,15 +592,9 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		return nil, fmt.Errorf("waiting for bridge: %w", err)
 	}
 
-	// Run setup commands (identity-level for shared, agent-level for dedicated)
-	var setupCommands []string
-	if sandboxType == "shared" && identity != nil {
-		setupCommands = identity.SetupCommands
-	} else if sandboxType == "dedicated" && agent != nil {
-		setupCommands = agent.SetupCommands
-	}
-	if len(setupCommands) > 0 {
-		if err := o.runSetupCommands(ctx, &sb, setupCommands); err != nil {
+	// Run agent-level setup commands for dedicated sandboxes
+	if agent != nil && len(agent.SetupCommands) > 0 {
+		if err := o.runSetupCommands(ctx, &sb, agent.SetupCommands); err != nil {
 			slog.Warn("setup commands failed but sandbox is still usable",
 				"sandbox_id", sb.ID,
 				"error", err,
@@ -454,14 +605,13 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	slog.Info("sandbox created",
 		"sandbox_id", sb.ID,
 		"external_id", info.ExternalID,
-		"type", sandboxType,
-		"identity_id", identity.ID,
+		"type", "dedicated",
 	)
 
 	return &sb, nil
 }
 
-func (o *Orchestrator) wakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
 	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
 		return nil, fmt.Errorf("starting sandbox %s: %w", sb.ID, err)
 	}
@@ -531,14 +681,13 @@ func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
 	return o.cfg.BridgeBaseImagePrefix
 }
 
-func (o *Orchestrator) buildSandboxName(sandboxType string, identity *model.Identity, agent *model.Agent) string {
-	short := shortID(identity.ID)
-	if sandboxType == "dedicated" && agent != nil {
-		// Sanitize agent name for use in sandbox name
+func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.Agent) string {
+	if agent != nil {
 		safeName := sanitizeName(agent.Name)
 		return fmt.Sprintf("llmv-ded-%s-%s", safeName, shortID(agent.ID))
 	}
-	return fmt.Sprintf("llmv-sh-%s-%s", sanitizeName(identity.ExternalID), short)
+	short := shortID(identity.ID)
+	return fmt.Sprintf("llmv-ded-%s", short)
 }
 
 func (o *Orchestrator) runHealthCheck(ctx context.Context) {
@@ -569,25 +718,54 @@ func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox
 		sb.Status = providerStatus
 	}
 
-	// Auto-stop idle sandboxes
+	// Handle shared sandbox errors — unassign all agents
+	if sb.Status == "error" && sb.SandboxType == "shared" {
+		o.handleSharedSandboxError(sb)
+		return
+	}
+
 	if sb.Status != "running" || sb.LastActiveAt == nil {
 		return
 	}
 
 	idleMinutes := time.Since(*sb.LastActiveAt).Minutes()
-	var threshold int
-	if sb.SandboxType == "shared" {
-		threshold = o.cfg.SharedSandboxIdleTimeoutMins
-	} else {
-		threshold = o.cfg.DedicatedSandboxGracePeriodMins
-	}
 
-	if threshold > 0 && int(idleMinutes) >= threshold {
-		slog.Info("health check: auto-stopping idle sandbox",
-			"sandbox_id", sb.ID, "type", sb.SandboxType, "idle_mins", int(idleMinutes))
-		if err := o.StopSandbox(ctx, sb); err != nil {
-			slog.Error("health check: failed to stop sandbox", "sandbox_id", sb.ID, "error", err)
+	if sb.SandboxType == "shared" {
+		// Shared sandboxes: only auto-stop if 0 agents and idle past threshold
+		var agentCount int64
+		o.db.Model(&model.Agent{}).Where("sandbox_id = ?", sb.ID).Count(&agentCount)
+		if agentCount > 0 {
+			return
 		}
+		threshold := o.cfg.PoolSandboxIdleTimeoutMins
+		if threshold > 0 && int(idleMinutes) >= threshold {
+			slog.Info("health check: auto-stopping empty shared sandbox",
+				"sandbox_id", sb.ID, "idle_mins", int(idleMinutes))
+			if err := o.StopSandbox(ctx, sb); err != nil {
+				slog.Error("health check: failed to stop shared sandbox", "sandbox_id", sb.ID, "error", err)
+			}
+		}
+	} else {
+		// Dedicated sandboxes: auto-stop after grace period
+		threshold := o.cfg.DedicatedSandboxGracePeriodMins
+		if threshold > 0 && int(idleMinutes) >= threshold {
+			slog.Info("health check: auto-stopping idle sandbox",
+				"sandbox_id", sb.ID, "type", sb.SandboxType, "idle_mins", int(idleMinutes))
+			if err := o.StopSandbox(ctx, sb); err != nil {
+				slog.Error("health check: failed to stop sandbox", "sandbox_id", sb.ID, "error", err)
+			}
+		}
+	}
+}
+
+// handleSharedSandboxError unassigns all agents from an errored shared sandbox.
+func (o *Orchestrator) handleSharedSandboxError(sb *model.Sandbox) {
+	result := o.db.Model(&model.Agent{}).
+		Where("sandbox_id = ?", sb.ID).
+		Update("sandbox_id", nil)
+	if result.RowsAffected > 0 {
+		slog.Warn("unassigned agents from errored shared sandbox",
+			"sandbox_id", sb.ID, "agents_affected", result.RowsAffected)
 	}
 }
 
