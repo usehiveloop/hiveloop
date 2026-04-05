@@ -13,24 +13,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { type Connection } from "../_data/connections"
+import Image from "next/image"
 
-function StatusDot({ status }: { status: Connection["status"] }) {
-  const color =
-    status === "active"
-      ? "bg-green-500"
-      : status === "error"
-        ? "bg-destructive"
-        : "bg-muted-foreground/50"
+const CONNECTIONS_LOGO_BASE = "https://connections.ziraloop.com/images/template-logos"
 
-  return (
-    <span className="relative flex h-2 w-2">
-      {status === "active" && (
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-40" />
-      )}
-      <span className={`relative inline-flex h-2 w-2 rounded-full ${color}`} />
-    </span>
-  )
+export interface InConnection {
+  id?: string
+  provider?: string
+  display_name?: string
+  created_at?: string
+}
+
+function providerLogo(provider: string) {
+  return `${CONNECTIONS_LOGO_BASE}/${provider}.svg`
 }
 
 function formatDate(dateStr: string) {
@@ -41,7 +36,16 @@ function formatDate(dateStr: string) {
   })
 }
 
-export function ConnectionsTable({ connections }: { connections: Connection[] }) {
+function StatusDot() {
+  return (
+    <span className="relative flex h-2 w-2">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-40" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+    </span>
+  )
+}
+
+export function ConnectionsTable({ connections }: { connections: InConnection[] }) {
   if (connections.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
@@ -52,7 +56,6 @@ export function ConnectionsTable({ connections }: { connections: Connection[] })
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Column headers — desktop only */}
       <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
         <span className="flex-1 min-w-0">Provider</span>
         <span className="w-20 shrink-0 text-right">Agents</span>
@@ -61,54 +64,54 @@ export function ConnectionsTable({ connections }: { connections: Connection[] })
         <span className="w-8 shrink-0" />
       </div>
 
-      {connections.map((conn) => (
-        <div key={conn.id}>
-          {/* Desktop row */}
+      {connections.map((connection) => (
+        <div key={connection.id}>
           <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary cursor-pointer">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={conn.logo}
-                alt={conn.displayName}
+              <Image
+                src={providerLogo(connection.provider ?? "")}
+                alt={connection.display_name ?? ""}
                 className="h-5 w-5 shrink-0"
+                width={20}
+                height={20}
               />
               <span className="text-sm font-medium text-foreground truncate">
-                {conn.displayName}
+                {connection.display_name}
               </span>
             </div>
             <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
-              {conn.agentsUsing}
+              0
             </span>
             <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
-              {formatDate(conn.connectedAt)}
+              {connection.created_at ? formatDate(connection.created_at) : "—"}
             </span>
             <div className="w-6 shrink-0 flex justify-center">
-              <StatusDot status={conn.status} />
+              <StatusDot />
             </div>
             <div className="w-8 shrink-0 flex justify-center">
               <ConnectionActions />
             </div>
           </div>
 
-          {/* Mobile card */}
           <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary cursor-pointer">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={conn.logo}
-                  alt={conn.displayName}
+                <Image
+                  src={providerLogo(connection.provider ?? "")}
+                  alt={connection.display_name ?? ""}
                   className="h-5 w-5 shrink-0"
+                  width={20}
+                  height={20}
                 />
                 <span className="text-sm font-medium text-foreground truncate">
-                  {conn.displayName}
+                  {connection.display_name}
                 </span>
               </div>
-              <StatusDot status={conn.status} />
+              <StatusDot />
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono tabular-nums">
-              <span>{conn.agentsUsing} agents</span>
-              <span>{formatDate(conn.connectedAt)}</span>
+              <span>0 agents</span>
+              <span>{connection.created_at ? formatDate(connection.created_at) : "—"}</span>
             </div>
           </div>
         </div>

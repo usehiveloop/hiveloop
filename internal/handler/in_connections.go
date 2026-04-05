@@ -70,7 +70,16 @@ type inConnectSessionResponse struct {
 }
 
 // CreateConnectSession handles POST /v1/in/integrations/{id}/connect-session.
-// Creates a Nango connect session for the authenticated user.
+// @Summary Create a connect session
+// @Description Creates a Nango connect session for the authenticated user to initiate OAuth.
+// @Tags in-connections
+// @Produce json
+// @Param id path string true "Integration ID"
+// @Success 201 {object} inConnectSessionResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/in/integrations/{id}/connect-session [post]
 func (h *InConnectionHandler) CreateConnectSession(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
@@ -116,7 +125,18 @@ func (h *InConnectionHandler) CreateConnectSession(w http.ResponseWriter, r *htt
 }
 
 // Create handles POST /v1/in/integrations/{id}/connections.
-// Creates a connection after the OAuth flow completes.
+// @Summary Create an in-connection
+// @Description Stores a connection after the OAuth flow completes via Nango.
+// @Tags in-connections
+// @Accept json
+// @Produce json
+// @Param id path string true "Integration ID"
+// @Param body body createInConnectionRequest true "Connection details"
+// @Success 201 {object} inConnectionResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/in/integrations/{id}/connections [post]
 func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
@@ -177,7 +197,16 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /v1/in/connections.
-// Returns the authenticated user's non-revoked connections.
+// @Summary List user's in-connections
+// @Description Returns the authenticated user's non-revoked platform integration connections.
+// @Tags in-connections
+// @Produce json
+// @Param provider query string false "Filter by provider"
+// @Param limit query int false "Page size"
+// @Param cursor query string false "Pagination cursor"
+// @Success 200 {object} paginatedResponse[inConnectionResponse]
+// @Security BearerAuth
+// @Router /v1/in/connections [get]
 func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {

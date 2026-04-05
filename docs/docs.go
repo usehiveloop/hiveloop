@@ -6735,6 +6735,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/in/connections": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the authenticated user's non-revoked platform integration connections.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "in-connections"
+                ],
+                "summary": "List user's in-connections",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by provider",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_inConnectionResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/in/integrations/available": {
             "get": {
                 "security": [
@@ -6758,6 +6803,110 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/internal_handler.inIntegrationAvailableResponse"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/in/integrations/{id}/connect-session": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a Nango connect session for the authenticated user to initiate OAuth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "in-connections"
+                ],
+                "summary": "Create a connect session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Integration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.inConnectSessionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/in/integrations/{id}/connections": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stores a connection after the OAuth flow completes via Nango.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "in-connections"
+                ],
+                "summary": "Create an in-connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Integration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Connection details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createInConnectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.inConnectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
                         }
                     }
                 }
@@ -9298,6 +9447,38 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField": {
+            "type": "object",
+            "properties": {
+                "automated": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "doc_section": {
+                    "type": "string"
+                },
+                "example": {
+                    "type": "string"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "optional": {
+                    "type": "boolean"
+                },
+                "pattern": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult": {
             "type": "object",
             "properties": {
@@ -9470,6 +9651,63 @@ const docTemplate = `{
         "github_com_ziraloop_ziraloop_internal_model.JSON": {
             "type": "object",
             "additionalProperties": {}
+        },
+        "github_com_ziraloop_ziraloop_internal_model.NangoConfig": {
+            "type": "object",
+            "properties": {
+                "auth_mode": {
+                    "type": "string"
+                },
+                "authorization_url": {
+                    "type": "string"
+                },
+                "callback_url": {
+                    "type": "string"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "connection_config": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField"
+                    }
+                },
+                "credentials_schema": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "docs": {
+                    "type": "string"
+                },
+                "docs_connect": {
+                    "type": "string"
+                },
+                "forward_webhooks": {
+                    "type": "boolean"
+                },
+                "logo": {
+                    "type": "string"
+                },
+                "setup_guide_url": {
+                    "type": "string"
+                },
+                "webhook_routing_script": {
+                    "type": "string"
+                },
+                "webhook_secret": {
+                    "type": "string"
+                },
+                "webhook_url": {
+                    "type": "string"
+                },
+                "webhook_user_defined_secret": {
+                    "type": "boolean"
+                }
+            }
         },
         "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             "type": "object",
@@ -11100,6 +11338,17 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.createInConnectionRequest": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "nango_connection_id": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.createIntegrationConnectionRequest": {
             "type": "object",
             "properties": {
@@ -11510,6 +11759,52 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.inConnectSessionResponse": {
+            "type": "object",
+            "properties": {
+                "provider_config_key": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.inConnectionResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "in_integration_id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "nango_connection_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_config": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "revoked_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.inIntegrationAvailableResponse": {
             "type": "object",
             "properties": {
@@ -11524,6 +11819,9 @@ const docTemplate = `{
                 },
                 "meta": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "nango_config": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.NangoConfig"
                 },
                 "provider": {
                     "type": "string"
@@ -12278,6 +12576,23 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.identityResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.paginatedResponse-internal_handler_inConnectionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.inConnectionResponse"
                     }
                 },
                 "has_more": {
