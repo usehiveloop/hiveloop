@@ -8,7 +8,7 @@ import (
 
 type InConnection struct {
 	ID                uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             uuid.UUID     `gorm:"type:uuid;not null;index"`
+	OrgID             uuid.UUID     `gorm:"type:uuid;index"`
 	Org               Org           `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	UserID            uuid.UUID     `gorm:"type:uuid;not null;index"`
 	User              User          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
