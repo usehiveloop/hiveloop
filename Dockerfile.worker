@@ -1,0 +1,31 @@
+# ---- Build stage ----
+FROM golang:1.25-alpine AS build
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /src
+
+# Cache dependency downloads
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source and build
+COPY . .
+
+ARG VERSION=dev
+ARG COMMIT=unknown
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
+    -o /ziraloop ./cmd/server
+
+# ---- Runtime stage (no nginx needed for worker) ----
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=build /ziraloop /ziraloop
+
+EXPOSE 8090
+
+CMD ["/ziraloop", "work"]
