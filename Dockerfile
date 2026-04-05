@@ -29,4 +29,4 @@ COPY proxy.nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80 8080
 
-CMD ["sh", "-c", "nginx && exec /ziraloop"]
+CMD ["sh", "-c", "nginx && exec /ziraloop serve"]

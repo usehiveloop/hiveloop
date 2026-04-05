@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"crypto/rsa"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -9,13 +10,14 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/cache"
-	"github.com/ziraloop/ziraloop/internal/goroutine"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // APIKeyAuth returns middleware that authenticates requests using self-issued API keys (zira_sk_*).
 // It checks the in-memory cache first, then falls back to the database.
-func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
+func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rawKey := extractBearerToken(r)
@@ -51,10 +53,11 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 				r = WithOrg(r, &org)
 				r = WithAPIKeyClaims(r, claims)
 
-				goroutine.Go(func() {
-					db.Model(&model.APIKey{}).Where("id = ?", cached.ID).
-						Update("last_used_at", time.Now())
-				})
+				if task, err := tasks.NewAPIKeyUpdateTask(cached.ID); err == nil {
+					if _, err := enqueuer.Enqueue(task); err != nil {
+						slog.Debug("failed to enqueue apikey update", "error", err)
+					}
+				}
 
 				next.ServeHTTP(w, r)
 				return
@@ -94,9 +97,11 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 			r = WithOrg(r, &apiKey.Org)
 			r = WithAPIKeyClaims(r, claims)
 
-			goroutine.Go(func() {
-				db.Model(&apiKey).Update("last_used_at", time.Now())
-			})
+			if task, err := tasks.NewAPIKeyUpdateTask(apiKey.ID); err == nil {
+				if _, err := enqueuer.Enqueue(task); err != nil {
+					slog.Debug("failed to enqueue apikey update", "error", err)
+				}
+			}
 
 			next.ServeHTTP(w, r)
 		})
@@ -106,9 +111,9 @@ func APIKeyAuth(db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) htt
 // MultiAuth dispatches authentication based on the bearer token prefix:
 // - "zira_sk_*" → API Key auth
 // - everything else → Embedded JWT auth (RS256)
-func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyCache *cache.APIKeyCache) func(http.Handler) http.Handler {
+func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyCache *cache.APIKeyCache, enqueuer enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	authMW := RequireAuth(pubKey, issuer, audience)
-	apiKeyMW := APIKeyAuth(db, keyCache)
+	apiKeyMW := APIKeyAuth(db, keyCache, enqueuer)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

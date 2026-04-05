@@ -114,6 +114,9 @@ type ForgeRun struct {
 	TotalOutputTokens int     `gorm:"default:0" json:"total_output_tokens"`
 	TotalCost         float64 `gorm:"type:numeric(12,8);default:0" json:"total_cost"`
 
+	// Asynq task ID for cancellation support.
+	AsynqTaskID string `gorm:"default:''" json:"-"`
+
 	ErrorMessage *string    `gorm:"type:text" json:"error_message,omitempty"`
 	StartedAt    *time.Time `json:"started_at,omitempty"`
 	CompletedAt  *time.Time `json:"completed_at,omitempty"`

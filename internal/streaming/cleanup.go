@@ -35,12 +35,13 @@ func (c *Cleanup) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			c.cleanIdle(ctx)
+			c.CleanIdle(ctx)
 		}
 	}
 }
 
-func (c *Cleanup) cleanIdle(ctx context.Context) {
+// CleanIdle removes conversation streams that have been idle for longer than idleTimeout.
+func (c *Cleanup) CleanIdle(ctx context.Context) {
 	convIDs, err := c.bus.ActiveConversations(ctx)
 	if err != nil {
 		slog.Error("cleanup: failed to get active conversations", "error", err)

@@ -686,7 +686,7 @@ func TestForge_HappyPath_ThresholdMet(t *testing.T) {
 	queueGlobal.Push(validJudgeJSON(0.9, true, "none", "Great explanation."))
 
 	// Start the forge run.
-	controller.Start(run.ID)
+	go controller.Execute(context.Background(), run.ID)
 
 	// Wait for completion.
 	completedRun := h.waitForRunCompletion(t, run.ID, 30*time.Second)
@@ -805,7 +805,7 @@ func TestForge_Convergence(t *testing.T) {
 		queueGlobal.Push(validJudgeJSON(0.6, true, "none", "Acceptable but not great."))
 	}
 
-	controller.Start(run.ID)
+	go controller.Execute(context.Background(), run.ID)
 	completedRun := h.waitForRunCompletion(t, run.ID, 30*time.Second)
 
 	if completedRun.Status != model.ForgeStatusCompleted {
@@ -873,7 +873,7 @@ func TestForge_MaxIterations(t *testing.T) {
 	queueGlobal.Push(validEvalTargetResponse("Response A iter 2"))
 	queueGlobal.Push(validJudgeJSON(0.7, true, "none", "Better."))
 
-	controller.Start(run.ID)
+	go controller.Execute(context.Background(), run.ID)
 	completedRun := h.waitForRunCompletion(t, run.ID, 30*time.Second)
 
 	if completedRun.Status != model.ForgeStatusCompleted {
@@ -941,7 +941,7 @@ func TestForge_EvalDesigner_OnlyRunsOnce(t *testing.T) {
 	queueGlobal.Push(validEvalTargetResponse("Hello!"))
 	queueGlobal.Push(validJudgeJSON(0.7, true, "none", "Better."))
 
-	controller.Start(run.ID)
+	go controller.Execute(context.Background(), run.ID)
 	completedRun := h.waitForRunCompletion(t, run.ID, 30*time.Second)
 
 	if completedRun.Status != model.ForgeStatusCompleted {

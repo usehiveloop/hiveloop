@@ -1895,6 +1895,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/v1/marketplace/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all marketplace agents (admin)
+         * @description Returns all marketplace agents regardless of status.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status */
+                    status?: string;
+                    /** @description Filter flagged agents */
+                    flagged?: boolean;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-marketplaceAgentResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/marketplace/agents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Admin update marketplace agent
+         * @description Admin can set featured, popular, verified, flagged, and status.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Marketplace agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateMarketplaceAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["marketplaceAgentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Admin delete marketplace agent
+         * @description Permanently deletes a marketplace agent.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Marketplace agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/marketplace/cache/bust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bust marketplace cache
+         * @description Flushes all marketplace cache keys from Redis.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/v1/orgs": {
         parameters: {
             query?: never;
@@ -8507,6 +8689,277 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/marketplace/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List published marketplace agents
+         * @description Returns published marketplace agents with optional filters. Cached in Redis.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Search by name */
+                    search?: string;
+                    /** @description Filter by tag (comma-separated) */
+                    tags?: string;
+                    /** @description Filter featured agents */
+                    featured?: boolean;
+                    /** @description Filter popular agents */
+                    popular?: boolean;
+                    /** @description Filter verified agents */
+                    verified?: boolean;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-marketplaceAgentResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Publish agent to marketplace
+         * @description Copies an org agent into the marketplace as a draft listing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Agent to publish */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createMarketplaceAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["marketplaceAgentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/agents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a marketplace agent
+         * @description Updates name, description, avatar, tags, instructions, or status. Only the publisher can update.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Marketplace agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateMarketplaceAgentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["marketplaceAgentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Remove a marketplace listing
+         * @description Deletes a marketplace agent. Only the publisher can delete.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Marketplace agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/agents/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a marketplace agent by slug
+         * @description Returns a single published marketplace agent by its URL slug. Cached in Redis.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["marketplaceAgentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs": {
         parameters: {
             query?: never;
@@ -11318,6 +11771,13 @@ export interface components {
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
+        adminUpdateMarketplaceAgentRequest: {
+            featured?: boolean;
+            flagged?: boolean;
+            popular?: boolean;
+            status?: string;
+            verified?: boolean;
+        };
         adminUpdateOrgRequest: {
             active?: boolean;
             allowed_origins?: string[];
@@ -11349,6 +11809,7 @@ export interface components {
             description?: string;
             id?: string;
             identity_id?: string;
+            instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
@@ -11514,6 +11975,7 @@ export interface components {
             credential_id?: string;
             description?: string;
             identity_id?: string;
+            instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
@@ -11591,6 +12053,9 @@ export interface components {
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
+        };
+        createMarketplaceAgentRequest: {
+            agent_id?: string;
         };
         createOrgRequest: {
             name?: string;
@@ -11724,12 +12189,14 @@ export interface components {
             token?: string;
         };
         inConnectionResponse: {
+            actions_count?: number;
             created_at?: string;
             display_name?: string;
             id?: string;
             in_integration_id?: string;
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
+            org_id?: string;
             provider?: string;
             provider_config?: components["schemas"]["JSON"];
             revoked_at?: string;
@@ -11804,6 +12271,40 @@ export interface components {
         };
         logoutRequest: {
             refresh_token?: string;
+        };
+        marketplaceAgentResponse: {
+            agent_config?: components["schemas"]["JSON"];
+            avatar?: string;
+            created_at?: string;
+            description?: string;
+            featured?: boolean;
+            flagged?: boolean;
+            id?: string;
+            install_count?: number;
+            instructions?: string;
+            integrations?: components["schemas"]["JSON"];
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            popular?: boolean;
+            published_at?: string;
+            publisher_id?: string;
+            publisher_name?: string;
+            required_integrations?: string[];
+            sandbox_type?: string;
+            shared_memory?: boolean;
+            skills?: components["schemas"]["JSON"];
+            slug?: string;
+            source_agent_id?: string;
+            status?: string;
+            subagents?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tags?: string[];
+            team?: string;
+            tools?: components["schemas"]["JSON"];
+            updated_at?: string;
+            verified?: boolean;
         };
         meResponse: {
             orgs?: components["schemas"]["orgMemberDTO"][];
@@ -11999,6 +12500,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-marketplaceAgentResponse": {
+            data?: components["schemas"]["marketplaceAgentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-sandboxResponse": {
             data?: components["schemas"]["sandboxResponse"][];
             has_more?: boolean;
@@ -12189,6 +12695,7 @@ export interface components {
             agent_config?: components["schemas"]["JSON"];
             credential_id?: string;
             description?: string;
+            instructions?: string;
             integrations?: components["schemas"]["JSON"];
             mcp_servers?: components["schemas"]["JSON"];
             model?: string;
@@ -12213,6 +12720,14 @@ export interface components {
             credentials?: components["schemas"]["github_com_ziraloop_ziraloop_internal_nango.Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
+        };
+        updateMarketplaceAgentRequest: {
+            avatar?: string;
+            description?: string;
+            instructions?: string;
+            name?: string;
+            status?: string;
+            tags?: string[];
         };
         updateSandboxTemplateRequest: {
             build_commands?: string;

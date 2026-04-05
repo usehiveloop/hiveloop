@@ -451,7 +451,7 @@ func (o *Orchestrator) StartHealthChecker(ctx context.Context) {
 			slog.Info("sandbox health checker stopped")
 			return
 		case <-ticker.C:
-			o.runHealthCheck(ctx)
+			o.RunHealthCheck(ctx)
 		}
 	}
 }
@@ -690,7 +690,8 @@ func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.A
 	return fmt.Sprintf("zira-ded-%s", short)
 }
 
-func (o *Orchestrator) runHealthCheck(ctx context.Context) {
+// RunHealthCheck syncs sandbox status from the provider and auto-stops idle sandboxes.
+func (o *Orchestrator) RunHealthCheck(ctx context.Context) {
 	var sandboxes []model.Sandbox
 	if err := o.db.Where("status = 'running'").Find(&sandboxes).Error; err != nil {
 		slog.Error("health check: failed to query sandboxes", "error", err)

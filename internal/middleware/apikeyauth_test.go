@@ -14,6 +14,7 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/auth"
 	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 )
@@ -61,7 +62,7 @@ func TestIntegration_APIKeyAuth_ValidKey(t *testing.T) {
 
 	var gotOrg *model.Org
 	var gotClaims *middleware.APIKeyClaims
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		gotOrg, ok = middleware.OrgFromContext(r.Context())
 		if !ok {
@@ -132,7 +133,7 @@ func TestIntegration_APIKeyAuth_CacheHit(t *testing.T) {
 		t.Fatalf("failed to create api key: %v", err)
 	}
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -168,7 +169,7 @@ func TestIntegration_APIKeyAuth_InvalidKey(t *testing.T) {
 	db := connectTestDB(t)
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for invalid key")
 	}))
 
@@ -186,7 +187,7 @@ func TestIntegration_APIKeyAuth_WrongPrefix(t *testing.T) {
 	db := connectTestDB(t)
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for wrong prefix")
 	}))
 
@@ -204,7 +205,7 @@ func TestIntegration_APIKeyAuth_MissingAuth(t *testing.T) {
 	db := connectTestDB(t)
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called without auth")
 	}))
 
@@ -255,7 +256,7 @@ func TestIntegration_APIKeyAuth_RevokedKey(t *testing.T) {
 		t.Fatalf("failed to create api key: %v", err)
 	}
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for revoked key")
 	}))
 
@@ -307,7 +308,7 @@ func TestIntegration_APIKeyAuth_ExpiredKey(t *testing.T) {
 		t.Fatalf("failed to create api key: %v", err)
 	}
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for expired key")
 	}))
 
@@ -361,7 +362,7 @@ func TestIntegration_APIKeyAuth_InactiveOrg(t *testing.T) {
 		t.Fatalf("failed to create api key: %v", err)
 	}
 
-	handler := middleware.APIKeyAuth(db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.APIKeyAuth(db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for inactive org")
 	}))
 
@@ -530,7 +531,7 @@ func TestIntegration_MultiAuth_APIKeyPath(t *testing.T) {
 	}
 
 	var gotClaims *middleware.APIKeyClaims
-	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		gotClaims, ok = middleware.APIKeyClaimsFromContext(r.Context())
 		if !ok {
@@ -582,7 +583,7 @@ func TestIntegration_MultiAuth_JWTPath(t *testing.T) {
 	}
 
 	var gotOrg *model.Org
-	handler := middleware.MultiAuth(&privKey.PublicKey, testIssuer, testAudience, db, keyCache)(
+	handler := middleware.MultiAuth(&privKey.PublicKey, testIssuer, testAudience, db, keyCache, &enqueue.MockClient{})(
 		middleware.ResolveOrgFlexible(db)(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var ok bool
@@ -619,7 +620,7 @@ func TestIntegration_MultiAuth_MissingAuth(t *testing.T) {
 	}
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 
-	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.MultiAuth(&dummyKey.PublicKey, "test-issuer", "test-audience", db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called")
 	}))
 
