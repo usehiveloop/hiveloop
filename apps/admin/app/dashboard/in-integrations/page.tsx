@@ -348,14 +348,18 @@ export default function InIntegrationsPage() {
         }
       }
 
-      const creds: Record<string, string> = { ...createCredentials }
-      if (!creds.type) creds.type = selectedProvider.auth_mode
+      const noCreds = needsNoCredentials(selectedProvider.auth_mode)
+      let creds: Record<string, string> | undefined
+      if (!noCreds) {
+        creds = { ...createCredentials }
+        if (!creds.type) creds.type = selectedProvider.auth_mode
+      }
 
       const res = await api.POST("/admin/v1/in-integrations", {
         body: {
           provider: selectedProvider.name,
           display_name: createDisplayName,
-          credentials: creds,
+          ...(creds ? { credentials: creds } : {}),
           meta: metaObj,
         },
       })
