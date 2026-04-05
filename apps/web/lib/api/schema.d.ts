@@ -7689,6 +7689,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/in/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user's in-connections
+         * @description Returns the authenticated user's non-revoked platform integration connections.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by provider */
+                    provider?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-inConnectionResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/in/integrations/available": {
         parameters: {
             query?: never;
@@ -7722,6 +7768,131 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/in/integrations/{id}/connect-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a connect session
+         * @description Creates a Nango connect session for the authenticated user to initiate OAuth.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["inConnectSessionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/in/integrations/{id}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an in-connection
+         * @description Stores a connection after the OAuth flow completes via Nango.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Integration ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Connection details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createInConnectionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["inConnectionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -10717,6 +10888,17 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ConnectionConfigField: {
+            automated?: boolean;
+            description?: string;
+            doc_section?: string;
+            example?: string;
+            format?: string;
+            optional?: boolean;
+            pattern?: string;
+            title?: string;
+            type?: string;
+        };
         ForgeEvalResult: {
             created_at?: string;
             /** @description actionable, specific failure explanation */
@@ -10780,6 +10962,27 @@ export interface components {
         };
         JSON: {
             [key: string]: unknown;
+        };
+        NangoConfig: {
+            auth_mode?: string;
+            authorization_url?: string;
+            callback_url?: string;
+            categories?: string[];
+            connection_config?: {
+                [key: string]: components["schemas"]["ConnectionConfigField"];
+            };
+            credentials_schema?: {
+                [key: string]: unknown;
+            };
+            docs?: string;
+            docs_connect?: string;
+            forward_webhooks?: boolean;
+            logo?: string;
+            setup_guide_url?: string;
+            webhook_routing_script?: string;
+            webhook_secret?: string;
+            webhook_url?: string;
+            webhook_user_defined_secret?: boolean;
         };
         "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             app_id?: string;
@@ -11320,6 +11523,10 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             ratelimits?: components["schemas"]["identityRateLimitParams"][];
         };
+        createInConnectionRequest: {
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+        };
         createIntegrationConnectionRequest: {
             nango_connection_id?: string;
             resources?: {
@@ -11459,11 +11666,28 @@ export interface components {
         identityStats: {
             total?: number;
         };
+        inConnectSessionResponse: {
+            provider_config_key?: string;
+            token?: string;
+        };
+        inConnectionResponse: {
+            created_at?: string;
+            display_name?: string;
+            id?: string;
+            in_integration_id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+            provider?: string;
+            provider_config?: components["schemas"]["JSON"];
+            revoked_at?: string;
+            updated_at?: string;
+        };
         inIntegrationAvailableResponse: {
             created_at?: string;
             display_name?: string;
             id?: string;
             meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["NangoConfig"];
             provider?: string;
         };
         integConnCreateRequest: {
@@ -11704,6 +11928,11 @@ export interface components {
         };
         "paginatedResponse-identityResponse": {
             data?: components["schemas"]["identityResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-inConnectionResponse": {
+            data?: components["schemas"]["inConnectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };

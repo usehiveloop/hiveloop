@@ -8077,6 +8077,58 @@
         }
       }
     },
+    "/v1/in/connections": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the authenticated user's non-revoked platform integration connections.",
+        "tags": [
+          "in-connections"
+        ],
+        "summary": "List user's in-connections",
+        "parameters": [
+          {
+            "description": "Filter by provider",
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size",
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination cursor",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedResponse-inConnectionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/in/integrations/available": {
       "get": {
         "security": [
@@ -8099,6 +8151,131 @@
                   "items": {
                     "$ref": "#/components/schemas/inIntegrationAvailableResponse"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/in/integrations/{id}/connect-session": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Nango connect session for the authenticated user to initiate OAuth.",
+        "tags": [
+          "in-connections"
+        ],
+        "summary": "Create a connect session",
+        "parameters": [
+          {
+            "description": "Integration ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/in/integrations/{id}/connections": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Stores a connection after the OAuth flow completes via Nango.",
+        "tags": [
+          "in-connections"
+        ],
+        "summary": "Create an in-connection",
+        "parameters": [
+          {
+            "description": "Integration ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createInConnectionRequest"
+              }
+            }
+          },
+          "description": "Connection details",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
                 }
               }
             }
@@ -11291,6 +11468,38 @@
           }
         }
       },
+      "ConnectionConfigField": {
+        "type": "object",
+        "properties": {
+          "automated": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "doc_section": {
+            "type": "string"
+          },
+          "example": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "ForgeEvalResult": {
         "type": "object",
         "properties": {
@@ -11463,6 +11672,63 @@
       "JSON": {
         "type": "object",
         "additionalProperties": {}
+      },
+      "NangoConfig": {
+        "type": "object",
+        "properties": {
+          "auth_mode": {
+            "type": "string"
+          },
+          "authorization_url": {
+            "type": "string"
+          },
+          "callback_url": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connection_config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ConnectionConfigField"
+            }
+          },
+          "credentials_schema": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "docs": {
+            "type": "string"
+          },
+          "docs_connect": {
+            "type": "string"
+          },
+          "forward_webhooks": {
+            "type": "boolean"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "setup_guide_url": {
+            "type": "string"
+          },
+          "webhook_routing_script": {
+            "type": "string"
+          },
+          "webhook_secret": {
+            "type": "string"
+          },
+          "webhook_url": {
+            "type": "string"
+          },
+          "webhook_user_defined_secret": {
+            "type": "boolean"
+          }
+        }
       },
       "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
         "type": "object",
@@ -13093,6 +13359,17 @@
           }
         }
       },
+      "createInConnectionRequest": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "nango_connection_id": {
+            "type": "string"
+          }
+        }
+      },
       "createIntegrationConnectionRequest": {
         "type": "object",
         "properties": {
@@ -13503,6 +13780,52 @@
           }
         }
       },
+      "inConnectSessionResponse": {
+        "type": "object",
+        "properties": {
+          "provider_config_key": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "inConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "in_integration_id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "nango_connection_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "provider_config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "revoked_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "inIntegrationAvailableResponse": {
         "type": "object",
         "properties": {
@@ -13517,6 +13840,9 @@
           },
           "meta": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "nango_config": {
+            "$ref": "#/components/schemas/NangoConfig"
           },
           "provider": {
             "type": "string"
@@ -14271,6 +14597,23 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/identityResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-inConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/inConnectionResponse"
             }
           },
           "has_more": {
