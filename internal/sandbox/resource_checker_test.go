@@ -139,7 +139,7 @@ func TestRunResourceCheck_UpdatesSandboxFields(t *testing.T) {
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
 	// Run the check
-	orch.runResourceCheck(context.Background())
+	orch.RunResourceCheck(context.Background())
 
 	// Verify DB was updated
 	var reloaded model.Sandbox
@@ -193,7 +193,7 @@ func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 	db.Create(&sb)
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
-	orch.runResourceCheck(context.Background())
+	orch.RunResourceCheck(context.Background())
 
 	if called {
 		t.Error("ExecuteCommand should not be called for stopped sandboxes")
@@ -219,7 +219,7 @@ func TestRunResourceCheck_HandlesExecuteError(t *testing.T) {
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
 	// Should not panic or update DB
-	orch.runResourceCheck(context.Background())
+	orch.RunResourceCheck(context.Background())
 
 	var reloaded model.Sandbox
 	db.Where("id = ?", sb.ID).First(&reloaded)
@@ -257,7 +257,7 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 		}
 	})
 
-	orch.runResourceCheck(context.Background())
+	orch.RunResourceCheck(context.Background())
 
 	if callCount != 3 {
 		t.Errorf("ExecuteCommand should be called 3 times, got %d", callCount)

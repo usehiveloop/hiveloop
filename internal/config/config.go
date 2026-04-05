@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/hibiken/asynq"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
 )
@@ -126,6 +127,12 @@ type Config struct {
 	// Sandbox pool
 	PoolSandboxResourceThreshold float64 `env:"POOL_SANDBOX_RESOURCE_THRESHOLD" envDefault:"80.0"` // max CPU/RAM % before sandbox considered full
 	PoolSandboxIdleTimeoutMins   int     `env:"POOL_SANDBOX_IDLE_TIMEOUT_MINS" envDefault:"30"`    // auto-stop pool sandboxes with 0 agents after this
+
+	// Asynq worker
+	WorkerHealthPort     int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`
+	AsynqConcurrency     int           `env:"ASYNQ_CONCURRENCY" envDefault:"30"`
+	AsynqForgeConcurrency int          `env:"ASYNQ_FORGE_CONCURRENCY" envDefault:"20"`
+	AsynqShutdownTimeout time.Duration `env:"ASYNQ_SHUTDOWN_TIMEOUT" envDefault:"120s"`
 }
 
 func Load() (*Config, error) {
@@ -158,6 +165,21 @@ func (c *Config) DatabaseDSN() string {
 		c.DBName,
 		c.DBSSLMode,
 	)
+}
+
+// AsynqRedisOpt returns an asynq.RedisConnOpt from the Redis config fields.
+func (c *Config) AsynqRedisOpt() asynq.RedisConnOpt {
+	if c.RedisURL != "" {
+		opt, err := asynq.ParseRedisURI(c.RedisURL)
+		if err == nil {
+			return opt
+		}
+	}
+	return asynq.RedisClientOpt{
+		Addr:     c.RedisAddr,
+		Password: c.RedisPassword,
+		DB:       c.RedisDB,
+	}
 }
 
 // VaultConfig returns a crypto.VaultConfig populated from the Config.

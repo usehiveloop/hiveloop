@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	defaultMaxConcurrent = 20
-	forgeTokenTTL        = 24 * time.Hour
+	forgeTokenTTL = 24 * time.Hour
 )
 
 // providerTypeMap maps provider IDs to Bridge ProviderType values.
@@ -80,9 +79,7 @@ type ForgeController struct {
 	eventBus     *streaming.EventBus
 	reader       *BridgeReader
 	events       *eventEmitter
-	sem          chan struct{} // bounded concurrency semaphore
-	mu           sync.RWMutex
-	activeRuns   map[uuid.UUID]context.CancelFunc
+	inspector    *asynq.Inspector // for cancelling tasks
 }
 
 // NewForgeController creates a forge controller.
@@ -94,8 +91,9 @@ func NewForgeController(
 	cfg *config.Config,
 	eventBus *streaming.EventBus,
 	cat *catalog.Catalog,
+	redisOpt ...asynq.RedisConnOpt,
 ) *ForgeController {
-	return &ForgeController{
+	fc := &ForgeController{
 		db:           db,
 		orchestrator: orchestrator,
 		pusher:       pusher,
@@ -105,42 +103,41 @@ func NewForgeController(
 		eventBus:     eventBus,
 		reader:       &BridgeReader{},
 		events:       &eventEmitter{db: db, eventBus: eventBus},
-		sem:          make(chan struct{}, defaultMaxConcurrent),
-		activeRuns:   make(map[uuid.UUID]context.CancelFunc),
 	}
+	if len(redisOpt) > 0 && redisOpt[0] != nil {
+		fc.inspector = asynq.NewInspector(redisOpt[0])
+	}
+	return fc
 }
 
-// Start submits a forge run to the worker pool. Non-blocking.
-func (fc *ForgeController) Start(runID uuid.UUID) {
-	go func() {
-		fc.sem <- struct{}{}        // acquire slot (blocks if pool full)
-		defer func() { <-fc.sem }() // release slot
-
-		ctx, cancel := context.WithCancel(context.Background())
-		fc.mu.Lock()
-		fc.activeRuns[runID] = cancel
-		fc.mu.Unlock()
-		defer func() {
-			cancel()
-			fc.mu.Lock()
-			delete(fc.activeRuns, runID)
-			fc.mu.Unlock()
-		}()
-
-		fc.run(ctx, runID)
-	}()
+// Execute runs the forge orchestration loop for a given run ID.
+// Called directly by the Asynq task handler. The context carries Asynq's
+// deadline and cancellation signal.
+func (fc *ForgeController) Execute(ctx context.Context, runID uuid.UUID) {
+	fc.run(ctx, runID)
 }
 
-// Cancel cancels a running forge.
+// Cancel cancels a running forge via the Asynq inspector.
 func (fc *ForgeController) Cancel(runID uuid.UUID) bool {
-	fc.mu.RLock()
-	cancel, ok := fc.activeRuns[runID]
-	fc.mu.RUnlock()
-	if ok {
-		cancel()
+	// Look up the Asynq task ID from the forge run record.
+	var run model.ForgeRun
+	if err := fc.db.Select("asynq_task_id").Where("id = ?", runID).First(&run).Error; err != nil {
+		return false
+	}
+	if run.AsynqTaskID == "" || fc.inspector == nil {
+		// No task ID or no inspector — mark as cancelled directly.
+		fc.cancelRun(runID)
 		return true
 	}
-	return false
+	if err := fc.inspector.CancelProcessing(run.AsynqTaskID); err != nil {
+		slog.Warn("failed to cancel asynq task, marking run as cancelled directly",
+			"forge_run_id", runID,
+			"asynq_task_id", run.AsynqTaskID,
+			"error", err,
+		)
+		fc.cancelRun(runID)
+	}
+	return true
 }
 
 // run is the main forge orchestration loop.

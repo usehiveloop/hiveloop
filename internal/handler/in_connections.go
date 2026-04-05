@@ -42,12 +42,13 @@ type inConnectionResponse struct {
 	NangoConnectionID string     `json:"nango_connection_id"`
 	Meta              model.JSON `json:"meta,omitempty"`
 	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
+	ActionsCount      int        `json:"actions_count"`
 	RevokedAt         *string    `json:"revoked_at,omitempty"`
 	CreatedAt         string     `json:"created_at"`
 	UpdatedAt         string     `json:"updated_at"`
 }
 
-func toInConnectionResponse(conn model.InConnection) inConnectionResponse {
+func (h *InConnectionHandler) toInConnectionResponse(conn model.InConnection) inConnectionResponse {
 	resp := inConnectionResponse{
 		ID:                conn.ID.String(),
 		OrgID:             conn.OrgID.String(),
@@ -56,6 +57,7 @@ func toInConnectionResponse(conn model.InConnection) inConnectionResponse {
 		DisplayName:       conn.InIntegration.DisplayName,
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
+		ActionsCount:      len(h.catalog.ListActions(conn.InIntegration.Provider)),
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
@@ -201,7 +203,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	conn.InIntegration = integ
 	slog.Info("in-connection created", "connection_id", conn.ID, "org_id", org.ID, "user_id", user.ID, "provider", integ.Provider)
-	writeJSON(w, http.StatusCreated, toInConnectionResponse(conn))
+	writeJSON(w, http.StatusCreated, h.toInConnectionResponse(conn))
 }
 
 // List handles GET /v1/in/connections.
@@ -251,7 +253,7 @@ func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]inConnectionResponse, len(connections))
 	for i, conn := range connections {
-		resp[i] = toInConnectionResponse(conn)
+		resp[i] = h.toInConnectionResponse(conn)
 	}
 
 	result := paginatedResponse[inConnectionResponse]{
@@ -293,7 +295,7 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := toInConnectionResponse(conn)
+	resp := h.toInConnectionResponse(conn)
 
 	// Live-fetch provider config from Nango (best-effort)
 	nk := inNangoKey(conn.InIntegration.UniqueKey)

@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/cache"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/handler"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
@@ -681,7 +682,7 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 	// 3. Verify the key can authenticate
 	keyCache := cache.NewAPIKeyCache(100, 5*time.Minute)
 	var authedOrg *model.Org
-	authHandler := middleware.APIKeyAuth(h.db, keyCache)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	authHandler := middleware.APIKeyAuth(h.db, keyCache, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		authedOrg, ok = middleware.OrgFromContext(r.Context())
 		if !ok {
@@ -709,7 +710,7 @@ func TestAPIKeyHandler_FullLifecycle(t *testing.T) {
 
 	// 5. Verify the key can NO longer authenticate
 	keyCache2 := cache.NewAPIKeyCache(100, 5*time.Minute)
-	authHandler2 := middleware.APIKeyAuth(h.db, keyCache2)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	authHandler2 := middleware.APIKeyAuth(h.db, keyCache2, &enqueue.MockClient{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called for revoked key")
 	}))
 

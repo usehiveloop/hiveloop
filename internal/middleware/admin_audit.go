@@ -13,7 +13,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // sensitiveKeys are fields whose values must be masked in admin audit logs.
@@ -51,7 +53,7 @@ const maskValue = "***"
 //   - admin user ID and email from AuthClaims + User context
 //   - resource and resource ID from the URL path
 //   - a human-readable action (e.g. "update_user", "ban_user", "delete_org")
-func AdminAudit(db *gorm.DB) func(http.Handler) http.Handler {
+func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -117,12 +119,20 @@ func AdminAudit(db *gorm.DB) func(http.Handler) http.Handler {
 				entry.Payload = sanitizePayload(rawBody)
 			}
 
-			// Write asynchronously to not block the response
-			go func() {
-				if err := db.Create(&entry).Error; err != nil {
-					slog.Error("failed to write admin audit entry", "error", err, "path", entry.Path)
+			// Write via task queue if enqueuer is available, otherwise fall back to goroutine.
+			if len(enqueuer) > 0 && enqueuer[0] != nil {
+				if task, err := tasks.NewAdminAuditWriteTask(entry); err == nil {
+					if _, err := enqueuer[0].Enqueue(task); err != nil {
+						slog.Error("failed to enqueue admin audit entry", "error", err, "path", entry.Path)
+					}
 				}
-			}()
+			} else {
+				go func() {
+					if err := db.Create(&entry).Error; err != nil {
+						slog.Error("failed to write admin audit entry", "error", err, "path", entry.Path)
+					}
+				}()
+			}
 		})
 	}
 }

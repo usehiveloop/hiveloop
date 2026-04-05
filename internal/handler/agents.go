@@ -49,6 +49,7 @@ type createAgentRequest struct {
 	SandboxType       string     `json:"sandbox_type"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string     `json:"system_prompt"`
+	Instructions      *string    `json:"instructions,omitempty"`
 	Model             string     `json:"model"`
 	Tools             model.JSON `json:"tools,omitempty"`
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
@@ -68,6 +69,7 @@ type updateAgentRequest struct {
 	SandboxType       *string    `json:"sandbox_type,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      *string    `json:"system_prompt,omitempty"`
+	Instructions      *string    `json:"instructions,omitempty"`
 	Model             *string    `json:"model,omitempty"`
 	Tools             model.JSON `json:"tools,omitempty"`
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
@@ -91,6 +93,7 @@ type agentResponse struct {
 	SandboxID         *string    `json:"sandbox_id,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
 	SystemPrompt      string     `json:"system_prompt"`
+	Instructions      *string    `json:"instructions,omitempty"`
 	Model             string     `json:"model"`
 	Tools             model.JSON `json:"tools"`
 	McpServers        model.JSON `json:"mcp_servers"`
@@ -113,6 +116,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Description:  a.Description,
 		SandboxType:  a.SandboxType,
 		SystemPrompt: a.SystemPrompt,
+		Instructions: a.Instructions,
 		Model:        a.Model,
 		Tools:        a.Tools,
 		McpServers:   a.McpServers,
@@ -246,6 +250,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CredentialID: &cred.ID,
 		SandboxType:  req.SandboxType,
 		SystemPrompt: req.SystemPrompt,
+		Instructions: req.Instructions,
 		Model:        req.Model,
 		Tools:        defaultJSON(req.Tools),
 		McpServers:   defaultJSON(req.McpServers),
@@ -452,6 +457,9 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
+	}
+	if req.Instructions != nil {
+		updates["instructions"] = *req.Instructions
 	}
 
 	// If credential or model changes, re-validate compatibility

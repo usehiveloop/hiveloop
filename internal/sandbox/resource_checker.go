@@ -53,13 +53,14 @@ func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 			slog.Info("sandbox resource checker stopped")
 			return
 		case <-ticker.C:
-			o.runResourceCheck(ctx)
+			o.RunResourceCheck(ctx)
 		}
 	}
 }
 
 // runResourceCheck queries all running sandboxes and collects their resource stats.
-func (o *Orchestrator) runResourceCheck(ctx context.Context) {
+// RunResourceCheck queries all running sandboxes and collects their resource stats.
+func (o *Orchestrator) RunResourceCheck(ctx context.Context) {
 	var sandboxes []model.Sandbox
 	if err := o.db.Where("status = 'running'").Find(&sandboxes).Error; err != nil {
 		slog.Error("resource check: failed to query sandboxes", "error", err)

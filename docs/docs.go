@@ -1817,6 +1817,178 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/v1/marketplace/agents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all marketplace agents regardless of status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List all marketplace agents (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter flagged agents",
+                        "name": "flagged",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/v1/marketplace/agents/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin can set featured, popular, verified, flagged, and status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin update marketplace agent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Marketplace agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminUpdateMarketplaceAgentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.marketplaceAgentResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes a marketplace agent.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admin delete marketplace agent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Marketplace agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/v1/marketplace/cache/bust": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Flushes all marketplace cache keys from Redis.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Bust marketplace cache",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/v1/orgs": {
             "get": {
                 "security": [
@@ -7448,6 +7620,265 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/marketplace/agents": {
+            "get": {
+                "description": "Returns published marketplace agents with optional filters. Cached in Redis.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "summary": "List published marketplace agents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by tag (comma-separated)",
+                        "name": "tags",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter featured agents",
+                        "name": "featured",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter popular agents",
+                        "name": "popular",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter verified agents",
+                        "name": "verified",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Copies an org agent into the marketplace as a draft listing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "summary": "Publish agent to marketplace",
+                "parameters": [
+                    {
+                        "description": "Agent to publish",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createMarketplaceAgentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.marketplaceAgentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/marketplace/agents/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates name, description, avatar, tags, instructions, or status. Only the publisher can update.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "summary": "Update a marketplace agent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Marketplace agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateMarketplaceAgentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.marketplaceAgentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a marketplace agent. Only the publisher can delete.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "summary": "Remove a marketplace listing",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Marketplace agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/marketplace/agents/{slug}": {
+            "get": {
+                "description": "Returns a single published marketplace agent by its URL slug. Cached in Redis.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "marketplace"
+                ],
+                "summary": "Get a marketplace agent by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.marketplaceAgentResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/orgs": {
             "post": {
                 "security": [
@@ -10588,6 +11019,26 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.adminUpdateMarketplaceAgentRequest": {
+            "type": "object",
+            "properties": {
+                "featured": {
+                    "type": "boolean"
+                },
+                "flagged": {
+                    "type": "boolean"
+                },
+                "popular": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
+                }
+            }
+        },
         "internal_handler.adminUpdateOrgRequest": {
             "type": "object",
             "properties": {
@@ -10678,6 +11129,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "identity_id": {
+                    "type": "string"
+                },
+                "instructions": {
                     "type": "string"
                 },
                 "integrations": {
@@ -11187,6 +11641,9 @@ const docTemplate = `{
                 "identity_id": {
                     "type": "string"
                 },
+                "instructions": {
+                    "type": "string"
+                },
                 "integrations": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
@@ -11422,6 +11879,14 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "provider": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.createMarketplaceAgentRequest": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
                     "type": "string"
                 }
             }
@@ -11816,6 +12281,9 @@ const docTemplate = `{
         "internal_handler.inConnectionResponse": {
             "type": "object",
             "properties": {
+                "actions_count": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -11832,6 +12300,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "nango_connection_id": {
+                    "type": "string"
+                },
+                "org_id": {
                     "type": "string"
                 },
                 "provider": {
@@ -12043,6 +12514,113 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.marketplaceAgentResponse": {
+            "type": "object",
+            "properties": {
+                "agent_config": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "featured": {
+                    "type": "boolean"
+                },
+                "flagged": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "install_count": {
+                    "type": "integer"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "integrations": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "mcp_servers": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "popular": {
+                    "type": "boolean"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "publisher_id": {
+                    "type": "string"
+                },
+                "publisher_name": {
+                    "type": "string"
+                },
+                "required_integrations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sandbox_type": {
+                    "type": "string"
+                },
+                "shared_memory": {
+                    "type": "boolean"
+                },
+                "skills": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "source_agent_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subagents": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "system_prompt": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "team": {
+                    "type": "string"
+                },
+                "tools": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
                 }
             }
         },
@@ -12680,6 +13258,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.marketplaceAgentResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.paginatedResponse-internal_handler_sandboxResponse": {
             "type": "object",
             "properties": {
@@ -13243,6 +13838,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "instructions": {
+                    "type": "string"
+                },
                 "integrations": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
@@ -13315,6 +13913,32 @@ const docTemplate = `{
                 },
                 "meta": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                }
+            }
+        },
+        "internal_handler.updateMarketplaceAgentRequest": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

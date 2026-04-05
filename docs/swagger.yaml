@@ -743,6 +743,19 @@ definitions:
       meta:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
+  internal_handler.adminUpdateMarketplaceAgentRequest:
+    properties:
+      featured:
+        type: boolean
+      flagged:
+        type: boolean
+      popular:
+        type: boolean
+      status:
+        type: string
+      verified:
+        type: boolean
+    type: object
   internal_handler.adminUpdateOrgRequest:
     properties:
       active:
@@ -802,6 +815,8 @@ definitions:
       id:
         type: string
       identity_id:
+        type: string
+      instructions:
         type: string
       integrations:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
@@ -1134,6 +1149,8 @@ definitions:
         type: string
       identity_id:
         type: string
+      instructions:
+        type: string
       integrations:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       mcp_servers:
@@ -1288,6 +1305,11 @@ definitions:
       meta:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       provider:
+        type: string
+    type: object
+  internal_handler.createMarketplaceAgentRequest:
+    properties:
+      agent_id:
         type: string
     type: object
   internal_handler.createOrgRequest:
@@ -1544,6 +1566,8 @@ definitions:
     type: object
   internal_handler.inConnectionResponse:
     properties:
+      actions_count:
+        type: integer
       created_at:
         type: string
       display_name:
@@ -1555,6 +1579,8 @@ definitions:
       meta:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       nango_connection_id:
+        type: string
+      org_id:
         type: string
       provider:
         type: string
@@ -1693,6 +1719,77 @@ definitions:
     properties:
       refresh_token:
         type: string
+    type: object
+  internal_handler.marketplaceAgentResponse:
+    properties:
+      agent_config:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      avatar:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      featured:
+        type: boolean
+      flagged:
+        type: boolean
+      id:
+        type: string
+      install_count:
+        type: integer
+      instructions:
+        type: string
+      integrations:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      mcp_servers:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      model:
+        type: string
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      popular:
+        type: boolean
+      published_at:
+        type: string
+      publisher_id:
+        type: string
+      publisher_name:
+        type: string
+      required_integrations:
+        items:
+          type: string
+        type: array
+      sandbox_type:
+        type: string
+      shared_memory:
+        type: boolean
+      skills:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      slug:
+        type: string
+      source_agent_id:
+        type: string
+      status:
+        type: string
+      subagents:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      system_prompt:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      team:
+        type: string
+      tools:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      updated_at:
+        type: string
+      verified:
+        type: boolean
     type: object
   internal_handler.meResponse:
     properties:
@@ -2105,6 +2202,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.marketplaceAgentResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_sandboxResponse:
     properties:
       data:
@@ -2472,6 +2580,8 @@ definitions:
         type: string
       description:
         type: string
+      instructions:
+        type: string
       integrations:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       mcp_servers:
@@ -2520,6 +2630,23 @@ definitions:
         type: string
       meta:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+    type: object
+  internal_handler.updateMarketplaceAgentRequest:
+    properties:
+      avatar:
+        type: string
+      description:
+        type: string
+      instructions:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.updateSandboxTemplateRequest:
     properties:
@@ -3804,6 +3931,114 @@ paths:
       security:
       - BearerAuth: []
       summary: List all integrations
+      tags:
+      - admin
+  /admin/v1/marketplace/agents:
+    get:
+      description: Returns all marketplace agents regardless of status.
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter flagged agents
+        in: query
+        name: flagged
+        type: boolean
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse'
+      security:
+      - BearerAuth: []
+      summary: List all marketplace agents (admin)
+      tags:
+      - admin
+  /admin/v1/marketplace/agents/{id}:
+    delete:
+      description: Permanently deletes a marketplace agent.
+      parameters:
+      - description: Marketplace agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Admin delete marketplace agent
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Admin can set featured, popular, verified, flagged, and status.
+      parameters:
+      - description: Marketplace agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateMarketplaceAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.marketplaceAgentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Admin update marketplace agent
+      tags:
+      - admin
+  /admin/v1/marketplace/cache/bust:
+    post:
+      description: Flushes all marketplace cache keys from Redis.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bust marketplace cache
       tags:
       - admin
   /admin/v1/orgs:
@@ -7438,6 +7673,176 @@ paths:
       summary: List available providers
       tags:
       - integrations
+  /v1/marketplace/agents:
+    get:
+      description: Returns published marketplace agents with optional filters. Cached
+        in Redis.
+      parameters:
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      - description: Filter by tag (comma-separated)
+        in: query
+        name: tags
+        type: string
+      - description: Filter featured agents
+        in: query
+        name: featured
+        type: boolean
+      - description: Filter popular agents
+        in: query
+        name: popular
+        type: boolean
+      - description: Filter verified agents
+        in: query
+        name: verified
+        type: boolean
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_marketplaceAgentResponse'
+      summary: List published marketplace agents
+      tags:
+      - marketplace
+    post:
+      consumes:
+      - application/json
+      description: Copies an org agent into the marketplace as a draft listing.
+      parameters:
+      - description: Agent to publish
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createMarketplaceAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.marketplaceAgentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish agent to marketplace
+      tags:
+      - marketplace
+  /v1/marketplace/agents/{id}:
+    delete:
+      description: Deletes a marketplace agent. Only the publisher can delete.
+      parameters:
+      - description: Marketplace agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a marketplace listing
+      tags:
+      - marketplace
+    put:
+      consumes:
+      - application/json
+      description: Updates name, description, avatar, tags, instructions, or status.
+        Only the publisher can update.
+      parameters:
+      - description: Marketplace agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateMarketplaceAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.marketplaceAgentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a marketplace agent
+      tags:
+      - marketplace
+  /v1/marketplace/agents/{slug}:
+    get:
+      description: Returns a single published marketplace agent by its URL slug. Cached
+        in Redis.
+      parameters:
+      - description: Agent slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.marketplaceAgentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Get a marketplace agent by slug
+      tags:
+      - marketplace
   /v1/orgs:
     post:
       consumes:

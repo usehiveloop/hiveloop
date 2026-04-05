@@ -18,7 +18,9 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
@@ -27,16 +29,21 @@ type NangoWebhookHandler struct {
 	nangoSecret string
 	encKey      *crypto.SymmetricKey
 	httpClient  *http.Client
+	enqueuer    enqueue.TaskEnqueuer
 }
 
 // NewNangoWebhookHandler creates a Nango webhook handler.
-func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.SymmetricKey) *NangoWebhookHandler {
-	return &NangoWebhookHandler{
+func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *NangoWebhookHandler {
+	h := &NangoWebhookHandler{
 		db:          db,
 		nangoSecret: nangoSecret,
 		encKey:      encKey,
 		httpClient:  &http.Client{Timeout: 25 * time.Second},
 	}
+	if len(enqueuer) > 0 {
+		h.enqueuer = enqueuer[0]
+	}
+	return h
 }
 
 // nangoWebhook is the envelope for all Nango webhook types.
@@ -126,11 +133,46 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusCode, respBody, forwarded := h.forwardToOrg(r.Context(), &wh, wctx)
+	if h.enqueuer != nil {
+		h.enqueueForward(&wh, wctx, w)
+	} else {
+		h.syncForward(r.Context(), &wh, wctx, w)
+	}
+}
+
+// enqueueForward builds the enriched payload and enqueues it for async delivery.
+func (h *NangoWebhookHandler) enqueueForward(wh *nangoWebhook, wctx *webhookContext, w http.ResponseWriter) {
+	var config model.OrgWebhookConfig
+	if err := h.db.Where("org_id = ?", wctx.orgID).First(&config).Error; err != nil {
+		slog.Info("nango webhook: no org webhook config, acknowledging", "org_id", wctx.orgID)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		return
+	}
+
+	body := h.buildEnrichedBody(wh, wctx)
+
+	task, err := tasks.NewWebhookForwardTask(config.URL, config.EncryptedSecret, body)
+	if err != nil {
+		slog.Error("nango webhook: failed to create forward task", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+
+	if _, err := h.enqueuer.Enqueue(task); err != nil {
+		slog.Error("nango webhook: failed to enqueue forward task", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+
+	slog.Info("nango webhook: enqueued for async delivery", "org_id", wctx.orgID, "webhook_url", config.URL)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// syncForward falls back to synchronous forwarding when no enqueuer is configured.
+func (h *NangoWebhookHandler) syncForward(ctx context.Context, wh *nangoWebhook, wctx *webhookContext, w http.ResponseWriter) {
+	statusCode, respBody, forwarded := h.forwardToOrg(ctx, wh, wctx)
 	if !forwarded {
-		slog.Info("nango webhook: no org webhook config, acknowledging",
-			"org_id", wctx.orgID,
-		)
+		slog.Info("nango webhook: no org webhook config, acknowledging", "org_id", wctx.orgID)
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
 	}
@@ -146,6 +188,35 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if respBody != nil {
 		w.Write(respBody)
 	}
+}
+
+// buildEnrichedBody builds the JSON body for the enriched webhook payload.
+func (h *NangoWebhookHandler) buildEnrichedBody(wh *nangoWebhook, wctx *webhookContext) []byte {
+	provider := wh.Provider
+	payload := webhookPayload{
+		Type:      wh.Type,
+		Provider:  provider,
+		Operation: wh.Operation,
+		Success:   wh.Success,
+		Payload:   wh.Payload,
+		OrgID:     wctx.orgID.String(),
+	}
+	if wctx.integration != nil {
+		payload.IntegrationID = wctx.integration.ID.String()
+		payload.IntegrationName = wctx.integration.DisplayName
+		if provider == "" {
+			payload.Provider = wctx.integration.Provider
+		}
+	}
+	if wctx.connection != nil {
+		payload.ConnectionID = wctx.connection.ID.String()
+		if wctx.connection.IdentityID != nil {
+			payload.IdentityID = wctx.connection.IdentityID.String()
+		}
+	}
+
+	body, _ := json.Marshal(payload)
+	return body
 }
 
 // identify resolves the org, integration, and connection from the webhook.

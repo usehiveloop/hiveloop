@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,10 +11,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/streaming"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // ForgeHandler handles forge-related HTTP endpoints.
@@ -21,11 +24,16 @@ type ForgeHandler struct {
 	db         *gorm.DB
 	controller *forge.ForgeController
 	eventBus   *streaming.EventBus
+	enqueuer   enqueue.TaskEnqueuer
 }
 
 // NewForgeHandler creates a forge handler.
-func NewForgeHandler(db *gorm.DB, controller *forge.ForgeController, eventBus *streaming.EventBus) *ForgeHandler {
-	return &ForgeHandler{db: db, controller: controller, eventBus: eventBus}
+func NewForgeHandler(db *gorm.DB, controller *forge.ForgeController, eventBus *streaming.EventBus, enqueuer ...enqueue.TaskEnqueuer) *ForgeHandler {
+	h := &ForgeHandler{db: db, controller: controller, eventBus: eventBus}
+	if len(enqueuer) > 0 {
+		h.enqueuer = enqueuer[0]
+	}
+	return h
 }
 
 type startForgeRequest struct {
@@ -215,8 +223,22 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Launch the forge run in the worker pool.
-	h.controller.Start(run.ID)
+	// Enqueue the forge run as an Asynq task.
+	if h.enqueuer != nil {
+		task, err := tasks.NewForgeRunTask(run.ID)
+		if err == nil {
+			info, err := h.enqueuer.Enqueue(task)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue forge run"})
+				return
+			}
+			// Store the Asynq task ID for cancellation support.
+			h.db.Model(&run).Update("asynq_task_id", info.ID)
+		}
+	} else {
+		// Fallback: run in a goroutine (for tests without Asynq).
+		go h.controller.Execute(context.Background(), run.ID)
+	}
 
 	writeJSON(w, http.StatusCreated, toForgeRunResponse(run))
 }
