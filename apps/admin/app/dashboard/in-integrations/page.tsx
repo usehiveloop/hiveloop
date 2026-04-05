@@ -377,7 +377,7 @@ export default function InIntegrationsPage() {
     setEditingIntegration(integration)
     setEditDisplayName(integration.display_name ?? "")
     setEditMeta(integration.meta ? JSON.stringify(integration.meta, null, 2) : "")
-    setEditCredentials({})
+    setEditCredentials({ type: getAuthMode(integration) })
     setEditCredentialsOpen(false)
     setEditError(null)
   }
