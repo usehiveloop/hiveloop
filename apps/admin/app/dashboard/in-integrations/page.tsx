@@ -182,6 +182,7 @@ function CredentialFields({
             onChange={(e) => set("private_key", e.target.value)}
             placeholder="-----BEGIN RSA PRIVATE KEY-----"
             rows={4}
+            className="min-w-0 resize-y"
           />
         </div>
       </div>
@@ -239,6 +240,7 @@ function CredentialFields({
             value={credentials.private_key ?? ""}
             onChange={(e) => set("private_key", e.target.value)}
             rows={3}
+            className="min-w-0 resize-y"
           />
         </div>
       </div>
@@ -512,6 +514,13 @@ export default function InIntegrationsPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDetailIntegration(integration)}
+                        >
+                          Config
+                        </Button>
+                        <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openEditDialog(integration)}
@@ -641,6 +650,7 @@ export default function InIntegrationsPage() {
                   onChange={(e) => setCreateMeta(e.target.value)}
                   placeholder='{"key": "value"}'
                   rows={3}
+                  className="min-w-0 resize-y"
                 />
               </div>
 
