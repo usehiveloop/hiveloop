@@ -83,12 +83,14 @@ func ResolveUser(db *gorm.DB) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, ok := AuthClaimsFromContext(r.Context())
 			if !ok || claims.UserID == "" {
+				slog.Warn("resolve user: missing auth claims or user_id", "has_claims", ok, "path", r.URL.Path)
 				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
 				return
 			}
 
 			var user model.User
 			if err := db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+				slog.Warn("resolve user: user not found in database", "user_id", claims.UserID, "error", err)
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "user not found"})
 				return
 			}
@@ -112,10 +114,12 @@ func RequirePlatformAdmin(adminEmails []string) func(http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, ok := UserFromContext(r.Context())
 			if !ok {
+				slog.Warn("platform admin check: no user in context", "path", r.URL.Path)
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 				return
 			}
 			if !emailSet[user.Email] {
+				slog.Warn("platform admin check: email not in allowlist", "email", user.Email, "path", r.URL.Path)
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "platform admin access required"})
 				return
 			}

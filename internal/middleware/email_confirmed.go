@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"gorm.io/gorm"
@@ -30,6 +31,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 
 			var user model.User
 			if err := db.Select("id", "email_confirmed_at", "banned_at").Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+				slog.Warn("email confirmed check: user not found", "user_id", claims.UserID, "error", err)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{
@@ -40,6 +42,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			if user.BannedAt != nil {
+				slog.Warn("email confirmed check: account banned", "user_id", claims.UserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{
@@ -50,6 +53,7 @@ func RequireEmailConfirmed(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			if user.EmailConfirmedAt == nil {
+				slog.Warn("email confirmed check: email not confirmed", "user_id", claims.UserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(map[string]string{
