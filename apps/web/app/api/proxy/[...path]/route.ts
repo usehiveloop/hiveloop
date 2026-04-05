@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth/session"
 import { log } from "@/lib/logger"
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL!
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL as string
 
 log.info({ api_url: API_URL }, "proxy route initialized")
 
@@ -208,14 +208,18 @@ async function handler(
         }
         const cookie = await createSessionCookie(newSession)
         reqLog.debug({ cookie_length: cookie.length }, "session cookie created")
-        responseHeaders.append("set-cookie", cookie)
+
+        // Build clean response headers — don't carry over content-length
+        // from the upstream response since we're returning a different body
+        const authHeaders = new Headers()
+        authHeaders.append("set-cookie", cookie)
 
         // Strip tokens from what the client receives
         const { access_token: _a, refresh_token: _r, expires_in: _e, ...safe } = data
-        reqLog.info("auth response complete, session cookie set")
+        reqLog.info({ response_keys: Object.keys(safe), status: upstream.status }, "auth response complete, session cookie set")
         return NextResponse.json(safe, {
           status: upstream.status,
-          headers: responseHeaders,
+          headers: authHeaders,
         })
       }
     } catch (err) {
