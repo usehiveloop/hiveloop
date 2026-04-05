@@ -711,53 +711,11 @@ export default function InIntegrationsPage() {
                 <p className="text-xs text-muted-foreground">
                   Leave fields empty to keep existing values. Only filled fields will be updated.
                 </p>
-                <div className="space-y-2">
-                  <Label>Client ID</Label>
-                  <Input
-                    value={editCredentials.client_id ?? ""}
-                    onChange={(e) =>
-                      setEditCredentials((c) => ({ ...c, client_id: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Client Secret</Label>
-                  <Input
-                    type="password"
-                    value={editCredentials.client_secret ?? ""}
-                    onChange={(e) =>
-                      setEditCredentials((c) => ({ ...c, client_secret: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>App ID</Label>
-                  <Input
-                    value={editCredentials.app_id ?? ""}
-                    onChange={(e) =>
-                      setEditCredentials((c) => ({ ...c, app_id: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>App Link</Label>
-                  <Input
-                    value={editCredentials.app_link ?? ""}
-                    onChange={(e) =>
-                      setEditCredentials((c) => ({ ...c, app_link: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Private Key</Label>
-                  <Textarea
-                    value={editCredentials.private_key ?? ""}
-                    onChange={(e) =>
-                      setEditCredentials((c) => ({ ...c, private_key: e.target.value }))
-                    }
-                    rows={3}
-                  />
-                </div>
+                <CredentialFields
+                  authMode={getAuthMode(editingIntegration!)}
+                  credentials={editCredentials}
+                  onChange={setEditCredentials}
+                />
               </CollapsibleContent>
             </Collapsible>
 

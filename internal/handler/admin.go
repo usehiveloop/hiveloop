@@ -2567,7 +2567,12 @@ func (h *AdminHandler) ListInIntegrations(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"data": integrations})
+	resp := make([]adminInIntegrationResponse, len(integrations))
+	for i, integ := range integrations {
+		resp[i] = toAdminInIntegrationResponse(integ)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": resp})
 }
 
 // ListInConnections handles GET /admin/v1/in-connections.
