@@ -2,7 +2,7 @@ import createClient from "openapi-fetch"
 import type { paths } from "./schema"
 
 export function apiUrl(path: string = "") {
-  const base = process.env.NEXT_PUBLIC_API_URL!
+  const base = process.env.API_URL as string
   return `${base}${path}`
 }
 
