@@ -58,6 +58,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&OAuthAccount{},
 		&OAuthExchangeToken{},
 		&AdminAuditEntry{},
+		&OTPCode{},
 	); err != nil {
 		return err
 	}

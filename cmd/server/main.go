@@ -383,6 +383,8 @@ func run() error {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)
+		r.Post("/otp/request", authHandler.OTPRequest)
+		r.Post("/otp/verify", authHandler.OTPVerify)
 		r.Post("/confirm-email", authHandler.ConfirmEmail)
 		r.Post("/resend-confirmation", authHandler.ResendConfirmation)
 		r.Post("/forgot-password", authHandler.ForgotPassword)
