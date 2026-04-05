@@ -7,7 +7,7 @@ import {
   type SessionData,
 } from "@/lib/auth/session"
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL!
+const API_URL = process.env.API_URL!
 
 // Paths whose successful responses contain tokens that should be persisted.
 const AUTH_PATHS = new Set([
