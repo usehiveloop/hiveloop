@@ -43,23 +43,38 @@ type updateInIntegrationRequest struct {
 }
 
 type inIntegrationResponse struct {
-	ID          string     `json:"id"`
-	UniqueKey   string     `json:"unique_key"`
-	Provider    string     `json:"provider"`
-	DisplayName string     `json:"display_name"`
-	Meta        model.JSON `json:"meta,omitempty"`
-	NangoConfig model.JSON `json:"nango_config,omitempty"`
-	CreatedAt   string     `json:"created_at"`
-	UpdatedAt   string     `json:"updated_at"`
+	ID          string             `json:"id"`
+	UniqueKey   string             `json:"unique_key"`
+	Provider    string             `json:"provider"`
+	DisplayName string             `json:"display_name"`
+	Meta        model.JSON         `json:"meta,omitempty"`
+	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
+	CreatedAt   string             `json:"created_at"`
+	UpdatedAt   string             `json:"updated_at"`
 }
 
 type inIntegrationAvailableResponse struct {
-	ID          string     `json:"id"`
-	Provider    string     `json:"provider"`
-	DisplayName string     `json:"display_name"`
-	Meta        model.JSON `json:"meta,omitempty"`
-	NangoConfig model.JSON `json:"nango_config,omitempty"`
-	CreatedAt   string     `json:"created_at"`
+	ID          string             `json:"id"`
+	Provider    string             `json:"provider"`
+	DisplayName string             `json:"display_name"`
+	Meta        model.JSON         `json:"meta,omitempty"`
+	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
+	CreatedAt   string             `json:"created_at"`
+}
+
+func parseNangoConfig(raw model.JSON) *model.NangoConfig {
+	if len(raw) == 0 {
+		return nil
+	}
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	var cfg model.NangoConfig
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil
+	}
+	return &cfg
 }
 
 func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
@@ -69,19 +84,27 @@ func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
 		Provider:    integ.Provider,
 		DisplayName: integ.DisplayName,
 		Meta:        integ.Meta,
-		NangoConfig: integ.NangoConfig,
+		NangoConfig: parseNangoConfig(integ.NangoConfig),
 		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   integ.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
 func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAvailableResponse {
+	cfg := parseNangoConfig(integ.NangoConfig)
+	if cfg != nil {
+		cfg.WebhookSecret = ""
+		cfg.WebhookURL = ""
+		cfg.WebhookRoutingScript = ""
+		cfg.CredentialsSchema = nil
+		cfg.WebhookUserDefinedSecret = false
+	}
 	return inIntegrationAvailableResponse{
 		ID:          integ.ID.String(),
 		Provider:    integ.Provider,
 		DisplayName: integ.DisplayName,
 		Meta:        integ.Meta,
-		NangoConfig: integ.NangoConfig,
+		NangoConfig: cfg,
 		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
 	}
 }
