@@ -143,11 +143,14 @@ func (fc *ForgeController) Cancel(runID uuid.UUID) bool {
 // run is the main forge orchestration loop.
 func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	log := slog.With("forge_run_id", runID)
+	started := time.Now()
+
+	log.Info("forge: run starting")
 
 	// Recover from panics.
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("forge run panicked", "panic", r)
+			log.Error("forge: run panicked", "panic", r, "elapsed_ms", time.Since(started).Milliseconds())
 			fc.failRun(runID, fmt.Sprintf("panic: %v", r))
 		}
 	}()
@@ -155,11 +158,20 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	// Load the forge run.
 	var run model.ForgeRun
 	if err := fc.db.Preload("Agent").Where("id = ?", runID).First(&run).Error; err != nil {
-		log.Error("failed to load forge run", "error", err)
+		log.Error("forge: failed to load run", "error", err)
 		return
 	}
+	log.Info("forge: run loaded",
+		"forge_run_agent_id", run.AgentID,
+		"forge_run_agent_name", run.Agent.Name,
+		"forge_run_org_id", run.OrgID,
+		"forge_run_max_iterations", run.MaxIterations,
+		"forge_run_pass_threshold", run.PassThreshold,
+		"forge_run_convergence_limit", run.ConvergenceLimit,
+	)
 
 	// Load the 3 credentials.
+	log.Info("forge: loading credentials")
 	var archCred, evalCred, judgeCred model.Credential
 	if err := fc.db.Where("id = ?", run.ArchitectCredentialID).First(&archCred).Error; err != nil {
 		fc.failRun(runID, fmt.Sprintf("loading architect credential: %v", err))
@@ -184,8 +196,15 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		fc.failRun(runID, fmt.Sprintf("loading target credential: %v", err))
 		return
 	}
+	log.Info("forge: credentials loaded",
+		"forge_run_architect_provider", archCred.ProviderID,
+		"forge_run_eval_provider", evalCred.ProviderID,
+		"forge_run_judge_provider", judgeCred.ProviderID,
+		"forge_run_target_provider", targetCred.ProviderID,
+	)
 
 	// Phase: PROVISIONING — load system agents and create conversations.
+	log.Info("forge: provisioning — loading system agents")
 	fc.updateRunStatus(&run, model.ForgeStatusProvisioning)
 
 	targetProviderID := targetCred.ProviderID
@@ -208,7 +227,15 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
+	log.Info("forge: system agents loaded",
+		"forge_run_architect_agent", archAgent.Name,
+		"forge_run_eval_designer_agent", evalDesignerAgent.Name,
+		"forge_run_judge_agent", judgeAgent.Name,
+		"forge_run_provider_group", providerGroup,
+	)
+
 	// Ensure each system agent has a sandbox and is pushed to Bridge.
+	log.Info("forge: preparing system agent sandboxes")
 	archClient, err := fc.ensureSystemAgentReady(ctx, archAgent)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("preparing architect agent: %v", err))
@@ -225,7 +252,10 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
+	log.Info("forge: system agent sandboxes ready")
+
 	// Mint proxy tokens from user's credentials.
+	log.Info("forge: minting proxy tokens")
 	archToken, archJTI, err := fc.mintToken(run.OrgID, archCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting architect token: %v", err))
@@ -275,6 +305,10 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		"judge_agent":          judgeAgent.Name,
 	})
 
+	log.Info("forge: provisioning complete, creating architect conversation",
+		"elapsed_ms", time.Since(started).Milliseconds(),
+	)
+
 	// Create architect conversation (reused across iterations).
 	archConv, err := archClient.CreateConversation(ctx, archAgent.ID.String())
 	if err != nil {
@@ -285,13 +319,26 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	fc.db.Model(&run).Update("architect_conversation_id", archConv.ConversationId)
 
 	// ITERATION LOOP
+	log.Info("forge: starting iteration loop",
+		"forge_run_max_iterations", run.MaxIterations,
+		"forge_run_architect_conv_id", run.ArchitectConversationID,
+	)
+
 	var bestScore float64 = -1
 	var bestIteration *model.ForgeIteration
 	for i := 1; i <= run.MaxIterations; i++ {
 		if ctx.Err() != nil {
+			log.Info("forge: cancelled before iteration", "iteration", i)
 			fc.cancelRun(runID)
 			return
 		}
+
+		iterStarted := time.Now()
+		log.Info("forge: iteration starting",
+			"iteration", i,
+			"forge_run_best_score", bestScore,
+			"forge_run_convergence_count", run.ConvergenceCount,
+		)
 
 		run.CurrentIteration = i
 		fc.db.Model(&run).Update("current_iteration", i)
@@ -306,7 +353,7 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 			targetProviderID, evalTargetToken,
 		)
 		if err != nil {
-			log.Error("iteration failed", "iteration", i, "error", err)
+			log.Error("forge: iteration failed", "iteration", i, "error", err, "elapsed_ms", time.Since(iterStarted).Milliseconds())
 			// Continue to next iteration on non-fatal errors.
 			if ctx.Err() != nil {
 				fc.cancelRun(runID)
@@ -314,6 +361,17 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 			}
 			continue
 		}
+
+		log.Info("forge: iteration completed",
+			"iteration", i,
+			"forge_run_score", iter.Score,
+			"forge_run_hard_score", iter.HardScore,
+			"forge_run_soft_score", iter.SoftScore,
+			"forge_run_all_hard_passed", iter.AllHardPassed,
+			"forge_run_passed_evals", iter.PassedEvals,
+			"forge_run_total_evals", iter.TotalEvals,
+			"iteration_elapsed_ms", time.Since(iterStarted).Milliseconds(),
+		)
 
 		fc.events.emit(ctx, runID, EventIterationCompleted, map[string]any{
 			"iteration":       i,
@@ -366,6 +424,12 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	}
 
 	// Complete the run.
+	log.Info("forge: run completing",
+		"forge_run_total_iterations", run.CurrentIteration,
+		"forge_run_stop_reason", run.StopReason,
+		"forge_run_best_score", bestScore,
+		"total_elapsed_ms", time.Since(started).Milliseconds(),
+	)
 	fc.completeRun(ctx, &run, bestIteration)
 }
 
@@ -379,6 +443,9 @@ func (fc *ForgeController) runIteration(
 ) (*model.ForgeIteration, error) {
 	_ = archAgent // architect uses persistent conversation from run.ArchitectConversationID
 	log := slog.With("forge_run_id", run.ID, "iteration", iteration)
+	phaseStart := time.Now()
+
+	log.Info("forge: iteration — creating record")
 
 	// Create iteration record.
 	iter := model.ForgeIteration{
@@ -391,6 +458,7 @@ func (fc *ForgeController) runIteration(
 	}
 
 	// PHASE: DESIGNING
+	log.Info("forge: phase=designing — sending to architect")
 	fc.events.emit(ctx, run.ID, EventArchitectStarted, map[string]any{"iteration": iteration})
 
 	archMessage := fc.buildArchitectMessage(run, iteration)
@@ -431,6 +499,13 @@ func (fc *ForgeController) runIteration(
 	iter.SystemPrompt = archOutput.SystemPrompt
 	iter.Phase = model.ForgePhaseEvalDesigning
 
+	log.Info("forge: phase=designing — architect completed",
+		"system_prompt_len", len(archOutput.SystemPrompt),
+		"tools_count", len(archOutput.Tools),
+		"has_reasoning", archOutput.Reasoning != "",
+		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
+	)
+
 	fc.events.emit(ctx, run.ID, EventArchitectCompleted, map[string]any{
 		"iteration":         iteration,
 		"system_prompt_len": len(archOutput.SystemPrompt),
@@ -439,9 +514,11 @@ func (fc *ForgeController) runIteration(
 
 	// PHASE: EVAL_DESIGNING — only in iteration 1.
 	// In subsequent iterations, reuse ForgeEvalCase records from the run.
+	phaseStart = time.Now()
 	var evalCases []model.ForgeEvalCase
 
 	if iteration == 1 {
+		log.Info("forge: phase=eval_designing — generating eval cases")
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
 		evalConv, err := evalDesignerClient.CreateConversation(ctx, evalDesignerAgent.ID.String())
@@ -520,6 +597,11 @@ func (fc *ForgeController) runIteration(
 		})
 		iter.Phase = model.ForgePhaseEvaluating
 
+		log.Info("forge: phase=eval_designing — eval cases generated",
+			"eval_count", len(evalOutput.Evals),
+			"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
+		)
+
 		fc.events.emit(ctx, run.ID, EventEvalsGenerated, map[string]any{
 			"iteration": iteration,
 			"count":     len(evalOutput.Evals),
@@ -530,12 +612,15 @@ func (fc *ForgeController) runIteration(
 	} else {
 		// Iterations 2+: load existing ForgeEvalCase records from the run.
 		fc.db.Where("forge_run_id = ?", run.ID).Find(&evalCases)
+		log.Info("forge: phase=eval_designing — reusing existing eval cases", "eval_count", len(evalCases))
 
 		fc.db.Model(&iter).Update("phase", model.ForgePhaseEvaluating)
 		iter.Phase = model.ForgePhaseEvaluating
 	}
 
 	// PHASE: EVALUATING — push eval-target agent to a pool sandbox with MCP mocks.
+	phaseStart = time.Now()
+	log.Info("forge: phase=evaluating — preparing eval target agent", "eval_count", len(evalCases))
 	evalTargetAgentID := uuid.New().String()
 	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
 	mcpURL := fmt.Sprintf("%s/forge/%s", fc.cfg.MCPBaseURL, run.ID.String())
@@ -596,6 +681,8 @@ func (fc *ForgeController) runIteration(
 		fc.db.Create(&result)
 		evalResults = append(evalResults, result)
 	}
+
+	log.Info("forge: phase=evaluating — running eval cases", "eval_result_count", len(evalResults))
 
 	// Run samples for each eval case.
 	for idx := range evalResults {
@@ -707,13 +794,21 @@ func (fc *ForgeController) runIteration(
 		})
 	}
 
+	log.Info("forge: phase=evaluating — all evals executed",
+		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
+	)
+
 	fc.db.Model(&iter).Update("phase", model.ForgePhaseJudging)
 	iter.Phase = model.ForgePhaseJudging
 
 	// PHASE: JUDGING
+	phaseStart = time.Now()
+	log.Info("forge: phase=judging — scoring eval results")
+
 	// Reload eval results with judging status.
 	var judgingResults []model.ForgeEvalResult
 	fc.db.Where("forge_iteration_id = ? AND status = ?", iter.ID, model.ForgeEvalJudging).Find(&judgingResults)
+	log.Info("forge: phase=judging — eval results to judge", "count", len(judgingResults))
 
 	// Create a judge conversation for this iteration.
 	judgeConv, err := judgeClient.CreateConversation(ctx, judgeAgent.ID.String())
@@ -800,6 +895,10 @@ func (fc *ForgeController) runIteration(
 	}
 
 	_ = judgeClient.EndConversation(ctx, judgeConv.ConversationId)
+
+	log.Info("forge: phase=judging — all evals judged",
+		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
+	)
 
 	// Compute tiered scoring.
 	var completedResults []model.ForgeEvalResult
@@ -1348,9 +1447,10 @@ func (fc *ForgeController) completeRun(ctx context.Context, run *model.ForgeRun,
 		"completed_at": now,
 	}
 
+	var finalScore float64
 	if best != nil {
-		score := best.Score
-		updates["final_score"] = score
+		finalScore = best.Score
+		updates["final_score"] = finalScore
 		updates["result_system_prompt"] = best.SystemPrompt
 		updates["result_tools"] = best.Tools
 		updates["result_agent_config"] = best.AgentConfig
@@ -1358,10 +1458,14 @@ func (fc *ForgeController) completeRun(ctx context.Context, run *model.ForgeRun,
 
 	fc.db.Model(run).Updates(updates)
 
-	var finalScore float64
-	if best != nil {
-		finalScore = best.Score
-	}
+	slog.Info("forge: run completed",
+		"forge_run_id", run.ID,
+		"forge_run_final_score", finalScore,
+		"forge_run_total_iterations", run.CurrentIteration,
+		"forge_run_stop_reason", run.StopReason,
+		"forge_run_has_result", best != nil,
+	)
+
 	fc.events.emit(ctx, run.ID, EventRunCompleted, map[string]any{
 		"final_score":      finalScore,
 		"total_iterations": run.CurrentIteration,
@@ -1371,7 +1475,7 @@ func (fc *ForgeController) completeRun(ctx context.Context, run *model.ForgeRun,
 
 // failRun marks a forge run as failed.
 func (fc *ForgeController) failRun(runID uuid.UUID, errMsg string) {
-	slog.Error("forge run failed", "forge_run_id", runID, "error", errMsg)
+	slog.Error("forge: run failed", "forge_run_id", runID, "error", errMsg)
 	fc.db.Model(&model.ForgeRun{}).Where("id = ?", runID).Updates(map[string]any{
 		"status":        model.ForgeStatusFailed,
 		"error_message": errMsg,
@@ -1384,6 +1488,7 @@ func (fc *ForgeController) failRun(runID uuid.UUID, errMsg string) {
 
 // cancelRun marks a forge run as cancelled.
 func (fc *ForgeController) cancelRun(runID uuid.UUID) {
+	slog.Info("forge: run cancelled", "forge_run_id", runID)
 	fc.db.Model(&model.ForgeRun{}).Where("id = ?", runID).Updates(map[string]any{
 		"status":       model.ForgeStatusCancelled,
 		"completed_at": time.Now(),

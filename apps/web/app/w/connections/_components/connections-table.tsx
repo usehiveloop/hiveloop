@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   MoreHorizontalIcon,
@@ -20,9 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ConfirmDialog } from "@/components/confirm-dialog"
-import Image from "next/image"
-
-const CONNECTIONS_LOGO_BASE = "https://connections.ziraloop.com/images/template-logos"
+import { IntegrationLogo } from "@/components/integration-logo"
 
 export interface InConnection {
   id?: string
@@ -33,10 +32,6 @@ export interface InConnection {
 
 interface ConnectionsTableProps {
   connections: InConnection[]
-}
-
-function providerLogo(provider: string) {
-  return `${CONNECTIONS_LOGO_BASE}/${provider}.svg`
 }
 
 function formatDate(dateStr: string) {
@@ -59,25 +54,25 @@ function StatusDot() {
 export function ConnectionsTable({ connections }: ConnectionsTableProps) {
   const queryClient = useQueryClient()
   const [disconnecting, setDisconnecting] = useState<InConnection | null>(null)
-  const [loading, setLoading] = useState(false)
+  const deleteConnection = $api.useMutation("delete", "/v1/in/connections/{id}")
 
-  async function handleDisconnect() {
+  function handleDisconnect() {
     if (!disconnecting?.id) return
-    setLoading(true)
 
-    const response = await api.DELETE("/v1/in/connections/{id}", {
-      params: { path: { id: disconnecting.id } },
-    })
-
-    if (response.error) {
-      toast.error("Failed to disconnect")
-    } else {
-      toast.success(`${disconnecting.display_name ?? "Connection"} disconnected`)
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
-    setDisconnecting(null)
-    setLoading(false)
+    deleteConnection.mutate(
+      { params: { path: { id: disconnecting.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`${disconnecting.display_name ?? "Connection"} disconnected`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+          setDisconnecting(null)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to disconnect"))
+          setDisconnecting(null)
+        },
+      },
+    )
   }
 
   if (connections.length === 0) {
@@ -103,13 +98,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
           <div key={connection.id}>
             <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Image
-                  src={providerLogo(connection.provider ?? "")}
-                  alt={connection.display_name ?? ""}
-                  className="h-5 w-5 shrink-0"
-                  width={20}
-                  height={20}
-                />
+                <IntegrationLogo provider={connection.provider ?? ""} size={24} />
                 <span className="text-sm font-medium text-foreground truncate">
                   {connection.display_name}
                 </span>
@@ -131,13 +120,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
             <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <Image
-                    src={providerLogo(connection.provider ?? "")}
-                    alt={connection.display_name ?? ""}
-                    className="h-5 w-5 shrink-0"
-                    width={20}
-                    height={20}
-                  />
+                  <IntegrationLogo provider={connection.provider ?? ""} size={28} />
                   <span className="text-sm font-medium text-foreground truncate">
                     {connection.display_name}
                   </span>
@@ -163,7 +146,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
         description={`Are you sure you want to disconnect ${disconnecting?.display_name ?? "this integration"}? Agents using this connection will lose access immediately.`}
         confirmLabel="Disconnect"
         destructive
-        loading={loading}
+        loading={deleteConnection.isPending}
         onConfirm={handleDisconnect}
       />
     </>

@@ -10,10 +10,17 @@ import { AddConnectionDialog } from "./_components/add-connection-dialog"
 import { PageLoader } from "@/components/page-loader"
 import { useConnectIntegration } from "./_hooks/use-connect-integration"
 
+interface ConnectOptions {
+  credentials?: Record<string, string>
+  params?: Record<string, string>
+  installation?: "outbound"
+}
+
 export default function ConnectionsPage() {
   const [search, setSearch] = useState("")
   const [addOpen, setAddOpen] = useState(false)
   const [dialogSearch, setDialogSearch] = useState("")
+  const [preSelectedId, setPreSelectedId] = useState<string | null>(null)
 
   const { data: inConnections, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const { connect, connectingId } = useConnectIntegration()
@@ -29,11 +36,20 @@ export default function ConnectionsPage() {
     )
   }, [connections, search])
 
-  function handleConnect(integrationId: string) {
-    connect(integrationId, () => {
-      setAddOpen(false)
-      setDialogSearch("")
+  function handleConnect(integrationId: string, options?: ConnectOptions) {
+    connect(integrationId, {
+      ...options,
+      onSuccess: () => {
+        setAddOpen(false)
+        setDialogSearch("")
+        setPreSelectedId(null)
+      },
     })
+  }
+
+  function handleShowFormFor(integrationId: string) {
+    setPreSelectedId(integrationId)
+    setAddOpen(true)
   }
 
   if (isLoading) {
@@ -45,8 +61,9 @@ export default function ConnectionsPage() {
       <>
         <ConnectionsEmpty
           connectingId={connectingId}
-          onConnect={handleConnect}
+          onConnect={(id) => handleConnect(id)}
           onShowAll={() => setAddOpen(true)}
+          onShowFormFor={handleShowFormFor}
         />
         <AddConnectionDialog
           open={addOpen}
@@ -55,6 +72,8 @@ export default function ConnectionsPage() {
           onSearchChange={setDialogSearch}
           connectingId={connectingId}
           onConnect={handleConnect}
+          preSelectedIntegrationId={preSelectedId}
+          onPreSelectedClear={() => setPreSelectedId(null)}
         />
       </>
     )
@@ -72,6 +91,8 @@ export default function ConnectionsPage() {
         onSearchChange={setDialogSearch}
         connectingId={connectingId}
         onConnect={handleConnect}
+        preSelectedIntegrationId={preSelectedId}
+        onPreSelectedClear={() => setPreSelectedId(null)}
       />
     </div>
   )

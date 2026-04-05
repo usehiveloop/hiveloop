@@ -4,35 +4,33 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, SparklesIcon } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { $api } from "@/lib/api/hooks"
 import { IntegrationLogo } from "@/components/integration-logo"
-import { llmKeys } from "./data"
-import type { CreationMode } from "./types"
+import { ProviderLogo } from "@/components/provider-logo"
+import { $api } from "@/lib/api/hooks"
+import { useCreateAgent } from "./context"
 
 interface SummaryRowProps {
   label: string
-  value: string
+  children: React.ReactNode
 }
 
-function SummaryRow({ label, value }: SummaryRowProps) {
+function SummaryRow({ label, children }: SummaryRowProps) {
   return (
     <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+      {children}
     </div>
   )
 }
 
-interface StepSummaryProps {
-  mode: CreationMode
-  selectedKeyId: string | null
-  selectedIntegrations: Set<string>
-  onBack: () => void
-  onSubmit: () => void
-}
+export function StepSummary() {
+  const { form, mode, selectedIntegrations, selectedActions, isSubmitting, goTo, handleCreate } = useCreateAgent()
+  const credentialId = form.watch("credentialId")
 
-export function StepSummary({ mode, selectedKeyId, selectedIntegrations, onBack, onSubmit }: StepSummaryProps) {
-  const key = llmKeys.find((item) => item.id === selectedKeyId)
+  const { data: credentialsData } = $api.useQuery("get", "/v1/credentials")
+  const credentials = credentialsData?.data ?? []
+  const selectedCredential = credentials.find((credential) => credential.id === credentialId)
+
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
   const connections = connectionsData?.data ?? []
 
@@ -40,11 +38,22 @@ export function StepSummary({ mode, selectedKeyId, selectedIntegrations, onBack,
     (connection) => selectedIntegrations.has(connection.id!)
   )
 
+  const totalSelectedActions = Object.values(selectedActions).reduce(
+    (sum, actions) => sum + actions.size, 0
+  )
+  const totalAvailableActions = selectedConnections.reduce(
+    (sum, connection) => sum + (connection.actions_count ?? 0), 0
+  )
+
   return (
     <div className="flex flex-col h-full">
       <DialogHeader>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+          <button
+            type="button"
+            onClick={() => goTo(mode === "scratch" ? "instructions" : "forge-judge")}
+            className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1"
+          >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
           <DialogTitle>Review & create</DialogTitle>
@@ -57,31 +66,48 @@ export function StepSummary({ mode, selectedKeyId, selectedIntegrations, onBack,
       </DialogHeader>
 
       <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto">
-        <SummaryRow label="LLM provider" value={key ? `${key.provider} — ${key.name}` : "None selected"} />
-        <SummaryRow
-          label="Integrations"
-          value={selectedConnections.length > 0 ? `${selectedConnections.length} connected` : "None"}
-        />
+        <SummaryRow label="LLM provider">
+          {selectedCredential ? (
+            <span className="flex items-center gap-2">
+              <ProviderLogo provider={selectedCredential.provider_id ?? ""} size={16} />
+              <span className="text-sm font-medium text-foreground">{selectedCredential.label}</span>
+            </span>
+          ) : (
+            <span className="text-sm font-medium text-foreground">None selected</span>
+          )}
+        </SummaryRow>
+
+        <SummaryRow label="Integrations">
+          <span className="text-sm font-medium text-foreground">
+            {selectedConnections.length > 0
+              ? `${selectedConnections.length} connected · ${totalSelectedActions}/${totalAvailableActions} actions`
+              : "None"}
+          </span>
+        </SummaryRow>
 
         {selectedConnections.length > 0 && (
           <div className="rounded-xl bg-muted/50 px-4 py-3">
             <div className="flex flex-col gap-2">
-              {selectedConnections.map((connection) => (
-                <div key={connection.id} className="flex items-center gap-3 py-1">
-                  <IntegrationLogo provider={connection.provider ?? ""} size={20} className="shrink-0" />
-                  <span className="text-sm font-medium text-foreground">{connection.display_name}</span>
-                  <span className="text-xs text-muted-foreground ml-auto font-mono">
-                    {connection.actions_count ?? 0} actions
-                  </span>
-                </div>
-              ))}
+              {selectedConnections.map((connection) => {
+                const userSelected = selectedActions[connection.id!]?.size ?? 0
+                const total = connection.actions_count ?? 0
+                return (
+                  <div key={connection.id} className="flex items-center gap-3 py-1">
+                    <IntegrationLogo provider={connection.provider ?? ""} size={20} className="shrink-0" />
+                    <span className="text-sm font-medium text-foreground">{connection.display_name}</span>
+                    <span className="text-xs text-muted-foreground ml-auto font-mono">
+                      {userSelected}/{total} actions
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={onSubmit} className="w-full">
+        <Button onClick={handleCreate} className="w-full" loading={isSubmitting}>
           {mode === "forge" ? (
             <>
               <HugeiconsIcon icon={SparklesIcon} size={16} data-icon="inline-start" />

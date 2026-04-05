@@ -25,6 +25,7 @@ type NangoConfig struct {
 	Docs                     string                        `json:"docs,omitempty"`
 	DocsConnect              string                        `json:"docs_connect,omitempty"`
 	ForwardWebhooks          bool                          `json:"forward_webhooks,omitempty"`
+	Installation             string                        `json:"installation,omitempty"`
 	Logo                     string                        `json:"logo,omitempty"`
 	SetupGuideURL            string                        `json:"setup_guide_url,omitempty"`
 	WebhookRoutingScript     string                        `json:"webhook_routing_script,omitempty"`

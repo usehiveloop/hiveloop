@@ -93,6 +93,7 @@ func buildNangoConfig(integResp map[string]any, template map[string]any, callbac
 		for _, key := range []string{
 			"auth_mode", "authorization_url", "docs", "setup_guide_url",
 			"docs_connect", "categories", "connection_config", "webhook_routing_script",
+			"installation",
 		} {
 			if v, exists := template[key]; exists {
 				config[key] = v

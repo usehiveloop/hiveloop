@@ -43,6 +43,7 @@ type Agent struct {
 	Status        string `gorm:"not null;default:'active'"` // active, archived
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
+	DeletedAt     *time.Time `gorm:"index"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

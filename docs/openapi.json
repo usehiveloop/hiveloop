@@ -12267,6 +12267,9 @@
           "forward_webhooks": {
             "type": "boolean"
           },
+          "installation": {
+            "type": "string"
+          },
           "logo": {
             "type": "string"
           },

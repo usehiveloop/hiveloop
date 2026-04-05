@@ -123,7 +123,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if agentPusher != nil {
 		pusherForHandler = agentPusher
 	}
-	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey)
+	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	// Router

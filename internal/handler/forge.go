@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -203,6 +204,16 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 		convergenceLimit = *req.ConvergenceLimit
 	}
 
+	slog.Info("forge: creating run",
+		"forge_run_org_id", org.ID,
+		"forge_run_agent_id", agentID,
+		"forge_run_architect_model", req.ArchitectModel,
+		"forge_run_eval_model", req.EvalDesignerModel,
+		"forge_run_judge_model", req.JudgeModel,
+		"forge_run_max_iterations", maxIter,
+		"forge_run_pass_threshold", threshold,
+	)
+
 	// Create the forge run record.
 	run := model.ForgeRun{
 		OrgID:                    org.ID,
@@ -223,20 +234,31 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("forge: run created, enqueueing",
+		"forge_run_id", run.ID,
+		"forge_run_agent_id", agentID,
+		"forge_run_status", run.Status,
+	)
+
 	// Enqueue the forge run as an Asynq task.
 	if h.enqueuer != nil {
 		task, err := tasks.NewForgeRunTask(run.ID)
 		if err == nil {
 			info, err := h.enqueuer.Enqueue(task)
 			if err != nil {
+				slog.Error("forge: failed to enqueue run", "forge_run_id", run.ID, "error", err)
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue forge run"})
 				return
 			}
-			// Store the Asynq task ID for cancellation support.
 			h.db.Model(&run).Update("asynq_task_id", info.ID)
+			slog.Info("forge: run enqueued",
+				"forge_run_id", run.ID,
+				"asynq_task_id", info.ID,
+				"asynq_queue", info.Queue,
+			)
 		}
 	} else {
-		// Fallback: run in a goroutine (for tests without Asynq).
+		slog.Info("forge: no enqueuer, running in goroutine", "forge_run_id", run.ID)
 		go h.controller.Execute(context.Background(), run.ID)
 	}
 

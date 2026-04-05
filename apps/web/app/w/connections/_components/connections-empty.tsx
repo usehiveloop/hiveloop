@@ -6,17 +6,41 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
+import { IntegrationLogo } from "@/components/integration-logo"
+import type { components } from "@/lib/api/schema"
+
+type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 
 const MAX_SUGGESTIONS = 10
+
+function needsForm(integration: components["schemas"]["inIntegrationAvailableResponse"]): boolean {
+  const authMode = integration.nango_config?.auth_mode
+  const installation = integration.nango_config?.installation
+
+  if (authMode === "API_KEY" || authMode === "BASIC") return true
+  if (installation === "outbound") return true
+
+  const connectionConfig = integration.nango_config?.connection_config as
+    | Record<string, ConnectionConfigField>
+    | undefined
+  if (connectionConfig) {
+    const hasRequiredFields = Object.values(connectionConfig).some(
+      (field) => !field.automated,
+    )
+    if (hasRequiredFields) return true
+  }
+
+  return false
+}
 
 interface ConnectionsEmptyProps {
   connectingId: string | null
   onConnect: (integrationId: string) => void
   onShowAll: () => void
+  onShowFormFor: (integrationId: string) => void
 }
 
-export function ConnectionsEmpty({ connectingId, onConnect, onShowAll }: ConnectionsEmptyProps) {
+export function ConnectionsEmpty({ connectingId, onConnect, onShowAll, onShowFormFor }: ConnectionsEmptyProps) {
   const { data, isLoading } = $api.useQuery("get", "/v1/in/integrations/available")
 
   const integrations = data ?? []
@@ -35,6 +59,14 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll }: Connect
 
     return [...popular, ...rest].slice(0, MAX_SUGGESTIONS)
   }, [integrations])
+
+  function handleClick(integration: components["schemas"]["inIntegrationAvailableResponse"]) {
+    if (needsForm(integration)) {
+      onShowFormFor(integration.id!)
+    } else {
+      onConnect(integration.id!)
+    }
+  }
 
   return (
     <div className="flex flex-col items-center pt-[20vh] pb-24 px-4">
@@ -64,21 +96,9 @@ export function ConnectionsEmpty({ connectingId, onConnect, onShowAll }: Connect
                   type="button"
                   disabled={connectingId !== null}
                   className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted cursor-pointer disabled:cursor-not-allowed"
-                  onClick={() => onConnect(integration.id!)}
+                  onClick={() => handleClick(integration)}
                 >
-                  {integration.nango_config?.logo ? (
-                    <Image
-                      src={integration.nango_config.logo}
-                      alt={integration.display_name || ""}
-                      className="size-6 rounded-lg object-contain"
-                      width={24}
-                      height={24}
-                    />
-                  ) : (
-                    <div className="size-6 rounded-lg bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                      {(integration.display_name ?? "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <IntegrationLogo provider={integration.provider ?? ""} size={24} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">
                       {integration.display_name}

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, Tick02Icon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
@@ -10,22 +10,31 @@ interface ModelComboboxProps {
   models: string[]
   value?: string | null
   onSelect?: (model: string) => void
+  loading?: boolean
+  disabled?: boolean
 }
 
-export function ModelCombobox({ models, value, onSelect: onSelectProp }: ModelComboboxProps) {
+export function ModelCombobox({ models, value, onSelect: onSelectProp, loading, disabled }: ModelComboboxProps) {
   const [open, setOpen] = useState(false)
-  const [internal, setInternal] = useState(models[0] ?? "")
-  const selected = value !== undefined ? (value ?? "") : internal
+  const selected = value ?? ""
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger
         render={
-          <button type='button' className="flex w-full items-center justify-between rounded-2xl border border-input bg-input/50 px-3 py-2 text-sm transition-colors hover:bg-input/70 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30">
+          <button
+            type="button"
+            disabled={disabled}
+            className="flex w-full items-center justify-between rounded-2xl border border-input bg-input/50 px-3 py-2 text-sm transition-colors hover:bg-input/70 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <span className={`font-mono text-sm ${selected ? "text-foreground" : "text-muted-foreground"}`}>
-              {selected || "Select a model..."}
+              {loading ? "Loading models..." : selected || "Select a model..."}
             </span>
-            <HugeiconsIcon icon={ArrowRight01Icon} size={14} className={`text-muted-foreground/40 transition-transform ${open ? "rotate-90" : ""}`} />
+            {loading ? (
+              <HugeiconsIcon icon={Loading03Icon} size={14} className="text-muted-foreground animate-spin" />
+            ) : (
+              <HugeiconsIcon icon={ArrowRight01Icon} size={14} className={`text-muted-foreground/40 transition-transform ${open ? "rotate-90" : ""}`} />
+            )}
           </button>
         }
       />
@@ -40,8 +49,7 @@ export function ModelCombobox({ models, value, onSelect: onSelectProp }: ModelCo
                   key={model}
                   value={model}
                   onSelect={() => {
-                    if (onSelectProp) onSelectProp(model)
-                    else setInternal(model)
+                    onSelectProp?.(model)
                     setOpen(false)
                   }}
                   className="font-mono text-sm"

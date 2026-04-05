@@ -6,37 +6,23 @@ import { Label } from "@/components/ui/label"
 import { ChoiceCard } from "./choice-card"
 import { ModelCombobox } from "./model-combobox"
 import { llmKeys } from "./data"
+import { useCreateAgent } from "./context"
 
-interface StepForgeJudgeProps {
-  selectedKeyId: string | null
-  judgeKeyId: string | null
-  onSelectKey: (keyId: string) => void
-  judgeModel: string | null
-  onSelectModel: (model: string) => void
-  onBack: () => void
-  onNext: () => void
-  onSkip: () => void
-}
+export function StepForgeJudge() {
+  const { form, goTo } = useCreateAgent()
+  const credentialId = form.watch("credentialId")
+  const judgeKeyId = form.watch("judgeKeyId")
+  const judgeModel = form.watch("judgeModel")
 
-export function StepForgeJudge({
-  selectedKeyId,
-  judgeKeyId,
-  onSelectKey,
-  judgeModel,
-  onSelectModel,
-  onBack,
-  onNext,
-  onSkip,
-}: StepForgeJudgeProps) {
   const selectedKey = llmKeys.find((key) => key.id === judgeKeyId)
-  const agentKey = llmKeys.find((key) => key.id === selectedKeyId)
+  const agentKey = llmKeys.find((key) => key.id === credentialId)
   const isSameProvider = agentKey && selectedKey && agentKey.provider === selectedKey.provider
 
   return (
     <div className="flex flex-col h-full">
       <DialogHeader>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+          <button type="button" onClick={() => goTo("basics")} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
           <DialogTitle>Forge judge</DialogTitle>
@@ -56,7 +42,10 @@ export function StepForgeJudge({
                 logoUrl={key.logo}
                 title={key.name}
                 description={key.provider}
-                onClick={() => onSelectKey(key.id)}
+                onClick={() => {
+                  form.setValue("judgeKeyId", key.id)
+                  form.setValue("judgeModel", "")
+                }}
                 trailing={
                   judgeKeyId === key.id ? (
                     <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0 mt-0.5" />
@@ -74,8 +63,8 @@ export function StepForgeJudge({
             <Label className="text-sm">Model</Label>
             <ModelCombobox
               models={selectedKey.models}
-              value={judgeModel}
-              onSelect={onSelectModel}
+              value={judgeModel || null}
+              onSelect={(model) => form.setValue("judgeModel", model)}
             />
           </div>
         )}
@@ -91,8 +80,8 @@ export function StepForgeJudge({
       </div>
 
       <div className="flex flex-col gap-2 pt-4 shrink-0">
-        <Button onClick={onNext} disabled={!judgeKeyId || !judgeModel} className="w-full">Continue</Button>
-        <Button variant="ghost" onClick={onSkip} className="w-full text-muted-foreground">
+        <Button onClick={() => goTo("summary")} disabled={!judgeKeyId || !judgeModel} className="w-full">Continue</Button>
+        <Button variant="ghost" onClick={() => goTo("summary")} className="w-full text-muted-foreground">
           Skip — use default judge
         </Button>
       </div>

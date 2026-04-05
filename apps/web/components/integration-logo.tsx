@@ -20,7 +20,7 @@ interface IntegrationLogoProps {
 }
 
 export function IntegrationLogo({ provider, size = 32, className }: IntegrationLogoProps) {
-  const sizeClass = sizeClasses[size] ?? "size-5"
+  const sizeClass = sizeClasses[size] ?? "size-8"
 
   return (
     <div className={cn("shrink-0 rounded-md bg-white p-0.5", sizeClass, className)}>

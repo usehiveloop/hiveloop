@@ -1,0 +1,194 @@
+"use client"
+
+import { createContext, useContext, useState, useRef, useCallback } from "react"
+import { useForm, type UseFormReturn } from "react-hook-form"
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
+import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
+import type { CreationMode, Step } from "./types"
+
+export interface CreateAgentFormValues {
+  name: string
+  description: string
+  model: string
+  credentialId: string
+  sandboxType: "shared" | "dedicated"
+  systemPrompt: string
+  instructions: string
+  judgeKeyId: string
+  judgeModel: string
+  selectedMarketplaceAgent: string
+}
+
+interface CreateAgentContextValue {
+  form: UseFormReturn<CreateAgentFormValues>
+  step: Step
+  mode: CreationMode | null
+  direction: React.MutableRefObject<1 | -1>
+  selectedIntegrations: Set<string>
+  selectedActions: Record<string, Set<string>>
+  isSubmitting: boolean
+  setMode: (mode: CreationMode) => void
+  goTo: (step: Step) => void
+  toggleIntegration: (connectionId: string) => void
+  toggleAction: (connectionId: string, actionKey: string) => void
+  handleCreate: () => void
+  reset: () => void
+}
+
+const CreateAgentContext = createContext<CreateAgentContextValue | null>(null)
+
+export function useCreateAgent() {
+  const ctx = useContext(CreateAgentContext)
+  if (!ctx) throw new Error("useCreateAgent must be used within CreateAgentProvider")
+  return ctx
+}
+
+interface CreateAgentProviderProps {
+  children: React.ReactNode
+  onClose: () => void
+  initialMode?: CreationMode
+}
+
+export function CreateAgentProvider({ children, onClose, initialMode }: CreateAgentProviderProps) {
+  const queryClient = useQueryClient()
+  const createAgent = $api.useMutation("post", "/v1/agents")
+
+  const form = useForm<CreateAgentFormValues>({
+    defaultValues: {
+      name: "",
+      description: "",
+      model: "",
+      credentialId: "",
+      sandboxType: "shared",
+      systemPrompt: "",
+      instructions: "",
+      judgeKeyId: "",
+      judgeModel: "",
+      selectedMarketplaceAgent: "",
+    },
+  })
+
+  const initialStep: Step = initialMode === "marketplace" ? "marketplace-browse" : initialMode ? "sandbox" : "mode"
+  const [step, setStep] = useState<Step>(initialStep)
+  const [mode, setModeState] = useState<CreationMode | null>(initialMode ?? null)
+  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
+  const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
+  const direction = useRef<1 | -1>(1)
+
+  const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
+
+  const goTo = useCallback((next: Step) => {
+    direction.current = currentSteps.indexOf(next) > currentSteps.indexOf(step) ? 1 : -1
+    setStep(next)
+  }, [currentSteps, step])
+
+  const setMode = useCallback((newMode: CreationMode) => {
+    setModeState(newMode)
+    direction.current = 1
+    if (newMode === "marketplace") {
+      setStep("marketplace-browse")
+    } else {
+      setStep("sandbox")
+    }
+  }, [])
+
+  const toggleIntegration = useCallback((connectionId: string) => {
+    setSelectedIntegrations((prev) => {
+      const next = new Set(prev)
+      if (next.has(connectionId)) {
+        next.delete(connectionId)
+        setSelectedActions((prevActions) => {
+          const nextActions = { ...prevActions }
+          delete nextActions[connectionId]
+          return nextActions
+        })
+      } else {
+        next.add(connectionId)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleAction = useCallback((connectionId: string, actionKey: string) => {
+    setSelectedActions((prev) => {
+      const current = new Set(prev[connectionId] ?? [])
+      if (current.has(actionKey)) {
+        current.delete(actionKey)
+      } else {
+        current.add(actionKey)
+      }
+      return { ...prev, [connectionId]: current }
+    })
+  }, [])
+
+  const reset = useCallback(() => {
+    setStep("mode")
+    setModeState(null)
+    setSelectedIntegrations(new Set())
+    setSelectedActions({})
+    form.reset()
+  }, [form])
+
+  const handleCreate = useCallback(() => {
+    const values = form.getValues()
+    if (!values.credentialId || !values.model || !values.sandboxType) return
+
+    const integrationsPayload: Record<string, { actions: string[] }> = {}
+    for (const connectionId of selectedIntegrations) {
+      const actions = selectedActions[connectionId]
+      integrationsPayload[connectionId] = {
+        actions: actions ? Array.from(actions) : [],
+      }
+    }
+
+    createAgent.mutate(
+      {
+        body: {
+          name: values.name.trim(),
+          description: values.description.trim() || undefined,
+          credential_id: values.credentialId,
+          model: values.model,
+          sandbox_type: values.sandboxType,
+          system_prompt: values.systemPrompt,
+          instructions: values.instructions || undefined,
+          integrations: integrationsPayload,
+        } as never,
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
+          toast.success(`Agent "${values.name}" created`)
+          onClose()
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to create agent"))
+        },
+      },
+    )
+  }, [form, selectedIntegrations, selectedActions, createAgent, queryClient, onClose])
+
+  return (
+    <CreateAgentContext.Provider
+      value={{
+        form,
+        step,
+        mode,
+        direction,
+        selectedIntegrations,
+        selectedActions,
+        isSubmitting: createAgent.isPending,
+        setMode,
+        goTo,
+        toggleIntegration,
+        toggleAction,
+        handleCreate,
+        reset,
+      }}
+    >
+      {children}
+    </CreateAgentContext.Provider>
+  )
+}

@@ -14,18 +14,15 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { marketplaceAgents, integrations, connectedIntegrations } from "./data"
+import { useCreateAgent } from "./context"
 
 function formatInstalls(count: number) {
   if (count >= 1000) return `${(count / 1000).toFixed(count % 1000 === 0 ? 0 : 1)}k`
   return count.toString()
 }
 
-interface StepMarketplaceBrowseProps {
-  onBack: () => void
-  onSelect: (slug: string) => void
-}
-
-export function StepMarketplaceBrowse({ onBack, onSelect }: StepMarketplaceBrowseProps) {
+export function StepMarketplaceBrowse() {
+  const { form, goTo } = useCreateAgent()
   const [search, setSearch] = useState("")
 
   const filtered = marketplaceAgents.filter(
@@ -39,7 +36,7 @@ export function StepMarketplaceBrowse({ onBack, onSelect }: StepMarketplaceBrows
     <div className="flex flex-col h-full">
       <DialogHeader>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+          <button type="button" onClick={() => goTo("mode")} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
           <DialogTitle>Marketplace</DialogTitle>
@@ -63,7 +60,10 @@ export function StepMarketplaceBrowse({ onBack, onSelect }: StepMarketplaceBrows
         {filtered.map((agent) => (
           <button
             key={agent.slug}
-            onClick={() => onSelect(agent.slug)}
+            onClick={() => {
+              form.setValue("selectedMarketplaceAgent", agent.slug)
+              goTo("marketplace-detail")
+            }}
             className="group flex items-start gap-3 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
           >
             <div className="flex-1 min-w-0">
@@ -112,14 +112,11 @@ export function StepMarketplaceBrowse({ onBack, onSelect }: StepMarketplaceBrows
   )
 }
 
-interface StepMarketplaceDetailProps {
-  slug: string
-  onBack: () => void
-  onInstall: () => void
-}
-
-export function StepMarketplaceDetail({ slug, onBack, onInstall }: StepMarketplaceDetailProps) {
+export function StepMarketplaceDetail() {
+  const { form, goTo } = useCreateAgent()
+  const slug = form.watch("selectedMarketplaceAgent")
   const agent = marketplaceAgents.find((item) => item.slug === slug)
+
   if (!agent) return null
 
   const missing = agent.integrations.filter((name) => !connectedIntegrations.has(name))
@@ -129,7 +126,7 @@ export function StepMarketplaceDetail({ slug, onBack, onInstall }: StepMarketpla
     <div className="flex flex-col h-full">
       <DialogHeader>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+          <button type="button" onClick={() => goTo("marketplace-browse")} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
           <DialogTitle>Agent details</DialogTitle>
@@ -198,7 +195,7 @@ export function StepMarketplaceDetail({ slug, onBack, onInstall }: StepMarketpla
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={onInstall} disabled={!canInstall} className="w-full">
+        <Button disabled={!canInstall} className="w-full">
           <HugeiconsIcon icon={Download04Icon} size={16} data-icon="inline-start" />
           Install agent
         </Button>

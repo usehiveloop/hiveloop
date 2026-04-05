@@ -49,6 +49,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		DB:           deps.DB,
 		Cleanup:      deps.Cleanup,
 		Orchestrator: deps.Orchestrator,
+		Pusher:       deps.AgentPusher,
 		EncKey:       deps.SandboxEncKey,
 		EmailSend: func(ctx context.Context, to, subject, body string) error {
 			return logSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})

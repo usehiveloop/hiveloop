@@ -15,6 +15,7 @@ type WorkerDeps struct {
 	DB           *gorm.DB
 	Cleanup      *streaming.Cleanup
 	Orchestrator *sandbox.Orchestrator // nil if sandbox not configured
+	Pusher       *sandbox.Pusher      // nil if sandbox not configured
 	EncKey       *crypto.SymmetricKey  // nil if not configured
 	ForgeExecute ForgeExecuteFunc      // nil if forge not configured
 	EmailSend    EmailSenderFunc       // nil if email not configured
@@ -51,6 +52,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSandboxHealthCheck, NewSandboxHealthCheckHandler(deps.Orchestrator).Handle)
 		mux.HandleFunc(TypeSandboxResourceCheck, NewSandboxResourceCheckHandler(deps.Orchestrator).Handle)
 	}
+
+	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
+	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
 
 	return mux
 }

@@ -88,8 +88,8 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 
 	// CodeDB binary (code intelligence for agents)
 	image = image.Run(fmt.Sprintf(
-		`curl -fsSL "https://github.com/justrach/codedb/releases/latest/download/codedb-x86_64-linux" -o %s/codedb && chmod +x %s/codedb`,
-		bridgeDir, bridgeDir,
+		`CODEDB_DIR=%s bash -c "$(curl -fsSL https://codedb.codegraff.com/install.sh)"`,
+		bridgeDir,
 	))
 
 	// Working directory and entrypoint — start Bridge automatically

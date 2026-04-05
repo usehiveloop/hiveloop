@@ -187,3 +187,27 @@ func NewGenerationWriteTask(entry model.Generation) (*asynq.Task, error) {
 		asynq.Timeout(10*time.Second),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// agent:cleanup
+// ---------------------------------------------------------------------------
+
+// AgentCleanupPayload is the payload for TypeAgentCleanup tasks.
+type AgentCleanupPayload struct {
+	AgentID uuid.UUID `json:"agent_id"`
+}
+
+// NewAgentCleanupTask creates a task that cleans up an agent's sandboxes and then hard-deletes it.
+func NewAgentCleanupTask(agentID uuid.UUID) (*asynq.Task, error) {
+	payload, err := json.Marshal(AgentCleanupPayload{AgentID: agentID})
+	if err != nil {
+		return nil, fmt.Errorf("marshal agent cleanup payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeAgentCleanup,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(3),
+		asynq.Timeout(2*time.Minute),
+	), nil
+}

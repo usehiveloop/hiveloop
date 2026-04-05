@@ -19,6 +19,7 @@ import { Logo } from "@/components/logo"
 import { apiUrl } from "@/lib/api/client"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
+import { extractErrorMessage } from "@/lib/api/error"
 
 type AuthStep = "buttons" | "email" | "code"
 
@@ -61,8 +62,8 @@ export default function AuthPage() {
             setCode("")
           }
         },
-        onError: () => {
-          toast.error("Failed to send code")
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to send code"))
         },
       },
     )
@@ -84,8 +85,8 @@ export default function AuthPage() {
         onSuccess: () => {
           router.replace("/w")
         },
-        onError: () => {
-          toast.error("Invalid or expired code")
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Invalid or expired code"))
           setCode("")
         },
       },

@@ -14,10 +14,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // AgentPusher is the interface the handler needs to push agents to Bridge.
@@ -30,12 +32,17 @@ type AgentPusher interface {
 type AgentHandler struct {
 	db       *gorm.DB
 	registry *registry.Registry
-	pusher   AgentPusher         // nil if sandbox orchestrator is not configured
-	encKey   *crypto.SymmetricKey // for encrypting env vars
+	pusher   AgentPusher              // nil if sandbox orchestrator is not configured
+	encKey   *crypto.SymmetricKey     // for encrypting env vars
+	enqueuer enqueue.TaskEnqueuer     // nil if worker not configured
 }
 
-func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, encKey *crypto.SymmetricKey) *AgentHandler {
-	return &AgentHandler{db: db, registry: reg, pusher: pusher, encKey: encKey}
+func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *AgentHandler {
+	h := &AgentHandler{db: db, registry: reg, pusher: pusher, encKey: encKey}
+	if len(enqueuer) > 0 {
+		h.enqueuer = enqueuer[0]
+	}
+	return h
 }
 
 // ensure sandbox.Pusher satisfies AgentPusher
@@ -331,7 +338,7 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Preload("Credential").Preload("Identity").Where("agents.org_id = ? AND agents.is_system = false", org.ID)
+	q := h.db.Preload("Credential").Preload("Identity").Where("agents.org_id = ? AND agents.is_system = false AND agents.deleted_at IS NULL", org.ID)
 
 	if identityID := r.URL.Query().Get("identity_id"); identityID != "" {
 		q = q.Where("agents.identity_id = ?", identityID)
@@ -390,7 +397,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Preload("Credential").Preload("Identity").Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Preload("Credential").Preload("Identity").Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -425,7 +432,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -598,9 +605,8 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	// Load agent before deleting so we can remove from Bridge
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", id, org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", id, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -609,18 +615,24 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove from Bridge before deleting from DB
-	if h.pusher != nil {
-		if err := h.pusher.RemoveAgent(r.Context(), &agent); err != nil {
-			slog.Error("failed to remove agent from bridge", "agent_id", agent.ID, "error", err)
-		}
-	}
-
-	if err := h.db.Delete(&agent).Error; err != nil {
+	// Soft-delete: set deleted_at timestamp
+	now := time.Now()
+	if err := h.db.Model(&agent).Update("deleted_at", &now).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
 		return
 	}
 
+	// Enqueue async cleanup (sandbox teardown + hard delete)
+	if h.enqueuer != nil {
+		task, err := tasks.NewAgentCleanupTask(agent.ID)
+		if err != nil {
+			slog.Error("failed to create agent cleanup task", "agent_id", agent.ID, "error", err)
+		} else if _, err := h.enqueuer.Enqueue(task); err != nil {
+			slog.Error("failed to enqueue agent cleanup", "agent_id", agent.ID, "error", err)
+		}
+	}
+
+	slog.Info("agent soft-deleted", "agent_id", agent.ID, "org_id", org.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
@@ -773,7 +785,7 @@ func (h *AgentHandler) GetSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}
@@ -821,7 +833,7 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", chi.URLParam(r, "id"), org.ID).First(&agent).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 		return
 	}

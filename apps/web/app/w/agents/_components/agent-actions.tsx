@@ -16,7 +16,11 @@ import {
   PlayIcon,
 } from "@hugeicons/core-free-icons"
 
-export function AgentActions() {
+interface AgentActionsProps {
+  onDelete?: () => void
+}
+
+export function AgentActions({ onDelete }: AgentActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
@@ -43,7 +47,7 @@ export function AgentActions() {
             <HugeiconsIcon icon={Archive02Icon} size={16} className="text-muted-foreground" />
             Archive
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
             <HugeiconsIcon icon={Delete02Icon} size={16} />
             Delete
           </DropdownMenuItem>

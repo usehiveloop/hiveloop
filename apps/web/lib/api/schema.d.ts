@@ -11483,6 +11483,7 @@ export interface components {
             docs?: string;
             docs_connect?: string;
             forward_webhooks?: boolean;
+            installation?: string;
             logo?: string;
             setup_guide_url?: string;
             webhook_routing_script?: string;

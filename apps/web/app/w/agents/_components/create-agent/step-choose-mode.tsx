@@ -1,13 +1,11 @@
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { PencilEdit02Icon, SparklesIcon, Store01Icon } from "@hugeicons/core-free-icons"
 import { ChoiceCard } from "./choice-card"
-import type { CreationMode } from "./types"
+import { useCreateAgent } from "./context"
 
-interface StepChooseModeProps {
-  onSelect: (mode: CreationMode) => void
-}
+export function StepChooseMode() {
+  const { setMode } = useCreateAgent()
 
-export function StepChooseMode({ onSelect }: StepChooseModeProps) {
   return (
     <div>
       <DialogHeader>
@@ -22,19 +20,19 @@ export function StepChooseMode({ onSelect }: StepChooseModeProps) {
           icon={PencilEdit02Icon}
           title="Create from scratch"
           description="Write your own system prompt and configure every detail manually."
-          onClick={() => onSelect("scratch")}
+          onClick={() => setMode("scratch")}
         />
         <ChoiceCard
           icon={SparklesIcon}
           title="Forge with AI"
           description="Describe what you want and let AI generate an optimized agent for you."
-          onClick={() => onSelect("forge")}
+          onClick={() => setMode("forge")}
         />
         <ChoiceCard
           icon={Store01Icon}
           title="Install from marketplace"
           description="Browse community-built agents and install one in seconds."
-          onClick={() => onSelect("marketplace")}
+          onClick={() => setMode("marketplace")}
         />
       </div>
     </div>
