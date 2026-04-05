@@ -18,6 +18,7 @@ const AUTH_PATHS = new Set([
   "auth/login",
   "auth/register",
   "auth/refresh",
+  "auth/otp/verify",
 ])
 
 const LOGOUT_PATH = "auth/logout"

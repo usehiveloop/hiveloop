@@ -1,274 +1,155 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
-} from "@/components/ui/input-otp"
-import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
 
-type AuthStep = "choose" | "email" | "code"
-
-const RESEND_COOLDOWN = 60 // seconds
+type Mode = "login" | "register"
 
 export default function AuthPage() {
   const router = useRouter()
-  const [step, setStep] = useState<AuthStep>("choose")
+  const [mode, setMode] = useState<Mode>("login")
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [code, setCode] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [resendTimer, setResendTimer] = useState(0)
 
-  // Countdown timer for resend
-  useEffect(() => {
-    if (resendTimer <= 0) return
-    const interval = setInterval(() => {
-      setResendTimer((t) => t - 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [resendTimer])
+  const login = $api.useMutation("post", "/auth/login")
+  const register = $api.useMutation("post", "/auth/register")
 
-  const requestOTP = useCallback(async () => {
-    setLoading(true)
-    setError("")
-    try {
-      const res = await fetch("/api/proxy/auth/otp/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setError(data.error || "Failed to send code")
-        setLoading(false)
-        return false
-      }
-      setResendTimer(RESEND_COOLDOWN)
-      setLoading(false)
-      return true
-    } catch {
-      setError("Network error")
-      setLoading(false)
-      return false
-    }
-  }, [email])
+  const loading = login.isPending || register.isPending
 
-  async function handleEmailSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim()) return
-    const ok = await requestOTP()
-    if (ok) {
-      setStep("code")
-      setCode("")
-    }
-  }
-
-  async function handleResend() {
-    if (resendTimer > 0) return
-    await requestOTP()
-  }
-
-  async function handleVerify(value: string) {
-    setCode(value)
-    if (value.length < 6) return
-
-    setLoading(true)
     setError("")
-    try {
-      const res = await fetch("/api/proxy/auth/otp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: value }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setError(data.error || "Invalid code")
-        setCode("")
-        setLoading(false)
-        return
-      }
-      router.replace("/dashboard")
-    } catch {
-      setError("Network error")
-      setCode("")
-      setLoading(false)
+
+    if (mode === "register") {
+      register.mutate(
+        { body: { name, email, password } as never },
+        {
+          onSuccess: () => router.replace("/dashboard"),
+          onError: (_err, variables, _ctx) => {
+            // openapi-react-query doesn't expose the raw response status on error,
+            // so we surface a generic message. The proxy already gates admin access.
+            setError("Registration failed")
+          },
+        },
+      )
+    } else {
+      login.mutate(
+        { body: { email, password } as never },
+        {
+          onSuccess: () => router.replace("/dashboard"),
+          onError: () => {
+            setError("Invalid credentials")
+          },
+        },
+      )
     }
   }
 
-  // -- Choose step: show "Continue with email" button --
-  if (step === "choose") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm space-y-6 px-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Zeus Admin
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Sign in to the platform admin panel
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Button
-              className="w-full"
-              onClick={() => {
-                setStep("email")
-                setError("")
-              }}
-            >
-              Continue with email
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
+  function switchMode() {
+    setMode(mode === "login" ? "register" : "login")
+    setError("")
   }
 
-  // -- Email step: email input --
-  if (step === "email") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm space-y-6 px-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Zeus Admin
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your admin email to receive a sign-in code
-            </p>
-          </div>
-
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-medium leading-none"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                autoFocus
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-                placeholder="admin@ziraloop.com"
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending code..." : "Send code"}
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-muted-foreground">
-            <button
-              type="button"
-              onClick={() => {
-                setStep("choose")
-                setError("")
-              }}
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Back
-            </button>
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // -- Code step: OTP input --
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 px-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Zeus Admin
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Zeus Admin</h1>
           <p className="text-sm text-muted-foreground">
-            Enter the 6-digit code sent to{" "}
-            <span className="font-medium text-foreground">{email}</span>
+            {mode === "login"
+              ? "Sign in with your platform admin account"
+              : "Create a platform admin account"}
           </p>
         </div>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="flex justify-center">
-            <InputOTP
-              maxLength={6}
-              value={code}
-              onChange={handleVerify}
-              disabled={loading}
-              autoFocus
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup>
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          {loading && (
-            <p className="text-center text-sm text-muted-foreground">
-              Verifying...
-            </p>
+          {mode === "register" && (
+            <div className="space-y-2">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium leading-none"
+              >
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                autoComplete="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+              />
+            </div>
           )}
 
-          <div className="text-center text-sm text-muted-foreground">
-            {resendTimer > 0 ? (
-              <span>Resend code in {resendTimer}s</span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={loading}
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                Resend code
-              </button>
-            )}
+          <div className="space-y-2">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium leading-none"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+              placeholder="admin@ziraloop.com"
+            />
           </div>
-        </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium leading-none"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
+              required
+              minLength={mode === "register" ? 8 : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading
+              ? mode === "login"
+                ? "Signing in..."
+                : "Creating account..."
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
+          </Button>
+        </form>
 
         <p className="text-center text-sm text-muted-foreground">
+          {mode === "login" ? "No account? " : "Already have an account? "}
           <button
             type="button"
-            onClick={() => {
-              setStep("email")
-              setCode("")
-              setError("")
-            }}
+            onClick={switchMode}
             className="text-primary underline-offset-4 hover:underline"
           >
-            Use a different email
+            {mode === "login" ? "Register" : "Sign in"}
           </button>
         </p>
       </div>
