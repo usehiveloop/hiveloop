@@ -6,8 +6,11 @@ import {
   clearSessionCookie,
   type SessionData,
 } from "@/lib/auth/session"
+import { log } from "@/lib/logger"
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL!
+
+log.info({ api_url: API_URL }, "proxy route initialized")
 
 // Paths whose successful responses contain tokens that should be persisted.
 const AUTH_PATHS = new Set([
@@ -106,14 +109,20 @@ async function handler(
 ) {
   const { path } = await params
   const apiPath = path.join("/")
+  const reqLog = log.child({ method: req.method, path: apiPath })
+
+  reqLog.info("proxy request started")
 
   const url = new URL(`${API_URL}/${apiPath}`)
   req.nextUrl.searchParams.forEach((value, key) =>
     url.searchParams.append(key, value)
   )
 
+  reqLog.debug({ upstream_url: url.toString() }, "upstream url resolved")
+
   const rawCookies = req.headers.get("cookie")
   let session = await getSessionFromHeader(rawCookies)
+  reqLog.debug({ has_session: !!session }, "session check")
 
   const body =
     req.method !== "GET" && req.method !== "HEAD"
@@ -144,7 +153,14 @@ async function handler(
   // Forward to backend
   // -----------------------------------------------------------------------
   const headers = buildUpstreamHeaders(req, session)
-  let upstream = await forward(url, req.method, headers, upstreamBody)
+  let upstream: Response
+  try {
+    upstream = await forward(url, req.method, headers, upstreamBody)
+    reqLog.info({ status: upstream.status }, "upstream response received")
+  } catch (err) {
+    reqLog.error({ err, upstream_url: url.toString() }, "upstream fetch failed")
+    return NextResponse.json({ error: "upstream_unavailable" }, { status: 502 })
+  }
 
   // -----------------------------------------------------------------------
   // Auto-refresh on 401 (retry once)
@@ -152,12 +168,17 @@ async function handler(
   let refreshedSession: SessionData | null = null
 
   if (upstream.status === 401 && session && !AUTH_PATHS.has(apiPath) && !isLogout) {
+    reqLog.info("got 401, attempting token refresh")
     const newSession = await safeRefresh(session.refresh_token)
     if (newSession) {
+      reqLog.info("token refresh succeeded, retrying request")
       refreshedSession = newSession
       session = newSession
       const retryHeaders = buildUpstreamHeaders(req, newSession)
       upstream = await forward(url, req.method, retryHeaders, body)
+      reqLog.info({ status: upstream.status }, "retry response received")
+    } else {
+      reqLog.warn("token refresh failed")
     }
   }
 
@@ -174,22 +195,32 @@ async function handler(
   // Intercept auth responses — persist session, strip tokens from body
   // -----------------------------------------------------------------------
   if (AUTH_PATHS.has(apiPath) && upstream.ok) {
-    const data = await upstream.json()
+    reqLog.info("intercepting auth response")
+    try {
+      const data = await upstream.json()
+      reqLog.debug({ has_access_token: !!data.access_token, has_refresh_token: !!data.refresh_token }, "auth response parsed")
 
-    if (data.access_token && data.refresh_token) {
-      const newSession: SessionData = {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: Date.now() + (data.expires_in ?? 900) * 1000,
+      if (data.access_token && data.refresh_token) {
+        const newSession: SessionData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_at: Date.now() + (data.expires_in ?? 900) * 1000,
+        }
+        const cookie = await createSessionCookie(newSession)
+        reqLog.debug({ cookie_length: cookie.length }, "session cookie created")
+        responseHeaders.append("set-cookie", cookie)
+
+        // Strip tokens from what the client receives
+        const { access_token: _a, refresh_token: _r, expires_in: _e, ...safe } = data
+        reqLog.info("auth response complete, session cookie set")
+        return NextResponse.json(safe, {
+          status: upstream.status,
+          headers: responseHeaders,
+        })
       }
-      responseHeaders.append("set-cookie", await createSessionCookie(newSession))
-
-      // Strip tokens from what the client receives
-      const { access_token: _a, refresh_token: _r, expires_in: _e, ...safe } = data
-      return NextResponse.json(safe, {
-        status: upstream.status,
-        headers: responseHeaders,
-      })
+    } catch (err) {
+      reqLog.error({ err }, "auth response interception failed")
+      return NextResponse.json({ error: "session_creation_failed" }, { status: 502 })
     }
   }
 
@@ -227,6 +258,7 @@ async function handler(
     responseHeaders.append("set-cookie", clearSessionCookie())
   }
 
+  reqLog.info({ status: upstream.status }, "proxy response complete")
   return new NextResponse(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,

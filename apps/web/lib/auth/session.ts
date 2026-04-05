@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { log } from "@/lib/logger"
 
 const COOKIE_NAME = "__session"
 const MAX_AGE = 60 * 60 * 24 * 30 // 30 days
@@ -19,8 +20,12 @@ async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey
 
   const secret = process.env.SESSION_SECRET
-  if (!secret) throw new Error("SESSION_SECRET env var is required")
+  if (!secret) {
+    log.error("SESSION_SECRET env var is not set")
+    throw new Error("SESSION_SECRET env var is required")
+  }
 
+  log.debug("deriving session encryption key")
   const raw = new TextEncoder().encode(secret)
   const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, [
     "deriveKey",
@@ -34,6 +39,7 @@ async function getKey(): Promise<CryptoKey> {
     ["encrypt", "decrypt"]
   )
 
+  log.info("session encryption key derived successfully")
   return cachedKey
 }
 
@@ -42,6 +48,7 @@ async function getKey(): Promise<CryptoKey> {
 // ---------------------------------------------------------------------------
 
 export async function encrypt(data: SessionData): Promise<string> {
+  log.debug({ expires_at: data.expires_at }, "encrypting session data")
   const key = await getKey()
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const plaintext = new TextEncoder().encode(JSON.stringify(data))
@@ -55,7 +62,9 @@ export async function encrypt(data: SessionData): Promise<string> {
   buf.set(iv)
   buf.set(ciphertext, iv.length)
 
-  return btoa(String.fromCharCode(...buf))
+  const encoded = btoa(String.fromCharCode(...buf))
+  log.debug({ cookie_length: encoded.length }, "session encrypted")
+  return encoded
 }
 
 export async function decrypt(cookie: string): Promise<SessionData | null> {
@@ -72,8 +81,10 @@ export async function decrypt(cookie: string): Promise<SessionData | null> {
       ciphertext
     )
 
+    log.debug("session decrypted successfully")
     return JSON.parse(new TextDecoder().decode(plaintext)) as SessionData
-  } catch {
+  } catch (err) {
+    log.warn({ err }, "session decrypt failed")
     return null
   }
 }
