@@ -187,8 +187,9 @@ async function handler(
   // Build response
   // -----------------------------------------------------------------------
   const responseHeaders = new Headers()
+  const skipHeaders = new Set(["transfer-encoding", "content-encoding", "content-length"])
   upstream.headers.forEach((value, key) => {
-    if (key.toLowerCase() === "transfer-encoding") return
+    if (skipHeaders.has(key.toLowerCase())) return
     responseHeaders.set(key, value)
   })
 

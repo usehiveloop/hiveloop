@@ -58,6 +58,7 @@ type inIntegrationAvailableResponse struct {
 	Provider    string     `json:"provider"`
 	DisplayName string     `json:"display_name"`
 	Meta        model.JSON `json:"meta,omitempty"`
+	NangoConfig model.JSON `json:"nango_config,omitempty"`
 	CreatedAt   string     `json:"created_at"`
 }
 
@@ -80,6 +81,7 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 		Provider:    integ.Provider,
 		DisplayName: integ.DisplayName,
 		Meta:        integ.Meta,
+		NangoConfig: integ.NangoConfig,
 		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
 	}
 }
@@ -368,7 +370,13 @@ func (h *InIntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListAvailable handles GET /v1/in/integrations/available.
-// Returns non-deleted in-integrations with safe fields (no credentials/nango_config).
+// @Summary List available platform integrations
+// @Description Returns non-deleted platform integrations with safe fields for end users.
+// @Tags in-integrations
+// @Produce json
+// @Success 200 {array} inIntegrationAvailableResponse
+// @Security BearerAuth
+// @Router /v1/in/integrations/available [get]
 func (h *InIntegrationHandler) ListAvailable(w http.ResponseWriter, r *http.Request) {
 	var integrations []model.InIntegration
 	if err := h.db.Where("deleted_at IS NULL").Order("created_at ASC").Find(&integrations).Error; err != nil {
