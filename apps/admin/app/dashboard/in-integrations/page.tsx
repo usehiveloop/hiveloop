@@ -722,7 +722,7 @@ export default function InIntegrationsPage() {
                   Leave fields empty to keep existing values. Only filled fields will be updated.
                 </p>
                 <CredentialFields
-                  authMode={getAuthMode(editingIntegration!)}
+                  authMode={editingIntegration ? getAuthMode(editingIntegration) : ""}
                   credentials={editCredentials}
                   onChange={setEditCredentials}
                 />
