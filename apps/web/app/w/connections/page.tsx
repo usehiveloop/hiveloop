@@ -5,13 +5,18 @@ import { $api } from "@/lib/api/hooks"
 import { ConnectionsHeader } from "./_components/connections-header"
 import { ConnectionsSearch } from "./_components/connections-search"
 import { ConnectionsTable } from "./_components/connections-table"
+import { ConnectionsEmpty } from "./_components/connections-empty"
 import { AddConnectionDialog } from "./_components/add-connection-dialog"
+import { PageLoader } from "@/components/page-loader"
+import { useConnectIntegration } from "./_hooks/use-connect-integration"
 
 export default function ConnectionsPage() {
   const [search, setSearch] = useState("")
   const [addOpen, setAddOpen] = useState(false)
+  const [dialogSearch, setDialogSearch] = useState("")
 
-  const { data: inConnections } = $api.useQuery("get", "/v1/in/connections")
+  const { data: inConnections, isLoading } = $api.useQuery("get", "/v1/in/connections")
+  const { connect, connectingId } = useConnectIntegration()
 
   const connections = inConnections?.data ?? []
 
@@ -24,12 +29,50 @@ export default function ConnectionsPage() {
     )
   }, [connections, search])
 
+  function handleConnect(integrationId: string) {
+    connect(integrationId, () => {
+      setAddOpen(false)
+      setDialogSearch("")
+    })
+  }
+
+  if (isLoading) {
+    return <PageLoader description="Loading your connections" />
+  }
+
+  if (connections.length === 0) {
+    return (
+      <>
+        <ConnectionsEmpty
+          connectingId={connectingId}
+          onConnect={handleConnect}
+          onShowAll={() => setAddOpen(true)}
+        />
+        <AddConnectionDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          search={dialogSearch}
+          onSearchChange={setDialogSearch}
+          connectingId={connectingId}
+          onConnect={handleConnect}
+        />
+      </>
+    )
+  }
+
   return (
     <div className="max-w-464 mx-auto w-full px-4 py-8">
       <ConnectionsHeader count={connections.length} onAddClick={() => setAddOpen(true)} />
       <ConnectionsSearch value={search} onChange={setSearch} />
       <ConnectionsTable connections={filtered} />
-      <AddConnectionDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddConnectionDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        search={dialogSearch}
+        onSearchChange={setDialogSearch}
+        connectingId={connectingId}
+        onConnect={handleConnect}
+      />
     </div>
   )
 }

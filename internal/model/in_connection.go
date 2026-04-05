@@ -8,9 +8,11 @@ import (
 
 type InConnection struct {
 	ID                uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID            uuid.UUID     `gorm:"type:uuid;not null;index;uniqueIndex:idx_in_conn_user_integ"`
+	OrgID             uuid.UUID     `gorm:"type:uuid;not null;index"`
+	Org               Org           `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	UserID            uuid.UUID     `gorm:"type:uuid;not null;index"`
 	User              User          `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	InIntegrationID   uuid.UUID     `gorm:"type:uuid;not null;index;uniqueIndex:idx_in_conn_user_integ"`
+	InIntegrationID   uuid.UUID     `gorm:"type:uuid;not null;index"`
 	InIntegration     InIntegration `gorm:"foreignKey:InIntegrationID;constraint:OnDelete:CASCADE"`
 	NangoConnectionID string        `gorm:"not null"`
 	Meta              JSON          `gorm:"type:jsonb;default:'{}'"`

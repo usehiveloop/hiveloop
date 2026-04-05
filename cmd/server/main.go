@@ -623,12 +623,15 @@ func run() error {
 			r.Delete("/integrations/{id}", inIntegrationHandler.Delete)
 		})
 
-		// User connections (any authenticated user)
-		r.Post("/integrations/{id}/connect-session", inConnectionHandler.CreateConnectSession)
-		r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
-		r.Get("/connections", inConnectionHandler.List)
-		r.Get("/connections/{id}", inConnectionHandler.Get)
-		r.Delete("/connections/{id}", inConnectionHandler.Revoke)
+		// User connections (any authenticated user, org-scoped)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.ResolveOrgFlexible(database))
+			r.Post("/integrations/{id}/connect-session", inConnectionHandler.CreateConnectSession)
+			r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
+			r.Get("/connections", inConnectionHandler.List)
+			r.Get("/connections/{id}", inConnectionHandler.Get)
+			r.Delete("/connections/{id}", inConnectionHandler.Revoke)
+		})
 	})
 
 	// Admin API (disabled by default — only mounted when ADMIN_API_ENABLED=true)

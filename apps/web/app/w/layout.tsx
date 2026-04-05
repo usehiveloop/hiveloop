@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { LogoMark } from "@/components/logo"
 import { usePathname } from "next/navigation"
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
+import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog"
 
 const navItems = [
   { label: "Agents", href: "/w/agents", icon: Robot01Icon },
@@ -59,6 +61,7 @@ function NavItems() {
 
 function WorkspaceHeader() {
   const { user, orgs, activeOrg, setActiveOrg, logout } = useAuth()
+  const [createOpen, setCreateOpen] = useState(false)
 
   const initials = user?.name
     ? user.name
@@ -100,12 +103,14 @@ function WorkspaceHeader() {
             ))}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
             <HugeiconsIcon icon={Add01Icon} size={16} className="text-muted-foreground" />
             Create new workspace
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <NavItems />
 

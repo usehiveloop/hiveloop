@@ -128,9 +128,9 @@ func MultiAuth(pubKey *rsa.PublicKey, issuer, audience string, db *gorm.DB, keyC
 }
 
 // ResolveOrgFlexible resolves the org from context. If already set (by API key auth), it's a no-op.
-// Otherwise, falls back to embedded auth claims-based org resolution.
+// Otherwise, falls back to the X-Org-ID header for JWT-authenticated requests.
 func ResolveOrgFlexible(db *gorm.DB) func(http.Handler) http.Handler {
-	claimsResolve := ResolveOrgFromClaims(db)
+	headerResolve := ResolveOrgFromHeader(db)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +138,7 @@ func ResolveOrgFlexible(db *gorm.DB) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			claimsResolve(next).ServeHTTP(w, r)
+			headerResolve(next).ServeHTTP(w, r)
 		})
 	}
 }

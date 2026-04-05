@@ -7008,6 +7008,34 @@ paths:
       summary: List user's in-connections
       tags:
       - in-connections
+  /v1/in/connections/{id}:
+    delete:
+      description: Revokes a user's platform integration connection and removes it
+        from Nango.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disconnect an in-connection
+      tags:
+      - in-connections
   /v1/in/integrations/{id}/connect-session:
     post:
       description: Creates a Nango connect session for the authenticated user to initiate

@@ -1,9 +1,7 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
-import Nango, { AuthError } from "@nangohq/frontend"
+import { useMemo } from "react"
 import { $api } from "@/lib/api/hooks"
-import { api } from "@/lib/api/client"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -17,18 +15,25 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading03Icon, ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import Image from "next/image"
+import { useConnectIntegration } from "../_hooks/use-connect-integration"
+
+interface AddConnectionDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  search: string
+  onSearchChange: (value: string) => void
+  connectingId: string | null
+  onConnect: (integrationId: string) => void
+}
 
 export function AddConnectionDialog({
   open,
   onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const [search, setSearch] = useState("")
-  const [connectingId, setConnectingId] = useState<string | null>(null)
-  const [error, setError] = useState("")
-
+  search,
+  onSearchChange,
+  connectingId,
+  onConnect,
+}: AddConnectionDialogProps) {
   const { data, isLoading } = $api.useQuery(
     "get",
     "/v1/in/integrations/available",
@@ -60,50 +65,6 @@ export function AddConnectionDialog({
     )
   }, [integrations, search])
 
-  const handleConnect = useCallback(async (integrationId: string) => {
-    setConnectingId(integrationId)
-    setError("")
-
-    try {
-      const sessionResponse = await api.POST(
-        "/v1/in/integrations/{id}/connect-session",
-        { params: { path: { id: integrationId } } },
-      )
-
-      if (sessionResponse.error) {
-        setError("Failed to start connection")
-        setConnectingId(null)
-        return
-      }
-
-      const { token, provider_config_key: providerConfigKey } =
-        sessionResponse.data as { token: string; provider_config_key: string }
-
-      const nango = new Nango({
-        connectSessionToken: token,
-        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
-      })
-
-      const authResult = await nango.auth(providerConfigKey)
-
-      await api.POST("/v1/in/integrations/{id}/connections", {
-        params: { path: { id: integrationId } },
-        body: { nango_connection_id: authResult.connectionId } as never,
-      })
-
-      onOpenChange(false)
-      setSearch("")
-      setConnectingId(null)
-    } catch (thrown) {
-      if (thrown instanceof AuthError && thrown.type === "window_closed") {
-        setConnectingId(null)
-        return
-      }
-      setError("Connection failed. Please try again.")
-      setConnectingId(null)
-    }
-  }, [onOpenChange])
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -117,15 +78,9 @@ export function AddConnectionDialog({
         <Input
           placeholder="Search integrations..."
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => onSearchChange(event.target.value)}
           autoFocus
         />
-
-        {error && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
 
         <ScrollArea className="h-80">
           {isLoading ? (
@@ -152,7 +107,7 @@ export function AddConnectionDialog({
                     type="button"
                     disabled={isDisabled}
                     className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted cursor-pointer disabled:cursor-not-allowed"
-                    onClick={() => handleConnect(integration.id!)}
+                    onClick={() => onConnect(integration.id!)}
                   >
                     {integration.nango_config?.logo ? (
                       <Image

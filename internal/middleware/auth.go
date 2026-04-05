@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/auth"
@@ -72,6 +73,45 @@ func ResolveOrgFromClaims(db *gorm.DB) func(http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(w, WithOrg(r, &org))
+		})
+	}
+}
+
+// ResolveOrgFromHeader returns middleware that reads the X-Org-ID header,
+// validates the user is a member of that org, and sets the org on context.
+func ResolveOrgFromHeader(db *gorm.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			orgIDStr := r.Header.Get("X-Org-ID")
+			if orgIDStr == "" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing X-Org-ID header"})
+				return
+			}
+
+			orgID, err := uuid.Parse(orgIDStr)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid X-Org-ID header"})
+				return
+			}
+
+			claims, ok := AuthClaimsFromContext(r.Context())
+			if !ok || claims.UserID == "" {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing auth context"})
+				return
+			}
+
+			var membership model.OrgMembership
+			if err := db.Preload("Org").Where("user_id = ? AND org_id = ?", claims.UserID, orgID).First(&membership).Error; err != nil {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "not a member of the requested organization"})
+				return
+			}
+
+			if !membership.Org.Active {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "organization is inactive"})
+				return
+			}
+
+			next.ServeHTTP(w, WithOrg(r, &membership.Org))
 		})
 	}
 }

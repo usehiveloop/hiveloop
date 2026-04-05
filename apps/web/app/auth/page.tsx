@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
 import { apiUrl } from "@/lib/api/client"
+import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 
 type AuthStep = "buttons" | "email" | "code"
@@ -36,7 +37,6 @@ export default function AuthPage() {
   const [step, setStep] = useState<AuthStep>("buttons")
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
-  const [error, setError] = useState("")
   const [resendTimer, setResendTimer] = useState(0)
 
   const otpRequest = $api.useMutation("post", "/auth/otp/request")
@@ -51,7 +51,6 @@ export default function AuthPage() {
   }, [resendTimer])
 
   const requestOTP = useCallback(async () => {
-    setError("")
     otpRequest.mutate(
       { body: { email } as never },
       {
@@ -63,7 +62,7 @@ export default function AuthPage() {
           }
         },
         onError: () => {
-          setError("Failed to send code")
+          toast.error("Failed to send code")
         },
       },
     )
@@ -79,7 +78,6 @@ export default function AuthPage() {
     setCode(value)
     if (value.length < 6) return
 
-    setError("")
     otpVerify.mutate(
       { body: { email, code: value } as never },
       {
@@ -87,7 +85,7 @@ export default function AuthPage() {
           router.replace("/w")
         },
         onError: () => {
-          setError("Invalid or expired code")
+          toast.error("Invalid or expired code")
           setCode("")
         },
       },
@@ -112,12 +110,6 @@ export default function AuthPage() {
               Connect your apps, provide controlled access to your ai agents, and get full visibility into their work.
             </p>
           </div>
-
-          {error && (
-            <div className="max-w-sm w-full mx-auto rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
 
           <AnimatePresence mode="wait">
             {step === "buttons" && (
@@ -157,7 +149,7 @@ export default function AuthPage() {
                   Continue with X
                 </Button>
 
-                <Button variant="outline" size="default" className="w-full h-12 cursor-pointer" onClick={() => { setStep("email"); setError("") }}>
+                <Button variant="outline" size="default" className="w-full h-12 cursor-pointer" onClick={() => { setStep("email");  }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2.5 opacity-70">
                     <title>email</title>
                     <rect width="20" height="16" x="2" y="4" rx="2"/>
@@ -201,7 +193,7 @@ export default function AuthPage() {
 
                 <button
                   type="button"
-                  onClick={() => { setStep("buttons"); setError("") }}
+                  onClick={() => { setStep("buttons");  }}
                   className="cursor-pointer text-sm text-muted-foreground text-center hover:text-foreground transition-colors"
                 >
                   All sign-in options
@@ -270,7 +262,7 @@ export default function AuthPage() {
 
                 <button
                   type="button"
-                  onClick={() => { setStep("email"); setCode(""); setError("") }}
+                  onClick={() => { setStep("email"); setCode("");  }}
                   className="cursor-pointer text-sm text-muted-foreground text-center hover:text-foreground transition-colors"
                 >
                   Use a different email

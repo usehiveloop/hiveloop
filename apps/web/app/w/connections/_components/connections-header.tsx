@@ -2,13 +2,12 @@ import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Add01Icon } from "@hugeicons/core-free-icons"
 
-export function ConnectionsHeader({
-  count,
-  onAddClick,
-}: {
+interface ConnectionsHeaderProps {
   count: number
   onAddClick: () => void
-}) {
+}
+
+export function ConnectionsHeader({ count, onAddClick }: ConnectionsHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-6">
       <div>

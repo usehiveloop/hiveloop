@@ -35,6 +35,7 @@ type createInConnectionRequest struct {
 
 type inConnectionResponse struct {
 	ID                string     `json:"id"`
+	OrgID             string     `json:"org_id"`
 	InIntegrationID   string     `json:"in_integration_id"`
 	Provider          string     `json:"provider"`
 	DisplayName       string     `json:"display_name"`
@@ -49,6 +50,7 @@ type inConnectionResponse struct {
 func toInConnectionResponse(conn model.InConnection) inConnectionResponse {
 	resp := inConnectionResponse{
 		ID:                conn.ID.String(),
+		OrgID:             conn.OrgID.String(),
 		InIntegrationID:   conn.InIntegrationID.String(),
 		Provider:          conn.InIntegration.Provider,
 		DisplayName:       conn.InIntegration.DisplayName,
@@ -143,6 +145,11 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
 		return
 	}
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
 
 	integID := chi.URLParam(r, "id")
 	if integID == "" {
@@ -179,6 +186,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	conn := model.InConnection{
 		ID:                uuid.New(),
+		OrgID:             org.ID,
 		UserID:            user.ID,
 		InIntegrationID:   integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
@@ -186,13 +194,13 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Create(&conn).Error; err != nil {
-		slog.Error("failed to create in-connection", "error", err, "user_id", user.ID, "integration_id", integ.ID)
+		slog.Error("failed to create in-connection", "error", err, "org_id", org.ID, "user_id", user.ID, "integration_id", integ.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create connection"})
 		return
 	}
 
 	conn.InIntegration = integ
-	slog.Info("in-connection created", "connection_id", conn.ID, "user_id", user.ID, "provider", integ.Provider)
+	slog.Info("in-connection created", "connection_id", conn.ID, "org_id", org.ID, "user_id", user.ID, "provider", integ.Provider)
 	writeJSON(w, http.StatusCreated, toInConnectionResponse(conn))
 }
 
@@ -208,9 +216,9 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Router /v1/in/connections [get]
 func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
+	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
@@ -221,7 +229,7 @@ func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := h.db.Preload("InIntegration").
-		Where("in_connections.user_id = ? AND in_connections.revoked_at IS NULL", user.ID).
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL", org.ID).
 		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL")
 
 	if provider := r.URL.Query().Get("provider"); provider != "" {
@@ -261,9 +269,9 @@ func (h *InConnectionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /v1/in/connections/{id}.
 func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
+	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
@@ -275,7 +283,7 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	var conn model.InConnection
 	if err := h.db.Preload("InIntegration").
-		Where("id = ? AND user_id = ? AND revoked_at IS NULL", connID, user.ID).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
 		First(&conn).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
@@ -304,10 +312,19 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // Revoke handles DELETE /v1/in/connections/{id}.
+// @Summary Disconnect an in-connection
+// @Description Revokes a user's platform integration connection and removes it from Nango.
+// @Tags in-connections
+// @Produce json
+// @Param id path string true "Connection ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/in/connections/{id} [delete]
 func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.UserFromContext(r.Context())
+	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
@@ -319,7 +336,7 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 
 	var conn model.InConnection
 	if err := h.db.Preload("InIntegration").
-		Where("id = ? AND user_id = ? AND revoked_at IS NULL", connID, user.ID).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
 		First(&conn).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found or already revoked"})
@@ -350,6 +367,6 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("in-connection revoked", "connection_id", conn.ID, "user_id", user.ID, "provider", conn.InIntegration.Provider)
+	slog.Info("in-connection revoked", "connection_id", conn.ID, "org_id", org.ID, "provider", conn.InIntegration.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }

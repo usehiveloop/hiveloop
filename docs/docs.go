@@ -6780,6 +6780,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/in/connections/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revokes a user's platform integration connection and removes it from Nango.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "in-connections"
+                ],
+                "summary": "Disconnect an in-connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/in/integrations/available": {
             "get": {
                 "security": [
