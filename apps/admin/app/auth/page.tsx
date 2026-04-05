@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
 
 type Mode = "login" | "register"
 
@@ -14,50 +14,38 @@ export default function AuthPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+
+  const login = $api.useMutation("post", "/auth/login")
+  const register = $api.useMutation("post", "/auth/register")
+
+  const loading = login.isPending || register.isPending
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    setLoading(true)
 
-    try {
-      if (mode === "register") {
-        const { response } = await api.POST("/auth/register", {
-          body: { name, email, password } as never,
-        })
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => null)
-          const msg =
-            response.status === 403
-              ? "Admin access required"
-              : response.status === 409
-                ? "Email already registered"
-                : (data as Record<string, string>)?.error ?? "Registration failed"
-          setError(msg)
-          return
-        }
-      } else {
-        const { response } = await api.POST("/auth/login", {
-          body: { email, password } as never,
-        })
-
-        if (!response.ok) {
-          const msg =
-            response.status === 403
-              ? "Admin access required"
-              : "Invalid credentials"
-          setError(msg)
-          return
-        }
-      }
-
-      router.replace("/dashboard")
-    } catch {
-      setError("Something went wrong")
-    } finally {
-      setLoading(false)
+    if (mode === "register") {
+      register.mutate(
+        { body: { name, email, password } as never },
+        {
+          onSuccess: () => router.replace("/dashboard"),
+          onError: (_err, variables, _ctx) => {
+            // openapi-react-query doesn't expose the raw response status on error,
+            // so we surface a generic message. The proxy already gates admin access.
+            setError("Registration failed")
+          },
+        },
+      )
+    } else {
+      login.mutate(
+        { body: { email, password } as never },
+        {
+          onSuccess: () => router.replace("/dashboard"),
+          onError: () => {
+            setError("Invalid credentials")
+          },
+        },
+      )
     }
   }
 

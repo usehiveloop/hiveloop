@@ -178,12 +178,16 @@ async function handler(
         refresh_token: data.refresh_token,
         expires_at: Date.now() + (data.expires_in ?? 900) * 1000,
       }
-      responseHeaders.append("set-cookie", await createSessionCookie(newSession))
+
+      // Build clean response headers — don't carry over content-length
+      // from the upstream response since we're returning a different body
+      const authHeaders = new Headers()
+      authHeaders.append("set-cookie", await createSessionCookie(newSession))
 
       const { access_token: _a, refresh_token: _r, expires_in: _e, ...safe } = data
       return NextResponse.json(safe, {
         status: upstream.status,
-        headers: responseHeaders,
+        headers: authHeaders,
       })
     }
   }

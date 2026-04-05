@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { api } from "@/lib/api/client"
+import { usePathname } from "next/navigation"
+import { useAuth } from "@/lib/auth/auth-context"
 import {
   Sidebar,
   SidebarContent,
@@ -76,12 +76,7 @@ const sections = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  async function handleLogout() {
-    await api.POST("/auth/logout", { body: {} as never })
-    router.replace("/auth")
-  }
+  const { logout } = useAuth()
 
   return (
     <Sidebar>
@@ -118,7 +113,7 @@ export function AdminSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
+        <Button variant="outline" size="sm" className="w-full" onClick={logout}>
           Sign out
         </Button>
       </SidebarFooter>
