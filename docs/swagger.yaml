@@ -1469,6 +1469,19 @@ definitions:
       total:
         type: integer
     type: object
+  internal_handler.inIntegrationAvailableResponse:
+    properties:
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      provider:
+        type: string
+    type: object
   internal_handler.integConnCreateRequest:
     properties:
       identity_id:
@@ -1673,6 +1686,18 @@ definitions:
         type: string
       rate_limit:
         type: integer
+    type: object
+  internal_handler.otpRequestPayload:
+    properties:
+      email:
+        type: string
+    type: object
+  internal_handler.otpVerifyPayload:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
     type: object
   internal_handler.paginatedResponse-internal_handler_adminAPIKeyResponse:
     properties:
@@ -4616,6 +4641,69 @@ paths:
       summary: Get current user
       tags:
       - auth
+  /auth/otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Sends a 6-digit one-time code to the given email address.
+      parameters:
+      - description: OTP request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.otpRequestPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Request an OTP code
+      tags:
+      - auth
+  /auth/otp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the 6-digit code and returns access/refresh tokens. Creates
+        the user account if it doesn't exist.
+      parameters:
+      - description: OTP verification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.otpVerifyPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Verify an OTP code
+      tags:
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -6782,6 +6870,24 @@ paths:
       summary: Update an identity
       tags:
       - identities
+  /v1/in/integrations/available:
+    get:
+      description: Returns non-deleted platform integrations with safe fields for
+        end users.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.inIntegrationAvailableResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List available platform integrations
+      tags:
+      - in-integrations
   /v1/integrations:
     get:
       description: Returns integrations for the current organization with cursor pagination.

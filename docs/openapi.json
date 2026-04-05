@@ -3846,6 +3846,113 @@
         }
       }
     },
+    "/auth/otp/request": {
+      "post": {
+        "description": "Sends a 6-digit one-time code to the given email address.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request an OTP code",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/otpRequestPayload"
+              }
+            }
+          },
+          "description": "OTP request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/otp/verify": {
+      "post": {
+        "description": "Verifies the 6-digit code and returns access/refresh tokens. Creates the user account if it doesn't exist.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify an OTP code",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/otpVerifyPayload"
+              }
+            }
+          },
+          "description": "OTP verification",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/refresh": {
       "post": {
         "description": "Exchanges a refresh token for new access and refresh tokens.",
@@ -7963,6 +8070,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/in/integrations/available": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns non-deleted platform integrations with safe fields for end users.",
+        "tags": [
+          "in-integrations"
+        ],
+        "summary": "List available platform integrations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/inIntegrationAvailableResponse"
+                  }
                 }
               }
             }
@@ -13367,6 +13503,26 @@
           }
         }
       },
+      "inIntegrationAvailableResponse": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "provider": {
+            "type": "string"
+          }
+        }
+      },
       "integConnCreateRequest": {
         "type": "object",
         "properties": {
@@ -13678,6 +13834,25 @@
           },
           "rate_limit": {
             "type": "integer"
+          }
+        }
+      },
+      "otpRequestPayload": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "otpVerifyPayload": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
           }
         }
       },
