@@ -155,13 +155,9 @@ func newHarness(t *testing.T) *testHarness {
 
 	// Connect handlers
 	connectSessionHandler := handler.NewConnectSessionHandler(db)
-	// Nango client (REQUIRED — matches server startup behavior)
-	nangoEndpoint := envOr("NANGO_ENDPOINT", "")
-	nangoSecretKey := envOr("NANGO_SECRET_KEY", "")
-	if nangoEndpoint == "" || nangoSecretKey == "" {
-		t.Fatal("NANGO_ENDPOINT and NANGO_SECRET_KEY must be set")
-	}
-	nangoClient := nango.NewClient(nangoEndpoint, nangoSecretKey)
+	// Nango mock — no external Nango instance required
+	nangoMockServer := newNangoMock(t)
+	nangoClient := nango.NewClient(nangoMockServer.URL(), "mock-secret-key")
 	if err := nangoClient.FetchProviders(context.Background()); err != nil {
 		t.Fatalf("failed to fetch Nango providers: %v", err)
 	}

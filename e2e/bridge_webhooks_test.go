@@ -343,9 +343,9 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 	// Verify payload data is stored
 	var respEvent model.ConversationEvent
 	wh.db.Where("conversation_id = ? AND event_type = 'ResponseCompleted'", wh.conv.ID).First(&respEvent)
-	data, ok := respEvent.Payload["data"].(map[string]any)
-	if !ok {
-		t.Fatal("response_completed payload should have data")
+	var data map[string]any
+	if err := json.Unmarshal(respEvent.Data, &data); err != nil {
+		t.Fatal("response_completed data should be valid JSON")
 	}
 	if data["content"] != "Hi there!" {
 		t.Errorf("response content: got %v", data["content"])

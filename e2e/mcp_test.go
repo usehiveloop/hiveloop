@@ -152,7 +152,7 @@ func TestE2E_MCP_MintScopedToken_ReturnsMCPEndpoint(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack MCP Test")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-1")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["send_message","list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["chat_post_message","conversations_list"]}]`, connID)
 	tok, jti, mcpEndpoint := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	if tok == "" {
@@ -182,7 +182,7 @@ func TestE2E_MCP_ToolsList_ReturnsCorrectTools(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Tools")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-tools")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["send_message","read_messages","list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["chat_post_message","conversations_history","conversations_list"]}]`, connID)
 	tok, jti, _ := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	mcpSrv := httptest.NewServer(h.mcpRouter)
@@ -221,7 +221,7 @@ func TestE2E_MCP_ToolsList_ReturnsCorrectTools(t *testing.T) {
 	for _, tool := range tools.Tools {
 		toolNames[tool.Name] = true
 	}
-	for _, expected := range []string{"slack_send_message", "slack_read_messages", "slack_list_channels"} {
+	for _, expected := range []string{"slack_chat_post_message", "slack_conversations_history", "slack_conversations_list"} {
 		if !toolNames[expected] {
 			t.Fatalf("expected tool %q not found in %v", expected, toolNames)
 		}
@@ -240,7 +240,7 @@ func TestE2E_MCP_CallTool_ProxiesToNango(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Call")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-call")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, connID)
 	tok, jti, _ := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	mcpSrv := httptest.NewServer(h.mcpRouter)
@@ -270,7 +270,7 @@ func TestE2E_MCP_CallTool_ProxiesToNango(t *testing.T) {
 	// is local-only, but the tool handler runs and the MCP protocol returns
 	// a valid CallToolResult (with IsError=true for the Nango error).
 	result, err := session.CallTool(ctx, &mcpsdk.CallToolParams{
-		Name:      "slack_list_channels",
+		Name:      "slack_conversations_list",
 		Arguments: json.RawMessage(`{"limit":10}`),
 	})
 	if err != nil {
@@ -331,7 +331,7 @@ func TestE2E_MCP_RevokedToken_Returns401(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Revoke")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-revoke")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["send_message"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["chat_post_message"]}]`, connID)
 	tok, jti, _ := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	mcpSrv := httptest.NewServer(h.mcpRouter)
@@ -373,7 +373,7 @@ func TestE2E_MCP_Revocation_EvictsCache(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Cache")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-cache")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, connID)
 	tok, jti, _ := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	mcpSrv := httptest.NewServer(h.mcpRouter)
@@ -448,9 +448,9 @@ func TestE2E_MCP_AvailableScopes(t *testing.T) {
 	notionInteg := h.createNangoIntegrationForProvider(t, org, "notion", "Notion Scopes")
 	h.createLocalConnection(t, org, notionInteg.ID, "nango-scopes-notion")
 
-	// Create asana integration (no catalog actions) + connection
-	asanaInteg := h.createNangoIntegrationForProvider(t, org, "asana", "Asana Scopes")
-	h.createLocalConnection(t, org, asanaInteg.ID, "nango-scopes-asana")
+	// Create salesforce integration (no catalog actions) + connection
+	sfInteg := h.createNangoIntegrationForProvider(t, org, "salesforce", "Salesforce Scopes")
+	h.createLocalConnection(t, org, sfInteg.ID, "nango-scopes-salesforce")
 
 	// GET available-scopes
 	req := httptest.NewRequest(http.MethodGet, "/v1/connections/available-scopes", nil)
@@ -500,9 +500,9 @@ func TestE2E_MCP_AvailableScopes(t *testing.T) {
 		t.Fatal("expected Notion in available-scopes")
 	}
 
-	// Verify Asana excluded
-	if _, ok := providers["asana"]; ok {
-		t.Fatal("Asana should not be in available-scopes (no catalog actions)")
+	// Verify Salesforce excluded (no catalog actions)
+	if _, ok := providers["salesforce"]; ok {
+		t.Fatal("Salesforce should not be in available-scopes (no catalog actions)")
 	}
 
 	t.Logf("available-scopes returned %d connections", len(result))
@@ -520,7 +520,7 @@ func TestE2E_MCP_SSE_Transport(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack SSE")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-mcp-sse")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["send_message","list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["chat_post_message","conversations_list"]}]`, connID)
 	tok, jti, _ := h.mintScopedTokenWithEndpoint(t, org, cred.ID, scopesJSON)
 
 	mcpSrv := httptest.NewServer(h.mcpRouter)
@@ -560,7 +560,7 @@ func TestE2E_MCP_SSE_Transport(t *testing.T) {
 	for _, tool := range tools.Tools {
 		toolNames[tool.Name] = true
 	}
-	for _, expected := range []string{"slack_send_message", "slack_list_channels"} {
+	for _, expected := range []string{"slack_chat_post_message", "slack_conversations_list"} {
 		if !toolNames[expected] {
 			t.Fatalf("expected tool %q not found via SSE in %v", expected, toolNames)
 		}

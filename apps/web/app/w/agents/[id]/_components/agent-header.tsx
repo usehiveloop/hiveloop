@@ -27,9 +27,10 @@ type AgentHeaderProps = {
   memoryEnabled: boolean
   status: string
   onStartConversation?: () => void
+  onEdit?: () => void
 }
 
-export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled, onStartConversation }: AgentHeaderProps) {
+export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled, onStartConversation, onEdit }: AgentHeaderProps) {
   return (
     <div className="flex flex-col gap-4 mb-8">
       {/* Top: name + actions */}
@@ -40,7 +41,7 @@ export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled,
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+          <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={onEdit}>
             <HugeiconsIcon icon={Edit02Icon} size={14} data-icon="inline-start" />
             Edit
           </Button>
@@ -53,7 +54,7 @@ export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={4}>
               <DropdownMenuGroup>
-                <DropdownMenuItem className="sm:hidden">
+                <DropdownMenuItem className="sm:hidden" onClick={onEdit}>
                   <HugeiconsIcon icon={Edit02Icon} size={16} className="text-muted-foreground" />
                   Edit
                 </DropdownMenuItem>

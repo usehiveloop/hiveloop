@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ModelCombobox } from "./model-combobox"
+import { ProviderModelCombobox } from "@/components/provider-model-combobox"
 import { $api } from "@/lib/api/hooks"
 import { useCreateAgent } from "./context"
 
@@ -21,17 +20,6 @@ export function StepBasics() {
   const { data: credentialsData } = $api.useQuery("get", "/v1/credentials")
   const credentials = credentialsData?.data ?? []
   const selectedCredential = credentials.find((credential) => credential.id === credentialId)
-
-  const { data: modelsData, isLoading: modelsLoading } = $api.useQuery(
-    "get",
-    "/v1/providers/{id}/models",
-    { params: { path: { id: selectedCredential?.provider_id ?? "" } } },
-    { enabled: !!selectedCredential?.provider_id },
-  )
-
-  const modelIds = useMemo(() => {
-    return (modelsData ?? []).map((item) => item.id ?? "").filter(Boolean)
-  }, [modelsData])
 
   const canSubmit = name.trim().length > 0 && model.length > 0
 
@@ -61,12 +49,10 @@ export function StepBasics() {
 
         <div className="flex flex-col gap-2">
           <Label className="text-sm">Model</Label>
-          <ModelCombobox
-            models={modelIds}
+          <ProviderModelCombobox
+            providerId={selectedCredential?.provider_id ?? ""}
             value={model || null}
             onSelect={(value) => form.setValue("model", value)}
-            loading={modelsLoading}
-            disabled={modelsLoading || modelIds.length === 0}
           />
         </div>
 

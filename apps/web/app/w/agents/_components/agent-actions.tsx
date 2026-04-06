@@ -17,10 +17,11 @@ import {
 } from "@hugeicons/core-free-icons"
 
 interface AgentActionsProps {
+  onEdit?: () => void
   onDelete?: () => void
 }
 
-export function AgentActions({ onDelete }: AgentActionsProps) {
+export function AgentActions({ onEdit, onDelete }: AgentActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
@@ -28,7 +29,7 @@ export function AgentActions({ onDelete }: AgentActionsProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={4}>
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={onEdit}>
             <HugeiconsIcon icon={Edit02Icon} size={16} className="text-muted-foreground" />
             Edit agent
           </DropdownMenuItem>

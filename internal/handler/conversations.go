@@ -44,10 +44,15 @@ type conversationResponse struct {
 }
 
 type conversationEventResponse struct {
-	ID        string     `json:"id"`
-	EventType string     `json:"event_type"`
-	Payload   model.JSON `json:"payload"`
-	CreatedAt string     `json:"created_at"`
+	ID                   string          `json:"id"`
+	EventID              string          `json:"event_id"`
+	EventType            string          `json:"event_type"`
+	AgentID              string          `json:"agent_id"`
+	BridgeConversationID string          `json:"bridge_conversation_id"`
+	Timestamp            string          `json:"timestamp"`
+	SequenceNumber       int64           `json:"sequence_number"`
+	Data                 json.RawMessage `json:"data"`
+	CreatedAt            string          `json:"created_at"`
 }
 
 // Create handles POST /v1/agents/{agentID}/conversations.
@@ -622,10 +627,15 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 	resp := make([]conversationEventResponse, len(events))
 	for i, e := range events {
 		resp[i] = conversationEventResponse{
-			ID:        e.ID.String(),
-			EventType: e.EventType,
-			Payload:   e.Payload,
-			CreatedAt: e.CreatedAt.Format(time.RFC3339),
+			ID:                   e.ID.String(),
+			EventID:              e.EventID,
+			EventType:            e.EventType,
+			AgentID:              e.AgentID,
+			BridgeConversationID: e.BridgeConversationID,
+			Timestamp:            e.Timestamp.Format(time.RFC3339),
+			SequenceNumber:       e.SequenceNumber,
+			Data:                 json.RawMessage(e.Data),
+			CreatedAt:            e.CreatedAt.Format(time.RFC3339),
 		}
 	}
 

@@ -179,10 +179,11 @@ func TestAgentModels_CRUD(t *testing.T) {
 		h.db.Create(&conv)
 		t.Cleanup(func() { h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{}) })
 
+		now := time.Now()
 		events := []model.ConversationEvent{
-			{OrgID: org.ID, ConversationID: conv.ID, EventType: "message_received", Payload: model.JSON{"content": "Hello"}},
-			{OrgID: org.ID, ConversationID: conv.ID, EventType: "response_completed", Payload: model.JSON{"content": "Hi!"}},
-			{OrgID: org.ID, ConversationID: conv.ID, EventType: "turn_completed", Payload: model.JSON{}},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "message_received", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{"content":"Hello"}`)},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "response_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"Hi!"}`)},
+			{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "turn_completed", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{}`)},
 		}
 		for i := range events {
 			h.db.Create(&events[i])
@@ -195,8 +196,8 @@ func TestAgentModels_CRUD(t *testing.T) {
 			t.Fatalf("expected 3 events, got %d", len(readEvents))
 		}
 
-		now := time.Now()
-		h.db.Model(&conv).Updates(map[string]any{"status": "ended", "ended_at": now})
+		endTime := time.Now()
+		h.db.Model(&conv).Updates(map[string]any{"status": "ended", "ended_at": endTime})
 		var ended model.AgentConversation
 		h.db.Where("id = ?", conv.ID).First(&ended)
 		if ended.Status != "ended" || ended.EndedAt == nil {
@@ -251,7 +252,9 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 	h.db.Create(&conv)
 
 	event := model.ConversationEvent{
-		OrgID: org.ID, ConversationID: conv.ID, EventType: "message_received", Payload: model.JSON{},
+		OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "message_received",
+		AgentID: "a1", BridgeConversationID: conv.BridgeConversationID,
+		Timestamp: time.Now(), SequenceNumber: 1, Data: model.RawJSON(`{}`),
 	}
 	h.db.Create(&event)
 

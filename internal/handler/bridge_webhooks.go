@@ -40,13 +40,13 @@ func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus 
 
 // webhookEvent is a single event in a Bridge webhook batch.
 type webhookEvent struct {
-	EventID        string         `json:"event_id"`
-	EventType      string         `json:"event_type"`
-	AgentID        string         `json:"agent_id"`
-	ConversationID string         `json:"conversation_id"`
-	Timestamp      time.Time      `json:"timestamp"`
-	SequenceNumber int64          `json:"sequence_number"`
-	Data           map[string]any `json:"data"`
+	EventID        string          `json:"event_id"`
+	EventType      string          `json:"event_type"`
+	AgentID        string          `json:"agent_id"`
+	ConversationID string          `json:"conversation_id"`
+	Timestamp      time.Time       `json:"timestamp"`
+	SequenceNumber int64           `json:"sequence_number"`
+	Data           json.RawMessage `json:"data"`
 }
 
 // Handle processes POST /internal/webhooks/bridge/{sandboxID}.
@@ -141,31 +141,31 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 		return
 	}
 
-	// Build event payload
-	payload := model.JSON{
+	// Build the full event JSON for Redis (SSE clients receive this as-is).
+	redisPayload, _ := json.Marshal(map[string]any{
 		"event_id":        event.EventID,
+		"event_type":      event.EventType,
 		"agent_id":        event.AgentID,
 		"conversation_id": event.ConversationID,
 		"timestamp":       event.Timestamp.Format(time.RFC3339),
 		"sequence_number": event.SequenceNumber,
-		"data":            event.Data,
-	}
+		"data":            json.RawMessage(event.Data),
+	})
 
 	// Publish to Redis Streams for real-time delivery to SSE subscribers.
 	// The background flusher will batch-write to Postgres.
 	// If Redis is unavailable, fall back to direct Postgres write.
 	if h.eventBus != nil {
-		payloadJSON, _ := json.Marshal(payload)
-		_, err := h.eventBus.Publish(context.Background(), conv.ID.String(), event.EventType, payloadJSON)
+		_, err := h.eventBus.Publish(context.Background(), conv.ID.String(), event.EventType, redisPayload)
 		if err != nil {
 			slog.Warn("webhook: Redis publish failed, falling back to direct DB write",
 				"conversation_id", conv.ID,
 				"error", err,
 			)
-			h.writeEventToPostgres(&conv, event.EventType, payload)
+			h.writeEventToPostgres(&conv, event)
 		}
 	} else {
-		h.writeEventToPostgres(&conv, event.EventType, payload)
+		h.writeEventToPostgres(&conv, event)
 	}
 
 	// Update conversation state for terminal events
@@ -184,21 +184,26 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 		h.db.Model(&conv).Update("status", "error")
 		slog.Warn("webhook: agent error",
 			"conversation_id", conv.ID,
-			"error", event.Data,
+			"error", string(event.Data),
 		)
 	}
 }
 
-func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversation, eventType string, payload model.JSON) {
+func (h *BridgeWebhookHandler) writeEventToPostgres(conv *model.AgentConversation, event *webhookEvent) {
 	dbEvent := model.ConversationEvent{
-		OrgID:          conv.OrgID,
-		ConversationID: conv.ID,
-		EventType:      eventType,
-		Payload:        payload,
+		OrgID:                conv.OrgID,
+		ConversationID:       conv.ID,
+		EventID:              event.EventID,
+		EventType:            event.EventType,
+		AgentID:              event.AgentID,
+		BridgeConversationID: event.ConversationID,
+		Timestamp:            event.Timestamp,
+		SequenceNumber:       event.SequenceNumber,
+		Data:                 model.RawJSON(event.Data),
 	}
 	if err := h.db.Create(&dbEvent).Error; err != nil {
 		slog.Error("webhook: failed to store event",
-			"event_type", eventType,
+			"event_type", event.EventType,
 			"conversation_id", conv.ID,
 			"error", err,
 		)

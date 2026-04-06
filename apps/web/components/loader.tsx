@@ -73,10 +73,11 @@ interface LoaderProps {
 }
 
 export function Loader({ title, description }: LoaderProps) {
-  const [word, setWord] = useState(randomWord)
+  const [word, setWord] = useState<string | null>(null)
 
   useEffect(() => {
     if (title) return
+    setWord(randomWord())
     const interval = setInterval(() => setWord(randomWord()), 3000)
     return () => clearInterval(interval)
   }, [title])
@@ -87,7 +88,7 @@ export function Loader({ title, description }: LoaderProps) {
       <div className="text-center h-12 relative overflow-hidden">
         {title ? (
           <p className="text-lg font-medium text-foreground mt-4">{title}</p>
-        ) : (
+        ) : word ? (
           <AnimatePresence mode="wait">
             <motion.p
               key={word}
@@ -100,7 +101,7 @@ export function Loader({ title, description }: LoaderProps) {
               {word}...
             </motion.p>
           </AnimatePresence>
-        )}
+        ) : null}
       </div>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>

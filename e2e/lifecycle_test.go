@@ -75,11 +75,12 @@ func newLifecycleHarness(t *testing.T) *lifecycleHarness {
 	})
 
 	// Add some events
+	now := time.Now()
 	events := []model.ConversationEvent{
-		{OrgID: org.ID, ConversationID: conv.ID, EventType: "ConversationCreated", Payload: model.JSON{"data": map[string]any{}}},
-		{OrgID: org.ID, ConversationID: conv.ID, EventType: "MessageReceived", Payload: model.JSON{"data": map[string]any{"content": "hello"}}},
-		{OrgID: org.ID, ConversationID: conv.ID, EventType: "ResponseCompleted", Payload: model.JSON{"data": map[string]any{"content": "hi", "usage": map[string]any{"input_tokens": float64(10)}}}},
-		{OrgID: org.ID, ConversationID: conv.ID, EventType: "TurnCompleted", Payload: model.JSON{"data": map[string]any{}}},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e1", EventType: "ConversationCreated", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 1, Data: model.RawJSON(`{}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e2", EventType: "MessageReceived", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 2, Data: model.RawJSON(`{"content":"hello"}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e3", EventType: "ResponseCompleted", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 3, Data: model.RawJSON(`{"content":"hi","usage":{"input_tokens":10}}`)},
+		{OrgID: org.ID, ConversationID: conv.ID, EventID: "e4", EventType: "TurnCompleted", AgentID: "a1", BridgeConversationID: conv.BridgeConversationID, Timestamp: now, SequenceNumber: 4, Data: model.RawJSON(`{}`)},
 	}
 	for i := range events {
 		h.db.Create(&events[i])
@@ -187,8 +188,8 @@ func TestListEvents_IncludesPayload(t *testing.T) {
 
 	var resp struct {
 		Data []struct {
-			EventType string     `json:"event_type"`
-			Payload   model.JSON `json:"payload"`
+			EventType string          `json:"event_type"`
+			Data      json.RawMessage `json:"data"`
 		} `json:"data"`
 	}
 	json.NewDecoder(rr.Body).Decode(&resp)
@@ -196,10 +197,8 @@ func TestListEvents_IncludesPayload(t *testing.T) {
 	if len(resp.Data) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(resp.Data))
 	}
-	data, ok := resp.Data[0].Payload["data"].(map[string]any)
-	if !ok {
-		t.Fatal("payload should have data field")
-	}
+	var data map[string]any
+	json.Unmarshal(resp.Data[0].Data, &data)
 	if data["content"] != "hi" {
 		t.Errorf("content: got %v", data["content"])
 	}
