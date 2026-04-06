@@ -10,7 +10,7 @@
 //!
 //! Requires `codedb` binary available (install via https://codedb.codegraff.com).
 
-use bridge_e2e::{ConversationTurn, TestHarness};
+use bridge_e2e::{check, step, ConversationTurn, TestHarness};
 use std::time::Duration;
 
 const LLM_TIMEOUT: Duration = Duration::from_secs(300);
@@ -67,9 +67,9 @@ fn assert_codedb_tool_called(turn: &ConversationTurn, label: &str) {
     let found = called_tools
         .iter()
         .any(|t| codedb_tools.contains(&t.as_str()));
-    assert!(
+    check!(
         found,
-        "[{}] no codedb tools were called. Tools called: {:?}",
+        "[{}] at least one codedb tool should be called. Tools called: {:?}",
         label, called_tools
     );
 }
@@ -91,9 +91,9 @@ fn assert_no_builtin_search_tools(turn: &ConversationTurn, label: &str) {
         .collect();
 
     for tool in &replaced_tools {
-        assert!(
+        check!(
             !called_tools.iter().any(|t| t == tool),
-            "[{}] built-in {} tool was called but should have been replaced by codedb. Tools called: {:?}",
+            "[{}] built-in {} tool should NOT be called (replaced by codedb). Tools called: {:?}",
             label, tool, called_tools
         );
     }
@@ -109,10 +109,12 @@ async fn test_codedb_finds_function_in_bridge() {
         return;
     }
 
+    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
 
+    step!("Sending message: 'Find the inject_codedb_if_enabled function...'");
     let turn = harness
         .converse(
             "codedb-agent",
@@ -123,7 +125,13 @@ async fn test_codedb_finds_function_in_bridge() {
         .await
         .expect("conversation failed");
 
-    assert!(
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+    }
+
+    step!("Verifying response is non-empty");
+    check!(
         !turn.response_text.is_empty(),
         "response should not be empty. SSE events: {:?}",
         turn.sse_events
@@ -131,23 +139,27 @@ async fn test_codedb_finds_function_in_bridge() {
             .map(|e| &e.event_type)
             .collect::<Vec<_>>()
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
+    step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "find-function");
+
+    step!("Verifying no built-in search tools were called");
     assert_no_builtin_search_tools(&turn, "find-function");
 
+    step!("Verifying response mentions supervisor/codedb");
     let response_lower = turn.response_text.to_lowercase();
-    assert!(
+    check!(
         response_lower.contains("supervisor") || response_lower.contains("codedb"),
         "response should mention supervisor.rs or codedb. Got: {}",
         &turn.response_text[..turn.response_text.len().min(500)]
     );
 
-    eprintln!(
-        "[find-function] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — found function via codedb in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
-    eprintln!("[find-function] response: {}", turn.response_text);
 }
 
 // ============================================================================
@@ -160,10 +172,12 @@ async fn test_codedb_explores_bridge_structure() {
         return;
     }
 
+    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
 
+    step!("Sending message: 'What crates does this Rust workspace contain?'");
     let turn = harness
         .converse(
             "codedb-agent",
@@ -174,14 +188,25 @@ async fn test_codedb_explores_bridge_structure() {
         .await
         .expect("conversation failed");
 
-    assert!(
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+    }
+
+    step!("Verifying response is non-empty");
+    check!(
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
+    step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "explore-structure");
+
+    step!("Verifying no built-in search tools were called");
     assert_no_builtin_search_tools(&turn, "explore-structure");
 
+    step!("Verifying response mentions known bridge crates");
     // Response should mention actual crates from the bridge workspace
     let response_lower = turn.response_text.to_lowercase();
     let known_crates = ["runtime", "tools", "api", "webhooks", "llm", "mcp"];
@@ -190,17 +215,16 @@ async fn test_codedb_explores_bridge_structure() {
         .filter(|c| response_lower.contains(**c))
         .collect();
 
-    assert!(
+    check!(
         found_crates.len() >= 3,
         "response should mention at least 3 bridge crates, found {:?}. Got: {}",
         found_crates,
         &turn.response_text[..turn.response_text.len().min(800)]
     );
 
-    eprintln!(
-        "[explore-structure] completed in {:?}, response: {} chars, crates found: {:?}",
+    step!(
+        "PASS — explored structure via codedb in {:?}, found crates: {:?}",
         turn.duration,
-        turn.response_text.len(),
         found_crates
     );
 }
@@ -215,10 +239,12 @@ async fn test_codedb_traces_code_path() {
         return;
     }
 
+    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
 
+    step!("Sending message: 'How does AgentSupervisor register built-in tools...'");
     let turn = harness
         .converse(
             "codedb-agent",
@@ -229,23 +255,34 @@ async fn test_codedb_traces_code_path() {
         .await
         .expect("conversation failed");
 
-    assert!(
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+    }
+
+    step!("Verifying response is non-empty");
+    check!(
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
+    step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "trace-path");
+
+    step!("Verifying no built-in search tools were called");
     assert_no_builtin_search_tools(&turn, "trace-path");
 
+    step!("Verifying response discusses tool registration");
     let response_lower = turn.response_text.to_lowercase();
-    assert!(
+    check!(
         response_lower.contains("register") && response_lower.contains("tool"),
         "response should discuss tool registration. Got: {}",
         &turn.response_text[..turn.response_text.len().min(500)]
     );
 
-    eprintln!(
-        "[trace-path] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — traced code path via codedb in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -261,10 +298,12 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         return;
     }
 
+    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
 
+    step!("Pushing filtered agent (only codedb_search + codedb_read allowed)");
     // Push a second agent that only allows codedb_search and codedb_read
     let fireworks_key = std::env::var("FIREWORKS_API_KEY").unwrap();
     let filtered_agent = serde_json::json!({
@@ -295,6 +334,7 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         .expect("failed to push filtered agent");
     tokio::time::sleep(Duration::from_secs(5)).await;
 
+    step!("Sending message to filtered agent: 'Search for AgentSupervisor and read its file'");
     let turn = harness
         .converse(
             "codedb-filtered-agent",
@@ -305,10 +345,17 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         .await
         .expect("conversation failed");
 
-    assert!(
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+    }
+
+    step!("Verifying response is non-empty");
+    check!(
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
     let called_tools: Vec<String> = turn
         .sse_events
@@ -322,6 +369,9 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         })
         .collect();
 
+    step!("Tools called: {:?}", called_tools);
+
+    step!("Verifying excluded codedb tools were NOT called");
     // Should only use codedb_search and/or codedb_read (the allowed tools)
     let excluded_codedb_tools = [
         "codedb_symbol",
@@ -341,28 +391,31 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
     ];
 
     for tool in &excluded_codedb_tools {
-        assert!(
+        check!(
             !called_tools.iter().any(|t| t == tool),
-            "excluded tool {} was called but should not be available. Tools called: {:?}",
+            "excluded tool {} should NOT be called. Tools called: {:?}",
             tool,
             called_tools
         );
     }
 
+    step!("Verifying allowed codedb tools were used");
     // Should have used at least one of the allowed codedb tools
     let used_allowed = called_tools
         .iter()
         .any(|t| t == "codedb_search" || t == "codedb_read");
-    assert!(
+    check!(
         used_allowed,
         "agent should have used codedb_search or codedb_read. Tools called: {:?}",
         called_tools
     );
 
+    step!("Verifying no built-in search tools were called");
     assert_no_builtin_search_tools(&turn, "filtered");
 
-    eprintln!(
-        "[filtered] completed in {:?}, tools called: {:?}",
-        turn.duration, called_tools
+    step!(
+        "PASS — filtered agent only used allowed tools: {:?}, completed in {:?}",
+        called_tools,
+        turn.duration
     );
 }

@@ -115,6 +115,90 @@ Limit concurrent conversations across all agents.
 
 Use to prevent resource exhaustion. When the limit is reached, new conversations will be rejected until existing ones complete.
 
+### `BRIDGE_MAX_CONCURRENT_LLM_CALLS`
+
+Global ceiling on simultaneous LLM API calls across all agents.
+
+- **Default:** `500`
+- **Format:** Positive integer
+- **Example:** `200`
+
+Prevents overwhelming upstream LLM providers when many conversations are active at once. Calls beyond the limit are queued until a slot opens.
+
+```bash
+export BRIDGE_MAX_CONCURRENT_LLM_CALLS="200"
+```
+
+### `BRIDGE_STORAGE_PATH`
+
+Path to a SQLite database for persistence.
+
+- **Default:** (not set — persistence disabled)
+- **Format:** File path (string)
+- **Example:** `/var/lib/bridge/bridge.db`
+
+When set, enables persistent storage for:
+- Agent definitions
+- Conversation history
+- Event log
+- Metrics snapshots
+- Subagent session persistence
+
+When unset, all of the above are ephemeral and lost on restart.
+
+```bash
+export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
+```
+
+### `BRIDGE_CODEDB_ENABLED`
+
+Enable the CodeDB MCP server, which replaces the built-in Grep/Read/Glob tools with CodeDB equivalents.
+
+- **Default:** `false`
+- **Valid values:** `true`, `false`
+
+```bash
+export BRIDGE_CODEDB_ENABLED="true"
+```
+
+### `BRIDGE_CODEDB_BINARY`
+
+Path to the `codedb` binary. Only relevant when `BRIDGE_CODEDB_ENABLED` is `true`.
+
+- **Default:** `codedb` (looked up via `PATH`)
+- **Format:** File path or binary name (string)
+- **Example:** `/usr/local/bin/codedb`
+
+```bash
+export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
+```
+
+### `BRIDGE_OTEL_ENDPOINT`
+
+OpenTelemetry OTLP gRPC endpoint for trace export.
+
+- **Default:** (not set — tracing disabled)
+- **Format:** URL (string)
+- **Example:** `http://localhost:4317`
+
+When set, Bridge exports distributed traces to the specified OpenTelemetry collector.
+
+```bash
+export BRIDGE_OTEL_ENDPOINT="http://localhost:4317"
+```
+
+### `BRIDGE_OTEL_SERVICE_NAME`
+
+Service name reported in OpenTelemetry traces. Only relevant when `BRIDGE_OTEL_ENDPOINT` is set.
+
+- **Default:** `bridge`
+- **Format:** String
+- **Example:** `bridge-production`
+
+```bash
+export BRIDGE_OTEL_SERVICE_NAME="bridge-production"
+```
+
 ---
 
 ## Configuration File (config.toml)
@@ -138,6 +222,7 @@ extensions = ["rs"]
 command = ["typescript-language-server", "--stdio"]
 extensions = ["ts", "tsx", "js", "jsx"]
 env = { "TSSERVER_LOG" = "verbose" }
+initialization_options = { "preferences" = { "importModuleSpecifierPreference" = "relative" } }
 disabled = false
 ```
 
@@ -228,6 +313,18 @@ export BRIDGE_CONTROL_PLANE_URL="https://api.example.com"
 
 # Optional limits
 export BRIDGE_MAX_CONCURRENT_CONVERSATIONS="1000"
+export BRIDGE_MAX_CONCURRENT_LLM_CALLS="500"
+
+# Optional: persistence
+export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
+
+# Optional: CodeDB
+export BRIDGE_CODEDB_ENABLED="true"
+export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
+
+# Optional: OpenTelemetry tracing
+export BRIDGE_OTEL_ENDPOINT="http://localhost:4317"
+export BRIDGE_OTEL_SERVICE_NAME="bridge-production"
 
 # Run
 ./bridge
@@ -244,6 +341,23 @@ ERROR: failed to load configuration: missing field `control_plane_api_key`
 ```
 
 Fix the issue and restart.
+
+### Validation Summary
+
+| Variable | Rules |
+|----------|-------|
+| `BRIDGE_CONTROL_PLANE_API_KEY` | Required, non-empty string |
+| `BRIDGE_LISTEN_ADDR` | Valid socket address (IP:port) |
+| `BRIDGE_LOG_LEVEL` | One of: `debug`, `info`, `warn`, `error` |
+| `BRIDGE_LOG_FORMAT` | One of: `text`, `json` |
+| `BRIDGE_DRAIN_TIMEOUT_SECS` | Positive integer (seconds) |
+| `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | Positive integer (or omit for unlimited) |
+| `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | Positive integer |
+| `BRIDGE_STORAGE_PATH` | Valid file path (or omit to disable) |
+| `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
+| `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
+| `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |
+| `BRIDGE_OTEL_SERVICE_NAME` | Non-empty string |
 
 ---
 

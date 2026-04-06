@@ -161,6 +161,53 @@ The `config` object supports the following optional fields:
 | `json_schema` | object | JSON schema for structured output | Valid JSON Schema |
 | `rate_limit_rpm` | integer | Rate limit in requests per minute | `>= 0` |
 | `compaction` | object | Conversation compaction configuration | See below |
+| `tool_calls_only` | boolean | Accept tool-only turns as success | Default: `false` |
+| `max_tasks_per_conversation` | integer | Max subagent tasks per conversation | Default: `50` |
+| `max_concurrent_conversations` | integer | Per-agent concurrent conversation limit | Overrides global setting |
+
+#### `tool_calls_only`
+
+When set to `true`, the agent can complete a turn with only tool calls and no text response. Normally, if the LLM produces tool calls but no accompanying text, Bridge treats this as an incomplete response and enters a recovery loop (continuation attempts, then a no-tools retry agent). With `tool_calls_only` enabled, tool-only turns are accepted as success.
+
+**When to use:** Agents that primarily perform actions rather than generating text. For example, a background automation agent that reads files, runs commands, and writes results without needing to narrate what it did.
+
+```json
+{
+  "config": {
+    "tool_calls_only": true
+  }
+}
+```
+
+#### `max_tasks_per_conversation`
+
+Maximum number of subagent tasks (foreground + background) that can be spawned within a single conversation. This limit is shared across the entire conversation tree, including nested subagents. When the limit is reached, further `spawn_agent` or `parallel_agent` calls return an error.
+
+Default: `50`
+
+**When to use:** Lower this for agents that should stay focused. Raise it for orchestration agents that legitimately need many parallel workers.
+
+```json
+{
+  "config": {
+    "max_tasks_per_conversation": 100
+  }
+}
+```
+
+#### `max_concurrent_conversations`
+
+Per-agent limit on the number of concurrent conversations. Overrides the global `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` environment variable for this specific agent. When the limit is reached, new conversation requests return **429 Too Many Requests**.
+
+```json
+{
+  "config": {
+    "max_concurrent_conversations": 10
+  }
+}
+```
+
+**When to use:** Protect expensive agents (e.g., using costly models) from being overwhelmed. Leave unset to use the global default.
 
 #### Compaction Configuration
 
@@ -172,6 +219,79 @@ When `compaction` is specified, it controls how conversation history is summariz
 | `tail_messages` | No | integer | Recent messages to preserve after compaction | `10` |
 | `summary_prompt` | No | string | Custom system prompt for summarization | Built-in default |
 | `summary_provider` | **Yes** | object | Provider config for the summarization model | - |
+
+### History Compaction
+
+Long conversations accumulate tokens. Compaction keeps them manageable by summarizing older messages while preserving recent context.
+
+#### What Triggers Compaction
+
+Before each LLM call, Bridge estimates the total token count of the conversation. If the estimated tokens exceed the `compaction.token_budget` (default: 100,000), compaction runs automatically.
+
+Token estimation uses the tiktoken `cl100k_base` tokenizer. A fast heuristic check runs first, and the full tokenizer is only invoked when the heuristic is close to the budget.
+
+#### How It Works
+
+1. Messages are split into two groups:
+   - **Head** — all messages except the most recent N. These are summarized by a separate LLM call.
+   - **Tail** — the most recent N messages (default: 10), preserved verbatim.
+2. The summary LLM condenses the head into a single system message.
+3. The conversation continues with the summary + tail messages, significantly reducing token count.
+
+The summary LLM call uses the `summary_provider` configuration, which can be a different (cheaper/faster) model than the agent's main provider.
+
+#### CompactionConfig Fields
+
+| Field | Required | Type | Description | Default |
+|-------|----------|------|-------------|---------|
+| `token_budget` | No | integer | Token threshold that triggers compaction | `100000` |
+| `tail_messages` | No | integer | Number of recent messages preserved verbatim | `10` |
+| `summary_prompt` | No | string | Custom system prompt for the summarization LLM call | Built-in default |
+| `summary_provider` | **Yes** | object | Provider configuration for the summarization model (same shape as agent `provider`) | - |
+
+#### Events
+
+When compaction occurs, Bridge fires a `ConversationCompacted` event. This can be observed via webhooks or the streaming API.
+
+#### Recommended Configuration
+
+**Long-running conversations** (support agents, coding assistants):
+
+```json
+{
+  "compaction": {
+    "token_budget": 80000,
+    "tail_messages": 15,
+    "summary_provider": {
+      "provider_type": "anthropic",
+      "model": "claude-haiku-4-20250514",
+      "api_key": "<anthropic-api-key>"
+    }
+  }
+}
+```
+
+Lower the budget to compact earlier, preserve more tail messages to retain recent context. Use a fast, cheap model for summarization.
+
+**Short conversations** (single-task agents, Q&A bots):
+
+Compaction is usually unnecessary. Either omit the `compaction` config entirely, or set a high budget:
+
+```json
+{
+  "compaction": {
+    "token_budget": 200000,
+    "tail_messages": 5,
+    "summary_provider": {
+      "provider_type": "open_ai",
+      "model": "gpt-4o-mini",
+      "api_key": "<provider-api-key>"
+    }
+  }
+}
+```
+
+---
 
 ### Permissions
 

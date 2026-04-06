@@ -31,6 +31,12 @@ Later sources override earlier ones.
 | `BRIDGE_WEBSOCKET_ENABLED` | `false` | Enable WebSocket event stream on `/ws/events` |
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | `60` | How long to wait for conversations to finish before shutdown |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | unlimited | Limit concurrent conversations |
+| `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | `500` | Global ceiling on simultaneous LLM API calls |
+| `BRIDGE_STORAGE_PATH` | — | Path to SQLite database for persistence |
+| `BRIDGE_CODEDB_ENABLED` | `false` | Enable CodeDB MCP server |
+| `BRIDGE_CODEDB_BINARY` | `codedb` | Path to codedb binary |
+| `BRIDGE_OTEL_ENDPOINT` | — | OpenTelemetry OTLP gRPC endpoint |
+| `BRIDGE_OTEL_SERVICE_NAME` | `bridge` | Service name in OpenTelemetry traces |
 
 See the [Environment Variables Reference](../reference/environment-variables.md) for complete details including validation rules and format requirements.
 
@@ -131,6 +137,103 @@ initialization_options = { "checkOnSave" = true }
 disabled = false
 ```
 
+The `initialization_options` field passes custom JSON to the language server during initialization. The exact keys depend on the server — check your LSP server's documentation.
+
+Use `disabled = true` to temporarily turn off a configured server without removing its config:
+
+```toml
+[lsp.python]
+command = ["pylsp"]
+extensions = ["py"]
+disabled = true  # keep the config around, but don't start this server
+```
+
+---
+
+## Webhook Configuration
+
+Fine-tune webhook delivery behaviour with the `[webhook_config]` section in `config.toml`:
+
+```toml
+[webhook_config]
+max_concurrent_deliveries = 50
+max_idle_connections = 20
+delivery_timeout_secs = 10
+max_retries = 5
+worker_idle_timeout_secs = 300
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_concurrent_deliveries` | `50` | Maximum webhook deliveries in flight at once |
+| `max_idle_connections` | `20` | Idle HTTP connections kept alive to the webhook endpoint |
+| `delivery_timeout_secs` | `10` | Timeout (in seconds) for a single delivery attempt |
+| `max_retries` | `5` | Number of retry attempts for failed deliveries |
+| `worker_idle_timeout_secs` | `300` | How long an idle delivery worker stays alive before being reclaimed |
+
+All values above show their defaults — you only need to include the ones you want to change. The `[webhook_config]` section is only meaningful when `webhook_url` is set.
+
+---
+
+## Storage
+
+Bridge can persist data to a local SQLite database. This is configured exclusively via the `BRIDGE_STORAGE_PATH` environment variable (not `config.toml`):
+
+```bash
+export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
+```
+
+When set, Bridge persists:
+- **Agent definitions** — survive restarts without re-pushing
+- **Conversation history** — full message logs for every conversation
+- **Event log** — queryable record of all events
+- **Metrics snapshots** — token usage, latency, and throughput data
+- **Subagent session persistence** — child agent sessions resume after restart
+
+When unset (the default), all of the above are **ephemeral** — held in memory and lost on restart. This is fine for development or stateless deployments where your control plane is the source of truth.
+
+---
+
+## CodeDB
+
+[CodeDB](https://github.com/nicobailey/codedb) is an MCP server that replaces Bridge's built-in Grep/Read/Glob tools with optimised equivalents. Enable it in `config.toml`:
+
+```toml
+codedb_enabled = true
+
+# Optional: explicit path to the binary (defaults to "codedb" on PATH)
+codedb_binary = "/usr/local/bin/codedb"
+```
+
+Or via environment variables:
+
+```bash
+export BRIDGE_CODEDB_ENABLED="true"
+export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
+```
+
+When enabled, the `codedb` binary must be available. Bridge will fail to start if it cannot find the binary.
+
+---
+
+## OpenTelemetry
+
+Bridge can export distributed traces via OpenTelemetry OTLP over gRPC. Configure it in `config.toml`:
+
+```toml
+otel_endpoint = "http://localhost:4317"
+otel_service_name = "bridge-production"  # defaults to "bridge"
+```
+
+Or via environment variables:
+
+```bash
+export BRIDGE_OTEL_ENDPOINT="http://localhost:4317"
+export BRIDGE_OTEL_SERVICE_NAME="bridge-production"
+```
+
+Point `otel_endpoint` at any OTLP-compatible collector (Jaeger, Grafana Tempo, Honeycomb, etc.). When `otel_endpoint` is not set, tracing is disabled and there is zero overhead.
+
 ---
 
 ## Production Configuration
@@ -154,6 +257,14 @@ export BRIDGE_WEBSOCKET_ENABLED="true"
 
 # Optional: limit resources
 export BRIDGE_MAX_CONCURRENT_CONVERSATIONS="1000"
+export BRIDGE_MAX_CONCURRENT_LLM_CALLS="500"
+
+# Optional: persistence
+export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
+
+# Optional: tracing
+export BRIDGE_OTEL_ENDPOINT="http://otel-collector:4317"
+export BRIDGE_OTEL_SERVICE_NAME="bridge-production"
 
 ./bridge
 ```
@@ -202,6 +313,12 @@ Fix the issue and restart.
 | `BRIDGE_LOG_FORMAT` | One of: `text`, `json` |
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | Positive integer (seconds) |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | Positive integer (or omit for unlimited) |
+| `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | Positive integer |
+| `BRIDGE_STORAGE_PATH` | Valid file path (or omit to disable) |
+| `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
+| `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
+| `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |
+| `BRIDGE_OTEL_SERVICE_NAME` | Non-empty string |
 
 ---
 

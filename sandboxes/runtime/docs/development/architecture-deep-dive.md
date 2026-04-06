@@ -273,16 +273,17 @@ Webhook dispatch with HMAC signing.
 
 | Module | Purpose |
 |--------|---------|
-| `context.rs` | `WebhookContext` — shared dispatcher, URL, secret |
-| `dispatcher.rs` | `WebhookDispatcher` — async delivery with retry |
-| `events.rs` | `WebhookEventType`, `WebhookPayload` — event types |
+| `event_bus.rs` | `EventBus` — single entry point for all events, stamps global `sequence_number`, fans out to DB/WS/SSE/HTTP |
+| `delivery.rs` | Webhook HTTP delivery — per-conversation batching with exponential backoff retry |
 | `signer.rs` | `sign_webhook()`, `verify_webhook()` — HMAC-SHA256 |
 
 ### Delivery
 
-- Async via `tokio::spawn()`
-- Exponential backoff retry via `backon`
-- HMAC-SHA256 signature in `X-Bridge-Signature` header
+- All events use the unified `BridgeEvent` type (defined in `core::event`)
+- `EventBus.emit()` serialises sequence assignment under mutex for ordering guarantee
+- Fans out to 4 channels simultaneously: DB persistence, WebSocket broadcast, per-conversation SSE, webhook HTTP delivery
+- Webhook HTTP delivery: per-conversation workers, batched JSON array POST, exponential backoff via `backon`
+- HMAC-SHA256 signature in `X-Webhook-Signature` header
 
 ---
 

@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration test-e2e-llm test-e2e-observability test-e2e-approval test-e2e-integration-real test-e2e-codedb test-e2e-parallel setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
 
 # --- Build ---
 
@@ -59,6 +59,38 @@ test-all: ## Run everything (requires FIREWORKS_API_KEY in env or .env file)
 	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test --workspace --exclude bridge-e2e -- --include-ignored && \
 	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e -- --include-ignored --test-threads=1
 
+# --- E2E LLM Tests (require FIREWORKS_API_KEY in .env or environment) ---
+
+test-e2e-llm: ## Run real LLM e2e tests
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test real_e2e_tests -- --ignored --test-threads=1 --nocapture
+
+test-e2e-observability: ## Run observability e2e tests (webhook token/model data)
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test observability_e2e_tests -- --ignored --test-threads=1 --nocapture
+
+test-e2e-approval: ## Run approval flow e2e tests
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test approval_e2e_tests -- --ignored --test-threads=1 --nocapture
+
+test-e2e-integration-real: ## Run integration e2e tests with real LLM
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test integration_real_e2e_tests -- --ignored --test-threads=1 --nocapture
+
+test-e2e-codedb: ## Run codedb e2e tests (requires codedb binary)
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test codedb_e2e_tests -- --ignored --test-threads=1 --nocapture
+
+test-e2e-parallel: ## Run parallel subagent e2e tests
+	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
+	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
+	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test parallel_e2e_tests -- --test-threads=1 --nocapture
+
 # --- Setup ---
 
 setup-lsp: ## Install LSP servers for integration tests
@@ -91,6 +123,6 @@ clean: ## Remove build artifacts
 # --- Help ---
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[[:alnum:]_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help

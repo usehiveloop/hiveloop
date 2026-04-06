@@ -36,7 +36,9 @@ websocket_enabled = true
 GET /ws/events?token=<control_plane_api_key>
 ```
 
-Authenticate via the `?token=` query parameter using the same API key configured in `BRIDGE_CONTROL_PLANE_API_KEY`. WebSocket clients cannot always set custom headers, so query parameter authentication is used.
+Authenticate via the `?token=` query parameter using the same API key configured in `BRIDGE_CONTROL_PLANE_API_KEY`.
+
+**Why query parameter authentication?** WebSocket clients (particularly browsers) cannot set custom HTTP headers during the upgrade handshake. The `Authorization` header is not available when calling `new WebSocket(url)` in JavaScript. The `?token=` query parameter works around this browser limitation. If you are using a server-side WebSocket client that supports custom headers, you may still prefer the query parameter for consistency.
 
 ### JavaScript Example
 
@@ -108,7 +110,9 @@ Each WebSocket message is a JSON object with the same fields as webhook payloads
 
 ### Sequence Numbers
 
-Unlike webhooks (which use per-conversation sequence numbers), WebSocket sequence numbers are **global** across all conversations. They are strictly increasing with no gaps, making it easy to detect missed events on reconnection.
+Sequence numbers are **globally monotonic** across all agents and all conversations. They are assigned by the EventBus before fan-out to all delivery channels (WebSocket, SSE, webhooks), so the same event has the same `sequence_number` everywhere.
+
+**Important:** Because sequence numbers are global (not per-conversation), you cannot assume that consecutive sequence numbers belong to the same conversation. If you are tracking a specific conversation, filter events by `conversation_id` after receiving them. The global ordering guarantees that if you store the last seen `sequence_number`, you can detect exactly how many events were missed during a disconnection.
 
 ---
 
@@ -129,19 +133,32 @@ The WebSocket delivers the same event types as webhooks:
 
 | Event Type | When it fires | Data Fields |
 |------------|---------------|-------------|
-| `response_started` | Assistant started responding | `{}` |
-| `response_chunk` | Streaming chunk generated | `delta` |
-| `response_completed` | Assistant finished responding | `input_tokens`, `output_tokens`, `full_response` |
-| `turn_completed` | Turn/stream completed | `{}` |
+| `response_started` | Assistant started responding | `conversation_id`, `message_id` |
+| `response_chunk` | Streaming chunk generated | `delta`, `message_id` |
+| `response_completed` | Assistant finished responding | `message_id`, `input_tokens`, `output_tokens`, `model`, `timestamp`, `full_response` |
+| `turn_completed` | Turn/stream completed | `input_tokens`, `output_tokens`, `model`, `timestamp`, `turn_number`, `cumulative_input_tokens`, `cumulative_output_tokens` |
 
 ### Tool Events
 
 | Event Type | When it fires | Data Fields |
 |------------|---------------|-------------|
-| `tool_call_started` | Tool was invoked | `tool_name`, `arguments` |
-| `tool_call_completed` | Tool finished executing | `tool_name`, `result`, `is_error` |
-| `tool_approval_required` | Tool needs user approval | `request_id`, `tool_name`, `tool_call_id`, `arguments` |
+| `tool_call_started` | Tool was invoked | `id`, `name`, `arguments` |
+| `tool_call_completed` | Tool finished executing | `id`, `tool_name`, `result`, `is_error`, `duration_ms` |
+| `tool_approval_required` | Tool needs user approval | `request_id`, `tool_name`, `tool_call_id`, `arguments`, `integration_name`, `integration_action` |
 | `tool_approval_resolved` | User approved/denied tool | `request_id`, `decision` |
+
+### Reasoning Events
+
+| Event Type | When it fires | Data Fields |
+|------------|---------------|-------------|
+| `reasoning_delta` | Reasoning/thinking chunk from the model | `delta`, `message_id` |
+
+### Subagent Events
+
+| Event Type | When it fires | Data Fields |
+|------------|---------------|-------------|
+| `sub_agent_started` | A subagent was spawned | `subagent_name`, `mode`, `parent_conversation_id`, `depth` |
+| `sub_agent_completed` | A subagent finished execution | `subagent_name`, `mode`, `task_id`, `duration_ms`, `is_error` |
 
 ### Other Events
 
@@ -149,7 +166,8 @@ The WebSocket delivers the same event types as webhooks:
 |------------|---------------|-------------|
 | `todo_updated` | Todo list updated | `todos` |
 | `agent_error` | Error occurred | `code`, `message` |
-| `background_task_completed` | Background task finished | Task result data |
+| `background_task_completed` | Background task finished | `task_id`, `description`, `output`, `is_error` |
+| `done` | Response stream complete (terminal signal) | `{}` |
 
 ---
 
@@ -187,7 +205,9 @@ Multiple WebSocket clients can connect simultaneously. Each receives an independ
 
 ## Graceful Shutdown
 
-When Bridge shuts down, it sends a WebSocket close frame to all connected clients. Clients should handle the close event and reconnect if needed.
+When Bridge shuts down, it sends a WebSocket Close frame (opcode `0x8`) to all connected clients before terminating the connection. Clients should handle the `onclose` event and implement reconnection logic with backoff.
+
+**Note:** The Close frame uses the standard WebSocket close code `1001` (Going Away), indicating the server is shutting down. Clients can distinguish this from an unexpected disconnection (which typically produces code `1006` — Abnormal Closure) and adjust their reconnection strategy accordingly.
 
 ---
 

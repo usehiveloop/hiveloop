@@ -249,6 +249,33 @@ Unknown tool 'bassh'. Did you mean 'bash'? Available tools: [bash, read, edit, .
 
 ---
 
+## Tool Resolution and Repair
+
+When the LLM calls a tool, Bridge performs multi-step name resolution before executing it. This means agents rarely fail due to tool name typos -- Bridge auto-repairs common mistakes.
+
+### Resolution Steps
+
+1. **Exact match** -- The tool name is looked up against the registered tool names. If found, it executes immediately.
+2. **Normalization** -- Quotes are stripped and whitespace is trimmed. For example, `"read"` and ` read ` both resolve to `read`.
+3. **Case-insensitive match** -- If exact match fails, Bridge tries a case-insensitive lookup. `Read`, `READ`, and `read` all resolve to the same tool.
+4. **Fuzzy match (auto-repair)** -- If case-insensitive match fails, Bridge computes Levenshtein distance against all registered tool names. If the best match has similarity > 0.8, Bridge auto-repairs and executes the correct tool. For example, `rea` resolves to `read`.
+5. **Error with suggestion** -- If no match meets the auto-repair threshold, Bridge returns an error. If the closest match has similarity > 0.4, the error includes a suggestion:
+
+```
+Unknown tool 'bassh'. Did you mean 'bash'? Available tools: [bash, read, edit, ...]
+```
+
+### What This Means in Practice
+
+- **Wrong casing** is always auto-corrected (step 3)
+- **Extra whitespace or quotes** are always stripped (step 2)
+- **Minor typos** (1-2 characters off) are usually auto-repaired (step 4)
+- **Completely wrong names** get a helpful suggestion pointing to the closest match (step 5)
+
+You do not need to configure this behavior. It applies to all tool calls automatically.
+
+---
+
 ## Tool Timeouts
 
 Different tools have different timeout behaviors:

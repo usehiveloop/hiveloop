@@ -5,7 +5,7 @@
 //! - Subagent foreground/background execution
 //! - Gap identification for future features
 
-use bridge_e2e::{ConversationTurn, TestHarness};
+use bridge_e2e::{check, step, TestHarness};
 use std::time::{Duration, Instant};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(60);
@@ -24,10 +24,12 @@ async fn test_batch_reads_multiple_files() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Creating test files via bash tool");
     // Create test files via bash tool
     let turn = harness
         .converse(
@@ -39,6 +41,12 @@ async fn test_batch_reads_multiple_files() {
         .await
         .expect("setup failed");
 
+    step!("Setup SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    step!("Sending batch read request for 3 files");
     // Now test batch reading
     let turn = harness
         .converse(
@@ -50,11 +58,20 @@ async fn test_batch_reads_multiple_files() {
         .await
         .expect("batch read failed");
 
+    step!("Batch read SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    step!("Verifying response is non-empty");
     // Verify response mentions file contents
-    assert!(
+    check!(
         !turn.response_text.is_empty(),
         "should have non-empty response"
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+    step!("PASS — batch read of 3 files completed");
 }
 
 /// Test that multiple background subagents run in parallel.
@@ -62,12 +79,14 @@ async fn test_batch_reads_multiple_files() {
 #[tokio::test]
 #[ignore]
 async fn test_background_subagents_run_in_parallel() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
     let start = Instant::now();
 
+    step!("Spawning 2 background subagents using 'explorer'");
     // Spawn two background subagents (using agent_delegator fixture which has explorer subagent)
     let turn = harness
         .converse(
@@ -84,19 +103,32 @@ async fn test_background_subagents_run_in_parallel() {
 
     let elapsed = start.elapsed();
 
+    step!("Background spawn completed in {:?}", elapsed);
+
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+    step!("Verifying background spawn returned quickly (< 5s)");
     // Should return quickly (not waiting for subagents to complete)
-    assert!(
+    check!(
         elapsed < Duration::from_secs(5),
         "background spawn should return quickly, took {:?}",
         elapsed
     );
 
+    step!("Verifying response contains task references");
     // Should contain task_ids
-    assert!(
+    check!(
         turn.response_text.contains("task_id") || turn.response_text.contains("task"),
         "should contain task reference: {}",
         turn.response_text
     );
+
+    step!("PASS — 2 background subagents spawned in {:?}", elapsed);
 }
 
 /// Test foreground subagent blocks until complete.
@@ -104,12 +136,14 @@ async fn test_background_subagents_run_in_parallel() {
 #[tokio::test]
 #[ignore]
 async fn test_foreground_subagent_blocks() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
     let start = Instant::now();
 
+    step!("Running foreground subagent 'explorer' to list files");
     // Use foreground subagent (default mode)
     let turn = harness
         .converse(
@@ -123,19 +157,32 @@ async fn test_foreground_subagent_blocks() {
 
     let elapsed = start.elapsed();
 
+    step!("Foreground subagent completed in {:?}", elapsed);
+
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+    step!("Verifying foreground took noticeable time (>= 10ms)");
     // Should take some time (subagent needs to execute).
     // On fast CI machines this can complete in ~50ms, so we use a low threshold.
-    assert!(
+    check!(
         elapsed >= Duration::from_millis(10),
         "foreground should take noticeable time, took {:?}",
         elapsed
     );
 
+    step!("Verifying response is non-empty");
     // Should have actual results
-    assert!(
+    check!(
         !turn.response_text.is_empty(),
         "should have non-empty response"
     );
+
+    step!("PASS — foreground subagent blocked and returned results in {:?}", elapsed);
 }
 
 // ============================================================================
@@ -148,10 +195,12 @@ async fn test_foreground_subagent_blocks() {
 #[tokio::test]
 #[ignore]
 async fn test_gap_no_join_for_multiple_background_tasks() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
+    step!("Spawning 3 background tasks and asking to join all");
     // Spawn multiple background tasks
     let turn = harness
         .converse(
@@ -167,13 +216,20 @@ async fn test_gap_no_join_for_multiple_background_tasks() {
         .await
         .expect("test conversation failed");
 
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
     // Document the behavior — currently there's no join tool, so the agent
     // may struggle to wait for all three. This test captures current behavior.
-    eprintln!("GAP DOCUMENTATION: Response when asked to join multiple background tasks:");
-    eprintln!("{}", turn.response_text);
+    step!("GAP DOCUMENTATION: Response when asked to join multiple background tasks:");
+    eprintln!("    {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
 
     // The test passes — it documents current behavior, even if suboptimal
-    assert!(!turn.response_text.is_empty(), "should have some response");
+    check!(!turn.response_text.is_empty(), "should have some response");
+
+    step!("PASS — gap documented: no join mechanism for background tasks");
 }
 
 /// GAP TEST: Cannot batch agent tool calls
@@ -182,10 +238,12 @@ async fn test_gap_no_join_for_multiple_background_tasks() {
 #[tokio::test]
 #[ignore]
 async fn test_gap_cannot_batch_agent_tool() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
+    step!("Attempting to batch 2 agent tool calls simultaneously");
     let turn = harness
         .converse(
             "agent_delegator",
@@ -199,9 +257,13 @@ async fn test_gap_cannot_batch_agent_tool() {
         .await
         .expect("test conversation failed");
 
-    // Document the behavior — batch tool should reject agent calls
-    eprintln!("GAP DOCUMENTATION: Response when trying to batch agent tool:");
-    eprintln!("{}", turn.response_text);
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    step!("GAP DOCUMENTATION: Response when trying to batch agent tool:");
+    eprintln!("    {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
 
     // Likely contains error about external tools not being batchable
     let has_error = turn.sse_events.iter().any(|e| {
@@ -213,8 +275,12 @@ async fn test_gap_cannot_batch_agent_tool() {
     });
 
     if has_error {
-        eprintln!("CONFIRMED: Batch tool rejects agent calls (as expected with current design)");
+        step!("CONFIRMED: Batch tool rejects agent calls (as expected with current design)");
+    } else {
+        step!("No error returned — batch may have accepted agent calls");
     }
+
+    step!("PASS — gap documented: batch agent tool behavior captured");
 }
 
 /// GAP TEST: No parallel spawn-and-wait primitive
@@ -223,12 +289,14 @@ async fn test_gap_cannot_batch_agent_tool() {
 #[tokio::test]
 #[ignore]
 async fn test_gap_no_parallel_spawn_and_wait() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
     let start = Instant::now();
 
+    step!("Running 3 sequential foreground subagent tasks");
     // Sequential foreground subagents (current workaround)
     let turn = harness
         .converse(
@@ -246,14 +314,24 @@ async fn test_gap_no_parallel_spawn_and_wait() {
 
     let sequential_time = start.elapsed();
 
-    eprintln!(
-        "GAP DOCUMENTATION: Sequential subagent execution took {:?}",
+    step!("Sequential execution completed in {:?}", sequential_time);
+
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+    step!(
+        "GAP DOCUMENTATION: Sequential subagent execution took {:?}. With parallel execution, this could be ~3x faster",
         sequential_time
     );
-    eprintln!("With parallel execution, this could be ~3x faster");
 
     // Test passes — documents current sequential limitation
-    assert!(!turn.response_text.is_empty(), "should have results");
+    check!(!turn.response_text.is_empty(), "should have results");
+
+    step!("PASS — gap documented: sequential subagent took {:?}", sequential_time);
 }
 
 /// GAP TEST: No resource limiting for subagent spawn
@@ -262,10 +340,12 @@ async fn test_gap_no_parallel_spawn_and_wait() {
 #[tokio::test]
 #[ignore]
 async fn test_gap_no_concurrency_limits() {
+    step!("Starting harness");
     let harness = TestHarness::start()
         .await
         .expect("failed to start test harness");
 
+    step!("Spawning 5 background subagents concurrently");
     // Try to spawn many background subagents
     let turn = harness
         .converse(
@@ -283,11 +363,19 @@ async fn test_gap_no_concurrency_limits() {
         .await
         .expect("test conversation failed");
 
-    eprintln!("GAP DOCUMENTATION: System allowed spawning 5 concurrent background subagents");
-    eprintln!("There is currently no max_concurrent limit");
+    step!("SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
+
+    step!("GAP DOCUMENTATION: System allowed spawning 5 concurrent background subagents (no max_concurrent limit)");
 
     // Should have spawned all 5
-    assert!(!turn.response_text.is_empty(), "should have response");
+    check!(!turn.response_text.is_empty(), "should have response");
+
+    step!("PASS — gap documented: 5 concurrent subagents spawned without limit");
 }
 
 // ============================================================================
@@ -304,12 +392,14 @@ async fn benchmark_batch_vs_sequential_reads() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
     let timeout = Duration::from_secs(120);
 
+    step!("Creating 5 test files for benchmark");
     // Setup: Create test files
     let _ = harness
         .converse(
@@ -320,6 +410,7 @@ async fn benchmark_batch_vs_sequential_reads() {
         )
         .await;
 
+    step!("Benchmark: batch read of 5 files");
     // Test batch reads
     let start = Instant::now();
     let batch_turn = harness
@@ -333,6 +424,14 @@ async fn benchmark_batch_vs_sequential_reads() {
         .expect("batch read failed");
     let batch_time = start.elapsed();
 
+    step!("Batch read completed in {:?}", batch_time);
+    step!("Batch SSE events ({} total)", batch_turn.sse_events.len());
+    for e in &batch_turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+    eprintln!("    Response: {:?}", &batch_turn.response_text[..batch_turn.response_text.len().min(200)]);
+
+    step!("Benchmark: sequential read of 5 files");
     // Test sequential reads (individual Read tool calls)
     let start = Instant::now();
     let seq_turn = harness
@@ -346,21 +445,32 @@ async fn benchmark_batch_vs_sequential_reads() {
         .expect("sequential read failed");
     let seq_time = start.elapsed();
 
-    eprintln!("\n=== BATCH VS SEQUENTIAL PERFORMANCE ===");
-    eprintln!("Batch time: {:?}", batch_time);
-    eprintln!("Sequential time: {:?}", seq_time);
-    eprintln!(
-        "Speedup: {:.2}x",
-        seq_time.as_secs_f64() / batch_time.as_secs_f64()
-    );
+    step!("Sequential read completed in {:?}", seq_time);
+    step!("Sequential SSE events ({} total)", seq_turn.sse_events.len());
+    for e in &seq_turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+    eprintln!("    Response: {:?}", &seq_turn.response_text[..seq_turn.response_text.len().min(200)]);
+
+    step!("=== BATCH VS SEQUENTIAL PERFORMANCE ===");
+    eprintln!("    Batch time:      {:?}", batch_time);
+    eprintln!("    Sequential time: {:?}", seq_time);
+    eprintln!("    Speedup:         {:.2}x", seq_time.as_secs_f64() / batch_time.as_secs_f64());
 
     // Both should succeed
-    assert!(
+    check!(
         !batch_turn.response_text.is_empty(),
         "batch should return results"
     );
-    assert!(
+    check!(
         !seq_turn.response_text.is_empty(),
         "sequential should return results"
+    );
+
+    step!(
+        "PASS — benchmark: batch={:?}, sequential={:?}, speedup={:.2}x",
+        batch_time,
+        seq_time,
+        seq_time.as_secs_f64() / batch_time.as_secs_f64()
     );
 }

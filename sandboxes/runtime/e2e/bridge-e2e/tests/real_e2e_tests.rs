@@ -8,7 +8,7 @@
 //!
 //! Tests run serially to avoid Fireworks rate limits.
 
-use bridge_e2e::{ConversationTurn, TestHarness};
+use bridge_e2e::{check, check_eq, step, ConversationTurn, TestHarness};
 use std::time::Duration;
 
 /// Default timeout for LLM responses (real model with tool loops).
@@ -40,15 +40,11 @@ async fn converse_with_retry(
     let mut last_turn = None;
     for attempt in 0..MAX_RETRIES {
         if attempt > 0 {
-            eprintln!(
-                "[{}] retrying (attempt {}/{})",
-                label,
-                attempt + 1,
-                MAX_RETRIES
-            );
+            step!("[{}] Retrying (attempt {}/{})", label, attempt + 1, MAX_RETRIES);
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
+        step!("[{}] Sending message to '{}': '{}'", label, agent_id, &message[..message.len().min(80)]);
         let turn = harness
             .converse(agent_id, None, message, LLM_TIMEOUT)
             .await
@@ -57,6 +53,13 @@ async fn converse_with_retry(
         let has_error = turn.sse_events.iter().any(|e| e.event_type == "error");
 
         if !turn.response_text.is_empty() && !has_error {
+            step!("[{}] Got response ({} chars)", label, turn.response_text.len());
+            eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+            step!("[{}] SSE events received ({} total)", label, turn.sse_events.len());
+            for e in &turn.sse_events {
+                eprintln!("    - {}", e.event_type);
+            }
             return turn;
         }
 
@@ -99,16 +102,16 @@ fn assert_any_tool_called_in_sse(turn: &ConversationTurn, tool_names: &[&str], l
     let found = called_tools
         .iter()
         .any(|t| tool_names.contains(&t.as_str()));
-    assert!(
+    check!(
         found,
-        "[{}] none of {:?} were called. Tools called (from SSE): {:?}",
+        "[{}] at least one of {:?} should be called. Tools called (from SSE): {:?}",
         label, tool_names, called_tools
     );
 }
 
 /// Assert response is non-empty with diagnostic output on failure.
 fn assert_response_not_empty(turn: &ConversationTurn, label: &str) {
-    assert!(
+    check!(
         !turn.response_text.is_empty(),
         "[{}] response should not be empty. SSE events received: {:?}",
         label,
@@ -133,6 +136,7 @@ async fn test_hana_code_review() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -147,18 +151,23 @@ async fn test_hana_code_review() {
 
     assert_response_not_empty(&turn, "hana");
 
+    step!("[hana] Verifying getIssue was called");
     harness
         .assert_tool_called("getIssue")
         .expect("getIssue should have been called");
+
+    step!("[hana] Verifying PR-related tools were called");
     harness
         .assert_any_tool_called(&["listIssuePullRequests", "getPullRequest"])
         .expect("PR-related tools should have been called");
+
+    step!("[hana] Verifying createComment was called");
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
 
-    eprintln!(
-        "[hana] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — hana code review completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -175,11 +184,13 @@ async fn test_nova_portal_control() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
     // Turn 1: List issues
+    step!("[nova] Turn 1: listing team issues");
     let turn1 = converse_with_retry(
         &harness,
         "portal-control",
@@ -190,11 +201,12 @@ async fn test_nova_portal_control() {
 
     assert_response_not_empty(&turn1, "nova turn1");
 
+    step!("[nova turn1] Verifying team/issue tools were called");
     harness
         .assert_any_tool_called(&["listTeamIssues", "listTeams", "getTeam"])
         .expect("team/issue tools should have been called");
 
-    eprintln!(
+    step!(
         "[nova turn1] completed in {:?}, response: {} chars",
         turn1.duration,
         turn1.response_text.len()
@@ -206,6 +218,7 @@ async fn test_nova_portal_control() {
     let _ = std::fs::create_dir_all(&log_dir);
 
     // Turn 2: Create issue (separate conversation)
+    step!("[nova] Turn 2: creating issue");
     let turn2 = converse_with_retry(
         &harness,
         "portal-control",
@@ -216,11 +229,12 @@ async fn test_nova_portal_control() {
 
     assert_response_not_empty(&turn2, "nova turn2");
 
+    step!("[nova turn2] Verifying issue creation/approval tools were called");
     harness
         .assert_any_tool_called(&["createIssue", "submitApprovalRequest"])
         .expect("issue creation or approval tools should have been called");
 
-    eprintln!(
+    step!(
         "[nova turn2] completed in {:?}, response: {} chars",
         turn2.duration,
         turn2.response_text.len()
@@ -231,6 +245,7 @@ async fn test_nova_portal_control() {
     let _ = std::fs::create_dir_all(&log_dir);
 
     // Turn 3: Ping human (separate conversation)
+    step!("[nova] Turn 3: pinging human");
     let turn3 = converse_with_retry(
         &harness,
         "portal-control",
@@ -241,12 +256,13 @@ async fn test_nova_portal_control() {
 
     assert_response_not_empty(&turn3, "nova turn3");
 
+    step!("[nova turn3] Verifying pingHuman was called");
     harness
         .assert_tool_called("pingHuman")
         .expect("pingHuman should have been called");
 
-    eprintln!(
-        "[nova turn3] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — nova portal-control all 3 turns completed (turn3: {:?}, {} chars)",
         turn3.duration,
         turn3.response_text.len()
     );
@@ -263,6 +279,7 @@ async fn test_skai_security_audit() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -277,18 +294,23 @@ async fn test_skai_security_audit() {
 
     assert_response_not_empty(&turn, "skai");
 
+    step!("[skai] Verifying getIssue was called");
     harness
         .assert_tool_called("getIssue")
         .expect("getIssue should have been called");
+
+    step!("[skai] Verifying PR tools were called");
     harness
         .assert_any_tool_called(&["listIssuePullRequests", "getPullRequest"])
         .expect("PR tools should have been called");
+
+    step!("[skai] Verifying comment tools were called");
     harness
         .assert_any_tool_called(&["createComment", "addPullRequestComment"])
         .expect("comment tools should have been called");
 
-    eprintln!(
-        "[skai] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — skai security audit completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -305,6 +327,7 @@ async fn test_theo_system_design() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -319,6 +342,7 @@ async fn test_theo_system_design() {
 
     assert_response_not_empty(&turn, "theo");
 
+    step!("[theo] Verifying design workflow tools were called (SSE)");
     // The agent should use at least some tools for its design workflow.
     // Built-in tools (Glob/Grep/Read) don't appear in the MCP log, so check SSE.
     assert_any_tool_called_in_sse(
@@ -337,12 +361,14 @@ async fn test_theo_system_design() {
         ],
         "theo design workflow",
     );
+
+    step!("[theo] Verifying createComment was called");
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
 
-    eprintln!(
-        "[theo] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — theo system design completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -359,6 +385,7 @@ async fn test_mimi_technical_writer() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -373,6 +400,7 @@ async fn test_mimi_technical_writer() {
 
     assert_response_not_empty(&turn, "mimi");
 
+    step!("[mimi] Verifying exploration tools were called (SSE)");
     // Built-in tools (Glob/Grep/Read) are handled by the bridge runtime and
     // don't appear in the MCP tool call log — check SSE events instead.
     assert_any_tool_called_in_sse(
@@ -388,15 +416,19 @@ async fn test_mimi_technical_writer() {
         ],
         "mimi exploration",
     );
+
+    step!("[mimi] Verifying document creation tools were called");
     harness
         .assert_any_tool_called(&["createDocument", "updateDocument"])
         .expect("document creation tools should have been called");
+
+    step!("[mimi] Verifying createComment was called");
     harness
         .assert_tool_called("createComment")
         .expect("createComment should have been called");
 
-    eprintln!(
-        "[mimi] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — mimi technical writer completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -413,6 +445,7 @@ async fn test_researcher_web_search() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -429,6 +462,7 @@ async fn test_researcher_web_search() {
 
     let response = turn.response_text.to_lowercase();
 
+    step!("[researcher] Verifying response contains search content");
     // The mock search endpoint returns results with unique markers and
     // content about Tokio, async/await, Futures. The agent MUST use the
     // web_search tool to know these — it can't fabricate the markers.
@@ -437,14 +471,14 @@ async fn test_researcher_web_search() {
         || response.contains("await")
         || response.contains("bridge_e2e_search_marker");
 
-    assert!(
+    check!(
         has_search_content,
         "response should contain content from search results. Got: {}",
         &turn.response_text[..turn.response_text.len().min(500)]
     );
 
-    eprintln!(
-        "[researcher] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — researcher web_search completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -461,6 +495,7 @@ async fn test_researcher_web_fetch() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -477,6 +512,7 @@ async fn test_researcher_web_fetch() {
 
     let response = turn.response_text.to_lowercase();
 
+    step!("[researcher-fetch] Verifying response contains fetched content");
     // The agent must have actually fetched rust-lang.org to know this content
     let has_fetch_content = response.contains("rust")
         && (response.contains("performance")
@@ -485,14 +521,14 @@ async fn test_researcher_web_fetch() {
             || response.contains("safety")
             || response.contains("concurrency"));
 
-    assert!(
+    check!(
         has_fetch_content,
         "response should contain content from rust-lang.org. Got: {}",
         &turn.response_text[..turn.response_text.len().min(500)]
     );
 
-    eprintln!(
-        "[researcher-fetch] completed in {:?}, response: {} chars",
+    step!(
+        "PASS — researcher web_fetch completed in {:?}, response: {} chars",
         turn.duration,
         turn.response_text.len()
     );
@@ -509,6 +545,7 @@ async fn test_tool_call_sse_events() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -537,14 +574,30 @@ async fn test_tool_call_sse_events() {
         .filter(|e| e.event_type == "tool_call_result")
         .collect();
 
-    eprintln!(
-        "[tool-call-sse] tool_call_start events: {}, tool_call_result events: {}",
+    step!(
+        "tool_call_start events: {}, tool_call_result events: {}",
         start_events.len(),
         result_events.len()
     );
 
+    // Log each tool call start/result pair
+    for event in &start_events {
+        eprintln!("    tool_call_start: name={}, id={}",
+            event.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"),
+            event.data.get("id").and_then(|n| n.as_str()).unwrap_or("?")
+        );
+    }
+    for event in &result_events {
+        let result_str = event.data.get("result").and_then(|r| r.as_str()).unwrap_or("");
+        eprintln!("    tool_call_result: id={}, result={:?}",
+            event.data.get("id").and_then(|n| n.as_str()).unwrap_or("?"),
+            &result_str[..result_str.len().min(200)]
+        );
+    }
+
+    step!("Verifying tool_call_start events exist");
     // Assert tool_call_start events exist
-    assert!(
+    check!(
         !start_events.is_empty(),
         "expected at least one tool_call_start SSE event. All events: {:?}",
         turn.sse_events
@@ -553,8 +606,9 @@ async fn test_tool_call_sse_events() {
             .collect::<Vec<_>>()
     );
 
+    step!("Verifying tool_call_result events exist");
     // Assert tool_call_result events exist
-    assert!(
+    check!(
         !result_events.is_empty(),
         "expected at least one tool_call_result SSE event. All events: {:?}",
         turn.sse_events
@@ -563,58 +617,58 @@ async fn test_tool_call_sse_events() {
             .collect::<Vec<_>>()
     );
 
+    step!("Verifying start/result event counts match");
     // Each start should have a matching result (same count)
-    assert_eq!(
+    check_eq!(
         start_events.len(),
         result_events.len(),
-        "tool_call_start count ({}) should match tool_call_result count ({})",
-        start_events.len(),
-        result_events.len()
+        "tool_call_start count should match tool_call_result count"
     );
 
+    step!("Validating tool_call_start data fields");
     // Validate tool_call_start data contains required fields
     for event in &start_events {
-        assert!(
+        check!(
             event.data.get("name").is_some(),
             "tool_call_start should have 'name' field: {:?}",
             event.data
         );
-        assert!(
+        check!(
             event.data.get("arguments").is_some(),
             "tool_call_start should have 'arguments' field: {:?}",
             event.data
         );
-        assert!(
+        check!(
             event.data.get("id").is_some(),
             "tool_call_start should have 'id' field: {:?}",
             event.data
         );
     }
 
+    step!("Validating tool_call_result data fields");
     // Validate tool_call_result data contains required fields
     for event in &result_events {
-        assert!(
+        check!(
             event.data.get("result").is_some(),
             "tool_call_result should have 'result' field: {:?}",
             event.data
         );
-        assert!(
+        check!(
             event.data.get("is_error").is_some(),
             "tool_call_result should have 'is_error' field: {:?}",
             event.data
         );
-        assert!(
+        check!(
             event.data.get("id").is_some(),
             "tool_call_result should have 'id' field: {:?}",
             event.data
         );
     }
 
-    eprintln!(
-        "[tool-call-sse] completed in {:?}, response: {} chars, {} tool calls",
-        turn.duration,
-        turn.response_text.len(),
-        start_events.len()
+    step!(
+        "PASS — tool call SSE events verified: {} tool calls, completed in {:?}",
+        start_events.len(),
+        turn.duration
     );
 }
 
@@ -637,10 +691,12 @@ async fn test_delegator_subagent_natural_invocation() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Verifying delegator agent is loaded");
     // Verify the delegator agent is loaded
     let agents = harness.get_agents().await.expect("failed to get agents");
     let agent_ids: Vec<String> = agents
@@ -648,11 +704,12 @@ async fn test_delegator_subagent_natural_invocation() {
         .filter_map(|a| a.get("id").and_then(|v| v.as_str()).map(String::from))
         .collect();
 
-    assert!(
+    check!(
         agent_ids.contains(&"delegator".to_string()),
         "delegator agent should be loaded. Loaded agents: {:?}",
         agent_ids
     );
+    step!("Loaded agents: {:?}", agent_ids);
 
     // Send a natural user message that requires codebase exploration.
     // The system prompt tells the agent to delegate to the 'explorer' subagent
@@ -667,6 +724,7 @@ async fn test_delegator_subagent_natural_invocation() {
 
     assert_response_not_empty(&turn, "delegator-natural");
 
+    step!("[delegator] Verifying agent tool was invoked");
     // Verify the agent tool was invoked by checking SSE events.
     // The LLM should have decided to use the agent tool based on the system prompt.
     let agent_tool_starts: Vec<_> = turn
@@ -681,7 +739,12 @@ async fn test_delegator_subagent_natural_invocation() {
         })
         .collect();
 
-    assert!(
+    step!("Agent tool call starts: {}", agent_tool_starts.len());
+    for (i, e) in agent_tool_starts.iter().enumerate() {
+        eprintln!("    agent_tool_start[{}]: {}", i, serde_json::to_string_pretty(&e.data).unwrap_or_default());
+    }
+
+    check!(
         !agent_tool_starts.is_empty(),
         "[delegator-natural] expected the LLM to naturally invoke the 'agent' tool based on \
          system prompt guidance. The system prompt instructs delegation for file-related tasks, \
@@ -706,6 +769,7 @@ async fn test_delegator_subagent_natural_invocation() {
             .collect::<Vec<_>>()
     );
 
+    step!("[delegator] Verifying explorer subagent was used");
     // Verify that an explorer-related subagent was used. Accept multiple patterns:
     // - sub_agent tool with subagentName: "explorer"
     // - agent tool (self-delegation) with prompt mentioning exploration
@@ -732,7 +796,7 @@ async fn test_delegator_subagent_natural_invocation() {
         by_name || by_str || by_prompt
     });
 
-    assert!(
+    check!(
         used_explorer,
         "[delegator-natural] expected exploration-related agent tool invocation. \
          Agent tool calls: {:?}",
@@ -742,6 +806,7 @@ async fn test_delegator_subagent_natural_invocation() {
             .collect::<Vec<_>>()
     );
 
+    step!("[delegator] Verifying tool_call_result events after agent invocation");
     // Verify there's a corresponding tool_call_result
     let agent_tool_results: Vec<_> = turn
         .sse_events
@@ -749,11 +814,12 @@ async fn test_delegator_subagent_natural_invocation() {
         .filter(|e| e.event_type == "tool_call_result")
         .collect();
 
-    assert!(
+    check!(
         !agent_tool_results.is_empty(),
         "[delegator-natural] expected tool_call_result events after agent invocation"
     );
 
+    step!("[delegator] Verifying response contains project structure info");
     // The response should contain information about the project structure
     // (since the explorer subagent has file tools and should have found files)
     let response_lower = turn.response_text.to_lowercase();
@@ -764,17 +830,16 @@ async fn test_delegator_subagent_natural_invocation() {
         || response_lower.contains("file")
         || response_lower.contains("project");
 
-    assert!(
+    check!(
         has_structure_info,
         "[delegator-natural] response should contain project structure information. Got: {}",
         &turn.response_text[..turn.response_text.len().min(500)]
     );
 
-    eprintln!(
-        "[delegator-natural] completed in {:?}, response: {} chars, agent tool calls: {}",
-        turn.duration,
-        turn.response_text.len(),
-        agent_tool_starts.len()
+    step!(
+        "PASS — delegator naturally invoked explorer subagent, {} agent tool calls, completed in {:?}",
+        agent_tool_starts.len(),
+        turn.duration
     );
 }
 
@@ -789,10 +854,12 @@ async fn test_multi_agent_concurrent_conversations() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Verifying all expected agents are loaded");
     // Verify all agents are loaded
     let agents = harness.get_agents().await.expect("failed to get agents");
     let agent_ids: Vec<String> = agents
@@ -810,13 +877,14 @@ async fn test_multi_agent_concurrent_conversations() {
         "delegator",
         "executor",
     ] {
-        assert!(
+        check!(
             agent_ids.contains(&expected_id.to_string()),
-            "agent '{}' not found. Loaded: {:?}",
+            "agent '{}' should be loaded. Loaded: {:?}",
             expected_id,
             agent_ids
         );
     }
+    step!("All 8 agents loaded: {:?}", agent_ids);
 
     // Create 8 conversations simultaneously with simple non-tool messages
     let messages = vec![
@@ -854,6 +922,7 @@ async fn test_multi_agent_concurrent_conversations() {
         ),
     ];
 
+    step!("Spawning 8 concurrent conversations");
     let mut handles = Vec::new();
     for (agent_id, message) in &messages {
         let agent_id = agent_id.to_string();
@@ -999,15 +1068,17 @@ async fn test_multi_agent_concurrent_conversations() {
             );
 
             eprintln!(
-                "[concurrent] {} responded ({} chars)",
+                "\n  \x1b[36m\u{25b8}\x1b[0m [concurrent] {} responded ({} chars): {:?}",
                 agent_id,
-                response_text.len()
+                response_text.len(),
+                &response_text[..response_text.len().min(100)]
             );
 
             (agent_id, conv_id)
         }));
     }
 
+    step!("Waiting for all 8 conversations to complete");
     // Wait for all 8 conversations
     let mut results = Vec::new();
     for handle in handles {
@@ -1015,8 +1086,9 @@ async fn test_multi_agent_concurrent_conversations() {
         results.push(result);
     }
 
-    assert_eq!(results.len(), 8, "all 8 agents should have responded");
+    check_eq!(results.len(), 8, "all 8 agents should have responded");
 
+    step!("Verifying metrics");
     // Verify metrics show conversations tracked
     let metrics = harness.get_metrics().await.expect("failed to get metrics");
 
@@ -1025,17 +1097,19 @@ async fn test_multi_agent_concurrent_conversations() {
             .get("total_agents")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
-        assert!(
+        check!(
             total_agents >= 8,
             "should have at least 8 agents in metrics, got {}",
             total_agents
         );
     }
 
-    eprintln!("All 8 agents responded successfully");
+    step!("All 8 agents responded:");
     for (agent_id, conv_id) in &results {
-        eprintln!("  {} -> conversation {}", agent_id, conv_id);
+        eprintln!("    {} -> conversation {}", agent_id, conv_id);
     }
+
+    step!("PASS — all 8 concurrent conversations completed successfully");
 }
 
 // ============================================================================
@@ -1050,10 +1124,12 @@ async fn test_abort_conversation() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Creating conversation for researcher agent");
     // Use researcher agent — it has simple tools (web_search, web_fetch) that
     // reliably work with Fireworks and take enough time for the abort to fire.
     let resp = harness
@@ -1066,8 +1142,10 @@ async fn test_abort_conversation() {
         .expect("conversation_id")
         .to_string();
 
+    step!("Conversation created: {}", conv_id);
     harness.register_conversation(&conv_id, "researcher").await;
 
+    step!("Sending long research message to trigger tool calls");
     // Send a message that will trigger tool calls (web_search takes time)
     let msg_resp = harness
         .send_message(
@@ -1076,12 +1154,13 @@ async fn test_abort_conversation() {
         )
         .await
         .expect("send message");
-    assert!(
+    check!(
         msg_resp.status().is_success() || msg_resp.status().as_u16() == 202,
-        "message send failed: {}",
+        "message send returned success/202 (got {})",
         msg_resp.status()
     );
 
+    step!("Starting SSE reader for both turns (abort + second turn)");
     // Start a single SSE connection that reads across BOTH turns (abort + second turn).
     // The SSE stream endpoint removes the receiver on first connect, so we must keep
     // this single connection alive for the entire test.
@@ -1177,44 +1256,48 @@ async fn test_abort_conversation() {
         all_events
     });
 
+    step!("Waiting 3s for LLM call to begin, then aborting");
     // Wait for the LLM call to begin processing, then abort.
     // 3 seconds is enough for the message to be received and the LLM call to start.
     tokio::time::sleep(Duration::from_secs(3)).await;
 
     let abort_start = std::time::Instant::now();
+    step!("Sending abort request for conversation {}", conv_id);
     let abort_resp = harness
         .abort_conversation(&conv_id)
         .await
         .expect("abort request failed");
 
-    assert_eq!(abort_resp.status().as_u16(), 200, "abort should return 200");
+    check_eq!(abort_resp.status().as_u16(), 200, "abort should return 200");
 
     let abort_body: serde_json::Value = abort_resp.json().await.expect("parse abort body");
-    assert_eq!(
+    check_eq!(
         abort_body.get("status").and_then(|s| s.as_str()),
         Some("aborted"),
         "abort response should have status: aborted"
     );
 
+    step!("Waiting for abort events from SSE reader");
     // Wait for abort events from the SSE reader
     let abort_events = abort_events_rx.await.expect("abort events channel closed");
     let abort_latency = abort_start.elapsed();
 
-    eprintln!(
-        "[abort] abort latency: {:?}, collected {} events: {:?}",
+    step!(
+        "Abort latency: {:?}, collected {} events",
         abort_latency,
-        abort_events.len(),
-        abort_events
-            .iter()
-            .map(|(t, d)| format!("{}:{}", t, &d.to_string()[..d.to_string().len().min(120)]))
-            .collect::<Vec<_>>()
+        abort_events.len()
     );
+    for (t, d) in &abort_events {
+        let s = d.to_string();
+        eprintln!("    - {}:{}", t, &s[..s.len().min(120)]);
+    }
 
+    step!("Verifying error event with code 'aborted'");
     // Verify we got an error event with code "aborted"
     let abort_event = abort_events
         .iter()
         .find(|(t, d)| t == "error" && d.get("code").and_then(|c| c.as_str()) == Some("aborted"));
-    assert!(
+    check!(
         abort_event.is_some(),
         "expected an error event with code 'aborted'. Events: {:?}",
         abort_events
@@ -1223,19 +1306,22 @@ async fn test_abort_conversation() {
             .collect::<Vec<_>>()
     );
 
+    step!("Verifying done event after abort");
     // Verify we got a done event
     let done_event = abort_events.iter().find(|(t, _)| t == "done");
-    assert!(done_event.is_some(), "expected a 'done' event after abort");
+    check!(done_event.is_some(), "expected a 'done' event after abort");
 
+    step!("Verifying abort resolved quickly (< 10s)");
     // The abort should resolve quickly (not wait for the full LLM response).
     // Allow up to 10 seconds — the key point is it should NOT take the full
     // LLM response time (which would be 15-40+ seconds for tool-calling agents).
-    assert!(
+    check!(
         abort_latency < Duration::from_secs(10),
         "abort should resolve quickly, but took {:?}",
         abort_latency
     );
 
+    step!("Sending second message to verify conversation is still usable");
     // Now verify the conversation is still usable — send another message
     // and expect a normal response. The SSE reader is still connected and
     // will collect events for the second turn.
@@ -1244,12 +1330,13 @@ async fn test_abort_conversation() {
         .await
         .expect("send second message after abort");
 
-    assert!(
+    check!(
         msg2_resp.status().is_success() || msg2_resp.status().as_u16() == 202,
-        "second message after abort failed: {}",
+        "second message after abort returned success/202 (got {})",
         msg2_resp.status()
     );
 
+    step!("Waiting for SSE reader to collect second turn events");
     // Wait for the SSE reader to collect the second turn's events (until 2nd done)
     let all_events = sse_reader.await.expect("SSE reader task panicked");
 
@@ -1267,6 +1354,9 @@ async fn test_abort_conversation() {
         .filter_map(|(_, d)| d.get("delta").and_then(|d| d.as_str()))
         .collect();
 
+    step!("Second turn response ({} chars)", response2.len());
+    eprintln!("    Response: {:?}", &response2[..response2.len().min(200)]);
+
     // Log the second turn's response in the same format as other conversation tests
     let turn2_elapsed = abort_start.elapsed();
     eprintln!(
@@ -1283,7 +1373,7 @@ async fn test_abort_conversation() {
         turn2_elapsed.as_secs_f64()
     );
 
-    assert!(
+    check!(
         !response2.is_empty(),
         "conversation should still work after abort — second turn returned empty response. Events: {:?}",
         turn2_events
@@ -1295,7 +1385,7 @@ async fn test_abort_conversation() {
             .collect::<Vec<_>>()
     );
 
-    eprintln!("[abort] test passed — abort worked and conversation remained usable");
+    step!("PASS — abort worked (latency {:?}) and conversation remained usable", abort_latency);
 }
 
 // ============================================================================
@@ -1309,14 +1399,16 @@ async fn test_executor_background_bash() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Creating conversation for executor agent");
     // Create conversation and send message manually so we can read multiple turns.
     // Background bash produces two turns:
-    //   Turn 1: LLM calls bash(background:true) → gets immediate "running" → responds
-    //   Turn 2: Background command completes → notification → LLM reports output
+    //   Turn 1: LLM calls bash(background:true) -> gets immediate "running" -> responds
+    //   Turn 2: Background command completes -> notification -> LLM reports output
     let resp = harness
         .create_conversation("executor")
         .await
@@ -1327,11 +1419,14 @@ async fn test_executor_background_bash() {
         .expect("conversation_id")
         .to_string();
 
+    step!("Conversation created: {}", conversation_id);
+
     // Register for conversation logging
     harness
         .register_conversation(&conversation_id, "executor")
         .await;
 
+    step!("Sending background bash command");
     let msg_resp = harness
         .send_message(
             &conversation_id,
@@ -1339,12 +1434,13 @@ async fn test_executor_background_bash() {
         )
         .await
         .expect("send message");
-    assert!(
+    check!(
         msg_resp.status().is_success() || msg_resp.status().as_u16() == 202,
-        "message send failed: {}",
+        "message send returned success/202 (got {})",
         msg_resp.status()
     );
 
+    step!("Streaming SSE events across 2 turns (background launch + completion)");
     // Read SSE events across 2 turns (2 "done" events).
     // Turn 1: agent acknowledges background launch.
     // Turn 2: agent processes the background completion notification and reports output.
@@ -1353,18 +1449,24 @@ async fn test_executor_background_bash() {
         .await
         .expect("stream SSE events");
 
-    eprintln!(
-        "[executor-bg] collected {} events, response: {} chars",
+    step!(
+        "Collected {} SSE events, response: {} chars",
         events.len(),
         response_text.len()
     );
+    for e in &events {
+        eprintln!("    - {}", e.event_type);
+    }
 
     // LLM responses are non-deterministic; a missing text response is acceptable
     // as long as the tool calls executed correctly.
     if response_text.is_empty() {
-        eprintln!("[executor-bg] warning: empty response text, checking tool calls only");
+        step!("Warning: empty response text, checking tool calls only");
+    } else {
+        eprintln!("    Response: {:?}", &response_text[..response_text.len().min(200)]);
     }
 
+    step!("Verifying bash tool was called");
     // Verify the bash tool was called with background: true in SSE events
     let bash_starts: Vec<_> = events
         .iter()
@@ -1374,8 +1476,9 @@ async fn test_executor_background_bash() {
         })
         .collect();
 
-    assert!(!bash_starts.is_empty(), "bash tool should have been called");
+    check!(!bash_starts.is_empty(), "bash tool should have been called");
 
+    step!("Verifying bash was called with background: true");
     // Check that at least one bash call had background: true
     let used_background = bash_starts.iter().any(|e| {
         let args = e.data.get("arguments");
@@ -1389,18 +1492,21 @@ async fn test_executor_background_bash() {
         }
     });
 
-    assert!(
+    check!(
         used_background,
         "bash should have been called with background: true"
     );
 
+    step!("Verifying response contains background command output marker");
     // Verify the response contains the marker from the background command output.
-    // This proves the full round-trip: command ran → notification sent → agent received it.
-    assert!(
+    // This proves the full round-trip: command ran -> notification sent -> agent received it.
+    check!(
         response_text.contains("background_task_complete_marker_12345"),
         "response should contain the background command output marker, got: {}",
         &response_text[..response_text.len().min(500)]
     );
+
+    step!("PASS — background bash executed, notification round-trip completed");
 }
 
 // ============================================================================
@@ -1414,23 +1520,26 @@ async fn test_compaction_triggers_and_fires_webhook() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
 
+    step!("Clearing webhook log");
     // Clear any prior webhooks
     harness
         .clear_webhook_log()
         .await
         .expect("failed to clear webhook log");
 
+    step!("Creating conversation for compaction-agent (token_budget=150)");
     // Create a conversation on the compaction agent (token_budget=150)
     let create_resp = harness
         .create_conversation("compaction-agent")
         .await
         .expect("create_conversation failed");
 
-    assert_eq!(create_resp.status().as_u16(), 201);
+    check_eq!(create_resp.status().as_u16(), 201, "create conversation returns 201");
 
     let create_body: serde_json::Value = create_resp
         .json()
@@ -1440,6 +1549,8 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .as_str()
         .expect("missing conversation_id")
         .to_string();
+
+    step!("Conversation created: {}", conv_id);
 
     // Register for conversation logging
     harness
@@ -1458,12 +1569,14 @@ async fn test_compaction_triggers_and_fires_webhook() {
 
     let total_messages = messages.len();
 
+    step!("Sending {} messages to build up context", total_messages);
     // Send the first message so the conversation loop starts processing
     let msg_resp = harness
         .send_message(&conv_id, messages[0])
         .await
         .expect("send_message failed");
-    assert_eq!(msg_resp.status().as_u16(), 202);
+    check_eq!(msg_resp.status().as_u16(), 202, "first message accepted (202)");
+    step!("Sent message 1/{}: '{}'", total_messages, &messages[0][..messages[0].len().min(60)]);
 
     // Spawn a background task to send remaining messages after each turn completes.
     // The conversation loop processes one message at a time from a buffered channel,
@@ -1471,13 +1584,15 @@ async fn test_compaction_triggers_and_fires_webhook() {
     let bridge_url = harness.bridge_url().to_string();
     let conv_id_bg = conv_id.clone();
     let remaining: Vec<String> = messages[1..].iter().map(|s| s.to_string()).collect();
+    let remaining_count = remaining.len();
     tokio::spawn(async move {
         let client = reqwest::Client::new();
-        for msg in &remaining {
+        for (i, msg) in remaining.iter().enumerate() {
             // Each Fireworks round-trip takes ~5-10s; with compaction it may
             // need two calls (summary + chat). Wait long enough for the
             // previous turn to fully complete before queuing the next message.
             tokio::time::sleep(Duration::from_secs(15)).await;
+            eprintln!("\n  \x1b[36m\u{25b8}\x1b[0m Sent message {}/{}: '{}'", i + 2, remaining_count + 1, &msg[..msg.len().min(60)]);
             let _ = client
                 .post(format!(
                     "{}/conversations/{}/messages",
@@ -1489,12 +1604,14 @@ async fn test_compaction_triggers_and_fires_webhook() {
         }
     });
 
+    step!("Streaming SSE events until all {} turns complete", total_messages);
     // Read the SSE stream until all turns complete (one `done` per turn)
     let (_events, _text) = harness
         .stream_sse_until_done_count(&conv_id, total_messages, LLM_TIMEOUT)
         .await
         .expect("stream_sse_until_done_count failed");
 
+    step!("Waiting for conversation_compacted webhook (timeout: 30s)");
     // Wait for the conversation_compacted webhook
     let log = harness
         .wait_for_webhook_type("conversation_compacted", Duration::from_secs(30))
@@ -1502,20 +1619,24 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .expect("conversation_compacted webhook never arrived");
 
     let compacted = log.by_type("conversation_compacted");
-    assert!(
+    check!(
         !compacted.is_empty(),
         "should have at least one conversation_compacted webhook"
     );
 
+    step!("Checking conversation_compacted webhook payload");
     // Verify the webhook payload
     let entry = compacted[0];
-    assert_eq!(entry.agent_id(), Some("compaction-agent"));
-    assert_eq!(entry.conversation_id(), Some(conv_id.as_str()));
+    check_eq!(entry.agent_id(), Some("compaction-agent"), "webhook agent_id is compaction-agent");
+    check_eq!(entry.conversation_id(), Some(conv_id.as_str()), "webhook conversation_id matches");
 
     let data = entry
         .data()
         .expect("conversation_compacted should have data");
-    assert!(
+
+    eprintln!("    Webhook data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+
+    check!(
         data.get("summary")
             .and_then(|v| v.as_str())
             .map(|s| !s.is_empty())
@@ -1523,7 +1644,7 @@ async fn test_compaction_triggers_and_fires_webhook() {
         "summary should be a non-empty string; got: {:?}",
         data.get("summary")
     );
-    assert!(
+    check!(
         data.get("messages_compacted")
             .and_then(|v| v.as_u64())
             .unwrap_or(0)
@@ -1538,28 +1659,29 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .get("post_compaction_tokens")
         .and_then(|v| v.as_u64())
         .expect("post_compaction_tokens missing");
-    assert!(
+    check!(
         pre > 1500,
         "pre_compaction_tokens ({}) should exceed budget (1500)",
         pre
     );
     // After compacting many turns into a summary, post should be notably smaller
-    assert!(
+    check!(
         post < pre,
         "post_compaction_tokens ({}) should be less than pre ({})",
         post,
         pre
     );
 
+    step!("Ending conversation");
     // End the conversation
     let end_resp = harness
         .end_conversation(&conv_id)
         .await
         .expect("end_conversation failed");
-    assert_eq!(end_resp.status().as_u16(), 200);
+    check_eq!(end_resp.status().as_u16(), 200, "end conversation returns 200");
 
-    eprintln!(
-        "[compaction] test passed — compaction triggered with pre={} post={}",
+    step!(
+        "PASS — compaction triggered: pre={} post={}, summary present",
         pre, post
     );
 }
@@ -1575,6 +1697,7 @@ async fn test_streaming_text_between_tool_calls() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -1589,10 +1712,11 @@ async fn test_streaming_text_between_tool_calls() {
 
     assert_response_not_empty(&turn, "streaming");
 
+    step!("[streaming] Verifying getIssue was called");
     // The agent should have called getIssue
     assert_any_tool_called_in_sse(&turn, &["getIssue"], "streaming");
 
-    // ── Core streaming assertion ──
+    // ---- Core streaming assertion ----
     // Verify that content_delta events appear both BEFORE and AFTER tool calls.
     // This is the key behavior: the LLM streams text, then makes a tool call,
     // then streams more text — and the client sees all of it in real time.
@@ -1609,11 +1733,11 @@ async fn test_streaming_text_between_tool_calls() {
         .iter()
         .rposition(|e| e.event_type == "tool_call_result");
 
-    assert!(
+    check!(
         first_tool_start_idx.is_some(),
         "[streaming] expected at least one tool_call_start event"
     );
-    assert!(
+    check!(
         last_tool_result_idx.is_some(),
         "[streaming] expected at least one tool_call_result event"
     );
@@ -1649,9 +1773,13 @@ async fn test_streaming_text_between_tool_calls() {
         })
         .collect();
 
-    eprintln!("[streaming] event sequence: {:#?}", event_sequence);
+    step!("[streaming] Event sequence ({} events)", event_sequence.len());
+    for (i, e) in event_sequence.iter().enumerate() {
+        eprintln!("    [{}] {}", i, e);
+    }
 
-    assert!(
+    step!("[streaming] Verifying content_delta events BEFORE tool call");
+    check!(
         deltas_before_tool,
         "[streaming] expected content_delta events BEFORE tool_call_start. \
          The LLM should stream explanatory text before calling a tool. \
@@ -1659,7 +1787,8 @@ async fn test_streaming_text_between_tool_calls() {
         event_sequence
     );
 
-    assert!(
+    step!("[streaming] Verifying content_delta events AFTER tool call");
+    check!(
         deltas_after_tool,
         "[streaming] expected content_delta events AFTER tool_call_result. \
          The LLM should stream a summary after receiving the tool result. \
@@ -1675,7 +1804,8 @@ async fn test_streaming_text_between_tool_calls() {
         .filter(|e| e.event_type == "content_delta")
         .count();
 
-    assert!(
+    step!("[streaming] Verifying incremental streaming ({} content_deltas)", delta_count);
+    check!(
         delta_count >= 3,
         "[streaming] expected at least 3 content_delta events (incremental streaming), got {}. \
          Events: {:?}",
@@ -1683,8 +1813,9 @@ async fn test_streaming_text_between_tool_calls() {
         event_sequence
     );
 
-    eprintln!(
-        "[streaming] completed in {:?} — {} content_deltas, text interleaved with tool calls ✓",
-        turn.duration, delta_count
+    step!(
+        "PASS — streaming verified: {} content_deltas, text interleaved with tool calls, completed in {:?}",
+        delta_count,
+        turn.duration
     );
 }

@@ -14,6 +14,35 @@ Start a new conversation with an agent.
 POST /agents/{agent_id}/conversations
 ```
 
+### Body
+
+All fields are optional. Send an empty body `{}` or omit the body entirely to use defaults.
+
+```json
+{
+  "tool_names": ["read", "write", "bash"],
+  "mcp_server_names": ["github", "jira"],
+  "api_key": "<anthropic-api-key>",
+  "subagent_api_keys": {
+    "explorer": "<anthropic-api-key>",
+    "coder": "<anthropic-api-key>"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tool_names` | string[] | No | Restrict available tools to this list. Names must match exactly (case-sensitive). Invalid names return 400. |
+| `mcp_server_names` | string[] | No | Restrict available MCP servers. Only tools from these servers are available. Invalid names return 400. |
+| `api_key` | string | No | Override the agent's LLM API key for this conversation only. Useful for per-user billing or testing different providers. |
+| `subagent_api_keys` | object | No | Map of subagent name to API key override. Each named subagent uses the specified key instead of the agent's default. |
+
+**Notes:**
+- When `tool_names` is omitted, all tools configured on the agent are available.
+- When `mcp_server_names` is omitted, all configured MCP servers are available.
+- The `api_key` override applies only to this conversation and does not affect other conversations or the agent's stored key.
+- Keys in `subagent_api_keys` must match subagent names defined in the agent configuration.
+
 ### Response
 
 ```json

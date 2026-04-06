@@ -11,7 +11,7 @@
 //! FIREWORKS_API_KEY=<key> cargo test -p bridge-e2e --test integration_real_e2e_tests -- --ignored
 //! ```
 
-use bridge_e2e::{ConversationTurn, SseStream, TestHarness};
+use bridge_e2e::{check, check_eq, step, ConversationTurn, SseStream, TestHarness};
 use std::time::Duration;
 
 const AGENT_ID: &str = "integration-agent";
@@ -42,15 +42,11 @@ async fn converse_with_retry(
     let mut last_turn = None;
     for attempt in 0..MAX_RETRIES {
         if attempt > 0 {
-            eprintln!(
-                "[{}] retrying (attempt {}/{})",
-                label,
-                attempt + 1,
-                MAX_RETRIES
-            );
+            step!("[{}] Retrying (attempt {}/{})", label, attempt + 1, MAX_RETRIES);
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
+        step!("[{}] Sending message: '{}'", label, &message[..message.len().min(100)]);
         let turn = harness
             .converse(AGENT_ID, None, message, FULL_TIMEOUT)
             .await
@@ -59,6 +55,13 @@ async fn converse_with_retry(
         let has_error = turn.sse_events.iter().any(|e| e.event_type == "error");
 
         if !turn.response_text.is_empty() && !has_error {
+            step!("[{}] Got response ({} chars)", label, turn.response_text.len());
+            eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+
+            step!("[{}] SSE events received ({} total)", label, turn.sse_events.len());
+            for e in &turn.sse_events {
+                eprintln!("    - {}", e.event_type);
+            }
             return turn;
         }
 
@@ -84,6 +87,7 @@ async fn converse_with_retry(
 /// Helper: create conversation, connect SSE, send message.
 /// Returns (conv_id, sse_stream).
 async fn setup_conversation(harness: &TestHarness, message: &str) -> (String, SseStream) {
+    step!("Creating conversation for agent '{}'", AGENT_ID);
     let resp = harness
         .create_conversation(AGENT_ID)
         .await
@@ -94,19 +98,21 @@ async fn setup_conversation(harness: &TestHarness, message: &str) -> (String, Ss
         .expect("no conversation_id")
         .to_string();
 
+    step!("Connecting SSE stream for conversation {}", conv_id);
     // Connect to SSE stream BEFORE sending message so we don't miss events
     let bridge_url = harness.bridge_url();
     let stream = SseStream::connect(bridge_url, &conv_id)
         .await
         .expect("SSE connect failed");
 
+    step!("Sending message: '{}'", &message[..message.len().min(100)]);
     let msg_resp = harness
         .send_message(&conv_id, message)
         .await
         .expect("send message failed");
-    assert!(
+    check!(
         msg_resp.status().is_success() || msg_resp.status().as_u16() == 202,
-        "send message returned {}",
+        "send message returned success/202 (got {})",
         msg_resp.status()
     );
 
@@ -126,6 +132,7 @@ async fn test_real_llm_integration_allow_executes() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -145,24 +152,26 @@ async fn test_real_llm_integration_allow_executes() {
         .filter_map(|e| e.data.get("name").and_then(|n| n.as_str()))
         .collect();
 
-    eprintln!("[test] tools called: {:?}", tool_starts);
+    step!("Tools called: {:?}", tool_starts);
 
-    assert!(
+    check!(
         tool_starts.contains(&"github__list_issues"),
         "expected github__list_issues tool call, got {:?}",
         tool_starts
     );
 
+    step!("Verifying no approval events");
     // No approval events for allow-permission tools
     let has_approval = turn
         .sse_events
         .iter()
         .any(|e| e.event_type == "tool_approval_required");
-    assert!(
+    check!(
         !has_approval,
         "allowed integration tool should NOT require approval"
     );
 
+    step!("Checking tool results for issues data");
     // Should have a tool result with issues data
     let tool_results: Vec<&str> = turn
         .sse_events
@@ -171,21 +180,26 @@ async fn test_real_llm_integration_allow_executes() {
         .filter_map(|e| e.data.get("result").and_then(|r| r.as_str()))
         .collect();
 
+    // Log tool results
+    for (i, result) in tool_results.iter().enumerate() {
+        eprintln!("    tool_call_result[{}]: {:?}", i, &result[..result.len().min(200)]);
+    }
+
     let has_issues_data = tool_results.iter().any(|r| {
         r.contains("Fix login page crash") || r.contains("issues") || r.contains("number")
     });
-    assert!(
+    check!(
         has_issues_data,
         "tool result should contain GitHub issues data; got: {:?}",
         tool_results
     );
 
-    assert!(
+    check!(
         turn.sse_events.iter().any(|e| e.event_type == "done"),
         "expected done event"
     );
 
-    eprintln!("[test] test_real_llm_integration_allow_executes PASSED");
+    step!("PASS — github__list_issues executed without approval, returned issues data");
 }
 
 // ============================================================================
@@ -198,6 +212,7 @@ async fn test_real_llm_integration_allow_mailchimp() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -216,20 +231,22 @@ async fn test_real_llm_integration_allow_mailchimp() {
         .filter_map(|e| e.data.get("name").and_then(|n| n.as_str()))
         .collect();
 
-    eprintln!("[test] tools called: {:?}", tool_starts);
+    step!("Tools called: {:?}", tool_starts);
 
-    assert!(
+    check!(
         tool_starts.contains(&"mailchimp__create_campaign"),
         "expected mailchimp__create_campaign tool call, got {:?}",
         tool_starts
     );
 
+    step!("Verifying no approval events");
     let has_approval = turn
         .sse_events
         .iter()
         .any(|e| e.event_type == "tool_approval_required");
-    assert!(!has_approval, "allowed tool should NOT require approval");
+    check!(!has_approval, "allowed tool should NOT require approval");
 
+    step!("Checking tool results for campaign data");
     // Verify result contains campaign data
     let tool_results: Vec<&str> = turn
         .sse_events
@@ -238,18 +255,22 @@ async fn test_real_llm_integration_allow_mailchimp() {
         .filter_map(|e| e.data.get("result").and_then(|r| r.as_str()))
         .collect();
 
+    for (i, result) in tool_results.iter().enumerate() {
+        eprintln!("    tool_call_result[{}]: {:?}", i, &result[..result.len().min(200)]);
+    }
+
     let has_campaign_data = tool_results
         .iter()
         .any(|r| r.contains("mc_campaign") || r.contains("campaign") || r.contains("subject"));
-    assert!(
+    check!(
         has_campaign_data,
         "tool result should contain campaign data; got: {:?}",
         tool_results
     );
 
-    assert!(turn.sse_events.iter().any(|e| e.event_type == "done"));
+    check!(turn.sse_events.iter().any(|e| e.event_type == "done"), "expected done event");
 
-    eprintln!("[test] test_real_llm_integration_allow_mailchimp PASSED");
+    step!("PASS — mailchimp__create_campaign executed without approval, returned campaign data");
 }
 
 // ============================================================================
@@ -266,6 +287,7 @@ async fn test_real_llm_integration_require_approval_approve() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -276,8 +298,9 @@ async fn test_real_llm_integration_require_approval_approve() {
     )
     .await;
 
-    eprintln!("[test] conversation created: {}", conv_id);
+    step!("Conversation created: {}", conv_id);
 
+    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", EVENT_TIMEOUT);
     // Wait for tool_approval_required
     let approval_event = stream
         .wait_for_event("tool_approval_required", EVENT_TIMEOUT)
@@ -288,54 +311,65 @@ async fn test_real_llm_integration_require_approval_approve() {
         .as_str()
         .expect("no request_id")
         .to_string();
-    eprintln!(
-        "[test] got tool_approval_required: request_id={}, tool={}",
+    step!(
+        "Got tool_approval_required: request_id={}, tool={}",
         request_id,
         approval_event.data["tool_name"].as_str().unwrap_or("?")
     );
+    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
 
+    step!("Verifying integration metadata in approval event");
     // Verify integration metadata in the approval event
-    assert_eq!(
+    check_eq!(
         approval_event.data["tool_name"].as_str(),
         Some("github__create_pull_request"),
         "tool_name should be github__create_pull_request"
     );
-    assert_eq!(
+    check_eq!(
         approval_event.data["integration_name"].as_str(),
         Some("github"),
         "integration_name should be present"
     );
-    assert_eq!(
+    check_eq!(
         approval_event.data["integration_action"].as_str(),
         Some("create_pull_request"),
         "integration_action should be present"
     );
 
+    step!("Listing pending approvals");
     // List pending approvals
     let pending = harness
         .list_approvals(AGENT_ID, &conv_id)
         .await
         .expect("list approvals failed");
-    assert!(
+    check!(
         !pending.is_empty(),
         "expected at least one pending approval"
     );
 
+    step!("Approving request {}", request_id);
     // Approve
     let approve_resp = harness
         .resolve_approval(AGENT_ID, &conv_id, &request_id, "approve")
         .await
         .expect("resolve approval failed");
-    assert!(approve_resp.status().is_success());
-    eprintln!("[test] approved request {}", request_id);
+    check!(approve_resp.status().is_success(), "approve response is success");
 
+    step!("Waiting for done event (timeout: {:?})", FULL_TIMEOUT);
     // Wait for done
     let events = stream.wait_for_done(FULL_TIMEOUT).await;
-    assert!(
+
+    step!("Listing SSE events received ({} total)", events.len());
+    for e in &events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    check!(
         events.iter().any(|e| e.event_type == "done"),
         "expected done event"
     );
 
+    step!("Verifying tool_call_result with PR data after approval");
     // Verify tool executed — should have tool_call_result with PR data
     let has_tool_result = events.iter().any(|e| {
         e.event_type == "tool_call_result"
@@ -345,12 +379,17 @@ async fn test_real_llm_integration_require_approval_approve() {
                 .map(|r| r.contains("pull") || r.contains("123") || r.contains("open"))
                 .unwrap_or(false)
     });
-    assert!(
+    check!(
         has_tool_result,
         "expected tool_call_result with PR data after approval"
     );
 
-    eprintln!("[test] test_real_llm_integration_require_approval_approve PASSED");
+    // Log tool results
+    for e in events.iter().filter(|e| e.event_type == "tool_call_result") {
+        eprintln!("    tool_call_result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+    }
+
+    step!("PASS — github__create_pull_request approved and executed, returned PR data");
 }
 
 // ============================================================================
@@ -366,6 +405,7 @@ async fn test_real_llm_integration_require_approval_deny() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -376,8 +416,9 @@ async fn test_real_llm_integration_require_approval_deny() {
     )
     .await;
 
-    eprintln!("[test] conversation created: {}", conv_id);
+    step!("Conversation created: {}", conv_id);
 
+    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", EVENT_TIMEOUT);
     // Wait for approval
     let approval_event = stream
         .wait_for_event("tool_approval_required", EVENT_TIMEOUT)
@@ -388,30 +429,48 @@ async fn test_real_llm_integration_require_approval_deny() {
         .as_str()
         .expect("no request_id")
         .to_string();
-    eprintln!("[test] denying request {}", request_id);
+    step!("Got tool_approval_required: request_id={}", request_id);
+    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
 
+    step!("Denying request {}", request_id);
     // Deny
     let deny_resp = harness
         .resolve_approval(AGENT_ID, &conv_id, &request_id, "deny")
         .await
         .expect("deny approval failed");
-    assert!(deny_resp.status().is_success());
+    check!(deny_resp.status().is_success(), "deny response is success");
 
+    step!("Waiting for done event (timeout: {:?})", FULL_TIMEOUT);
     // Wait for done — LLM should respond after receiving the denial
     let events = stream.wait_for_done(FULL_TIMEOUT).await;
-    assert!(
+
+    step!("Listing SSE events received ({} total)", events.len());
+    for e in &events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    check!(
         events.iter().any(|e| e.event_type == "done"),
         "expected done event"
     );
 
+    step!("Verifying tool_call_result with denial error");
     // Should have a tool_call_result with is_error=true
     let has_denial = events.iter().any(|e| {
         e.event_type == "tool_call_result"
             && e.data.get("is_error").and_then(|v| v.as_bool()) == Some(true)
     });
-    assert!(has_denial, "expected tool_call_result with denial error");
+    check!(has_denial, "expected tool_call_result with denial error");
 
-    eprintln!("[test] test_real_llm_integration_require_approval_deny PASSED");
+    // Log denial result
+    for e in events.iter().filter(|e| {
+        e.event_type == "tool_call_result"
+            && e.data.get("is_error").and_then(|v| v.as_bool()) == Some(true)
+    }) {
+        eprintln!("    Denial result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+    }
+
+    step!("PASS — slack__send_message denied, LLM handled denial gracefully");
 }
 
 // ============================================================================
@@ -428,6 +487,7 @@ async fn test_real_llm_integration_deny_tool_not_exposed() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -447,26 +507,28 @@ async fn test_real_llm_integration_deny_tool_not_exposed() {
         .filter_map(|e| e.data.get("name").and_then(|n| n.as_str()))
         .collect();
 
-    eprintln!("[test] tools called: {:?}", tool_starts);
+    step!("Tools called: {:?}", tool_starts);
 
-    assert!(
+    check!(
         !tool_starts.contains(&"github__delete_repository"),
         "github__delete_repository should NEVER be called (deny permission), but got {:?}",
         tool_starts
     );
 
-    assert!(
+    check!(
         turn.sse_events.iter().any(|e| e.event_type == "done"),
         "expected done event"
     );
 
+    step!("Verifying LLM explained tool is unavailable");
     // The LLM should explain it can't do this
-    assert!(
+    check!(
         !turn.response_text.is_empty(),
         "expected a text response explaining the tool is unavailable"
     );
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
-    eprintln!("[test] test_real_llm_integration_deny_tool_not_exposed PASSED");
+    step!("PASS — github__delete_repository never exposed to LLM, agent refused gracefully");
 }
 
 // ============================================================================
@@ -482,6 +544,7 @@ async fn test_real_llm_integration_natural_language_routing() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start real harness");
@@ -500,19 +563,19 @@ async fn test_real_llm_integration_natural_language_routing() {
         .filter_map(|e| e.data.get("name").and_then(|n| n.as_str()))
         .collect();
 
-    eprintln!("[test] tools called: {:?}", tool_starts);
+    step!("Tools called: {:?}", tool_starts);
 
     // The LLM should route this to github__list_issues
-    assert!(
+    check!(
         tool_starts.contains(&"github__list_issues"),
         "expected LLM to call github__list_issues from natural language, got {:?}",
         tool_starts
     );
 
-    assert!(
+    check!(
         turn.sse_events.iter().any(|e| e.event_type == "done"),
         "expected done event"
     );
 
-    eprintln!("[test] test_real_llm_integration_natural_language_routing PASSED");
+    step!("PASS — LLM routed natural language to github__list_issues correctly");
 }

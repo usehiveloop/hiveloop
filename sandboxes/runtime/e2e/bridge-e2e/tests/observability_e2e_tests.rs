@@ -8,7 +8,7 @@
 //! FIREWORKS_API_KEY=<key> cargo test -p bridge-e2e --test observability_e2e_tests -- --ignored
 //! ```
 
-use bridge_e2e::TestHarness;
+use bridge_e2e::{check, step, TestHarness};
 use std::time::Duration;
 
 const LLM_TIMEOUT: Duration = Duration::from_secs(120);
@@ -32,15 +32,18 @@ async fn test_turn_completed_webhook_has_token_data() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start harness");
 
+    step!("Clearing webhook log");
     harness
         .clear_webhook_log()
         .await
         .expect("failed to clear webhook log");
 
+    step!("Sending message: 'Reply with exactly: hello'");
     let turn = harness
         .converse(
             "streaming-agent",
@@ -51,73 +54,48 @@ async fn test_turn_completed_webhook_has_token_data() {
         .await
         .expect("conversation failed");
 
-    assert!(
-        !turn.response_text.is_empty(),
-        "response should not be empty"
-    );
+    step!("Verifying response text is non-empty");
+    check!(!turn.response_text.is_empty(), "response should not be empty");
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
-    // Wait for webhooks to be delivered
+    step!("Listing SSE events received ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {}", e.event_type);
+    }
+
+    step!("Waiting for turn_completed webhook (timeout: {:?})", WEBHOOK_TIMEOUT);
     let log = harness
         .wait_for_webhook_type("turn_completed", WEBHOOK_TIMEOUT)
         .await
         .expect("failed to get webhooks");
 
     let turn_completed = log.by_type("turn_completed");
-    assert!(
-        !turn_completed.is_empty(),
-        "should have at least one turn_completed webhook"
-    );
+    check!(!turn_completed.is_empty(), "should have at least one turn_completed webhook");
 
     let data = turn_completed[0]
         .data()
         .expect("turn_completed should have data");
 
-    // Verify enriched fields
-    assert!(
-        data.get("input_tokens").is_some(),
-        "turn_completed should have input_tokens. Data: {}",
-        data
-    );
-    assert!(
-        data.get("output_tokens").is_some(),
-        "turn_completed should have output_tokens. Data: {}",
-        data
-    );
-    assert!(
-        data.get("model").is_some(),
-        "turn_completed should have model. Data: {}",
-        data
-    );
-    assert!(
-        data.get("timestamp").is_some(),
-        "turn_completed should have timestamp. Data: {}",
-        data
-    );
-    assert!(
-        data.get("turn_number").is_some(),
-        "turn_completed should have turn_number. Data: {}",
-        data
-    );
+    step!("Checking turn_completed webhook data fields");
+    eprintln!("    Full data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
 
-    // Verify values are sensible
+    check!(data.get("input_tokens").is_some(), "turn_completed should have input_tokens");
+    check!(data.get("output_tokens").is_some(), "turn_completed should have output_tokens");
+    check!(data.get("model").is_some(), "turn_completed should have model");
+    check!(data.get("timestamp").is_some(), "turn_completed should have timestamp");
+    check!(data.get("turn_number").is_some(), "turn_completed should have turn_number");
+
     let input_tokens = data["input_tokens"].as_u64().unwrap_or(0);
     let output_tokens = data["output_tokens"].as_u64().unwrap_or(0);
-    assert!(
-        input_tokens > 0,
-        "input_tokens should be > 0, got {}",
-        input_tokens
-    );
-    assert!(
-        output_tokens > 0,
-        "output_tokens should be > 0, got {}",
-        output_tokens
-    );
-
     let model = data["model"].as_str().unwrap_or("");
-    assert!(!model.is_empty(), "model should not be empty");
 
-    eprintln!(
-        "[turn_completed] input_tokens={}, output_tokens={}, model={}, turn={}",
+    step!("Verifying token counts are sensible");
+    check!(input_tokens > 0, "input_tokens should be > 0, got {}", input_tokens);
+    check!(output_tokens > 0, "output_tokens should be > 0, got {}", output_tokens);
+    check!(!model.is_empty(), "model should not be empty");
+
+    step!(
+        "PASS — input_tokens={}, output_tokens={}, model={}, turn={}",
         input_tokens, output_tokens, model, data["turn_number"]
     );
 }
@@ -132,15 +110,18 @@ async fn test_response_completed_webhook_has_model_and_timestamp() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start harness");
 
+    step!("Clearing webhook log");
     harness
         .clear_webhook_log()
         .await
         .expect("failed to clear webhook log");
 
+    step!("Sending message: 'Reply with exactly: test'");
     let turn = harness
         .converse(
             "streaming-agent",
@@ -151,15 +132,17 @@ async fn test_response_completed_webhook_has_model_and_timestamp() {
         .await
         .expect("conversation failed");
 
-    assert!(!turn.response_text.is_empty());
+    check!(!turn.response_text.is_empty(), "response should not be empty");
+    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
 
+    step!("Waiting for response_completed webhook");
     let log = harness
         .wait_for_webhook_type("response_completed", WEBHOOK_TIMEOUT)
         .await
         .expect("failed to get webhooks");
 
     let response_completed = log.by_type("response_completed");
-    assert!(
+    check!(
         !response_completed.is_empty(),
         "should have response_completed webhook"
     );
@@ -168,29 +151,16 @@ async fn test_response_completed_webhook_has_model_and_timestamp() {
         .data()
         .expect("response_completed should have data");
 
-    assert!(
-        data.get("model").is_some(),
-        "response_completed should have model. Data: {}",
-        data
-    );
-    assert!(
-        data.get("timestamp").is_some(),
-        "response_completed should have timestamp. Data: {}",
-        data
-    );
-    assert!(
-        data.get("input_tokens").is_some(),
-        "response_completed should have input_tokens. Data: {}",
-        data
-    );
-    assert!(
-        data.get("output_tokens").is_some(),
-        "response_completed should have output_tokens. Data: {}",
-        data
-    );
+    step!("Checking response_completed webhook data fields");
+    eprintln!("    Full data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
 
-    eprintln!(
-        "[response_completed] model={}, timestamp={}, tokens={}+{}",
+    check!(data.get("model").is_some(), "response_completed should have model");
+    check!(data.get("timestamp").is_some(), "response_completed should have timestamp");
+    check!(data.get("input_tokens").is_some(), "response_completed should have input_tokens");
+    check!(data.get("output_tokens").is_some(), "response_completed should have output_tokens");
+
+    step!(
+        "PASS — model={}, timestamp={}, tokens={}+{}",
         data["model"], data["timestamp"], data["input_tokens"], data["output_tokens"]
     );
 }
@@ -205,11 +175,12 @@ async fn test_tool_call_events_have_duration() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start harness");
 
-    // Ask the agent something that triggers a tool call
+    step!("Sending message: 'Use the bash tool to run: echo hello_from_tool'");
     let turn = harness
         .converse(
             "streaming-agent",
@@ -220,35 +191,37 @@ async fn test_tool_call_events_have_duration() {
         .await
         .expect("conversation failed");
 
-    // Check SSE events for tool_call_result with duration
+    step!("Listing SSE events ({} total)", turn.sse_events.len());
+    for e in &turn.sse_events {
+        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+    }
+
+    step!("Filtering for tool_call_result events");
     let tool_results: Vec<_> = turn
         .sse_events
         .iter()
-        .filter(|e| e.event_type == "tool_call_result")
+        .filter(|e| e.event_type == "tool_call_result" || e.event_type == "tool_call_completed")
         .collect();
 
-    assert!(
+    check!(
         !tool_results.is_empty(),
-        "should have at least one tool_call_result. Events: {:?}",
-        turn.sse_events
-            .iter()
-            .map(|e| &e.event_type)
-            .collect::<Vec<_>>()
+        "should have at least one tool_call_result event (got {} SSE events: {:?})",
+        turn.sse_events.len(),
+        turn.sse_events.iter().map(|e| &e.event_type).collect::<Vec<_>>()
     );
 
-    for result in &tool_results {
+    step!("Checking duration_ms on each tool result");
+    for (i, result) in tool_results.iter().enumerate() {
         let duration = result.data.get("duration_ms");
-        assert!(
+        check!(
             duration.is_some(),
-            "tool_call_result should have duration_ms. Data: {}",
-            result.data
+            "tool_call_result[{}] should have duration_ms. Data: {}",
+            i, result.data
         );
+        eprintln!("    Tool call {}: duration_ms={}", i, duration.unwrap());
     }
 
-    eprintln!(
-        "[tool_call] {} tool calls with durations",
-        tool_results.len()
-    );
+    step!("PASS — {} tool calls with durations", tool_results.len());
 }
 
 // ============================================================================
@@ -261,54 +234,44 @@ async fn test_cumulative_tokens_across_turns() {
         return;
     }
 
+    step!("Starting harness with real LLM");
     let harness = TestHarness::start_real()
         .await
         .expect("failed to start harness");
 
+    step!("Clearing webhook log");
     harness
         .clear_webhook_log()
         .await
         .expect("failed to clear webhook log");
 
-    // Turn 1
+    step!("Turn 1: Sending 'Say hello'");
     let _turn1 = harness
         .converse("streaming-agent", None, "Say hello", LLM_TIMEOUT)
         .await
         .expect("turn 1 failed");
 
-    // Wait for turn_completed
+    step!("Waiting for turn_completed webhook (turn 1)");
     let log1 = harness
         .wait_for_webhook_type("turn_completed", WEBHOOK_TIMEOUT)
         .await
         .expect("failed to get webhooks");
 
     let tc1 = log1.by_type("turn_completed");
-    assert!(!tc1.is_empty(), "should have turn_completed for turn 1");
+    check!(!tc1.is_empty(), "should have turn_completed for turn 1");
 
     let data1 = tc1.last().unwrap().data().unwrap();
     let cumulative_input_1 = data1["cumulative_input_tokens"].as_u64().unwrap_or(0);
     let cumulative_output_1 = data1["cumulative_output_tokens"].as_u64().unwrap_or(0);
 
-    assert!(
+    step!("Verifying cumulative tokens after turn 1");
+    check!(
         cumulative_input_1 > 0,
         "cumulative input tokens should be > 0 after turn 1"
     );
 
-    eprintln!(
-        "[cumulative] after turn 1: input={}, output={}",
+    step!(
+        "PASS — after turn 1: cumulative_input={}, cumulative_output={}",
         cumulative_input_1, cumulative_output_1
     );
 }
-
-// ============================================================================
-// Test 5: reasoning/thinking text is captured in SSE events
-//
-// Requires a reasoning model (DeepSeek R1, Claude with extended thinking,
-// OpenAI o1/o3). Currently no reasoning model is available on Fireworks,
-// so this test uses a direct provider. Run with the appropriate API key:
-//
-//   DEEPSEEK_API_KEY=<key> cargo test ... -- test_reasoning_text_streamed_via_sse
-// ============================================================================
-// NOTE: e2e test omitted — no reasoning model available on Fireworks.
-// The reasoning stream mapping is tested via unit tests in crates/llm/src/providers.rs.
-// When a reasoning model becomes available, add an e2e test here.

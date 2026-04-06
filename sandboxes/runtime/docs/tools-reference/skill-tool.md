@@ -81,7 +81,11 @@ The `description` field is shown in system reminders to help agents know when to
 
 ## Parameter Substitution
 
-Skills can include `{{args}}` placeholders:
+Skills can include `{{args}}` placeholders that are replaced when the skill is invoked. The substitution follows three rules depending on the combination of placeholder presence and args provided.
+
+### Case 1: Content has `{{args}}` AND args are provided
+
+The `{{args}}` placeholder is replaced with the args value.
 
 ```json
 {
@@ -90,7 +94,7 @@ Skills can include `{{args}}` placeholders:
 }
 ```
 
-When called with:
+Called with:
 
 ```json
 {
@@ -102,15 +106,15 @@ When called with:
 }
 ```
 
-The content becomes:
+Result:
 
 ```
 Write a commit message for these changes: Fixed the login bug
 ```
 
-### Without Placeholders
+### Case 2: Content does NOT have `{{args}}` BUT args are provided
 
-If a skill doesn't have `{{args}}`, args are appended with an "Arguments:" prefix:
+When the content has no placeholder, args are appended as a separate section with an `Arguments:` prefix:
 
 ```json
 {
@@ -119,7 +123,7 @@ If a skill doesn't have `{{args}}`, args are appended with an "Arguments:" prefi
 }
 ```
 
-With args `"Review this function"`:
+Called with args `"Review this function"`:
 
 ```
 You are a code reviewer.
@@ -127,11 +131,31 @@ You are a code reviewer.
 Arguments: Review this function
 ```
 
-Note: The documentation previously mentioned "Additional context:" but the actual implementation uses "Arguments:".
+### Case 3: No args provided
 
-### Without Args
+The skill content is returned as-is. If the content contains a `{{args}}` placeholder, it remains in the output unchanged.
 
-If no args are provided, the skill content is returned unchanged (including any `{{args}}` placeholders).
+```json
+{
+  "id": "commit",
+  "content": "Write a commit message for these changes: {{args}}"
+}
+```
+
+Called without args:
+
+```
+Write a commit message for these changes: {{args}}
+```
+
+### Summary
+
+| Content has `{{args}}`? | Args provided? | Behavior |
+|--------------------------|----------------|----------|
+| Yes | Yes | Placeholder replaced with args value |
+| No | Yes | Args appended as `\n\nArguments: {args}` |
+| Yes | No | Content returned as-is (placeholder remains) |
+| No | No | Content returned as-is |
 
 ---
 

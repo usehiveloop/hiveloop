@@ -68,7 +68,7 @@ Bridge sends these event types:
 | Event | Event Type (JSON) | When it fires | Data Fields |
 |-------|-------------------|---------------|-------------|
 | Conversation Created | `conversation_created` | New conversation started | `{}` |
-| Message Received | `message_received` | User message received | `content: string` |
+| Message Received | `message_received` | User message received | `content` |
 | Conversation Ended | `conversation_ended` | Conversation ended | `{}` |
 | Conversation Compacted | `conversation_compacted` | History was summarized | `summary`, `messages_compacted`, `pre_compaction_tokens`, `post_compaction_tokens` |
 
@@ -76,26 +76,41 @@ Bridge sends these event types:
 
 | Event | Event Type (JSON) | When it fires | Data Fields |
 |-------|-------------------|---------------|-------------|
-| Response Started | `response_started` | Assistant started responding | `{}` |
-| Response Chunk | `response_chunk` | Streaming chunk generated | `delta: string` |
-| Response Completed | `response_completed` | Assistant finished responding | `input_tokens`, `output_tokens`, `full_response` |
-| Turn Completed | `turn_completed` | Turn/stream completed | `{}` |
+| Response Started | `response_started` | Assistant started responding | `conversation_id`, `message_id` |
+| Response Chunk | `response_chunk` | Streaming chunk generated | `delta`, `message_id` |
+| Response Completed | `response_completed` | Assistant finished responding | `message_id`, `input_tokens`, `output_tokens`, `model`, `timestamp`, `full_response` |
+| Turn Completed | `turn_completed` | Turn/stream completed | `input_tokens`, `output_tokens`, `model`, `timestamp`, `turn_number`, `cumulative_input_tokens`, `cumulative_output_tokens` |
 
 ### Tool Events
 
 | Event | Event Type (JSON) | When it fires | Data Fields |
 |-------|-------------------|---------------|-------------|
-| Tool Call Started | `tool_call_started` | Tool was invoked | `tool_name`, `arguments` |
-| Tool Call Completed | `tool_call_completed` | Tool finished executing | `tool_name`, `result`, `is_error` |
-| Tool Approval Required | `tool_approval_required` | Tool needs user approval | `request_id`, `tool_name`, `tool_call_id`, `arguments` |
-| Tool Approval Resolved | `tool_approval_resolved` | User approved/denied tool | `request_id`, `decision` ("approve" or "deny") |
+| Tool Call Started | `tool_call_started` | Tool was invoked | `id`, `name`, `arguments` |
+| Tool Call Completed | `tool_call_completed` | Tool finished executing | `id`, `tool_name`, `result`, `is_error`, `duration_ms` |
+| Tool Approval Required | `tool_approval_required` | Tool needs user approval | `request_id`, `tool_name`, `tool_call_id`, `arguments`, `integration_name`, `integration_action` |
+| Tool Approval Resolved | `tool_approval_resolved` | User approved/denied tool | `request_id`, `decision` (`"approve"` or `"deny"`) |
+
+### Reasoning Events
+
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Reasoning Delta | `reasoning_delta` | Reasoning/thinking chunk from the model | `delta`, `message_id` |
+
+### Subagent Events
+
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Subagent Started | `sub_agent_started` | A subagent was spawned | `subagent_name`, `mode`, `parent_conversation_id`, `depth` |
+| Subagent Completed | `sub_agent_completed` | A subagent finished execution | `subagent_name`, `mode`, `task_id`, `duration_ms`, `is_error` |
 
 ### Other Events
 
 | Event | Event Type (JSON) | When it fires | Data Fields |
 |-------|-------------------|---------------|-------------|
-| Todo Updated | `todo_updated` | Todo list updated | `todos: array` |
+| Todo Updated | `todo_updated` | Todo list updated | `todos` |
 | Agent Error | `agent_error` | Error occurred | `code`, `message` |
+| Background Task Completed | `background_task_completed` | Background task finished | `task_id`, `description`, `output`, `is_error` |
+| Done | `done` | Response stream complete (terminal signal) | `{}` |
 
 ---
 
@@ -106,46 +121,51 @@ The webhook body is always a **JSON array** of events. Even a single event is wr
 ```json
 [
   {
+    "event_id": "evt-abc123",
     "event_type": "response_started",
     "timestamp": "2026-01-15T10:30:00Z",
     "agent_id": "my-agent",
     "conversation_id": "conv-def456",
     "sequence_number": 1,
-    "data": {},
-    "webhook_url": "https://api.yourservice.com/webhooks/bridge",
-    "webhook_secret": "<webhook-secret>"
+    "data": {
+      "conversation_id": "conv-def456",
+      "message_id": "msg-001"
+    }
   },
   {
+    "event_id": "evt-abc124",
     "event_type": "response_completed",
     "timestamp": "2026-01-15T10:30:02Z",
     "agent_id": "my-agent",
     "conversation_id": "conv-def456",
     "sequence_number": 2,
     "data": {
+      "message_id": "msg-001",
       "input_tokens": 150,
       "output_tokens": 42,
+      "model": "claude-sonnet-4-20250514",
+      "timestamp": "2026-01-15T10:30:02Z",
       "full_response": "Hello! How can I help?"
-    },
-    "webhook_url": "https://api.yourservice.com/webhooks/bridge",
-    "webhook_secret": "<webhook-secret>"
+    }
   }
 ]
 ```
+
+**Note:** `webhook_url` and `webhook_secret` are never included in the event payload. They are resolved at delivery time by the webhook worker.
 
 ### Common Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `event_id` | string | Globally unique event identifier |
 | `event_type` | string | Event type in snake_case |
 | `timestamp` | string | ISO 8601 timestamp (UTC) |
 | `agent_id` | string | Agent identifier |
 | `conversation_id` | string | Conversation identifier |
-| `sequence_number` | integer | Monotonically increasing per conversation (starts at 1) |
+| `sequence_number` | integer | Global monotonically increasing counter |
 | `data` | object | Event-specific data (varies by event type) |
-| `webhook_url` | string | Target webhook URL |
-| `webhook_secret` | string | Secret used for signing |
 
-Use `sequence_number` for ordering and deduplication within a conversation.
+Use `sequence_number` for ordering and deduplication. Sequence numbers are globally monotonic across all agents and conversations — use `conversation_id` to filter events for a specific conversation.
 
 ---
 

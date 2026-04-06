@@ -45,6 +45,9 @@ MCP (Model Context Protocol) lets Bridge connect to external tool servers. It's 
 ### [Skills](skills.md)
 Skills are reusable prompt templates. An agent can pull in a skill when it needs specific expertise, like "write a good commit message" or "review code."
 
+### [System Reminders](system-reminders.md)
+System reminders are markdown blocks injected before every user message. They provide runtime context like available skills, subagents, the current date, and todo state — without modifying the system prompt.
+
 ### [Webhooks](webhooks.md)
 Webhooks are how Bridge talks back to your control plane. When things happen — messages sent, tools called, conversations ending — Bridge sends events to your webhook URL.
 

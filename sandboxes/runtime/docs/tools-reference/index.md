@@ -119,9 +119,13 @@ Bridge executes the tool and returns:
 
 ### Code Intelligence
 - [lsp_query](lsp-tools.md) — Query language servers
+- [CodeDB](codedb.md) — Advanced code search and analysis (external MCP)
 
 ### Skills
 - [skill](skill-tool.md) — Load a skill
+
+### Integrations
+- [Integration tools](integration-tools.md) — External service connectors
 
 ### Custom
 - [Custom tools](custom-tools.md) — Build your own

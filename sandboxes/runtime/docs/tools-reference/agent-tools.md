@@ -253,6 +253,87 @@ Wait for background subagent tasks to finish and get results.
 
 ---
 
+## Session Persistence and Resumption
+
+Every subagent execution receives a `task_id` with the format `{conversation_uuid}-{task_uuid}`. This ID is how Bridge tracks and resumes subagent sessions.
+
+### How It Works
+
+1. When a subagent runs (foreground or background), Bridge assigns it a `task_id`
+2. The subagent's full conversation history is stored under that `task_id`
+3. Passing the same `task_id` to a subsequent `agent` or `sub_agent` call resumes the previous conversation, appending the new prompt to the existing history
+
+### Storage
+
+- **In-memory (default):** Session history is stored in a `DashMap` (concurrent hash map). Fast, but lost on restart.
+- **SQLite persistence:** When `BRIDGE_STORAGE_PATH` is set, subagent sessions are also persisted to SQLite. On restart, sessions are restored from the database.
+
+### Lifecycle
+
+- Sessions are cleaned up when the parent conversation ends (via `DELETE /conversations/{id}` or when max turns are reached)
+- If the parent conversation is deleted, all associated subagent sessions are removed from both memory and storage
+
+### Recovery
+
+When Bridge restarts with `BRIDGE_STORAGE_PATH` configured, subagent sessions are restored from SQLite. This means a background task that was running before a restart can be resumed by providing its `task_id` once the process comes back up.
+
+### Example: Background Task with Resumption
+
+```json
+// 1. Start a background task
+{
+  "name": "agent",
+  "arguments": {
+    "subagent": "researcher",
+    "description": "Research API options",
+    "prompt": "Research the top 5 payment APIs and compare pricing",
+    "background": true
+  }
+}
+// Returns: {"task_id": "conv-abc-task-123", "status": "running", ...}
+
+// 2. Join to collect results
+{
+  "name": "join",
+  "arguments": {
+    "task_ids": ["conv-abc-task-123"]
+  }
+}
+
+// 3. Resume the same session with follow-up work
+{
+  "name": "agent",
+  "arguments": {
+    "subagent": "researcher",
+    "description": "Deep dive on Stripe",
+    "prompt": "Based on your earlier research, do a deep dive on Stripe's pricing tiers",
+    "task_id": "conv-abc-task-123"
+  }
+}
+```
+
+The resumed call has access to the full conversation history from steps 1 and 2, so the subagent remembers what it already researched.
+
+---
+
+## Task Budget
+
+Each conversation has a task budget that limits the total number of subagent tasks that can be spawned. This prevents runaway agents from consuming unbounded resources.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `config.max_tasks_per_conversation` | 50 | Maximum subagent tasks per conversation |
+
+When the budget is exhausted, further `agent` or `parallel_agent` calls return an error:
+
+```
+Error: "Task budget exhausted (50/50 tasks used)"
+```
+
+The `parallel_agent` tool consumes one task per item in the `tasks` array. For example, a `parallel_agent` call with 10 tasks consumes 10 from the budget.
+
+---
+
 ## Defining Subagents
 
 Add subagents to your agent definition using the `subagents` field:
