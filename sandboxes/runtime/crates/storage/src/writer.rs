@@ -1,4 +1,4 @@
-use bridge_core::{AgentDefinition, Message, MetricsSnapshot, WebhookPayload};
+use bridge_core::{AgentDefinition, BridgeEvent, Message, MetricsSnapshot};
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, error};
@@ -25,7 +25,7 @@ pub enum WriteCommand {
         conversation_id: String,
         messages: Vec<Message>,
     },
-    EnqueueWebhook(WebhookPayload),
+    EnqueueEvent(BridgeEvent),
     MarkWebhookDelivered(String),
     SaveMetricsSnapshot {
         agent_id: String,
@@ -99,8 +99,8 @@ impl StorageHandle {
         });
     }
 
-    pub fn enqueue_webhook(&self, payload: WebhookPayload) {
-        let _ = self.tx.send(WriteCommand::EnqueueWebhook(payload));
+    pub fn enqueue_event(&self, event: BridgeEvent) {
+        let _ = self.tx.send(WriteCommand::EnqueueEvent(event));
     }
 
     pub fn mark_webhook_delivered(&self, event_id: String) {
@@ -130,9 +130,6 @@ impl StorageHandle {
     }
 
     /// Block until all queued writes have been executed.
-    ///
-    /// Unlike `flush`, this does not force a replica sync. Use this on process
-    /// shutdown when writes only need to reach the primary before exit.
     pub async fn drain(&self) {
         let (tx, rx) = oneshot::channel();
         let _ = self.tx.send(WriteCommand::Drain(tx));
@@ -157,10 +154,9 @@ pub async fn run_writer(
     loop {
         let cmd = match rx.recv().await {
             Some(cmd) => cmd,
-            None => break, // channel closed
+            None => break,
         };
 
-        // Drain any additional queued commands for batching
         let mut batch = vec![cmd];
         while batch.len() < 100 {
             match rx.try_recv() {
@@ -179,13 +175,11 @@ pub async fn run_writer(
         }
     }
 
-    // Drain remaining commands on shutdown
     rx.close();
     while let Some(cmd) = rx.recv().await {
         process_command(&backend, cmd).await;
     }
 
-    // Final sync
     if let Err(e) = backend.sync().await {
         error!(error = %e, "final sync failed during writer shutdown");
     }
@@ -241,9 +235,9 @@ async fn process_command(backend: &Arc<dyn StorageBackend>, cmd: WriteCommand) {
                 error!(conversation_id = %conversation_id, error = %e, "storage: replace_messages failed");
             }
         }
-        WriteCommand::EnqueueWebhook(payload) => {
-            if let Err(e) = backend.enqueue_webhook(&payload).await {
-                error!(error = %e, "storage: enqueue_webhook failed");
+        WriteCommand::EnqueueEvent(event) => {
+            if let Err(e) = backend.enqueue_event(&event).await {
+                error!(event_id = %event.event_id, error = %e, "storage: enqueue_event failed");
             }
         }
         WriteCommand::MarkWebhookDelivered(event_id) => {

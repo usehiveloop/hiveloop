@@ -461,6 +461,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
+ "reqwest 0.12.28",
  "runtime",
  "serde",
  "serde_json",
@@ -5173,6 +5174,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "core",
+ "dashmap",
  "hmac",
  "pretty_assertions",
  "reqwest 0.12.28",
@@ -5185,6 +5187,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "uuid",
  "wiremock",
 ]
 

@@ -63,22 +63,13 @@ pub async fn list_approvals(
 ))]
 pub async fn resolve_approval(
     State(state): State<AppState>,
-    Path((_agent_id, conv_id, request_id)): Path<(String, String, String)>,
+    Path((_agent_id, _conv_id, request_id)): Path<(String, String, String)>,
     Json(body): Json<ApprovalReply>,
 ) -> Result<Json<ResolveApprovalResponse>, StatusCode> {
-    // Find the SSE sender for this conversation so we can emit resolution events
-    let sse_tx = state.sse_streams.get(&conv_id).map(|entry| {
-        // We can't borrow the receiver's sender — but we stored receivers, not senders.
-        // Resolution SSE events are sent via try_send in the manager itself,
-        // which already has access if needed. For now, pass None.
-        drop(entry);
-    });
-    let _ = sse_tx;
-
     let resolved =
         state
             .permission_manager
-            .resolve(&request_id, body.decision, None, &state.webhook_ctx);
+            .resolve(&request_id, body.decision, Some(&state.event_bus));
 
     if resolved {
         Ok(Json(ResolveApprovalResponse {
@@ -115,8 +106,7 @@ pub async fn bulk_resolve_approvals(
         if state.permission_manager.resolve(
             request_id,
             body.decision.clone(),
-            None,
-            &state.webhook_ctx,
+            Some(&state.event_bus),
         ) {
             resolved.push(request_id.clone());
         } else {

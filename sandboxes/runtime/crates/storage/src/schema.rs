@@ -108,5 +108,32 @@ pub async fn run_migrations(conn: &libsql::Connection) -> Result<(), StorageErro
         StorageError::Database(format!("migration failed creating event_id index: {e}"))
     })?;
 
+    // Add sequence_number column for unified event bus
+    if let Err(e) = conn
+        .execute(
+            "ALTER TABLE webhook_outbox ADD COLUMN sequence_number INTEGER",
+            (),
+        )
+        .await
+    {
+        let message = e.to_string().to_lowercase();
+        if !message.contains("duplicate column") && !message.contains("already exists") {
+            return Err(StorageError::Database(format!(
+                "migration failed adding sequence_number: {e}"
+            )));
+        }
+    }
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_outbox_sequence ON webhook_outbox(sequence_number)",
+        (),
+    )
+    .await
+    .map_err(|e| {
+        StorageError::Database(format!(
+            "migration failed creating sequence_number index: {e}"
+        ))
+    })?;
+
     Ok(())
 }

@@ -2,6 +2,7 @@ pub mod agent;
 pub mod config;
 pub mod conversation;
 pub mod error;
+pub mod event;
 pub mod integration;
 pub mod mcp;
 pub mod metrics;
@@ -9,7 +10,6 @@ pub mod permission;
 pub mod provider;
 pub mod skill;
 pub mod tool;
-pub mod webhook;
 
 #[cfg(test)]
 mod tests;
@@ -22,6 +22,7 @@ pub use conversation::{
     ToolCall, ToolResult,
 };
 pub use error::{BridgeError, Result};
+pub use event::{BridgeEvent, BridgeEventType};
 pub use integration::{IntegrationAction, IntegrationDefinition};
 pub use mcp::{McpServerDefinition, McpTransport};
 pub use metrics::{
@@ -34,4 +35,3 @@ pub use permission::{
 pub use provider::{ProviderConfig, ProviderType};
 pub use skill::{SkillDefinition, SkillId};
 pub use tool::ToolDefinition;
-pub use webhook::{WebhookEventType, WebhookPayload};

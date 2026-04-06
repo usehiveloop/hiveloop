@@ -7,6 +7,7 @@ use runtime::AgentSupervisor;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceExt;
+use webhooks::EventBus;
 
 use crate::middleware::request_id;
 use crate::router::build_router;
@@ -16,14 +17,16 @@ use crate::state::AppState;
 fn test_state() -> AppState {
     let mcp_manager = Arc::new(McpManager::new());
     let cancel = CancellationToken::new();
-    let supervisor = Arc::new(AgentSupervisor::new(mcp_manager, cancel.clone()));
+    let event_bus = Arc::new(EventBus::new(None, None, String::new(), String::new()));
+    let supervisor = Arc::new(
+        AgentSupervisor::new(mcp_manager, cancel.clone()).with_event_bus(Some(event_bus.clone())),
+    );
     AppState::new(
         supervisor,
         "valid-control-plane-token".to_string(),
         None,
-        None,
-        None,
         cancel,
+        event_bus,
     )
 }
 

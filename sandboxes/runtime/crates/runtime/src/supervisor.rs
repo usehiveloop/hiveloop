@@ -1,8 +1,9 @@
 use bridge_core::conversation::{ContentBlock, ConversationRecord, Message, Role};
+use bridge_core::event::BridgeEvent;
 use bridge_core::mcp::{McpServerDefinition, McpTransport};
 use bridge_core::{AgentDefinition, AgentSummary, BridgeError, MetricsSnapshot};
 use dashmap::DashMap;
-use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager, SseEvent};
+use llm::{adapt_tools, build_agent, DynamicTool, PermissionManager};
 use lsp::LspManager;
 use mcp::McpManager;
 use std::collections::HashMap;
@@ -15,7 +16,7 @@ use tools::agent::{AgentContext, AgentTaskNotification};
 use tools::join::TaskRegistry;
 use tools::ToolRegistry;
 use tracing::{error, info};
-use webhooks::WebhookContext;
+use webhooks::EventBus;
 
 use crate::agent_map::AgentMap;
 use crate::agent_runner::{ConversationSubAgentRunner, SubAgentEntry};
@@ -36,8 +37,8 @@ pub struct AgentSupervisor {
     lsp_manager: Option<Arc<LspManager>>,
     /// Global cancellation token.
     cancel: CancellationToken,
-    /// Optional webhook context for dispatching webhook events.
-    webhook_ctx: Option<WebhookContext>,
+    /// Optional event bus for unified event delivery (SSE, WebSocket, webhooks, persistence).
+    event_bus: Option<Arc<EventBus>>,
     /// Shared permission manager for tool approval requests.
     permission_manager: Arc<PermissionManager>,
     /// Limits total concurrent conversations across all agents.
@@ -65,7 +66,7 @@ impl AgentSupervisor {
             mcp_manager,
             lsp_manager: None,
             cancel,
-            webhook_ctx: None,
+            event_bus: None,
             permission_manager: Arc::new(PermissionManager::new()),
             conversation_semaphore: None,
             llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
@@ -89,7 +90,7 @@ impl AgentSupervisor {
             mcp_manager,
             lsp_manager: Some(lsp_manager),
             cancel,
-            webhook_ctx: None,
+            event_bus: None,
             permission_manager: Arc::new(PermissionManager::new()),
             conversation_semaphore: None,
             llm_semaphore: Arc::new(tokio::sync::Semaphore::new(
@@ -141,9 +142,9 @@ impl AgentSupervisor {
         self.permission_manager.clone()
     }
 
-    /// Set the webhook context for dispatching webhook events.
-    pub fn with_webhooks(mut self, ctx: Option<WebhookContext>) -> Self {
-        self.webhook_ctx = ctx;
+    /// Set the event bus for unified event delivery.
+    pub fn with_event_bus(mut self, bus: Option<Arc<EventBus>>) -> Self {
+        self.event_bus = bus;
         self
     }
 
@@ -335,7 +336,7 @@ impl AgentSupervisor {
 
     /// Create a new conversation for an agent.
     ///
-    /// Returns the conversation ID and an SSE event receiver for streaming responses.
+    /// Returns the conversation ID and a BridgeEvent receiver for streaming responses.
     /// Returns `CapacityExhausted` if global or per-agent conversation limits are reached.
     pub async fn create_conversation(
         &self,
@@ -344,7 +345,7 @@ impl AgentSupervisor {
         filter_mcp_server_names: Option<Vec<String>>,
         api_key_override: Option<String>,
         subagent_api_key_overrides: Option<HashMap<String, String>>,
-    ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
+    ) -> Result<(String, mpsc::Receiver<BridgeEvent>), BridgeError> {
         let state = self
             .agent_map
             .get(agent_id)
@@ -403,7 +404,13 @@ impl AgentSupervisor {
 
         let conv_id = uuid::Uuid::new_v4().to_string();
         let (message_tx, message_rx) = mpsc::channel::<Message>(32);
-        let (sse_tx, sse_rx) = mpsc::channel::<SseEvent>(256);
+
+        // Register an SSE stream for this conversation on the event bus.
+        let event_bus = self
+            .event_bus
+            .clone()
+            .expect("event_bus must be set before creating conversations");
+        let sse_rx = event_bus.register_sse_stream(conv_id.clone(), 256);
 
         let abort_token = Arc::new(Mutex::new(CancellationToken::new()));
 
@@ -508,7 +515,7 @@ impl AgentSupervisor {
                 state.session_store.clone(),
                 notification_tx.clone(),
                 cancel.clone(),
-                sse_tx.clone(),
+                event_bus.clone(),
                 conv_id_clone.clone(),
                 0, // depth
                 3, // max_depth
@@ -517,7 +524,7 @@ impl AgentSupervisor {
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())
             .with_task_budget(task_budget.clone())
-            .with_webhook_ctx(agent_id.to_string(), self.webhook_ctx.clone()),
+            .with_agent_id(agent_id.to_string()),
         );
 
         let agent_context = AgentContext {
@@ -547,7 +554,7 @@ impl AgentSupervisor {
             filter_tool_names.as_ref(),
         )?;
 
-        let webhook_ctx = self.webhook_ctx.clone();
+        let conv_event_bus = event_bus.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
@@ -632,7 +639,7 @@ impl AgentSupervisor {
                 conversation_id: conv_id_clone,
                 agent: conversation_agent,
                 message_rx,
-                sse_tx,
+                event_bus: conv_event_bus,
                 metrics,
                 cancel,
                 max_turns: max_turns.map(|t| t as usize),
@@ -644,7 +651,6 @@ impl AgentSupervisor {
                 initial_history: None,
                 retry_agent,
                 abort_token,
-                webhook_ctx,
                 permission_manager,
                 agent_permissions,
                 compaction_config,
@@ -948,7 +954,7 @@ impl AgentSupervisor {
         &self,
         agent_id: &str,
         records: Vec<ConversationRecord>,
-    ) -> Vec<(String, mpsc::Receiver<SseEvent>)> {
+    ) -> Vec<(String, mpsc::Receiver<BridgeEvent>)> {
         let mut sse_receivers = Vec::new();
 
         info!(
@@ -980,7 +986,7 @@ impl AgentSupervisor {
         &self,
         agent_id: &str,
         record: ConversationRecord,
-    ) -> Result<(String, mpsc::Receiver<SseEvent>), BridgeError> {
+    ) -> Result<(String, mpsc::Receiver<BridgeEvent>), BridgeError> {
         let state = self
             .agent_map
             .get(agent_id)
@@ -988,7 +994,13 @@ impl AgentSupervisor {
 
         let conv_id = record.id;
         let (message_tx, message_rx) = mpsc::channel::<Message>(32);
-        let (sse_tx, sse_rx) = mpsc::channel::<SseEvent>(256);
+
+        // Register an SSE stream for this conversation on the event bus.
+        let event_bus = self
+            .event_bus
+            .clone()
+            .expect("event_bus must be set before hydrating conversations");
+        let sse_rx = event_bus.register_sse_stream(conv_id.clone(), 256);
 
         let abort_token = Arc::new(Mutex::new(CancellationToken::new()));
 
@@ -1027,7 +1039,7 @@ impl AgentSupervisor {
                 state.session_store.clone(),
                 notification_tx.clone(),
                 cancel.clone(),
-                sse_tx.clone(),
+                event_bus.clone(),
                 conv_id_clone.clone(),
                 0,
                 3,
@@ -1036,7 +1048,7 @@ impl AgentSupervisor {
             .with_compaction(subagent_compaction)
             .with_task_registry(state.task_registry.clone())
             .with_task_budget(task_budget.clone())
-            .with_webhook_ctx(agent_id.to_string(), self.webhook_ctx.clone()),
+            .with_agent_id(agent_id.to_string()),
         );
 
         let agent_context = AgentContext {
@@ -1060,7 +1072,7 @@ impl AgentSupervisor {
         let retry_agent =
             Arc::new(build_agent(&def, vec![]).expect("no-tools agent build should not fail"));
 
-        let webhook_ctx = self.webhook_ctx.clone();
+        let conv_event_bus = event_bus.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
         let compaction_config = def.config.compaction.clone();
@@ -1100,7 +1112,7 @@ impl AgentSupervisor {
                 conversation_id: conv_id_clone,
                 agent,
                 message_rx,
-                sse_tx,
+                event_bus: conv_event_bus,
                 metrics,
                 cancel,
                 max_turns: max_turns.map(|t| t as usize),
@@ -1112,7 +1124,6 @@ impl AgentSupervisor {
                 initial_history: Some(initial_history),
                 retry_agent,
                 abort_token,
-                webhook_ctx,
                 permission_manager,
                 agent_permissions,
                 compaction_config,
@@ -1738,7 +1749,13 @@ mod tests {
     fn make_test_supervisor() -> AgentSupervisor {
         let mcp_manager = Arc::new(McpManager::new());
         let cancel = CancellationToken::new();
-        AgentSupervisor::new(mcp_manager, cancel)
+        let event_bus = Arc::new(webhooks::EventBus::new(
+            None,
+            None,
+            String::new(),
+            String::new(),
+        ));
+        AgentSupervisor::new(mcp_manager, cancel).with_event_bus(Some(event_bus))
     }
 
     fn make_test_definition(id: &str) -> AgentDefinition {

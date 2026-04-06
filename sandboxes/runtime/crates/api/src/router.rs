@@ -5,7 +5,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::handlers::{
-    agents, conversations, health, metrics, permissions, push, stream, ws_handler,
+    agents, conversations, events, health, metrics, permissions, push, stream, ws_handler,
 };
 use crate::middleware::bearer_auth;
 use crate::state::AppState;
@@ -71,6 +71,8 @@ pub fn build_router(state: AppState) -> Router {
         )
         // WebSocket event stream (all events, all agents, all conversations)
         .route("/ws/events", get(ws_handler::ws_events))
+        // Polling fallback for events (when WS/SSE fails)
+        .route("/events", get(events::poll_events))
         // Metrics
         .route("/metrics", get(metrics::get_metrics))
         // Push (authenticated)

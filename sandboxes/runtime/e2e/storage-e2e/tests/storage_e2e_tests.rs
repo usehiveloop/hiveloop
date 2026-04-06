@@ -1,6 +1,6 @@
 use bridge_core::{
-    AgentDefinition, ContentBlock, Message, MetricsSnapshot, Role, ToolCallStatsSnapshot,
-    WebhookEventType, WebhookPayload,
+    AgentDefinition, BridgeEvent, BridgeEventType, ContentBlock, Message, MetricsSnapshot, Role,
+    ToolCallStatsSnapshot,
 };
 use chrono::Utc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -88,15 +88,15 @@ fn make_metrics(agent_id: &str) -> MetricsSnapshot {
     }
 }
 
-fn make_webhook(agent_id: &str, conv_id: &str) -> WebhookPayload {
-    WebhookPayload::new(
-        WebhookEventType::ToolCallCompleted,
+fn make_event(agent_id: &str, conv_id: &str, seq: u64) -> BridgeEvent {
+    let mut event = BridgeEvent::new(
+        BridgeEventType::ToolCallCompleted,
         agent_id,
         conv_id,
         serde_json::json!({"tool_name": "bash", "result": "ok"}),
-        "https://example.com/webhook",
-        "secret123",
-    )
+    );
+    event.sequence_number = seq;
+    event
 }
 
 // ── Tests ──────────────────────────────────────────────────────
@@ -281,26 +281,34 @@ async fn test_replace_messages_after_compaction() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test_webhook_outbox_lifecycle() {
+async fn test_event_outbox_lifecycle() {
     let backend = connect().await;
     let p = test_prefix();
 
-    let wh1 = make_webhook(&format!("{p}_wh"), &format!("{p}_conv"));
-    let wh2 = make_webhook(&format!("{p}_wh"), &format!("{p}_conv"));
-    let wh3 = make_webhook(&format!("{p}_wh"), &format!("{p}_conv"));
+    let e1 = make_event(&format!("{p}_wh"), &format!("{p}_conv"), 1);
+    let e2 = make_event(&format!("{p}_wh"), &format!("{p}_conv"), 2);
+    let e3 = make_event(&format!("{p}_wh"), &format!("{p}_conv"), 3);
 
-    let id1 = backend.enqueue_webhook(&wh1).await.unwrap();
-    let id2 = backend.enqueue_webhook(&wh2).await.unwrap();
-    let id3 = backend.enqueue_webhook(&wh3).await.unwrap();
+    let id1 = backend.enqueue_event(&e1).await.unwrap();
+    let id2 = backend.enqueue_event(&e2).await.unwrap();
+    let id3 = backend.enqueue_event(&e3).await.unwrap();
 
     backend.mark_webhook_delivered(&id1).await.unwrap();
 
-    let pending = backend.load_pending_webhooks().await.unwrap();
+    let pending = backend.load_pending_events().await.unwrap();
     let our_pending: Vec<_> = pending
         .iter()
-        .filter(|(id, _)| *id == id2 || *id == id3)
+        .filter(|e| e.event_id == id2 || e.event_id == id3)
         .collect();
     assert_eq!(our_pending.len(), 2);
+
+    // Test load_events_since
+    let since = backend.load_events_since(1, 100).await.unwrap();
+    let our_since: Vec<_> = since
+        .iter()
+        .filter(|e| e.event_id == id2 || e.event_id == id3)
+        .collect();
+    assert_eq!(our_since.len(), 2);
 
     // Cleanup
     backend.mark_webhook_delivered(&id2).await.unwrap();

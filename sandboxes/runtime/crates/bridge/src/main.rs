@@ -11,7 +11,7 @@ use storage::{StorageBackend, StorageHandle};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
-use webhooks::{WebhookContext, WebhookDispatcher, WsBroadcaster};
+use webhooks::EventBus;
 
 /// Bridge - AI Agent Runtime
 #[derive(Parser)]
@@ -181,55 +181,41 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
         info!("storage persistence disabled");
     }
 
-    // Create WebSocket broadcaster if enabled
-    let ws_broadcaster: Option<Arc<WsBroadcaster>> = if config.websocket_enabled {
-        let broadcaster = Arc::new(WsBroadcaster::new());
-        info!("WebSocket event stream enabled on /ws/events");
-        Some(broadcaster)
+    // Create the unified event bus with optional webhook HTTP delivery.
+    let webhook_url = config.webhook_url.clone().unwrap_or_default();
+    let webhook_secret = config.control_plane_api_key.clone();
+
+    let webhook_tx = if config.webhook_url.is_some() {
+        let webhook_config = config.webhook_config.clone().unwrap_or_default();
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let client = reqwest::Client::new();
+        let url = webhook_url.clone();
+        let secret = webhook_secret.clone();
+        tokio::spawn(webhooks::run_delivery(
+            rx,
+            client,
+            cancel.clone(),
+            webhook_config,
+            url,
+            secret,
+            storage_handle.clone(),
+        ));
+        info!(url = %webhook_url, "webhook delivery started");
+        Some(tx)
     } else {
         None
     };
 
-    // Create webhook dispatcher if webhooks or WebSocket are enabled.
-    // The dispatcher is the single fan-out point — WebSocket piggybacks
-    // on every dispatch() call via the attached broadcaster.
-    let webhook_ctx: Option<WebhookContext> =
-        if config.webhook_url.is_some() || config.websocket_enabled {
-            let webhook_config = config.webhook_config.clone().unwrap_or_default();
-            let (dispatcher, rx) = WebhookDispatcher::with_config(&webhook_config);
-            let client = dispatcher.client();
-            let dispatcher = Arc::new(
-                dispatcher
-                    .with_storage(storage_handle.clone())
-                    .with_ws_broadcaster(ws_broadcaster.clone()),
-            );
+    let event_bus = Arc::new(EventBus::new(
+        webhook_tx,
+        storage_handle.clone(),
+        webhook_url,
+        webhook_secret,
+    ));
 
-            if let Some(ref url) = config.webhook_url {
-                // Webhooks enabled — spawn the HTTP delivery loop
-                tokio::spawn(WebhookDispatcher::run(
-                    rx,
-                    client,
-                    cancel.clone(),
-                    webhook_config,
-                    storage_handle.clone(),
-                ));
-                info!(url = %url, "webhook dispatcher started");
-            } else {
-                // WebSocket-only: drain the webhook channel so it doesn't fill up
-                tokio::spawn(async move {
-                    let mut rx = rx;
-                    while rx.recv().await.is_some() {}
-                });
-            }
-
-            Some(WebhookContext {
-                dispatcher,
-                url: config.webhook_url.clone().unwrap_or_default(),
-                secret: config.control_plane_api_key.clone(),
-            })
-        } else {
-            None
-        };
+    if config.websocket_enabled {
+        info!("WebSocket event stream enabled on /ws/events");
+    }
 
     // Create shared services
     let mcp_manager = Arc::new(McpManager::new());
@@ -265,7 +251,7 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     let supervisor = Arc::new(
         AgentSupervisor::with_lsp(mcp_manager.clone(), lsp_manager, cancel.clone())
             .with_capacity_limits(&config)
-            .with_webhooks(webhook_ctx.clone())
+            .with_event_bus(Some(event_bus.clone()))
             .with_storage_backend(storage_backend.clone())
             .with_storage(storage_handle.clone()),
     );
@@ -274,10 +260,9 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
     let app_state = api::AppState::new(
         supervisor.clone(),
         config.control_plane_api_key.clone(),
-        webhook_ctx,
         storage_backend.clone(),
-        ws_broadcaster,
         cancel.clone(),
+        event_bus.clone(),
     );
 
     if let Some(backend) = &storage_backend {
@@ -322,18 +307,19 @@ async fn run_server(servers_to_install: Option<Vec<String>>) -> anyhow::Result<(
             );
         }
 
-        if let Some(ref webhook_ctx) = app_state.webhook_ctx {
-            let pending_webhooks = backend
-                .load_pending_webhooks()
+        // Replay pending events through the event bus
+        {
+            let pending_events = backend
+                .load_pending_events()
                 .await
-                .context("failed to load pending webhooks")?;
+                .context("failed to load pending events")?;
 
-            if !pending_webhooks.is_empty() {
-                let count = pending_webhooks.len();
-                for (_, payload) in pending_webhooks {
-                    webhook_ctx.dispatcher.dispatch_replayed(payload);
+            if !pending_events.is_empty() {
+                let count = pending_events.len();
+                for event in pending_events {
+                    event_bus.emit_replayed(event);
                 }
-                info!(count = count, "replayed pending webhooks from storage");
+                info!(count = count, "replayed pending events from storage");
             }
         }
     }

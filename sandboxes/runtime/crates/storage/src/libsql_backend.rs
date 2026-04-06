@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use bridge_core::{AgentDefinition, ConversationRecord, Message, MetricsSnapshot, WebhookPayload};
+use bridge_core::{AgentDefinition, BridgeEvent, ConversationRecord, Message, MetricsSnapshot};
 use libsql::{params, Builder, Connection, Database};
 use std::collections::HashMap;
 use std::time::Duration;
@@ -364,27 +364,7 @@ impl StorageBackend for LibSqlBackend {
         Ok(())
     }
 
-    // ── Webhook outbox ──────────────────────────────────────
-
-    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<String, StorageError> {
-        let json = serde_json::to_vec(payload)?;
-        let blob = compression::compress(&json)?;
-        let event_type = serde_json::to_value(&payload.event_type)?
-            .as_str()
-            .unwrap_or("unknown")
-            .to_string();
-        let event_id = payload.event_id.clone();
-
-        self.conn
-            .execute(
-                "INSERT OR REPLACE INTO webhook_outbox (event_id, conversation_id, event_type, payload)
-                 VALUES (?1, ?2, ?3, ?4)",
-                params![event_id, payload.conversation_id.clone(), event_type, blob],
-            )
-            .await?;
-
-        Ok(payload.event_id.clone())
-    }
+    // ── Event outbox ───────────────────────────────────────
 
     async fn mark_webhook_delivered(&self, event_id: &str) -> Result<(), StorageError> {
         let now = chrono::Utc::now().to_rfc3339();
@@ -398,11 +378,11 @@ impl StorageBackend for LibSqlBackend {
         Ok(())
     }
 
-    async fn load_pending_webhooks(&self) -> Result<Vec<(String, WebhookPayload)>, StorageError> {
+    async fn load_pending_events(&self) -> Result<Vec<BridgeEvent>, StorageError> {
         let mut rows = self
             .conn
             .query(
-                "SELECT event_id, payload FROM webhook_outbox
+                "SELECT payload FROM webhook_outbox
                  WHERE delivered_at IS NULL
                  ORDER BY id ASC",
                 (),
@@ -411,23 +391,19 @@ impl StorageBackend for LibSqlBackend {
 
         let mut results = Vec::new();
         while let Some(row) = rows.next().await? {
-            let event_id: String = row.get(0)?;
-            let blob: Vec<u8> = row.get(1)?;
+            let blob: Vec<u8> = row.get(0)?;
             let json = compression::decompress(&blob)?;
-            match serde_json::from_slice::<WebhookPayload>(&json) {
-                Ok(mut payload) => {
-                    payload.event_id = event_id.clone();
-                    results.push((event_id, payload));
-                }
+            match serde_json::from_slice::<BridgeEvent>(&json) {
+                Ok(event) => results.push(event),
                 Err(e) => {
-                    error!(event_id = %event_id, error = %e, "failed to deserialize webhook payload, skipping");
+                    error!(error = %e, "failed to deserialize event, skipping");
                 }
             }
         }
         Ok(results)
     }
 
-    async fn cleanup_delivered_webhooks(&self, older_than_secs: u64) -> Result<u64, StorageError> {
+    async fn cleanup_delivered_events(&self, older_than_secs: u64) -> Result<u64, StorageError> {
         let cutoff =
             (chrono::Utc::now() - chrono::Duration::seconds(older_than_secs as i64)).to_rfc3339();
         self.conn
@@ -519,6 +495,63 @@ impl StorageBackend for LibSqlBackend {
             )
             .await?;
         Ok(())
+    }
+
+    // ── Unified event bus ──────────────────────────────────
+
+    async fn enqueue_event(&self, event: &BridgeEvent) -> Result<String, StorageError> {
+        let json = serde_json::to_vec(event)?;
+        let blob = compression::compress(&json)?;
+        let event_type = serde_json::to_value(&event.event_type)?
+            .as_str()
+            .unwrap_or("unknown")
+            .to_string();
+
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO webhook_outbox (event_id, conversation_id, event_type, payload, sequence_number)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    event.event_id.clone(),
+                    event.conversation_id.clone(),
+                    event_type,
+                    blob,
+                    event.sequence_number as i64
+                ],
+            )
+            .await?;
+
+        Ok(event.event_id.clone())
+    }
+
+    async fn load_events_since(
+        &self,
+        after_sequence: u64,
+        limit: u32,
+    ) -> Result<Vec<BridgeEvent>, StorageError> {
+        let mut rows = self
+            .conn
+            .query(
+                "SELECT payload FROM webhook_outbox
+                 WHERE sequence_number > ?1
+                 ORDER BY sequence_number ASC
+                 LIMIT ?2",
+                params![after_sequence as i64, limit as i64],
+            )
+            .await?;
+
+        let mut results = Vec::new();
+        while let Some(row) = rows.next().await? {
+            let blob: Vec<u8> = row.get(0)?;
+            let json = compression::decompress(&blob)?;
+            match serde_json::from_slice::<BridgeEvent>(&json) {
+                Ok(event) => results.push(event),
+                Err(e) => {
+                    error!(error = %e, "failed to deserialize BridgeEvent, skipping");
+                }
+            }
+        }
+        Ok(results)
     }
 
     // ── Lifecycle ───────────────────────────────────────────

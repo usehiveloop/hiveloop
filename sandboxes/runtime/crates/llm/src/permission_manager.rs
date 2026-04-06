@@ -1,11 +1,11 @@
+use bridge_core::event::{BridgeEvent, BridgeEventType};
 use bridge_core::permission::{ApprovalDecision, ApprovalRequest, ApprovalStatus};
 use dashmap::DashMap;
 use serde_json::json;
-use tokio::sync::{mpsc, oneshot};
+use std::sync::Arc;
+use tokio::sync::oneshot;
 use tracing::{debug, warn};
-use webhooks::WebhookContext;
-
-use crate::SseEvent;
+use webhooks::EventBus;
 
 /// A pending approval that holds the request metadata and the channel sender
 /// to unblock the waiting tool call.
@@ -29,7 +29,7 @@ impl PermissionManager {
         }
     }
 
-    /// Create a new approval request, emit SSE + webhook events, and block
+    /// Create a new approval request, emit an event via the EventBus, and block
     /// until the user resolves it (or the channel is dropped).
     ///
     /// Returns `Ok(decision)` when the user approves/denies, or `Err(())` if
@@ -42,8 +42,7 @@ impl PermissionManager {
         tool_name: &str,
         tool_call_id: &str,
         arguments: &serde_json::Value,
-        sse_tx: &mpsc::Sender<SseEvent>,
-        webhook_ctx: &Option<WebhookContext>,
+        event_bus: &Arc<EventBus>,
         integration_name: Option<String>,
         integration_action: Option<String>,
     ) -> Result<ApprovalDecision, ()> {
@@ -61,34 +60,20 @@ impl PermissionManager {
             created_at: chrono::Utc::now(),
         };
 
-        // Emit SSE event
-        let _ = sse_tx
-            .send(SseEvent::ToolApprovalRequired {
-                request_id: request_id.clone(),
-                tool_name: tool_name.to_string(),
-                tool_call_id: tool_call_id.to_string(),
-                arguments: arguments.clone(),
-                integration_name,
-                integration_action,
-            })
-            .await;
-
-        // Emit webhook
-        if let Some(ref wh) = webhook_ctx {
-            wh.dispatcher
-                .dispatch(webhooks::events::tool_approval_required(
-                    agent_id,
-                    conversation_id,
-                    json!({
-                        "request_id": &request_id,
-                        "tool_name": tool_name,
-                        "tool_call_id": tool_call_id,
-                        "arguments": arguments,
-                    }),
-                    &wh.url,
-                    &wh.secret,
-                ));
-        }
+        // Emit approval required event
+        event_bus.emit(BridgeEvent::new(
+            BridgeEventType::ToolApprovalRequired,
+            agent_id,
+            conversation_id,
+            json!({
+                "request_id": &request_id,
+                "tool_name": tool_name,
+                "tool_call_id": tool_call_id,
+                "arguments": arguments,
+                "integration_name": integration_name,
+                "integration_action": integration_action,
+            }),
+        ));
 
         debug!(
             request_id = %request_id,
@@ -118,38 +103,23 @@ impl PermissionManager {
         &self,
         request_id: &str,
         decision: ApprovalDecision,
-        sse_tx: Option<&mpsc::Sender<SseEvent>>,
-        webhook_ctx: &Option<WebhookContext>,
+        event_bus: Option<&Arc<EventBus>>,
     ) -> bool {
         if let Some((_, pending)) = self.pending.remove(request_id) {
-            // Emit SSE event for resolution
-            if let Some(tx) = sse_tx {
-                let event = SseEvent::ToolApprovalResolved {
-                    request_id: request_id.to_string(),
-                    decision: match &decision {
-                        ApprovalDecision::Approve => "approve".to_string(),
-                        ApprovalDecision::Deny => "deny".to_string(),
-                    },
-                };
-                let _ = tx.try_send(event);
-            }
-
-            // Emit webhook for resolution
-            if let Some(ref wh) = webhook_ctx {
-                wh.dispatcher
-                    .dispatch(webhooks::events::tool_approval_resolved(
-                        &pending.request.agent_id,
-                        &pending.request.conversation_id,
-                        json!({
-                            "request_id": request_id,
-                            "decision": match &decision {
-                                ApprovalDecision::Approve => "approve",
-                                ApprovalDecision::Deny => "deny",
-                            },
-                        }),
-                        &wh.url,
-                        &wh.secret,
-                    ));
+            // Emit approval resolved event
+            if let Some(bus) = event_bus {
+                bus.emit(BridgeEvent::new(
+                    BridgeEventType::ToolApprovalResolved,
+                    &pending.request.agent_id,
+                    &pending.request.conversation_id,
+                    json!({
+                        "request_id": request_id,
+                        "decision": match &decision {
+                            ApprovalDecision::Approve => "approve",
+                            ApprovalDecision::Deny => "deny",
+                        },
+                    }),
+                ));
             }
 
             debug!(request_id = request_id, "approval resolved");
@@ -191,14 +161,18 @@ impl PermissionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
+
+    fn test_event_bus() -> Arc<EventBus> {
+        Arc::new(EventBus::new(None, None, String::new(), String::new()))
+    }
 
     #[tokio::test]
     async fn test_request_and_approve() {
         let manager = Arc::new(PermissionManager::new());
-        let (sse_tx, mut sse_rx) = mpsc::channel::<SseEvent>(16);
+        let event_bus = test_event_bus();
 
         let manager_clone = manager.clone();
+        let event_bus_clone = event_bus.clone();
         let handle = tokio::spawn(async move {
             manager_clone
                 .request_approval(
@@ -207,21 +181,19 @@ mod tests {
                     "bash",
                     "call_1",
                     &json!({"command": "ls"}),
-                    &sse_tx,
-                    &None,
+                    &event_bus_clone,
                     None,
                     None,
                 )
                 .await
         });
 
-        let event = sse_rx.recv().await.unwrap();
-        match event {
-            SseEvent::ToolApprovalRequired { request_id, .. } => {
-                assert!(manager.resolve(&request_id, ApprovalDecision::Approve, None, &None));
-            }
-            _ => panic!("expected ToolApprovalRequired"),
-        }
+        // Give it a moment to register
+        tokio::task::yield_now().await;
+
+        let pending = manager.list_pending("conv1");
+        assert_eq!(pending.len(), 1);
+        assert!(manager.resolve(&pending[0].id, ApprovalDecision::Approve, Some(&event_bus)));
 
         let result = handle.await.unwrap();
         assert_eq!(result, Ok(ApprovalDecision::Approve));
@@ -230,9 +202,10 @@ mod tests {
     #[tokio::test]
     async fn test_request_and_deny() {
         let manager = Arc::new(PermissionManager::new());
-        let (sse_tx, mut sse_rx) = mpsc::channel::<SseEvent>(16);
+        let event_bus = test_event_bus();
 
         let manager_clone = manager.clone();
+        let event_bus_clone = event_bus.clone();
         let handle = tokio::spawn(async move {
             manager_clone
                 .request_approval(
@@ -241,21 +214,19 @@ mod tests {
                     "bash",
                     "call_1",
                     &json!({"command": "rm -rf /"}),
-                    &sse_tx,
-                    &None,
+                    &event_bus_clone,
                     None,
                     None,
                 )
                 .await
         });
 
-        let event = sse_rx.recv().await.unwrap();
-        match event {
-            SseEvent::ToolApprovalRequired { request_id, .. } => {
-                assert!(manager.resolve(&request_id, ApprovalDecision::Deny, None, &None));
-            }
-            _ => panic!("expected ToolApprovalRequired"),
-        }
+        // Give it a moment to register
+        tokio::task::yield_now().await;
+
+        let pending = manager.list_pending("conv1");
+        assert_eq!(pending.len(), 1);
+        assert!(manager.resolve(&pending[0].id, ApprovalDecision::Deny, Some(&event_bus)));
 
         let result = handle.await.unwrap();
         assert_eq!(result, Ok(ApprovalDecision::Deny));
@@ -264,7 +235,7 @@ mod tests {
     #[tokio::test]
     async fn test_cleanup_conversation() {
         let manager = Arc::new(PermissionManager::new());
-        let (sse_tx, _sse_rx) = mpsc::channel::<SseEvent>(16);
+        let event_bus = test_event_bus();
 
         let m2 = manager.clone();
         let _handle = tokio::spawn(async move {
@@ -275,8 +246,7 @@ mod tests {
                     "bash",
                     "call_1",
                     &json!({}),
-                    &sse_tx,
-                    &None,
+                    &event_bus,
                     None,
                     None,
                 )
@@ -294,10 +264,10 @@ mod tests {
     #[tokio::test]
     async fn test_list_pending_filters_by_conversation() {
         let manager = Arc::new(PermissionManager::new());
-        let (sse_tx, _sse_rx) = mpsc::channel::<SseEvent>(16);
+        let event_bus = test_event_bus();
 
         let m2 = manager.clone();
-        let sse_tx2 = sse_tx.clone();
+        let eb2 = event_bus.clone();
         let _h1 = tokio::spawn(async move {
             let _ = m2
                 .request_approval(
@@ -306,8 +276,7 @@ mod tests {
                     "bash",
                     "call_1",
                     &json!({}),
-                    &sse_tx,
-                    &None,
+                    &eb2,
                     None,
                     None,
                 )
@@ -315,6 +284,7 @@ mod tests {
         });
 
         let m3 = manager.clone();
+        let eb3 = event_bus.clone();
         let _h2 = tokio::spawn(async move {
             let _ = m3
                 .request_approval(
@@ -323,8 +293,7 @@ mod tests {
                     "bash",
                     "call_2",
                     &json!({}),
-                    &sse_tx2,
-                    &None,
+                    &eb3,
                     None,
                     None,
                 )
@@ -340,6 +309,6 @@ mod tests {
     #[test]
     fn test_resolve_nonexistent() {
         let manager = PermissionManager::new();
-        assert!(!manager.resolve("nonexistent", ApprovalDecision::Approve, None, &None));
+        assert!(!manager.resolve("nonexistent", ApprovalDecision::Approve, None));
     }
 }

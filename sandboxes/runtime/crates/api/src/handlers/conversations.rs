@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
+use bridge_core::event::{BridgeEvent, BridgeEventType};
 use bridge_core::BridgeError;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -41,13 +42,6 @@ pub struct EndConversationResponse {
 pub struct AbortConversationResponse {
     /// Status of the abort operation.
     pub status: String,
-}
-
-/// Fire a webhook if the context is configured. Non-blocking, fire-and-forget.
-fn emit_webhook(state: &AppState, payload: bridge_core::webhook::WebhookPayload) {
-    if let Some(ref wh) = state.webhook_ctx {
-        wh.dispatcher.dispatch(payload);
-    }
 }
 
 /// Optional request body for creating a conversation with tool/MCP scoping.
@@ -114,12 +108,12 @@ pub async fn create_conversation(
     // Store the SSE receiver for the stream handler to pick up
     state.sse_streams.insert(conv_id.clone(), sse_rx);
 
-    if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(
-            &state,
-            webhooks::events::conversation_created(&agent_id, &conv_id, &wh.url, &wh.secret),
-        );
-    }
+    state.event_bus.emit(BridgeEvent::new(
+        BridgeEventType::ConversationCreated,
+        &*agent_id,
+        &*conv_id,
+        json!({}),
+    ));
 
     Ok((
         StatusCode::CREATED,
@@ -149,18 +143,12 @@ pub async fn send_message(
     // Find which agent owns this conversation
     let agent_id = find_agent_for_conversation(&state, &conv_id).await?;
 
-    if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(
-            &state,
-            webhooks::events::message_received(
-                &agent_id,
-                &conv_id,
-                json!({"content": &body.content}),
-                &wh.url,
-                &wh.secret,
-            ),
-        );
-    }
+    state.event_bus.emit(BridgeEvent::new(
+        BridgeEventType::MessageReceived,
+        &*agent_id,
+        &*conv_id,
+        json!({"content": &body.content}),
+    ));
 
     state
         .supervisor
@@ -195,13 +183,14 @@ pub async fn end_conversation(
 
     // Clean up SSE stream
     state.sse_streams.remove(&conv_id);
+    state.event_bus.remove_sse_stream(&conv_id);
 
-    if let Some(ref wh) = state.webhook_ctx {
-        emit_webhook(
-            &state,
-            webhooks::events::conversation_ended(&agent_id, &conv_id, &wh.url, &wh.secret),
-        );
-    }
+    state.event_bus.emit(BridgeEvent::new(
+        BridgeEventType::ConversationEnded,
+        &*agent_id,
+        &*conv_id,
+        json!({}),
+    ));
 
     Ok(Json(EndConversationResponse {
         status: "ended".to_string(),

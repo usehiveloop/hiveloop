@@ -1,10 +1,11 @@
 use bridge_core::conversation::{Message, Role};
+use bridge_core::event::{BridgeEvent, BridgeEventType};
 use bridge_core::metrics::ConversationMetrics;
 use bridge_core::permission::ToolPermission;
 use bridge_core::AgentMetrics;
 use dashmap::DashMap;
 use futures::StreamExt;
-use llm::{BridgeStreamItem, PermissionManager, SseEvent, TokenUsage};
+use llm::{BridgeStreamItem, PermissionManager};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -16,7 +17,7 @@ use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification, AGENT_CONTEXT};
 use tools::ToolExecutor;
 use tracing::{debug, error, info, info_span, warn, Instrument};
-use webhooks::WebhookContext;
+use webhooks::EventBus;
 
 use crate::agent_runner::AgentSessionStore;
 
@@ -50,8 +51,8 @@ pub struct ConversationParams {
     pub agent: Arc<RwLock<llm::BridgeAgent>>,
     /// Receiver for user messages.
     pub message_rx: mpsc::Receiver<Message>,
-    /// Sender for SSE events back to the client.
-    pub sse_tx: mpsc::Sender<SseEvent>,
+    /// Unified event bus for SSE, WebSocket, webhook, and persistence delivery.
+    pub event_bus: Arc<EventBus>,
     /// Metrics counters for this agent.
     pub metrics: Arc<AgentMetrics>,
     /// Cancellation token for graceful shutdown.
@@ -75,8 +76,6 @@ pub struct ConversationParams {
     pub retry_agent: Arc<llm::BridgeAgent>,
     /// Shared abort token — holds the current turn's CancellationToken.
     pub abort_token: Arc<Mutex<CancellationToken>>,
-    /// Optional webhook context for dispatching webhook events alongside SSE.
-    pub webhook_ctx: Option<WebhookContext>,
     /// Permission manager for handling tool approval requests.
     pub permission_manager: Arc<PermissionManager>,
     /// Per-tool permission overrides for this agent.
@@ -114,7 +113,7 @@ pub async fn run_conversation(params: ConversationParams) {
         conversation_id,
         agent,
         mut message_rx,
-        sse_tx,
+        event_bus,
         metrics,
         cancel,
         max_turns,
@@ -126,7 +125,6 @@ pub async fn run_conversation(params: ConversationParams) {
         initial_history,
         retry_agent,
         abort_token,
-        webhook_ctx,
         permission_manager,
         agent_permissions,
         compaction_config,
@@ -185,24 +183,19 @@ pub async fn run_conversation(params: ConversationParams) {
         // Check max turns
         if let Some(max) = max_turns {
             if turn_count >= max {
-                let _ = sse_tx
-                    .send(SseEvent::Error {
-                        code: "max_turns_exceeded".to_string(),
-                        message: format!("max turns ({}) exceeded", max),
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "max_turns_exceeded", "message": format!("max turns ({}) exceeded", max)}), &wh.url, &wh.secret));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
-                        &agent_id,
-                        &conversation_id,
-                        &wh.url,
-                        &wh.secret,
-                    ));
-                }
+                event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "max_turns_exceeded", "message": format!("max turns ({}) exceeded", max)})));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::Done,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::TurnCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
                 break;
             }
         }
@@ -219,32 +212,18 @@ pub async fn run_conversation(params: ConversationParams) {
                     Err(error) => format!("[ERROR] {}", error),
                 };
 
-                // Emit SSE event for background task completion
-                let _ = sse_tx
-                    .send(SseEvent::BackgroundTaskCompleted {
-                        task_id: task_id.clone(),
-                        description: description.clone(),
-                        output: output_text.clone(),
-                        is_error,
-                    })
-                    .await;
-
-                // Emit webhook event for background task completion
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher
-                        .dispatch(webhooks::events::background_task_completed(
-                            &agent_id,
-                            &conversation_id,
-                            json!({
-                                "task_id": task_id,
-                                "description": description,
-                                "output": output_text,
-                                "is_error": is_error,
-                            }),
-                            &wh.url,
-                            &wh.secret,
-                        ));
-                }
+                // Emit background task completion event
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::BackgroundTaskCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({
+                        "task_id": task_id,
+                        "description": description,
+                        "output": output_text,
+                        "is_error": is_error,
+                    }),
+                ));
 
                 format!(
                     "[Background Agent Task Completed]\ntask_id: {}\ndescription: {}\n\n<task_result>\n{}\n</task_result>",
@@ -291,22 +270,18 @@ pub async fn run_conversation(params: ConversationParams) {
                             .replace_messages(conversation_id.clone(), persisted_messages.clone());
                     }
 
-                    // Fire webhook
-                    if let Some(ref wh) = webhook_ctx {
-                        wh.dispatcher
-                            .dispatch(webhooks::events::conversation_compacted(
-                                &agent_id,
-                                &conversation_id,
-                                json!({
-                                    "summary": result.summary_text,
-                                    "messages_compacted": result.messages_compacted,
-                                    "pre_compaction_tokens": result.pre_compaction_tokens,
-                                    "post_compaction_tokens": result.post_compaction_tokens,
-                                }),
-                                &wh.url,
-                                &wh.secret,
-                            ));
-                    }
+                    // Fire compaction event
+                    event_bus.emit(BridgeEvent::new(
+                        BridgeEventType::ConversationCompacted,
+                        &agent_id,
+                        &conversation_id,
+                        json!({
+                            "summary": result.summary_text,
+                            "messages_compacted": result.messages_compacted,
+                            "pre_compaction_tokens": result.pre_compaction_tokens,
+                            "post_compaction_tokens": result.post_compaction_tokens,
+                        }),
+                    ));
                 }
                 Ok(None) => {} // under budget, no compaction needed
                 Err(e) => {
@@ -342,20 +317,15 @@ pub async fn run_conversation(params: ConversationParams) {
         persisted_messages.push(persisted_user_message);
 
         // Signal response starting
-        let _ = sse_tx
-            .send(SseEvent::MessageStart {
-                conversation_id: conversation_id.clone(),
-                message_id: msg_id.clone(),
-            })
-            .await;
-        if let Some(ref wh) = webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::response_started(
-                &agent_id,
-                &conversation_id,
-                &wh.url,
-                &wh.secret,
-            ));
-        }
+        event_bus.emit(BridgeEvent::new(
+            BridgeEventType::ResponseStarted,
+            &agent_id,
+            &conversation_id,
+            json!({
+                "conversation_id": &conversation_id,
+                "message_id": &msg_id,
+            }),
+        ));
 
         let start = std::time::Instant::now();
 
@@ -376,12 +346,11 @@ pub async fn run_conversation(params: ConversationParams) {
         // via the oneshot channel. Keep a backup only for error recovery paths.
         let history_backup = history.clone();
         let history_for_task = std::mem::take(&mut history);
-        let sse_tx_clone = sse_tx.clone();
+        let event_bus_clone = event_bus.clone();
         let agent_context_clone = agent_context.clone();
         let turn_cancel_clone = turn_cancel.clone();
         let tool_names_clone = tool_names.clone();
         let tool_executors_clone = tool_executors.clone();
-        let webhook_ctx_clone = webhook_ctx.clone();
         let agent_id_clone = agent_id.clone();
         let conversation_id_clone = conversation_id.clone();
         let permission_manager_clone = permission_manager.clone();
@@ -416,17 +385,15 @@ pub async fn run_conversation(params: ConversationParams) {
 
                 // Extra clones for streaming text delta emission (the originals
                 // are moved into the ToolCallEmitter for tool-call SSE events).
-                let sse_tx_for_text = sse_tx_clone.clone();
-                let webhook_ctx_for_text = webhook_ctx_clone.clone();
+                let event_bus_for_text = event_bus_clone.clone();
                 let agent_id_for_text = agent_id_clone.clone();
                 let conversation_id_for_text = conversation_id_clone.clone();
 
                 let emitter = llm::ToolCallEmitter {
-                    sse_tx: sse_tx_clone,
+                    event_bus: event_bus_clone,
                     cancel: turn_cancel_clone,
                     tool_names: tool_names_clone,
                     tool_executors: tool_executors_clone,
-                    webhook_ctx: webhook_ctx_clone,
                     agent_id: agent_id_clone,
                     conversation_id: conversation_id_clone,
                     permission_manager: permission_manager_clone,
@@ -450,42 +417,28 @@ pub async fn run_conversation(params: ConversationParams) {
                         match item {
                             BridgeStreamItem::TextDelta(delta) => {
                                 accumulated_text.push_str(&delta);
-                                // Emit SSE content delta in real time
-                                let _ = sse_tx_for_text
-                                    .send(SseEvent::ContentDelta {
-                                        delta: delta.clone(),
-                                        message_id: msg_id_clone.clone(),
-                                    })
-                                    .await;
-                                // Emit webhook in real time
-                                if let Some(ref wh) = webhook_ctx_for_text {
-                                    wh.dispatcher.dispatch(webhooks::events::response_chunk(
-                                        &agent_id_for_text,
-                                        &conversation_id_for_text,
-                                        json!({"delta": &delta}),
-                                        &wh.url,
-                                        &wh.secret,
-                                    ));
-                                }
+                                // Emit content delta in real time
+                                event_bus_for_text.emit(BridgeEvent::new(
+                                    BridgeEventType::ResponseChunk,
+                                    &agent_id_for_text,
+                                    &conversation_id_for_text,
+                                    json!({
+                                        "delta": &delta,
+                                        "message_id": &msg_id_clone,
+                                    }),
+                                ));
                             }
                             BridgeStreamItem::ReasoningDelta(delta) => {
-                                // Emit SSE reasoning delta in real time
-                                let _ = sse_tx_for_text
-                                    .send(SseEvent::ReasoningDelta {
-                                        delta: delta.clone(),
-                                        message_id: msg_id_clone.clone(),
-                                    })
-                                    .await;
-                                // Emit webhook for reasoning text
-                                if let Some(ref wh) = webhook_ctx_for_text {
-                                    wh.dispatcher.dispatch(webhooks::events::reasoning_delta(
-                                        &agent_id_for_text,
-                                        &conversation_id_for_text,
-                                        json!({"delta": &delta}),
-                                        &wh.url,
-                                        &wh.secret,
-                                    ));
-                                }
+                                // Emit reasoning delta in real time
+                                event_bus_for_text.emit(BridgeEvent::new(
+                                    BridgeEventType::ReasoningDelta,
+                                    &agent_id_for_text,
+                                    &conversation_id_for_text,
+                                    json!({
+                                        "delta": &delta,
+                                        "message_id": &msg_id_clone,
+                                    }),
+                                ));
                             }
                             BridgeStreamItem::StreamFinished {
                                 response,
@@ -564,19 +517,9 @@ pub async fn run_conversation(params: ConversationParams) {
                 // create consecutive user messages in history.
                 history.pop();
                 persisted_messages.pop();
-                let _ = sse_tx
-                    .send(SseEvent::Error {
-                        code: "aborted".to_string(),
-                        message: "Turn aborted by user".to_string(),
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "aborted", "message": "Turn aborted by user"}), &wh.url, &wh.secret));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(&agent_id, &conversation_id, &wh.url, &wh.secret));
-                }
+                event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "aborted", "message": "Turn aborted by user"})));
+                event_bus.emit(BridgeEvent::new(BridgeEventType::Done, &agent_id, &conversation_id, json!({})));
+                event_bus.emit(BridgeEvent::new(BridgeEventType::TurnCompleted, &agent_id, &conversation_id, json!({})));
                 turn_count += 1;
                 continue;
             }
@@ -609,27 +552,19 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent chat timed out"
                 );
                 token_tracker::record_error(&metrics);
-                let _ = sse_tx
-                    .send(SseEvent::Error {
-                        code: "agent_timeout".to_string(),
-                        message: format!(
-                            "agent chat timed out after {}s",
-                            AGENT_CHAT_TIMEOUT.as_secs()
-                        ),
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_timeout", "message": format!("agent chat timed out after {}s", AGENT_CHAT_TIMEOUT.as_secs())}), &wh.url, &wh.secret));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
-                        &agent_id,
-                        &conversation_id,
-                        &wh.url,
-                        &wh.secret,
-                    ));
-                }
+                event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "agent_timeout", "message": format!("agent chat timed out after {}s", AGENT_CHAT_TIMEOUT.as_secs())})));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::Done,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::TurnCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
             }
             // Task was cancelled (oneshot sender dropped) — restore history from backup
             Ok(Err(_)) => {
@@ -640,30 +575,24 @@ pub async fn run_conversation(params: ConversationParams) {
                     "agent chat task cancelled unexpectedly"
                 );
                 token_tracker::record_error(&metrics);
-                let _ = sse_tx
-                    .send(SseEvent::Error {
-                        code: "agent_error".to_string(),
-                        message: "agent chat task cancelled".to_string(),
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::agent_error(
-                        &agent_id,
-                        &conversation_id,
-                        json!({"code": "agent_error", "message": "agent chat task cancelled"}),
-                        &wh.url,
-                        &wh.secret,
-                    ));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::turn_completed(
-                        &agent_id,
-                        &conversation_id,
-                        &wh.url,
-                        &wh.secret,
-                    ));
-                }
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::AgentError,
+                    &agent_id,
+                    &conversation_id,
+                    json!({"code": "agent_error", "message": "agent chat task cancelled"}),
+                ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::Done,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::TurnCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
             }
             // Got result from agent
             Ok(Ok((result, mut enriched_history))) => {
@@ -699,24 +628,19 @@ pub async fn run_conversation(params: ConversationParams) {
                                 "agent chat error"
                             );
                             token_tracker::record_error(&metrics);
-                            let _ = sse_tx
-                                .send(SseEvent::Error {
-                                    code: "agent_error".to_string(),
-                                    message: format!("agent error: {}", e),
-                                })
-                                .await;
-                            if let Some(ref wh) = webhook_ctx {
-                                wh.dispatcher.dispatch(webhooks::events::agent_error(&agent_id, &conversation_id, json!({"code": "agent_error", "message": format!("agent error: {}", e)}), &wh.url, &wh.secret));
-                            }
-                            let _ = sse_tx.send(SseEvent::Done).await;
-                            if let Some(ref wh) = webhook_ctx {
-                                wh.dispatcher.dispatch(webhooks::events::turn_completed(
-                                    &agent_id,
-                                    &conversation_id,
-                                    &wh.url,
-                                    &wh.secret,
-                                ));
-                            }
+                            event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "agent_error", "message": format!("agent error: {}", e)})));
+                            event_bus.emit(BridgeEvent::new(
+                                BridgeEventType::Done,
+                                &agent_id,
+                                &conversation_id,
+                                json!({}),
+                            ));
+                            event_bus.emit(BridgeEvent::new(
+                                BridgeEventType::TurnCompleted,
+                                &agent_id,
+                                &conversation_id,
+                                json!({}),
+                            ));
                             turn_count += 1;
                             continue;
                         }
@@ -746,12 +670,11 @@ pub async fn run_conversation(params: ConversationParams) {
                     let mut continuation_response: Option<String> = None;
                     for _attempt in 0..MAX_CONTINUATIONS {
                         let agent_clone = { agent.read().await.clone() };
-                        let sse_tx_clone = sse_tx.clone();
+                        let event_bus_clone = event_bus.clone();
                         let turn_cancel_clone = turn_cancel.clone();
                         let tool_names_clone = tool_names.clone();
                         let tool_executors_clone = tool_executors.clone();
                         let agent_context_clone = agent_context.clone();
-                        let webhook_ctx_clone = webhook_ctx.clone();
                         let agent_id_clone = agent_id.clone();
                         let conversation_id_clone = conversation_id.clone();
                         let permission_manager_clone = permission_manager.clone();
@@ -774,11 +697,10 @@ pub async fn run_conversation(params: ConversationParams) {
 
                         tokio::spawn(async move {
                             let emitter = llm::ToolCallEmitter {
-                                sse_tx: sse_tx_clone,
+                                event_bus: event_bus_clone,
                                 cancel: turn_cancel_clone,
                                 tool_names: tool_names_clone,
                                 tool_executors: tool_executors_clone,
-                                webhook_ctx: webhook_ctx_clone,
                                 agent_id: agent_id_clone,
                                 conversation_id: conversation_id_clone,
                                 permission_manager: permission_manager_clone,
@@ -904,21 +826,15 @@ pub async fn run_conversation(params: ConversationParams) {
                 // In the normal streaming path, text was already sent incrementally
                 // via ContentDelta events from the spawned task.
                 if !response.is_empty() && needs_recovery {
-                    let _ = sse_tx
-                        .send(SseEvent::ContentDelta {
-                            delta: response.clone(),
-                            message_id: msg_id.clone(),
-                        })
-                        .await;
-                    if let Some(ref wh) = webhook_ctx {
-                        wh.dispatcher.dispatch(webhooks::events::response_chunk(
-                            &agent_id,
-                            &conversation_id,
-                            json!({"delta": &response}),
-                            &wh.url,
-                            &wh.secret,
-                        ));
-                    }
+                    event_bus.emit(BridgeEvent::new(
+                        BridgeEventType::ResponseChunk,
+                        &agent_id,
+                        &conversation_id,
+                        json!({
+                            "delta": &response,
+                            "message_id": &msg_id,
+                        }),
+                    ));
                 }
 
                 let new_persisted_messages =
@@ -943,50 +859,39 @@ pub async fn run_conversation(params: ConversationParams) {
                 );
 
                 // Signal completion
-                let _ = sse_tx
-                    .send(SseEvent::MessageEnd {
-                        message_id: msg_id.clone(),
-                        usage: TokenUsage {
-                            input_tokens: initial_input_tokens,
-                            output_tokens: initial_output_tokens,
-                        },
-                    })
-                    .await;
-                if let Some(ref wh) = webhook_ctx {
-                    wh.dispatcher.dispatch(webhooks::events::response_completed(
-                        &agent_id,
-                        &conversation_id,
-                        json!({
-                            "input_tokens": initial_input_tokens,
-                            "output_tokens": initial_output_tokens,
-                            "model": &conversation_metrics.model,
-                            "timestamp": chrono::Utc::now().to_rfc3339(),
-                            "full_response": &response,
-                        }),
-                        &wh.url,
-                        &wh.secret,
-                    ));
-                }
-                let _ = sse_tx.send(SseEvent::Done).await;
-                if let Some(ref wh) = webhook_ctx {
-                    let cm = conversation_metrics.snapshot();
-                    wh.dispatcher
-                        .dispatch(webhooks::events::turn_completed_with_data(
-                            &agent_id,
-                            &conversation_id,
-                            json!({
-                                "input_tokens": initial_input_tokens,
-                                "output_tokens": initial_output_tokens,
-                                "model": &cm.model,
-                                "timestamp": chrono::Utc::now().to_rfc3339(),
-                                "turn_number": turn_count,
-                                "cumulative_input_tokens": cm.input_tokens,
-                                "cumulative_output_tokens": cm.output_tokens,
-                            }),
-                            &wh.url,
-                            &wh.secret,
-                        ));
-                }
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::ResponseCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({
+                        "message_id": &msg_id,
+                        "input_tokens": initial_input_tokens,
+                        "output_tokens": initial_output_tokens,
+                        "model": &conversation_metrics.model,
+                        "full_response": &response,
+                    }),
+                ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::Done,
+                    &agent_id,
+                    &conversation_id,
+                    json!({}),
+                ));
+                let cm = conversation_metrics.snapshot();
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::TurnCompleted,
+                    &agent_id,
+                    &conversation_id,
+                    json!({
+                        "input_tokens": initial_input_tokens,
+                        "output_tokens": initial_output_tokens,
+                        "model": &cm.model,
+                        "timestamp": chrono::Utc::now().to_rfc3339(),
+                        "turn_number": turn_count,
+                        "cumulative_input_tokens": cm.input_tokens,
+                        "cumulative_output_tokens": cm.output_tokens,
+                    }),
+                ));
             }
         }
 

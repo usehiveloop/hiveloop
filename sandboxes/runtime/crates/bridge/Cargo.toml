@@ -25,6 +25,7 @@ mcp = { workspace = true }
 tools = { workspace = true }
 storage = { workspace = true }
 axum = { workspace = true }
+reqwest = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 figment = { workspace = true }

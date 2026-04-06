@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod conversations;
+pub mod events;
 pub mod health;
 pub mod metrics;
 pub mod permissions;

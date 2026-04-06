@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use bridge_core::{AgentDefinition, ConversationRecord, Message, MetricsSnapshot, WebhookPayload};
+use bridge_core::{AgentDefinition, BridgeEvent, ConversationRecord, Message, MetricsSnapshot};
 
 use crate::error::StorageError;
 
@@ -57,19 +57,26 @@ pub trait StorageBackend: Send + Sync + 'static {
         messages: &[Message],
     ) -> Result<(), StorageError>;
 
-    // ── Webhook outbox ──────────────────────────────────────
+    // ── Event outbox ───────────────────────────────────────
 
-    /// Insert a webhook payload into the outbox. Returns the stable event id.
-    async fn enqueue_webhook(&self, payload: &WebhookPayload) -> Result<String, StorageError>;
+    /// Insert a BridgeEvent into the outbox (with sequence_number).
+    async fn enqueue_event(&self, event: &BridgeEvent) -> Result<String, StorageError>;
 
-    /// Mark a webhook as delivered.
+    /// Mark an event as delivered.
     async fn mark_webhook_delivered(&self, event_id: &str) -> Result<(), StorageError>;
 
-    /// Load all undelivered webhooks for replay after restart.
-    async fn load_pending_webhooks(&self) -> Result<Vec<(String, WebhookPayload)>, StorageError>;
+    /// Load events with sequence_number > `after_sequence`, up to `limit`.
+    async fn load_events_since(
+        &self,
+        after_sequence: u64,
+        limit: u32,
+    ) -> Result<Vec<BridgeEvent>, StorageError>;
 
-    /// Delete delivered webhooks older than the given age.
-    async fn cleanup_delivered_webhooks(&self, older_than_secs: u64) -> Result<u64, StorageError>;
+    /// Load all undelivered events for replay after restart.
+    async fn load_pending_events(&self) -> Result<Vec<BridgeEvent>, StorageError>;
+
+    /// Delete delivered events older than the given age.
+    async fn cleanup_delivered_events(&self, older_than_secs: u64) -> Result<u64, StorageError>;
 
     // ── Metrics ─────────────────────────────────────────────
 

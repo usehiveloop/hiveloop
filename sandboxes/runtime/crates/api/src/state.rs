@@ -1,12 +1,13 @@
+use bridge_core::event::BridgeEvent;
 use dashmap::DashMap;
-use llm::{PermissionManager, SseEvent};
+use llm::PermissionManager;
 use runtime::AgentSupervisor;
 use std::sync::Arc;
 use storage::StorageBackend;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
-use webhooks::{WebhookContext, WsBroadcaster};
+use webhooks::EventBus;
 
 /// Shared application state for all request handlers.
 #[derive(Clone)]
@@ -18,17 +19,15 @@ pub struct AppState {
     /// Active SSE streams keyed by conversation ID.
     ///
     /// Stores the SSE receiver so the stream handler can pick it up.
-    pub sse_streams: Arc<DashMap<String, mpsc::Receiver<SseEvent>>>,
+    pub sse_streams: Arc<DashMap<String, mpsc::Receiver<BridgeEvent>>>,
     /// API key for authenticating control plane push requests.
     pub control_plane_api_key: String,
-    /// Optional webhook context for dispatching webhook events.
-    pub webhook_ctx: Option<WebhookContext>,
     /// Optional storage backend for startup and restore reads.
     pub storage_backend: Option<Arc<dyn StorageBackend>>,
     /// Shared permission manager for tool approval requests.
     pub permission_manager: Arc<PermissionManager>,
-    /// Optional WebSocket broadcaster for the `/ws/events` endpoint.
-    pub ws_broadcaster: Option<Arc<WsBroadcaster>>,
+    /// Unified event bus for SSE, WebSocket, webhook, and persistence delivery.
+    pub event_bus: Arc<EventBus>,
     /// Global cancellation token for graceful shutdown.
     pub cancel: CancellationToken,
 }
@@ -38,10 +37,9 @@ impl AppState {
     pub fn new(
         supervisor: Arc<AgentSupervisor>,
         control_plane_api_key: String,
-        webhook_ctx: Option<WebhookContext>,
         storage_backend: Option<Arc<dyn StorageBackend>>,
-        ws_broadcaster: Option<Arc<WsBroadcaster>>,
         cancel: CancellationToken,
+        event_bus: Arc<EventBus>,
     ) -> Self {
         let permission_manager = supervisor.permission_manager();
         Self {
@@ -49,10 +47,9 @@ impl AppState {
             startup_time: Instant::now(),
             sse_streams: Arc::new(DashMap::new()),
             control_plane_api_key,
-            webhook_ctx,
             storage_backend,
             permission_manager,
-            ws_broadcaster,
+            event_bus,
             cancel,
         }
     }

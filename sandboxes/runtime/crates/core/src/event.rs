@@ -3,10 +3,14 @@ use serde::{Deserialize, Serialize};
 use crate::agent::AgentId;
 use crate::conversation::ConversationId;
 
-/// Types of webhook events delivered to the control plane.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// Unified event type covering every lifecycle event in the bridge runtime.
+///
+/// This is the single canonical event type that flows through all delivery
+/// channels (DB, WebSocket, SSE, webhook HTTP, polling). Every channel
+/// receives the exact same data.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum WebhookEventType {
+pub enum BridgeEventType {
     /// A new conversation was created
     ConversationCreated,
     /// A user message was received
@@ -43,58 +47,54 @@ pub enum WebhookEventType {
     SubAgentStarted,
     /// A subagent completed execution
     SubAgentCompleted,
+    /// The response stream is complete (terminal signal for SSE/WS)
+    Done,
 }
 
-/// Payload for a webhook delivery.
+/// The single canonical event payload used across all delivery channels.
+///
+/// Every event emitted by the bridge runtime is a `BridgeEvent`. It carries
+/// a globally unique `event_id`, a monotonically increasing `sequence_number`
+/// assigned by the [`EventBus`], and the event-specific data as a JSON value.
+///
+/// Delivery-specific concerns (webhook URL, HMAC secret) are NOT part of the
+/// event — they are resolved at delivery time by the webhook worker.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebhookPayload {
-    /// Stable identifier used for persistence and delivery acknowledgement.
-    #[serde(default = "default_event_id")]
+pub struct BridgeEvent {
+    /// Globally unique event identifier.
     pub event_id: String,
-    /// Type of event that triggered this webhook
-    pub event_type: WebhookEventType,
-    /// Agent that triggered the event
+    /// Type of event.
+    pub event_type: BridgeEventType,
+    /// Agent that produced this event.
     pub agent_id: AgentId,
-    /// Conversation associated with the event
+    /// Conversation associated with this event.
     pub conversation_id: ConversationId,
-    /// Timestamp of the event
+    /// When the event occurred (UTC).
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    /// Monotonically increasing sequence number within a conversation.
-    /// Assigned by the dispatcher before delivery. Recipients can use this
-    /// to verify in-order delivery.
+    /// Monotonically increasing sequence number assigned by the EventBus.
+    /// Globally unique across all agents and conversations.
     pub sequence_number: u64,
-    /// Event-specific data
+    /// Event-specific data.
     pub data: serde_json::Value,
-    /// URL to deliver the webhook to
-    pub webhook_url: String,
-    /// Secret for HMAC signing
-    pub webhook_secret: String,
 }
 
-fn default_event_id() -> String {
-    uuid::Uuid::new_v4().to_string()
-}
-
-impl WebhookPayload {
-    /// Create a new webhook payload with the current timestamp.
+impl BridgeEvent {
+    /// Create a new event. The `sequence_number` is left at 0 — it will be
+    /// stamped by the EventBus before fan-out.
     pub fn new(
-        event_type: WebhookEventType,
+        event_type: BridgeEventType,
         agent_id: impl Into<AgentId>,
         conversation_id: impl Into<ConversationId>,
         data: serde_json::Value,
-        webhook_url: impl Into<String>,
-        webhook_secret: impl Into<String>,
     ) -> Self {
         Self {
-            event_id: default_event_id(),
+            event_id: uuid::Uuid::new_v4().to_string(),
             event_type,
             agent_id: agent_id.into(),
             conversation_id: conversation_id.into(),
             timestamp: chrono::Utc::now(),
             sequence_number: 0,
             data,
-            webhook_url: webhook_url.into(),
-            webhook_secret: webhook_secret.into(),
         }
     }
 }

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
+use bridge_core::event::{BridgeEvent, BridgeEventType};
 use dashmap::DashMap;
-use llm::{BridgeAgent, SseEvent, ToolCallEmitter};
+use llm::{BridgeAgent, ToolCallEmitter};
 use std::sync::Arc;
 use std::time::Duration;
 use storage::StorageHandle;
@@ -12,6 +13,7 @@ use tools::agent::{
 };
 use tools::join::TaskRegistry;
 use tracing::{debug, warn};
+use webhooks::EventBus;
 
 /// Timeout for a foreground subagent chat call.
 const FOREGROUND_TIMEOUT: Duration = Duration::from_secs(120);
@@ -157,7 +159,7 @@ pub struct ConversationSubAgentRunner {
     session_store: Arc<AgentSessionStore>,
     notification_tx: mpsc::Sender<AgentTaskNotification>,
     cancel: CancellationToken,
-    sse_tx: mpsc::Sender<SseEvent>,
+    event_bus: Arc<EventBus>,
     conversation_id: String,
     depth: usize,
     max_depth: usize,
@@ -165,10 +167,8 @@ pub struct ConversationSubAgentRunner {
     task_registry: Option<Arc<TaskRegistry>>,
     task_budget: Arc<TaskBudget>,
     metrics: Arc<bridge_core::AgentMetrics>,
-    /// Agent ID for webhook payloads.
+    /// Agent ID for event payloads.
     agent_id: String,
-    /// Webhook context for emitting subagent trace events.
-    webhook_ctx: Option<webhooks::WebhookContext>,
 }
 
 impl ConversationSubAgentRunner {
@@ -178,7 +178,7 @@ impl ConversationSubAgentRunner {
         session_store: Arc<AgentSessionStore>,
         notification_tx: mpsc::Sender<AgentTaskNotification>,
         cancel: CancellationToken,
-        sse_tx: mpsc::Sender<SseEvent>,
+        event_bus: Arc<EventBus>,
         conversation_id: String,
         depth: usize,
         max_depth: usize,
@@ -189,7 +189,7 @@ impl ConversationSubAgentRunner {
             session_store,
             notification_tx,
             cancel,
-            sse_tx,
+            event_bus,
             conversation_id,
             depth,
             max_depth,
@@ -198,18 +198,12 @@ impl ConversationSubAgentRunner {
             task_budget: Arc::new(TaskBudget::new(50)),
             metrics,
             agent_id: String::new(),
-            webhook_ctx: None,
         }
     }
 
-    /// Set the agent ID and webhook context for subagent trace events.
-    pub fn with_webhook_ctx(
-        mut self,
-        agent_id: String,
-        ctx: Option<webhooks::WebhookContext>,
-    ) -> Self {
+    /// Set the agent ID for subagent trace events.
+    pub fn with_agent_id(mut self, agent_id: String) -> Self {
         self.agent_id = agent_id;
-        self.webhook_ctx = ctx;
         self
     }
 
@@ -265,21 +259,18 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             "gen_ai.agent.execute"
         );
 
-        // Emit SubAgentStarted webhook
-        if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::sub_agent_started(
-                &self.agent_id,
-                &self.conversation_id,
-                serde_json::json!({
-                    "subagent_name": subagent,
-                    "mode": "foreground",
-                    "parent_conversation_id": &self.conversation_id,
-                    "depth": self.depth,
-                }),
-                &wh.url,
-                &wh.secret,
-            ));
-        }
+        // Emit SubAgentStarted event
+        self.event_bus.emit(BridgeEvent::new(
+            BridgeEventType::SubAgentStarted,
+            &self.agent_id,
+            &self.conversation_id,
+            serde_json::json!({
+                "subagent_name": subagent,
+                "mode": "foreground",
+                "parent_conversation_id": &self.conversation_id,
+                "depth": self.depth,
+            }),
+        ));
 
         let entry = self
             .subagents
@@ -303,12 +294,11 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
         let cancel = self.cancel.clone();
         let emitter = ToolCallEmitter {
-            sse_tx: self.sse_tx.clone(),
+            event_bus: self.event_bus.clone(),
             cancel: cancel.clone(),
             tool_names: std::collections::HashSet::new(),
             tool_executors: std::collections::HashMap::new(),
-            webhook_ctx: None,
-            agent_id: String::new(),
+            agent_id: self.agent_id.clone(),
             conversation_id: self.conversation_id.clone(),
             permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
             agent_permissions: std::collections::HashMap::new(),
@@ -343,24 +333,20 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let duration_ms = start.elapsed().as_millis() as u64;
         let is_error = result.is_err();
 
-        // Emit SubAgentCompleted webhook
-        if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher
-                .dispatch(webhooks::events::sub_agent_completed(
-                    &self.agent_id,
-                    &self.conversation_id,
-                    serde_json::json!({
-                        "subagent_name": subagent,
-                        "mode": "foreground",
-                        "task_id": &task_id,
-                        "parent_conversation_id": &self.conversation_id,
-                        "duration_ms": duration_ms,
-                        "is_error": is_error,
-                    }),
-                    &wh.url,
-                    &wh.secret,
-                ));
-        }
+        // Emit SubAgentCompleted event
+        self.event_bus.emit(BridgeEvent::new(
+            BridgeEventType::SubAgentCompleted,
+            &self.agent_id,
+            &self.conversation_id,
+            serde_json::json!({
+                "subagent_name": subagent,
+                "mode": "foreground",
+                "task_id": &task_id,
+                "parent_conversation_id": &self.conversation_id,
+                "duration_ms": duration_ms,
+                "is_error": is_error,
+            }),
+        ));
 
         match result {
             Ok(output) => Ok(AgentTaskResult { task_id, output }),
@@ -381,21 +367,18 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             "gen_ai.agent.execute"
         );
 
-        // Emit SubAgentStarted webhook
-        if let Some(ref wh) = self.webhook_ctx {
-            wh.dispatcher.dispatch(webhooks::events::sub_agent_started(
-                &self.agent_id,
-                &self.conversation_id,
-                serde_json::json!({
-                    "subagent_name": subagent,
-                    "mode": "background",
-                    "parent_conversation_id": &self.conversation_id,
-                    "depth": self.depth,
-                }),
-                &wh.url,
-                &wh.secret,
-            ));
-        }
+        // Emit SubAgentStarted event
+        self.event_bus.emit(BridgeEvent::new(
+            BridgeEventType::SubAgentStarted,
+            &self.agent_id,
+            &self.conversation_id,
+            serde_json::json!({
+                "subagent_name": subagent,
+                "mode": "background",
+                "parent_conversation_id": &self.conversation_id,
+                "depth": self.depth,
+            }),
+        ));
 
         let entry = self
             .subagents
@@ -420,7 +403,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let session_store = self.session_store.clone();
         let notification_tx = self.notification_tx.clone();
         let cancel = self.cancel.clone();
-        let sse_tx = self.sse_tx.clone();
+        let event_bus = self.event_bus.clone();
         let prompt_owned = prompt.to_string();
         let description_owned = description.to_string();
         let subagents = self.subagents.clone();
@@ -430,21 +413,20 @@ impl SubAgentRunner for ConversationSubAgentRunner {
         let task_registry = self.task_registry.clone();
         let task_budget = self.task_budget.clone();
         let metrics_clone = self.metrics.clone();
-        let webhook_ctx_clone = self.webhook_ctx.clone();
         let agent_id_clone = self.agent_id.clone();
         let subagent_name = subagent.to_string();
 
         tokio::spawn(async move {
             let bg_start = std::time::Instant::now();
             let emitter_conv_id = conversation_id.clone();
-            let webhook_conv_id = conversation_id.clone();
+            let event_conv_id = conversation_id.clone();
             // Build nested AgentContext for the background task
             let nested_runner = Arc::new(ConversationSubAgentRunner::new(
                 subagents,
                 session_store.clone(),
                 notification_tx.clone(),
                 cancel.clone(),
-                sse_tx.clone(),
+                event_bus.clone(),
                 conversation_id,
                 depth + 1,
                 max_depth,
@@ -458,7 +440,7 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                         nested_runner.session_store.clone(),
                         nested_runner.notification_tx.clone(),
                         nested_runner.cancel.clone(),
-                        nested_runner.sse_tx.clone(),
+                        nested_runner.event_bus.clone(),
                         nested_runner.conversation_id.clone(),
                         nested_runner.depth,
                         nested_runner.max_depth,
@@ -481,12 +463,11 @@ impl SubAgentRunner for ConversationSubAgentRunner {
 
             let mut history = history;
             let emitter = ToolCallEmitter {
-                sse_tx,
+                event_bus: event_bus.clone(),
                 cancel: cancel.clone(),
                 tool_names: std::collections::HashSet::new(),
                 tool_executors: std::collections::HashMap::new(),
-                webhook_ctx: None,
-                agent_id: String::new(),
+                agent_id: agent_id_clone.clone(),
                 conversation_id: emitter_conv_id,
                 permission_manager: std::sync::Arc::new(llm::PermissionManager::new()),
                 agent_permissions: std::collections::HashMap::new(),
@@ -525,23 +506,21 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 registry.complete(task_id_clone.clone(), result.clone());
             }
 
-            // Emit SubAgentCompleted webhook
-            if let Some(ref wh) = webhook_ctx_clone {
+            // Emit SubAgentCompleted event
+            {
                 let duration_ms = bg_start.elapsed().as_millis() as u64;
-                wh.dispatcher
-                    .dispatch(webhooks::events::sub_agent_completed(
-                        &agent_id_clone,
-                        &webhook_conv_id,
-                        serde_json::json!({
-                            "subagent_name": &subagent_name,
-                            "mode": "background",
-                            "task_id": &task_id_clone,
-                            "duration_ms": duration_ms,
-                            "is_error": result.is_err(),
-                        }),
-                        &wh.url,
-                        &wh.secret,
-                    ));
+                event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::SubAgentCompleted,
+                    &agent_id_clone,
+                    &event_conv_id,
+                    serde_json::json!({
+                        "subagent_name": &subagent_name,
+                        "mode": "background",
+                        "task_id": &task_id_clone,
+                        "duration_ms": duration_ms,
+                        "is_error": result.is_err(),
+                    }),
+                ));
             }
 
             // Send notification

@@ -1,6 +1,7 @@
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Query, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
+use bridge_core::event::BridgeEvent;
 use bridge_core::BridgeError;
 use serde::Deserialize;
 use tokio::sync::broadcast;
@@ -32,13 +33,7 @@ pub async fn ws_events(
         return Err(BridgeError::Unauthorized("invalid token".into()));
     }
 
-    let broadcaster = state
-        .ws_broadcaster
-        .as_ref()
-        .ok_or_else(|| BridgeError::InvalidRequest("WebSocket event stream is not enabled".into()))?
-        .clone();
-
-    let rx = broadcaster.subscribe();
+    let rx = state.event_bus.subscribe_ws();
     let cancel = state.cancel.clone();
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, rx, cancel)))
@@ -48,7 +43,7 @@ pub async fn ws_events(
 /// and handles ping/pong and close frames.
 async fn handle_socket(
     mut socket: WebSocket,
-    mut rx: broadcast::Receiver<bridge_core::webhook::WebhookPayload>,
+    mut rx: broadcast::Receiver<BridgeEvent>,
     cancel: tokio_util::sync::CancellationToken,
 ) {
     loop {
@@ -62,9 +57,8 @@ async fn handle_socket(
 
             result = rx.recv() => {
                 match result {
-                    Ok(payload) => {
-                        let ws_event = strip_secrets(&payload);
-                        match serde_json::to_string(&ws_event) {
+                    Ok(event) => {
+                        match serde_json::to_string(&event) {
                             Ok(json) => {
                                 if socket.send(Message::Text(json.into())).await.is_err() {
                                     break; // client disconnected
@@ -104,14 +98,4 @@ async fn handle_socket(
             }
         }
     }
-}
-
-/// Strip webhook-specific sensitive fields before sending over WebSocket.
-fn strip_secrets(payload: &bridge_core::webhook::WebhookPayload) -> serde_json::Value {
-    let mut value = serde_json::to_value(payload).unwrap_or_default();
-    if let Some(obj) = value.as_object_mut() {
-        obj.remove("webhook_url");
-        obj.remove("webhook_secret");
-    }
-    value
 }

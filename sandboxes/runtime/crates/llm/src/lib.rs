@@ -8,6 +8,5 @@ pub mod tool_hook;
 pub use factory::build_agent;
 pub use permission_manager::PermissionManager;
 pub use providers::{BridgeAgent, BridgeStream, BridgeStreamItem, PromptResponse};
-pub use streaming::{SseEvent, TokenUsage};
 pub use tool_adapter::{adapt_tools, DynamicTool};
 pub use tool_hook::ToolCallEmitter;
