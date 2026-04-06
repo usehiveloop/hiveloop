@@ -17,10 +17,30 @@ pub struct ConversationTurn {
 }
 
 /// Parsed SSE event from the bridge stream.
+///
+/// The bridge SSE `data:` line is a full `BridgeEvent` JSON. This struct
+/// unwraps it: `event_type` comes from `event_type` (or the SSE `event:` line),
+/// and `data` is the inner event-specific payload (`BridgeEvent.data`).
 #[derive(Debug, Clone)]
 pub struct SseEvent {
     pub event_type: String,
     pub data: serde_json::Value,
+}
+
+/// Extract the inner event-specific data from a BridgeEvent JSON.
+/// If the value has a `"data"` field (i.e. it's a BridgeEvent), returns that inner field.
+/// Otherwise returns the value as-is (for non-BridgeEvent payloads like "ping" or errors).
+fn unwrap_bridge_event(raw: &serde_json::Value) -> (Option<String>, serde_json::Value) {
+    if let Some(obj) = raw.as_object() {
+        if let Some(inner_data) = obj.get("data") {
+            let event_type = obj
+                .get("event_type")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            return (event_type, inner_data.clone());
+        }
+    }
+    (None, raw.clone())
 }
 
 /// A tool call log entry from the mock Portal MCP server.
@@ -1118,12 +1138,17 @@ impl TestHarness {
                         continue;
                     }
 
-                    let data: serde_json::Value = serde_json::from_str(data_str)
+                    let raw: serde_json::Value = serde_json::from_str(data_str)
                         .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
 
-                    // Determine event type from event: line or from data.type
+                    // Unwrap BridgeEvent: extract inner data and event_type
+                    let (bridge_event_type, data) = unwrap_bridge_event(&raw);
+
+                    // Determine event type from event: line, BridgeEvent, or data.type
                     let event_type = if !current_event_type.is_empty() {
                         current_event_type.clone()
+                    } else if let Some(t) = bridge_event_type {
+                        t
                     } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
                         t.to_string()
                     } else {
@@ -1131,7 +1156,7 @@ impl TestHarness {
                     };
 
                     // Collect content deltas into response text
-                    if event_type == "content_delta" {
+                    if event_type == "content_delta" || event_type == "response_chunk" {
                         if let Some(delta) = data.get("delta").and_then(|d| d.as_str()) {
                             response_text.push_str(delta);
                         }
@@ -1264,18 +1289,22 @@ impl TestHarness {
                         continue;
                     }
 
-                    let data: serde_json::Value = serde_json::from_str(data_str)
+                    let raw: serde_json::Value = serde_json::from_str(data_str)
                         .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
+
+                    let (bridge_event_type, data) = unwrap_bridge_event(&raw);
 
                     let event_type = if !current_event_type.is_empty() {
                         current_event_type.clone()
+                    } else if let Some(t) = bridge_event_type {
+                        t
                     } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
                         t.to_string()
                     } else {
                         "message".to_string()
                     };
 
-                    if event_type == "content_delta" {
+                    if event_type == "content_delta" || event_type == "response_chunk" {
                         if let Some(delta) = data.get("delta").and_then(|d| d.as_str()) {
                             response_text.push_str(delta);
                         }
@@ -2334,11 +2363,15 @@ impl TestHarness {
                         continue;
                     }
 
-                    let data: serde_json::Value = serde_json::from_str(data_str)
+                    let raw: serde_json::Value = serde_json::from_str(data_str)
                         .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
+
+                    let (bridge_event_type, data) = unwrap_bridge_event(&raw);
 
                     let event_type = if !current_event_type.is_empty() {
                         current_event_type.clone()
+                    } else if let Some(t) = bridge_event_type {
+                        t
                     } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
                         t.to_string()
                     } else {
@@ -2488,11 +2521,15 @@ impl SseStream {
                             continue;
                         }
 
-                        let data: serde_json::Value = serde_json::from_str(data_str)
+                        let raw: serde_json::Value = serde_json::from_str(data_str)
                             .unwrap_or_else(|_| serde_json::Value::String(data_str.to_string()));
+
+                        let (bridge_event_type, data) = unwrap_bridge_event(&raw);
 
                         let event_type = if !current_event_type.is_empty() {
                             current_event_type.clone()
+                        } else if let Some(t) = bridge_event_type {
+                            t
                         } else if let Some(t) = data.get("type").and_then(|v| v.as_str()) {
                             t.to_string()
                         } else {
