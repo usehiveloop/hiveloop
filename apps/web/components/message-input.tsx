@@ -43,7 +43,7 @@ export function MessageInput({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className="pr-12 min-h-[52px] max-h-40"
+        className="pr-12 min-h-[80px] max-h-40"
       />
       <Button
         size="icon-sm"

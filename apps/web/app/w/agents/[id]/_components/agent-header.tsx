@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import {
   BrainIcon,
   SparklesIcon,
   Settings01Icon,
+  PlayIcon,
 } from "@hugeicons/core-free-icons"
 import { ProviderIcon } from "@/components/provider-icon"
 
@@ -27,10 +29,11 @@ type AgentHeaderProps = {
   memoryEnabled: boolean
   status: string
   onStartConversation?: () => void
+  startingConversation?: boolean
   onEdit?: () => void
 }
 
-export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled, onStartConversation, onEdit }: AgentHeaderProps) {
+export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled, onStartConversation, startingConversation, onEdit }: AgentHeaderProps) {
   return (
     <div className="flex flex-col gap-4 mb-8">
       {/* Top: name + actions */}
@@ -40,14 +43,27 @@ export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled,
           <h1 className="font-heading text-xl font-semibold text-foreground truncate">{name}</h1>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={onEdit}>
-            <HugeiconsIcon icon={Edit02Icon} size={14} data-icon="inline-start" />
-            Edit
-          </Button>
-          <Button size="sm" onClick={onStartConversation} className="hidden sm:inline-flex">
-            Start run
-          </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="outline" size="icon-sm" className="hidden sm:inline-flex" onClick={onEdit}>
+                  <HugeiconsIcon icon={Edit02Icon} size={14} />
+                </Button>
+              }
+            />
+            <TooltipContent side="bottom">Edit agent</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="outline" size="icon-sm" onClick={onStartConversation} loading={startingConversation} className="hidden sm:inline-flex">
+                  <HugeiconsIcon icon={PlayIcon} size={14} />
+                </Button>
+              }
+            />
+            <TooltipContent side="bottom">Start run</TooltipContent>
+          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
               <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
@@ -59,7 +75,7 @@ export function AgentHeader({ name, provider, model, sandboxType, memoryEnabled,
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem className="sm:hidden" onClick={onStartConversation}>
-                  <HugeiconsIcon icon={SparklesIcon} size={16} className="text-muted-foreground" />
+                  <HugeiconsIcon icon={PlayIcon} size={16} className="text-muted-foreground" />
                   Start run
                 </DropdownMenuItem>
                 <DropdownMenuItem>

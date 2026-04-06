@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
@@ -99,7 +100,10 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
 
         {agents.map((agent) => (
           <div key={agent.id}>
-            <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary">
+            <Link
+              href={`/w/agents/${agent.id}`}
+              className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary"
+            >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
                 <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
@@ -114,17 +118,20 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                 {agent.sandbox_type}
               </span>
               <span className="w-24 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
-                {agent.created_at ? formatDate(agent.created_at) : "—"}
+                {agent.created_at ? formatDate(agent.created_at) : "\u2014"}
               </span>
               <div className="w-6 shrink-0 flex justify-center">
                 <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
               </div>
-              <div className="w-8 shrink-0 flex justify-center">
+              <div className="w-8 shrink-0 flex justify-center" onClick={(e) => e.preventDefault()}>
                 <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
               </div>
-            </div>
+            </Link>
 
-            <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary">
+            <Link
+              href={`/w/agents/${agent.id}`}
+              className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
@@ -139,11 +146,13 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono tabular-nums">
                   <span>{agent.model}</span>
                   <span>{agent.sandbox_type}</span>
-                  <span>{agent.created_at ? formatDate(agent.created_at) : "—"}</span>
+                  <span>{agent.created_at ? formatDate(agent.created_at) : "\u2014"}</span>
                 </div>
-                <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
+                <div onClick={(e) => e.preventDefault()}>
+                  <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
         ))}
       </div>

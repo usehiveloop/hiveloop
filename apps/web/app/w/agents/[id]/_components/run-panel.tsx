@@ -12,11 +12,13 @@ import {
   ArrowDown01Icon,
   ArrowUp01Icon,
   Wrench01Icon,
+  Loading03Icon,
 } from "@hugeicons/core-free-icons"
-import type { Run, RunEvent } from "../_data/agent-detail"
+import { useConversationStream } from "@/hooks/use-conversation-stream"
+import type { RunEvent } from "../_data/agent-detail"
 
-type RunPanelProps = {
-  run: Run
+interface RunPanelProps {
+  conversationId: string
   onClose: () => void
 }
 
@@ -265,9 +267,13 @@ function EventRenderer({ event }: { event: RunEvent }) {
   }
 }
 
-export function RunPanel({ run, onClose }: RunPanelProps) {
+export function RunPanel({ conversationId, onClose }: RunPanelProps) {
   const [closing, setClosing] = useState(false)
-  const isActive = run.status === "running" || run.status === "waiting_approval"
+  const { connected, connecting, error } = useConversationStream(conversationId)
+
+  // TODO: events will be populated from the SSE stream once wired up
+  const events: RunEvent[] = []
+  const isActive = connected || connecting
 
   function handleClose() {
     setClosing(true)
@@ -289,14 +295,16 @@ export function RunPanel({ run, onClose }: RunPanelProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {isActive && <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
-            <h2 className="text-sm font-semibold text-foreground truncate">{run.subject}</h2>
+            <h2 className="text-sm font-semibold text-foreground truncate">
+              {connecting ? "Connecting..." : "Run"}
+            </h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {run.identity} · {isActive ? `Running · ${run.duration}` : `${run.status === "error" ? "Failed" : "Completed"} · ${run.duration}`}
+          <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
+            {conversationId}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          {isActive && (
+          {connected && (
             <Button variant="destructive" size="sm" className="h-7 text-xs">
               <HugeiconsIcon icon={StopIcon} size={12} data-icon="inline-start" />
               Kill run
@@ -310,11 +318,38 @@ export function RunPanel({ run, onClose }: RunPanelProps) {
 
       {/* Event stream */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        <div className="flex flex-col gap-3">
-          {run.events.map((event) => (
-            <EventRenderer key={event.id} event={event} />
-          ))}
-        </div>
+        {connecting && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <HugeiconsIcon icon={Loading03Icon} size={24} className="text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Connecting to stream...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-destructive">Connection error</span>
+            <p className="text-sm text-destructive mt-1.5">{error}</p>
+          </div>
+        )}
+
+        {connected && events.length === 0 && !error && (
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <div className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-[bounce_1s_ease-in-out_infinite]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-[bounce_1s_ease-in-out_0.15s_infinite]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-[bounce_1s_ease-in-out_0.3s_infinite]" />
+            </div>
+            <p className="text-sm text-muted-foreground">Waiting for agent...</p>
+          </div>
+        )}
+
+        {events.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {events.map((event) => (
+              <EventRenderer key={event.id} event={event} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -322,10 +357,10 @@ export function RunPanel({ run, onClose }: RunPanelProps) {
         {/* Token stats */}
         <div className="flex items-center justify-between px-4 py-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-3 tabular-nums">
-            <span className="flex items-center gap-1"><HugeiconsIcon icon={ArrowDown01Icon} size={12} /> {formatTokens(run.tokensIn)}</span>
-            <span className="flex items-center gap-1"><HugeiconsIcon icon={ArrowUp01Icon} size={12} /> {formatTokens(run.tokensOut)}</span>
+            <span className="flex items-center gap-1"><HugeiconsIcon icon={ArrowDown01Icon} size={12} /> {formatTokens(0)}</span>
+            <span className="flex items-center gap-1"><HugeiconsIcon icon={ArrowUp01Icon} size={12} /> {formatTokens(0)}</span>
           </span>
-          <span className="tabular-nums">${run.cost.toFixed(2)} <span className="text-muted-foreground/50">/ $5.00</span></span>
+          <span className="tabular-nums">$0.00 <span className="text-muted-foreground/50">/ $5.00</span></span>
         </div>
 
         {/* Message input */}
@@ -336,10 +371,10 @@ export function RunPanel({ run, onClose }: RunPanelProps) {
         )}
 
         {/* Completed state */}
-        {!isActive && (
+        {!isActive && !connecting && (
           <div className="flex items-center justify-center py-3">
             <span className="text-xs text-muted-foreground">
-              {run.status === "error" ? "This run failed." : "This run has completed."}
+              {error ? "This run failed." : "This run has completed."}
             </span>
           </div>
         )}
