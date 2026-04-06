@@ -40,11 +40,21 @@ async fn converse_with_retry(
     let mut last_turn = None;
     for attempt in 0..MAX_RETRIES {
         if attempt > 0 {
-            step!("[{}] Retrying (attempt {}/{})", label, attempt + 1, MAX_RETRIES);
+            step!(
+                "[{}] Retrying (attempt {}/{})",
+                label,
+                attempt + 1,
+                MAX_RETRIES
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
-        step!("[{}] Sending message to '{}': '{}'", label, agent_id, &message[..message.len().min(80)]);
+        step!(
+            "[{}] Sending message to '{}': '{}'",
+            label,
+            agent_id,
+            &message[..message.len().min(80)]
+        );
         let turn = harness
             .converse(agent_id, None, message, LLM_TIMEOUT)
             .await
@@ -53,10 +63,21 @@ async fn converse_with_retry(
         let has_error = turn.sse_events.iter().any(|e| e.event_type == "error");
 
         if !turn.response_text.is_empty() && !has_error {
-            step!("[{}] Got response ({} chars)", label, turn.response_text.len());
-            eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+            step!(
+                "[{}] Got response ({} chars)",
+                label,
+                turn.response_text.len()
+            );
+            eprintln!(
+                "    Response: {:?}",
+                &turn.response_text[..turn.response_text.len().min(200)]
+            );
 
-            step!("[{}] SSE events received ({} total)", label, turn.sse_events.len());
+            step!(
+                "[{}] SSE events received ({} total)",
+                label,
+                turn.sse_events.len()
+            );
             for e in &turn.sse_events {
                 eprintln!("    - {}", e.event_type);
             }
@@ -105,7 +126,9 @@ fn assert_any_tool_called_in_sse(turn: &ConversationTurn, tool_names: &[&str], l
     check!(
         found,
         "[{}] at least one of {:?} should be called. Tools called (from SSE): {:?}",
-        label, tool_names, called_tools
+        label,
+        tool_names,
+        called_tools
     );
 }
 
@@ -582,14 +605,24 @@ async fn test_tool_call_sse_events() {
 
     // Log each tool call start/result pair
     for event in &start_events {
-        eprintln!("    tool_call_start: name={}, id={}",
-            event.data.get("name").and_then(|n| n.as_str()).unwrap_or("?"),
+        eprintln!(
+            "    tool_call_start: name={}, id={}",
+            event
+                .data
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("?"),
             event.data.get("id").and_then(|n| n.as_str()).unwrap_or("?")
         );
     }
     for event in &result_events {
-        let result_str = event.data.get("result").and_then(|r| r.as_str()).unwrap_or("");
-        eprintln!("    tool_call_result: id={}, result={:?}",
+        let result_str = event
+            .data
+            .get("result")
+            .and_then(|r| r.as_str())
+            .unwrap_or("");
+        eprintln!(
+            "    tool_call_result: id={}, result={:?}",
             event.data.get("id").and_then(|n| n.as_str()).unwrap_or("?"),
             &result_str[..result_str.len().min(200)]
         );
@@ -741,7 +774,11 @@ async fn test_delegator_subagent_natural_invocation() {
 
     step!("Agent tool call starts: {}", agent_tool_starts.len());
     for (i, e) in agent_tool_starts.iter().enumerate() {
-        eprintln!("    agent_tool_start[{}]: {}", i, serde_json::to_string_pretty(&e.data).unwrap_or_default());
+        eprintln!(
+            "    agent_tool_start[{}]: {}",
+            i,
+            serde_json::to_string_pretty(&e.data).unwrap_or_default()
+        );
     }
 
     check!(
@@ -1385,7 +1422,10 @@ async fn test_abort_conversation() {
             .collect::<Vec<_>>()
     );
 
-    step!("PASS — abort worked (latency {:?}) and conversation remained usable", abort_latency);
+    step!(
+        "PASS — abort worked (latency {:?}) and conversation remained usable",
+        abort_latency
+    );
 }
 
 // ============================================================================
@@ -1463,7 +1503,10 @@ async fn test_executor_background_bash() {
     if response_text.is_empty() {
         step!("Warning: empty response text, checking tool calls only");
     } else {
-        eprintln!("    Response: {:?}", &response_text[..response_text.len().min(200)]);
+        eprintln!(
+            "    Response: {:?}",
+            &response_text[..response_text.len().min(200)]
+        );
     }
 
     step!("Verifying bash tool was called");
@@ -1539,7 +1582,11 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .await
         .expect("create_conversation failed");
 
-    check_eq!(create_resp.status().as_u16(), 201, "create conversation returns 201");
+    check_eq!(
+        create_resp.status().as_u16(),
+        201,
+        "create conversation returns 201"
+    );
 
     let create_body: serde_json::Value = create_resp
         .json()
@@ -1575,8 +1622,16 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .send_message(&conv_id, messages[0])
         .await
         .expect("send_message failed");
-    check_eq!(msg_resp.status().as_u16(), 202, "first message accepted (202)");
-    step!("Sent message 1/{}: '{}'", total_messages, &messages[0][..messages[0].len().min(60)]);
+    check_eq!(
+        msg_resp.status().as_u16(),
+        202,
+        "first message accepted (202)"
+    );
+    step!(
+        "Sent message 1/{}: '{}'",
+        total_messages,
+        &messages[0][..messages[0].len().min(60)]
+    );
 
     // Spawn a background task to send remaining messages after each turn completes.
     // The conversation loop processes one message at a time from a buffered channel,
@@ -1592,7 +1647,12 @@ async fn test_compaction_triggers_and_fires_webhook() {
             // need two calls (summary + chat). Wait long enough for the
             // previous turn to fully complete before queuing the next message.
             tokio::time::sleep(Duration::from_secs(15)).await;
-            eprintln!("\n  \x1b[36m\u{25b8}\x1b[0m Sent message {}/{}: '{}'", i + 2, remaining_count + 1, &msg[..msg.len().min(60)]);
+            eprintln!(
+                "\n  \x1b[36m\u{25b8}\x1b[0m Sent message {}/{}: '{}'",
+                i + 2,
+                remaining_count + 1,
+                &msg[..msg.len().min(60)]
+            );
             let _ = client
                 .post(format!(
                     "{}/conversations/{}/messages",
@@ -1604,7 +1664,10 @@ async fn test_compaction_triggers_and_fires_webhook() {
         }
     });
 
-    step!("Streaming SSE events until all {} turns complete", total_messages);
+    step!(
+        "Streaming SSE events until all {} turns complete",
+        total_messages
+    );
     // Read the SSE stream until all turns complete (one `done` per turn)
     let (_events, _text) = harness
         .stream_sse_until_done_count(&conv_id, total_messages, LLM_TIMEOUT)
@@ -1627,14 +1690,25 @@ async fn test_compaction_triggers_and_fires_webhook() {
     step!("Checking conversation_compacted webhook payload");
     // Verify the webhook payload
     let entry = compacted[0];
-    check_eq!(entry.agent_id(), Some("compaction-agent"), "webhook agent_id is compaction-agent");
-    check_eq!(entry.conversation_id(), Some(conv_id.as_str()), "webhook conversation_id matches");
+    check_eq!(
+        entry.agent_id(),
+        Some("compaction-agent"),
+        "webhook agent_id is compaction-agent"
+    );
+    check_eq!(
+        entry.conversation_id(),
+        Some(conv_id.as_str()),
+        "webhook conversation_id matches"
+    );
 
     let data = entry
         .data()
         .expect("conversation_compacted should have data");
 
-    eprintln!("    Webhook data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+    eprintln!(
+        "    Webhook data: {}",
+        serde_json::to_string_pretty(data).unwrap_or_default()
+    );
 
     check!(
         data.get("summary")
@@ -1678,11 +1752,16 @@ async fn test_compaction_triggers_and_fires_webhook() {
         .end_conversation(&conv_id)
         .await
         .expect("end_conversation failed");
-    check_eq!(end_resp.status().as_u16(), 200, "end conversation returns 200");
+    check_eq!(
+        end_resp.status().as_u16(),
+        200,
+        "end conversation returns 200"
+    );
 
     step!(
         "PASS — compaction triggered: pre={} post={}, summary present",
-        pre, post
+        pre,
+        post
     );
 }
 
@@ -1773,7 +1852,10 @@ async fn test_streaming_text_between_tool_calls() {
         })
         .collect();
 
-    step!("[streaming] Event sequence ({} events)", event_sequence.len());
+    step!(
+        "[streaming] Event sequence ({} events)",
+        event_sequence.len()
+    );
     for (i, e) in event_sequence.iter().enumerate() {
         eprintln!("    [{}] {}", i, e);
     }
@@ -1804,7 +1886,10 @@ async fn test_streaming_text_between_tool_calls() {
         .filter(|e| e.event_type == "content_delta")
         .count();
 
-    step!("[streaming] Verifying incremental streaming ({} content_deltas)", delta_count);
+    step!(
+        "[streaming] Verifying incremental streaming ({} content_deltas)",
+        delta_count
+    );
     check!(
         delta_count >= 3,
         "[streaming] expected at least 3 content_delta events (incremental streaming), got {}. \

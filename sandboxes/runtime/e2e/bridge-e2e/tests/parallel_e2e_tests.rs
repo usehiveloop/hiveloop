@@ -69,7 +69,10 @@ async fn test_batch_reads_multiple_files() {
         !turn.response_text.is_empty(),
         "should have non-empty response"
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("PASS — batch read of 3 files completed");
 }
@@ -110,7 +113,10 @@ async fn test_background_subagents_run_in_parallel() {
         eprintln!("    - {}", e.event_type);
     }
 
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Verifying background spawn returned quickly (< 5s)");
     // Should return quickly (not waiting for subagents to complete)
@@ -164,7 +170,10 @@ async fn test_foreground_subagent_blocks() {
         eprintln!("    - {}", e.event_type);
     }
 
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Verifying foreground took noticeable time (>= 10ms)");
     // Should take some time (subagent needs to execute).
@@ -182,7 +191,10 @@ async fn test_foreground_subagent_blocks() {
         "should have non-empty response"
     );
 
-    step!("PASS — foreground subagent blocked and returned results in {:?}", elapsed);
+    step!(
+        "PASS — foreground subagent blocked and returned results in {:?}",
+        elapsed
+    );
 }
 
 // ============================================================================
@@ -224,7 +236,10 @@ async fn test_gap_no_join_for_multiple_background_tasks() {
     // Document the behavior — currently there's no join tool, so the agent
     // may struggle to wait for all three. This test captures current behavior.
     step!("GAP DOCUMENTATION: Response when asked to join multiple background tasks:");
-    eprintln!("    {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
+    eprintln!(
+        "    {:?}",
+        &turn.response_text[..turn.response_text.len().min(300)]
+    );
 
     // The test passes — it documents current behavior, even if suboptimal
     check!(!turn.response_text.is_empty(), "should have some response");
@@ -263,7 +278,10 @@ async fn test_gap_cannot_batch_agent_tool() {
     }
 
     step!("GAP DOCUMENTATION: Response when trying to batch agent tool:");
-    eprintln!("    {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
+    eprintln!(
+        "    {:?}",
+        &turn.response_text[..turn.response_text.len().min(300)]
+    );
 
     // Likely contains error about external tools not being batchable
     let has_error = turn.sse_events.iter().any(|e| {
@@ -321,7 +339,10 @@ async fn test_gap_no_parallel_spawn_and_wait() {
         eprintln!("    - {}", e.event_type);
     }
 
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!(
         "GAP DOCUMENTATION: Sequential subagent execution took {:?}. With parallel execution, this could be ~3x faster",
@@ -331,7 +352,10 @@ async fn test_gap_no_parallel_spawn_and_wait() {
     // Test passes — documents current sequential limitation
     check!(!turn.response_text.is_empty(), "should have results");
 
-    step!("PASS — gap documented: sequential subagent took {:?}", sequential_time);
+    step!(
+        "PASS — gap documented: sequential subagent took {:?}",
+        sequential_time
+    );
 }
 
 /// GAP TEST: No resource limiting for subagent spawn
@@ -368,7 +392,10 @@ async fn test_gap_no_concurrency_limits() {
         eprintln!("    - {}", e.event_type);
     }
 
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(300)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(300)]
+    );
 
     step!("GAP DOCUMENTATION: System allowed spawning 5 concurrent background subagents (no max_concurrent limit)");
 
@@ -429,7 +456,10 @@ async fn benchmark_batch_vs_sequential_reads() {
     for e in &batch_turn.sse_events {
         eprintln!("    - {}", e.event_type);
     }
-    eprintln!("    Response: {:?}", &batch_turn.response_text[..batch_turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &batch_turn.response_text[..batch_turn.response_text.len().min(200)]
+    );
 
     step!("Benchmark: sequential read of 5 files");
     // Test sequential reads (individual Read tool calls)
@@ -446,16 +476,25 @@ async fn benchmark_batch_vs_sequential_reads() {
     let seq_time = start.elapsed();
 
     step!("Sequential read completed in {:?}", seq_time);
-    step!("Sequential SSE events ({} total)", seq_turn.sse_events.len());
+    step!(
+        "Sequential SSE events ({} total)",
+        seq_turn.sse_events.len()
+    );
     for e in &seq_turn.sse_events {
         eprintln!("    - {}", e.event_type);
     }
-    eprintln!("    Response: {:?}", &seq_turn.response_text[..seq_turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &seq_turn.response_text[..seq_turn.response_text.len().min(200)]
+    );
 
     step!("=== BATCH VS SEQUENTIAL PERFORMANCE ===");
     eprintln!("    Batch time:      {:?}", batch_time);
     eprintln!("    Sequential time: {:?}", seq_time);
-    eprintln!("    Speedup:         {:.2}x", seq_time.as_secs_f64() / batch_time.as_secs_f64());
+    eprintln!(
+        "    Speedup:         {:.2}x",
+        seq_time.as_secs_f64() / batch_time.as_secs_f64()
+    );
 
     // Both should succeed
     check!(

@@ -70,7 +70,8 @@ fn assert_codedb_tool_called(turn: &ConversationTurn, label: &str) {
     check!(
         found,
         "[{}] at least one codedb tool should be called. Tools called: {:?}",
-        label, called_tools
+        label,
+        called_tools
     );
 }
 
@@ -94,7 +95,9 @@ fn assert_no_builtin_search_tools(turn: &ConversationTurn, label: &str) {
         check!(
             !called_tools.iter().any(|t| t == tool),
             "[{}] built-in {} tool should NOT be called (replaced by codedb). Tools called: {:?}",
-            label, tool, called_tools
+            label,
+            tool,
+            called_tools
         );
     }
 }
@@ -109,7 +112,10 @@ async fn test_codedb_finds_function_in_bridge() {
         return;
     }
 
-    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
+    step!(
+        "Starting harness with codedb enabled (binary: {})",
+        codedb_binary()
+    );
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
@@ -127,7 +133,15 @@ async fn test_codedb_finds_function_in_bridge() {
 
     step!("SSE events ({} total)", turn.sse_events.len());
     for e in &turn.sse_events {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Verifying response is non-empty");
@@ -139,7 +153,10 @@ async fn test_codedb_finds_function_in_bridge() {
             .map(|e| &e.event_type)
             .collect::<Vec<_>>()
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "find-function");
@@ -172,7 +189,10 @@ async fn test_codedb_explores_bridge_structure() {
         return;
     }
 
-    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
+    step!(
+        "Starting harness with codedb enabled (binary: {})",
+        codedb_binary()
+    );
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
@@ -190,7 +210,15 @@ async fn test_codedb_explores_bridge_structure() {
 
     step!("SSE events ({} total)", turn.sse_events.len());
     for e in &turn.sse_events {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Verifying response is non-empty");
@@ -198,7 +226,10 @@ async fn test_codedb_explores_bridge_structure() {
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "explore-structure");
@@ -239,7 +270,10 @@ async fn test_codedb_traces_code_path() {
         return;
     }
 
-    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
+    step!(
+        "Starting harness with codedb enabled (binary: {})",
+        codedb_binary()
+    );
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
@@ -257,7 +291,15 @@ async fn test_codedb_traces_code_path() {
 
     step!("SSE events ({} total)", turn.sse_events.len());
     for e in &turn.sse_events {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Verifying response is non-empty");
@@ -265,7 +307,10 @@ async fn test_codedb_traces_code_path() {
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Verifying codedb tools were called");
     assert_codedb_tool_called(&turn, "trace-path");
@@ -298,7 +343,10 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         return;
     }
 
-    step!("Starting harness with codedb enabled (binary: {})", codedb_binary());
+    step!(
+        "Starting harness with codedb enabled (binary: {})",
+        codedb_binary()
+    );
     let harness = TestHarness::start_with_codedb(&codedb_binary())
         .await
         .expect("failed to start codedb harness");
@@ -347,7 +395,15 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
 
     step!("SSE events ({} total)", turn.sse_events.len());
     for e in &turn.sse_events {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Verifying response is non-empty");
@@ -355,7 +411,10 @@ async fn test_codedb_tools_filtered_by_agent_definition() {
         !turn.response_text.is_empty(),
         "response should not be empty"
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     let called_tools: Vec<String> = turn
         .sse_events

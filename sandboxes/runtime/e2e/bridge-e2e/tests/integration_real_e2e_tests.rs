@@ -42,11 +42,20 @@ async fn converse_with_retry(
     let mut last_turn = None;
     for attempt in 0..MAX_RETRIES {
         if attempt > 0 {
-            step!("[{}] Retrying (attempt {}/{})", label, attempt + 1, MAX_RETRIES);
+            step!(
+                "[{}] Retrying (attempt {}/{})",
+                label,
+                attempt + 1,
+                MAX_RETRIES
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
-        step!("[{}] Sending message: '{}'", label, &message[..message.len().min(100)]);
+        step!(
+            "[{}] Sending message: '{}'",
+            label,
+            &message[..message.len().min(100)]
+        );
         let turn = harness
             .converse(AGENT_ID, None, message, FULL_TIMEOUT)
             .await
@@ -55,10 +64,21 @@ async fn converse_with_retry(
         let has_error = turn.sse_events.iter().any(|e| e.event_type == "error");
 
         if !turn.response_text.is_empty() && !has_error {
-            step!("[{}] Got response ({} chars)", label, turn.response_text.len());
-            eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+            step!(
+                "[{}] Got response ({} chars)",
+                label,
+                turn.response_text.len()
+            );
+            eprintln!(
+                "    Response: {:?}",
+                &turn.response_text[..turn.response_text.len().min(200)]
+            );
 
-            step!("[{}] SSE events received ({} total)", label, turn.sse_events.len());
+            step!(
+                "[{}] SSE events received ({} total)",
+                label,
+                turn.sse_events.len()
+            );
             for e in &turn.sse_events {
                 eprintln!("    - {}", e.event_type);
             }
@@ -182,7 +202,11 @@ async fn test_real_llm_integration_allow_executes() {
 
     // Log tool results
     for (i, result) in tool_results.iter().enumerate() {
-        eprintln!("    tool_call_result[{}]: {:?}", i, &result[..result.len().min(200)]);
+        eprintln!(
+            "    tool_call_result[{}]: {:?}",
+            i,
+            &result[..result.len().min(200)]
+        );
     }
 
     let has_issues_data = tool_results.iter().any(|r| {
@@ -256,7 +280,11 @@ async fn test_real_llm_integration_allow_mailchimp() {
         .collect();
 
     for (i, result) in tool_results.iter().enumerate() {
-        eprintln!("    tool_call_result[{}]: {:?}", i, &result[..result.len().min(200)]);
+        eprintln!(
+            "    tool_call_result[{}]: {:?}",
+            i,
+            &result[..result.len().min(200)]
+        );
     }
 
     let has_campaign_data = tool_results
@@ -268,7 +296,10 @@ async fn test_real_llm_integration_allow_mailchimp() {
         tool_results
     );
 
-    check!(turn.sse_events.iter().any(|e| e.event_type == "done"), "expected done event");
+    check!(
+        turn.sse_events.iter().any(|e| e.event_type == "done"),
+        "expected done event"
+    );
 
     step!("PASS — mailchimp__create_campaign executed without approval, returned campaign data");
 }
@@ -300,7 +331,10 @@ async fn test_real_llm_integration_require_approval_approve() {
 
     step!("Conversation created: {}", conv_id);
 
-    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", EVENT_TIMEOUT);
+    step!(
+        "Waiting for tool_approval_required SSE event (timeout: {:?})",
+        EVENT_TIMEOUT
+    );
     // Wait for tool_approval_required
     let approval_event = stream
         .wait_for_event("tool_approval_required", EVENT_TIMEOUT)
@@ -316,7 +350,10 @@ async fn test_real_llm_integration_require_approval_approve() {
         request_id,
         approval_event.data["tool_name"].as_str().unwrap_or("?")
     );
-    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
+    eprintln!(
+        "    Approval event data: {}",
+        serde_json::to_string_pretty(&approval_event.data).unwrap_or_default()
+    );
 
     step!("Verifying integration metadata in approval event");
     // Verify integration metadata in the approval event
@@ -353,7 +390,10 @@ async fn test_real_llm_integration_require_approval_approve() {
         .resolve_approval(AGENT_ID, &conv_id, &request_id, "approve")
         .await
         .expect("resolve approval failed");
-    check!(approve_resp.status().is_success(), "approve response is success");
+    check!(
+        approve_resp.status().is_success(),
+        "approve response is success"
+    );
 
     step!("Waiting for done event (timeout: {:?})", FULL_TIMEOUT);
     // Wait for done
@@ -386,7 +426,10 @@ async fn test_real_llm_integration_require_approval_approve() {
 
     // Log tool results
     for e in events.iter().filter(|e| e.event_type == "tool_call_result") {
-        eprintln!("    tool_call_result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+        eprintln!(
+            "    tool_call_result data: {}",
+            serde_json::to_string_pretty(&e.data).unwrap_or_default()
+        );
     }
 
     step!("PASS — github__create_pull_request approved and executed, returned PR data");
@@ -418,7 +461,10 @@ async fn test_real_llm_integration_require_approval_deny() {
 
     step!("Conversation created: {}", conv_id);
 
-    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", EVENT_TIMEOUT);
+    step!(
+        "Waiting for tool_approval_required SSE event (timeout: {:?})",
+        EVENT_TIMEOUT
+    );
     // Wait for approval
     let approval_event = stream
         .wait_for_event("tool_approval_required", EVENT_TIMEOUT)
@@ -430,7 +476,10 @@ async fn test_real_llm_integration_require_approval_deny() {
         .expect("no request_id")
         .to_string();
     step!("Got tool_approval_required: request_id={}", request_id);
-    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
+    eprintln!(
+        "    Approval event data: {}",
+        serde_json::to_string_pretty(&approval_event.data).unwrap_or_default()
+    );
 
     step!("Denying request {}", request_id);
     // Deny
@@ -467,7 +516,10 @@ async fn test_real_llm_integration_require_approval_deny() {
         e.event_type == "tool_call_result"
             && e.data.get("is_error").and_then(|v| v.as_bool()) == Some(true)
     }) {
-        eprintln!("    Denial result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+        eprintln!(
+            "    Denial result data: {}",
+            serde_json::to_string_pretty(&e.data).unwrap_or_default()
+        );
     }
 
     step!("PASS — slack__send_message denied, LLM handled denial gracefully");
@@ -526,7 +578,10 @@ async fn test_real_llm_integration_deny_tool_not_exposed() {
         !turn.response_text.is_empty(),
         "expected a text response explaining the tool is unavailable"
     );
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("PASS — github__delete_repository never exposed to LLM, agent refused gracefully");
 }

@@ -84,7 +84,10 @@ async fn test_approve_tool_call() {
 
     step!("Conversation created: {}", conv_id);
 
-    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", TOOL_CALL_TIMEOUT);
+    step!(
+        "Waiting for tool_approval_required SSE event (timeout: {:?})",
+        TOOL_CALL_TIMEOUT
+    );
     // Wait for tool_approval_required
     let approval_event = stream
         .wait_for_event("tool_approval_required", TOOL_CALL_TIMEOUT)
@@ -100,7 +103,10 @@ async fn test_approve_tool_call() {
         request_id,
         approval_event.data["tool_name"].as_str().unwrap_or("?")
     );
-    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
+    eprintln!(
+        "    Approval event data: {}",
+        serde_json::to_string_pretty(&approval_event.data).unwrap_or_default()
+    );
 
     step!("Listing pending approvals via API");
     // List pending approvals via API
@@ -126,7 +132,10 @@ async fn test_approve_tool_call() {
         .resolve_approval(AGENT_ID, &conv_id, &request_id, "approve")
         .await
         .expect("resolve approval failed");
-    check!(approve_resp.status().is_success(), "approve response is success");
+    check!(
+        approve_resp.status().is_success(),
+        "approve response is success"
+    );
 
     step!("Waiting for done event (timeout: {:?})", FULL_TIMEOUT);
     // Wait for done
@@ -149,7 +158,10 @@ async fn test_approve_tool_call() {
 
     // Log tool results
     for e in events.iter().filter(|e| e.event_type == "tool_call_result") {
-        eprintln!("    tool_call_result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+        eprintln!(
+            "    tool_call_result data: {}",
+            serde_json::to_string_pretty(&e.data).unwrap_or_default()
+        );
     }
 
     step!("PASS — tool call approved and executed successfully");
@@ -175,7 +187,10 @@ async fn test_deny_tool_call() {
 
     step!("Conversation created: {}", conv_id);
 
-    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", TOOL_CALL_TIMEOUT);
+    step!(
+        "Waiting for tool_approval_required SSE event (timeout: {:?})",
+        TOOL_CALL_TIMEOUT
+    );
     // Wait for tool_approval_required
     let approval_event = stream
         .wait_for_event("tool_approval_required", TOOL_CALL_TIMEOUT)
@@ -187,7 +202,10 @@ async fn test_deny_tool_call() {
         .expect("no request_id")
         .to_string();
     step!("Got tool_approval_required: request_id={}", request_id);
-    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
+    eprintln!(
+        "    Approval event data: {}",
+        serde_json::to_string_pretty(&approval_event.data).unwrap_or_default()
+    );
 
     step!("Denying request {}", request_id);
     // Deny
@@ -227,7 +245,10 @@ async fn test_deny_tool_call() {
         e.event_type == "tool_call_result"
             && e.data.get("is_error").and_then(|v| v.as_bool()) == Some(true)
     }) {
-        eprintln!("    Denial result data: {}", serde_json::to_string_pretty(&e.data).unwrap_or_default());
+        eprintln!(
+            "    Denial result data: {}",
+            serde_json::to_string_pretty(&e.data).unwrap_or_default()
+        );
     }
 
     step!("PASS — tool call denied, LLM received denial error");
@@ -259,7 +280,10 @@ async fn test_denied_tool() {
 
     step!("Conversation created: {}", conv_id);
 
-    step!("Waiting for tool_call_start SSE event (timeout: {:?})", TOOL_CALL_TIMEOUT);
+    step!(
+        "Waiting for tool_call_start SSE event (timeout: {:?})",
+        TOOL_CALL_TIMEOUT
+    );
     // Wait for the Glob tool_call_start, then its denied result
     let glob_start = stream
         .wait_for_event("tool_call_start", TOOL_CALL_TIMEOUT)
@@ -274,7 +298,10 @@ async fn test_denied_tool() {
             .and_then(|n| n.as_str())
             .unwrap_or("?")
     );
-    eprintln!("    tool_call_start data: {}", serde_json::to_string_pretty(&glob_start.data).unwrap_or_default());
+    eprintln!(
+        "    tool_call_start data: {}",
+        serde_json::to_string_pretty(&glob_start.data).unwrap_or_default()
+    );
 
     step!("Waiting briefly for denied result to arrive");
     // Wait a moment for the denied result to arrive
@@ -284,7 +311,15 @@ async fn test_denied_tool() {
 
     step!("Checking events so far ({} total)", events_so_far.len());
     for e in &events_so_far {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Verifying Glob was denied");
@@ -395,10 +430,19 @@ async fn test_allowed_tool_no_approval() {
         .expect("conversation failed");
 
     step!("Verifying response text is non-empty");
-    check!(!turn.response_text.is_empty(), "response should not be empty");
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    check!(
+        !turn.response_text.is_empty(),
+        "response should not be empty"
+    );
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
-    step!("Listing SSE events received ({} total)", turn.sse_events.len());
+    step!(
+        "Listing SSE events received ({} total)",
+        turn.sse_events.len()
+    );
     for e in &turn.sse_events {
         eprintln!("    - {}", e.event_type);
     }
@@ -458,7 +502,10 @@ async fn test_approval_webhook_events() {
     let (conv_id, stream) =
         setup_conversation(&harness, "Use the bash tool to run: echo webhook_test").await;
 
-    step!("Waiting for tool_approval_required SSE event (timeout: {:?})", TOOL_CALL_TIMEOUT);
+    step!(
+        "Waiting for tool_approval_required SSE event (timeout: {:?})",
+        TOOL_CALL_TIMEOUT
+    );
     // Wait for approval event
     let approval_event = stream
         .wait_for_event("tool_approval_required", TOOL_CALL_TIMEOUT)
@@ -470,7 +517,10 @@ async fn test_approval_webhook_events() {
         .expect("no request_id")
         .to_string();
     step!("Got tool_approval_required: request_id={}", request_id);
-    eprintln!("    Approval event data: {}", serde_json::to_string_pretty(&approval_event.data).unwrap_or_default());
+    eprintln!(
+        "    Approval event data: {}",
+        serde_json::to_string_pretty(&approval_event.data).unwrap_or_default()
+    );
 
     step!("Waiting for tool_approval_required webhook (timeout: 10s)");
     // Check webhook for tool_approval_required
@@ -481,11 +531,17 @@ async fn test_approval_webhook_events() {
     webhook_log.assert_has_type("tool_approval_required");
 
     let approval_webhooks = webhook_log.by_type("tool_approval_required");
-    check!(!approval_webhooks.is_empty(), "should have tool_approval_required webhook");
+    check!(
+        !approval_webhooks.is_empty(),
+        "should have tool_approval_required webhook"
+    );
 
     if let Some(data) = approval_webhooks[0].data() {
         step!("Checking tool_approval_required webhook data");
-        eprintln!("    Webhook data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+        eprintln!(
+            "    Webhook data: {}",
+            serde_json::to_string_pretty(data).unwrap_or_default()
+        );
 
         check_eq!(
             data.get("request_id").and_then(|v| v.as_str()),
@@ -515,11 +571,17 @@ async fn test_approval_webhook_events() {
     resolved_log.assert_has_type("tool_approval_resolved");
 
     let resolved_webhooks = resolved_log.by_type("tool_approval_resolved");
-    check!(!resolved_webhooks.is_empty(), "should have tool_approval_resolved webhook");
+    check!(
+        !resolved_webhooks.is_empty(),
+        "should have tool_approval_resolved webhook"
+    );
 
     if let Some(data) = resolved_webhooks[0].data() {
         step!("Checking tool_approval_resolved webhook data");
-        eprintln!("    Webhook data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+        eprintln!(
+            "    Webhook data: {}",
+            serde_json::to_string_pretty(data).unwrap_or_default()
+        );
 
         check_eq!(
             data.get("decision").and_then(|v| v.as_str()),
@@ -537,7 +599,10 @@ async fn test_approval_webhook_events() {
         eprintln!("    - {}", e.event_type);
     }
 
-    check!(events.iter().any(|e| e.event_type == "done"), "expected done event");
+    check!(
+        events.iter().any(|e| e.event_type == "done"),
+        "expected done event"
+    );
 
     step!("PASS — approval webhook flow verified (required -> resolved -> done)");
 }

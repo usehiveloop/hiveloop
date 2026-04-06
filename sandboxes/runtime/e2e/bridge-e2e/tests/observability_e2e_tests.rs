@@ -55,48 +55,92 @@ async fn test_turn_completed_webhook_has_token_data() {
         .expect("conversation failed");
 
     step!("Verifying response text is non-empty");
-    check!(!turn.response_text.is_empty(), "response should not be empty");
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    check!(
+        !turn.response_text.is_empty(),
+        "response should not be empty"
+    );
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
-    step!("Listing SSE events received ({} total)", turn.sse_events.len());
+    step!(
+        "Listing SSE events received ({} total)",
+        turn.sse_events.len()
+    );
     for e in &turn.sse_events {
         eprintln!("    - {}", e.event_type);
     }
 
-    step!("Waiting for turn_completed webhook (timeout: {:?})", WEBHOOK_TIMEOUT);
+    step!(
+        "Waiting for turn_completed webhook (timeout: {:?})",
+        WEBHOOK_TIMEOUT
+    );
     let log = harness
         .wait_for_webhook_type("turn_completed", WEBHOOK_TIMEOUT)
         .await
         .expect("failed to get webhooks");
 
     let turn_completed = log.by_type("turn_completed");
-    check!(!turn_completed.is_empty(), "should have at least one turn_completed webhook");
+    check!(
+        !turn_completed.is_empty(),
+        "should have at least one turn_completed webhook"
+    );
 
     let data = turn_completed[0]
         .data()
         .expect("turn_completed should have data");
 
     step!("Checking turn_completed webhook data fields");
-    eprintln!("    Full data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+    eprintln!(
+        "    Full data: {}",
+        serde_json::to_string_pretty(data).unwrap_or_default()
+    );
 
-    check!(data.get("input_tokens").is_some(), "turn_completed should have input_tokens");
-    check!(data.get("output_tokens").is_some(), "turn_completed should have output_tokens");
-    check!(data.get("model").is_some(), "turn_completed should have model");
-    check!(data.get("timestamp").is_some(), "turn_completed should have timestamp");
-    check!(data.get("turn_number").is_some(), "turn_completed should have turn_number");
+    check!(
+        data.get("input_tokens").is_some(),
+        "turn_completed should have input_tokens"
+    );
+    check!(
+        data.get("output_tokens").is_some(),
+        "turn_completed should have output_tokens"
+    );
+    check!(
+        data.get("model").is_some(),
+        "turn_completed should have model"
+    );
+    check!(
+        data.get("timestamp").is_some(),
+        "turn_completed should have timestamp"
+    );
+    check!(
+        data.get("turn_number").is_some(),
+        "turn_completed should have turn_number"
+    );
 
     let input_tokens = data["input_tokens"].as_u64().unwrap_or(0);
     let output_tokens = data["output_tokens"].as_u64().unwrap_or(0);
     let model = data["model"].as_str().unwrap_or("");
 
     step!("Verifying token counts are sensible");
-    check!(input_tokens > 0, "input_tokens should be > 0, got {}", input_tokens);
-    check!(output_tokens > 0, "output_tokens should be > 0, got {}", output_tokens);
+    check!(
+        input_tokens > 0,
+        "input_tokens should be > 0, got {}",
+        input_tokens
+    );
+    check!(
+        output_tokens > 0,
+        "output_tokens should be > 0, got {}",
+        output_tokens
+    );
     check!(!model.is_empty(), "model should not be empty");
 
     step!(
         "PASS — input_tokens={}, output_tokens={}, model={}, turn={}",
-        input_tokens, output_tokens, model, data["turn_number"]
+        input_tokens,
+        output_tokens,
+        model,
+        data["turn_number"]
     );
 }
 
@@ -132,8 +176,14 @@ async fn test_response_completed_webhook_has_model_and_timestamp() {
         .await
         .expect("conversation failed");
 
-    check!(!turn.response_text.is_empty(), "response should not be empty");
-    eprintln!("    Response: {:?}", &turn.response_text[..turn.response_text.len().min(200)]);
+    check!(
+        !turn.response_text.is_empty(),
+        "response should not be empty"
+    );
+    eprintln!(
+        "    Response: {:?}",
+        &turn.response_text[..turn.response_text.len().min(200)]
+    );
 
     step!("Waiting for response_completed webhook");
     let log = harness
@@ -152,16 +202,34 @@ async fn test_response_completed_webhook_has_model_and_timestamp() {
         .expect("response_completed should have data");
 
     step!("Checking response_completed webhook data fields");
-    eprintln!("    Full data: {}", serde_json::to_string_pretty(data).unwrap_or_default());
+    eprintln!(
+        "    Full data: {}",
+        serde_json::to_string_pretty(data).unwrap_or_default()
+    );
 
-    check!(data.get("model").is_some(), "response_completed should have model");
-    check!(data.get("timestamp").is_some(), "response_completed should have timestamp");
-    check!(data.get("input_tokens").is_some(), "response_completed should have input_tokens");
-    check!(data.get("output_tokens").is_some(), "response_completed should have output_tokens");
+    check!(
+        data.get("model").is_some(),
+        "response_completed should have model"
+    );
+    check!(
+        data.get("timestamp").is_some(),
+        "response_completed should have timestamp"
+    );
+    check!(
+        data.get("input_tokens").is_some(),
+        "response_completed should have input_tokens"
+    );
+    check!(
+        data.get("output_tokens").is_some(),
+        "response_completed should have output_tokens"
+    );
 
     step!(
         "PASS — model={}, timestamp={}, tokens={}+{}",
-        data["model"], data["timestamp"], data["input_tokens"], data["output_tokens"]
+        data["model"],
+        data["timestamp"],
+        data["input_tokens"],
+        data["output_tokens"]
     );
 }
 
@@ -193,7 +261,15 @@ async fn test_tool_call_events_have_duration() {
 
     step!("Listing SSE events ({} total)", turn.sse_events.len());
     for e in &turn.sse_events {
-        eprintln!("    - {} {}", e.event_type, serde_json::to_string(&e.data).unwrap_or_default().chars().take(120).collect::<String>());
+        eprintln!(
+            "    - {} {}",
+            e.event_type,
+            serde_json::to_string(&e.data)
+                .unwrap_or_default()
+                .chars()
+                .take(120)
+                .collect::<String>()
+        );
     }
 
     step!("Filtering for tool_call_result events");
@@ -207,7 +283,10 @@ async fn test_tool_call_events_have_duration() {
         !tool_results.is_empty(),
         "should have at least one tool_call_result event (got {} SSE events: {:?})",
         turn.sse_events.len(),
-        turn.sse_events.iter().map(|e| &e.event_type).collect::<Vec<_>>()
+        turn.sse_events
+            .iter()
+            .map(|e| &e.event_type)
+            .collect::<Vec<_>>()
     );
 
     step!("Checking duration_ms on each tool result");
@@ -216,7 +295,8 @@ async fn test_tool_call_events_have_duration() {
         check!(
             duration.is_some(),
             "tool_call_result[{}] should have duration_ms. Data: {}",
-            i, result.data
+            i,
+            result.data
         );
         eprintln!("    Tool call {}: duration_ms={}", i, duration.unwrap());
     }
@@ -272,6 +352,7 @@ async fn test_cumulative_tokens_across_turns() {
 
     step!(
         "PASS — after turn 1: cumulative_input={}, cumulative_output={}",
-        cumulative_input_1, cumulative_output_1
+        cumulative_input_1,
+        cumulative_output_1
     );
 }
