@@ -138,6 +138,7 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	body, _ := json.Marshal(map[string]any{
@@ -146,6 +147,7 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -192,12 +194,14 @@ func TestInConnectionHandler_Create_MissingNangoConnectionID(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	body, _ := json.Marshal(map[string]any{})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -223,11 +227,13 @@ func TestInConnectionHandler_Create_IntegrationNotFound(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 
 	body, _ := json.Marshal(map[string]any{"nango_connection_id": "nango-conn-123"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+uuid.New().String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -253,6 +259,7 @@ func TestInConnectionHandler_Create_DeletedIntegration(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	now := time.Now()
 	db.Model(&integ).Update("deleted_at", now)
@@ -261,6 +268,7 @@ func TestInConnectionHandler_Create_DeletedIntegration(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -286,11 +294,13 @@ func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	// Create first connection directly
 	db.Create(&model.InConnection{
 		ID:                uuid.New(),
+		OrgID:             org.ID,
 		UserID:            user.ID,
 		InIntegrationID:   integ.ID,
 		NangoConnectionID: "first-conn",
@@ -301,6 +311,7 @@ func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -326,6 +337,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connections", h.Create)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	body, _ := json.Marshal(map[string]any{
@@ -335,6 +347,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -371,6 +384,7 @@ func TestInConnectionHandler_List_Success(t *testing.T) {
 	r.Get("/v1/in/connections", h.List)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ1 := createTestInIntegration(t, db, "github")
 	integ2 := model.InIntegration{
 		ID: uuid.New(), UniqueKey: fmt.Sprintf("slack-%s", uuid.New().String()[:8]),
@@ -380,13 +394,14 @@ func TestInConnectionHandler_List_Success(t *testing.T) {
 
 	for i, integ := range []model.InIntegration{integ1, integ2} {
 		db.Create(&model.InConnection{
-			ID: uuid.New(), UserID: user.ID, InIntegrationID: integ.ID,
+			ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID,
 			NangoConnectionID: fmt.Sprintf("conn-%d", i),
 		})
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections", nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -421,10 +436,12 @@ func TestInConnectionHandler_List_UserIsolation(t *testing.T) {
 
 	user1 := createTestUser(t, db, fmt.Sprintf("user1-%s@test.com", uuid.New().String()[:8]))
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
+	org1 := createTestOrg(t, db)
+	org2 := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	db.Create(&model.InConnection{
-		ID: uuid.New(), UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
+		ID: uuid.New(), OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
 	})
 
 	// Create a second integration for user2 to avoid unique constraint
@@ -434,12 +451,13 @@ func TestInConnectionHandler_List_UserIsolation(t *testing.T) {
 	}
 	db.Create(&integ2)
 	db.Create(&model.InConnection{
-		ID: uuid.New(), UserID: user2.ID, InIntegrationID: integ2.ID, NangoConnectionID: "user2-conn",
+		ID: uuid.New(), OrgID: org2.ID, UserID: user2.ID, InIntegrationID: integ2.ID, NangoConnectionID: "user2-conn",
 	})
 
-	// User2 should NOT see user1's connections
+	// User2 should NOT see user1's connections (different org)
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections", nil)
 	req = middleware.WithUser(req, &user2)
+	req = middleware.WithOrg(req, &org2)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -471,17 +489,19 @@ func TestInConnectionHandler_List_ExcludesRevoked(t *testing.T) {
 	r.Get("/v1/in/connections", h.List)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	now := time.Now()
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID,
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID,
 		NangoConnectionID: "revoked-conn", RevokedAt: &now,
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections", nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -513,6 +533,7 @@ func TestInConnectionHandler_List_Pagination(t *testing.T) {
 	r.Get("/v1/in/connections", h.List)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 
 	// Create 5 connections with different integrations
 	for i := 0; i < 5; i++ {
@@ -523,7 +544,7 @@ func TestInConnectionHandler_List_Pagination(t *testing.T) {
 		}
 		db.Create(&integ)
 		db.Create(&model.InConnection{
-			ID: uuid.New(), UserID: user.ID, InIntegrationID: integ.ID,
+			ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID,
 			NangoConnectionID: fmt.Sprintf("pg-conn-%d", i),
 		})
 		time.Sleep(time.Millisecond)
@@ -531,6 +552,7 @@ func TestInConnectionHandler_List_Pagination(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections?limit=2", nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -565,6 +587,7 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 	r.Get("/v1/in/connections", h.List)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	ghInteg := createTestInIntegration(t, db, "github")
 	slackInteg := model.InIntegration{
 		ID: uuid.New(), UniqueKey: fmt.Sprintf("slack-%s", uuid.New().String()[:8]),
@@ -573,14 +596,15 @@ func TestInConnectionHandler_List_FilterByProvider(t *testing.T) {
 	db.Create(&slackInteg)
 
 	db.Create(&model.InConnection{
-		ID: uuid.New(), UserID: user.ID, InIntegrationID: ghInteg.ID, NangoConnectionID: "gh-conn",
+		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: ghInteg.ID, NangoConnectionID: "gh-conn",
 	})
 	db.Create(&model.InConnection{
-		ID: uuid.New(), UserID: user.ID, InIntegrationID: slackInteg.ID, NangoConnectionID: "slack-conn",
+		ID: uuid.New(), OrgID: org.ID, UserID: user.ID, InIntegrationID: slackInteg.ID, NangoConnectionID: "slack-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections?provider=github", nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -617,14 +641,16 @@ func TestInConnectionHandler_Get_Success(t *testing.T) {
 	r.Get("/v1/in/connections/{id}", h.Get)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "get-conn",
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "get-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -654,9 +680,11 @@ func TestInConnectionHandler_Get_NotFound(t *testing.T) {
 	r.Get("/v1/in/connections/{id}", h.Get)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+uuid.New().String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -683,15 +711,18 @@ func TestInConnectionHandler_Get_WrongUser(t *testing.T) {
 
 	user1 := createTestUser(t, db, fmt.Sprintf("user1-%s@test.com", uuid.New().String()[:8]))
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
+	org1 := createTestOrg(t, db)
+	org2 := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
+		ID: connID, OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
 	})
 
-	// User2 tries to access user1's connection
+	// User2 tries to access user1's connection from a different org
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user2)
+	req = middleware.WithOrg(req, &org2)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -717,16 +748,18 @@ func TestInConnectionHandler_Get_RevokedNotFound(t *testing.T) {
 	r.Get("/v1/in/connections/{id}", h.Get)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	now := time.Now()
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID,
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID,
 		NangoConnectionID: "revoked-conn", RevokedAt: &now,
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -752,14 +785,16 @@ func TestInConnectionHandler_Get_WithNangoProviderConfig(t *testing.T) {
 	r.Get("/v1/in/connections/{id}", h.Get)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "pc-conn",
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "pc-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -796,14 +831,16 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 	r.Get("/v1/in/connections/{id}", h.Get)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "fail-conn",
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "fail-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -841,14 +878,16 @@ func TestInConnectionHandler_Revoke_Success(t *testing.T) {
 	r.Delete("/v1/in/connections/{id}", h.Revoke)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "revoke-conn",
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "revoke-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -889,9 +928,11 @@ func TestInConnectionHandler_Revoke_NotFound(t *testing.T) {
 	r.Delete("/v1/in/connections/{id}", h.Revoke)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+uuid.New().String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -918,14 +959,17 @@ func TestInConnectionHandler_Revoke_WrongUser(t *testing.T) {
 
 	user1 := createTestUser(t, db, fmt.Sprintf("user1-%s@test.com", uuid.New().String()[:8]))
 	user2 := createTestUser(t, db, fmt.Sprintf("user2-%s@test.com", uuid.New().String()[:8]))
+	org1 := createTestOrg(t, db)
+	org2 := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
+		ID: connID, OrgID: org1.ID, UserID: user1.ID, InIntegrationID: integ.ID, NangoConnectionID: "user1-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user2)
+	req = middleware.WithOrg(req, &org2)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -951,16 +995,18 @@ func TestInConnectionHandler_Revoke_AlreadyRevoked(t *testing.T) {
 	r.Delete("/v1/in/connections/{id}", h.Revoke)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	now := time.Now()
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID,
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID,
 		NangoConnectionID: "already-revoked", RevokedAt: &now,
 	})
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -987,14 +1033,16 @@ func TestInConnectionHandler_Revoke_NangoFailure(t *testing.T) {
 	r.Delete("/v1/in/connections/{id}", h.Revoke)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 	connID := uuid.New()
 	db.Create(&model.InConnection{
-		ID: connID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "nango-fail-conn",
+		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "nango-fail-conn",
 	})
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/in/connections/"+connID.String(), nil)
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -1032,11 +1080,13 @@ func TestInConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connect-session", h.CreateConnectSession)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connect-session", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -1087,10 +1137,12 @@ func TestInConnectionHandler_CreateConnectSession_IntegrationNotFound(t *testing
 	r.Post("/v1/in/integrations/{id}/connect-session", h.CreateConnectSession)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+uuid.New().String()+"/connect-session", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
@@ -1117,11 +1169,13 @@ func TestInConnectionHandler_CreateConnectSession_NangoFailure(t *testing.T) {
 	r.Post("/v1/in/integrations/{id}/connect-session", h.CreateConnectSession)
 
 	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "github")
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connect-session", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
