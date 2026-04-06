@@ -868,6 +868,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         "input_tokens": initial_input_tokens,
                         "output_tokens": initial_output_tokens,
                         "model": &conversation_metrics.model,
+                        "timestamp": chrono::Utc::now().to_rfc3339(),
                         "full_response": &response,
                     }),
                 ));
