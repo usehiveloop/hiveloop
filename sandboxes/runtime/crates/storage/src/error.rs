@@ -14,8 +14,14 @@ pub enum StorageError {
     NotConfigured,
 }
 
-impl From<libsql::Error> for StorageError {
-    fn from(e: libsql::Error) -> Self {
+impl From<rusqlite::Error> for StorageError {
+    fn from(e: rusqlite::Error) -> Self {
+        Self::Database(e.to_string())
+    }
+}
+
+impl From<tokio_rusqlite::Error> for StorageError {
+    fn from(e: tokio_rusqlite::Error) -> Self {
         Self::Database(e.to_string())
     }
 }

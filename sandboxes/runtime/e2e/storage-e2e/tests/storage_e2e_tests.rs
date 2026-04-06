@@ -5,7 +5,7 @@ use bridge_core::{
 use chrono::Utc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use storage::{LibSqlBackend, StorageBackend, StorageHandle};
+use storage::{SqliteBackend, StorageBackend, StorageHandle};
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -19,24 +19,16 @@ fn test_prefix() -> String {
     format!("t{ts}_{n}")
 }
 
-/// Connect to the real Turso DB configured via environment variables.
-async fn connect() -> Arc<LibSqlBackend> {
-    let url = std::env::var("BRIDGE_STORAGE_URL").expect("BRIDGE_STORAGE_URL must be set");
-    let token =
-        std::env::var("BRIDGE_STORAGE_AUTH_TOKEN").expect("BRIDGE_STORAGE_AUTH_TOKEN must be set");
-
+/// Create a local SQLite backend for testing.
+async fn connect() -> Arc<SqliteBackend> {
     let config = storage::StorageConfig {
-        url,
-        auth_token: token,
         path: format!("/tmp/storage_e2e_{}.db", test_prefix()),
-        sync_interval_secs: 5,
-        encryption_key: None,
     };
 
     Arc::new(
-        LibSqlBackend::new(&config)
+        SqliteBackend::new(&config)
             .await
-            .expect("failed to connect to test database"),
+            .expect("failed to open test database"),
     )
 }
 

@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 bridge_core = { workspace = true }
-libsql = { version = "0.9", features = ["replication", "encryption"] }
+tokio-rusqlite = "0.6"
+rusqlite = { version = "0.32", features = ["bundled"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

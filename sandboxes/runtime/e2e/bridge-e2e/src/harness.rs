@@ -409,15 +409,7 @@ impl TestHarness {
             .stdout(Stdio::from(bridge_stdout_log))
             .stderr(Stdio::from(bridge_stderr_log));
 
-        for key in [
-            "BRIDGE_STORAGE_URL",
-            "BRIDGE_STORAGE_AUTH_TOKEN",
-            "BRIDGE_STORAGE_PATH",
-            "BRIDGE_STORAGE_SYNC_INTERVAL_SECS",
-            "BRIDGE_STORAGE_ENCRYPTION_KEY",
-            "SSL_CERT_FILE",
-            "SSL_CERT_DIR",
-        ] {
+        for key in ["BRIDGE_STORAGE_PATH", "SSL_CERT_FILE", "SSL_CERT_DIR"] {
             if let Ok(value) = std::env::var(key) {
                 bridge_command.env(key, value);
             }
@@ -455,7 +447,7 @@ impl TestHarness {
         };
 
         // 4. Poll /health until 200.
-        let health_timeout = if std::env::var("BRIDGE_STORAGE_URL").is_ok() {
+        let health_timeout = if std::env::var("BRIDGE_STORAGE_PATH").is_ok() {
             Duration::from_secs(60)
         } else {
             Duration::from_secs(30)
@@ -599,15 +591,7 @@ impl TestHarness {
             .stdout(Stdio::from(bridge_stdout_log))
             .stderr(Stdio::from(bridge_stderr_log));
 
-        for key in [
-            "BRIDGE_STORAGE_URL",
-            "BRIDGE_STORAGE_AUTH_TOKEN",
-            "BRIDGE_STORAGE_PATH",
-            "BRIDGE_STORAGE_SYNC_INTERVAL_SECS",
-            "BRIDGE_STORAGE_ENCRYPTION_KEY",
-            "SSL_CERT_FILE",
-            "SSL_CERT_DIR",
-        ] {
+        for key in ["BRIDGE_STORAGE_PATH", "SSL_CERT_FILE", "SSL_CERT_DIR"] {
             if let Ok(value) = std::env::var(key) {
                 bridge_command.env(key, value);
             }
@@ -751,15 +735,7 @@ impl TestHarness {
             );
         }
 
-        for key in [
-            "BRIDGE_STORAGE_URL",
-            "BRIDGE_STORAGE_AUTH_TOKEN",
-            "BRIDGE_STORAGE_PATH",
-            "BRIDGE_STORAGE_SYNC_INTERVAL_SECS",
-            "BRIDGE_STORAGE_ENCRYPTION_KEY",
-            "SSL_CERT_FILE",
-            "SSL_CERT_DIR",
-        ] {
+        for key in ["BRIDGE_STORAGE_PATH", "SSL_CERT_FILE", "SSL_CERT_DIR"] {
             if let Ok(value) = std::env::var(key) {
                 bridge_command.env(key, value);
             }
@@ -2409,7 +2385,7 @@ impl TestHarness {
                 #[cfg(unix)]
                 {
                     let graceful_timeout =
-                        if name == "bridge" && std::env::var("BRIDGE_STORAGE_URL").is_ok() {
+                        if name == "bridge" && std::env::var("BRIDGE_STORAGE_PATH").is_ok() {
                             std::time::Duration::from_secs(45)
                         } else {
                             std::time::Duration::from_secs(5)

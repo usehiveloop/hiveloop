@@ -1,5 +1,3 @@
-use crate::error::StorageError;
-
 /// All DDL statements for the storage layer.
 ///
 /// Every statement uses `IF NOT EXISTS` so running migrations is idempotent.
@@ -46,12 +44,19 @@ CREATE TABLE IF NOT EXISTS webhook_outbox (
     payload         BLOB NOT NULL,
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     delivered_at    TEXT,
-    attempts        INTEGER NOT NULL DEFAULT 0
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    sequence_number INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_pending
     ON webhook_outbox(delivered_at)
     WHERE delivered_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_event_id
+    ON webhook_outbox(event_id);
+
+CREATE INDEX IF NOT EXISTS idx_outbox_sequence
+    ON webhook_outbox(sequence_number);
 
 CREATE TABLE IF NOT EXISTS metrics_snapshots (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,65 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_session_agent
 "#;
 
 /// Run all schema migrations on the given connection.
-pub async fn run_migrations(conn: &libsql::Connection) -> Result<(), StorageError> {
-    conn.execute_batch(MIGRATIONS)
-        .await
-        .map_err(|e| StorageError::Database(format!("migration failed: {e}")))?;
-
-    if let Err(e) = conn
-        .execute("ALTER TABLE webhook_outbox ADD COLUMN event_id TEXT", ())
-        .await
-    {
-        let message = e.to_string().to_lowercase();
-        if !message.contains("duplicate column") && !message.contains("already exists") {
-            return Err(StorageError::Database(format!(
-                "migration failed adding event_id: {e}"
-            )));
-        }
-    }
-
-    conn.execute(
-        "UPDATE webhook_outbox SET event_id = CAST(id AS TEXT) WHERE event_id IS NULL",
-        (),
-    )
-    .await
-    .map_err(|e| StorageError::Database(format!("migration failed backfilling event_id: {e}")))?;
-
-    conn.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_event_id ON webhook_outbox(event_id)",
-        (),
-    )
-    .await
-    .map_err(|e| {
-        StorageError::Database(format!("migration failed creating event_id index: {e}"))
-    })?;
-
-    // Add sequence_number column for unified event bus
-    if let Err(e) = conn
-        .execute(
-            "ALTER TABLE webhook_outbox ADD COLUMN sequence_number INTEGER",
-            (),
-        )
-        .await
-    {
-        let message = e.to_string().to_lowercase();
-        if !message.contains("duplicate column") && !message.contains("already exists") {
-            return Err(StorageError::Database(format!(
-                "migration failed adding sequence_number: {e}"
-            )));
-        }
-    }
-
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_outbox_sequence ON webhook_outbox(sequence_number)",
-        (),
-    )
-    .await
-    .map_err(|e| {
-        StorageError::Database(format!(
-            "migration failed creating sequence_number index: {e}"
-        ))
-    })?;
-
+pub fn run_migrations(conn: &rusqlite::Connection) -> Result<(), rusqlite::Error> {
+    conn.execute_batch(MIGRATIONS)?;
     Ok(())
 }
