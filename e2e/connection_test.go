@@ -365,7 +365,7 @@ func TestE2E_ScopedToken_ValidScopes(t *testing.T) {
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-scoped-1")
 
 	// Mint token with valid scopes
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels","read_messages"],"resources":{"channel":["C123","C456"]}}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list","conversations_history"],"resources":{"channel":["C123","C456"]}}]`, connID)
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("mint scoped token: expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -417,7 +417,7 @@ func TestE2E_ScopedToken_MultipleConnections(t *testing.T) {
 
 	// Mint with both scopes
 	scopesJSON := fmt.Sprintf(`[
-		{"connection_id":%q,"actions":["list_channels","send_message"],"resources":{"channel":["C001"]}},
+		{"connection_id":%q,"actions":["conversations_list","chat_post_message"],"resources":{"channel":["C001"]}},
 		{"connection_id":%q,"actions":["search","get_page"]}
 	]`, slackConnID, notionConnID)
 
@@ -503,7 +503,7 @@ func TestE2E_ScopedToken_InvalidConnection(t *testing.T) {
 	cred := h.storeCredential(t, org, "https://api.example.com", "bearer", "sk-fake-key")
 
 	fakeConnID := uuid.New().String()
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, fakeConnID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, fakeConnID)
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("invalid connection: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -538,7 +538,7 @@ func TestE2E_ScopedToken_RevokedConnection(t *testing.T) {
 	}
 
 	// Attempt to mint with revoked connection
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, connID)
 	rr = h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("revoked connection: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -561,7 +561,7 @@ func TestE2E_ScopedToken_CrossOrgConnection(t *testing.T) {
 	connID := h.createLocalConnection(t, org1, integ.ID, "nango-crossorg")
 
 	// Try to mint in org2 using org1's connection
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, connID)
 	rr := h.mintScopedToken(t, org2, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("cross-org: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -580,8 +580,8 @@ func TestE2E_ScopedToken_InvalidResourceType(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Bad Resource")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-bad-resource")
 
-	// list_channels has resource_type="" — providing a "repo" resource is invalid
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"],"resources":{"repo":["org/repo"]}}]`, connID)
+	// conversations_list has resource_type="channel" — providing a "repo" resource is invalid
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"],"resources":{"repo":["org/repo"]}}]`, connID)
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("invalid resource type: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -606,8 +606,8 @@ func TestE2E_ScopedToken_ValidResourceScoping(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Resource Scope")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-resource-scope")
 
-	// read_messages has resource_type="channel" — providing channel resources is valid
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["read_messages"],"resources":{"channel":["C001","C002"]}}]`, connID)
+	// conversations_history has resource_type="channel" — providing channel resources is valid
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_history"],"resources":{"channel":["C001","C002"]}}]`, connID)
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("valid resource scoping: expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -707,7 +707,7 @@ func TestE2E_ScopedToken_DeletedIntegration(t *testing.T) {
 	h.db.Model(&integ).Update("deleted_at", "2026-01-01")
 
 	// Minting with a connection whose integration is deleted should fail
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels"]}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list"]}]`, connID)
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("deleted integration: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -732,19 +732,30 @@ func TestE2E_ActionsCatalog(t *testing.T) {
 		}
 	}
 
-	// Verify skeleton providers exist but have no actions
-	for _, provider := range []string{"asana", "jira", "salesforce"} {
+	// Verify providers with no actions
+	for _, provider := range []string{"salesforce"} {
 		p, ok := cat.GetProvider(provider)
 		if !ok {
-			t.Fatalf("expected skeleton provider %q in catalog", provider)
+			t.Fatalf("expected provider %q in catalog", provider)
 		}
 		if len(p.Actions) != 0 {
-			t.Fatalf("expected no actions for skeleton provider %q, got %d", provider, len(p.Actions))
+			t.Fatalf("expected no actions for provider %q, got %d", provider, len(p.Actions))
+		}
+	}
+
+	// Verify providers that now have full action sets
+	for _, provider := range []string{"asana", "jira"} {
+		p, ok := cat.GetProvider(provider)
+		if !ok {
+			t.Fatalf("expected provider %q in catalog", provider)
+		}
+		if len(p.Actions) == 0 {
+			t.Fatalf("expected actions for provider %q", provider)
 		}
 	}
 
 	// Verify specific Slack actions
-	for _, action := range []string{"list_channels", "read_messages", "send_message"} {
+	for _, action := range []string{"conversations_list", "conversations_history", "chat_post_message"} {
 		a, ok := cat.GetAction("slack", action)
 		if !ok {
 			t.Fatalf("expected action %q for slack", action)
@@ -754,14 +765,12 @@ func TestE2E_ActionsCatalog(t *testing.T) {
 		}
 	}
 
-	// Verify resource types
-	readMsg, _ := cat.GetAction("slack", "read_messages")
-	if readMsg.ResourceType != "channel" {
-		t.Fatalf("expected resource_type=channel for slack.read_messages, got %q", readMsg.ResourceType)
-	}
-	listChannels, _ := cat.GetAction("slack", "list_channels")
-	if listChannels.ResourceType != "" {
-		t.Fatalf("expected empty resource_type for slack.list_channels, got %q", listChannels.ResourceType)
+	// Verify resource types — all three are channel-scoped
+	for _, action := range []string{"conversations_history", "conversations_list", "chat_post_message"} {
+		a, _ := cat.GetAction("slack", action)
+		if a.ResourceType != "channel" {
+			t.Fatalf("expected resource_type=channel for slack.%s, got %q", action, a.ResourceType)
+		}
 	}
 
 	// Verify ValidateActions rejects wildcard
@@ -777,7 +786,7 @@ func TestE2E_ActionsCatalog(t *testing.T) {
 	}
 
 	// Verify ValidateActions accepts valid actions
-	err = cat.ValidateActions("slack", []string{"list_channels", "read_messages"})
+	err = cat.ValidateActions("slack", []string{"conversations_list", "conversations_history"})
 	if err != nil {
 		t.Fatalf("unexpected error for valid actions: %v", err)
 	}
@@ -801,7 +810,7 @@ func TestE2E_ScopedToken_ScopeHashDeterminism(t *testing.T) {
 	integ := h.createNangoIntegrationForProvider(t, org, "slack", "Slack Determinism")
 	connID := h.createLocalConnection(t, org, integ.ID, "nango-determinism")
 
-	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["list_channels","read_messages"],"resources":{"channel":["C001"]}}]`, connID)
+	scopesJSON := fmt.Sprintf(`[{"connection_id":%q,"actions":["conversations_list","conversations_history"],"resources":{"channel":["C001"]}}]`, connID)
 
 	// Mint twice with identical scopes
 	rr1 := h.mintScopedToken(t, org, cred.ID, scopesJSON)
@@ -838,7 +847,7 @@ func TestE2E_ScopedToken_MissingConnectionID(t *testing.T) {
 	org := h.createOrg(t)
 	cred := h.storeCredential(t, org, "https://api.example.com", "bearer", "sk-fake-key")
 
-	scopesJSON := `[{"connection_id":"","actions":["list_channels"]}]`
+	scopesJSON := `[{"connection_id":"","actions":["conversations_list"]}]`
 	rr := h.mintScopedToken(t, org, cred.ID, scopesJSON)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("missing connection_id: expected 400, got %d: %s", rr.Code, rr.Body.String())

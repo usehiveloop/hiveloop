@@ -2,6 +2,7 @@ package hindsight
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -258,16 +259,17 @@ func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
 		return "", nil
 	}
 
-	// Sort by sequence_number from payload
+	// Sort by sequence_number
 	sort.Slice(events, func(i, j int) bool {
-		seqI := extractSequenceNumber(events[i].Payload)
-		seqJ := extractSequenceNumber(events[j].Payload)
-		return seqI < seqJ
+		return events[i].SequenceNumber < events[j].SequenceNumber
 	})
 
 	var buf strings.Builder
 	for _, e := range events {
-		data, _ := e.Payload["data"].(map[string]any)
+		var data map[string]any
+		if len(e.Data) > 0 {
+			json.Unmarshal(e.Data, &data)
+		}
 		if data == nil {
 			continue
 		}
@@ -455,10 +457,6 @@ func (r *Retainer) processPending(ctx context.Context) {
 }
 
 // extractSequenceNumber pulls the sequence_number from an event payload.
-func extractSequenceNumber(payload model.JSON) float64 {
-	seq, _ := payload["sequence_number"].(float64)
-	return seq
-}
 
 // isDuplicateKey checks if an error is a Postgres unique constraint violation.
 func isDuplicateKey(err error) bool {

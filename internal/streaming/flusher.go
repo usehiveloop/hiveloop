@@ -135,20 +135,34 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}
 
 	for _, msg := range msgs {
-		var payload model.JSON
-		if dataStr, ok := msg.Values["data"].(string); ok {
-			if err := json.Unmarshal([]byte(dataStr), &payload); err != nil {
-				payload = model.JSON{"raw": dataStr}
-			}
+		eventType, _ := msg.Values["event_type"].(string)
+		dataStr, _ := msg.Values["data"].(string)
+
+		// Parse the full event payload to extract individual fields.
+		var full struct {
+			EventID              string          `json:"event_id"`
+			AgentID              string          `json:"agent_id"`
+			ConversationID       string          `json:"conversation_id"`
+			Timestamp            time.Time       `json:"timestamp"`
+			SequenceNumber       int64           `json:"sequence_number"`
+			Data                 json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(dataStr), &full); err != nil {
+			slog.Warn("flusher: failed to parse event payload", "conversation_id", convID, "error", err)
+			entryIDs = append(entryIDs, msg.ID)
+			continue
 		}
 
-		eventType, _ := msg.Values["event_type"].(string)
-
 		events = append(events, model.ConversationEvent{
-			OrgID:          conv.OrgID,
-			ConversationID: conv.ID,
-			EventType:      eventType,
-			Payload:        payload,
+			OrgID:                conv.OrgID,
+			ConversationID:       conv.ID,
+			EventID:              full.EventID,
+			EventType:            eventType,
+			AgentID:              full.AgentID,
+			BridgeConversationID: full.ConversationID,
+			Timestamp:            full.Timestamp,
+			SequenceNumber:       full.SequenceNumber,
+			Data:                 model.RawJSON(full.Data),
 		})
 		entryIDs = append(entryIDs, msg.ID)
 	}

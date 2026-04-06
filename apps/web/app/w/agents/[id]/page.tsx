@@ -6,10 +6,12 @@ import { StatCards } from "./_components/stat-cards"
 import { ActiveRuns } from "./_components/active-runs"
 import { RecentRuns } from "./_components/recent-runs"
 import { RunPanel } from "./_components/run-panel"
+import { EditAgentPanel } from "./_components/edit-agent-panel"
 import { agent, activeRuns, recentRuns, type Run } from "./_data/agent-detail"
 
 export default function AgentDetailPage() {
   const [selectedRun, setSelectedRun] = useState<Run | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   return (
     <>
@@ -21,6 +23,7 @@ export default function AgentDetailPage() {
           sandboxType={agent.sandboxType}
           memoryEnabled={agent.memoryEnabled}
           status={agent.status}
+          onEdit={() => setEditOpen(true)}
         />
 
         <StatCards stats={agent.stats} />
@@ -34,6 +37,8 @@ export default function AgentDetailPage() {
       {selectedRun && (
         <RunPanel run={selectedRun} onClose={() => setSelectedRun(null)} />
       )}
+
+      <EditAgentPanel open={editOpen} onOpenChange={setEditOpen} />
     </>
   )
 }

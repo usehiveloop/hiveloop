@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { ProviderLogo } from "@/components/provider-logo"
+import { IntegrationLogos, type IntegrationSummary } from "@/components/integration-logos"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { AgentStatusIndicator } from "./agent-status"
 import { AgentActions } from "./agent-actions"
@@ -16,6 +17,7 @@ type Agent = components["schemas"]["agentResponse"]
 
 interface AgentsTableProps {
   agents: Agent[]
+  onEditAgent?: (agent: Agent) => void
 }
 
 function formatDate(dateStr: string) {
@@ -26,10 +28,34 @@ function formatDate(dateStr: string) {
   })
 }
 
-export function AgentsTable({ agents }: AgentsTableProps) {
+function getIntegrationSummaries(
+  integrations: unknown,
+  connectionsById: Map<string, { provider?: string; display_name?: string }>,
+): IntegrationSummary[] {
+  if (!integrations || typeof integrations !== "object") return []
+  const result: IntegrationSummary[] = []
+  for (const [connectionId, config] of Object.entries(integrations as Record<string, { actions?: string[] }>)) {
+    const connection = connectionsById.get(connectionId)
+    if (!connection?.provider) continue
+    result.push({
+      provider: connection.provider,
+      name: connection.display_name ?? connection.provider,
+      actions: Array.isArray(config?.actions) ? config.actions : [],
+    })
+  }
+  return result
+}
+
+export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState<Agent | null>(null)
   const deleteAgent = $api.useMutation("delete", "/v1/agents/{id}")
+
+  const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
+  const connections = connectionsData?.data ?? []
+  const connectionsById = new Map(
+    connections.filter((c) => c.id).map((c) => [c.id as string, c]),
+  )
 
   function handleDelete() {
     if (!deleting?.id) return
@@ -63,6 +89,7 @@ export function AgentsTable({ agents }: AgentsTableProps) {
       <div className="flex flex-col gap-2">
         <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
           <span className="flex-1 min-w-0">Name</span>
+          <span className="w-20 shrink-0">Integrations</span>
           <span className="w-28 shrink-0 text-right">Model</span>
           <span className="w-20 shrink-0 text-right">Type</span>
           <span className="w-24 shrink-0 text-right">Created</span>
@@ -77,6 +104,9 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                 <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
                 <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
               </div>
+              <div className="w-20 shrink-0">
+                <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={20} />
+              </div>
               <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums truncate">
                 {agent.model}
               </span>
@@ -90,7 +120,7 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                 <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
               </div>
               <div className="w-8 shrink-0 flex justify-center">
-                <AgentActions onDelete={() => setDeleting(agent)} />
+                <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
               </div>
             </div>
 
@@ -100,7 +130,10 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                   <ProviderLogo provider={agent.provider_id ?? ""} size={24} />
                   <span className="text-sm font-medium text-foreground truncate">{agent.name}</span>
                 </div>
-                <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
+                <div className="flex items-center gap-2">
+                  <IntegrationLogos integrations={getIntegrationSummaries(agent.integrations, connectionsById)} size={18} />
+                  <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono tabular-nums">
@@ -108,7 +141,7 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                   <span>{agent.sandbox_type}</span>
                   <span>{agent.created_at ? formatDate(agent.created_at) : "—"}</span>
                 </div>
-                <AgentActions onDelete={() => setDeleting(agent)} />
+                <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
               </div>
             </div>
           </div>

@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, Key01Icon } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ProviderLogo } from "@/components/provider-logo"
+import { LlmKeyCard } from "@/components/llm-key-card"
 import { $api } from "@/lib/api/hooks"
 import { AddLlmKeyDialog } from "./add-llm-key-dialog"
 import { useCreateAgent } from "./context"
@@ -41,7 +41,7 @@ export function StepLlmKey() {
       <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[72px] w-full rounded-xl" />
+            <Skeleton key={index} className="h-18 w-full rounded-xl" />
           ))
         ) : credentials.length === 0 ? (
           <div className="flex items-center justify-center py-12">
@@ -49,27 +49,13 @@ export function StepLlmKey() {
           </div>
         ) : (
           credentials.map((credential) => (
-            <button
+            <LlmKeyCard
               key={credential.id}
-              type="button"
-              onClick={() => handleSelect(credential.id!)}
-              className={`group flex items-start gap-4 w-full rounded-xl p-4 text-left transition-colors cursor-pointer ${
-                selectedKey === credential.id
-                  ? "bg-primary/5 border border-primary/20"
-                  : "bg-muted/50 hover:bg-muted border border-transparent"
-              }`}
-            >
-              <ProviderLogo provider={credential.provider_id ?? ""} size={20} className="shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">{credential.label}</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5">{credential.provider_id}</p>
-              </div>
-              {selectedKey === credential.id ? (
-                <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0 mt-0.5" />
-              ) : (
-                <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
-              )}
-            </button>
+              label={credential.label}
+              providerId={credential.provider_id ?? ""}
+              selected={selectedKey === credential.id}
+              onClick={() => handleSelect(credential.id ?? "")}
+            />
           ))
         )}
       </div>
