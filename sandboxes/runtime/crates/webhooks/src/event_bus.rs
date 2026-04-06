@@ -1,7 +1,7 @@
 use bridge_core::event::BridgeEvent;
 use dashmap::DashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use storage::StorageHandle;
 use tokio::sync::{broadcast, mpsc};
 
@@ -23,6 +23,9 @@ const WS_BUFFER_SIZE: usize = 10_000;
 /// Every channel receives the exact same `BridgeEvent` with the same
 /// `sequence_number`, `event_id`, `timestamp`, and `data`.
 pub struct EventBus {
+    /// Mutex that serialises sequence assignment + broadcast send so that
+    /// concurrent emitters cannot reorder events in the WS broadcast channel.
+    emit_lock: Mutex<()>,
     /// Global monotonically increasing sequence counter.
     sequence: AtomicU64,
     /// Optional persistence handle for storing events.
@@ -55,6 +58,7 @@ impl EventBus {
     ) -> Self {
         let (ws_tx, _) = broadcast::channel(WS_BUFFER_SIZE);
         Self {
+            emit_lock: Mutex::new(()),
             sequence: AtomicU64::new(0),
             storage,
             ws_tx,
@@ -71,6 +75,10 @@ impl EventBus {
     /// Stamps a globally monotonic `sequence_number` on the event, then
     /// fans out to DB, WebSocket, SSE, and webhook HTTP delivery.
     pub fn emit(&self, mut event: BridgeEvent) {
+        // Hold the lock across sequence assignment + all channel sends
+        // to guarantee that events appear in sequence order in every channel.
+        let _guard = self.emit_lock.lock().unwrap_or_else(|e| e.into_inner());
+
         // 1. Stamp global sequence number
         let seq = self.sequence.fetch_add(1, Ordering::Relaxed) + 1;
         event.sequence_number = seq;
@@ -81,14 +89,10 @@ impl EventBus {
         }
 
         // 3. Broadcast to WebSocket clients
-        // broadcast::send returns Err only when there are zero receivers,
-        // which is fine — no connected clients means nobody to deliver to.
         let _ = self.ws_tx.send(event.clone());
 
         // 4. Route to per-conversation SSE stream
         if let Some(sse_tx) = self.sse_streams.get(event.conversation_id.as_str()) {
-            // Use try_send to avoid blocking the emitter. If the SSE buffer
-            // is full the event is dropped (SSE client is too slow).
             let _ = sse_tx.try_send(event.clone());
         }
 
@@ -103,7 +107,8 @@ impl EventBus {
     /// Emit a replayed event (already persisted in DB). Skips DB persistence
     /// but fans out to WS, SSE, and webhook HTTP delivery.
     pub fn emit_replayed(&self, mut event: BridgeEvent) {
-        // Stamp new sequence number for this session
+        let _guard = self.emit_lock.lock().unwrap_or_else(|e| e.into_inner());
+
         let seq = self.sequence.fetch_add(1, Ordering::Relaxed) + 1;
         event.sequence_number = seq;
 
