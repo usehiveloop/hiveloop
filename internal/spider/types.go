@@ -93,3 +93,9 @@ type SearchResult struct {
 type SearchResponse struct {
 	Content []SearchResult `json:"content"`
 }
+
+// TransformResponse is the top-level response from /v1/transform.
+// Returns {"content": ["markdown string 1", "markdown string 2", ...]}.
+type TransformResponse struct {
+	Content []string `json:"content"`
+}

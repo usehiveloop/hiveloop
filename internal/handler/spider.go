@@ -172,7 +172,11 @@ func (handler *SpiderHandler) Transform(w http.ResponseWriter, r *http.Request) 
 	results, err := handler.spider.Transform(r.Context(), params)
 	duration := time.Since(start)
 
-	handler.recordUsage(r, "transform", input, results, err, duration)
+	resultCount := 0
+	if results != nil {
+		resultCount = len(results.Content)
+	}
+	handler.recordUsageCount(r, "transform", input, resultCount, err, duration)
 
 	if err != nil {
 		slog.Error("spider transform failed", "error", err)

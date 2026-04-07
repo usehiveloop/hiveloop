@@ -53,9 +53,9 @@ func (client *Client) Screenshot(ctx context.Context, params SpiderParams) ([]Re
 }
 
 // Transform converts HTML content to markdown or text without re-fetching.
-// POST /v1/transform
-func (client *Client) Transform(ctx context.Context, params TransformParams) ([]Response, error) {
-	return client.doPost(ctx, "/v1/transform", params)
+// POST /v1/transform — returns {"content": ["markdown string", ...]}.
+func (client *Client) Transform(ctx context.Context, params TransformParams) (*TransformResponse, error) {
+	return doPostJSON[TransformResponse](client, ctx, "/v1/transform", params)
 }
 
 func (client *Client) doPost(ctx context.Context, path string, body any) ([]Response, error) {

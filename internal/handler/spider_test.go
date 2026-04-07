@@ -332,8 +332,8 @@ func TestSpiderScreenshot_Success(t *testing.T) {
 func TestSpiderTransform_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode([]spider.Response{
-			{Content: "# Transformed", URL: "https://example.com", StatusCode: 200},
+		_ = json.NewEncoder(w).Encode(spider.TransformResponse{
+			Content: []string{"# Transformed"},
 		})
 	})
 

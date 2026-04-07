@@ -196,8 +196,8 @@ func TestTransform_Success(t *testing.T) {
 	var captured capturedRequest
 	var mu sync.Mutex
 
-	spiderResponse := []Response{
-		{Content: "# Transformed content", URL: "https://example.com", StatusCode: 200},
+	spiderResponse := TransformResponse{
+		Content: []string{"# Transformed content"},
 	}
 
 	srv := mockSpiderAPI(t, &captured, &mu, http.StatusOK, spiderResponse)
@@ -213,8 +213,8 @@ func TestTransform_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transform() error: %v", err)
 	}
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+	if len(results.Content) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results.Content))
 	}
 
 	mu.Lock()
