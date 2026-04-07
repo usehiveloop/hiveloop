@@ -598,6 +598,206 @@ impl StorageBackend for SqliteBackend {
         Ok(())
     }
 
+    // ── Journal (immortal conversations) ──────────────────
+
+    async fn append_journal_entry(
+        &self,
+        entry_id: &str,
+        conversation_id: &str,
+        chain_index: u32,
+        entry_type: &str,
+        content: &str,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), StorageError> {
+        let entry_id = entry_id.to_string();
+        let conversation_id = conversation_id.to_string();
+        let chain_index = chain_index as i64;
+        let entry_type = entry_type.to_string();
+        let compressed = compression::compress(content.as_bytes())
+            .map_err(|e| StorageError::Compression(e.to_string()))?;
+        let created_at = created_at.to_rfc3339();
+
+        self.conn
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT OR REPLACE INTO journal_entries
+                         (id, conversation_id, chain_index, entry_type, content, created_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![
+                        entry_id,
+                        conversation_id,
+                        chain_index,
+                        entry_type,
+                        compressed,
+                        created_at
+                    ],
+                )?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    async fn load_journal(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<crate::backend::JournalEntryRow>, StorageError> {
+        let conversation_id = conversation_id.to_string();
+        self.conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT id, conversation_id, chain_index, entry_type, content, created_at
+                     FROM journal_entries
+                     WHERE conversation_id = ?1
+                     ORDER BY created_at ASC",
+                )?;
+                let rows = stmt
+                    .query_map(params![conversation_id], |row| {
+                        let compressed: Vec<u8> = row.get(4)?;
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, i64>(2)?,
+                            row.get::<_, String>(3)?,
+                            compressed,
+                            row.get::<_, String>(5)?,
+                        ))
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                let mut entries = Vec::with_capacity(rows.len());
+                for (id, conv_id, chain_index, entry_type, compressed, created_at) in rows {
+                    let decompressed = compression::decompress(&compressed)
+                        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                    let content = String::from_utf8(decompressed)
+                        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                    entries.push(crate::backend::JournalEntryRow {
+                        id,
+                        conversation_id: conv_id,
+                        chain_index: chain_index as u32,
+                        entry_type,
+                        content,
+                        created_at,
+                    });
+                }
+                Ok(entries)
+            })
+            .await
+            .map_err(StorageError::from)
+    }
+
+    // ── Chain links (immortal conversations) ────────────────
+
+    async fn save_chain_link(
+        &self,
+        conversation_id: &str,
+        chain_index: u32,
+        started_at: chrono::DateTime<chrono::Utc>,
+        trigger_token_count: Option<usize>,
+        checkpoint_text: Option<&str>,
+    ) -> Result<(), StorageError> {
+        let conversation_id = conversation_id.to_string();
+        let chain_index = chain_index as i64;
+        let started_at = started_at.to_rfc3339();
+        let trigger_token_count = trigger_token_count.map(|t| t as i64);
+        let compressed_checkpoint = checkpoint_text
+            .map(|t| compression::compress(t.as_bytes()))
+            .transpose()
+            .map_err(|e| StorageError::Compression(e.to_string()))?;
+
+        self.conn
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT OR REPLACE INTO chain_links
+                         (conversation_id, chain_index, started_at, trigger_token_count, checkpoint_text)
+                     VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![conversation_id, chain_index, started_at, trigger_token_count, compressed_checkpoint],
+                )?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    async fn complete_chain_link(
+        &self,
+        conversation_id: &str,
+        chain_index: u32,
+        ended_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), StorageError> {
+        let conversation_id = conversation_id.to_string();
+        let chain_index = chain_index as i64;
+        let ended_at = ended_at.to_rfc3339();
+
+        self.conn
+            .call(move |conn| {
+                conn.execute(
+                    "UPDATE chain_links SET ended_at = ?1
+                     WHERE conversation_id = ?2 AND chain_index = ?3",
+                    params![ended_at, conversation_id, chain_index],
+                )?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    async fn load_chain_links(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<crate::backend::ChainLinkRow>, StorageError> {
+        let conversation_id = conversation_id.to_string();
+        self.conn
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT conversation_id, chain_index, started_at, ended_at,
+                            trigger_token_count, checkpoint_text
+                     FROM chain_links
+                     WHERE conversation_id = ?1
+                     ORDER BY chain_index ASC",
+                )?;
+                let rows = stmt
+                    .query_map(params![conversation_id], |row| {
+                        let compressed_checkpoint: Option<Vec<u8>> = row.get(5)?;
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<String>>(3)?,
+                            row.get::<_, Option<i64>>(4)?,
+                            compressed_checkpoint,
+                        ))
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                let mut links = Vec::with_capacity(rows.len());
+                for (conv_id, chain_index, started_at, ended_at, trigger_tokens, compressed_cp) in
+                    rows
+                {
+                    let checkpoint_text = compressed_cp
+                        .map(|c| {
+                            let decompressed = compression::decompress(&c).map_err(|e| {
+                                rusqlite::Error::ToSqlConversionFailure(Box::new(e))
+                            })?;
+                            String::from_utf8(decompressed)
+                                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))
+                        })
+                        .transpose()?;
+                    links.push(crate::backend::ChainLinkRow {
+                        conversation_id: conv_id,
+                        chain_index: chain_index as u32,
+                        started_at,
+                        ended_at,
+                        trigger_token_count: trigger_tokens.map(|t| t as usize),
+                        checkpoint_text,
+                    });
+                }
+                Ok(links)
+            })
+            .await
+            .map_err(StorageError::from)
+    }
+
     // ── Lifecycle ───────────────────────────────────────────
 
     async fn sync(&self) -> Result<(), StorageError> {

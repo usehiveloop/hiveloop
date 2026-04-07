@@ -77,6 +77,36 @@ CREATE TABLE IF NOT EXISTS session_store (
 
 CREATE INDEX IF NOT EXISTS idx_session_agent
     ON session_store(agent_id);
+
+-- Immortal conversations: journal entries (agent notes + checkpoints)
+CREATE TABLE IF NOT EXISTS journal_entries (
+    id              TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    chain_index     INTEGER NOT NULL,
+    entry_type      TEXT NOT NULL,
+    content         BLOB NOT NULL,
+    created_at      TEXT NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_journal_conv
+    ON journal_entries(conversation_id, chain_index);
+
+-- Immortal conversations: chain link metadata
+CREATE TABLE IF NOT EXISTS chain_links (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id     TEXT NOT NULL,
+    chain_index         INTEGER NOT NULL,
+    started_at          TEXT NOT NULL,
+    ended_at            TEXT,
+    trigger_token_count INTEGER,
+    checkpoint_text     BLOB,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE,
+    UNIQUE(conversation_id, chain_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chain_links_conv
+    ON chain_links(conversation_id);
 "#;
 
 /// Run all schema migrations on the given connection.

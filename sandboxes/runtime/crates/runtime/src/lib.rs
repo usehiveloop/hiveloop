@@ -4,6 +4,7 @@ pub mod agent_state;
 pub mod compaction;
 pub mod conversation;
 pub mod drain;
+pub mod immortal;
 pub mod permission_manager;
 pub mod supervisor;
 pub mod system_reminder;

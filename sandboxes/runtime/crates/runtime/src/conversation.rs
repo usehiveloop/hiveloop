@@ -96,6 +96,10 @@ pub struct ConversationParams {
     pub tool_calls_only: bool,
     /// Per-conversation metrics for token/tool tracking.
     pub conversation_metrics: Arc<ConversationMetrics>,
+    /// Optional immortal conversation configuration (replaces compaction when set).
+    pub immortal_config: Option<bridge_core::agent::ImmortalConfig>,
+    /// Journal state shared with the journal_write tool (only set in immortal mode).
+    pub journal_state: Option<Arc<tools::journal::JournalState>>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -135,6 +139,8 @@ pub async fn run_conversation(params: ConversationParams) {
         storage,
         tool_calls_only,
         conversation_metrics,
+        immortal_config,
+        journal_state,
     } = params;
 
     info!(
@@ -153,6 +159,17 @@ pub async fn run_conversation(params: ConversationParams) {
 
     // Initialize date tracker for detecting date changes
     let mut date_tracker = crate::system_reminder::DateTracker::with_date(conversation_date);
+
+    // Initialize immortal state if configured
+    let mut immortal_state = immortal_config.as_ref().map(|_| {
+        let chain_index = journal_state
+            .as_ref()
+            .map(|js| js.chain_index())
+            .unwrap_or(0);
+        crate::immortal::ImmortalState {
+            current_chain_index: chain_index,
+        }
+    });
 
     loop {
         // Wait for either a user message, a background task notification, or cancellation
@@ -244,8 +261,89 @@ pub async fn run_conversation(params: ConversationParams) {
             IncomingMessage::BackgroundComplete(_) => text_message(Role::User, user_text.clone()),
         };
 
-        // Check if compaction is needed before adding the new message
-        if let Some(ref compaction_config) = compaction_config {
+        // Check if context management is needed before adding the new message.
+        // Immortal mode (chain handoff) takes priority over compaction.
+        if let (Some(ref immortal_cfg), Some(ref mut imm_state)) =
+            (&immortal_config, &mut immortal_state)
+        {
+            if let Some(ref js) = journal_state {
+                match crate::immortal::maybe_chain(&history, immortal_cfg, imm_state, js).await {
+                    Ok(Some(result)) => {
+                        info!(
+                            conversation_id = conversation_id,
+                            chain_index = result.chain_index,
+                            pre_tokens = result.pre_chain_tokens,
+                            carry_forward = result.carry_forward_count,
+                            "conversation chain handoff"
+                        );
+
+                        // Emit chain_started event
+                        event_bus.emit(BridgeEvent::new(
+                            BridgeEventType::ChainStarted,
+                            &agent_id,
+                            &conversation_id,
+                            json!({
+                                "chain_index": result.chain_index,
+                                "reason": "token_budget_exceeded",
+                                "token_count": result.pre_chain_tokens,
+                            }),
+                        ));
+
+                        // Save checkpoint as a journal entry
+                        let checkpoint_entry = tools::journal::JournalEntry {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            chain_index: imm_state.current_chain_index,
+                            entry_type: "checkpoint".to_string(),
+                            content: result.checkpoint_text.clone(),
+                            category: None,
+                            timestamp: chrono::Utc::now(),
+                        };
+                        js.append(checkpoint_entry).await;
+
+                        // Reset in-memory history
+                        history = result.new_history;
+
+                        // Rebuild persisted messages from the new rig history
+                        persisted_messages = convert_from_rig_messages(&history);
+
+                        // Update immortal state
+                        imm_state.current_chain_index = result.chain_index;
+                        js.set_chain_index(result.chain_index);
+
+                        // Persist: replace messages + save chain link
+                        if let Some(storage) = &storage {
+                            storage.replace_messages(
+                                conversation_id.clone(),
+                                persisted_messages.clone(),
+                            );
+                            storage.save_chain_link(
+                                conversation_id.clone(),
+                                result.chain_index,
+                                chrono::Utc::now(),
+                                Some(result.pre_chain_tokens),
+                                Some(result.checkpoint_text.clone()),
+                            );
+                        }
+
+                        // Emit chain_completed event
+                        event_bus.emit(BridgeEvent::new(
+                            BridgeEventType::ChainCompleted,
+                            &agent_id,
+                            &conversation_id,
+                            json!({
+                                "chain_index": result.chain_index,
+                                "journal_entry_count": js.entries().await.len(),
+                                "carry_forward_messages": result.carry_forward_count,
+                            }),
+                        ));
+                    }
+                    Ok(None) => {} // under budget
+                    Err(e) => {
+                        warn!(error = %e, "chain handoff failed, continuing with full history");
+                    }
+                }
+            }
+        } else if let Some(ref compaction_config) = compaction_config {
             match crate::compaction::maybe_compact(&history, compaction_config).await {
                 Ok(Some(result)) => {
                     info!(

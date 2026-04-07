@@ -68,6 +68,7 @@ mod serde_roundtrip_tests {
                 max_tasks_per_conversation: None,
                 max_concurrent_conversations: None,
                 tool_calls_only: None,
+                immortal: None,
             },
             subagents: vec![AgentDefinition {
                 id: "sub-agent-001".to_string(),
@@ -199,6 +200,7 @@ mod serde_roundtrip_tests {
             max_tasks_per_conversation: Some(100),
             max_concurrent_conversations: Some(50),
             tool_calls_only: None,
+            immortal: None,
         };
 
         let json = serde_json::to_string_pretty(&config).expect("serialize AgentConfig");

@@ -14,6 +14,7 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentContext, AgentTaskNotification};
 use tools::join::TaskRegistry;
+use tools::registry::ToolExecutor;
 use tools::ToolRegistry;
 use tracing::{error, info};
 use webhooks::EventBus;
@@ -557,12 +558,36 @@ impl AgentSupervisor {
         let conv_event_bus = event_bus.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
-        let compaction_config = def.config.compaction.clone();
+        let immortal_config = def.config.immortal.clone();
+        // When immortal mode is active, compaction is disabled
+        let compaction_config = if immortal_config.is_some() {
+            None
+        } else {
+            def.config.compaction.clone()
+        };
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
         let model_name = def.provider.model.clone();
+
+        // Create journal state for immortal conversations
+        let journal_state = immortal_config.as_ref().map(|_| {
+            Arc::new(tools::journal::JournalState::new(
+                conv_id.clone(),
+                storage.clone(),
+            ))
+        });
+
+        // Register journal_write tool if immortal mode is active
+        if let Some(ref js) = journal_state {
+            let journal_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
+            tool_names.insert(journal_tool.name().to_string());
+            tool_executors.insert(
+                journal_tool.name().to_string(),
+                journal_tool.clone() as Arc<dyn tools::ToolExecutor>,
+            );
+        }
 
         // If an API key override is provided, clone the definition and swap the key.
         let scoped_def: Option<AgentDefinition> = api_key_override.map(|key| {
@@ -572,9 +597,11 @@ impl AgentSupervisor {
         });
         let effective_def: &AgentDefinition = scoped_def.as_ref().unwrap_or(&def);
 
-        // Build a conversation-scoped agent when filters are active so the LLM
-        // only sees the allowed tools. When unfiltered, share the agent-wide instance.
-        let conversation_agent = if has_filters {
+        // Build a conversation-scoped agent when filters are active or when immortal
+        // mode adds per-conversation tools (journal_write). When unfiltered and no
+        // extra tools, share the agent-wide instance.
+        let needs_scoped_agent = has_filters || journal_state.is_some();
+        let conversation_agent = if needs_scoped_agent {
             let scoped_executors: Vec<Arc<dyn tools::ToolExecutor>> =
                 tool_executors.values().cloned().collect();
             let scoped_dynamic = adapt_tools(scoped_executors)?;
@@ -661,6 +688,8 @@ impl AgentSupervisor {
                 storage,
                 tool_calls_only,
                 conversation_metrics: conv_metrics,
+                immortal_config,
+                journal_state,
             })
             .await;
         });
@@ -1061,12 +1090,12 @@ impl AgentSupervisor {
         };
         let session_store = state.session_store.clone();
 
-        let tool_names = state
+        let mut tool_names = state
             .tool_registry
             .tool_names()
             .into_iter()
             .collect::<std::collections::HashSet<String>>();
-        let tool_executors = state.tool_registry.snapshot();
+        let mut tool_executors = state.tool_registry.snapshot();
 
         // Build a no-tools retry agent for recovering from empty responses
         let retry_agent =
@@ -1075,12 +1104,47 @@ impl AgentSupervisor {
         let conv_event_bus = event_bus.clone();
         let permission_manager = self.permission_manager.clone();
         let agent_permissions = def.permissions.clone();
-        let compaction_config = def.config.compaction.clone();
+        let immortal_config = def.config.immortal.clone();
+        let compaction_config = if immortal_config.is_some() {
+            None
+        } else {
+            def.config.compaction.clone()
+        };
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
         let skills = def.skills.clone();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
         let model_name = def.provider.model.clone();
+
+        // Create journal state for immortal conversations (hydration path)
+        // TODO: Load journal entries from storage when StorageBackend is available here
+        let journal_state = immortal_config.as_ref().map(|_| {
+            Arc::new(tools::journal::JournalState::new(
+                conv_id.clone(),
+                storage.clone(),
+            ))
+        });
+
+        // Register journal_write tool if immortal mode is active
+        if let Some(ref js) = journal_state {
+            let journal_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
+            tool_names.insert(journal_tool.name().to_string());
+            tool_executors.insert(
+                journal_tool.name().to_string(),
+                journal_tool.clone() as Arc<dyn tools::ToolExecutor>,
+            );
+        }
+
+        // Rebuild agent with journal tool when immortal mode is active
+        let agent = if journal_state.is_some() {
+            let scoped_executors: Vec<Arc<dyn tools::ToolExecutor>> =
+                tool_executors.values().cloned().collect();
+            let scoped_dynamic = adapt_tools(scoped_executors)?;
+            Arc::new(tokio::sync::RwLock::new(build_agent(&def, scoped_dynamic)?))
+        } else {
+            agent
+        };
+
         drop(def); // release read lock before spawning
 
         // Extract subagent names and descriptions, filtering out __self__
@@ -1134,6 +1198,8 @@ impl AgentSupervisor {
                 storage,
                 tool_calls_only,
                 conversation_metrics: conv_metrics,
+                immortal_config,
+                journal_state,
             })
             .await;
         });

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bridge_core = { workspace = true }
+storage = { workspace = true }
 lsp = { workspace = true }
 lsp-types = "0.97"
 ignore = { workspace = true }

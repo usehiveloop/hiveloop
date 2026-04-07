@@ -106,8 +106,75 @@ pub trait StorageBackend: Send + Sync + 'static {
     /// Delete all sessions whose task ids start with the given prefix.
     async fn delete_sessions_by_prefix(&self, prefix: &str) -> Result<(), StorageError>;
 
+    // ── Journal (immortal conversations) ──────────────────
+
+    /// Append a journal entry for an immortal conversation.
+    async fn append_journal_entry(
+        &self,
+        entry_id: &str,
+        conversation_id: &str,
+        chain_index: u32,
+        entry_type: &str,
+        content: &str,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), StorageError>;
+
+    /// Load all journal entries for a conversation, ordered by creation time.
+    async fn load_journal(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<JournalEntryRow>, StorageError>;
+
+    // ── Chain links (immortal conversations) ────────────────
+
+    /// Save a chain link record when a conversation chains to a new context.
+    async fn save_chain_link(
+        &self,
+        conversation_id: &str,
+        chain_index: u32,
+        started_at: chrono::DateTime<chrono::Utc>,
+        trigger_token_count: Option<usize>,
+        checkpoint_text: Option<&str>,
+    ) -> Result<(), StorageError>;
+
+    /// Mark a chain link as completed.
+    async fn complete_chain_link(
+        &self,
+        conversation_id: &str,
+        chain_index: u32,
+        ended_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), StorageError>;
+
+    /// Load all chain links for a conversation, ordered by chain_index.
+    async fn load_chain_links(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<ChainLinkRow>, StorageError>;
+
     // ── Lifecycle ───────────────────────────────────────────
 
     /// Force a sync with the remote replica.
     async fn sync(&self) -> Result<(), StorageError>;
+}
+
+/// A journal entry row as returned from storage.
+#[derive(Debug, Clone)]
+pub struct JournalEntryRow {
+    pub id: String,
+    pub conversation_id: String,
+    pub chain_index: u32,
+    pub entry_type: String,
+    pub content: String,
+    pub created_at: String,
+}
+
+/// A chain link row as returned from storage.
+#[derive(Debug, Clone)]
+pub struct ChainLinkRow {
+    pub conversation_id: String,
+    pub chain_index: u32,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub trigger_token_count: Option<usize>,
+    pub checkpoint_text: Option<String>,
 }

@@ -103,6 +103,13 @@ Bridge sends these event types:
 | Subagent Started | `sub_agent_started` | A subagent was spawned | `subagent_name`, `mode`, `parent_conversation_id`, `depth` |
 | Subagent Completed | `sub_agent_completed` | A subagent finished execution | `subagent_name`, `mode`, `task_id`, `duration_ms`, `is_error` |
 
+### Chain Events (Immortal Conversations)
+
+| Event | Event Type (JSON) | When it fires | Data Fields |
+|-------|-------------------|---------------|-------------|
+| Chain Started | `chain_started` | Context chain handoff beginning | `chain_index`, `reason`, `token_count` |
+| Chain Completed | `chain_completed` | Context chain handoff finished | `chain_index`, `journal_entry_count`, `carry_forward_messages` |
+
 ### Other Events
 
 | Event | Event Type (JSON) | When it fires | Data Fields |

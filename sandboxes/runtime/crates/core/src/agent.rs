@@ -104,6 +104,47 @@ pub struct AgentConfig {
     /// Default: false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_calls_only: Option<bool>,
+
+    /// Immortal conversation configuration (chain-based context management).
+    /// When set, replaces compaction — the conversation chains into fresh context
+    /// windows transparently while maintaining a living journal.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub immortal: Option<ImmortalConfig>,
+}
+
+/// Configuration for immortal conversations (chain-based context management).
+///
+/// When the token budget is exceeded, instead of compacting (summarizing in-place),
+/// Bridge extracts a structured checkpoint, resets the history with the checkpoint +
+/// journal + recent turns, and continues seamlessly. The external conversation_id
+/// never changes.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImmortalConfig {
+    /// Token budget. Chain triggers when estimated tokens exceed this.
+    #[serde(default = "default_immortal_token_budget")]
+    pub token_budget: u32,
+
+    /// Number of complete user turns to carry forward verbatim into the new chain.
+    /// A "complete user turn" includes the user message and all subsequent assistant
+    /// responses and tool calls until the next user message.
+    #[serde(default = "default_carry_forward_turns")]
+    pub carry_forward_turns: u32,
+
+    /// Provider config for the checkpoint extraction LLM call.
+    pub checkpoint_provider: ProviderConfig,
+
+    /// Custom prompt for checkpoint extraction. Uses a built-in default if None.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkpoint_prompt: Option<String>,
+}
+
+fn default_immortal_token_budget() -> u32 {
+    100_000
+}
+
+fn default_carry_forward_turns() -> u32 {
+    2
 }
 
 /// Configuration for conversation compaction (history summarization).

@@ -23,6 +23,8 @@ pub fn to_sse_event(event: &BridgeEvent) -> Result<Event, serde_json::Error> {
         BridgeEventType::Done => "done",
         BridgeEventType::SubAgentStarted => "sub_agent_started",
         BridgeEventType::SubAgentCompleted => "sub_agent_completed",
+        BridgeEventType::ChainStarted => "chain_started",
+        BridgeEventType::ChainCompleted => "chain_completed",
     };
 
     let data = serde_json::to_string(event)?;

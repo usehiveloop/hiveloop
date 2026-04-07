@@ -49,6 +49,12 @@ pub enum BridgeEventType {
     SubAgentCompleted,
     /// The response stream is complete (terminal signal for SSE/WS)
     Done,
+    /// A conversation chain handoff has started (immortal conversations).
+    /// The agent is extracting a checkpoint and will continue in a fresh context.
+    ChainStarted,
+    /// A conversation chain handoff completed (immortal conversations).
+    /// The agent is ready in the new context.
+    ChainCompleted,
 }
 
 /// The single canonical event payload used across all delivery channels.

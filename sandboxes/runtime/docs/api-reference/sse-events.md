@@ -628,6 +628,64 @@ The conversation turn is fully complete. Includes cumulative token usage for the
 | `cumulative_input_tokens` | number | Total input tokens across all turns |
 | `cumulative_output_tokens` | number | Total output tokens across all turns |
 
+---
+
+## Chain Events (Immortal Conversations)
+
+### `chain_started`
+
+Fires when a conversation chain handoff begins. The agent's context window has filled up and Bridge is extracting a checkpoint to continue in a fresh context.
+
+```json
+{
+  "event_id": "evt-080",
+  "event_type": "chain_started",
+  "agent_id": "my-agent",
+  "conversation_id": "conv-abc123",
+  "timestamp": "2026-01-15T10:35:00Z",
+  "sequence_number": 80,
+  "data": {
+    "chain_index": 2,
+    "reason": "token_budget_exceeded",
+    "token_count": 105000
+  }
+}
+```
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `chain_index` | number | The new chain index (1 = first chain, 2 = second, etc.) |
+| `reason` | string | Why the chain was triggered (currently always `"token_budget_exceeded"`) |
+| `token_count` | number | Token count that exceeded the budget |
+
+### `chain_completed`
+
+Fires when the chain handoff is complete. The agent is now running in a fresh context with journal + checkpoint + carried-forward messages.
+
+```json
+{
+  "event_id": "evt-081",
+  "event_type": "chain_completed",
+  "agent_id": "my-agent",
+  "conversation_id": "conv-abc123",
+  "timestamp": "2026-01-15T10:35:05Z",
+  "sequence_number": 81,
+  "data": {
+    "chain_index": 2,
+    "journal_entry_count": 5,
+    "carry_forward_messages": 8
+  }
+}
+```
+
+| Data Field | Type | Description |
+|------------|------|-------------|
+| `chain_index` | number | The new chain index |
+| `journal_entry_count` | number | Total journal entries (agent notes + checkpoints) |
+| `carry_forward_messages` | number | Number of messages carried forward verbatim |
+
+---
+
 ### `ping` (Keepalive)
 
 Keepalive sent every 15 seconds to prevent connection timeout. This is an SSE comment, not a proper event:

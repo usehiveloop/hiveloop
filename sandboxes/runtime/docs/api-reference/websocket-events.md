@@ -160,6 +160,13 @@ The WebSocket delivers the same event types as webhooks:
 | `sub_agent_started` | A subagent was spawned | `subagent_name`, `mode`, `parent_conversation_id`, `depth` |
 | `sub_agent_completed` | A subagent finished execution | `subagent_name`, `mode`, `task_id`, `duration_ms`, `is_error` |
 
+### Chain Events (Immortal Conversations)
+
+| Event Type | When it fires | Data Fields |
+|------------|---------------|-------------|
+| `chain_started` | Context chain handoff beginning | `chain_index`, `reason`, `token_count` |
+| `chain_completed` | Context chain handoff finished | `chain_index`, `journal_entry_count`, `carry_forward_messages` |
+
 ### Other Events
 
 | Event Type | When it fires | Data Fields |

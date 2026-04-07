@@ -13,6 +13,7 @@ pub mod glob;
 pub mod grep;
 pub mod integration;
 pub mod join;
+pub mod journal;
 pub mod ls;
 pub mod lsp_tool;
 pub mod multiedit;
