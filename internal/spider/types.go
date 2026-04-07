@@ -63,8 +63,7 @@ type TransformInput struct {
 }
 
 // Response is a single result item from the Spider.cloud API.
-// Fields map to the NPage struct from the spider-rs SDK:
-//   url, content, status_code, raw_content, headers, links
+// Used by crawl, links, screenshot, and transform endpoints (which return []Response).
 type Response struct {
 	// The URL of the page.
 	URL string `json:"url,omitempty"`
@@ -80,4 +79,17 @@ type Response struct {
 	Links []string `json:"links,omitempty"`
 	// Error message if the page fetch failed.
 	Error string `json:"error,omitempty"`
+}
+
+// SearchResult is a single item from the /v1/search endpoint.
+// Search returns {"content": [...]} where each item has title/description/url.
+type SearchResult struct {
+	URL         string `json:"url,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// SearchResponse is the top-level response from /v1/search.
+type SearchResponse struct {
+	Content []SearchResult `json:"content"`
 }

@@ -244,9 +244,11 @@ func TestSpiderCrawl_SpiderError(t *testing.T) {
 func TestSpiderSearch_Success(t *testing.T) {
 	spiderAPI := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode([]spider.Response{
-			{Content: "Result 1", URL: "https://example.com/1", StatusCode: 200},
-			{Content: "Result 2", URL: "https://example.com/2", StatusCode: 200},
+		_ = json.NewEncoder(w).Encode(spider.SearchResponse{
+			Content: []spider.SearchResult{
+				{Title: "Result 1", Description: "First result", URL: "https://example.com/1"},
+				{Title: "Result 2", Description: "Second result", URL: "https://example.com/2"},
+			},
 		})
 	})
 
@@ -260,12 +262,12 @@ func TestSpiderSearch_Success(t *testing.T) {
 		t.Fatalf("expected 200, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var results []spider.Response
+	var results spider.SearchResponse
 	if err := json.Unmarshal(recorder.Body.Bytes(), &results); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
-	if len(results) != 2 {
-		t.Fatalf("expected 2 results, got %d", len(results))
+	if len(results.Content) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results.Content))
 	}
 }
 

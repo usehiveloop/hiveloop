@@ -78,7 +78,11 @@ func (handler *SpiderHandler) Search(w http.ResponseWriter, r *http.Request) {
 	results, err := handler.spider.Search(r.Context(), params)
 	duration := time.Since(start)
 
-	handler.recordUsage(r, "search", params.Search, results, err, duration)
+	resultCount := 0
+	if results != nil {
+		resultCount = len(results.Content)
+	}
+	handler.recordUsageCount(r, "search", params.Search, resultCount, err, duration)
 
 	if err != nil {
 		slog.Error("spider search failed", "error", err, "query", params.Search)
@@ -181,6 +185,11 @@ func (handler *SpiderHandler) Transform(w http.ResponseWriter, r *http.Request) 
 
 // recordUsage builds a ToolUsage record and queues it for async writing.
 func (handler *SpiderHandler) recordUsage(r *http.Request, toolName, input string, results []spider.Response, callErr error, duration time.Duration) {
+	handler.recordUsageCount(r, toolName, input, len(results), callErr, duration)
+}
+
+// recordUsageCount is the core usage recording method that takes an explicit result count.
+func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input string, resultCount int, callErr error, duration time.Duration) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		return
@@ -206,11 +215,11 @@ func (handler *SpiderHandler) recordUsage(r *http.Request, toolName, input strin
 		TokenJTI:      claims.JTI,
 		ToolName:      toolName,
 		Input:         truncateInput(input, 2000),
-		PagesReturned: len(results),
+		PagesReturned: resultCount,
 		Status:        status,
 		ErrorMessage:  errorMessage,
 		TotalMs:       int(duration.Milliseconds()),
-		CreditsUsed:   len(results), // 1 credit per page returned
+		CreditsUsed:   resultCount, // 1 credit per result returned
 		CreatedAt:     time.Now().UTC(),
 	}
 

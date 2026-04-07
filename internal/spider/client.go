@@ -35,9 +35,9 @@ func (client *Client) Crawl(ctx context.Context, params SpiderParams) ([]Respons
 }
 
 // Search performs a web search and optionally fetches page content.
-// POST /v1/search
-func (client *Client) Search(ctx context.Context, params SearchParams) ([]Response, error) {
-	return client.doPost(ctx, "/v1/search", params)
+// POST /v1/search — returns {"content": [...]} with title/description/url per result.
+func (client *Client) Search(ctx context.Context, params SearchParams) (*SearchResponse, error) {
+	return doPostJSON[SearchResponse](client, ctx, "/v1/search", params)
 }
 
 // Links retrieves all links from the given URL.
@@ -94,6 +94,45 @@ func (client *Client) doPost(ctx context.Context, path string, body any) ([]Resp
 	}
 
 	return results, nil
+}
+
+// doPostJSON is a generic helper for endpoints that return non-array responses.
+func doPostJSON[T any](client *Client, ctx context.Context, path string, body any) (*T, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, client.endpoint+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+client.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("spider API error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result T
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("decoding response: %w (body: %s)", err, truncate(string(respBody), 500))
+	}
+
+	return &result, nil
 }
 
 func truncate(str string, maxLen int) string {

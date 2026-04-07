@@ -97,9 +97,11 @@ func TestSearch_Success(t *testing.T) {
 	var captured capturedRequest
 	var mu sync.Mutex
 
-	spiderResponse := []Response{
-		{Content: "Search result 1", URL: "https://example.com/1", StatusCode: 200},
-		{Content: "Search result 2", URL: "https://example.com/2", StatusCode: 200},
+	spiderResponse := SearchResponse{
+		Content: []SearchResult{
+			{Title: "Search result 1", URL: "https://example.com/1", Description: "First"},
+			{Title: "Search result 2", URL: "https://example.com/2", Description: "Second"},
+		},
 	}
 
 	srv := mockSpiderAPI(t, &captured, &mu, http.StatusOK, spiderResponse)
@@ -114,8 +116,8 @@ func TestSearch_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search() error: %v", err)
 	}
-	if len(results) != 2 {
-		t.Fatalf("expected 2 results, got %d", len(results))
+	if len(results.Content) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results.Content))
 	}
 
 	mu.Lock()
@@ -330,7 +332,7 @@ func TestSearch_OptionalParams(t *testing.T) {
 	var captured capturedRequest
 	var mu sync.Mutex
 
-	srv := mockSpiderAPI(t, &captured, &mu, http.StatusOK, []Response{})
+	srv := mockSpiderAPI(t, &captured, &mu, http.StatusOK, SearchResponse{Content: []SearchResult{}})
 	t.Cleanup(srv.Close)
 
 	client := NewClient(srv.URL, "test-key")
