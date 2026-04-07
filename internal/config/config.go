@@ -117,7 +117,7 @@ type Config struct {
 	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.ziraloop.com)
 
 	// Spider (web crawling/search via spider.cloud)
-	SpiderAPIKey  string `env:"SPIDER_API_KEY"`                                        // empty = spider disabled
+	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled
 	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
 
 	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
