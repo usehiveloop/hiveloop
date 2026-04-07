@@ -53,15 +53,30 @@ impl SystemReminder {
     }
 
     /// Add the available skills section.
+    ///
+    /// Filters out skills that should not be visible to the model
+    /// (disable_model_invocation=true or user_invocable=false).
+    /// Annotates locally-discovered skills with a `(local)` suffix.
     pub fn with_skills(mut self, skills: &[SkillDefinition]) -> Self {
-        if skills.is_empty() {
+        // Filter skills the model should not see
+        let visible: Vec<&SkillDefinition> = skills
+            .iter()
+            .filter(|s| {
+                let fm = s.frontmatter.as_ref();
+                let model_disabled = fm.and_then(|f| f.disable_model_invocation).unwrap_or(false);
+                let not_user_invocable = fm.and_then(|f| f.user_invocable) == Some(false);
+                !model_disabled && !not_user_invocable
+            })
+            .collect();
+
+        if visible.is_empty() {
             return self;
         }
 
         let mut content = String::new();
         content.push_str("The following skills are available for use with the Skill tool:\n\n");
 
-        for skill in skills {
+        for skill in &visible {
             content.push_str(&format!("- **{}** - {}\n", skill.title, skill.description));
         }
 
@@ -170,6 +185,49 @@ impl SystemReminder {
 
         self.sections.push(Section {
             title: "Todo List".to_string(),
+            content,
+        });
+
+        self
+    }
+
+    /// Add immortal conversation context to the reminder.
+    ///
+    /// Informs the agent about the journal tools and current chain state so it
+    /// knows to journal important information and understands context resets.
+    pub fn with_immortal_context(mut self, chain_index: u32, journal_entry_count: usize) -> Self {
+        let mut content = String::new();
+
+        content.push_str(
+            "This is an **immortal conversation** — your context window may be refreshed \
+             to keep the conversation going indefinitely. When that happens, your journal \
+             entries and a structured checkpoint carry forward into the fresh context.\n\n",
+        );
+
+        content.push_str(
+            "You have two journal tools available:\n\
+             - `journal_write`: Record key decisions, discoveries, user preferences, or \
+               constraints. Only write high-signal entries — not routine actions.\n\
+             - `journal_read`: Review your journal entries at any time.\n\n",
+        );
+
+        if chain_index > 0 {
+            content.push_str(&format!(
+                "**Current chain**: {} (context has been refreshed {} time{}). ",
+                chain_index,
+                chain_index,
+                if chain_index == 1 { "" } else { "s" }
+            ));
+        }
+
+        if journal_entry_count > 0 {
+            content.push_str(&format!("**Journal entries**: {}.\n", journal_entry_count));
+        } else {
+            content.push_str("Your journal is empty — consider writing key decisions as you go.\n");
+        }
+
+        self.sections.push(Section {
+            title: "Immortal Conversation".to_string(),
             content,
         });
 
@@ -315,14 +373,14 @@ mod tests {
                 title: "Code Review".to_string(),
                 description: "Reviews code for quality and best practices".to_string(),
                 content: "You are a code review expert...".to_string(),
-                parameters_schema: None,
+                ..Default::default()
             },
             SkillDefinition {
                 id: "commit".to_string(),
                 title: "Commit".to_string(),
                 description: "Writes conventional commit messages".to_string(),
                 content: "Write conventional commits...".to_string(),
-                parameters_schema: None,
+                ..Default::default()
             },
         ]
     }
@@ -543,5 +601,78 @@ mod tests {
 
         // Second check (same day) should not detect change
         assert!(tracker.check_date_change().is_none());
+    }
+
+    #[test]
+    fn test_local_and_remote_skills_shown_equally() {
+        let skills = vec![
+            SkillDefinition {
+                id: "remote".to_string(),
+                title: "Remote Skill".to_string(),
+                description: "From control plane".to_string(),
+                content: String::new(),
+                ..Default::default()
+            },
+            SkillDefinition {
+                id: "local".to_string(),
+                title: "Local Skill".to_string(),
+                description: "From filesystem".to_string(),
+                content: String::new(),
+                source: bridge_core::SkillSource::ClaudeCode,
+                ..Default::default()
+            },
+        ];
+        let output = SystemReminder::new().with_skills(&skills).build();
+
+        // Both show up identically — source doesn't matter to the model
+        assert!(output.contains("- **Remote Skill** - From control plane"));
+        assert!(output.contains("- **Local Skill** - From filesystem"));
+    }
+
+    #[test]
+    fn test_model_disabled_skills_filtered() {
+        let skills = vec![
+            SkillDefinition {
+                id: "visible".to_string(),
+                title: "Visible".to_string(),
+                description: "Should appear".to_string(),
+                content: String::new(),
+                ..Default::default()
+            },
+            SkillDefinition {
+                id: "hidden".to_string(),
+                title: "Hidden".to_string(),
+                description: "Should not appear".to_string(),
+                content: String::new(),
+                frontmatter: Some(bridge_core::SkillFrontmatter {
+                    disable_model_invocation: Some(true),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        ];
+        let output = SystemReminder::new().with_skills(&skills).build();
+
+        assert!(output.contains("Visible"));
+        assert!(!output.contains("Hidden"));
+    }
+
+    #[test]
+    fn test_non_user_invocable_skills_filtered() {
+        let skills = vec![SkillDefinition {
+            id: "model-only".to_string(),
+            title: "Model Only".to_string(),
+            description: "Not user invocable".to_string(),
+            content: String::new(),
+            frontmatter: Some(bridge_core::SkillFrontmatter {
+                user_invocable: Some(false),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }];
+        let output = SystemReminder::new().with_skills(&skills).build();
+
+        // When all skills are filtered, the section should be empty
+        assert!(output.is_empty());
     }
 }

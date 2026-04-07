@@ -1,0 +1,24 @@
+Search the web and return results with titles, descriptions, and URLs. Optionally fetch full page content for each result in a single call.
+
+## When to Use
+- Research a topic, find documentation, or look up current information
+- Find specific websites, articles, or resources
+- Gather information from multiple sources on a subject
+- When you need both search results AND their full page content in one step
+
+## Parameters
+- `search` (required): The search query. Be specific — include key terms, site names, or exact phrases
+- `search_limit`: Number of results to return. Defaults to 5. Use 1-3 for focused queries, 5-10 for broad research
+- `fetch_page_content`: When true, crawl each result URL and include the full page content in the response. Slower but saves a separate web_crawl call
+- `return_format`: Output format when `fetch_page_content` is true — "markdown" (default, best for reading), "raw" (HTML), "text" (plain text)
+
+## Usage Notes
+- The current year is {{year}}. Include the year in time-sensitive queries for relevant results (e.g. "Rust release {{year}}" instead of "Rust release")
+- Keep queries concise and specific for best results
+- Use `web_crawl` to retrieve full content from URLs found in search results, or set `fetch_page_content: true` to do it in one call
+
+## Tips
+- Set `fetch_page_content: true` when you need to read the actual content, not just titles and snippets
+- Use `search_limit: 3` with `fetch_page_content: true` to keep response size manageable
+- Without `fetch_page_content`, results only include titles, URLs, and short snippets
+- For simple fact-checking, snippets alone are often sufficient — skip `fetch_page_content`

@@ -33,5 +33,5 @@ pub use permission::{
     ApprovalDecision, ApprovalReply, ApprovalRequest, BulkApprovalReply, ToolPermission,
 };
 pub use provider::{ProviderConfig, ProviderType};
-pub use skill::{SkillDefinition, SkillId};
+pub use skill::{SkillDefinition, SkillFrontmatter, SkillId, SkillSource};
 pub use tool::ToolDefinition;

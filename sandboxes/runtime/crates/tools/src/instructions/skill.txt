@@ -12,6 +12,12 @@ How to invoke:
   - skill: "review-pr", args: "123" - invoke with arguments
   - skill: "ms-office-suite:pdf" - invoke using fully qualified name
 
+Loading supporting files:
+- Some skills include supporting files (reference docs, examples, templates).
+- When you invoke a skill, referenced files are automatically inlined.
+- To load a specific supporting file on-demand, use the `file` parameter:
+  - skill: "deploy", file: "runbook.md" - load only the runbook file
+
 Important:
 - Available skills are listed in system-reminder messages in the conversation
 - When a skill matches the user's request, this is a BLOCKING REQUIREMENT: invoke the relevant Skill tool BEFORE generating any other response about the task
@@ -20,6 +26,7 @@ Important:
 - Do not use this tool for built-in CLI commands (like /help, /clear, etc.)
 - If you see a <command-name> tag in the current conversation turn, the skill has ALREADY been loaded - follow the instructions directly instead of calling this tool again
 
-The tool takes two parameters:
+The tool takes three parameters:
 - skill (required): The skill name, e.g. "commit", "review-pr", or "pdf"
 - args (optional): Arguments for the skill
+- file (optional): Load a specific supporting file by its relative path

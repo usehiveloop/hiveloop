@@ -15,6 +15,7 @@ Tools included with Bridge:
 - Execution: bash, web_fetch
 - Agents: spawn_agent, parallel_agent, join
 - Tasks: todo, batch
+- Journal: journal_write, journal_read (immortal mode only)
 
 ### MCP Tools
 External tools from MCP servers:

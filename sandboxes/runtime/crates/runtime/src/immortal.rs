@@ -12,20 +12,54 @@ You are extracting a structured checkpoint from a conversation that is being \
 continued in a fresh context window. The user will not see this output — it will \
 be injected into the new context to help the assistant continue seamlessly.
 
-Analyze the conversation and extract the following sections:
+First, think through the entire conversation. Review the user's goals, your \
+actions, tool outputs, file modifications, errors encountered, and any unresolved \
+questions. Identify every piece of information needed to continue the work.
 
-## Active Goals
-What is the user trying to accomplish? List each goal concisely.
+Then produce the checkpoint with these sections:
 
-## Key Decisions Made
-What important decisions were made during this conversation? Include brief rationale.
+## Overall Goal
+A single concise sentence describing the user's high-level objective.
 
-## Active Tasks
-What tasks are in progress or still pending? Be specific about current state.
+## Active Constraints
+Explicit constraints, preferences, or rules established by the user or discovered \
+during the conversation. Examples: brand voice guidelines, coding style preferences, \
+budget limits, target audience, framework choices, regulatory requirements.
+
+## Key Knowledge
+Crucial facts and discoveries about the working context. This could be technical \
+details (build commands, API endpoints, database schemas), domain knowledge \
+(market segments, competitor analysis, audience demographics), or environmental \
+facts (team structure, timelines, tool access) — anything the assistant needs to \
+know to continue effectively.
+
+## Work Trail
+Key artifacts that were produced, modified, or reviewed, and WHY. Track the \
+evolution of significant outputs and their rationale. Examples:
+- For code: `src/auth.rs`: Refactored from JWT to session tokens for compliance.
+- For content: Campaign brief v2: Revised targeting from 18-24 to 25-34 based on analytics.
+- For research: Competitive analysis: Added 3 new entrants identified in Q3 reports.
+
+## Key Decisions
+Important decisions made during the conversation with brief rationale.
+
+## Task State
+The current plan with completion markers:
+1. [DONE] Research phase
+2. [IN PROGRESS] Draft deliverables  <-- CURRENT FOCUS
+3. [TODO] Review and finalize
 
 ## Transition Context
-Write a brief paragraph (2-4 sentences) that tells the assistant exactly where \
-things left off and what it should do next. Address the assistant directly.";
+A brief paragraph (2-4 sentences) telling the assistant exactly where things \
+left off and what to do next. Address the assistant directly.";
+
+/// Verification prompt for the second phase of checkpoint extraction.
+const VERIFICATION_PROMPT: &str = "\
+Critically evaluate the checkpoint you just generated against the conversation \
+history. Did you omit any important details — artifacts produced, user constraints, \
+key facts about the working context, or task state? If anything important is \
+missing, produce a FINAL improved checkpoint with the same section structure. \
+Otherwise, repeat the exact same checkpoint.";
 
 /// Result of a successful chain handoff.
 pub struct ChainHandoffResult {
@@ -131,12 +165,45 @@ pub async fn maybe_chain(
         &summarizer_def,
     )?;
 
+    // Build previous checkpoint context for continuity across chains
+    let previous_checkpoint_context = if state.current_chain_index > 0 {
+        let entries = journal_state.entries().await;
+        let last_checkpoint = entries.iter().rev().find(|e| e.entry_type == "checkpoint");
+        match last_checkpoint {
+            Some(cp) => format!(
+                "A previous checkpoint exists from chain {}. Integrate all still-relevant \
+                 information, updating with recent events. Do not lose established \
+                 constraints or knowledge.\n\n<previous_checkpoint>\n{}\n</previous_checkpoint>\n\n",
+                cp.chain_index, cp.content
+            ),
+            None => String::new(),
+        }
+    } else {
+        String::new()
+    };
+
     // Serialize the history to checkpoint
-    let input = compaction::serialize_history_for_summary(to_checkpoint);
-    let checkpoint_text = checkpoint_agent
-        .prompt_simple(&input)
+    let serialized_history = compaction::serialize_history_for_summary(to_checkpoint);
+
+    // Phase 1: Generate checkpoint
+    let phase1_input = format!("{}{}", previous_checkpoint_context, serialized_history);
+    let initial_checkpoint = checkpoint_agent
+        .prompt_simple(&phase1_input)
         .await
         .map_err(|e| BridgeError::ProviderError(format!("checkpoint extraction error: {}", e)))?;
+
+    // Phase 2: Verify and improve
+    let phase2_input = format!(
+        "CONVERSATION HISTORY:\n{}\n\nYOUR CHECKPOINT:\n{}\n\n{}",
+        serialized_history, initial_checkpoint, VERIFICATION_PROMPT
+    );
+    let checkpoint_text = match checkpoint_agent.prompt_simple(&phase2_input).await {
+        Ok(verified) => verified,
+        Err(e) => {
+            debug!(error = %e, "checkpoint verification failed, using initial checkpoint");
+            initial_checkpoint
+        }
+    };
 
     // Build the new history
     let journal_entries = journal_state.entries().await;

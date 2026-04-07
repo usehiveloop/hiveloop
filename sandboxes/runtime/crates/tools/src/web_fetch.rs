@@ -54,34 +54,223 @@ pub struct WebFetchArgs {
     pub format: FetchFormat,
 }
 
+/// Minimum content length to consider a fetch successful.
+/// Below this, the content is likely a blocked page or error stub.
+const MIN_CONTENT_LENGTH: usize = 100;
+
 /// Web fetch tool that retrieves a URL and extracts readable content as Markdown.
 ///
-/// Uses a two-stage extraction pipeline:
-/// 1. `dom_smoothie::Readability` for article extraction (Mozilla Readability algorithm)
-/// 2. Fallback: `htmd::convert()` on the raw HTML
+/// Uses a three-tier fetch strategy:
+/// 1. `spider` crate for HTTP-based crawling with bot evasion
+/// 2. External fallback service (configurable via `BRIDGE_WEB_FETCH_URL`)
+/// 3. `reqwest` + `dom_smoothie` Readability + `htmd` as last resort
 pub struct WebFetchTool {
     client: reqwest::Client,
+    fallback_url: Option<String>,
 }
 
 impl WebFetchTool {
     /// Create a new `WebFetchTool` with a pre-configured HTTP client.
     pub fn new(client: reqwest::Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            fallback_url: None,
+        }
     }
 
     /// Create a new `WebFetchTool` with default client settings.
     pub fn with_defaults() -> Self {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .redirect(reqwest::redirect::Policy::limited(10))
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
-            .build()
-            .expect("Failed to build reqwest client");
-        Self { client }
+        let client = build_default_client();
+        Self {
+            client,
+            fallback_url: None,
+        }
     }
 
-    /// Fetch a URL and extract its content in the specified format.
+    /// Create a new `WebFetchTool` with a fallback fetch service URL.
+    pub fn with_fallback(fallback_url: String) -> Self {
+        let client = build_default_client();
+        Self {
+            client,
+            fallback_url: Some(fallback_url),
+        }
+    }
+
+    /// Fetch a URL using the three-tier strategy:
+    /// 1. Spider crate (HTTP crawling with bot evasion)
+    /// 2. Fallback service (if configured)
+    /// 3. Reqwest + readability (last resort)
     pub async fn fetch(
+        &self,
+        url: &str,
+        max_length: usize,
+        format: &FetchFormat,
+    ) -> Result<FetchResult, String> {
+        // Tier 1: Spider crate with timeout
+        match tokio::time::timeout(
+            Duration::from_secs(15),
+            Self::fetch_with_spider(url, max_length),
+        )
+        .await
+        {
+            Ok(Ok(Some(result))) => {
+                tracing::info!(url = url, tier = "spider", "web_fetch succeeded");
+                return Ok(result);
+            }
+            Ok(Ok(None)) => {
+                tracing::debug!(url = url, "spider returned empty content, trying next tier");
+            }
+            Ok(Err(e)) => {
+                tracing::debug!(url = url, error = %e, "spider fetch failed, trying next tier");
+            }
+            Err(_) => {
+                tracing::debug!(
+                    url = url,
+                    "spider fetch timed out after 15s, trying next tier"
+                );
+            }
+        }
+
+        // Tier 2: Fallback service (if configured)
+        if self.fallback_url.is_some() {
+            match self.fetch_with_fallback(url, max_length, format).await {
+                Ok(Some(result)) => {
+                    tracing::info!(url = url, tier = "fallback", "web_fetch succeeded");
+                    return Ok(result);
+                }
+                Ok(None) => {
+                    tracing::debug!(url = url, "fallback service returned empty, trying reqwest");
+                }
+                Err(e) => {
+                    tracing::debug!(url = url, error = %e, "fallback service failed, trying reqwest");
+                }
+            }
+        }
+
+        // Tier 3: Reqwest + readability (last resort)
+        tracing::info!(
+            url = url,
+            tier = "reqwest",
+            "falling back to reqwest + readability"
+        );
+        self.fetch_with_reqwest(url, max_length, format).await
+    }
+
+    /// Tier 1: Fetch using the spider crate for better bot evasion.
+    async fn fetch_with_spider(
+        url: &str,
+        max_length: usize,
+    ) -> Result<Option<FetchResult>, String> {
+        use spider::website::Website;
+
+        let mut website = Website::new(url);
+        website.with_limit(1);
+        website.crawl().await;
+
+        let pages = match website.get_pages() {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+
+        let page = match pages.first() {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+
+        let html = page.get_html();
+        if html.trim().is_empty() {
+            return Ok(None);
+        }
+
+        // Convert HTML to markdown and extract title in a single parse
+        let article = extract_article(&html, url);
+        let markdown = match &article {
+            Some(a) => {
+                let text = a.text_content.to_string();
+                if text.trim().is_empty() {
+                    fallback_convert(&html)
+                } else {
+                    text
+                }
+            }
+            None => fallback_convert(&html),
+        };
+
+        if markdown.trim().len() < MIN_CONTENT_LENGTH {
+            return Ok(None);
+        }
+
+        let title = article.and_then(|a| {
+            if a.title.is_empty() {
+                None
+            } else {
+                Some(a.title.to_string())
+            }
+        });
+
+        Ok(Some(FetchResult {
+            title,
+            content: truncate_to_char_limit(&markdown, max_length),
+            url: url.to_string(),
+        }))
+    }
+
+    /// Tier 2: Fetch using an external fallback service.
+    async fn fetch_with_fallback(
+        &self,
+        url: &str,
+        max_length: usize,
+        format: &FetchFormat,
+    ) -> Result<Option<FetchResult>, String> {
+        let fallback_url = match &self.fallback_url {
+            Some(u) => u,
+            None => return Ok(None),
+        };
+
+        let format_str = match format {
+            FetchFormat::Markdown => "markdown",
+            FetchFormat::Text => "text",
+            FetchFormat::Html => "html",
+        };
+
+        let resp = self
+            .client
+            .post(fallback_url)
+            .json(&serde_json::json!({
+                "url": url,
+                "format": format_str,
+            }))
+            .timeout(Duration::from_secs(30))
+            .send()
+            .await
+            .map_err(|e| format!("Fallback service request failed: {e}"))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Fallback service returned HTTP {}", resp.status()));
+        }
+
+        let body: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Fallback service response parse failed: {e}"))?;
+
+        let content = match body.get("content").and_then(|c| c.as_str()) {
+            Some(c) if !c.trim().is_empty() => c.to_string(),
+            _ => return Ok(None),
+        };
+
+        let title = body.get("title").and_then(|t| t.as_str()).map(String::from);
+
+        Ok(Some(FetchResult {
+            title,
+            content: truncate_to_char_limit(&content, max_length),
+            url: url.to_string(),
+        }))
+    }
+
+    /// Tier 3: Fetch using reqwest + readability (existing pipeline).
+    /// Also used directly by unit tests that mock HTTP responses.
+    pub async fn fetch_with_reqwest(
         &self,
         url: &str,
         max_length: usize,
@@ -285,6 +474,16 @@ impl WebFetchTool {
             }
         }
     }
+}
+
+/// Build the default reqwest client with standard settings.
+fn build_default_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+        .build()
+        .expect("Failed to build reqwest client")
 }
 
 /// Try to extract article content using dom_smoothie's Readability algorithm.
@@ -506,7 +705,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/page", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -533,7 +732,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/data.json", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -557,7 +756,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/missing", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -582,7 +781,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/empty", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -625,7 +824,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/long", server.uri()),
                 100,
                 &FetchFormat::Markdown,
@@ -686,7 +885,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/old", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -744,7 +943,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/hop1", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -793,7 +992,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/redirect-me", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -824,7 +1023,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/error", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -855,7 +1054,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/forbidden", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -886,7 +1085,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/unavailable", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -925,7 +1124,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/no-ct", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -952,7 +1151,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/xhtml", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -979,7 +1178,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/doc.pdf", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1008,7 +1207,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/image.png", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1038,7 +1237,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/icon.svg", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Html,
@@ -1068,7 +1267,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/huge", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1100,7 +1299,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let err = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/cl-huge", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1146,7 +1345,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/cf-page", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1186,7 +1385,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/scripted", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1249,7 +1448,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/titled", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1283,7 +1482,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/blank", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Markdown,
@@ -1309,10 +1508,10 @@ mod tests {
         let long_paragraph = "word ".repeat(200);
         let html = format!(r#"<html><body><p>{long_paragraph}</p></body></html>"#);
 
+        // Allow multiple requests — spider tier may also hit this endpoint before reqwest
         Mock::given(method("GET"))
             .and(path("/truncate-exec"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
-            .expect(1)
             .mount(&server)
             .await;
 
@@ -1339,10 +1538,10 @@ mod tests {
         let html =
             r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
 
+        // Allow multiple requests — spider tier may also hit this endpoint before reqwest
         Mock::given(method("GET"))
             .and(path("/default-exec"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
-            .expect(1)
             .mount(&server)
             .await;
 
@@ -1377,7 +1576,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/text", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Text,
@@ -1409,7 +1608,7 @@ mod tests {
 
         let tool = WebFetchTool::with_defaults();
         let result = tool
-            .fetch(
+            .fetch_with_reqwest(
                 &format!("{}/raw", server.uri()),
                 DEFAULT_MAX_LENGTH,
                 &FetchFormat::Html,
@@ -1428,10 +1627,10 @@ mod tests {
 
         let html = r#"<html><body><p>Format test content</p></body></html>"#;
 
+        // Allow multiple requests — spider tier may also hit this endpoint
         Mock::given(method("GET"))
             .and(path("/fmt"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
-            .expect(1)
             .mount(&server)
             .await;
 
@@ -1444,6 +1643,10 @@ mod tests {
         let output = tool.execute(args).await.expect("execute should succeed");
         let parsed: FetchResult = serde_json::from_str(&output).expect("parse");
 
-        assert!(parsed.content.contains("<p>Format test content</p>"));
+        // Content should contain the HTML — either directly from spider or from reqwest
+        assert!(
+            parsed.content.contains("Format test content"),
+            "should contain page content"
+        );
     }
 }

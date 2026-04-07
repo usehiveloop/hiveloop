@@ -54,6 +54,10 @@ pub struct AgentSupervisor {
     codedb_enabled: bool,
     /// Path to the codedb binary (default: "codedb").
     codedb_binary: String,
+    /// When true, scan the working directory for skills from .claude/, .cursor/, etc.
+    skill_discovery_enabled: bool,
+    /// Working directory for skill discovery. Defaults to `std::env::current_dir()`.
+    skill_discovery_dir: Option<String>,
 }
 
 /// Default maximum concurrent LLM calls when not configured.
@@ -77,6 +81,8 @@ impl AgentSupervisor {
             storage_backend: None,
             codedb_enabled: false,
             codedb_binary: "codedb".to_string(),
+            skill_discovery_enabled: false,
+            skill_discovery_dir: None,
         }
     }
 
@@ -101,6 +107,8 @@ impl AgentSupervisor {
             storage_backend: None,
             codedb_enabled: false,
             codedb_binary: "codedb".to_string(),
+            skill_discovery_enabled: false,
+            skill_discovery_dir: None,
         }
     }
 
@@ -130,6 +138,15 @@ impl AgentSupervisor {
         self.llm_semaphore = Arc::new(tokio::sync::Semaphore::new(max_llm));
         self.codedb_enabled = config.codedb_enabled;
         self.codedb_binary = config.codedb_binary.clone();
+        self.skill_discovery_enabled = config.skill_discovery_enabled;
+        self.skill_discovery_dir = config.skill_discovery_dir.clone();
+        self
+    }
+
+    /// Configure skill discovery from working directory.
+    pub fn with_skill_discovery(mut self, enabled: bool, dir: Option<String>) -> Self {
+        self.skill_discovery_enabled = enabled;
+        self.skill_discovery_dir = dir;
         self
     }
 
@@ -240,11 +257,12 @@ impl AgentSupervisor {
             );
         }
 
-        // Register skill tool if the agent has skills
-        if !definition.skills.is_empty() {
-            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(
-                definition.skills.clone(),
-            )));
+        // Merge control-plane skills with locally discovered skills
+        let all_skills = self
+            .merge_with_discovered_skills(definition.skills.clone())
+            .await;
+        if !all_skills.is_empty() {
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(all_skills)));
         }
 
         // Create task registry for tracking background subagent tasks
@@ -333,6 +351,42 @@ impl AgentSupervisor {
     /// Return all agent states for enriched API responses.
     pub fn list_agent_states(&self) -> Vec<Arc<AgentState>> {
         self.agent_map.list_states()
+    }
+
+    /// Merge control-plane skills with locally discovered skills.
+    ///
+    /// Control-plane skills always take precedence. Local skills are only added
+    /// if discovery is enabled and no control-plane skill shares the same id.
+    async fn merge_with_discovered_skills(
+        &self,
+        mut cp_skills: Vec<bridge_core::SkillDefinition>,
+    ) -> Vec<bridge_core::SkillDefinition> {
+        if !self.skill_discovery_enabled {
+            return cp_skills;
+        }
+
+        let dir = self
+            .skill_discovery_dir
+            .as_deref()
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+
+        let local_skills = crate::skill_discovery::discover_skills(&dir).await;
+
+        if local_skills.is_empty() {
+            return cp_skills;
+        }
+
+        let cp_ids: std::collections::HashSet<String> =
+            cp_skills.iter().map(|s| s.id.clone()).collect();
+
+        for skill in local_skills {
+            if !cp_ids.contains(&skill.id) {
+                cp_skills.push(skill);
+            }
+        }
+
+        cp_skills
     }
 
     /// Create a new conversation for an agent.
@@ -566,7 +620,16 @@ impl AgentSupervisor {
             def.config.compaction.clone()
         };
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
-        let skills = def.skills.clone();
+        // Get skills from the registered SkillTool (includes local discoveries)
+        let skills = state
+            .tool_registry
+            .get("skill")
+            .and_then(|t| {
+                t.as_any()
+                    .downcast_ref::<tools::skill_tools::SkillTool>()
+                    .map(|st| st.skills().clone())
+            })
+            .unwrap_or_default();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
         let model_name = def.provider.model.clone();
@@ -579,13 +642,20 @@ impl AgentSupervisor {
             ))
         });
 
-        // Register journal_write tool if immortal mode is active
+        // Register journal tools if immortal mode is active
         if let Some(ref js) = journal_state {
-            let journal_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
-            tool_names.insert(journal_tool.name().to_string());
+            let write_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
+            tool_names.insert(write_tool.name().to_string());
             tool_executors.insert(
-                journal_tool.name().to_string(),
-                journal_tool.clone() as Arc<dyn tools::ToolExecutor>,
+                write_tool.name().to_string(),
+                write_tool.clone() as Arc<dyn tools::ToolExecutor>,
+            );
+
+            let read_tool = Arc::new(tools::journal::JournalReadTool::new(js.clone()));
+            tool_names.insert(read_tool.name().to_string());
+            tool_executors.insert(
+                read_tool.name().to_string(),
+                read_tool.clone() as Arc<dyn tools::ToolExecutor>,
             );
         }
 
@@ -709,6 +779,7 @@ impl AgentSupervisor {
         agent_id: &str,
         conversation_id: &str,
         content: String,
+        system_reminder: Option<String>,
     ) -> Result<(), BridgeError> {
         let state = self
             .agent_map
@@ -724,6 +795,7 @@ impl AgentSupervisor {
             role: Role::User,
             content: vec![ContentBlock::Text { text: content }],
             timestamp: chrono::Utc::now(),
+            system_reminder,
         };
 
         handle
@@ -906,11 +978,12 @@ impl AgentSupervisor {
             );
         }
 
-        // Register skill tool if the agent has skills
-        if !definition.skills.is_empty() {
-            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(
-                definition.skills.clone(),
-            )));
+        // Merge control-plane skills with locally discovered skills
+        let all_skills = self
+            .merge_with_discovered_skills(definition.skills.clone())
+            .await;
+        if !all_skills.is_empty() {
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(all_skills)));
         }
 
         // Create task registry for tracking background subagent tasks
@@ -1111,7 +1184,16 @@ impl AgentSupervisor {
             def.config.compaction.clone()
         };
         let tool_calls_only = def.config.tool_calls_only.unwrap_or(false);
-        let skills = def.skills.clone();
+        // Get skills from the registered SkillTool (includes local discoveries)
+        let skills = state
+            .tool_registry
+            .get("skill")
+            .and_then(|t| {
+                t.as_any()
+                    .downcast_ref::<tools::skill_tools::SkillTool>()
+                    .map(|st| st.skills().clone())
+            })
+            .unwrap_or_default();
         let llm_semaphore = self.llm_semaphore.clone();
         let storage = self.storage.clone();
         let model_name = def.provider.model.clone();
@@ -1125,13 +1207,20 @@ impl AgentSupervisor {
             ))
         });
 
-        // Register journal_write tool if immortal mode is active
+        // Register journal tools if immortal mode is active
         if let Some(ref js) = journal_state {
-            let journal_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
-            tool_names.insert(journal_tool.name().to_string());
+            let write_tool = Arc::new(tools::journal::JournalWriteTool::new(js.clone()));
+            tool_names.insert(write_tool.name().to_string());
             tool_executors.insert(
-                journal_tool.name().to_string(),
-                journal_tool.clone() as Arc<dyn tools::ToolExecutor>,
+                write_tool.name().to_string(),
+                write_tool.clone() as Arc<dyn tools::ToolExecutor>,
+            );
+
+            let read_tool = Arc::new(tools::journal::JournalReadTool::new(js.clone()));
+            tool_names.insert(read_tool.name().to_string());
+            tool_executors.insert(
+                read_tool.name().to_string(),
+                read_tool.clone() as Arc<dyn tools::ToolExecutor>,
             );
         }
 

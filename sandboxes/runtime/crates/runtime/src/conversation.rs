@@ -261,6 +261,9 @@ pub async fn run_conversation(params: ConversationParams) {
             IncomingMessage::BackgroundComplete(_) => text_message(Role::User, user_text.clone()),
         };
 
+        // Mask old tool outputs to reduce context pressure before budget checks.
+        crate::masking::mask_old_tool_outputs_default(&mut history);
+
         // Check if context management is needed before adding the new message.
         // Immortal mode (chain handoff) takes priority over compaction.
         if let (Some(ref immortal_cfg), Some(ref mut imm_state)) =
@@ -388,18 +391,55 @@ pub async fn run_conversation(params: ConversationParams) {
             }
         }
 
+        // Extract per-message system reminder if present
+        let per_message_reminder = match &incoming {
+            IncomingMessage::User(msg) => msg
+                .system_reminder
+                .as_deref()
+                .map(|r| format!("<system-reminder>\n{}\n</system-reminder>", r)),
+            _ => None,
+        };
+
         // Check for date change and get reminder if date changed
         let date_change_reminder = date_tracker.check_date_change();
 
+        // Build the effective system reminder, including immortal context if active
+        let mut effective_reminder =
+            if let (Some(ref imm_state), Some(ref js)) = (&immortal_state, &journal_state) {
+                let journal_count = js.entries().await.len();
+                let immortal_section = crate::system_reminder::SystemReminder::new()
+                    .with_immortal_context(imm_state.current_chain_index, journal_count)
+                    .build();
+                if system_reminder.is_empty() {
+                    immortal_section
+                } else {
+                    format!("{}\n\n{}", system_reminder, immortal_section)
+                }
+            } else {
+                system_reminder.clone()
+            };
+
+        // Append per-message system reminder from the control plane
+        if let Some(pmr) = per_message_reminder {
+            if effective_reminder.is_empty() {
+                effective_reminder = pmr;
+            } else {
+                effective_reminder = format!("{}\n\n{}", effective_reminder, pmr);
+            }
+        }
+
         // Build final user text with reminders
-        let final_user_text = match (date_change_reminder, system_reminder.is_empty()) {
+        let final_user_text = match (date_change_reminder, effective_reminder.is_empty()) {
             (Some(date_reminder), true) => {
                 // Only date change reminder
                 format!("{}\n\n{}", date_reminder, user_text)
             }
             (Some(date_reminder), false) => {
                 // Both date change and system reminder
-                format!("{}\n\n{}\n\n{}", date_reminder, system_reminder, user_text)
+                format!(
+                    "{}\n\n{}\n\n{}",
+                    date_reminder, effective_reminder, user_text
+                )
             }
             (None, true) => {
                 // No reminders
@@ -407,7 +447,7 @@ pub async fn run_conversation(params: ConversationParams) {
             }
             (None, false) => {
                 // Only system reminder
-                format!("{}\n\n{}", system_reminder, user_text)
+                format!("{}\n\n{}", effective_reminder, user_text)
             }
         };
 
@@ -1049,6 +1089,7 @@ fn text_message(role: Role, text: String) -> Message {
         role,
         content: vec![bridge_core::conversation::ContentBlock::Text { text }],
         timestamp: chrono::Utc::now(),
+        system_reminder: None,
     }
 }
 
@@ -1063,6 +1104,7 @@ fn tool_result_message(tool_call_id: String, content: String) -> Message {
             },
         )],
         timestamp: chrono::Utc::now(),
+        system_reminder: None,
     }
 }
 
@@ -1124,6 +1166,7 @@ fn convert_from_rig_message(msg: &rig::message::Message) -> Vec<Message> {
                     role: Role::Assistant,
                     content: blocks,
                     timestamp: chrono::Utc::now(),
+                    system_reminder: None,
                 }]
             }
         }
@@ -1168,6 +1211,7 @@ pub fn normalize_messages_for_persistence(messages: &[Message]) -> Vec<Message> 
                             result.clone(),
                         )],
                         timestamp: message.timestamp,
+                        system_reminder: None,
                     });
                 }
             }
@@ -1282,6 +1326,7 @@ mod tests {
             role,
             content,
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         }
     }
 

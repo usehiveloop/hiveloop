@@ -21,6 +21,7 @@ pub mod parallel_agent;
 pub mod read;
 pub mod registry;
 pub mod skill_tools;
+pub mod spider_tools;
 pub mod todo;
 pub mod truncation;
 pub mod web_fetch;

@@ -264,6 +264,7 @@ impl StorageBackend for SqliteBackend {
                             role,
                             content,
                             timestamp,
+                            system_reminder: None,
                         });
                     }
                 }

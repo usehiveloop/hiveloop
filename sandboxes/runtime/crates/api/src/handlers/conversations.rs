@@ -74,6 +74,10 @@ pub struct CreateConversationRequest {
 pub struct SendMessageRequest {
     /// The text content to send.
     pub content: String,
+    /// Optional system reminder to inject with this message.
+    /// Will be wrapped in `<system-reminder>` tags and prepended to the user message.
+    #[serde(default)]
+    pub system_reminder: Option<String>,
 }
 
 /// POST /agents/:agent_id/conversations — create a new conversation.
@@ -152,7 +156,7 @@ pub async fn send_message(
 
     state
         .supervisor
-        .send_message(&agent_id, &conv_id, body.content)
+        .send_message(&agent_id, &conv_id, body.content, body.system_reminder)
         .await?;
 
     Ok((

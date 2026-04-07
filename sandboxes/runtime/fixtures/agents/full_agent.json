@@ -52,6 +52,23 @@
       "title": "Code Review",
       "description": "Reviews code for quality, bugs, and best practices.",
       "content": "You are a code review expert. Review code for quality, bugs, and best practices."
+    },
+    {
+      "id": "skill_deploy",
+      "title": "Deploy",
+      "description": "Deploy the application to production with safety checks.",
+      "content": "You are a deployment expert.\n\nFor detailed runbook, see [runbook.md](runbook.md).\nFor environment config, see [envs.md](envs.md).\n\nDeploy using: $ARGUMENTS",
+      "files": {
+        "runbook.md": "# Deploy Runbook\n\n1. Run tests\n2. Build artifacts\n3. Push to registry\n4. Rolling update",
+        "envs.md": "# Environments\n\n- staging: deploy-staging.example.com\n- production: deploy-prod.example.com"
+      },
+      "frontmatter": {
+        "allowed_tools": ["bash", "read"],
+        "effort": "high",
+        "context": "fork",
+        "argument_hint": "[environment]"
+      },
+      "source": "control_plane"
     }
   ],
   "permissions": {

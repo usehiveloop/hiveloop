@@ -78,12 +78,30 @@ pub fn register_builtin_tools_with_lsp(
             .with_lsp_manager_opt(lsp_manager.clone()),
     ));
 
-    // Web fetch (no config needed)
-    registry.register(Arc::new(crate::web_fetch::WebFetchTool::with_defaults()));
+    // Web fetch (with optional fallback service for JS-heavy / bot-protected sites)
+    let web_fetch_tool = if let Ok(url) = std::env::var("BRIDGE_WEB_URL") {
+        crate::web_fetch::WebFetchTool::with_fallback(url)
+    } else {
+        crate::web_fetch::WebFetchTool::with_defaults()
+    };
+    registry.register(Arc::new(web_fetch_tool));
 
-    // Web search (needs endpoint URL from control plane)
-    if let Ok(endpoint) = std::env::var("SEARCH_ENDPOINT") {
-        registry.register(Arc::new(crate::web_search::WebSearchTool::new(endpoint)));
+    // Spider-backed web tools (search, crawl, links, screenshot, transform)
+    if let Ok(base_url) = std::env::var("BRIDGE_WEB_URL") {
+        let spider = Arc::new(crate::spider_tools::SpiderClient::new(base_url));
+        registry.register(Arc::new(crate::spider_tools::WebCrawlTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebSearchTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebGetLinksTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebScreenshotTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebTransformTool::new(spider)));
     }
 
     // Todo tools — shared state between read and write
@@ -153,12 +171,30 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
             .with_boundary(boundary),
     ));
 
-    // Web fetch (no config needed)
-    registry.register(Arc::new(crate::web_fetch::WebFetchTool::with_defaults()));
+    // Web fetch (with optional fallback service for JS-heavy / bot-protected sites)
+    let web_fetch_tool = if let Ok(url) = std::env::var("BRIDGE_WEB_URL") {
+        crate::web_fetch::WebFetchTool::with_fallback(url)
+    } else {
+        crate::web_fetch::WebFetchTool::with_defaults()
+    };
+    registry.register(Arc::new(web_fetch_tool));
 
-    // Web search (needs endpoint URL from control plane)
-    if let Ok(endpoint) = std::env::var("SEARCH_ENDPOINT") {
-        registry.register(Arc::new(crate::web_search::WebSearchTool::new(endpoint)));
+    // Spider-backed web tools (search, crawl, links, screenshot, transform)
+    if let Ok(base_url) = std::env::var("BRIDGE_WEB_URL") {
+        let spider = Arc::new(crate::spider_tools::SpiderClient::new(base_url));
+        registry.register(Arc::new(crate::spider_tools::WebCrawlTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebSearchTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebGetLinksTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebScreenshotTool::new(
+            spider.clone(),
+        )));
+        registry.register(Arc::new(crate::spider_tools::WebTransformTool::new(spider)));
     }
 
     // Todo tools — shared state between read and write
@@ -264,18 +300,40 @@ pub fn register_filtered_builtin_tools_with_lsp(
         filter,
     );
 
-    // Web fetch
-    maybe_register(
-        registry,
-        Arc::new(crate::web_fetch::WebFetchTool::with_defaults()),
-        filter,
-    );
+    // Web fetch (with optional fallback service)
+    let web_fetch_filtered = if let Ok(url) = std::env::var("BRIDGE_WEB_URL") {
+        crate::web_fetch::WebFetchTool::with_fallback(url)
+    } else {
+        crate::web_fetch::WebFetchTool::with_defaults()
+    };
+    maybe_register(registry, Arc::new(web_fetch_filtered), filter);
 
-    // Web search
-    if let Ok(endpoint) = std::env::var("SEARCH_ENDPOINT") {
+    // Spider-backed web tools (search, crawl, links, screenshot, transform)
+    if let Ok(base_url) = std::env::var("BRIDGE_WEB_URL") {
+        let spider = Arc::new(crate::spider_tools::SpiderClient::new(base_url));
         maybe_register(
             registry,
-            Arc::new(crate::web_search::WebSearchTool::new(endpoint)),
+            Arc::new(crate::spider_tools::WebSearchTool::new(spider.clone())),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(crate::spider_tools::WebCrawlTool::new(spider.clone())),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(crate::spider_tools::WebGetLinksTool::new(spider.clone())),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(crate::spider_tools::WebScreenshotTool::new(spider.clone())),
+            filter,
+        );
+        maybe_register(
+            registry,
+            Arc::new(crate::spider_tools::WebTransformTool::new(spider)),
             filter,
         );
     }

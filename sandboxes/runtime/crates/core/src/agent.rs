@@ -262,8 +262,13 @@ mod tests {
         }
 
         // Skills
-        assert_eq!(agent.skills.len(), 1);
+        assert_eq!(agent.skills.len(), 2);
         assert_eq!(agent.skills[0].id, "skill_code_review");
+        assert_eq!(agent.skills[1].id, "skill_deploy");
+        assert!(!agent.skills[1].files.is_empty());
+        assert_eq!(agent.skills[1].files.len(), 2);
+        assert!(agent.skills[1].files.contains_key("runbook.md"));
+        assert!(agent.skills[1].frontmatter.is_some());
 
         // Config
         assert_eq!(agent.config.max_tokens, Some(4096));

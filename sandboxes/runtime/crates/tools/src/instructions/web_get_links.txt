@@ -1,0 +1,17 @@
+Extract all links from a webpage. Returns a list of URLs found on the page.
+
+## When to Use
+- Discover pages on a website before deciding what to crawl
+- Find sitemaps, documentation indexes, or navigation structure
+- Map the structure of a site section
+- Find download links, API documentation pages, or resource URLs
+
+## Parameters
+- `url` (required): The URL to extract links from
+- `limit`: Maximum number of pages to process for link extraction. Defaults to 1 (single page). Increase to follow links and discover deeper pages
+- `request`: Rendering mode — "http" (fast, static pages), "chrome" (JavaScript-heavy SPAs), "smart" (auto-detect)
+
+## Tips
+- Start with `limit: 1` to see links on a single page before crawling further
+- Use `request: "smart"` for sites that may load navigation via JavaScript
+- Combine with web_crawl: first use web_get_links to discover URLs, then crawl specific ones

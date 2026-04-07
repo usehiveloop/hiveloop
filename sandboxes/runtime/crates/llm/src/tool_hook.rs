@@ -18,6 +18,26 @@ use tools::ToolExecutor;
 use tracing::{info, warn};
 use webhooks::EventBus;
 
+/// Maximum bytes for a single tool result entering conversation history.
+/// Individual tools may use lower limits. This is a centralized safety net
+/// that catches MCP tools, integration tools, and skill tools that don't
+/// implement their own truncation.
+const TOOL_RESULT_MAX_BYTES: usize = 50 * 1024; // 50KB
+
+/// Truncate a tool result string if it exceeds the safety net threshold.
+/// Returns the original string if within limits.
+fn truncate_if_needed(result: String) -> String {
+    if result.len() <= TOOL_RESULT_MAX_BYTES {
+        return result;
+    }
+    let truncated = tools::truncation::truncate_output(
+        &result,
+        tools::truncation::MAX_LINES,
+        TOOL_RESULT_MAX_BYTES,
+    );
+    truncated.content
+}
+
 /// A [`PromptHook`] that emits [`BridgeEvent`]s through the [`EventBus`]
 /// whenever the agent loop invokes a tool.
 ///
@@ -572,7 +592,9 @@ impl ToolCallEmitter {
             json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": tool_name}),
         ));
 
-        ToolCallHookAction::Skip { reason: result_str }
+        ToolCallHookAction::Skip {
+            reason: truncate_if_needed(result_str),
+        }
     }
 
     /// Handle a bash tool call with `background: true`.
@@ -677,7 +699,7 @@ impl ToolCallEmitter {
         ));
 
         ToolCallHookAction::Skip {
-            reason: result_json,
+            reason: truncate_if_needed(result_json),
         }
     }
 
@@ -784,7 +806,9 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
-            ToolCallHookAction::Skip { reason: result_str }
+            ToolCallHookAction::Skip {
+                reason: truncate_if_needed(result_str),
+            }
         } else {
             let result = ctx
                 .runner
@@ -816,7 +840,9 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
-            ToolCallHookAction::Skip { reason: result_str }
+            ToolCallHookAction::Skip {
+                reason: truncate_if_needed(result_str),
+            }
         }
     }
 
@@ -934,7 +960,9 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            ToolCallHookAction::Skip { reason: result_str }
+            ToolCallHookAction::Skip {
+                reason: truncate_if_needed(result_str),
+            }
         } else {
             let result = ctx
                 .runner
@@ -970,7 +998,9 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            ToolCallHookAction::Skip { reason: result_str }
+            ToolCallHookAction::Skip {
+                reason: truncate_if_needed(result_str),
+            }
         }
     }
 }

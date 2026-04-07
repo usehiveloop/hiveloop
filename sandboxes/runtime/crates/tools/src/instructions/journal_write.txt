@@ -1,0 +1,29 @@
+Write an entry to the conversation journal. The journal is a persistent log that survives context resets (chain handoffs). When the conversation's context window fills up, the history is reset but the journal carries forward into the new context.
+
+## When to Use This Tool
+
+Use this tool to record high-signal information that should survive a context reset:
+
+1. **Key decisions** — "We decided to use PostgreSQL because of its JSON support"
+2. **Important discoveries** — "The auth module has a race condition in session refresh"
+3. **User preferences** — "User wants terse responses, no trailing summaries"
+4. **Architectural choices** — "Chose event sourcing over CRUD for the order service"
+5. **Blockers or constraints** — "Cannot use Redis in this environment due to firewall rules"
+6. **Milestones** — "Completed migration of all API endpoints to v2"
+
+## When NOT to Use This Tool
+
+Do NOT journal routine information:
+
+- Tool call results (these are already in the conversation history)
+- Intermediate steps or progress updates
+- Information the user just told you (they'll repeat it if needed)
+- Code snippets or file contents (reference file paths instead)
+- Anything that's only relevant to the current turn
+
+## Guidelines
+
+- Keep entries concise (1-3 sentences)
+- Use the `category` field to tag entries: "decision", "discovery", "blocker", "progress", "preference"
+- Write 2-5 entries per conversation session, not every turn
+- Focus on the "why" not the "what" — decisions and rationale are more valuable than actions

@@ -56,6 +56,17 @@ pub struct RuntimeConfig {
     #[serde(default = "default_codedb_binary")]
     pub codedb_binary: String,
 
+    /// Enable auto-discovery of skills from .claude/skills/, .cursor/rules/,
+    /// .github/copilot-instructions.md, .windsurf/rules/, and .agent/skills/.
+    /// Configured via `BRIDGE_SKILL_DISCOVERY_ENABLED` env var.
+    #[serde(default)]
+    pub skill_discovery_enabled: bool,
+
+    /// Working directory for skill discovery. Defaults to current working directory.
+    /// Configured via `BRIDGE_SKILL_DISCOVERY_DIR` env var.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_discovery_dir: Option<String>,
+
     /// OpenTelemetry OTLP endpoint for trace export.
     /// When set, Bridge exports all spans via OTLP gRPC to this endpoint.
     /// Configured via `BRIDGE_OTEL_ENDPOINT` env var.
@@ -200,6 +211,8 @@ impl Default for RuntimeConfig {
             websocket_enabled: false,
             codedb_enabled: false,
             codedb_binary: default_codedb_binary(),
+            skill_discovery_enabled: false,
+            skill_discovery_dir: None,
             otel_endpoint: None,
             otel_service_name: default_otel_service_name(),
         }

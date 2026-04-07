@@ -13,6 +13,10 @@ pub struct Message {
     pub content: Vec<ContentBlock>,
     /// Timestamp when the message was created
     pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// Optional per-message system reminder injected by the control plane.
+    /// Wrapped in `<system-reminder>` tags and prepended to the user message.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_reminder: Option<String>,
 }
 
 /// Role of a message sender in a conversation.

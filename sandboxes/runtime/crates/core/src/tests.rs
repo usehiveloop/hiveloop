@@ -670,6 +670,7 @@ mod serde_roundtrip_tests {
                 text: "What is Rust?".to_string(),
             }],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize Message");
@@ -687,6 +688,7 @@ mod serde_roundtrip_tests {
                 arguments: serde_json::json!({"path": "/etc/hosts"}),
             })],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize");
@@ -704,6 +706,7 @@ mod serde_roundtrip_tests {
                 is_error: false,
             })],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize");
@@ -720,6 +723,7 @@ mod serde_roundtrip_tests {
                 data: "/9j/4AAQSkZJRg==".to_string(),
             }],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize");
@@ -742,6 +746,7 @@ mod serde_roundtrip_tests {
                 }),
             ],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize");
@@ -756,6 +761,7 @@ mod serde_roundtrip_tests {
             role: Role::System,
             content: vec![],
             timestamp: chrono::Utc::now(),
+            system_reminder: None,
         };
 
         let json = serde_json::to_string_pretty(&msg).expect("serialize");
@@ -963,6 +969,8 @@ mod serde_roundtrip_tests {
             websocket_enabled: false,
             codedb_enabled: false,
             codedb_binary: "codedb".to_string(),
+            skill_discovery_enabled: false,
+            skill_discovery_dir: None,
             otel_endpoint: None,
             otel_service_name: "bridge".to_string(),
         };

@@ -109,6 +109,25 @@ pub struct JournalWriteResult {
     pub total_entries: usize,
 }
 
+/// Result returned by the journal_read tool.
+#[derive(Debug, Serialize)]
+pub struct JournalReadResult {
+    pub entries: Vec<JournalEntryView>,
+    pub total: usize,
+}
+
+/// A journal entry as returned by the read tool.
+#[derive(Debug, Serialize)]
+pub struct JournalEntryView {
+    pub id: String,
+    pub chain_index: u32,
+    pub entry_type: String,
+    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    pub timestamp: String,
+}
+
 /// Built-in tool that allows the agent to write to a persistent journal.
 ///
 /// The journal survives conversation chain handoffs (context resets) and is
@@ -137,11 +156,7 @@ impl ToolExecutor for JournalWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Write an entry to the conversation journal. The journal is a persistent log that \
-         survives context resets. Use it to record key decisions, important discoveries, \
-         user preferences, or architectural choices — things that should not be lost if \
-         the conversation context is refreshed. Do NOT journal routine actions or tool \
-         results. Only write high-signal entries that capture insights or decisions."
+        include_str!("instructions/journal_write.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -170,6 +185,65 @@ impl ToolExecutor for JournalWriteTool {
         let result = JournalWriteResult {
             entry_id,
             total_entries,
+        };
+
+        serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+/// Built-in tool that reads the conversation journal (no parameters).
+pub struct JournalReadTool {
+    state: Arc<JournalState>,
+}
+
+impl JournalReadTool {
+    pub fn new(state: Arc<JournalState>) -> Self {
+        Self { state }
+    }
+}
+
+/// Empty args for journal_read — no parameters needed.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct JournalReadArgs {}
+
+#[async_trait]
+impl ToolExecutor for JournalReadTool {
+    fn name(&self) -> &str {
+        "journal_read"
+    }
+
+    fn description(&self) -> &str {
+        include_str!("instructions/journal_read.txt")
+    }
+
+    fn parameters_schema(&self) -> serde_json::Value {
+        serde_json::to_value(schemars::schema_for!(JournalReadArgs))
+            .unwrap_or_else(|_| serde_json::json!({}))
+    }
+
+    async fn execute(&self, _args: serde_json::Value) -> Result<String, String> {
+        let entries = self.state.entries().await;
+
+        let views: Vec<JournalEntryView> = entries
+            .iter()
+            .map(|e| JournalEntryView {
+                id: e.id.clone(),
+                chain_index: e.chain_index,
+                entry_type: e.entry_type.clone(),
+                content: e.content.clone(),
+                category: e.category.clone(),
+                timestamp: e.timestamp.to_rfc3339(),
+            })
+            .collect();
+
+        let total = views.len();
+        let result = JournalReadResult {
+            entries: views,
+            total,
         };
 
         serde_json::to_string(&result).map_err(|e| format!("Failed to serialize result: {e}"))

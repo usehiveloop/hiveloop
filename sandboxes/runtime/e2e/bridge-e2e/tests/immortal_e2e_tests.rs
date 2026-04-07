@@ -233,11 +233,11 @@ async fn test_chain_handoff_emits_events_and_continues() {
 }
 
 // ============================================================================
-// Test 2: journal_write tool is available and callable in immortal mode
+// Test 2: journal_write and journal_read tools are available in immortal mode
 // ============================================================================
 #[tokio::test]
 #[ignore]
-async fn test_journal_write_tool_available() {
+async fn test_journal_tools_available() {
     if !require_fireworks_key() {
         return;
     }
@@ -254,25 +254,39 @@ async fn test_journal_write_tool_available() {
         .expect("failed to clear webhook log");
 
     step!("Creating conversation for immortal-agent");
-    let turn = harness
-        .converse(
-            AGENT_ID,
-            None,
+    let create_resp = harness
+        .create_conversation(AGENT_ID)
+        .await
+        .expect("create_conversation failed");
+
+    let body: serde_json::Value = create_resp.json().await.expect("invalid json");
+    let conv_id = body["conversation_id"]
+        .as_str()
+        .expect("missing conversation_id")
+        .to_string();
+
+    harness.register_conversation(&conv_id, AGENT_ID).await;
+
+    // Ask the agent to write a journal entry
+    step!("Asking agent to write a journal entry");
+    harness
+        .send_message(
+            &conv_id,
             "Make a key architectural decision: we will use PostgreSQL for our database. \
              Write this decision to your journal using the journal_write tool, then confirm.",
-            LLM_TIMEOUT,
         )
         .await
-        .expect("conversation failed");
+        .expect("send_message failed");
 
-    check!(
-        !turn.response_text.is_empty(),
-        "response should not be empty"
-    );
+    let (events1, text1) = harness
+        .stream_sse_until_done(&conv_id, LLM_TIMEOUT)
+        .await
+        .expect("stream failed");
+
+    check!(!text1.is_empty(), "response should not be empty");
 
     // Check if journal_write was called
-    let journal_calls: Vec<_> = turn
-        .sse_events
+    let write_calls: Vec<_> = events1
         .iter()
         .filter(|e| {
             e.event_type == "tool_call_start"
@@ -284,16 +298,12 @@ async fn test_journal_write_tool_available() {
         })
         .collect();
 
-    step!("journal_write tool calls found: {}", journal_calls.len());
+    step!("journal_write tool calls found: {}", write_calls.len());
 
-    // The agent may or may not call the tool depending on the model's behavior.
-    // Log the result but don't hard-fail — the tool availability is verified by
-    // the agent not erroring when it tries to use it.
-    if journal_calls.is_empty() {
+    if write_calls.is_empty() {
         eprintln!("    Note: agent did not call journal_write (model-dependent behavior)");
     } else {
-        let journal_results: Vec<_> = turn
-            .sse_events
+        let write_results: Vec<_> = events1
             .iter()
             .filter(|e| {
                 e.event_type == "tool_call_result"
@@ -306,18 +316,70 @@ async fn test_journal_write_tool_available() {
             .collect();
 
         check!(
-            !journal_results.is_empty(),
+            !write_results.is_empty(),
             "journal_write should have completed successfully"
         );
-
-        let result_data = journal_results[0]
-            .data
-            .get("result")
-            .and_then(|v| v.as_str());
-        step!("journal_write result: {:?}", result_data);
+        step!("journal_write completed successfully");
     }
 
-    step!("PASS — journal_write tool is available in immortal mode");
+    // Now ask the agent to read the journal
+    step!("Asking agent to read journal entries");
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    harness
+        .send_message(
+            &conv_id,
+            "Read your journal using the journal_read tool and tell me what entries are there.",
+        )
+        .await
+        .expect("send_message failed");
+
+    let (events2, text2) = harness
+        .stream_sse_until_done(&conv_id, LLM_TIMEOUT)
+        .await
+        .expect("stream failed");
+
+    check!(
+        !text2.is_empty(),
+        "journal_read response should not be empty"
+    );
+
+    let read_calls: Vec<_> = events2
+        .iter()
+        .filter(|e| {
+            e.event_type == "tool_call_start"
+                && e.data
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .map(|n| n == "journal_read")
+                    .unwrap_or(false)
+        })
+        .collect();
+
+    step!("journal_read tool calls found: {}", read_calls.len());
+
+    if read_calls.is_empty() {
+        eprintln!("    Note: agent did not call journal_read (model-dependent behavior)");
+    } else {
+        let read_results: Vec<_> = events2
+            .iter()
+            .filter(|e| {
+                e.event_type == "tool_call_result"
+                    && e.data
+                        .get("tool_name")
+                        .and_then(|v| v.as_str())
+                        .map(|n| n == "journal_read")
+                        .unwrap_or(false)
+            })
+            .collect();
+
+        check!(
+            !read_results.is_empty(),
+            "journal_read should have completed successfully"
+        );
+        step!("journal_read completed successfully");
+    }
+
+    step!("PASS — journal_write and journal_read tools are available in immortal mode");
 }
 
 // ============================================================================
