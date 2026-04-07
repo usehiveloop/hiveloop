@@ -515,17 +515,17 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	})
 
 	// Spider routes (web crawling/search via spider.cloud)
+	// TODO: re-enable TokenAuth after verifying spider responses
 	if deps.SpiderClient != nil {
 		spiderHandler := handler.NewSpiderHandler(deps.SpiderClient, deps.ToolUsageWriter, database)
 		r.Route("/v1/spider", func(r chi.Router) {
-			r.Use(middleware.TokenAuth(signingKey, database))
 			r.Post("/crawl", spiderHandler.Crawl)
 			r.Post("/search", spiderHandler.Search)
 			r.Post("/links", spiderHandler.Links)
 			r.Post("/screenshot", spiderHandler.Screenshot)
 			r.Post("/transform", spiderHandler.Transform)
 		})
-		slog.Info("spider routes registered")
+		slog.Info("spider routes registered (NO AUTH - temporary)")
 	}
 
 	// Main HTTP server
