@@ -515,10 +515,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	})
 
 	// Spider routes (web crawling/search via spider.cloud)
+	// Mounted at /spider (not /v1/spider) to avoid the /v1 org-auth middleware group.
 	// TODO: re-enable TokenAuth after verifying spider responses
 	if deps.SpiderClient != nil {
 		spiderHandler := handler.NewSpiderHandler(deps.SpiderClient, deps.ToolUsageWriter, database)
-		r.Route("/v1/spider", func(r chi.Router) {
+		r.Route("/spider", func(r chi.Router) {
 			r.Post("/crawl", spiderHandler.Crawl)
 			r.Post("/search", spiderHandler.Search)
 			r.Post("/links", spiderHandler.Links)
