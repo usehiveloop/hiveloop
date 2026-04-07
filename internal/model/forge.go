@@ -7,13 +7,15 @@ import (
 )
 
 // Forge status constants.
+// Flow: gathering_context → queued → provisioning → running → completed|failed|cancelled.
 const (
-	ForgeStatusQueued       = "queued"
-	ForgeStatusProvisioning = "provisioning"
-	ForgeStatusRunning      = "running"
-	ForgeStatusCompleted    = "completed"
-	ForgeStatusFailed       = "failed"
-	ForgeStatusCancelled    = "cancelled"
+	ForgeStatusGatheringContext = "gathering_context"
+	ForgeStatusQueued           = "queued"
+	ForgeStatusProvisioning     = "provisioning"
+	ForgeStatusRunning          = "running"
+	ForgeStatusCompleted        = "completed"
+	ForgeStatusFailed           = "failed"
+	ForgeStatusCancelled        = "cancelled"
 )
 
 // Forge iteration phase constants.
@@ -81,7 +83,13 @@ type ForgeRun struct {
 	PassThreshold    float64 `gorm:"type:numeric(5,2);not null;default:0.80" json:"pass_threshold"`
 	ConvergenceLimit int     `gorm:"not null;default:3" json:"convergence_limit"` // stop after N stagnant iterations
 
-	// State machine: queued → provisioning → running → completed|failed|cancelled.
+	// Context gathering — conversational requirements before forge runs.
+	Context                 RawJSON    `gorm:"type:jsonb" json:"context,omitempty"`
+	ContextConversationID   *uuid.UUID `gorm:"type:uuid" json:"context_conversation_id,omitempty"`
+	ContextGathererAgentID  string     `gorm:"default:''" json:"-"`
+	ContextGathererTokenJTI string     `gorm:"default:''" json:"-"`
+
+	// State machine: gathering_context → queued → provisioning → running → completed|failed|cancelled.
 	Status           string   `gorm:"not null;default:'queued'" json:"status"`
 	CurrentIteration int      `gorm:"not null;default:0" json:"current_iteration"`
 	FinalScore       *float64 `gorm:"type:numeric(5,2)" json:"final_score,omitempty"`

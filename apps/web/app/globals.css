@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "streamdown/styles.css";
+
+@source "../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -129,4 +132,12 @@
   html {
     @apply font-sans;
     }
+}
+
+[data-streamdown="unordered-list"] {
+  padding-left: 14px;
+}
+
+[data-streamdown="heading-2"] {
+  font-size: 16px;
 }

@@ -76,6 +76,73 @@ type RubricScore struct {
 	Explanation     string  `json:"explanation"`
 }
 
+// ForgeContext holds the structured requirements gathered from the user
+// during the context-gathering conversation before forge begins.
+type ForgeContext struct {
+	RequirementsSummary string               `json:"requirements_summary"`
+	SuccessCriteria     []string             `json:"success_criteria"`
+	EdgeCases           []string             `json:"edge_cases,omitempty"`
+	ToneAndStyle        string               `json:"tone_and_style,omitempty"`
+	Constraints         []string             `json:"constraints,omitempty"`
+	ExampleInteractions []ExampleInteraction  `json:"example_interactions,omitempty"`
+	PriorityFocus       string               `json:"priority_focus,omitempty"`
+}
+
+// ExampleInteraction is a sample user↔agent exchange provided during context gathering.
+type ExampleInteraction struct {
+	User             string `json:"user"`
+	ExpectedResponse string `json:"expected_response"`
+}
+
+// StartForgeToolSchema returns the JSON Schema for the start_forge MCP tool.
+func StartForgeToolSchema() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"requirements_summary": map[string]any{
+				"type":        "string",
+				"description": "Concise summary of what the agent should do",
+			},
+			"success_criteria": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Specific, testable success criteria",
+			},
+			"edge_cases": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Edge cases the agent should handle",
+			},
+			"tone_and_style": map[string]any{
+				"type":        "string",
+				"description": "Desired tone, voice, and communication style",
+			},
+			"constraints": map[string]any{
+				"type":        "array",
+				"items":       map[string]any{"type": "string"},
+				"description": "Things the agent must NOT do",
+			},
+			"example_interactions": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"user":              map[string]any{"type": "string"},
+						"expected_response": map[string]any{"type": "string"},
+					},
+					"required": []string{"user", "expected_response"},
+				},
+				"description": "Example user messages and expected agent responses",
+			},
+			"priority_focus": map[string]any{
+				"type":        "string",
+				"description": "What matters most: accuracy, safety, speed, personality, etc.",
+			},
+		},
+		"required": []string{"requirements_summary", "success_criteria"},
+	}
+}
+
 // JSON Schema definitions for Bridge's AgentConfig.JsonSchema.
 
 // ArchitectSchema returns the JSON Schema for ArchitectOutput.

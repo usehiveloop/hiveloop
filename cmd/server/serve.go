@@ -80,6 +80,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail)
+	if cfg.PlatformAdminEmails != "" {
+		authHandler.SetPlatformAdminEmails(strings.Split(cfg.PlatformAdminEmails, ","))
+	}
 	if cfg.AdminAPIEnabled && cfg.PlatformAdminEmails != "" {
 		authHandler.SetAdminMode(strings.Split(cfg.PlatformAdminEmails, ","))
 	}
@@ -102,10 +105,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	var forgeHandler *handler.ForgeHandler
 	var systemConvHandler *handler.SystemConversationHandler
 	forgeMCPHandler := forge.NewForgeMCPHandler(database)
+	var forgeCtrl *forge.ForgeController
 	if orchestrator != nil && agentPusher != nil {
 		conversationHandler = handler.NewConversationHandler(database, orchestrator, agentPusher, eventBus)
+		if enqueuer != nil {
+			conversationHandler.SetEnqueuer(enqueuer)
+		}
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
-		forgeCtrl := forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global(), cfg.AsynqRedisOpt())
+		forgeCtrl = forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global(), cfg.AsynqRedisOpt())
 		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus, enqueuer)
 		slog.Info("forge controller ready")
 	}
@@ -124,6 +131,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		pusherForHandler = agentPusher
 	}
 	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
+	if forgeCtrl != nil {
+		agentHandler.SetForgeController(forgeCtrl)
+	}
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
 	// Router
@@ -409,7 +419,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	// Admin API
 	if cfg.AdminAPIEnabled {
-		adminHandler := handler.NewAdminHandler(database, orchestrator, nangoClient, actionsCatalog)
+		adminHandler := handler.NewAdminHandler(database, orchestrator, nangoClient, actionsCatalog,
+			rsaKey, signingKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL)
 		r.Route("/admin/v1", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 			r.Use(middleware.RequireEmailConfirmed(database))
@@ -425,6 +436,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Post("/users/{id}/unban", adminHandler.UnbanUser)
 			r.Post("/users/{id}/confirm-email", adminHandler.ConfirmUserEmail)
 			r.Delete("/users/{id}", adminHandler.DeleteUser)
+			r.Post("/users/{id}/impersonate", adminHandler.Impersonate)
 			r.Get("/orgs", adminHandler.ListOrgs)
 			r.Get("/orgs/{id}", adminHandler.GetOrg)
 			r.Put("/orgs/{id}", adminHandler.UpdateOrgFull)
@@ -502,6 +514,20 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/*", proxyHandler)
 	})
 
+	// Spider routes (web crawling/search via spider.cloud)
+	if deps.SpiderClient != nil {
+		spiderHandler := handler.NewSpiderHandler(deps.SpiderClient, deps.ToolUsageWriter, database)
+		r.Route("/v1/spider", func(r chi.Router) {
+			r.Use(middleware.TokenAuth(signingKey, database))
+			r.Post("/crawl", spiderHandler.Crawl)
+			r.Post("/search", spiderHandler.Search)
+			r.Post("/links", spiderHandler.Links)
+			r.Post("/screenshot", spiderHandler.Screenshot)
+			r.Post("/transform", spiderHandler.Transform)
+		})
+		slog.Info("spider routes registered")
+	}
+
 	// Main HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -543,6 +569,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/", forgeMCPHandler.StreamableHTTPHandler())
 	})
 	slog.Info("forge MCP tools registered on /forge/{forgeRunID}")
+
+	forgeContextMCPHandler := forge.NewForgeContextMCPHandler(database)
+	mcpRouter.Route("/forge-context/{forgeRunID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", forgeContextMCPHandler.StreamableHTTPHandler())
+		r.Handle("/", forgeContextMCPHandler.StreamableHTTPHandler())
+	})
+	slog.Info("forge context MCP registered on /forge-context/{forgeRunID}")
 
 	mcpRouter.Route("/{jti}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
@@ -591,6 +625,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	auditWriter.Shutdown(shutdownCtx)
 	generationWriter.Shutdown(shutdownCtx)
+	if deps.ToolUsageWriter != nil {
+		deps.ToolUsageWriter.Shutdown(shutdownCtx)
+	}
 
 	slog.Info("serve shutdown complete")
 	return nil

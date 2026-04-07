@@ -4300,7 +4300,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a single agent by ID.",
+                "description": "Returns a single agent by ID, including the latest forge run if one exists.",
                 "produces": [
                     "application/json"
                 ],
@@ -10163,6 +10163,9 @@ const docTemplate = `{
                 "forward_webhooks": {
                     "type": "boolean"
                 },
+                "installation": {
+                    "type": "string"
+                },
                 "logo": {
                     "type": "string"
                 },
@@ -11125,6 +11128,15 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "forge_conversation_id": {
+                    "type": "string"
+                },
+                "forge_run": {
+                    "$ref": "#/definitions/internal_handler.forgeRunResponse"
+                },
+                "forge_run_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -11546,7 +11558,22 @@ const docTemplate = `{
         "internal_handler.conversationEventResponse": {
             "type": "object",
             "properties": {
+                "agent_id": {
+                    "type": "string"
+                },
+                "bridge_conversation_id": {
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "event_id": {
                     "type": "string"
                 },
                 "event_type": {
@@ -11555,8 +11582,11 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "payload": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                "sequence_number": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
                 }
             }
         },
@@ -11637,6 +11667,14 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "forge": {
+                    "description": "triggers forge context gathering on create",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_handler.forgeOptions"
+                        }
+                    ]
                 },
                 "identity_id": {
                     "type": "string"
@@ -12068,6 +12106,17 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.forgeOptions": {
+            "type": "object",
+            "properties": {
+                "judge_credential_id": {
+                    "type": "string"
+                },
+                "judge_model": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.forgeRunResponse": {
             "type": "object",
             "properties": {
@@ -12075,6 +12124,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "completed_at": {
+                    "type": "string"
+                },
+                "context_conversation_id": {
+                    "type": "string"
+                },
+                "context_conversation_stream_url": {
                     "type": "string"
                 },
                 "convergence_limit": {

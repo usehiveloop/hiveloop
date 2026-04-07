@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -311,11 +312,8 @@ func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agen
 		},
 	}
 
-	// Set config if present
-	agentConfig := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
-	if agentConfig != nil {
-		def.Config = agentConfig
-	}
+	// Set config with defaults for any unspecified fields
+	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
 
 	// Set tools if present
 	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
@@ -409,11 +407,8 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 		},
 	}
 
-	// Set config if present
-	agentConfig := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
-	if agentConfig != nil {
-		def.Config = agentConfig
-	}
+	// Set config with defaults for any unspecified fields
+	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), cred.ProviderID, agent.Model)
 
 	// Set permissions if present
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
@@ -524,4 +519,77 @@ func decodeJSONAs[T any](j model.JSON) *T {
 		return nil
 	}
 	return &result
+}
+
+// applyAgentConfigDefaults fills in sensible defaults for any AgentConfig fields
+// the user did not explicitly set. The providerID and model are used to pick
+// the best default temperature for the specific LLM.
+func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {
+	if cfg == nil {
+		cfg = &bridgepkg.AgentConfig{}
+	}
+
+	setDefault := func(ptr **int32, val int32) {
+		if *ptr == nil {
+			*ptr = &val
+		}
+	}
+
+	setDefault(&cfg.MaxTokens, 8192)
+	setDefault(&cfg.MaxTurns, 250)
+	setDefault(&cfg.MaxTasksPerConversation, 50)
+	setDefault(&cfg.MaxConcurrentConversations, 100)
+
+	if cfg.Temperature == nil {
+		temp := defaultTemperature(providerID, modelName)
+		cfg.Temperature = &temp
+	}
+
+	return cfg
+}
+
+// defaultTemperature returns the recommended default temperature for a given
+// provider/model combination based on each provider's official guidance.
+func defaultTemperature(providerID, modelName string) float64 {
+	// Check model-specific overrides first (reasoning/thinking models).
+	// We always default to thinking-mode temperatures for best reasoning output.
+	if strings.Contains(modelName, "kimi") {
+		// Kimi K2 Thinking mode recommends 1.0.
+		return 1.0
+	}
+	if strings.Contains(modelName, "deepseek-r1") || strings.Contains(modelName, "deepseek-reasoner") {
+		// DeepSeek R1 recommends 0.6 for thinking mode.
+		return 0.6
+	}
+	if strings.Contains(modelName, "o1") || strings.Contains(modelName, "o3") || strings.Contains(modelName, "o4") {
+		// OpenAI reasoning models ignore temperature; pass 1.0 (their default).
+		return 1.0
+	}
+
+	// Provider-level defaults based on official documentation.
+	switch providerID {
+	case "anthropic":
+		// Anthropic defaults to 1.0; range 0-1.
+		return 1.0
+	case "google":
+		// Google recommends keeping Gemini at 1.0.
+		return 1.0
+	case "openai":
+		// OpenAI defaults to 1.0.
+		return 1.0
+	case "deepseek":
+		// DeepSeek V3 API maps 1.0 → internal 0.3. Sending 1.0 is correct.
+		return 1.0
+	case "cohere":
+		// Cohere defaults to 0.3.
+		return 0.3
+	case "xai":
+		// xAI Grok defaults to 0.7 in most integrations.
+		return 0.7
+	case "mistral":
+		// Mistral recommends 0.7 for general use.
+		return 0.7
+	default:
+		return 0.7
+	}
 }

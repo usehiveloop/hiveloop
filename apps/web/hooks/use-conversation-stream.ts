@@ -20,6 +20,24 @@ async function fetchStreamToken(): Promise<StreamToken> {
   return res.json()
 }
 
+export interface StreamMessage {
+  id: string
+  role: "user" | "agent" | "error"
+  content: string
+  messageId?: string
+  timestamp: string
+  model?: string
+  inputTokens?: number
+  outputTokens?: number
+}
+
+export interface TokenStats {
+  inputTokens: number
+  outputTokens: number
+  model?: string
+  turnNumber?: number
+}
+
 /**
  * Hook for streaming conversation events via SSE directly from the backend.
  *
@@ -29,7 +47,11 @@ async function fetchStreamToken(): Promise<StreamToken> {
 export function useConversationStream(conversationId: string | null) {
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [messages, setMessages] = useState<StreamMessage[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [tokenStats, setTokenStats] = useState<TokenStats>({ inputTokens: 0, outputTokens: 0 })
   const abortRef = useRef<AbortController | null>(null)
+  const streamingMessageIdRef = useRef<string | null>(null)
 
   const {
     data: token,
@@ -44,6 +66,16 @@ export function useConversationStream(conversationId: string | null) {
     retry: 1,
   })
 
+  const addUserMessage = useCallback((content: string) => {
+    const message: StreamMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, message])
+  }, [])
+
   const disconnect = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
@@ -57,6 +89,10 @@ export function useConversationStream(conversationId: string | null) {
     }
 
     setError(null)
+    setMessages([])
+    setTokenStats({ inputTokens: 0, outputTokens: 0 })
+    setIsStreaming(false)
+    streamingMessageIdRef.current = null
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -71,28 +107,154 @@ export function useConversationStream(conversationId: string | null) {
       },
       onopen: async (response) => {
         if (response.ok) {
-          console.log("[stream] connected", conversationId)
           setConnected(true)
         } else {
-          console.error("[stream] open failed", response.status, response.statusText)
           setError(`Stream failed: ${response.status}`)
           throw new Error(`Stream open failed: ${response.status}`)
         }
       },
       onmessage: (event) => {
-        console.log("[stream] event", event.event, event.data)
+        if (!event.data) return
+
+        let parsed: {
+          event_type: string
+          data: Record<string, unknown>
+          timestamp: string
+          event_id: string
+        }
+        try {
+          parsed = JSON.parse(event.data)
+        } catch {
+          return
+        }
+
+        const { event_type, data, timestamp, event_id } = parsed
+
+        switch (event_type) {
+          case "message_received": {
+            const content = data.content as string
+            if (content) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: event_id,
+                  role: "user",
+                  content,
+                  timestamp,
+                },
+              ])
+            }
+            break
+          }
+
+          case "response_started": {
+            const messageId = data.message_id as string
+            streamingMessageIdRef.current = messageId
+            setIsStreaming(true)
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: event_id,
+                role: "agent",
+                content: "",
+                messageId,
+                timestamp,
+              },
+            ])
+            break
+          }
+
+          case "response_chunk": {
+            const delta = data.delta as string
+            const messageId = data.message_id as string
+            if (!delta) break
+
+            setMessages((prev) => {
+              const idx = prev.findLastIndex(
+                (msg) => msg.role === "agent" && msg.messageId === messageId,
+              )
+              if (idx === -1) return prev
+
+              const updated = [...prev]
+              updated[idx] = { ...updated[idx], content: updated[idx].content + delta }
+              return updated
+            })
+            break
+          }
+
+          case "response_completed": {
+            const messageId = data.message_id as string
+            const fullResponse = data.full_response as string | undefined
+            const inputTokens = data.input_tokens as number | undefined
+            const outputTokens = data.output_tokens as number | undefined
+            const model = data.model as string | undefined
+
+            setMessages((prev) => {
+              const idx = prev.findLastIndex(
+                (msg) => msg.role === "agent" && msg.messageId === messageId,
+              )
+              if (idx === -1) return prev
+
+              const updated = [...prev]
+              const existing = updated[idx]
+              updated[idx] = {
+                ...existing,
+                // Use full_response as fallback if chunks were missed
+                content: existing.content || fullResponse || "",
+                inputTokens,
+                outputTokens,
+                model,
+              }
+              return updated
+            })
+
+            streamingMessageIdRef.current = null
+            setIsStreaming(false)
+            break
+          }
+
+          case "turn_completed": {
+            setTokenStats({
+              inputTokens: (data.cumulative_input_tokens as number) ?? 0,
+              outputTokens: (data.cumulative_output_tokens as number) ?? 0,
+              model: data.model as string | undefined,
+              turnNumber: data.turn_number as number | undefined,
+            })
+            break
+          }
+
+          case "agent_error": {
+            const errorData = data as { message?: string; code?: string }
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: event_id,
+                role: "error",
+                content: errorData.message ?? "An unknown error occurred",
+                timestamp,
+              },
+            ])
+            streamingMessageIdRef.current = null
+            setIsStreaming(false)
+            break
+          }
+
+          case "done": {
+            setIsStreaming(false)
+            streamingMessageIdRef.current = null
+            break
+          }
+        }
       },
       onerror: (err) => {
-        console.error("[stream] error", err)
         if (!ctrl.signal.aborted) {
           setError(err instanceof Error ? err.message : "Stream connection lost")
         }
-        // Returning throws to stop retry
         throw err
       },
       onclose: () => {
-        console.log("[stream] closed", conversationId)
         setConnected(false)
+        setIsStreaming(false)
       },
     }).catch(() => {
       // fetchEventSource throws when we throw in onerror — that's intentional
@@ -114,5 +276,9 @@ export function useConversationStream(conversationId: string | null) {
     connected,
     connecting: tokenLoading && conversationId !== null,
     error,
+    messages,
+    isStreaming,
+    tokenStats,
+    addUserMessage,
   }
 }

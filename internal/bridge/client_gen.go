@@ -261,6 +261,15 @@ type AgentConfig struct {
 
 	// Temperature Temperature for LLM sampling
 	Temperature *float64 `json:"temperature,omitempty"`
+
+	// MaxTasksPerConversation Maximum tasks per conversation
+	MaxTasksPerConversation *int32 `json:"max_tasks_per_conversation,omitempty"`
+
+	// MaxConcurrentConversations Maximum concurrent conversations
+	MaxConcurrentConversations *int32 `json:"max_concurrent_conversations,omitempty"`
+
+	// ToolCallsOnly Only allow tool calls, no text responses
+	ToolCallsOnly *bool `json:"tool_calls_only,omitempty"`
 }
 
 // AgentDefinition Complete definition of an AI agent fetched from the control plane.

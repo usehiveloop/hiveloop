@@ -183,6 +183,8 @@ definitions:
         type: string
       forward_webhooks:
         type: boolean
+      installation:
+        type: string
       logo:
         type: string
       setup_guide_url:
@@ -812,6 +814,12 @@ definitions:
         type: string
       description:
         type: string
+      forge_conversation_id:
+        type: string
+      forge_run:
+        $ref: '#/definitions/internal_handler.forgeRunResponse'
+      forge_run_id:
+        type: string
       id:
         type: string
       identity_id:
@@ -1087,14 +1095,26 @@ definitions:
     type: object
   internal_handler.conversationEventResponse:
     properties:
+      agent_id:
+        type: string
+      bridge_conversation_id:
+        type: string
       created_at:
+        type: string
+      data:
+        items:
+          type: integer
+        type: array
+      event_id:
         type: string
       event_type:
         type: string
       id:
         type: string
-      payload:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      sequence_number:
+        type: integer
+      timestamp:
+        type: string
     type: object
   internal_handler.conversationResponse:
     properties:
@@ -1147,6 +1167,10 @@ definitions:
         type: string
       description:
         type: string
+      forge:
+        allOf:
+        - $ref: '#/definitions/internal_handler.forgeOptions'
+        description: triggers forge context gathering on create
       identity_id:
         type: string
       instructions:
@@ -1426,11 +1450,22 @@ definitions:
       run:
         $ref: '#/definitions/internal_handler.forgeRunResponse'
     type: object
+  internal_handler.forgeOptions:
+    properties:
+      judge_credential_id:
+        type: string
+      judge_model:
+        type: string
+    type: object
   internal_handler.forgeRunResponse:
     properties:
       agent_id:
         type: string
       completed_at:
+        type: string
+      context_conversation_id:
+        type: string
+      context_conversation_stream_url:
         type: string
       convergence_limit:
         type: integer
@@ -5556,7 +5591,8 @@ paths:
       tags:
       - agents
     get:
-      description: Returns a single agent by ID.
+      description: Returns a single agent by ID, including the latest forge run if
+        one exists.
       parameters:
       - description: Agent ID
         in: path

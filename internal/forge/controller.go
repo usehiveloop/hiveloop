@@ -82,6 +82,21 @@ type ForgeController struct {
 	inspector    *asynq.Inspector // for cancelling tasks
 }
 
+func defaultAgentConfig() *bridgepkg.AgentConfig {
+	maxTokens := int32(8192)
+	maxTurns := int32(250)
+	temperature := 0.7
+	maxTasks := int32(50)
+	maxConcurrent := int32(100)
+	return &bridgepkg.AgentConfig{
+		MaxTokens:                  &maxTokens,
+		MaxTurns:                   &maxTurns,
+		Temperature:                &temperature,
+		MaxTasksPerConversation:    &maxTasks,
+		MaxConcurrentConversations: &maxConcurrent,
+	}
+}
+
 // NewForgeController creates a forge controller.
 func NewForgeController(
 	db *gorm.DB,
@@ -138,6 +153,116 @@ func (fc *ForgeController) Cancel(runID uuid.UUID) bool {
 		fc.cancelRun(runID)
 	}
 	return true
+}
+
+// ContextGatheringResult is returned by SetupContextGathering with the IDs
+// the frontend needs to connect to the conversation.
+type ContextGatheringResult struct {
+	ForgeRunID     uuid.UUID
+	ConversationID string // Bridge conversation ID
+}
+
+// SetupContextGathering creates a ForgeRun in gathering_context status,
+// provisions the forge-context-gatherer system agent, creates a Bridge
+// conversation, and sends an initial message with the target agent's details.
+//
+// Called by the agent handler when an agent is created with forge=true.
+func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *model.Agent, cred *model.Credential, forgeRun *model.ForgeRun) (*ContextGatheringResult, error) {
+	log := slog.With("agent_id", agent.ID, "forge_run_id", forgeRun.ID)
+
+	// Determine provider group and load the context-gatherer system agent.
+	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID)
+	agentName := fmt.Sprintf("forge-context-gatherer-%s", providerGroup)
+	gathererAgent, err := fc.loadSystemAgent(agentName)
+	if err != nil {
+		return nil, fmt.Errorf("loading context gatherer agent: %w", err)
+	}
+
+	// Provision the system agent (sandbox + push to Bridge).
+	client, err := fc.ensureSystemAgentReady(ctx, gathererAgent)
+	if err != nil {
+		return nil, fmt.Errorf("provisioning context gatherer: %w", err)
+	}
+
+	// Mint a proxy token using the agent's credential.
+	proxyToken, jti, err := fc.mintToken(forgeRun.OrgID, cred.ID)
+	if err != nil {
+		return nil, fmt.Errorf("minting context gatherer token: %w", err)
+	}
+	_ = proxyToken // TODO: pass as per-conversation auth override when Bridge supports it
+
+	// Create Bridge conversation.
+	convResp, err := client.CreateConversation(ctx, gathererAgent.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("creating context conversation: %w", err)
+	}
+	convID := convResp.ConversationId
+
+	// Send the initial message with agent details.
+	initialMsg := buildContextGatheringMessage(agent)
+	if err := client.SendMessage(ctx, convID, initialMsg); err != nil {
+		log.Warn("forge: failed to send initial context message", "error", err)
+		// Non-fatal — the conversation exists, the user can still chat.
+	}
+
+	// Save conversation record so the frontend can stream from it.
+	agentConv := model.AgentConversation{
+		OrgID:                 forgeRun.OrgID,
+		AgentID:               gathererAgent.ID,
+		SandboxID:             *gathererAgent.SandboxID,
+		BridgeConversationID:  convID,
+		Status:                "active",
+	}
+	if err := fc.db.Create(&agentConv).Error; err != nil {
+		return nil, fmt.Errorf("saving context conversation record: %w", err)
+	}
+
+	// Update ForgeRun with context gathering state.
+	fc.db.Model(forgeRun).Updates(map[string]any{
+		"context_conversation_id":    agentConv.ID,
+		"context_gatherer_agent_id":  gathererAgent.ID.String(),
+		"context_gatherer_token_jti": jti,
+	})
+
+	log.Info("forge: context gathering conversation created",
+		"conversation_id", convID,
+		"gatherer_agent", agentName,
+	)
+
+	return &ContextGatheringResult{
+		ForgeRunID:     forgeRun.ID,
+		ConversationID: agentConv.ID.String(),
+	}, nil
+}
+
+// buildContextGatheringMessage creates the initial message sent to the context
+// gatherer agent with the target agent's details.
+func buildContextGatheringMessage(agent *model.Agent) string {
+	msg := fmt.Sprintf(`Here is the agent you'll be helping to optimize:
+
+**Agent Name:** %s`, agent.Name)
+
+	if agent.Description != nil && *agent.Description != "" {
+		msg += fmt.Sprintf("\n**Description:** %s", *agent.Description)
+	}
+
+	if agent.SystemPrompt != "" {
+		msg += fmt.Sprintf("\n\n**Current System Prompt:**\n%s", agent.SystemPrompt)
+	}
+
+	if len(agent.Tools) > 0 {
+		toolsJSON, _ := json.MarshalIndent(agent.Tools, "", "  ")
+		msg += fmt.Sprintf("\n\n**Current Tools:**\n```json\n%s\n```", string(toolsJSON))
+	}
+
+	if len(agent.Integrations) > 0 {
+		intJSON, _ := json.MarshalIndent(agent.Integrations, "", "  ")
+		msg += fmt.Sprintf("\n\n**Integrations:**\n```json\n%s\n```", string(intJSON))
+	}
+
+	msg += "\n\nPlease greet the user and begin gathering requirements for improving this agent."
+
+	return msg
 }
 
 // run is the main forge orchestration loop.
@@ -657,6 +782,7 @@ func (fc *ForgeController) runIteration(
 			BaseUrl:      &proxyBaseURL,
 		},
 		McpServers: &mcpServers,
+		Config:     defaultAgentConfig(),
 	}
 
 	// Get a pool sandbox for the eval-target and push the agent.
@@ -1072,6 +1198,45 @@ Agent Name: %s`, run.Agent.Name)
 			toolsJSON, _ := json.Marshal(run.Agent.Tools)
 			if string(toolsJSON) != "{}" && string(toolsJSON) != "[]" {
 				msg += fmt.Sprintf("\n\nCurrent Tools:\n%s", string(toolsJSON))
+			}
+		}
+
+		// Inject user-provided context from context-gathering conversation.
+		if len(run.Context) > 0 {
+			var ctx ForgeContext
+			if json.Unmarshal(run.Context, &ctx) == nil {
+				msg += "\n\n## User-Provided Requirements\n"
+				msg += fmt.Sprintf("\n**Summary:** %s", ctx.RequirementsSummary)
+				if len(ctx.SuccessCriteria) > 0 {
+					msg += "\n\n**Success Criteria:**"
+					for _, criterion := range ctx.SuccessCriteria {
+						msg += fmt.Sprintf("\n- %s", criterion)
+					}
+				}
+				if len(ctx.EdgeCases) > 0 {
+					msg += "\n\n**Edge Cases:**"
+					for _, edgeCase := range ctx.EdgeCases {
+						msg += fmt.Sprintf("\n- %s", edgeCase)
+					}
+				}
+				if ctx.ToneAndStyle != "" {
+					msg += fmt.Sprintf("\n\n**Tone & Style:** %s", ctx.ToneAndStyle)
+				}
+				if len(ctx.Constraints) > 0 {
+					msg += "\n\n**Constraints:**"
+					for _, constraint := range ctx.Constraints {
+						msg += fmt.Sprintf("\n- %s", constraint)
+					}
+				}
+				if len(ctx.ExampleInteractions) > 0 {
+					msg += "\n\n**Example Interactions:**"
+					for _, example := range ctx.ExampleInteractions {
+						msg += fmt.Sprintf("\nUser: %q\nExpected: %q\n", example.User, example.ExpectedResponse)
+					}
+				}
+				if ctx.PriorityFocus != "" {
+					msg += fmt.Sprintf("\n\n**Priority Focus:** %s", ctx.PriorityFocus)
+				}
 			}
 		}
 

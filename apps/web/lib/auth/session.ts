@@ -2,6 +2,8 @@ import { cookies } from "next/headers"
 import { log } from "@/lib/logger"
 
 const COOKIE_NAME = "__session"
+const BACKUP_COOKIE_NAME = "__session_backup"
+const IMPERSONATING_COOKIE_NAME = "__impersonating"
 const MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 export type SessionData = {
@@ -141,4 +143,45 @@ export function stripSessionCookie(cookieHeader: string): string {
     .map((c) => c.trim())
     .filter((c) => !c.startsWith(`${COOKIE_NAME}=`))
     .join("; ")
+}
+
+// ---------------------------------------------------------------------------
+// Impersonation helpers
+// ---------------------------------------------------------------------------
+
+export type ImpersonatingInfo = {
+  userId: string
+  email: string
+  name: string
+}
+
+export async function createBackupSessionCookie(data: SessionData): Promise<string> {
+  const value = await encrypt(data)
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""
+  return `${BACKUP_COOKIE_NAME}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${MAX_AGE}${secure}`
+}
+
+export async function getBackupSession(): Promise<SessionData | null> {
+  const store = await cookies()
+  const cookie = store.get(BACKUP_COOKIE_NAME)
+  if (!cookie?.value) return null
+  return decrypt(cookie.value)
+}
+
+export function clearBackupSessionCookie(): string {
+  return `${BACKUP_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`
+}
+
+export function createImpersonatingCookie(info: ImpersonatingInfo): string {
+  const value = encodeURIComponent(JSON.stringify(info))
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""
+  return `${IMPERSONATING_COOKIE_NAME}=${value}; SameSite=Lax; Path=/; Max-Age=${MAX_AGE}${secure}`
+}
+
+export function clearImpersonatingCookie(): string {
+  return `${IMPERSONATING_COOKIE_NAME}=; SameSite=Lax; Path=/; Max-Age=0`
+}
+
+export function getImpersonatingCookieName(): string {
+  return IMPERSONATING_COOKIE_NAME
 }

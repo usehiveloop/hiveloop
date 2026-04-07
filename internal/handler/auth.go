@@ -79,6 +79,20 @@ func (h *AuthHandler) SetAdminMode(emails []string) {
 	}
 }
 
+// SetPlatformAdminEmails records which emails are platform admins so that
+// /auth/me can return is_platform_admin without enabling admin-only login mode.
+func (h *AuthHandler) SetPlatformAdminEmails(emails []string) {
+	if h.platformAdminEmails == nil {
+		h.platformAdminEmails = make(map[string]bool, len(emails))
+	}
+	for _, e := range emails {
+		trimmed := strings.TrimSpace(e)
+		if trimmed != "" {
+			h.platformAdminEmails[trimmed] = true
+		}
+	}
+}
+
 // StartCleanup starts a background goroutine that evicts stale login attempts
 // every 5 minutes. The goroutine stops when ctx is cancelled.
 func (h *AuthHandler) StartCleanup(ctx context.Context) {
@@ -148,8 +162,9 @@ type orgMemberDTO struct {
 }
 
 type meResponse struct {
-	User userResponse   `json:"user"`
-	Orgs []orgMemberDTO `json:"orgs"`
+	User            userResponse   `json:"user"`
+	Orgs            []orgMemberDTO `json:"orgs"`
+	IsPlatformAdmin bool           `json:"is_platform_admin"`
 }
 
 type statusResponse struct {
@@ -514,6 +529,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	isPlatformAdmin := len(h.platformAdminEmails) > 0 && h.platformAdminEmails[user.Email]
+
 	writeJSON(w, http.StatusOK, meResponse{
 		User: userResponse{
 			ID:             user.ID.String(),
@@ -521,7 +538,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			Name:           user.Name,
 			EmailConfirmed: user.EmailConfirmedAt != nil,
 		},
-		Orgs: orgs,
+		Orgs:            orgs,
+		IsPlatformAdmin: isPlatformAdmin,
 	})
 }
 

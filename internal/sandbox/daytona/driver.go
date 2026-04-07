@@ -267,7 +267,7 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 
 	// CodeDB binary (code intelligence for agents)
 	image = image.Run(
-		`CODEDB_DIR=/usr/local/bin bash -c "$(curl -fsSL https://codedb.codegraff.com/install.sh)"`,
+		`curl -fsSL -o /usr/local/bin/codedb "https://github.com/justrach/codedb/releases/download/v0.2.54/codedb-linux-x86_64" && chmod +x /usr/local/bin/codedb`,
 	)
 
 	// Customer build commands

@@ -5004,7 +5004,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns a single agent by ID.",
+        "description": "Returns a single agent by ID, including the latest forge run if one exists.",
         "tags": [
           "agents"
         ],
@@ -13232,6 +13232,15 @@
           "description": {
             "type": "string"
           },
+          "forge_conversation_id": {
+            "type": "string"
+          },
+          "forge_run": {
+            "$ref": "#/components/schemas/forgeRunResponse"
+          },
+          "forge_run_id": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -13653,7 +13662,22 @@
       "conversationEventResponse": {
         "type": "object",
         "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "bridge_conversation_id": {
+            "type": "string"
+          },
           "created_at": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "event_id": {
             "type": "string"
           },
           "event_type": {
@@ -13662,8 +13686,11 @@
           "id": {
             "type": "string"
           },
-          "payload": {
-            "$ref": "#/components/schemas/JSON"
+          "sequence_number": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string"
           }
         }
       },
@@ -13744,6 +13771,14 @@
           },
           "description": {
             "type": "string"
+          },
+          "forge": {
+            "description": "triggers forge context gathering on create",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/forgeOptions"
+              }
+            ]
           },
           "identity_id": {
             "type": "string"
@@ -14175,6 +14210,17 @@
           }
         }
       },
+      "forgeOptions": {
+        "type": "object",
+        "properties": {
+          "judge_credential_id": {
+            "type": "string"
+          },
+          "judge_model": {
+            "type": "string"
+          }
+        }
+      },
       "forgeRunResponse": {
         "type": "object",
         "properties": {
@@ -14182,6 +14228,12 @@
             "type": "string"
           },
           "completed_at": {
+            "type": "string"
+          },
+          "context_conversation_id": {
+            "type": "string"
+          },
+          "context_conversation_stream_url": {
             "type": "string"
           },
           "convergence_limit": {

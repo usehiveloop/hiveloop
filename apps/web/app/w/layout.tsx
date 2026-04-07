@@ -29,6 +29,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog"
+import { SettingsDialog } from "@/components/settings-dialog"
+import { ImpersonationBanner } from "@/components/impersonation-banner"
+import { ImpersonateUserDialog } from "@/components/impersonate-user-dialog"
 
 const navItems = [
   { label: "Agents", href: "/w/agents", icon: Robot01Icon },
@@ -60,8 +63,10 @@ function NavItems() {
 }
 
 function WorkspaceHeader() {
-  const { user, orgs, activeOrg, setActiveOrg, logout } = useAuth()
+  const { user, orgs, activeOrg, setActiveOrg, logout, isPlatformAdmin, isImpersonating } = useAuth()
   const [createOpen, setCreateOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [impersonateOpen, setImpersonateOpen] = useState(false)
 
   const initials = user?.name
     ? user.name
@@ -111,10 +116,19 @@ function WorkspaceHeader() {
       </DropdownMenu>
 
       <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <ImpersonateUserDialog open={impersonateOpen} onOpenChange={setImpersonateOpen} />
 
       <NavItems />
 
       <div className="flex-1" />
+
+      {isPlatformAdmin && !isImpersonating && (
+        <Button variant="ghost" size="sm" onClick={() => setImpersonateOpen(true)}>
+          <HugeiconsIcon icon={UserCircleIcon} size={14} data-icon="inline-start" />
+          Impersonate
+        </Button>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center outline-none rounded-full transition-opacity hover:opacity-80">
@@ -132,7 +146,7 @@ function WorkspaceHeader() {
               <HugeiconsIcon icon={UserCircleIcon} size={16} className="text-muted-foreground" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
               <HugeiconsIcon icon={Settings01Icon} size={16} className="text-muted-foreground" />
               Settings
             </DropdownMenuItem>
@@ -160,13 +174,10 @@ export default function WorkspaceLayout({
   return (
     <AuthProvider>
       <div className="flex min-h-screen flex-col bg-background">
+        <ImpersonationBanner />
         <WorkspaceHeader />
 
         <main className="flex-1">{children}</main>
-
-        <footer className="sticky bottom-0 z-50 flex h-9 shrink-0 items-center justify-center border-t border-border bg-background px-4">
-          <span className="font-mono text-[10px] text-muted-foreground/50">ziraloop</span>
-        </footer>
       </div>
     </AuthProvider>
   )

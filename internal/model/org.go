@@ -60,6 +60,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&AdminAuditEntry{},
 		&OTPCode{},
 		&MarketplaceAgent{},
+		&ToolUsage{},
 	); err != nil {
 		return err
 	}

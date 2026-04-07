@@ -4855,7 +4855,7 @@ export interface paths {
         };
         /**
          * Get an agent
-         * @description Returns a single agent by ID.
+         * @description Returns a single agent by ID, including the latest forge run if one exists.
          */
         get: {
             parameters: {
@@ -11808,6 +11808,9 @@ export interface components {
             created_at?: string;
             credential_id?: string;
             description?: string;
+            forge_conversation_id?: string;
+            forge_run?: components["schemas"]["forgeRunResponse"];
+            forge_run_id?: string;
             id?: string;
             identity_id?: string;
             instructions?: string;
@@ -11945,10 +11948,15 @@ export interface components {
             provider_name?: string;
         };
         conversationEventResponse: {
+            agent_id?: string;
+            bridge_conversation_id?: string;
             created_at?: string;
+            data?: number[];
+            event_id?: string;
             event_type?: string;
             id?: string;
-            payload?: components["schemas"]["JSON"];
+            sequence_number?: number;
+            timestamp?: string;
         };
         conversationResponse: {
             agent_id?: string;
@@ -11975,6 +11983,8 @@ export interface components {
             agent_config?: components["schemas"]["JSON"];
             credential_id?: string;
             description?: string;
+            /** @description triggers forge context gathering on create */
+            forge?: components["schemas"]["forgeOptions"];
             identity_id?: string;
             instructions?: string;
             integrations?: components["schemas"]["JSON"];
@@ -12118,9 +12128,15 @@ export interface components {
             iterations?: components["schemas"]["ForgeIteration"][];
             run?: components["schemas"]["forgeRunResponse"];
         };
+        forgeOptions: {
+            judge_credential_id?: string;
+            judge_model?: string;
+        };
         forgeRunResponse: {
             agent_id?: string;
             completed_at?: string;
+            context_conversation_id?: string;
+            context_conversation_stream_url?: string;
             convergence_limit?: number;
             created_at?: string;
             current_iteration?: number;

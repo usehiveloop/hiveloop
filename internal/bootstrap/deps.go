@@ -20,10 +20,12 @@ import (
 	"github.com/ziraloop/ziraloop/internal/hindsight"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/nango"
 	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/sandbox/daytona"
+	"github.com/ziraloop/ziraloop/internal/spider"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/turso"
 )
@@ -49,8 +51,10 @@ type Deps struct {
 	EventBus       *streaming.EventBus
 	Flusher        *streaming.Flusher
 	Cleanup        *streaming.Cleanup
-	Retainer       *hindsight.Retainer // nil if Hindsight not configured
-	HindsightMCPURL func(uuid.UUID) string // nil if Hindsight not configured
+	Retainer        *hindsight.Retainer         // nil if Hindsight not configured
+	HindsightMCPURL func(uuid.UUID) string     // nil if Hindsight not configured
+	SpiderClient    *spider.Client             // nil if spider not configured
+	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -162,6 +166,15 @@ func New(ctx context.Context) (*Deps, error) {
 	actionsCatalog := catalog.Global()
 	slog.Info("actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
 
+	// 12b. Spider client (optional)
+	var spiderClient *spider.Client
+	var toolUsageWriter *middleware.ToolUsageWriter
+	if cfg.SpiderAPIKey != "" {
+		spiderClient = spider.NewClient(cfg.SpiderBaseURL, cfg.SpiderAPIKey)
+		toolUsageWriter = middleware.NewToolUsageWriter(database, 10000)
+		slog.Info("spider client ready")
+	}
+
 	// 13. Sandbox encryption key
 	var sandboxEncKey *crypto.SymmetricKey
 	if cfg.SandboxEncryptionKey != "" {
@@ -241,6 +254,8 @@ func New(ctx context.Context) (*Deps, error) {
 		Cleanup:         cleanup,
 		Retainer:        retainer,
 		HindsightMCPURL: hindsightMCPURL,
+		SpiderClient:    spiderClient,
+		ToolUsageWriter: toolUsageWriter,
 	}, nil
 }
 

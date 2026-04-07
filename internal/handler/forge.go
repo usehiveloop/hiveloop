@@ -50,23 +50,25 @@ type startForgeRequest struct {
 }
 
 type forgeRunResponse struct {
-	ID                string   `json:"id"`
-	AgentID           string   `json:"agent_id"`
-	Status            string   `json:"status"`
-	CurrentIteration  int      `json:"current_iteration"`
-	MaxIterations     int      `json:"max_iterations"`
-	PassThreshold     float64  `json:"pass_threshold"`
-	ConvergenceLimit  int      `json:"convergence_limit"`
-	FinalScore        *float64 `json:"final_score,omitempty"`
-	StopReason        string   `json:"stop_reason,omitempty"`
-	TotalInputTokens  int      `json:"total_input_tokens"`
-	TotalOutputTokens int      `json:"total_output_tokens"`
-	TotalCost         float64  `json:"total_cost"`
-	ErrorMessage      *string  `json:"error_message,omitempty"`
-	StreamURL         string   `json:"stream_url"`
-	StartedAt         *string  `json:"started_at,omitempty"`
-	CompletedAt       *string  `json:"completed_at,omitempty"`
-	CreatedAt         string   `json:"created_at"`
+	ID                      string   `json:"id"`
+	AgentID                 string   `json:"agent_id"`
+	Status                  string   `json:"status"`
+	CurrentIteration        int      `json:"current_iteration"`
+	MaxIterations           int      `json:"max_iterations"`
+	PassThreshold           float64  `json:"pass_threshold"`
+	ConvergenceLimit        int      `json:"convergence_limit"`
+	FinalScore              *float64 `json:"final_score,omitempty"`
+	StopReason              string   `json:"stop_reason,omitempty"`
+	TotalInputTokens        int      `json:"total_input_tokens"`
+	TotalOutputTokens       int      `json:"total_output_tokens"`
+	TotalCost               float64  `json:"total_cost"`
+	ErrorMessage            *string  `json:"error_message,omitempty"`
+	ContextConversationID        *string  `json:"context_conversation_id,omitempty"`
+	ContextConversationStreamURL *string  `json:"context_conversation_stream_url,omitempty"`
+	StreamURL                    string   `json:"stream_url"`
+	StartedAt               *string  `json:"started_at,omitempty"`
+	CompletedAt             *string  `json:"completed_at,omitempty"`
+	CreatedAt               string   `json:"created_at"`
 }
 
 type forgeGetRunResponse struct {
@@ -91,6 +93,12 @@ func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
 		ErrorMessage:      run.ErrorMessage,
 		StreamURL:         fmt.Sprintf("/v1/forge-runs/%s/stream", run.ID),
 		CreatedAt:         run.CreatedAt.Format(time.RFC3339),
+	}
+	if run.ContextConversationID != nil {
+		convID := run.ContextConversationID.String()
+		streamURL := fmt.Sprintf("/v1/conversations/%s/stream", convID)
+		resp.ContextConversationID = &convID
+		resp.ContextConversationStreamURL = &streamURL
 	}
 	if run.StartedAt != nil {
 		s := run.StartedAt.Format(time.RFC3339)
@@ -454,8 +462,18 @@ func (h *ForgeHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if run.Status != model.ForgeStatusRunning && run.Status != model.ForgeStatusQueued {
+	if run.Status != model.ForgeStatusRunning && run.Status != model.ForgeStatusQueued && run.Status != model.ForgeStatusGatheringContext {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "forge run is not active"})
+		return
+	}
+
+	// For gathering_context runs, directly mark as cancelled (no Asynq task to cancel).
+	if run.Status == model.ForgeStatusGatheringContext {
+		h.db.Model(&run).Updates(map[string]any{
+			"status":       model.ForgeStatusCancelled,
+			"completed_at": time.Now(),
+		})
+		writeJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
 		return
 	}
 

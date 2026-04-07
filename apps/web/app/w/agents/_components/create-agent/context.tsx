@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { useForm, type UseFormReturn } from "react-hook-form"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -53,6 +54,7 @@ interface CreateAgentProviderProps {
 }
 
 export function CreateAgentProvider({ children, onClose, initialMode }: CreateAgentProviderProps) {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const createAgent = $api.useMutation("post", "/v1/agents")
 
@@ -144,31 +146,45 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
+    const body: Record<string, unknown> = {
+      name: values.name.trim(),
+      description: values.description.trim() || undefined,
+      credential_id: values.credentialId,
+      model: values.model,
+      sandbox_type: values.sandboxType,
+      system_prompt: values.systemPrompt || "",
+      instructions: values.instructions || undefined,
+      integrations: integrationsPayload,
+    }
+
+    if (mode === "forge" && values.judgeKeyId && values.judgeModel) {
+      body.forge = {
+        judge_credential_id: values.judgeKeyId,
+        judge_model: values.judgeModel,
+      }
+    }
+
     createAgent.mutate(
+      { body: body as never },
       {
-        body: {
-          name: values.name.trim(),
-          description: values.description.trim() || undefined,
-          credential_id: values.credentialId,
-          model: values.model,
-          sandbox_type: values.sandboxType,
-          system_prompt: values.systemPrompt,
-          instructions: values.instructions || undefined,
-          integrations: integrationsPayload,
-        } as never,
-      },
-      {
-        onSuccess: () => {
+        onSuccess: (data) => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
-          toast.success(`Agent "${values.name}" created`)
-          onClose()
+          const agentData = data as { id?: string; forge_run_id?: string }
+          if (mode === "forge" && agentData.id) {
+            toast.success(`Agent "${values.name}" created — starting forge`)
+            onClose()
+            router.push(`/w/agents/${agentData.id}/forge`)
+          } else {
+            toast.success(`Agent "${values.name}" created`)
+            onClose()
+          }
         },
         onError: (error) => {
           toast.error(extractErrorMessage(error, "Failed to create agent"))
         },
       },
     )
-  }, [form, selectedIntegrations, selectedActions, createAgent, queryClient, onClose])
+  }, [form, mode, selectedIntegrations, selectedActions, createAgent, queryClient, onClose, router])
 
   return (
     <CreateAgentContext.Provider

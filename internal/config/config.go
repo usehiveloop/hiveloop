@@ -116,6 +116,10 @@ type Config struct {
 	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`        // acme-dns registration API (e.g. https://acme-dns-api.daytona.ziraloop.com)
 	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`         // Caddy admin API proxy (e.g. https://caddy-admin.daytona.ziraloop.com)
 
+	// Spider (web crawling/search via spider.cloud)
+	SpiderAPIKey  string `env:"SPIDER_API_KEY"`                                        // empty = spider disabled
+	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
+
 	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
 	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
 
