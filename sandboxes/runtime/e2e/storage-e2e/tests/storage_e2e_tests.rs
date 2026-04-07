@@ -53,6 +53,7 @@ fn make_message(role: Role, text: &str) -> Message {
             text: text.to_string(),
         }],
         timestamp: Utc::now(),
+        system_reminder: None,
     }
 }
 
