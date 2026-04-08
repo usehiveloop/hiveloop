@@ -233,6 +233,11 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
+	// Ensure Bridge storage directory exists (snapshot may not have it)
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
+		slog.Warn("failed to create bridge storage dir", "sandbox_id", sb.ID, "error", execErr)
+	}
+
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
 			"status":        "error",
@@ -384,6 +389,11 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 	sb.BridgeURLExpiresAt = &expiresAt
 	sb.Status = "running"
 	sb.LastActiveAt = &now
+
+	// Ensure Bridge storage directory exists (snapshot may not have it)
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
+		slog.Warn("failed to create bridge storage dir", "sandbox_id", sb.ID, "error", execErr)
+	}
 
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
@@ -586,6 +596,11 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	sb.BridgeURLExpiresAt = &expiresAt
 	sb.Status = "running"
 	sb.LastActiveAt = &now
+
+	// Ensure Bridge storage directory exists (snapshot may not have it)
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
+		slog.Warn("failed to create bridge storage dir", "sandbox_id", sb.ID, "error", execErr)
+	}
 
 	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
 		o.db.Model(&sb).Updates(map[string]any{

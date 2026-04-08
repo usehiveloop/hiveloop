@@ -259,8 +259,8 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 			"apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*",
 	)
 
-	// Bridge binary
-	image = image.Run("mkdir -p /home/daytona")
+	// Bridge binary + storage directory
+	image = image.Run("mkdir -p /home/daytona/.bridge")
 	image = image.Run(
 		`curl -fsSL "https://github.com/ziraloop/bridge/releases/download/v0.17.1/bridge-v0.17.1-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
 	)
@@ -277,7 +277,7 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 
 	// Working directory + entrypoint
 	image = image.Workdir("/home/daytona")
-	image = image.Entrypoint([]string{"/bin/sh", "-c", "/usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
+	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
 	snapshot, logChan, err := d.client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
 		Name:  opts.Name,
