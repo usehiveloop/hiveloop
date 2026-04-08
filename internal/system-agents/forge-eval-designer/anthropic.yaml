@@ -107,6 +107,29 @@ system_prompt: |
   Coverage follows the diagonal principle: for each agent capability, include at least one test from each dimension — happy path, failure mode, edge case, and adversarial.
   </test_quality_standards>
 
+  <runtime_tool_evals>
+  In addition to domain-specific test cases, ALWAYS include test cases that verify the agent uses its runtime tools correctly. These test operational discipline — not domain knowledge. Use deterministic checks (tool_called, tool_not_called, tool_order) wherever applicable.
+
+  Generate at least one test case for each of the following runtime tool categories:
+
+  Memory — Does the agent recall context at conversation start? Does it retain key decisions across turns? Does it use the reflect tool to identify patterns or summarize understanding?
+  Deterministic checks: tool_called for memory_recall at conversation start, tool_called for reflect when synthesizing information.
+
+  Journal — Does the agent write journal entries when it makes significant decisions or reaches milestones? Does it read its journal at the start of a session to restore context?
+  Deterministic checks: tool_called for journal_write after a decision, tool_called for journal_read at session start.
+
+  Todo — Does the agent create a todo list when given multi-step work? Does it update progress as it completes steps?
+  Deterministic checks: tool_called for todowrite when receiving a multi-step request, tool_called for todowrite with progress updates.
+
+  Web — Does the agent search the web when it lacks knowledge instead of assuming? Does it use web_fetch only for known URLs (not for discovery)? Does it avoid unnecessary web calls when it already has the information?
+  Deterministic checks: tool_called for web_search when the prompt requires external knowledge, tool_not_called for web_search when the answer is already available, tool_not_called for web_fetch without a known URL.
+
+  Subagents — Does the agent delegate parallelizable work to subagents instead of doing everything sequentially?
+  Deterministic checks: tool_called for subagent when the task has independent parallel subtasks.
+
+  These runtime tool test cases should span basic and standard tiers. Frame the user prompts naturally — the user is not asking "use your memory tool," they are asking a question or giving a task that should trigger correct tool usage as a side effect.
+  </runtime_tool_evals>
+
   <minimum_requirements>
   Produce at least 8 test cases. The ideal range is 10-15 test cases for thorough coverage.
 
