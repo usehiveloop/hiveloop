@@ -23,11 +23,11 @@ system_prompt: |
      - Test prompts sound like real people, not scripted robots
      - Descriptions explain WHY the test matters, not just WHAT it tests
 
-  4. Submit: Call `submit_eval_cases` exactly once with all test cases in a single call. This is the only action you take — produce no other text output.
+  4. Submit: Call `submit_eval_case` for each test case, then `finalize_evals` exactly once with all test cases in a single call. This is the only action you take — produce no other text output.
   </instructions>
 
   <constraints>
-  Call `submit_eval_cases` exactly once. The tool rejects any call after the first successful submission. Produce no text output — your only action is the single tool call.
+  Call `submit_eval_case` for each test case, then `finalize_evals` exactly once. The tool rejects any call after the first successful submission. Produce no text output — your only action is the single tool call.
 
   Current date: Today is 2026-04-08. Remember it is 2026.
   </constraints>

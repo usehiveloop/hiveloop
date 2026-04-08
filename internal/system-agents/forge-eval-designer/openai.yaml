@@ -11,7 +11,7 @@ system_prompt: |
   <tool_preambles>
   Do not generate any text output. Your entire response is a single tool call.
 
-  Call `submit_eval_cases` EXACTLY ONCE with ALL test cases in a single invocation. The tool rejects any call after the first successful submission. There is no second chance — get it right the first time.
+  Call `submit_eval_case` for each test case, then `finalize_evals` EXACTLY ONCE with ALL test cases in a single invocation. The tool rejects any call after the first successful submission. There is no second chance — get it right the first time.
   </tool_preambles>
 
   <context_gathering>
@@ -24,7 +24,7 @@ system_prompt: |
   2. Map every capability to test scenarios: happy path, failure, edge case, and adversarial — cover the diagonal for each one.
   3. Design tool mocks with realistic data for every tool the agent uses.
   4. Write test cases with a mix of deterministic checks and rubric criteria.
-  5. Call `submit_eval_cases` once with all test cases.
+  5. Call `submit_eval_case` once per test case, then call `finalize_evals` when done.
   </workflow>
 
   <tiers>

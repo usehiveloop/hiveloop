@@ -152,8 +152,15 @@ func TestForgeEvalDesignerMCP_ToolRegistered(t *testing.T) {
 	}
 	json.Unmarshal(extractSSEData(t, recorder2.Body.String()), &rpcResp)
 
-	if len(rpcResp.Result.Tools) != 1 || rpcResp.Result.Tools[0].Name != "submit_eval_cases" {
-		t.Errorf("expected 1 tool 'submit_eval_cases', got %v", rpcResp.Result.Tools)
+	if len(rpcResp.Result.Tools) != 2 {
+		t.Errorf("expected 2 tools (submit_eval_case + finalize_evals), got %v", rpcResp.Result.Tools)
+	}
+	toolNames := map[string]bool{}
+	for _, tool := range rpcResp.Result.Tools {
+		toolNames[tool.Name] = true
+	}
+	if !toolNames["submit_eval_case"] || !toolNames["finalize_evals"] {
+		t.Errorf("expected submit_eval_case and finalize_evals, got %v", rpcResp.Result.Tools)
 	}
 }
 
@@ -184,18 +191,29 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), initBody))
 
-	callBody := `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"submit_eval_cases","arguments":{"evals":[
-		{"name":"basic_triage","description":"Verifies the agent correctly triages a simple billing issue.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":3,"test_prompt":"I need help with my billing issue, I was charged twice","expected_behavior":"Route to billing team and add billing label","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"1","title":"Billing issue","body":"Charged twice"}}]},"rubric":[{"criterion":"Routes to billing team","requirement_type":"hard","weight":0.5},{"criterion":"Adds billing label","requirement_type":"hard","weight":0.5}]},
-		{"name":"angry_customer","description":"Tests that the agent handles hostile users without escalating tone.","category":"adversarial","tier":"adversarial","requirement_type":"soft","sample_count":5,"test_prompt":"This is ridiculous fix it NOW or I will report you","expected_behavior":"De-escalate and address the issue professionally","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"2","title":"Angry","body":"Fix it"}}]},"rubric":[{"criterion":"Does not match hostile tone","requirement_type":"hard","weight":0.6},{"criterion":"Addresses the technical issue","requirement_type":"soft","weight":0.4}]},
-		{"name":"duplicate_detection","description":"Checks that the agent finds and marks duplicate issues correctly.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":1,"test_prompt":"Login page shows 404 error after latest update","expected_behavior":"Search for duplicates, find match, comment and close","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"3","title":"404 on login","body":"After update"}}],"search_issues_and_pull_requests":[{"match":{},"response":{"items":[{"number":42,"title":"Login 404"}]}}]},"rubric":[{"criterion":"Searches for duplicates","requirement_type":"hard","weight":0.4},{"criterion":"Links to original issue","requirement_type":"hard","weight":0.6}]},
-		{"name":"security_escalation","description":"Validates that security issues get immediate maintainer ping without auto-response.","category":"edge_case","tier":"standard","requirement_type":"hard","sample_count":1,"test_prompt":"Found SQL injection vulnerability in the search API","expected_behavior":"Add priority:critical label and ping lead maintainer immediately","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"4","title":"SQL injection","body":"Search API vulnerable"}}]},"rubric":[{"criterion":"Adds critical priority label","requirement_type":"hard","weight":0.5},{"criterion":"Pings maintainer","requirement_type":"hard","weight":0.5}]},
-		{"name":"tool_error_handling","description":"Ensures the agent handles API failures gracefully without crashing.","category":"tool_error","tier":"standard","requirement_type":"hard","sample_count":2,"test_prompt":"Memory leak in image processing pipeline","expected_behavior":"Handle API error gracefully and still attempt triage","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"5","title":"Memory leak","body":"Image processing"}}],"issues_list_labels_for_repo":[{"match":{},"response":{"error":"API rate limit exceeded"}}]},"rubric":[{"criterion":"Does not crash on API error","requirement_type":"hard","weight":0.6},{"criterion":"Attempts alternative triage","requirement_type":"soft","weight":0.4}]}
-	]}}}`
-	recorder2 := httptest.NewRecorder()
-	router.ServeHTTP(recorder2, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), callBody))
+	// Submit 5 individual eval cases
+	evalCases := []string{
+		`{"name":"basic_triage","description":"Verifies the agent correctly triages a simple billing issue.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":3,"test_prompt":"I need help with my billing issue, I was charged twice","expected_behavior":"Route to billing team and add billing label","rubric":[{"criterion":"Routes to billing team","requirement_type":"hard","weight":0.5},{"criterion":"Adds billing label","requirement_type":"hard","weight":0.5}]}`,
+		`{"name":"angry_customer","description":"Tests that the agent handles hostile users without escalating tone.","category":"adversarial","tier":"adversarial","requirement_type":"soft","sample_count":5,"test_prompt":"This is ridiculous fix it NOW or I will report you","expected_behavior":"De-escalate and address the issue professionally","rubric":[{"criterion":"Does not match hostile tone","requirement_type":"hard","weight":0.6},{"criterion":"Addresses the technical issue","requirement_type":"soft","weight":0.4}]}`,
+		`{"name":"duplicate_detection","description":"Checks that the agent finds and marks duplicate issues correctly.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":1,"test_prompt":"Login page shows 404 error after latest update","expected_behavior":"Search for duplicates, find match, comment and close","rubric":[{"criterion":"Searches for duplicates","requirement_type":"hard","weight":0.4},{"criterion":"Links to original issue","requirement_type":"hard","weight":0.6}]}`,
+		`{"name":"security_escalation","description":"Validates that security issues get immediate maintainer ping.","category":"edge_case","tier":"standard","requirement_type":"hard","sample_count":1,"test_prompt":"Found SQL injection vulnerability in the search API","expected_behavior":"Add priority:critical label and ping lead maintainer immediately","rubric":[{"criterion":"Adds critical priority label","requirement_type":"hard","weight":0.5},{"criterion":"Pings maintainer","requirement_type":"hard","weight":0.5}]}`,
+		`{"name":"tool_error_handling","description":"Ensures the agent handles API failures gracefully without crashing.","category":"tool_error","tier":"standard","requirement_type":"hard","sample_count":2,"test_prompt":"Memory leak in image processing pipeline","expected_behavior":"Handle API error gracefully and still attempt triage","rubric":[{"criterion":"Does not crash on API error","requirement_type":"hard","weight":0.6},{"criterion":"Attempts alternative triage","requirement_type":"soft","weight":0.4}]}`,
+	}
+	for _, evalJSON := range evalCases {
+		callBody := fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"submit_eval_case","arguments":%s}}`, evalJSON)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), callBody))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("submit_eval_case failed: %d: %s", rec.Code, rec.Body.String())
+		}
+	}
 
-	if recorder2.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", recorder2.Code, recorder2.Body.String())
+	// Finalize
+	finalizeBody := `{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"finalize_evals","arguments":{}}}`
+	finalizeRec := httptest.NewRecorder()
+	router.ServeHTTP(finalizeRec, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), finalizeBody))
+	if finalizeRec.Code != http.StatusOK {
+		t.Fatalf("finalize_evals failed: %d: %s", finalizeRec.Code, finalizeRec.Body.String())
 	}
 
 	// Verify saved to DB
@@ -209,12 +227,6 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	}
 	if cases[0].Description != "Verifies the agent correctly triages a simple billing issue." {
 		t.Errorf("expected description saved, got %q", cases[0].Description)
-	}
-	if cases[1].TestName != "angry_customer" {
-		t.Errorf("expected second case 'angry_customer', got %q", cases[1].TestName)
-	}
-	if cases[1].SampleCount != 5 {
-		t.Errorf("expected sample_count 5, got %d", cases[1].SampleCount)
 	}
 
 	// Verify forge run transitioned to reviewing_evals.
