@@ -315,6 +315,11 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.IdentityID = &identity.ID
 	}
 
+	// Set default tool permissions if not explicitly provided.
+	if len(agent.Permissions) == 0 {
+		agent.Permissions = defaultToolPermissions(agent.SandboxType)
+	}
+
 	if req.SandboxTemplateID != nil && *req.SandboxTemplateID != "" {
 		var tmpl model.SandboxTemplate
 		if err := h.db.Where("id = ? AND org_id = ?", *req.SandboxTemplateID, org.ID).First(&tmpl).Error; err != nil {
@@ -724,6 +729,59 @@ func defaultJSON(j model.JSON) model.JSON {
 		return model.JSON{}
 	}
 	return j
+}
+
+// sharedAgentTools are the only tools available to shared sandbox agents.
+// No filesystem, shell, code intelligence, or CodeDB tools.
+var sharedAgentTools = []string{
+	// Web
+	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
+	// Agent orchestration
+	"agent", "sub_agent", "parallel_agent", "batch", "join",
+	// Task management
+	"todowrite", "todoread",
+	// Journal
+	"journal_write", "journal_read",
+	// Skills
+	"skill",
+}
+
+// dedicatedAgentTools are all tools available to dedicated sandbox agents.
+var dedicatedAgentTools = []string{
+	// Filesystem
+	"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "Grep", "LS",
+	// Shell
+	"bash",
+	// Web
+	"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
+	// Agent orchestration
+	"agent", "sub_agent", "parallel_agent", "batch", "join",
+	// Task management
+	"todowrite", "todoread",
+	// Journal
+	"journal_write", "journal_read",
+	// Code intelligence
+	"lsp", "skill",
+	// CodeDB
+	"codedb_outline", "codedb_tree", "codedb_symbol", "codedb_search", "codedb_word",
+	"codedb_find", "codedb_read", "codedb_edit", "codedb_hot", "codedb_deps",
+	"codedb_changes", "codedb_status", "codedb_bundle", "codedb_snapshot",
+	"codedb_remote", "codedb_projects", "codedb_index",
+}
+
+// defaultToolPermissions returns the default permission map for an agent based
+// on its sandbox type. Shared agents get web, orchestration, task, journal, and
+// skill tools only. Dedicated agents get all tools.
+func defaultToolPermissions(sandboxType string) model.JSON {
+	tools := dedicatedAgentTools
+	if sandboxType == "shared" {
+		tools = sharedAgentTools
+	}
+	perms := model.JSON{}
+	for _, tool := range tools {
+		perms[tool] = "allow"
+	}
+	return perms
 }
 
 // validateJSONSchema validates the json_schema field inside agent_config.

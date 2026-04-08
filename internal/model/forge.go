@@ -7,9 +7,11 @@ import (
 )
 
 // Forge status constants.
-// Flow: gathering_context → queued → provisioning → running → completed|failed|cancelled.
+// Flow: gathering_context → designing_evals → reviewing_evals → queued → provisioning → running → completed|failed|cancelled.
 const (
 	ForgeStatusGatheringContext = "gathering_context"
+	ForgeStatusDesigningEvals   = "designing_evals"
+	ForgeStatusReviewingEvals   = "reviewing_evals"
 	ForgeStatusQueued           = "queued"
 	ForgeStatusProvisioning     = "provisioning"
 	ForgeStatusRunning          = "running"
@@ -89,7 +91,7 @@ type ForgeRun struct {
 	ContextGathererAgentID  string     `gorm:"default:''" json:"-"`
 	ContextGathererTokenJTI string     `gorm:"default:''" json:"-"`
 
-	// State machine: gathering_context → queued → provisioning → running → completed|failed|cancelled.
+	// State machine: gathering_context → designing_evals → reviewing_evals → queued → provisioning → running → completed|failed|cancelled.
 	Status           string   `gorm:"not null;default:'queued'" json:"status"`
 	CurrentIteration int      `gorm:"not null;default:0" json:"current_iteration"`
 	FinalScore       *float64 `gorm:"type:numeric(5,2)" json:"final_score,omitempty"`
@@ -198,7 +200,9 @@ type ForgeEvalCase struct {
 	Rubric           RawJSON `gorm:"type:jsonb;default:'[]'" json:"rubric"`              // []RubricCriterion
 	DeterministicChecks RawJSON `gorm:"type:jsonb;default:'[]'" json:"deterministic_checks"` // []DeterministicCheck
 
-	CreatedAt time.Time `json:"created_at"`
+	OrderIndex int       `gorm:"not null;default:0" json:"order_index"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (ForgeEvalCase) TableName() string { return "forge_eval_cases" }

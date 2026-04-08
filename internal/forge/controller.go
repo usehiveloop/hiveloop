@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -178,6 +179,9 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 		return nil, fmt.Errorf("loading context gatherer agent: %w", err)
 	}
 
+	// Set require_approval on start_forge so the user must approve before forge begins.
+	gathererAgent.Permissions = model.JSON{"start_forge": "require_approval"}
+
 	// Provision the system agent (sandbox + push to Bridge).
 	client, err := fc.ensureSystemAgentReady(ctx, gathererAgent)
 	if err != nil {
@@ -198,8 +202,8 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 	}
 	convID := convResp.ConversationId
 
-	// Send the initial message with agent details.
-	initialMsg := buildContextGatheringMessage(agent)
+	// Send the initial message with agent details and resolved tools.
+	initialMsg := fc.buildContextGatheringMessage(agent)
 	if err := client.SendMessage(ctx, convID, initialMsg); err != nil {
 		log.Warn("forge: failed to send initial context message", "error", err)
 		// Non-fatal — the conversation exists, the user can still chat.
@@ -236,31 +240,302 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 }
 
 // buildContextGatheringMessage creates the initial message sent to the context
-// gatherer agent with the target agent's details.
-func buildContextGatheringMessage(agent *model.Agent) string {
-	msg := fmt.Sprintf(`Here is the agent you'll be helping to optimize:
+// gatherer agent with the target agent's full details — including tools exactly
+// as they'll appear at runtime via MCP (provider_actionKey naming, descriptions
+// from the catalog).
+func (fc *ForgeController) buildContextGatheringMessage(agent *model.Agent) string {
+	var msg strings.Builder
 
-**Agent Name:** %s`, agent.Name)
+	msg.WriteString(fmt.Sprintf("Here is the agent you'll be helping to optimize:\n\n**Agent Name:** %s", agent.Name))
 
 	if agent.Description != nil && *agent.Description != "" {
-		msg += fmt.Sprintf("\n**Description:** %s", *agent.Description)
+		msg.WriteString(fmt.Sprintf("\n**Description:** %s", *agent.Description))
 	}
 
+	if agent.Model != "" {
+		msg.WriteString(fmt.Sprintf("\n**Model:** %s", agent.Model))
+	}
+
+	// Current system prompt (may be empty for new forge agents).
 	if agent.SystemPrompt != "" {
-		msg += fmt.Sprintf("\n\n**Current System Prompt:**\n%s", agent.SystemPrompt)
+		msg.WriteString(fmt.Sprintf("\n\n## Current System Prompt\n\n%s", agent.SystemPrompt))
 	}
 
+	// Resolve integration actions into the exact tool names and descriptions
+	// that the agent will have at runtime via MCP.
+	var resolvedActions []ResolvedAction
+	if fc.catalog != nil {
+		actions, err := resolveAgentActions(fc.db, fc.catalog, agent)
+		if err == nil && len(actions) > 0 {
+			resolvedActions = actions
+		}
+	}
+
+	// Custom tools defined directly on the agent.
+	var customTools []ToolDefinition
 	if len(agent.Tools) > 0 {
-		toolsJSON, _ := json.MarshalIndent(agent.Tools, "", "  ")
-		msg += fmt.Sprintf("\n\n**Current Tools:**\n```json\n%s\n```", string(toolsJSON))
+		toolsBytes, _ := json.Marshal(agent.Tools)
+		json.Unmarshal(toolsBytes, &customTools)
 	}
 
-	if len(agent.Integrations) > 0 {
-		intJSON, _ := json.MarshalIndent(agent.Integrations, "", "  ")
-		msg += fmt.Sprintf("\n\n**Integrations:**\n```json\n%s\n```", string(intJSON))
+	// Show all available tools in a unified list.
+	hasTools := len(resolvedActions) > 0 || len(customTools) > 0
+	if hasTools {
+		msg.WriteString("\n\n## Available Tools\n\n")
+		msg.WriteString("These are the exact tools the agent will have at runtime:\n\n")
+
+		for _, action := range resolvedActions {
+			msg.WriteString(fmt.Sprintf("### `%s`", action.ToolName))
+			if action.Access != "" {
+				msg.WriteString(fmt.Sprintf(" (%s)", action.Access))
+			}
+			msg.WriteString("\n")
+			if action.Description != "" {
+				msg.WriteString(fmt.Sprintf("%s\n", action.Description))
+			}
+			if len(action.Parameters) > 0 {
+				var pretty json.RawMessage
+				if json.Unmarshal(action.Parameters, &pretty) == nil {
+					prettyBytes, _ := json.MarshalIndent(pretty, "", "  ")
+					msg.WriteString(fmt.Sprintf("```json\n%s\n```\n", string(prettyBytes)))
+				}
+			}
+			msg.WriteString("\n")
+		}
+
+		for _, tool := range customTools {
+			msg.WriteString(fmt.Sprintf("### `%s`\n", tool.Name))
+			if tool.Description != "" {
+				msg.WriteString(fmt.Sprintf("%s\n", tool.Description))
+			}
+			if tool.Parameters != nil {
+				paramsJSON, _ := json.MarshalIndent(tool.Parameters, "", "  ")
+				msg.WriteString(fmt.Sprintf("```json\n%s\n```\n", string(paramsJSON)))
+			}
+			msg.WriteString("\n")
+		}
 	}
 
-	msg += "\n\nPlease greet the user and begin gathering requirements for improving this agent."
+	// Instructions if present.
+	if agent.Instructions != nil && *agent.Instructions != "" {
+		msg.WriteString(fmt.Sprintf("\n\n## Additional Instructions\n\n%s", *agent.Instructions))
+	}
+
+	msg.WriteString("\n\nPlease greet the user and begin gathering requirements for this agent.")
+
+	return msg.String()
+}
+
+// DesignEvals generates eval cases for a forge run using the eval designer agent.
+// Called by the forge:design_evals Asynq task after context gathering is approved.
+// On completion, transitions the run to reviewing_evals so the user can review.
+func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
+	log := slog.With("forge_run_id", runID)
+	log.Info("forge: designing evals")
+
+	var run model.ForgeRun
+	if err := fc.db.Preload("Agent").Where("id = ?", runID).First(&run).Error; err != nil {
+		fc.failRun(runID, fmt.Sprintf("loading forge run: %v", err))
+		return
+	}
+
+	if run.Status != model.ForgeStatusDesigningEvals {
+		log.Warn("forge: run not in designing_evals status", "status", run.Status)
+		return
+	}
+
+	// Load eval designer credential.
+	var evalCred model.Credential
+	if err := fc.db.Where("id = ?", run.EvalDesignerCredentialID).First(&evalCred).Error; err != nil {
+		fc.failRun(runID, fmt.Sprintf("loading eval designer credential: %v", err))
+		return
+	}
+
+	// Load and provision the eval designer system agent.
+	providerGroup := systemagents.MapProviderToGroup(evalCred.ProviderID)
+	evalDesignerAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-eval-designer-%s", providerGroup))
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("loading eval designer agent: %v", err))
+		return
+	}
+
+	evalClient, err := fc.ensureSystemAgentReady(ctx, evalDesignerAgent)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("provisioning eval designer: %v", err))
+		return
+	}
+
+	// Mint proxy token.
+	_, _, err = fc.mintToken(run.OrgID, evalCred.ID)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("minting eval designer token: %v", err))
+		return
+	}
+
+	// Create conversation and send eval designer prompt.
+	evalConv, err := evalClient.CreateConversation(ctx, evalDesignerAgent.ID.String())
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("creating eval designer conversation: %v", err))
+		return
+	}
+
+	evalMessage := fc.buildEvalDesignerMessageFromContext(&run)
+	evalResponse, err := fc.reader.ReadFullResponse(ctx, evalClient, evalConv.ConversationId, evalMessage)
+	if err != nil {
+		fc.failRun(runID, fmt.Sprintf("eval designer response: %v", err))
+		return
+	}
+
+	// Parse output, retry once on invalid JSON.
+	evalOutput, err := ParseEvalDesignerOutput(evalResponse)
+	if err != nil {
+		log.Warn("eval designer returned invalid JSON, retrying", "error", err)
+		evalResponse, err = fc.reader.ReadFullResponse(ctx, evalClient, evalConv.ConversationId,
+			"Your previous response was not valid JSON. Please respond with valid JSON matching the required schema.")
+		if err != nil {
+			fc.failRun(runID, fmt.Sprintf("eval designer retry: %v", err))
+			return
+		}
+		evalOutput, err = ParseEvalDesignerOutput(evalResponse)
+		if err != nil {
+			fc.failRun(runID, fmt.Sprintf("eval designer output still invalid: %v", err))
+			return
+		}
+	}
+
+	// Validate mocks against real action schemas.
+	if fc.catalog != nil {
+		actions, resolveErr := resolveAgentActions(fc.db, fc.catalog, &run.Agent)
+		if resolveErr == nil && len(actions) > 0 {
+			if warnings := validateEvalMocks(evalOutput.Evals, actions); len(warnings) > 0 {
+				for _, warning := range warnings {
+					log.Warn("eval mock validation warning", "warning", warning)
+				}
+			}
+		}
+	}
+
+	// Create ForgeEvalCase records.
+	for index, evalCase := range evalOutput.Evals {
+		mocksJSON, _ := json.Marshal(evalCase.ToolMocks)
+		rubricJSON, _ := json.Marshal(evalCase.Rubric)
+		checksJSON, _ := json.Marshal(evalCase.DeterministicChecks)
+
+		sampleCount := evalCase.SampleCount
+		if sampleCount < 1 {
+			sampleCount = 3
+		}
+		if sampleCount > 5 {
+			sampleCount = 5
+		}
+
+		record := model.ForgeEvalCase{
+			ForgeRunID:          run.ID,
+			TestName:            evalCase.Name,
+			Category:            evalCase.Category,
+			Tier:                evalCase.Tier,
+			RequirementType:     evalCase.RequirementType,
+			SampleCount:         sampleCount,
+			TestPrompt:          evalCase.TestPrompt,
+			ExpectedBehavior:    evalCase.ExpectedBehavior,
+			ToolMocks:           model.RawJSON(mocksJSON),
+			Rubric:              model.RawJSON(rubricJSON),
+			DeterministicChecks: model.RawJSON(checksJSON),
+			OrderIndex:          index,
+		}
+		fc.db.Create(&record)
+	}
+
+	// End conversation and update status.
+	_ = evalClient.EndConversation(ctx, evalConv.ConversationId)
+
+	fc.db.Model(&run).Update("status", model.ForgeStatusReviewingEvals)
+
+	fc.events.emit(ctx, runID, EventEvalsDesigned, map[string]any{
+		"count": len(evalOutput.Evals),
+	})
+
+	log.Info("forge: evals designed, awaiting user review",
+		"eval_count", len(evalOutput.Evals),
+	)
+}
+
+// buildEvalDesignerMessageFromContext constructs the eval designer prompt from
+// gathered context and agent details (not architect output). This is used when
+// evals are designed before iterations begin.
+func (fc *ForgeController) buildEvalDesignerMessageFromContext(run *model.ForgeRun) string {
+	msg := fmt.Sprintf("Generate a comprehensive test suite for the following agent:\n\nAgent Name: %s", run.Agent.Name)
+
+	if run.Agent.Description != nil && *run.Agent.Description != "" {
+		msg += fmt.Sprintf("\nDescription: %s", *run.Agent.Description)
+	}
+
+	if run.Agent.SystemPrompt != "" {
+		msg += fmt.Sprintf("\n\nCurrent System Prompt:\n%s", run.Agent.SystemPrompt)
+	}
+
+	if len(run.Agent.Tools) > 0 {
+		toolsJSON, _ := json.Marshal(run.Agent.Tools)
+		if string(toolsJSON) != "{}" && string(toolsJSON) != "[]" {
+			msg += fmt.Sprintf("\n\nCurrent Tools:\n%s", string(toolsJSON))
+		}
+	}
+
+	// Inject gathered context.
+	if len(run.Context) > 0 {
+		var forgeCtx ForgeContext
+		if json.Unmarshal(run.Context, &forgeCtx) == nil {
+			msg += "\n\n## User-Provided Requirements\n"
+			msg += fmt.Sprintf("\n**Summary:** %s", forgeCtx.RequirementsSummary)
+			if len(forgeCtx.SuccessCriteria) > 0 {
+				msg += "\n\n**Success Criteria:**"
+				for _, criterion := range forgeCtx.SuccessCriteria {
+					msg += fmt.Sprintf("\n- %s", criterion)
+				}
+			}
+			if len(forgeCtx.EdgeCases) > 0 {
+				msg += "\n\n**Edge Cases:**"
+				for _, edgeCase := range forgeCtx.EdgeCases {
+					msg += fmt.Sprintf("\n- %s", edgeCase)
+				}
+			}
+			if forgeCtx.ToneAndStyle != "" {
+				msg += fmt.Sprintf("\n\n**Tone & Style:** %s", forgeCtx.ToneAndStyle)
+			}
+			if len(forgeCtx.Constraints) > 0 {
+				msg += "\n\n**Constraints:**"
+				for _, constraint := range forgeCtx.Constraints {
+					msg += fmt.Sprintf("\n- %s", constraint)
+				}
+			}
+			if len(forgeCtx.ExampleInteractions) > 0 {
+				msg += "\n\n**Example Interactions:**"
+				for _, example := range forgeCtx.ExampleInteractions {
+					msg += fmt.Sprintf("\nUser: %q\nExpected: %q\n", example.User, example.ExpectedResponse)
+				}
+			}
+			if forgeCtx.PriorityFocus != "" {
+				msg += fmt.Sprintf("\n\n**Priority Focus:** %s", forgeCtx.PriorityFocus)
+			}
+		}
+	}
+
+	// Inject real action schemas from the catalog.
+	if fc.catalog != nil {
+		actions, err := resolveAgentActions(fc.db, fc.catalog, &run.Agent)
+		if err == nil && len(actions) > 0 {
+			msg += "\n\n" + formatActionsForEvalDesigner(actions)
+		}
+	}
+
+	msg += "\n\nGenerate at least 5 eval cases with diverse categories (happy_path, edge_case, adversarial, tool_error). " +
+		"Include realistic tool mocks with multiple samples per tool. " +
+		"Classify each eval as basic/standard/adversarial tier and hard/soft requirement type. " +
+		"Basic tier evals test fundamental correctness and must always pass. " +
+		"Hard requirement evals are pass/fail with no partial credit. " +
+		"Soft requirement evals allow partial scores. " +
+		"Include deterministic_checks where applicable (tool_called, tool_not_called, tool_order, response_contains, etc.). " +
+		"Set sample_count (1-5) for each eval — higher for non-deterministic behaviors."
 
 	return msg
 }
@@ -643,6 +918,16 @@ func (fc *ForgeController) runIteration(
 	var evalCases []model.ForgeEvalCase
 
 	if iteration == 1 {
+		// Check if eval cases were already created by the DesignEvals step (new flow).
+		fc.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
+		if len(evalCases) > 0 {
+			log.Info("forge: phase=eval_designing — reusing pre-designed eval cases", "eval_count", len(evalCases))
+			fc.db.Model(&iter).Update("phase", model.ForgePhaseEvaluating)
+			iter.Phase = model.ForgePhaseEvaluating
+			goto evalPhase
+		}
+
+		// Backward compatibility: generate evals inline (for runs via direct Start endpoint).
 		log.Info("forge: phase=eval_designing — generating eval cases")
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
@@ -736,13 +1021,14 @@ func (fc *ForgeController) runIteration(
 		_ = evalDesignerClient.EndConversation(ctx, evalConv.ConversationId)
 	} else {
 		// Iterations 2+: load existing ForgeEvalCase records from the run.
-		fc.db.Where("forge_run_id = ?", run.ID).Find(&evalCases)
+		fc.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
 		log.Info("forge: phase=eval_designing — reusing existing eval cases", "eval_count", len(evalCases))
 
 		fc.db.Model(&iter).Update("phase", model.ForgePhaseEvaluating)
 		iter.Phase = model.ForgePhaseEvaluating
 	}
 
+evalPhase:
 	// PHASE: EVALUATING — push eval-target agent to a pool sandbox with MCP mocks.
 	phaseStart = time.Now()
 	log.Info("forge: phase=evaluating — preparing eval target agent", "eval_count", len(evalCases))
@@ -1252,7 +1538,7 @@ Agent Name: %s`, run.Agent.Name)
 
 	// Load eval cases for this run (static across iterations).
 	var evalCases []model.ForgeEvalCase
-	fc.db.Where("forge_run_id = ?", run.ID).Find(&evalCases)
+	fc.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
 
 	// Build a map of eval case ID to eval case for quick lookup.
 	evalCaseMap := make(map[uuid.UUID]model.ForgeEvalCase, len(evalCases))
@@ -1531,9 +1817,24 @@ func (fc *ForgeController) loadSystemAgent(name string) (*model.Agent, error) {
 	return &agent, nil
 }
 
+// disableBuiltInTools configures a forge system agent so Bridge registers zero
+// built-in tools. The agent can only use its MCP tool (start_forge,
+// submit_system_prompt, etc.). Also sets tool_calls_only so the agent is
+// forced to call tools rather than generating text.
+func disableBuiltInTools(agent *model.Agent) {
+	agent.DisableBuiltInTools = true
+	if agent.AgentConfig == nil {
+		agent.AgentConfig = model.JSON{}
+	}
+	agent.AgentConfig["tool_calls_only"] = true
+}
+
 // ensureSystemAgentReady ensures a system agent has a pool sandbox and is pushed to Bridge.
 // Returns the Bridge client for the system agent's sandbox.
 func (fc *ForgeController) ensureSystemAgentReady(ctx context.Context, agent *model.Agent) (*bridgepkg.BridgeClient, error) {
+	// Disable all built-in tools — forge agents only use their MCP tool.
+	disableBuiltInTools(agent)
+
 	// Assign pool sandbox if not already assigned.
 	if agent.SandboxID == nil {
 		if err := fc.pusher.PushAgent(ctx, agent); err != nil {
@@ -1677,7 +1978,7 @@ func (fc *ForgeController) updateIterPhase(iter *model.ForgeIteration, phase str
 // and marks them as failed (full resume is a future enhancement).
 func (fc *ForgeController) ResumeStaleRuns(ctx context.Context) {
 	var staleRuns []model.ForgeRun
-	fc.db.Where("status IN ?", []string{model.ForgeStatusRunning, model.ForgeStatusProvisioning}).Find(&staleRuns)
+	fc.db.Where("status IN ?", []string{model.ForgeStatusRunning, model.ForgeStatusProvisioning, model.ForgeStatusDesigningEvals}).Find(&staleRuns)
 	for _, run := range staleRuns {
 		slog.Warn("marking stale forge run as failed",
 			"forge_run_id", run.ID,

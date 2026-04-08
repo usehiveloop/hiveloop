@@ -585,7 +585,8 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 
 // maybeStartForgeAfterApproval checks if the conversation belongs to a forge
 // context-gathering run. If so and context has been captured, it transitions
-// the forge run from gathering_context → queued and enqueues the task.
+// the forge run from gathering_context → designing_evals and enqueues the
+// eval design task.
 func (h *ConversationHandler) maybeStartForgeAfterApproval(conv *model.AgentConversation) {
 	if h.enqueuer == nil {
 		return
@@ -601,22 +602,22 @@ func (h *ConversationHandler) maybeStartForgeAfterApproval(conv *model.AgentConv
 		return
 	}
 
-	if err := h.db.Model(&run).Update("status", model.ForgeStatusQueued).Error; err != nil {
-		slog.Error("failed to transition forge run to queued", "forge_run_id", run.ID, "error", err)
+	if err := h.db.Model(&run).Update("status", model.ForgeStatusDesigningEvals).Error; err != nil {
+		slog.Error("failed to transition forge run to designing_evals", "forge_run_id", run.ID, "error", err)
 		return
 	}
 
-	task, err := tasks.NewForgeRunTask(run.ID)
+	task, err := tasks.NewForgeDesignEvalsTask(run.ID)
 	if err != nil {
-		slog.Error("failed to create forge run task", "forge_run_id", run.ID, "error", err)
+		slog.Error("failed to create forge design evals task", "forge_run_id", run.ID, "error", err)
 		return
 	}
 	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		slog.Error("failed to enqueue forge run after approval", "forge_run_id", run.ID, "error", err)
+		slog.Error("failed to enqueue forge design evals after approval", "forge_run_id", run.ID, "error", err)
 		return
 	}
 
-	slog.Info("forge: context approved, run enqueued",
+	slog.Info("forge: context approved, designing evals",
 		"forge_run_id", run.ID,
 		"conversation_id", conv.ID,
 	)

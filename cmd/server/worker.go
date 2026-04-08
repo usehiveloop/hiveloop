@@ -64,6 +64,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 			redisOpt,
 		)
 		workerDeps.ForgeExecute = forgeCtrl.Execute
+		workerDeps.ForgeDesignEvals = forgeCtrl.DesignEvals
 		slog.Info("forge controller ready (worker)")
 	}
 	mux := tasks.NewServeMux(workerDeps)

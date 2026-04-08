@@ -67,6 +67,31 @@ func NewForgeRunTask(runID uuid.UUID) (*asynq.Task, error) {
 }
 
 // ---------------------------------------------------------------------------
+// forge:design_evals
+// ---------------------------------------------------------------------------
+
+// ForgeDesignEvalsPayload is the payload for TypeForgeDesignEvals tasks.
+type ForgeDesignEvalsPayload struct {
+	RunID uuid.UUID `json:"run_id"`
+}
+
+// NewForgeDesignEvalsTask creates a task that generates eval cases for a forge run.
+func NewForgeDesignEvalsTask(runID uuid.UUID) (*asynq.Task, error) {
+	payload, err := json.Marshal(ForgeDesignEvalsPayload{RunID: runID})
+	if err != nil {
+		return nil, fmt.Errorf("marshal forge design evals payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeForgeDesignEvals,
+		payload,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(2),
+		asynq.Timeout(10*time.Minute),
+		asynq.Unique(24*time.Hour),
+	), nil
+}
+
+// ---------------------------------------------------------------------------
 // email:send
 // ---------------------------------------------------------------------------
 

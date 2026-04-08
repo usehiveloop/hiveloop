@@ -3641,6 +3641,83 @@
         }
       }
     },
+    "/admin/v1/users/{id}/impersonate": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Issues access and refresh tokens for the target user. Requires platform admin privileges.",
+        "tags": [
+          "admin"
+        ],
+        "summary": "Impersonate a user",
+        "parameters": [
+          {
+            "description": "User ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/v1/users/{id}/unban": {
       "post": {
         "security": [
@@ -14786,6 +14863,9 @@
       "meResponse": {
         "type": "object",
         "properties": {
+          "is_platform_admin": {
+            "type": "boolean"
+          },
           "orgs": {
             "type": "array",
             "items": {

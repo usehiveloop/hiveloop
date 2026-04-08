@@ -29,6 +29,8 @@ const (
 	EventJudgeCompleted     = "forge.judge_completed"
 	EventIterationCompleted = "forge.iteration_completed"
 	EventCostUpdate         = "forge.cost_update"
+	EventEvalsDesigned      = "forge.evals_designed"
+	EventEvalsApproved      = "forge.evals_approved"
 	EventRunCompleted       = "forge.run_completed"
 	EventRunFailed          = "forge.run_failed"
 	EventRunCancelled       = "forge.run_cancelled"
