@@ -183,6 +183,7 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 		"BRIDGE_LOG_FORMAT":           "json",
 		"BRIDGE_CODEDB_ENABLED":       "true",
 		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
 	}
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
@@ -325,6 +326,7 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 		"BRIDGE_LOG_FORMAT":           "json",
 		"BRIDGE_CODEDB_ENABLED":       "true",
 		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
@@ -508,6 +510,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 		"BRIDGE_LOG_FORMAT":           "json",
 		"BRIDGE_CODEDB_ENABLED":       "true",
 		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
