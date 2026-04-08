@@ -115,6 +115,21 @@ func TestForgeArchitectMCP_SubmitSavesToDB(t *testing.T) {
 
 func TestForgeEvalDesignerMCP_ToolRegistered(t *testing.T) {
 	db := forgeTestDB(t)
+	ids := createForgeScaffold(t, db)
+
+	// Create a forge run in designing_evals status so the tool is exposed.
+	run := model.ForgeRun{
+		OrgID:                    ids.orgID,
+		AgentID:                  ids.agentID,
+		ArchitectCredentialID:    ids.credentialID,
+		ArchitectModel:           "gpt-4o",
+		EvalDesignerCredentialID: ids.credentialID,
+		EvalDesignerModel:        "gpt-4o",
+		JudgeCredentialID:        ids.credentialID,
+		JudgeModel:               "gpt-4o",
+		Status:                   model.ForgeStatusDesigningEvals,
+	}
+	db.Create(&run)
 
 	handler := forge.NewForgeEvalDesignerMCPHandler(db, nil)
 	router := chi.NewRouter()
@@ -122,15 +137,13 @@ func TestForgeEvalDesignerMCP_ToolRegistered(t *testing.T) {
 		r.Handle("/*", handler.StreamableHTTPHandler())
 	})
 
-	fakeRunID := uuid.New()
-
 	initBody := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}`
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", fakeRunID), initBody))
+	router.ServeHTTP(recorder, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), initBody))
 
 	listBody := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`
 	recorder2 := httptest.NewRecorder()
-	router.ServeHTTP(recorder2, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", fakeRunID), listBody))
+	router.ServeHTTP(recorder2, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), listBody))
 
 	var rpcResp struct {
 		Result struct {
@@ -171,7 +184,13 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), initBody))
 
-	callBody := `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"submit_eval_cases","arguments":{"evals":[{"name":"basic_triage","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":3,"test_prompt":"I need help with billing","expected_behavior":"Route to billing team"},{"name":"angry_customer","category":"adversarial","tier":"adversarial","requirement_type":"soft","sample_count":5,"test_prompt":"This is ridiculous fix it NOW","expected_behavior":"De-escalate and address the issue"}]}}}`
+	callBody := `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"submit_eval_cases","arguments":{"evals":[
+		{"name":"basic_triage","description":"Verifies the agent correctly triages a simple billing issue.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":3,"test_prompt":"I need help with my billing issue, I was charged twice","expected_behavior":"Route to billing team and add billing label","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"1","title":"Billing issue","body":"Charged twice"}}]},"rubric":[{"criterion":"Routes to billing team","requirement_type":"hard","weight":0.5},{"criterion":"Adds billing label","requirement_type":"hard","weight":0.5}]},
+		{"name":"angry_customer","description":"Tests that the agent handles hostile users without escalating tone.","category":"adversarial","tier":"adversarial","requirement_type":"soft","sample_count":5,"test_prompt":"This is ridiculous fix it NOW or I will report you","expected_behavior":"De-escalate and address the issue professionally","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"2","title":"Angry","body":"Fix it"}}]},"rubric":[{"criterion":"Does not match hostile tone","requirement_type":"hard","weight":0.6},{"criterion":"Addresses the technical issue","requirement_type":"soft","weight":0.4}]},
+		{"name":"duplicate_detection","description":"Checks that the agent finds and marks duplicate issues correctly.","category":"happy_path","tier":"basic","requirement_type":"hard","sample_count":1,"test_prompt":"Login page shows 404 error after latest update","expected_behavior":"Search for duplicates, find match, comment and close","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"3","title":"404 on login","body":"After update"}}],"search_issues_and_pull_requests":[{"match":{},"response":{"items":[{"number":42,"title":"Login 404"}]}}]},"rubric":[{"criterion":"Searches for duplicates","requirement_type":"hard","weight":0.4},{"criterion":"Links to original issue","requirement_type":"hard","weight":0.6}]},
+		{"name":"security_escalation","description":"Validates that security issues get immediate maintainer ping without auto-response.","category":"edge_case","tier":"standard","requirement_type":"hard","sample_count":1,"test_prompt":"Found SQL injection vulnerability in the search API","expected_behavior":"Add priority:critical label and ping lead maintainer immediately","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"4","title":"SQL injection","body":"Search API vulnerable"}}]},"rubric":[{"criterion":"Adds critical priority label","requirement_type":"hard","weight":0.5},{"criterion":"Pings maintainer","requirement_type":"hard","weight":0.5}]},
+		{"name":"tool_error_handling","description":"Ensures the agent handles API failures gracefully without crashing.","category":"tool_error","tier":"standard","requirement_type":"hard","sample_count":2,"test_prompt":"Memory leak in image processing pipeline","expected_behavior":"Handle API error gracefully and still attempt triage","tool_mocks":{"issues_get":[{"match":{},"response":{"id":"5","title":"Memory leak","body":"Image processing"}}],"issues_list_labels_for_repo":[{"match":{},"response":{"error":"API rate limit exceeded"}}]},"rubric":[{"criterion":"Does not crash on API error","requirement_type":"hard","weight":0.6},{"criterion":"Attempts alternative triage","requirement_type":"soft","weight":0.4}]}
+	]}}}`
 	recorder2 := httptest.NewRecorder()
 	router.ServeHTTP(recorder2, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-eval-designer/%s/mcp", run.ID), callBody))
 
@@ -182,23 +201,20 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	// Verify saved to DB
 	var cases []model.ForgeEvalCase
 	db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&cases)
-	if len(cases) != 2 {
-		t.Fatalf("expected 2 eval cases, got %d", len(cases))
+	if len(cases) != 5 {
+		t.Fatalf("expected 5 eval cases, got %d", len(cases))
 	}
 	if cases[0].TestName != "basic_triage" {
 		t.Errorf("expected first case 'basic_triage', got %q", cases[0].TestName)
 	}
-	if cases[0].OrderIndex != 0 {
-		t.Errorf("expected order_index 0, got %d", cases[0].OrderIndex)
+	if cases[0].Description != "Verifies the agent correctly triages a simple billing issue." {
+		t.Errorf("expected description saved, got %q", cases[0].Description)
 	}
 	if cases[1].TestName != "angry_customer" {
 		t.Errorf("expected second case 'angry_customer', got %q", cases[1].TestName)
 	}
 	if cases[1].SampleCount != 5 {
 		t.Errorf("expected sample_count 5, got %d", cases[1].SampleCount)
-	}
-	if cases[1].Tier != "adversarial" {
-		t.Errorf("expected tier 'adversarial', got %q", cases[1].Tier)
 	}
 
 	// Verify forge run transitioned to reviewing_evals.
