@@ -504,11 +504,14 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 //  3. Wrong key: {"eval_cases": [{...}]} — LLM uses a different key name
 //  4. Single eval: {"evals": {...}} — LLM sends one eval without wrapping in array
 func parseEvalsFromArguments(raw json.RawMessage) ([]EvalCase, error) {
+	slog.Info("parseEvalsFromArguments: received", "raw_len", len(raw), "raw_prefix", truncate(string(raw), 300))
+
 	// Try standard format first.
 	var standard struct {
 		Evals []EvalCase `json:"evals"`
 	}
 	if err := json.Unmarshal(raw, &standard); err == nil && len(standard.Evals) > 0 {
+		slog.Info("parseEvalsFromArguments: parsed as standard", "count", len(standard.Evals))
 		return standard.Evals, nil
 	}
 
@@ -517,9 +520,13 @@ func parseEvalsFromArguments(raw json.RawMessage) ([]EvalCase, error) {
 		Evals string `json:"evals"`
 	}
 	if err := json.Unmarshal(raw, &stringWrapped); err == nil && stringWrapped.Evals != "" {
+		slog.Info("parseEvalsFromArguments: trying string-wrapped", "inner_len", len(stringWrapped.Evals), "inner_prefix", truncate(stringWrapped.Evals, 300))
 		var evalsList []EvalCase
-		if err := json.Unmarshal([]byte(stringWrapped.Evals), &evalsList); err == nil && len(evalsList) > 0 {
+		if innerErr := json.Unmarshal([]byte(stringWrapped.Evals), &evalsList); innerErr == nil && len(evalsList) > 0 {
+			slog.Info("parseEvalsFromArguments: parsed as string-wrapped", "count", len(evalsList))
 			return evalsList, nil
+		} else if innerErr != nil {
+			slog.Warn("parseEvalsFromArguments: string-wrapped inner parse failed", "error", innerErr)
 		}
 	}
 
