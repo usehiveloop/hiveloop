@@ -330,15 +330,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/{agentID}/forge", forgeHandler.Start)
 						r.Get("/{agentID}/forge", forgeHandler.ListRuns)
 					}
-					if driveHandler != nil {
-						r.Route("/{id}/drive", func(r chi.Router) {
-							r.Post("/assets", driveHandler.Upload)
-							r.Get("/assets", driveHandler.List)
-							r.Get("/assets/{assetID}", driveHandler.Get)
-							r.Delete("/assets/{assetID}", driveHandler.Delete)
-						})
-					}
-				})
+					})
 				r.Route("/marketplace/agents", func(r chi.Router) {
 					r.Use(middleware.ResolveUser(database))
 					r.Post("/", marketplaceHandler.Create)
@@ -550,6 +542,17 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Use(middleware.Generation(generationWriter, database))
 		r.Handle("/*", proxyHandler)
 	})
+
+	// Drive routes (agent file storage, authenticated with proxy token)
+	if driveHandler != nil {
+		r.Route("/v1/drive", func(r chi.Router) {
+			r.Use(middleware.TokenAuth(signingKey, database))
+			r.Post("/assets", driveHandler.Upload)
+			r.Get("/assets", driveHandler.List)
+			r.Get("/assets/{assetID}", driveHandler.Get)
+			r.Delete("/assets/{assetID}", driveHandler.Delete)
+		})
+	}
 
 	// Spider routes (web crawling/search via spider.cloud)
 	// Mounted at /spider (not /v1/spider) to avoid the /v1 org-auth middleware group.
