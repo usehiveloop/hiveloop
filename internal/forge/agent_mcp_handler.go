@@ -56,7 +56,7 @@ const finalizeEvalsDescription = `Finalize the eval suite after submitting all t
 Call this once after you have submitted all your test cases. This transitions the forge run to review status.
 
 ## Requirements
-- At least 5 test cases must have been submitted via submit_eval_case
+- At least 10 test cases must have been submitted via submit_eval_case
 - The forge run must still be in designing_evals status
 
 ## What Happens
@@ -463,8 +463,8 @@ func (h *ForgeEvalDesignerMCPHandler) handleFinalize(runID string) func(context.
 
 		var count int64
 		h.db.Model(&model.ForgeEvalCase{}).Where("forge_run_id = ?", runID).Count(&count)
-		if count < 5 {
-			return toolError("only %d eval cases submitted. Submit at least 5 before finalizing.", count)
+		if count < 10 {
+			return toolError("only %d eval cases submitted. Submit at least 10 before finalizing. Include evals for runtime tool usage (memory, journal, todo, subagents) if not already included.", count)
 		}
 
 		h.db.Model(&model.ForgeRun{}).
