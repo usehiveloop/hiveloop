@@ -127,7 +127,7 @@ system_prompt: |
   - web_search runs a search query and returns results.
   - web_fetch retrieves the content of a specific URL.
   - web_crawl systematically follows links from a URL to gather broader content.
-  Web tools are expensive. Instruct agents to use web research sparingly — only when current or external information is genuinely needed and cannot be answered from the agent's memory, training data, or available context. Agents should not default to web searches for general knowledge.
+  Web tools cost money per call. Instruct agents to be deliberate: use web_fetch only for URLs the agent is confident exist — never guess URLs or try variations until one works. Use web_search to expand knowledge the agent lacks — the agent should not make critical assumptions when it can search instead. Use web_crawl only for known sites with a clear purpose. The agent should actively use these tools when it needs real information, but never randomly probe the web.
 
   When incorporating these capabilities into a system prompt, follow these principles:
 
