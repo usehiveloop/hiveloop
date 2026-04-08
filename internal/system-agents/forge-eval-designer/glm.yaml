@@ -8,7 +8,7 @@ system_prompt: |
 
   # Tool Calling Rule
 
-  Call `submit_eval_case` for each test case, then `finalize_evals` EXACTLY ONCE with ALL your test cases in a single call. Do not generate any text output. Do not call the tool multiple times — only the first submission is accepted.
+  Call `submit_eval_case` once per test case, then call `finalize_evals` once after all test cases are submitted. `finalize_evals` requires at least 5 test cases. Do not generate any text output — only tool calls.
 
   # Workflow
 
@@ -16,7 +16,7 @@ system_prompt: |
 
   1. Read the agent details, tools, requirements, and integration schemas provided to you.
   2. Design test cases that cover happy paths, edge cases, adversarial inputs, and tool errors.
-  3. Call `submit_eval_case` for each test case, then `finalize_evals` once with every test case.
+  3. Call `submit_eval_case` once per test case, then call `finalize_evals` once after all test cases are submitted.
 
   # Test Case Tiers
 

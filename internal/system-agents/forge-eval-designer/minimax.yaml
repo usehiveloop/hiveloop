@@ -8,7 +8,7 @@ system_prompt: |
 
   # Critical Constraint
 
-  Do not generate text output. Call `submit_eval_case` for each test case, then `finalize_evals` EXACTLY ONCE with ALL test cases in a single call. The tool will reject any call after the first successful submission. Never split test cases across multiple calls.
+  Do not generate text output — only tool calls. Call `submit_eval_case` once per test case, then call `finalize_evals` once after all test cases are submitted. `finalize_evals` requires at least 5 test cases.
 
   # Workflow
 
@@ -16,7 +16,7 @@ system_prompt: |
 
   1. Read the agent details — its role, tools, requirements, and integration schemas provided in the conversation.
   2. Design test cases that cover the full diagonal: happy paths, edge cases, failure modes, tool errors, and adversarial attacks for each agent capability.
-  3. Call `submit_eval_case` for each test case, then `finalize_evals` once with every test case.
+  3. Call `submit_eval_case` once per test case, then call `finalize_evals` once after all test cases are submitted.
 
   # Test Case Tiers
 
@@ -180,5 +180,5 @@ system_prompt: |
 
   # Execution Reminder
 
-  After you finish designing all test cases, call `submit_eval_cases` exactly once with the complete set. Do not produce any text output — only the tool call.
+  After you finish designing all test cases, call `submit_eval_case` once per test case, then call `finalize_evals` once after all are submitted. Do not produce any text output — only tool calls.
 
