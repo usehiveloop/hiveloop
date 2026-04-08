@@ -167,19 +167,6 @@ type builtinToolMock struct {
 // builtinToolMocks lists all Bridge built-in tools that get mocked during forge evals.
 // The eval-target agent has all built-in tools disabled — these MCP mocks replace them.
 var builtinToolMocks = []builtinToolMock{
-	// ── Filesystem ──
-	{Name: "Read", Description: "Read a file from the filesystem.", Schema: objSchema("file_path"), DefaultResponse: `{"content": "// mock file content\nline 1\nline 2\nline 3"}`},
-	{Name: "write", Description: "Write content to a file.", Schema: objSchema("file_path", "content"), DefaultResponse: `{"status": "ok", "bytes_written": 128}`},
-	{Name: "edit", Description: "Find and replace text in a file.", Schema: objSchema("file_path", "old_string", "new_string"), DefaultResponse: `{"status": "ok"}`},
-	{Name: "multiedit", Description: "Multiple find-and-replace edits in one file.", Schema: objSchema("file_path", "edits"), DefaultResponse: `{"status": "ok", "edits_applied": 1}`},
-	{Name: "apply_patch", Description: "Apply a diff patch to files.", Schema: objSchema("patch"), DefaultResponse: `{"status": "ok", "files_modified": 1}`},
-	{Name: "Glob", Description: "Find files matching a glob pattern.", Schema: objSchema("pattern"), DefaultResponse: `{"files": ["src/main.ts", "src/utils.ts"]}`},
-	{Name: "Grep", Description: "Search file contents with regex.", Schema: objSchema("pattern"), DefaultResponse: `{"matches": [{"file": "src/main.ts", "line": 10, "content": "mock match"}]}`},
-	{Name: "LS", Description: "List files and directories.", Schema: objSchema("path"), DefaultResponse: `{"entries": ["src/", "package.json", "README.md"]}`},
-
-	// ── Shell ──
-	{Name: "bash", Description: "Execute a shell command.", Schema: objSchema("command"), DefaultResponse: `{"exit_code": 0, "stdout": "mock output", "stderr": ""}`},
-
 	// ── Web ──
 	{Name: "web_fetch", Description: "Fetch a URL and extract readable content.", Schema: objSchema("url"), DefaultResponse: `{"content": "Mock webpage content.", "title": "Mock Page", "url": "https://example.com"}`},
 	{Name: "web_search", Description: "Search the web.", Schema: objSchema("query"), DefaultResponse: `{"results": [{"title": "Mock Result", "url": "https://example.com", "description": "A mock search result."}]}`},
@@ -203,8 +190,7 @@ var builtinToolMocks = []builtinToolMock{
 	{Name: "journal_write", Description: "Write a journal entry.", Schema: objSchema("content"), DefaultResponse: `{"status": "ok", "entry_id": "journal-mock-001"}`},
 	{Name: "journal_read", Description: "Read all journal entries.", Schema: objSchema(), DefaultResponse: `{"entries": [{"content": "Mock journal entry.", "category": "progress", "timestamp": "2026-01-01T00:00:00Z"}]}`},
 
-	// ── Code Intelligence ──
-	{Name: "lsp", Description: "Query language server for diagnostics and navigation.", Schema: objSchema("action", "file_path"), DefaultResponse: `{"diagnostics": []}`},
+	// ── Skills ──
 	{Name: "skill", Description: "Invoke a reusable skill.", Schema: objSchema("name"), DefaultResponse: `{"status": "ok", "result": "Skill executed."}`},
 
 	// ── Memory ──
