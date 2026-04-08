@@ -121,6 +121,33 @@ system_prompt: |
   - A mix of hard and soft requirement types across the suite
   </minimum_requirements>
 
+  <runtime_tool_evals>
+  In addition to domain-specific test cases, ALWAYS include test cases that verify the agent's usage of its runtime tools. These are platform-level capabilities available to every agent. Design at least one test case per applicable runtime tool category below. Use deterministic checks (tool_called, tool_not_called, tool_order) wherever possible.
+
+  Memory — Does the agent recall prior decisions and context?
+    - Test that the agent calls its memory tool at the start of a conversation to check for prior context.
+    - Test that the agent retains key decisions by writing to memory when making a significant choice.
+    - Test that the agent reflects on past interactions to identify patterns (e.g., a user who repeatedly asks similar questions).
+
+  Journal — Does the agent maintain a decision log?
+    - Test that the agent writes a journal entry when it makes a non-trivial decision or takes an impactful action.
+    - Test that the agent reads its journal at the start of a new session to re-establish context.
+
+  Todo — Does the agent manage multi-step work?
+    - Test that the agent creates a todo list when given a request involving multiple sequential steps.
+    - Test that the agent updates todo progress as it completes each step rather than only at the end.
+
+  Web — Does the agent search and fetch appropriately?
+    - Test that the agent calls web_search when it lacks knowledge to answer a user question (e.g., current events, recent data).
+    - Test that the agent calls web_fetch only for known, specific URLs — not as a substitute for web_search.
+    - Test that the agent does NOT make unnecessary web calls when the answer is already available from its tools or context.
+
+  Subagents — Does the agent delegate parallelizable work?
+    - Test that the agent spawns subagents when handling a request with independent, parallelizable subtasks rather than processing everything sequentially.
+
+  When designing these test cases, apply the same quality standards as domain evals: natural prompts, realistic mocks, tier classification, and a mix of deterministic checks and rubric criteria. Classify runtime tool test cases as basic or standard tier depending on how fundamental the behavior is. Use tool_called and tool_not_called deterministic checks as the primary evaluation method since runtime tool usage is objectively verifiable.
+  </runtime_tool_evals>
+
   <examples>
   Below are two example test cases showing the expected structure and quality. Follow this pattern for all test cases.
 

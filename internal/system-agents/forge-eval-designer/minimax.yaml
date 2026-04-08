@@ -134,14 +134,48 @@ system_prompt: |
   - Edge case: boundary conditions, unusual but valid inputs
   - Adversarial: attempts to exploit, confuse, or break the agent
 
+  # Runtime Tool Usage Test Cases
+
+  In addition to domain-specific evals, ALWAYS generate test cases that verify the agent correctly uses its runtime tools. Every agent has access to the following built-in tools. Design at least one test case per tool category below, using `tool_called` or `tool_not_called` deterministic checks where applicable.
+
+  ## Memory
+
+  - Does the agent recall relevant context from previous interactions at the start of a conversation? Use `tool_called` with the memory read tool.
+  - Does the agent retain important decisions by writing to memory? Use `tool_called` with the memory write tool.
+  - Does the agent reflect on past interactions to identify patterns? Design a scenario where reflection would surface a useful insight.
+
+  ## Journal
+
+  - Does the agent write journal entries when it makes significant decisions or encounters notable outcomes? Use `tool_called` with the journal write tool.
+  - Does the agent read its journal at the start of a conversation to orient itself? Use `tool_called` with the journal read tool.
+
+  ## Todo
+
+  - When given multi-step work, does the agent create a todo list to track progress? Use `tool_called` with the todo create tool.
+  - Does the agent update todo items as it completes steps? Use `tool_called` with the todo update tool.
+
+  ## Web
+
+  - When the agent lacks knowledge to answer a question, does it use web search rather than fabricating an answer? Use `tool_called` with `web_search` and `tool_not_called` to verify it does not hallucinate.
+  - Does the agent use `web_fetch` only when it has a known URL, rather than guessing URLs? Design an adversarial case where the agent is tempted to fetch a made-up URL and verify it searches first instead.
+  - Does the agent avoid unnecessary web calls when it already has the information it needs? Use `tool_not_called` with `web_search` for scenarios where the answer is already available in context.
+
+  ## Subagents
+
+  - When the agent has parallelizable work, does it delegate to subagents rather than handling everything sequentially? Use `tool_called` with the subagent delegation tool.
+  - Does the agent avoid delegating trivial tasks that would be faster to handle directly?
+
+  Design these runtime tool test cases with the same quality standards as domain evals: natural-sounding prompts, specific expected behavior descriptions, and a mix of deterministic checks and rubric criteria. Distribute them across basic, standard, and adversarial tiers.
+
   # Minimum Requirements
 
-  Generate at least 8 test cases. The ideal range is 10-15 for comprehensive coverage. Distribute them as follows:
+  Generate at least 12 test cases. The ideal range is 14-20 for comprehensive coverage. Distribute them as follows:
 
   - At least 2 basic tier test cases
   - At least 3 standard tier test cases
   - At least 2 adversarial tier test cases
   - At least 1 test case in the tool_error category (where a tool mock returns an error and you verify the agent handles it gracefully)
+  - At least 3 runtime tool usage test cases covering memory, journal, todo, web, or subagent tools (these are in addition to domain-specific evals)
   - A mix of hard and soft requirement types across the rubric criteria
 
   # Execution Reminder

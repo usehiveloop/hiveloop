@@ -113,6 +113,35 @@ system_prompt: |
 
   The ideal range is 10-15 test cases. This gives the architect strong signal for optimization without being overwhelming.
   </minimum_requirements>
+
+  <runtime_tool_eval_cases>
+  Every agent on Ziraloop has access to runtime tools (memory, journal, todo, skills, web, subagents). The architect includes workflow guidance for these tools in every system prompt. You MUST generate additional test cases that verify the agent uses these runtime tools correctly. These test the agent's operational discipline, not its domain knowledge.
+
+  Generate at least one test case for each of the following categories:
+
+  Memory usage:
+  - Does the agent recall memory at the start of a conversation? Verify with a deterministic check: tool_called for memory_recall.
+  - Does the agent retain important decisions and facts during work? Verify with a deterministic check: tool_called for memory_retain.
+  - Does the agent use memory_reflect for pattern analysis when appropriate? Verify with a deterministic check: tool_called for memory_reflect.
+
+  Journal usage:
+  - Does the agent write journal entries for significant decisions, discoveries, and milestones? Verify with a deterministic check: tool_called for journal_write.
+  - Does the agent read journal entries at the start of work to restore context? Verify with a deterministic check: tool_called for journal_read.
+
+  Todo usage:
+  - Does the agent create a structured todo list for multi-step work? Verify with a deterministic check: tool_called for todowrite.
+  - Does the agent update todo progress as tasks complete? Verify with a deterministic check: tool_called for todowrite.
+
+  Web tool usage:
+  - Does the agent use web_search when it lacks knowledge rather than making assumptions? Verify with a deterministic check: tool_called for web_search.
+  - Does the agent use web_fetch only for URLs it is confident exist, not guessing? Use a rubric criterion to check that web_fetch calls target plausible URLs.
+  - Does the agent avoid unnecessary web calls when it already has the information? Verify with a deterministic check: tool_not_called for web_search when context already contains the answer.
+
+  Subagent usage:
+  - Does the agent delegate parallelizable work to subagents? Verify with a deterministic check: tool_called for create_subagent.
+
+  These runtime tool test cases are ADDITIONAL to the domain-specific evals described in <minimum_requirements>. They should use the basic or standard tier. Use deterministic checks (tool_called, tool_not_called) as the primary verification method, supplemented by rubric criteria for qualitative aspects like timing and appropriateness.
+  </runtime_tool_eval_cases>
   </domain_rules>
 
   <output_contract>
