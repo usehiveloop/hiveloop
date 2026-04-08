@@ -1049,7 +1049,7 @@ evalPhase:
 	phaseStart = time.Now()
 	log.Info("forge: phase=evaluating — preparing eval target agent", "eval_count", len(evalCases))
 	evalTargetAgentID := uuid.New().String()
-	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
+	proxyBaseURL := fmt.Sprintf("https://%s", fc.cfg.ProxyHost)
 	mcpURL := fmt.Sprintf("%s/forge/%s", fc.cfg.MCPBaseURL, run.ID.String())
 
 	evalTargetProviderType := bridgepkg.Custom
@@ -1852,7 +1852,7 @@ func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyTo
 	}
 
 	// Build proxy base URL.
-	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
+	proxyBaseURL := fmt.Sprintf("https://%s", fc.cfg.ProxyHost)
 
 	return bridgepkg.ConversationProviderOverride{
 		ProviderType: providerType,

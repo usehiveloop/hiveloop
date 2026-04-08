@@ -299,7 +299,7 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 		providerType = pt
 	}
 
-	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", p.cfg.BridgeHost)
+	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
 
 	def := bridgepkg.AgentDefinition{
 		Id:           agent.ID.String(),
@@ -394,7 +394,7 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	// Build proxy base URL — Bridge will call our proxy for LLM requests
 	// For providers that use non-Bearer auth (e.g. Anthropic uses x-api-key),
 	// we strip the /v1/proxy prefix so the full upstream path is preserved.
-	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", p.cfg.BridgeHost)
+	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
 
 	def := bridgepkg.AgentDefinition{
 		Id:           agent.ID.String(),
