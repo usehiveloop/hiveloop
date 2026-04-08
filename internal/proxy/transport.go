@@ -17,7 +17,7 @@ func NewTransport() *http.Transport {
 		MaxIdleConnsPerHost:   50,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   5 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
+		ResponseHeaderTimeout: 120 * time.Second,
 		DisableCompression:    true,
 	}
 }
