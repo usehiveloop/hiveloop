@@ -400,6 +400,7 @@ impl AgentSupervisor {
         filter_mcp_server_names: Option<Vec<String>>,
         api_key_override: Option<String>,
         subagent_api_key_overrides: Option<HashMap<String, String>>,
+        provider_override: Option<bridge_core::ProviderConfig>,
     ) -> Result<(String, mpsc::Receiver<BridgeEvent>), BridgeError> {
         let state = self
             .agent_map
@@ -594,7 +595,8 @@ impl AgentSupervisor {
 
         let has_filters = filter_tool_names.is_some()
             || filter_mcp_server_names.is_some()
-            || api_key_override.is_some();
+            || api_key_override.is_some()
+            || provider_override.is_some();
 
         let mut tool_names: std::collections::HashSet<String> =
             state.tool_registry.tool_names().into_iter().collect();
@@ -659,12 +661,20 @@ impl AgentSupervisor {
             );
         }
 
-        // If an API key override is provided, clone the definition and swap the key.
-        let scoped_def: Option<AgentDefinition> = api_key_override.map(|key| {
+        // Build a scoped definition when provider or API key overrides are present.
+        // Provider override takes precedence (replaces the entire provider config).
+        // API key override only swaps the key on the existing provider.
+        let scoped_def: Option<AgentDefinition> = if let Some(provider) = provider_override {
             let mut d = (*def).clone();
-            d.provider.api_key = key;
-            d
-        });
+            d.provider = provider;
+            Some(d)
+        } else {
+            api_key_override.map(|key| {
+                let mut d = (*def).clone();
+                d.provider.api_key = key;
+                d
+            })
+        };
         let effective_def: &AgentDefinition = scoped_def.as_ref().unwrap_or(&def);
 
         // Build a conversation-scoped agent when filters are active or when immortal
@@ -1948,7 +1958,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, None)
+            .create_conversation("agent1", None, None, None, None, None)
             .await;
 
         assert!(result.is_ok());
@@ -1977,7 +1987,7 @@ mod tests {
         let filter = all_tools.iter().take(2).cloned().collect::<Vec<_>>();
 
         let result = supervisor
-            .create_conversation("agent1", Some(filter.clone()), None, None, None)
+            .create_conversation("agent1", Some(filter.clone()), None, None, None, None)
             .await;
 
         assert!(result.is_ok());
@@ -1999,6 +2009,7 @@ mod tests {
             .create_conversation(
                 "agent1",
                 Some(vec!["totally_fake_tool".to_string()]),
+                None,
                 None,
                 None,
                 None,
@@ -2026,6 +2037,7 @@ mod tests {
                 Some(vec!["nonexistent-mcp".to_string()]),
                 None,
                 None,
+                None,
             )
             .await;
 
@@ -2039,7 +2051,7 @@ mod tests {
         let supervisor = make_test_supervisor();
 
         let result = supervisor
-            .create_conversation("no_such_agent", None, None, None, None)
+            .create_conversation("no_such_agent", None, None, None, None, None)
             .await;
 
         assert!(result.is_err());
@@ -2064,6 +2076,7 @@ mod tests {
                 None,
                 Some("sk-custom-override-key".to_string()),
                 None,
+                None,
             )
             .await;
 
@@ -2083,7 +2096,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, Some("".to_string()), None)
+            .create_conversation("agent1", None, None, Some("".to_string()), None, None)
             .await;
 
         assert!(result.is_err());
@@ -2100,7 +2113,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, Some("   ".to_string()), None)
+            .create_conversation("agent1", None, None, Some("   ".to_string()), None, None)
             .await;
 
         assert!(result.is_err());
@@ -2127,6 +2140,7 @@ mod tests {
                 None,
                 Some("sk-custom-key".to_string()),
                 None,
+                None,
             )
             .await;
 
@@ -2147,7 +2161,7 @@ mod tests {
         overrides.insert("nonexistent_subagent".to_string(), "<provider-api-key>".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides))
+            .create_conversation("agent1", None, None, None, Some(overrides), None)
             .await;
 
         assert!(result.is_err());
@@ -2190,7 +2204,7 @@ mod tests {
         overrides.insert("sub1".to_string(), "".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides))
+            .create_conversation("agent1", None, None, None, Some(overrides), None)
             .await;
 
         assert!(result.is_err());
@@ -2233,7 +2247,7 @@ mod tests {
         overrides.insert("sub1".to_string(), "sk-overridden-sub-key".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides))
+            .create_conversation("agent1", None, None, None, Some(overrides), None)
             .await;
 
         assert!(result.is_ok());

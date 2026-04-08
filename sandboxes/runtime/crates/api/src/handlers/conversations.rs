@@ -59,8 +59,15 @@ pub struct CreateConversationRequest {
     pub mcp_server_names: Option<Vec<String>>,
 
     /// When provided, overrides the agent's LLM API key for this conversation only.
+    /// For full provider/model override, use the `provider` field instead.
     #[serde(default)]
     pub api_key: Option<String>,
+
+    /// When provided, fully overrides the agent's LLM provider for this conversation.
+    /// Allows switching model, provider type, API key, and base URL per conversation
+    /// while keeping the same agent definition (tools, system prompt, skills, etc.).
+    #[serde(default)]
+    pub provider: Option<bridge_core::ProviderConfig>,
 
     /// Per-subagent API key overrides. Key = subagent name, Value = API key.
     /// Only named subagents are overridden; others keep their configured keys.
@@ -106,6 +113,7 @@ pub async fn create_conversation(
             request.mcp_server_names,
             request.api_key,
             request.subagent_api_keys,
+            request.provider,
         )
         .await?;
 
