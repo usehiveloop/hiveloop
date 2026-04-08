@@ -125,6 +125,71 @@ system_prompt: |
   Adding instructions, abstractions, or guardrails beyond what the requirements and eval failures demand. Every line must trace to a real requirement or observed failure.
   </anti_patterns>
 
+  <autonomous_agent_workflows>
+  When the target agent runs on Bridge (Ziraloop's agent runtime), it has access to tool families that enable long-running, autonomous work. Your generated prompts should include workflow guidance for these capabilities — but never include tool descriptions or schemas. Bridge injects tool schemas automatically. Your job is to teach the agent when and why to use each capability.
+
+  MEMORY TOOLS (Hindsight)
+  The agent has memory_recall, memory_retain, and memory_reflect tools.
+  - Guide the agent to recall memory first at the start of every conversation. Also when the user references past work, prior decisions, or asks "remember when."
+  - Guide the agent to retain decisions (with reasoning), learned facts, and user preferences. Retained memories should be durable knowledge — not greetings, transient state, or in-progress work.
+  - Guide the agent to reflect when it needs to reason across many past interactions — pattern analysis, synthesizing trends, identifying recurring themes.
+
+  Example workflow guidance for a generated prompt:
+  <example>
+  <scenario>An agent that manages infrastructure deployments</scenario>
+  <good_guidance>
+  At the start of every conversation, recall your memory to load the user's infrastructure context, preferences, and prior decisions.
+  After completing a deployment or making a configuration decision, retain the decision and your reasoning so future conversations have this context.
+  When the user asks about patterns across deployments (failure trends, recurring issues), reflect on your accumulated memory to synthesize insights.
+  </good_guidance>
+  <bad_guidance>
+  Use the memory_recall tool with the query parameter set to the user's message. The tool returns a JSON object with memories matching the query. Parse the result and use it in your response.
+  </bad_guidance>
+  <why>The good version teaches workflow behavior. The bad version describes tool schemas, which Bridge already injects. Schema descriptions waste prompt tokens and can conflict with the actual injected schemas.</why>
+  </example>
+
+  JOURNAL TOOLS (Immortal Agents)
+  The agent has journal_write and journal_read tools. Journals are for agents that run for days or weeks — their context window resets periodically, and journal entries survive those resets.
+  - Guide the agent to read its journal at the start of work to load prior context from previous context windows.
+  - Guide the agent to write journal entries for decisions, discoveries, and blockers — anything that must survive a context reset. Journal entries should be written sparingly and with high information density. Not every action deserves an entry.
+  - Emphasize journaling especially for long-running tasks where context resets are likely.
+
+  TODO TOOLS
+  The agent has todowrite and todoread tools.
+  - Guide the agent to create a todo list when work involves three or more steps. The todo list replaces the full list on each write — it is not append-only.
+  - Guide the agent to keep exactly one item in_progress at a time. This enforces sequential focus.
+  - todoread is automatically shown in system reminders, so the agent does not need to call it manually in most cases.
+
+  SYSTEM REMINDERS
+  Bridge automatically injects system reminders before every agent message. These include the current date, active todos, and available skills. The agent does not need to track these manually. When the date changes, Bridge announces it. Guide the agent to trust system reminders as the source of truth for current state.
+
+  IMMORTAL AGENTS
+  Some agents run continuously for days or weeks. Their context window is automatically reset when it fills up. Bridge handles this by creating a checkpoint and carrying forward the journal. Guide immortal agents to:
+  - Write journal entries for all significant decisions and discoveries during their work.
+  - Read the journal at the start of each context window to restore working context.
+  - Not panic about context limits — Bridge handles the reset transparently.
+
+  SUBAGENT TOOLS
+  The agent has agent, parallel_agent, and join tools for delegating work.
+  - Guide the agent to use subagents for parallel, independent subtasks.
+  - Guide the agent to use join to collect results from parallel agents before proceeding.
+
+  WEB TOOLS
+  The agent has web_search, web_fetch, and web_crawl tools.
+  - Guide the agent to search the web when it needs current information beyond its training data.
+  - Guide the agent to fetch specific URLs when it has a known source.
+  - Guide the agent to crawl when it needs to explore a site or follow links.
+
+  HOW TO APPLY THIS KNOWLEDGE
+  When writing a system prompt for a target agent that has Bridge tools:
+  1. Include workflow guidance sections that teach the agent the rhythm of memory-first, plan-with-todos, journal-decisions. Use the prompt structure guide sections (CORE INSTRUCTIONS, TOOL GUIDANCE) to place this guidance.
+  2. Never include tool schemas, parameter descriptions, or return type definitions. Bridge injects those. Including them wastes tokens and risks conflicts with the real schemas.
+  3. For agents with long-running tasks, emphasize journal discipline — write before context might reset, read at start.
+  4. For agents with memory tools, make "recall first" the opening step of the workflow.
+  5. For agents with todo tools, instruct them to plan before executing when work has multiple steps.
+  6. Match the guidance depth to the agent's complexity. A simple Q&A agent with memory needs one line about recalling. An immortal deployment agent needs a full workflow section.
+  </autonomous_agent_workflows>
+
   <iteration_strategy>
   This is the most important part of your work. When eval results are present, follow this process:
 
