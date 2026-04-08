@@ -408,6 +408,31 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
+	// Upsert the eval designer with its MCP server so Bridge exposes submit_eval_cases.
+	evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
+	mcpHeaders := map[string]string{"Authorization": "Bearer " + evalDesignerToken}
+	var mcpTransport bridgepkg.McpTransport
+	mcpTransport.FromMcpTransport1(bridgepkg.McpTransport1{
+		Type:    bridgepkg.StreamableHttp,
+		Url:     evalMCPURL,
+		Headers: &mcpHeaders,
+	})
+	evalMCP := bridgepkg.McpServerDefinition{
+		Name:      "forge-eval-designer",
+		Transport: mcpTransport,
+	}
+	agentDef := fc.pusher.BuildSystemAgentDef(evalDesignerAgent)
+	if agentDef.McpServers == nil {
+		servers := []bridgepkg.McpServerDefinition{evalMCP}
+		agentDef.McpServers = &servers
+	} else {
+		*agentDef.McpServers = append(*agentDef.McpServers, evalMCP)
+	}
+	if err := evalClient.UpsertAgent(ctx, evalDesignerAgent.ID.String(), agentDef); err != nil {
+		fc.failRun(runID, fmt.Sprintf("upserting eval designer with MCP: %v", err))
+		return
+	}
+
 	// Create conversation with per-conversation provider override.
 	evalProviderOverride := fc.buildProviderOverride(&evalCred, evalDesignerToken)
 	evalConv, err := evalClient.CreateConversationWithProvider(ctx, evalDesignerAgent.ID.String(), evalProviderOverride)
@@ -416,84 +441,16 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
+	// Send the message and return. The eval designer will call submit_eval_cases
+	// via MCP, which saves eval cases to DB and transitions the run status.
 	evalMessage := fc.buildEvalDesignerMessageFromContext(&run)
-	evalResponse, err := fc.reader.ReadFullResponse(ctx, evalClient, evalConv.ConversationId, evalMessage)
-	if err != nil {
-		fc.failRun(runID, fmt.Sprintf("eval designer response: %v", err))
+	if err := evalClient.SendMessage(ctx, evalConv.ConversationId, evalMessage); err != nil {
+		fc.failRun(runID, fmt.Sprintf("sending eval designer message: %v", err))
 		return
 	}
 
-	// Parse output, retry once on invalid JSON.
-	evalOutput, err := ParseEvalDesignerOutput(evalResponse)
-	if err != nil {
-		log.Warn("eval designer returned invalid JSON, retrying", "error", err)
-		evalResponse, err = fc.reader.ReadFullResponse(ctx, evalClient, evalConv.ConversationId,
-			"Your previous response was not valid JSON. Please respond with valid JSON matching the required schema.")
-		if err != nil {
-			fc.failRun(runID, fmt.Sprintf("eval designer retry: %v", err))
-			return
-		}
-		evalOutput, err = ParseEvalDesignerOutput(evalResponse)
-		if err != nil {
-			fc.failRun(runID, fmt.Sprintf("eval designer output still invalid: %v", err))
-			return
-		}
-	}
-
-	// Validate mocks against real action schemas.
-	if fc.catalog != nil {
-		actions, resolveErr := resolveAgentActions(fc.db, fc.catalog, &run.Agent)
-		if resolveErr == nil && len(actions) > 0 {
-			if warnings := validateEvalMocks(evalOutput.Evals, actions); len(warnings) > 0 {
-				for _, warning := range warnings {
-					log.Warn("eval mock validation warning", "warning", warning)
-				}
-			}
-		}
-	}
-
-	// Create ForgeEvalCase records.
-	for index, evalCase := range evalOutput.Evals {
-		mocksJSON, _ := json.Marshal(evalCase.ToolMocks)
-		rubricJSON, _ := json.Marshal(evalCase.Rubric)
-		checksJSON, _ := json.Marshal(evalCase.DeterministicChecks)
-
-		sampleCount := evalCase.SampleCount
-		if sampleCount < 1 {
-			sampleCount = 3
-		}
-		if sampleCount > 5 {
-			sampleCount = 5
-		}
-
-		record := model.ForgeEvalCase{
-			ForgeRunID:          run.ID,
-			TestName:            evalCase.Name,
-			Category:            evalCase.Category,
-			Tier:                evalCase.Tier,
-			RequirementType:     evalCase.RequirementType,
-			SampleCount:         sampleCount,
-			TestPrompt:          evalCase.TestPrompt,
-			ExpectedBehavior:    evalCase.ExpectedBehavior,
-			ToolMocks:           model.RawJSON(mocksJSON),
-			Rubric:              model.RawJSON(rubricJSON),
-			DeterministicChecks: model.RawJSON(checksJSON),
-			OrderIndex:          index,
-		}
-		fc.db.Create(&record)
-	}
-
-	// End conversation and update status.
-	_ = evalClient.EndConversation(ctx, evalConv.ConversationId)
-
-	fc.db.Model(&run).Update("status", model.ForgeStatusReviewingEvals)
-
-	fc.events.emit(ctx, runID, EventEvalsDesigned, map[string]any{
-		"count": len(evalOutput.Evals),
-	})
-
-	log.Info("forge: evals designed, awaiting user review",
-		"eval_count", len(evalOutput.Evals),
+	log.Info("forge: eval designer message sent, waiting for submit_eval_cases",
+		"conversation_id", evalConv.ConversationId,
 	)
 }
 

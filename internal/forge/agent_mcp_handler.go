@@ -146,11 +146,17 @@ func (h *ForgeArchitectMCPHandler) handle(runID string) func(context.Context, *m
 //
 // Route: /forge-eval-designer/{forgeRunID}/*
 type ForgeEvalDesignerMCPHandler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	eventBus EventEmitter
 }
 
-func NewForgeEvalDesignerMCPHandler(db *gorm.DB) *ForgeEvalDesignerMCPHandler {
-	return &ForgeEvalDesignerMCPHandler{db: db}
+// EventEmitter abstracts event publishing for the MCP handler.
+type EventEmitter interface {
+	Publish(ctx context.Context, channel, eventType string, payload json.RawMessage) (string, error)
+}
+
+func NewForgeEvalDesignerMCPHandler(db *gorm.DB, eventBus EventEmitter) *ForgeEvalDesignerMCPHandler {
+	return &ForgeEvalDesignerMCPHandler{db: db, eventBus: eventBus}
 }
 
 func (h *ForgeEvalDesignerMCPHandler) StreamableHTTPHandler() http.Handler {
@@ -255,10 +261,23 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 			}
 		}
 
+		// Transition forge run to reviewing_evals.
+		if err := h.db.Model(&model.ForgeRun{}).
+			Where("id = ? AND status = ?", runID, model.ForgeStatusDesigningEvals).
+			Update("status", model.ForgeStatusReviewingEvals).Error; err != nil {
+			slog.Error("forge eval designer mcp: failed to update run status",
+				"forge_run_id", runID, "error", err)
+		}
+
 		slog.Info("forge eval designer mcp: eval cases submitted",
 			"forge_run_id", runID,
 			"count", len(args.Evals),
 		)
+
+		if h.eventBus != nil {
+			payload, _ := json.Marshal(map[string]any{"count": len(args.Evals)})
+			h.eventBus.Publish(ctx, "forge:"+runID, EventEvalsDesigned, payload)
+		}
 
 		return toolSuccess("eval_cases_saved")
 	}

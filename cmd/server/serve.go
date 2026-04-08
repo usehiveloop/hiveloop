@@ -609,7 +609,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/", forgeArchitectMCP.StreamableHTTPHandler())
 	})
 
-	forgeEvalDesignerMCP := forge.NewForgeEvalDesignerMCPHandler(database)
+	forgeEvalDesignerMCP := forge.NewForgeEvalDesignerMCPHandler(database, eventBus)
 	mcpRouter.Route("/forge-eval-designer/{forgeRunID}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))
 		r.Handle("/*", forgeEvalDesignerMCP.StreamableHTTPHandler())

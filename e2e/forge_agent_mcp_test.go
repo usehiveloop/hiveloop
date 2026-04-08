@@ -116,7 +116,7 @@ func TestForgeArchitectMCP_SubmitSavesToDB(t *testing.T) {
 func TestForgeEvalDesignerMCP_ToolRegistered(t *testing.T) {
 	db := forgeTestDB(t)
 
-	handler := forge.NewForgeEvalDesignerMCPHandler(db)
+	handler := forge.NewForgeEvalDesignerMCPHandler(db, nil)
 	router := chi.NewRouter()
 	router.Route("/forge-eval-designer/{forgeRunID}", func(r chi.Router) {
 		r.Handle("/*", handler.StreamableHTTPHandler())
@@ -161,7 +161,7 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	}
 	db.Create(&run)
 
-	handler := forge.NewForgeEvalDesignerMCPHandler(db)
+	handler := forge.NewForgeEvalDesignerMCPHandler(db, nil)
 	router := chi.NewRouter()
 	router.Route("/forge-eval-designer/{forgeRunID}", func(r chi.Router) {
 		r.Handle("/*", handler.StreamableHTTPHandler())
@@ -199,6 +199,13 @@ func TestForgeEvalDesignerMCP_SubmitSavesToDB(t *testing.T) {
 	}
 	if cases[1].Tier != "adversarial" {
 		t.Errorf("expected tier 'adversarial', got %q", cases[1].Tier)
+	}
+
+	// Verify forge run transitioned to reviewing_evals.
+	var updatedRun model.ForgeRun
+	db.Where("id = ?", run.ID).First(&updatedRun)
+	if updatedRun.Status != model.ForgeStatusReviewingEvals {
+		t.Errorf("expected status reviewing_evals, got %q", updatedRun.Status)
 	}
 }
 
