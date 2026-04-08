@@ -598,6 +598,7 @@ func TestIntegration_MultiAuth_JWTPath(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/credentials", nil)
 	req.Header.Set("Authorization", "Bearer "+jwtToken)
+	req.Header.Set("X-Org-ID", orgID.String())
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 

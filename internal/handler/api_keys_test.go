@@ -41,12 +41,15 @@ func connectTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("cannot connect to Postgres: %v", err)
 	}
 	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(3)
+	sqlDB.SetMaxIdleConns(1)
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable: %v", err)
 	}
 	if err := model.AutoMigrate(db); err != nil {
 		t.Fatalf("migration failed: %v", err)
 	}
+	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }
 

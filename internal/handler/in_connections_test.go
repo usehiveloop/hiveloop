@@ -306,7 +306,7 @@ func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 		NangoConnectionID: "first-conn",
 	})
 
-	// Second should fail
+	// Second connection for the same user+integration is allowed (different nango connection).
 	body, _ := json.Marshal(map[string]any{"nango_connection_id": "second-conn"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -315,8 +315,15 @@ func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500 (unique constraint), got %d: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	// Verify both connections exist.
+	var count int64
+	db.Model(&model.InConnection{}).Where("user_id = ? AND in_integration_id = ?", user.ID, integ.ID).Count(&count)
+	if count != 2 {
+		t.Fatalf("expected 2 connections, got %d", count)
 	}
 }
 

@@ -45,6 +45,8 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("failed to get underlying sql.DB: %v", err)
 	}
+	sqlDB.SetMaxOpenConns(3)
+	sqlDB.SetMaxIdleConns(1)
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable: %v", err)
 	}
@@ -53,6 +55,7 @@ func connectTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("failed to run migrations: %v", err)
 	}
 
+	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }
 

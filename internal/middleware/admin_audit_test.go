@@ -187,9 +187,13 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Skipf("skipping: cannot connect to test DB: %v", err)
 	}
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(3)
+	sqlDB.SetMaxIdleConns(1)
 	if err := db.AutoMigrate(&model.AdminAuditEntry{}); err != nil {
 		t.Fatalf("migration failed: %v", err)
 	}
+	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }
 
