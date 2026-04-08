@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -92,6 +93,18 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 
 		// Set tracing header
 		req.Header.Set("X-Request-ID", uuid.New().String())
+
+		// Debug: log outbound request details
+		slog.Info("proxy director: outbound request",
+			"method", req.Method,
+			"scheme", req.URL.Scheme,
+			"host", req.URL.Host,
+			"path", req.URL.Path,
+			"auth_scheme", cred.AuthScheme,
+			"api_key_len", len(cred.APIKey),
+			"base_url", cred.BaseURL,
+			"has_anthropic_version", req.Header.Get("anthropic-version") != "",
+		)
 	}
 }
 
