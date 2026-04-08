@@ -166,37 +166,133 @@ type builtinToolMock struct {
 
 // builtinToolMocks lists all Bridge built-in tools that get mocked during forge evals.
 // The eval-target agent has all built-in tools disabled — these MCP mocks replace them.
+// Descriptions are copied from Bridge source: crates/tools/src/instructions/*.txt
 var builtinToolMocks = []builtinToolMock{
 	// ── Web ──
-	{Name: "web_fetch", Description: "Fetch a URL and extract readable content.", Schema: objSchema("url"), DefaultResponse: `{"content": "Mock webpage content.", "title": "Mock Page", "url": "https://example.com"}`},
-	{Name: "web_search", Description: "Search the web.", Schema: objSchema("query"), DefaultResponse: `{"results": [{"title": "Mock Result", "url": "https://example.com", "description": "A mock search result."}]}`},
-	{Name: "web_crawl", Description: "Crawl a website following links.", Schema: objSchema("url"), DefaultResponse: `{"pages": [{"url": "https://example.com", "content": "Mock crawled content."}]}`},
-	{Name: "web_get_links", Description: "Extract all links from a webpage.", Schema: objSchema("url"), DefaultResponse: `{"links": ["https://example.com/page1", "https://example.com/page2"]}`},
-	{Name: "web_screenshot", Description: "Take a screenshot of a webpage.", Schema: objSchema("url"), DefaultResponse: `{"screenshot": "base64_mock_data", "format": "png"}`},
-	{Name: "web_transform", Description: "Convert HTML to markdown.", Schema: objSchema("html"), DefaultResponse: `{"markdown": "# Mock\n\nConverted content."}`},
+	{
+		Name:            "web_fetch",
+		Description:     "Fetches content from a specified URL. Takes a URL and optional format as input. Fetches the URL content, converts to requested format (markdown by default). Returns the content in the specified format. The URL must be a fully-formed valid URL. HTTP URLs will be automatically upgraded to HTTPS. Format options: \"markdown\" (default), \"text\", or \"html\". Uses article extraction (Mozilla Readability algorithm) when possible. Follows redirects automatically (up to 10 hops). Content is truncated at max_length characters (default 50,000). Requests time out after 30 seconds. This tool will fail for authenticated or private URLs.",
+		Schema:          objSchema("url", "format", "max_length"),
+		DefaultResponse: `{"content": "Mock webpage content extracted from the URL.", "title": "Mock Page Title", "url": "https://example.com"}`,
+	},
+	{
+		Name:            "web_search",
+		Description:     "Search the web for information. Returns structured results with title, URL, and snippet. Provides up-to-date information for current events and recent data. Results include knowledge graph data (when available) and organic search results. Keep queries concise and specific for best results. Use web_fetch to retrieve full content from URLs found in search results.",
+		Schema:          objSchema("query", "fetch_page_content"),
+		DefaultResponse: `{"results": [{"title": "Mock Search Result", "url": "https://example.com/result", "description": "A relevant search result matching the query."}]}`,
+	},
+	{
+		Name:            "web_crawl",
+		Description:     "Crawl a website starting from a URL, following links to discover and return page content. Control scope with limit (max pages), depth (max link depth), and request mode (http/chrome/smart). Set readability: true for clean content extraction. Always set a limit to avoid crawling thousands of pages accidentally. Use request: \"smart\" when unsure whether a site uses JavaScript rendering.",
+		Schema:          objSchema("url", "limit", "depth", "return_format", "request", "readability"),
+		DefaultResponse: `{"pages": [{"url": "https://example.com", "content": "Mock crawled page content.", "title": "Page 1"}]}`,
+	},
+	{
+		Name:            "web_get_links",
+		Description:     "Extract all links from a webpage. Returns a list of URLs found on the page. Use to discover pages on a website before deciding what to crawl, find sitemaps, documentation indexes, or navigation structure. Start with limit: 1 to see links on a single page before crawling further.",
+		Schema:          objSchema("url", "limit", "request"),
+		DefaultResponse: `{"links": ["https://example.com/page1", "https://example.com/page2", "https://example.com/docs"]}`,
+	},
+	{
+		Name:            "web_screenshot",
+		Description:     "Take a screenshot of a webpage. Returns a base64-encoded PNG image. Use request: \"chrome\" for accurate visual screenshots. Use wait_for_selector for SPAs that load content after the initial page load.",
+		Schema:          objSchema("url", "request"),
+		DefaultResponse: `{"screenshot": "base64_mock_png_data", "format": "png"}`,
+	},
+	{
+		Name:            "web_transform",
+		Description:     "Convert HTML content to markdown or plain text without making any HTTP requests. Processes HTML you already have. Include the source url when HTML contains relative links. Use \"markdown\" format for content you need to read or summarize.",
+		Schema:          objSchema("data", "return_format"),
+		DefaultResponse: `{"markdown": "# Converted Content\n\nMock transformed markdown from HTML."}`,
+	},
 
 	// ── Agent Orchestration ──
-	{Name: "agent", Description: "Launch a subagent for a focused task.", Schema: objSchema("prompt"), DefaultResponse: `{"task_id": "mock-task-001", "status": "completed", "result": "Mock subagent completed the task."}`},
-	{Name: "sub_agent", Description: "Launch a named subagent.", Schema: objSchema("subagent", "prompt"), DefaultResponse: `{"task_id": "mock-task-002", "status": "completed", "result": "Mock subagent completed."}`},
-	{Name: "parallel_agent", Description: "Run multiple subagents in parallel.", Schema: objSchema("tasks"), DefaultResponse: `{"results": [{"task_id": "mock-001", "status": "completed", "result": "Done."}]}`},
-	{Name: "batch", Description: "Execute multiple tools concurrently.", Schema: objSchema("calls"), DefaultResponse: `{"results": [{"status": "ok"}]}`},
-	{Name: "join", Description: "Wait for background tasks to complete.", Schema: objSchema("task_ids"), DefaultResponse: `{"results": [{"task_id": "mock-task-001", "status": "completed", "result": "Done."}]}`},
+	{
+		Name:            "agent",
+		Description:     "Launch a clone of yourself to handle a focused task autonomously. The clone shares your system prompt, tools, and capabilities, but operates in its own context. Launch multiple agents concurrently whenever possible. Set background: true for long-running tasks — you will be automatically notified when they complete. Each invocation starts with a fresh context unless you provide task_id to resume a previous session.",
+		Schema:          objSchema("prompt", "description", "background", "task_id"),
+		DefaultResponse: `{"task_id": "mock-task-001", "status": "completed", "result": "Mock subagent completed the delegated task successfully."}`,
+	},
+	{
+		Name:            "sub_agent",
+		Description:     "Launch a subagent to handle complex, multistep tasks autonomously. Specify a subagent_name to select which subagent type to use. Launch multiple subagents concurrently whenever possible. Set background: true for long-running tasks. Each subagent invocation starts with a fresh context unless you provide task_id to resume.",
+		Schema:          objSchema("subagent", "prompt", "description", "background", "task_id"),
+		DefaultResponse: `{"task_id": "mock-task-002", "status": "completed", "result": "Mock subagent completed the task."}`,
+	},
+	{
+		Name:            "parallel_agent",
+		Description:     "Spawn multiple subagents in parallel and wait for all to complete. Use when you have independent tasks that can run concurrently. max_concurrent controls how many run simultaneously (default: 5, max: 25). Maximum 25 tasks per call. Each task runs in isolation with no shared context.",
+		Schema:          objSchema("tasks", "max_concurrent", "timeout_secs"),
+		DefaultResponse: `{"results": [{"description": "mock task", "status": "completed", "output": "Done."}], "all_succeeded": true, "total": 1, "succeeded": 1, "failed": 0}`,
+	},
+	{
+		Name:            "batch",
+		Description:     "Executes multiple independent tool calls concurrently to reduce latency. 1-25 tool calls per batch. All calls start in parallel; ordering NOT guaranteed. Partial failures do not stop other tool calls. Do NOT use batch within another batch. Good for: reading many files, grep+glob+read combos, multiple bash commands.",
+		Schema:          objSchema("calls"),
+		DefaultResponse: `{"results": [{"status": "ok", "output": "mock batch result"}]}`,
+	},
+	{
+		Name:            "join",
+		Description:     "Wait for multiple background subagent tasks to complete. Use after spawning background subagents with background: true. Blocks until all specified tasks complete or timeout is reached. Tasks already completed return immediately. Default timeout: 300 seconds.",
+		Schema:          objSchema("task_ids", "timeout_secs"),
+		DefaultResponse: `{"completed": [{"task_id": "mock-task-001", "status": "completed", "output": "Task result."}], "all_succeeded": true, "total": 1, "succeeded": 1, "failed": 0}`,
+	},
 
 	// ── Task Management ──
-	{Name: "todowrite", Description: "Create or update the task list.", Schema: objSchema("todos"), DefaultResponse: `{"status": "ok", "count": 3}`},
-	{Name: "todoread", Description: "Read the current task list.", Schema: objSchema(), DefaultResponse: `{"todos": [{"content": "Mock task", "status": "pending", "priority": "medium"}]}`},
+	{
+		Name:            "todowrite",
+		Description:     "Create and manage a structured task list for your current session. Uses replace-all semantics — each call sends the complete list. Track tasks as pending, in_progress, completed, or cancelled with priority levels (high/medium/low). Only have ONE task in_progress at any time. Complete current tasks before starting new ones. Use for complex multistep tasks (3+ steps).",
+		Schema:          objSchema("todos"),
+		DefaultResponse: `{"status": "ok", "count": 3}`,
+	},
+	{
+		Name:            "todoread",
+		Description:     "Read the current todo/task list. Returns the full list of tasks with their content, status, and priority. Returns an empty list if no todos have been written yet.",
+		Schema:          objSchema(),
+		DefaultResponse: `{"todos": [{"content": "Mock task item", "status": "pending", "priority": "medium"}]}`,
+	},
 
 	// ── Journal ──
-	{Name: "journal_write", Description: "Write a journal entry.", Schema: objSchema("content"), DefaultResponse: `{"status": "ok", "entry_id": "journal-mock-001"}`},
-	{Name: "journal_read", Description: "Read all journal entries.", Schema: objSchema(), DefaultResponse: `{"entries": [{"content": "Mock journal entry.", "category": "progress", "timestamp": "2026-01-01T00:00:00Z"}]}`},
+	{
+		Name:            "journal_write",
+		Description:     "Write an entry to the conversation journal. The journal is a persistent log that survives context resets. Record key decisions, important discoveries, user preferences, architectural choices, blockers or constraints, and milestones. Keep entries concise (1-3 sentences). Use the category field to tag entries: decision, discovery, blocker, progress, preference. Write 2-5 entries per session, not every turn. Focus on the \"why\" not the \"what\".",
+		Schema:          objSchema("content", "category"),
+		DefaultResponse: `{"status": "ok", "entry_id": "journal-mock-001"}`,
+	},
+	{
+		Name:            "journal_read",
+		Description:     "Read the conversation journal. Returns all journal entries including agent notes and checkpoint summaries from previous context chains. Each entry includes the chain index it was written during, so you can trace the conversation's history across context resets.",
+		Schema:          objSchema(),
+		DefaultResponse: `{"entries": [{"content": "Mock journal entry: key decision recorded.", "category": "decision", "chain_index": 0, "timestamp": "2026-01-01T00:00:00Z"}]}`,
+	},
 
 	// ── Skills ──
-	{Name: "skill", Description: "Invoke a reusable skill.", Schema: objSchema("name"), DefaultResponse: `{"status": "ok", "result": "Skill executed."}`},
+	{
+		Name:            "skill",
+		Description:     "Execute a skill within the main conversation. When users ask you to perform tasks, check if any of the available skills match. Skills provide specialized capabilities and domain knowledge. When users reference a slash command (e.g., /commit, /review-pr), they are referring to a skill. Available skills are listed in system-reminder messages.",
+		Schema:          objSchema("skill", "args", "file"),
+		DefaultResponse: `{"status": "ok", "result": "Skill executed successfully."}`,
+	},
 
 	// ── Memory ──
-	{Name: "memory_recall", Description: "Search long-term memory for relevant context.", Schema: objSchema("query"), DefaultResponse: `{"memories": [{"content": "Mock recalled memory.", "relevance": 0.95}]}`},
-	{Name: "memory_retain", Description: "Store information to long-term memory.", Schema: objSchema("content"), DefaultResponse: `{"status": "ok", "memory_id": "mem-mock-001"}`},
-	{Name: "memory_reflect", Description: "Analyze memory for patterns and synthesis.", Schema: objSchema("query"), DefaultResponse: `{"reflection": "Based on past interactions, the pattern suggests..."}`},
+	{
+		Name:            "memory_recall",
+		Description:     "Search your long-term memory for relevant context. Use at the START of every conversation to load relevant context before responding. Also use when the user references something from a previous conversation or before making recommendations that should account for past preferences. Input: query (natural language, 1-2 sentences), budget (low/mid/high search depth).",
+		Schema:          objSchema("query", "budget"),
+		DefaultResponse: `{"memories": [{"content": "Mock recalled memory: user prefers concise responses.", "relevance": 0.95}]}`,
+	},
+	{
+		Name:            "memory_retain",
+		Description:     "Store important information to long-term memory so it persists across conversations. Use when the user shares facts, preferences, decisions, deadlines, or commitments. Store decisions WITH reasoning. Do not store greetings, small talk, temporary state, or exact transcripts — distill into clear factual statements.",
+		Schema:          objSchema("content", "context", "shared"),
+		DefaultResponse: `{"status": "ok", "memory_id": "mem-mock-001"}`,
+	},
+	{
+		Name:            "memory_reflect",
+		Description:     "Get a synthesized, reasoned answer by deeply analyzing your full memory. Use INSTEAD of recall when analyzing patterns or trends across many past interactions, when questions require judgment or synthesis, for comprehensive summaries of everything known about a topic, or when detecting contradictions or evolving preferences.",
+		Schema:          objSchema("query"),
+		DefaultResponse: `{"reflection": "Based on analysis of past interactions, the pattern suggests the user values accuracy over speed and prefers detailed explanations for technical topics."}`,
+	},
 }
 
 // objSchema returns a minimal JSON Schema object with the given property names.
