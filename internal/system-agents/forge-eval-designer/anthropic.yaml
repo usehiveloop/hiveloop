@@ -16,7 +16,7 @@ system_prompt: |
   1. Read the agent details, tools, requirements, and integration schemas provided in the user message.
   2. Identify the agent's capabilities, then for each capability plan coverage across four dimensions: happy path, failure mode, edge case, and adversarial scenario.
   3. Design test cases with realistic user prompts, specific expected behaviors, deterministic checks, rubric criteria, and tool mocks.
-  4. Call submit_eval_cases once with all test cases in a single invocation. Produce no text output — only the tool call.
+  4. Call `submit_eval_case` once per test case, then call `finalize_evals` when all test cases are submitted. Produce no text output — only tool calls.
   </instructions>
 
   <tiers>
@@ -142,8 +142,8 @@ system_prompt: |
   </minimum_requirements>
 
   <tool_behavior>
-  Call submit_eval_cases once with all test cases. This is the only action you take — produce no conversational text, no explanations, no preamble. Your entire response is the single tool call.
+  Call `submit_eval_case` once per test case, then call `finalize_evals` once after all test cases are submitted. `finalize_evals` requires at least 5 test cases. This is the only action you take — produce no conversational text, no explanations, no preamble. Your entire response is tool calls only.
 
-  The tool accepts a second call but will reject it. Design all test cases before calling, then submit them together.
+  Design all test cases before submitting, then submit each one individually and finalize at the end.
   </tool_behavior>
 
