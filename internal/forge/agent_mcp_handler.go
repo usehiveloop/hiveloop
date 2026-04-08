@@ -317,8 +317,91 @@ func (h *ForgeEvalDesignerMCPHandler) handleSubmitOne(runID string) func(context
 			return toolError("invalid arguments: %s", err)
 		}
 
-		if evalCase.Name == "" || evalCase.TestPrompt == "" || evalCase.ExpectedBehavior == "" {
-			return toolError("name, test_prompt, and expected_behavior are required")
+		// ── Strict validation ────────────────────────────────────────────
+		validCategories := map[string]bool{"happy_path": true, "edge_case": true, "adversarial": true, "tool_error": true}
+		validTiers := map[string]bool{"basic": true, "standard": true, "adversarial": true}
+		validReqTypes := map[string]bool{"hard": true, "soft": true}
+		validCheckTypes := map[string]bool{
+			"tool_called": true, "tool_not_called": true, "tool_order": true,
+			"argument_contains": true, "response_contains": true, "response_not_contains": true,
+		}
+
+		var errors []string
+
+		if evalCase.Name == "" {
+			errors = append(errors, "'name' is required. Use a unique snake_case identifier.")
+		}
+		if evalCase.Description == "" {
+			errors = append(errors, "'description' is required. Explain what this test validates and why.")
+		} else if len(evalCase.Description) < 20 {
+			errors = append(errors, fmt.Sprintf("description is too short (%d chars). Write 1-2 sentences.", len(evalCase.Description)))
+		}
+		if !validCategories[evalCase.Category] {
+			errors = append(errors, fmt.Sprintf("invalid category '%s'. Must be: happy_path, edge_case, adversarial, tool_error.", evalCase.Category))
+		}
+		if !validTiers[evalCase.Tier] {
+			errors = append(errors, fmt.Sprintf("invalid tier '%s'. Must be: basic, standard, adversarial.", evalCase.Tier))
+		}
+		if !validReqTypes[evalCase.RequirementType] {
+			errors = append(errors, fmt.Sprintf("invalid requirement_type '%s'. Must be: hard, soft.", evalCase.RequirementType))
+		}
+		if evalCase.SampleCount < 1 || evalCase.SampleCount > 5 {
+			errors = append(errors, "sample_count must be 1-5.")
+		}
+		if evalCase.TestPrompt == "" {
+			errors = append(errors, "'test_prompt' is required.")
+		} else if len(evalCase.TestPrompt) < 10 {
+			errors = append(errors, "test_prompt is too short. Write a realistic user message.")
+		}
+		if evalCase.ExpectedBehavior == "" {
+			errors = append(errors, "'expected_behavior' is required.")
+		} else if len(evalCase.ExpectedBehavior) < 15 {
+			errors = append(errors, "expected_behavior is too short. Include tool calls and response details.")
+		}
+		if len(evalCase.Rubric) == 0 {
+			errors = append(errors, "'rubric' must have at least one criterion.")
+		}
+		for idx, rubric := range evalCase.Rubric {
+			if rubric.Criterion == "" {
+				errors = append(errors, fmt.Sprintf("rubric[%d]: 'criterion' is required.", idx))
+			}
+			if !validReqTypes[rubric.RequirementType] {
+				errors = append(errors, fmt.Sprintf("rubric[%d]: requirement_type must be 'hard' or 'soft', got '%s'.", idx, rubric.RequirementType))
+			}
+			if rubric.Weight <= 0 || rubric.Weight > 1 {
+				errors = append(errors, fmt.Sprintf("rubric[%d]: weight must be between 0.0 and 1.0.", idx))
+			}
+		}
+		for idx, check := range evalCase.DeterministicChecks {
+			if !validCheckTypes[check.Type] {
+				errors = append(errors, fmt.Sprintf("deterministic_checks[%d]: invalid type '%s'.", idx, check.Type))
+			}
+			if len(check.Config) == 0 {
+				errors = append(errors, fmt.Sprintf("deterministic_checks[%d]: 'config' must not be empty.", idx))
+			}
+		}
+		for toolName, mocks := range evalCase.ToolMocks {
+			for idx, mock := range mocks {
+				if len(mock.Response) == 0 {
+					errors = append(errors, fmt.Sprintf("tool_mocks[%s][%d]: 'response' must not be empty.", toolName, idx))
+				}
+			}
+		}
+
+		if len(errors) > 0 {
+			detail := fmt.Sprintf("Validation failed for eval '%s' with %d errors:\n", evalCase.Name, len(errors))
+			for idx, errMsg := range errors {
+				detail += fmt.Sprintf("  %d. %s\n", idx+1, errMsg)
+			}
+			detail += "\nFix these errors and resubmit this eval case."
+			return toolError("%s", detail)
+		}
+
+		// Check for duplicate name
+		var existingCount int64
+		h.db.Model(&model.ForgeEvalCase{}).Where("forge_run_id = ? AND test_name = ?", runID, evalCase.Name).Count(&existingCount)
+		if existingCount > 0 {
+			return toolError("eval case with name '%s' already exists. Use a unique name.", evalCase.Name)
 		}
 
 		// Count existing evals to set order_index
