@@ -28,7 +28,7 @@ const (
 	baseImage         = "ubuntu:24.04"
 	bridgeDir         = "/usr/local/bin"
 	daytonaHome       = "/home/daytona"
-	bridgeReleasesURL = "https://github.com/useportal-app/bridge/releases/download"
+	bridgeReleasesURL = "https://github.com/ziraloop/bridge/releases/download"
 )
 
 var basePackages = []string{

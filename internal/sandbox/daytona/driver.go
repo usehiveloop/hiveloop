@@ -262,7 +262,7 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 	// Bridge binary
 	image = image.Run("mkdir -p /home/daytona")
 	image = image.Run(
-		`curl -fsSL "https://github.com/useportal-app/bridge/releases/download/v0.10.0/bridge-v0.10.0-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
+		`curl -fsSL "https://github.com/ziraloop/bridge/releases/download/v0.10.0/bridge-v0.10.0-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf - -C /usr/local/bin && chmod +x /usr/local/bin/bridge`,
 	)
 
 	// CodeDB binary (code intelligence for agents)

@@ -28,6 +28,8 @@ import (
 	"github.com/ziraloop/ziraloop/internal/spider"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/turso"
+
+	polargo "github.com/polarsource/polar-go"
 )
 
 // Deps holds all shared dependencies initialized during bootstrap.
@@ -55,6 +57,7 @@ type Deps struct {
 	HindsightMCPURL func(uuid.UUID) string     // nil if Hindsight not configured
 	SpiderClient    *spider.Client             // nil if spider not configured
 	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
+	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -233,6 +236,20 @@ func New(ctx context.Context) (*Deps, error) {
 		retainer = hindsight.NewRetainer(eventBus, database, hClient)
 	}
 
+	// 17. Polar billing client (optional)
+	var polarClient *polargo.Polar
+	if cfg.PolarAccessToken != "" {
+		server := polargo.ServerSandbox
+		if cfg.PolarServer == "production" {
+			server = polargo.ServerProduction
+		}
+		polarClient = polargo.New(
+			polargo.WithSecurity(cfg.PolarAccessToken),
+			polargo.WithServer(server),
+		)
+		slog.Info("polar billing client initialized", "server", cfg.PolarServer)
+	}
+
 	return &Deps{
 		Config:          cfg,
 		DB:              database,
@@ -256,6 +273,7 @@ func New(ctx context.Context) (*Deps, error) {
 		HindsightMCPURL: hindsightMCPURL,
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,
+		PolarClient:     polarClient,
 	}, nil
 }
 

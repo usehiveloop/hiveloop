@@ -82,6 +82,21 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce free plan run limit (100 runs/month)
+	if org.BillingPlan == "free" {
+		startOfMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+		var runCount int64
+		h.db.Model(&model.AgentConversation{}).
+			Where("org_id = ? AND created_at >= ?", org.ID, startOfMonth).
+			Count(&runCount)
+		if runCount >= 100 {
+			writeJSON(w, http.StatusPaymentRequired, map[string]string{
+				"error": "free plan limit reached (100 runs/month). Upgrade to Pro for more.",
+			})
+			return
+		}
+	}
+
 	agentID := chi.URLParam(r, "agentID")
 
 	// Load agent with associations
@@ -191,6 +206,16 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Update sandbox last active
 	h.db.Model(sb).Update("last_active_at", time.Now())
+
+	// Enqueue billing usage event (best-effort, don't block the response)
+	if h.enqueuer != nil {
+		usageTask, taskErr := tasks.NewBillingUsageEventTask(org.ID, agent.ID, conv.ID, agent.SandboxType)
+		if taskErr == nil {
+			if _, enqErr := h.enqueuer.Enqueue(usageTask); enqErr != nil {
+				slog.Warn("failed to enqueue billing usage event", "run_id", conv.ID, "error", enqErr)
+			}
+		}
+	}
 
 	slog.Info("conversation created",
 		"conversation_id", conv.ID,

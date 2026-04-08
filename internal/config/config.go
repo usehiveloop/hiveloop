@@ -120,6 +120,14 @@ type Config struct {
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled
 	SpiderBaseURL string `env:"SPIDER_BASE_URL" envDefault:"https://api.spider.cloud"` // Spider.cloud API endpoint
 
+	// Polar billing (empty = billing disabled, e.g. self-hosted)
+	PolarAccessToken           string `env:"POLAR_ACCESS_TOKEN"`
+	PolarWebhookSecret         string `env:"POLAR_WEBHOOK_SECRET"`
+	PolarServer                string `env:"POLAR_SERVER" envDefault:"sandbox"`                // "sandbox" or "production"
+	PolarProductFreeID         string `env:"POLAR_PRODUCT_FREE_ID"`
+	PolarProductProSharedID    string `env:"POLAR_PRODUCT_PRO_SHARED_ID"`
+	PolarProductProDedicatedID string `env:"POLAR_PRODUCT_PRO_DEDICATED_ID"`
+
 	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
 	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
 

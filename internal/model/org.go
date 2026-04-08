@@ -14,8 +14,13 @@ type Org struct {
 	RateLimit      int            `gorm:"not null;default:1000"`
 	Active         bool           `gorm:"not null;default:true"`
 	AllowedOrigins pq.StringArray `gorm:"type:text[]"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+
+	// Billing (Polar)
+	PolarCustomerID *string `gorm:"index"`
+	BillingPlan     string  `gorm:"not null;default:'free'"` // "free", "pro"
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (Org) TableName() string { return "orgs" }
@@ -61,6 +66,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&OTPCode{},
 		&MarketplaceAgent{},
 		&ToolUsage{},
+		&Subscription{},
 	); err != nil {
 		return err
 	}

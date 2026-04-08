@@ -12,7 +12,8 @@ const (
 	TypeAdminAuditWrite = "admin_audit:write"
 	TypeEmailSend       = "email:send"
 	TypeSystemAgentSeed = "system_agent:seed"
-	TypeAgentCleanup    = "agent:cleanup"
+	TypeAgentCleanup       = "agent:cleanup"
+	TypeBillingUsageEvent  = "billing:usage_event"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup          = "periodic:token_cleanup"

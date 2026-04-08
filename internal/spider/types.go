@@ -34,6 +34,14 @@ type SpiderParams struct {
 	Proxy           string            `json:"proxy,omitempty"`
 	CountryCode     string            `json:"country_code,omitempty"`
 	Locale          string            `json:"locale,omitempty"`
+	WaitForSelector *WaitForSelector  `json:"wait_for_selector,omitempty"`
+}
+
+// WaitForSelector waits for a CSS selector to appear before processing the page.
+// Requires request type "chrome" or "smart". Maps to Website.withWaitForSelector() in the SDK.
+type WaitForSelector struct {
+	Selector string `json:"selector"`
+	Timeout  *int   `json:"timeout,omitempty"` // timeout in milliseconds
 }
 
 // SearchParams extends SpiderParams with search-specific fields for /v1/search.

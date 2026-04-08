@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"github.com/hibiken/asynq"
+	polargo "github.com/polarsource/polar-go"
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
@@ -20,6 +21,7 @@ type WorkerDeps struct {
 	ForgeExecute     ForgeExecuteFunc      // nil if forge not configured
 	ForgeDesignEvals ForgeDesignEvalsFunc   // nil if forge not configured
 	EmailSend        EmailSenderFunc       // nil if email not configured
+	PolarClient      *polargo.Polar        // nil if billing not configured
 }
 
 // NewServeMux creates an Asynq ServeMux with all task handlers registered.
@@ -59,6 +61,11 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 
 	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
 	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
+
+	// Billing usage event
+	if deps.PolarClient != nil {
+		mux.HandleFunc(TypeBillingUsageEvent, NewBillingUsageEventHandler(deps.DB, deps.PolarClient).Handle)
+	}
 
 	return mux
 }
