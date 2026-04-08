@@ -887,20 +887,17 @@ func (fc *ForgeController) runIteration(
 	systemPrompt := extractTag(archResponse, "system_prompt_output")
 	reasoning := extractTag(archResponse, "reasoning")
 
+	// Fallback: if the architect didn't use tags, treat the entire response as the system prompt.
+	if systemPrompt == "" && strings.TrimSpace(archResponse) != "" {
+		log.Warn("architect response missing <system_prompt_output> tags, using full response as system prompt",
+			"response_len", len(archResponse),
+		)
+		systemPrompt = strings.TrimSpace(archResponse)
+	}
+
 	if systemPrompt == "" {
-		log.Warn("architect response missing <system_prompt_output> tags, retrying")
-		archResponse, err = fc.reader.ReadFullResponse(ctx, archClient, run.ArchitectConversationID,
-			"Your response must wrap the system prompt in <system_prompt_output></system_prompt_output> tags and reasoning in <reasoning></reasoning> tags. Try again.")
-		if err != nil {
-			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
-			return nil, fmt.Errorf("architect retry response: %w", err)
-		}
-		systemPrompt = extractTag(archResponse, "system_prompt_output")
-		reasoning = extractTag(archResponse, "reasoning")
-		if systemPrompt == "" {
-			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
-			return nil, fmt.Errorf("architect did not produce a system prompt in <system_prompt_output> tags")
-		}
+		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
+		return nil, fmt.Errorf("architect produced empty response")
 	}
 
 	// Persist architect output.
