@@ -5,9 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 // BridgeReader reads forge agent responses via direct SSE connection to Bridge.
@@ -280,4 +286,70 @@ func extractTextDelta(e sseEvent) string {
 	}
 
 	return ""
+}
+
+// WaitForResponseFromDB polls the conversation_events table for a response_completed
+// event and extracts the full_response text. Used instead of SSE streaming for
+// reliability — webhook events are stored by the existing pipeline.
+func WaitForResponseFromDB(ctx context.Context, db *gorm.DB, conversationID uuid.UUID, afterSequence int64, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 2 * time.Second
+
+	for time.Now().Before(deadline) {
+		var event model.ConversationEvent
+		result := db.Where(
+			"conversation_id = ? AND event_type = ? AND sequence_number > ?",
+			conversationID, "response_completed", afterSequence,
+		).Order("sequence_number DESC").First(&event)
+
+		if result.Error == nil {
+			// Extract full_response from event data
+			var eventData struct {
+				FullResponse string `json:"full_response"`
+			}
+			if err := json.Unmarshal(event.Data, &eventData); err != nil {
+				return "", fmt.Errorf("parsing response_completed event data: %w", err)
+			}
+			if eventData.FullResponse != "" {
+				slog.Info("WaitForResponseFromDB: response captured",
+					"conversation_id", conversationID,
+					"sequence_number", event.SequenceNumber,
+					"response_len", len(eventData.FullResponse),
+				)
+				return eventData.FullResponse, nil
+			}
+		}
+
+		// Also check for agent_error events
+		var errorEvent model.ConversationEvent
+		errResult := db.Where(
+			"conversation_id = ? AND event_type = ? AND sequence_number > ?",
+			conversationID, "agent_error", afterSequence,
+		).Order("sequence_number DESC").First(&errorEvent)
+
+		if errResult.Error == nil {
+			var errData struct {
+				Message string `json:"message"`
+			}
+			json.Unmarshal(errorEvent.Data, &errData)
+			return "", fmt.Errorf("agent error: %s", errData.Message)
+		}
+
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(pollInterval):
+		}
+	}
+
+	return "", fmt.Errorf("timed out waiting for architect response after %s", timeout)
+}
+
+// GetMaxSequenceNumber returns the current max sequence_number for a conversation's events.
+func GetMaxSequenceNumber(db *gorm.DB, conversationID uuid.UUID) int64 {
+	var maxSeq int64
+	db.Model(&model.ConversationEvent{}).
+		Where("conversation_id = ?", conversationID).
+		Select("COALESCE(MAX(sequence_number), 0)").Scan(&maxSeq)
+	return maxSeq
 }

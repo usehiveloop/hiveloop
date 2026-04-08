@@ -732,6 +732,19 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	run.ArchitectConversationID = archConv.ConversationId
 	fc.db.Model(&run).Update("architect_conversation_id", archConv.ConversationId)
 
+	// Save architect conversation to DB so webhook events are stored.
+	archAgentConv := model.AgentConversation{
+		OrgID:                run.OrgID,
+		AgentID:              archAgent.ID,
+		SandboxID:            *archAgent.SandboxID,
+		BridgeConversationID: archConv.ConversationId,
+		Status:               "active",
+	}
+	if err := fc.db.Create(&archAgentConv).Error; err != nil {
+		fc.failRun(runID, fmt.Sprintf("saving architect conversation record: %v", err))
+		return
+	}
+
 	// ITERATION LOOP
 	log.Info("forge: starting iteration loop",
 		"forge_run_max_iterations", run.MaxIterations,
@@ -763,7 +776,7 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		evalDesignerOverride := fc.buildProviderOverride(&evalCred, evalDesignerToken)
 		judgeOverride := fc.buildProviderOverride(&judgeCred, judgeToken)
 		iter, err := fc.runIteration(ctx, &run, i,
-			archAgent, archClient,
+			archAgent, archClient, archAgentConv.ID,
 			evalDesignerAgent, evalDesignerClient, evalDesignerOverride,
 			judgeAgent, judgeClient, judgeOverride,
 			targetProviderID, evalTargetToken,
@@ -852,7 +865,7 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 // runIteration executes a single design→eval→judge cycle.
 func (fc *ForgeController) runIteration(
 	ctx context.Context, run *model.ForgeRun, iteration int,
-	archAgent *model.Agent, archClient *bridgepkg.BridgeClient,
+	archAgent *model.Agent, archClient *bridgepkg.BridgeClient, archAgentConvID uuid.UUID,
 	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerOverride bridgepkg.ConversationProviderOverride,
 	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeOverride bridgepkg.ConversationProviderOverride,
 	targetProviderID, evalTargetToken string,
@@ -878,7 +891,18 @@ func (fc *ForgeController) runIteration(
 	fc.events.emit(ctx, run.ID, EventArchitectStarted, map[string]any{"iteration": iteration})
 
 	archMessage := fc.buildArchitectMessage(run, iteration)
-	archResponse, err := fc.reader.ReadFullResponse(ctx, archClient, run.ArchitectConversationID, archMessage)
+
+	// Record current max sequence before sending, so we only pick up NEW events.
+	lastSeq := GetMaxSequenceNumber(fc.db, archAgentConvID)
+
+	// Send message to architect (async — returns 202).
+	if err := archClient.SendMessage(ctx, run.ArchitectConversationID, archMessage); err != nil {
+		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
+		return nil, fmt.Errorf("sending architect message: %w", err)
+	}
+
+	// Wait for response via DB events (webhook → flusher → postgres).
+	archResponse, err := WaitForResponseFromDB(ctx, fc.db, archAgentConvID, lastSeq, 5*time.Minute)
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("architect response: %w", err)
