@@ -917,6 +917,34 @@ func (h *ForgeHandler) DeleteEvalCase(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+// ApproveContext handles POST /v1/forge-runs/{runID}/approve-context.
+// Transitions from gathering_context → designing_evals once context is captured.
+func (h *ForgeHandler) ApproveContext(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != model.ForgeStatusGatheringContext {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "context can only be approved during gathering_context"})
+		return
+	}
+	if len(run.Context) == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no context captured yet"})
+		return
+	}
+
+	h.db.Model(run).Update("status", model.ForgeStatusDesigningEvals)
+
+	if h.enqueuer != nil {
+		task, err := tasks.NewForgeDesignEvalsTask(run.ID)
+		if err == nil {
+			h.enqueuer.Enqueue(task)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "approved"})
+}
+
 // ApproveEvals handles POST /v1/forge-runs/{runID}/approve-evals.
 func (h *ForgeHandler) ApproveEvals(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)

@@ -344,6 +344,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Get("/eval-cases/{caseID}", forgeHandler.GetEvalCase)
 						r.Put("/eval-cases/{caseID}", forgeHandler.UpdateEvalCase)
 						r.Delete("/eval-cases/{caseID}", forgeHandler.DeleteEvalCase)
+						r.Post("/approve-context", forgeHandler.ApproveContext)
 						r.Post("/approve-evals", forgeHandler.ApproveEvals)
 					})
 				}
