@@ -264,6 +264,14 @@ func (m *MockForgePusher) PushAgentToSandbox(ctx context.Context, agent *model.A
 	return nil // no-op in tests, mock Bridge handles agent registration
 }
 
+func (m *MockForgePusher) BuildSystemAgentDef(agent *model.Agent) bridge.AgentDefinition {
+	return bridge.AgentDefinition{
+		Id:           agent.ID.String(),
+		Name:         agent.Name,
+		SystemPrompt: agent.SystemPrompt,
+	}
+}
+
 // ---------------------------------------------------------------------------
 // forgeTestHarness — shared setup for all forge tests.
 // ---------------------------------------------------------------------------
