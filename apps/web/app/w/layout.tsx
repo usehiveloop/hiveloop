@@ -66,6 +66,7 @@ function WorkspaceHeader() {
   const { user, orgs, activeOrg, setActiveOrg, logout, isPlatformAdmin, isImpersonating } = useAuth()
   const [createOpen, setCreateOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsSection, setSettingsSection] = useState<string | undefined>(undefined)
   const [impersonateOpen, setImpersonateOpen] = useState(false)
 
   const initials = user?.name
@@ -116,7 +117,7 @@ function WorkspaceHeader() {
       </DropdownMenu>
 
       <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={(nextOpen) => { setSettingsOpen(nextOpen); if (!nextOpen) setSettingsSection(undefined) }} initialSection={settingsSection} />
       <ImpersonateUserDialog open={impersonateOpen} onOpenChange={setImpersonateOpen} />
 
       <NavItems />
@@ -150,7 +151,7 @@ function WorkspaceHeader() {
               <HugeiconsIcon icon={Settings01Icon} size={16} className="text-muted-foreground" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setSettingsSection("billing"); setSettingsOpen(true) }}>
               <HugeiconsIcon icon={CreditCardIcon} size={16} className="text-muted-foreground" />
               Billing
             </DropdownMenuItem>

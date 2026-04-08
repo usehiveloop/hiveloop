@@ -69,7 +69,7 @@ export default function PricingPage() {
             <div className="flex flex-col gap-4 relative">
               <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-primary">Pro</span>
               <div className="flex items-baseline gap-1">
-                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$3.99</span>
+                <span className="font-heading text-[48px] font-bold text-foreground leading-none">$4.99</span>
                 <span className="text-sm text-muted-foreground">/mo per agent</span>
               </div>
               <p className="text-sm text-muted-foreground">For teams shipping agents to production</p>
@@ -82,10 +82,10 @@ export default function PricingPage() {
               <span className="font-mono text-[10px] font-medium uppercase tracking-[1px] text-muted-foreground">Everything in Free, plus</span>
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Unlimited agents</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> 500 runs/agent/month</div>
+                <div className="flex items-center gap-2.5 text-sm"><Check /> 300 runs/agent/month</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> 5 concurrent runs per agent</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Shared sandbox included</div>
-                <div className="flex items-center gap-2.5 text-sm"><Check /> $0.01/run overage</div>
+                <div className="flex items-center gap-2.5 text-sm"><Check /> $0.01/run shared overage</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Agent Forge</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Persistent memory (1 GB/agent)</div>
                 <div className="flex items-center gap-2.5 text-sm"><Check /> Advanced analytics & audit logs</div>
@@ -103,7 +103,7 @@ export default function PricingPage() {
             <div className="flex flex-col gap-4 md:flex-1">
               <span className="font-mono text-[11px] font-medium uppercase tracking-[1px] text-muted-foreground">Add-on for Pro agents</span>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-[36px] sm:text-[48px] font-bold text-foreground leading-none">+$3</span>
+                <span className="font-heading text-[36px] sm:text-[48px] font-bold text-foreground leading-none">+$2</span>
                 <span className="text-sm text-muted-foreground">/mo per agent</span>
               </div>
               <h3 className="font-heading text-lg font-semibold text-foreground">Dedicated sandbox</h3>
@@ -121,7 +121,7 @@ export default function PricingPage() {
               <div className="flex items-center gap-2.5 text-sm"><Check /> Git clone, build tools, linters</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> Code execution & interpreters</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> 10 GB disk per sandbox</div>
-              <div className="flex items-center gap-2.5 text-sm"><Check /> $0.05/run overage (instead of $0.01)</div>
+              <div className="flex items-center gap-2.5 text-sm"><Check /> $0.05/run dedicated overage</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> ~2s sandbox cold start</div>
               <div className="flex items-center gap-2.5 text-sm"><Check /> Custom sandbox templates</div>
             </div>
@@ -171,7 +171,7 @@ export default function PricingPage() {
               <div className="flex flex-col gap-2 relative">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Included runs</span>
-                  <span className="text-sm font-medium text-foreground">500/agent/month</span>
+                  <span className="text-sm font-medium text-foreground">300/agent/month</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overage rate</span>
@@ -182,7 +182,7 @@ export default function PricingPage() {
                   <span className="text-sm font-medium text-foreground">5/agent</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground relative">Example: 700 runs = $3.99 + (200 x $0.01) = $5.99/month</p>
+              <p className="text-xs text-muted-foreground relative">Example: 500 runs = $4.99 + (200 x $0.01) = $6.99/month</p>
             </div>
 
             <div className="rounded-2xl border border-border p-6 flex flex-col gap-4">
@@ -190,7 +190,7 @@ export default function PricingPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Included runs</span>
-                  <span className="text-sm font-medium text-foreground">500/agent/month</span>
+                  <span className="text-sm font-medium text-foreground">300/agent/month</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Overage rate</span>
@@ -201,7 +201,7 @@ export default function PricingPage() {
                   <span className="text-sm font-medium text-foreground">5/agent</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Example: 750 runs = $6.99 + (250 x $0.05) = $19.49/month</p>
+              <p className="text-xs text-muted-foreground">Example: 500 runs = $6.99 + (200 x $0.05) = $16.99/month</p>
             </div>
           </div>
         </div>
@@ -223,13 +223,13 @@ export default function PricingPage() {
               <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground text-center">Monthly cost</span>
             </div>
             {[
-              { agent: "Support bot", sandbox: "Shared", runs: "~200", cost: "$3.99" },
-              { agent: "Content writer", sandbox: "Shared", runs: "~100", cost: "$3.99" },
-              { agent: "Deploy monitor", sandbox: "Shared", runs: "~150", cost: "$3.99" },
+              { agent: "Support bot", sandbox: "Shared", runs: "~200", cost: "$4.99" },
+              { agent: "Content writer", sandbox: "Shared", runs: "~100", cost: "$4.99" },
+              { agent: "Deploy monitor", sandbox: "Shared", runs: "~150", cost: "$4.99" },
+              { agent: "Code review agent", sandbox: "Shared", runs: "~300", cost: "$4.99" },
               { agent: "Code review agent", sandbox: "Dedicated", runs: "~300", cost: "$6.99" },
-              { agent: "Code review agent", sandbox: "Dedicated", runs: "~750", cost: "$19.49" },
+              { agent: "Code review agent", sandbox: "Dedicated", runs: "~500", cost: "$16.99" },
               { agent: "Security scanner", sandbox: "Dedicated", runs: "~60", cost: "$6.99" },
-              { agent: "Bug triage agent", sandbox: "Dedicated", runs: "~500", cost: "$6.99" },
             ].map((row, index) => (
               <div key={index} className="grid grid-cols-[1fr_80px_80px_100px] sm:grid-cols-[1fr_120px_120px_120px] items-center py-3 border-b border-border/50">
                 <span className="text-sm text-foreground">{row.agent}</span>
@@ -240,7 +240,7 @@ export default function PricingPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            All agents include 500 runs/month. Shared agents overage at $0.01/run. Dedicated agents overage at $0.05/run. You bring your own LLM API keys — inference costs are not included.
+            All agents include 300 runs/month. Shared agents overage at $0.01/run. Dedicated agents overage at $0.05/run. You bring your own LLM API keys — inference costs are not included.
           </p>
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function PricingPage() {
           <div className="flex flex-col">
             <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Agents & Limits</h3>
             <CompareRow label="Number of agents" free="1" pro="Unlimited" />
-            <CompareRow label="Runs per month" free="100" pro="500/agent" />
+            <CompareRow label="Runs per month" free="100" pro="300/agent" />
             <CompareRow label="Overage (shared sandbox)" free={false} pro="$0.01/run" />
             <CompareRow label="Overage (dedicated sandbox)" free={false} pro="$0.05/run" />
             <CompareRow label="Concurrent runs" free="1" pro="5/agent" />
@@ -266,7 +266,7 @@ export default function PricingPage() {
           <div className="flex flex-col">
             <h3 className="font-heading text-sm font-semibold text-foreground pb-3 border-b border-border">Sandboxes</h3>
             <CompareRow label="Shared sandbox" free={true} pro={true} />
-            <CompareRow label="Dedicated sandbox" free={false} pro="+$3/agent/mo" />
+            <CompareRow label="Dedicated sandbox" free={false} pro="+$2/agent/mo" />
             <CompareRow label="Custom sandbox templates" free={false} pro={true} />
             <CompareRow label="Shell & filesystem access" free={false} pro="Dedicated only" />
             <CompareRow label="Code execution & interpreters" free={false} pro="Dedicated only" />

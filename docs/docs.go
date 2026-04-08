@@ -4829,6 +4829,143 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/billing/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Create checkout session",
+                "parameters": [
+                    {
+                        "description": "Checkout request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createCheckoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createCheckoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/portal": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Create billing portal session",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.portalResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/subscription": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the current billing plan and subscription status for the org.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Get subscription status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.subscriptionResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/catalog/integrations": {
             "get": {
                 "description": "Returns every integration provider in the catalog with action counts.",
@@ -11784,6 +11921,26 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.createCheckoutRequest": {
+            "type": "object",
+            "properties": {
+                "product_type": {
+                    "description": "\"pro_shared\" or \"pro_dedicated\"",
+                    "type": "string"
+                },
+                "success_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.createCheckoutResponse": {
+            "type": "object",
+            "properties": {
+                "checkout_url": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.createConnectSessionRequest": {
             "type": "object",
             "properties": {
@@ -13459,6 +13616,14 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.portalResponse": {
+            "type": "object",
+            "properties": {
+                "portal_url": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.providerDetail": {
             "type": "object",
             "properties": {
@@ -13818,6 +13983,20 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.subscriptionResponse": {
+            "type": "object",
+            "properties": {
+                "plan": {
+                    "type": "string"
+                },
+                "product_type": {
                     "type": "string"
                 },
                 "status": {
