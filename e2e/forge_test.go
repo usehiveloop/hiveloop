@@ -22,6 +22,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
@@ -413,7 +414,7 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 	// ForgeController
 	cat := catalog.Global()
 	signingKey := []byte(testSigningKey)
-	controller := forge.NewForgeController(db, mockOrchestrator, mockPusher, signingKey, cfg, eventBus, cat)
+	controller := forge.NewForgeController(db, mockOrchestrator, mockPusher, signingKey, cfg, eventBus, cat, registry.Global())
 
 	h := &forgeTestHarness{
 		t:          t,
@@ -632,7 +633,7 @@ func TestForge_HappyPath_ThresholdMet(t *testing.T) {
 		MCPBaseURL: "http://localhost:8081",
 	}
 	cat := catalog.Global()
-	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, cat)
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, cat, registry.Global())
 
 	// Queue responses in the order the controller will consume them.
 	//
@@ -782,7 +783,7 @@ func TestForge_Convergence(t *testing.T) {
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global(), registry.Global())
 
 	// Queue same 60% scores for 3 iterations. Convergence should trigger after
 	// iteration 3 (iterations 2 and 3 have no improvement over iteration 1).
@@ -850,7 +851,7 @@ func TestForge_MaxIterations(t *testing.T) {
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global(), registry.Global())
 
 	// Iteration 1: scores improve but never reach 0.99
 	queueGlobal.Push(validArchitectJSON("System prompt v1"))
@@ -918,7 +919,7 @@ func TestForge_EvalDesigner_OnlyRunsOnce(t *testing.T) {
 		BridgeHost: "localhost:9999",
 		MCPBaseURL: "http://localhost:8081",
 	}
-	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global())
+	controller := forge.NewForgeController(h.db, mockOrch, mockPush, []byte(testSigningKey), cfg, eventBus, catalog.Global(), registry.Global())
 
 	// Iteration 1
 	queueGlobal.Push(validArchitectJSON("System prompt v1"))

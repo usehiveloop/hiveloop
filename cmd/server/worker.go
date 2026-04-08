@@ -13,6 +13,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/forge"
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/tasks"
 	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
@@ -54,6 +55,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		EmailSend: func(ctx context.Context, to, subject, body string) error {
 			return logSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})
 		},
+		PolarClient: deps.PolarClient,
 	}
 
 	// Create forge controller for the worker (if sandbox is configured)
@@ -61,7 +63,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		forgeCtrl := forge.NewForgeController(
 			deps.DB, deps.Orchestrator, deps.AgentPusher,
 			deps.SigningKey, deps.Config, deps.EventBus, catalog.Global(),
-			redisOpt,
+			registry.Global(), redisOpt,
 		)
 		workerDeps.ForgeExecute = forgeCtrl.Execute
 		workerDeps.ForgeDesignEvals = forgeCtrl.DesignEvals

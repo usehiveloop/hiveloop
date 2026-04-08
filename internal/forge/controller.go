@@ -16,6 +16,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/config"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 	"github.com/ziraloop/ziraloop/internal/token"
@@ -75,6 +76,7 @@ type ForgeController struct {
 	orchestrator ForgeOrchestrator
 	pusher       ForgePusher
 	catalog      *catalog.Catalog
+	registry     *registry.Registry
 	signingKey   []byte
 	cfg          *config.Config
 	eventBus     *streaming.EventBus
@@ -107,6 +109,7 @@ func NewForgeController(
 	cfg *config.Config,
 	eventBus *streaming.EventBus,
 	cat *catalog.Catalog,
+	reg *registry.Registry,
 	redisOpt ...asynq.RedisConnOpt,
 ) *ForgeController {
 	fc := &ForgeController{
@@ -114,6 +117,7 @@ func NewForgeController(
 		orchestrator: orchestrator,
 		pusher:       pusher,
 		catalog:      cat,
+		registry:     reg,
 		signingKey:   signingKey,
 		cfg:          cfg,
 		eventBus:     eventBus,
@@ -194,9 +198,10 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 		return nil, fmt.Errorf("minting context gatherer token: %w", err)
 	}
 
-	// Create Bridge conversation with per-conversation API key override.
-	// System agents have ApiKey: "" — the proxy token authenticates LLM calls.
-	convResp, err := client.CreateConversationWithAPIKey(ctx, gathererAgent.ID.String(), proxyToken)
+	// Create Bridge conversation with per-conversation provider override.
+	// The model is resolved from the credential's provider via BestModelForForge.
+	providerOverride := fc.buildProviderOverride(cred, proxyToken)
+	convResp, err := client.CreateConversationWithProvider(ctx, gathererAgent.ID.String(), providerOverride)
 	if err != nil {
 		return nil, fmt.Errorf("creating context conversation: %w", err)
 	}
@@ -372,8 +377,9 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
-	// Create conversation with per-conversation API key override.
-	evalConv, err := evalClient.CreateConversationWithAPIKey(ctx, evalDesignerAgent.ID.String(), evalDesignerToken)
+	// Create conversation with per-conversation provider override.
+	evalProviderOverride := fc.buildProviderOverride(&evalCred, evalDesignerToken)
+	evalConv, err := evalClient.CreateConversationWithProvider(ctx, evalDesignerAgent.ID.String(), evalProviderOverride)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating eval designer conversation: %v", err))
 		return
@@ -707,8 +713,9 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		"elapsed_ms", time.Since(started).Milliseconds(),
 	)
 
-	// Create architect conversation with per-conversation API key override.
-	archConv, err := archClient.CreateConversationWithAPIKey(ctx, archAgent.ID.String(), archToken)
+	// Create architect conversation with per-conversation provider override.
+	archProviderOverride := fc.buildProviderOverride(&archCred, archToken)
+	archConv, err := archClient.CreateConversationWithProvider(ctx, archAgent.ID.String(), archProviderOverride)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating architect conversation: %v", err))
 		return
@@ -744,10 +751,12 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 			"iteration": i,
 		})
 
+		evalDesignerOverride := fc.buildProviderOverride(&evalCred, evalDesignerToken)
+		judgeOverride := fc.buildProviderOverride(&judgeCred, judgeToken)
 		iter, err := fc.runIteration(ctx, &run, i,
 			archAgent, archClient,
-			evalDesignerAgent, evalDesignerClient, evalDesignerToken,
-			judgeAgent, judgeClient, judgeToken,
+			evalDesignerAgent, evalDesignerClient, evalDesignerOverride,
+			judgeAgent, judgeClient, judgeOverride,
 			targetProviderID, evalTargetToken,
 		)
 		if err != nil {
@@ -835,8 +844,8 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 func (fc *ForgeController) runIteration(
 	ctx context.Context, run *model.ForgeRun, iteration int,
 	archAgent *model.Agent, archClient *bridgepkg.BridgeClient,
-	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerToken string,
-	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeToken string,
+	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerOverride bridgepkg.ConversationProviderOverride,
+	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeOverride bridgepkg.ConversationProviderOverride,
 	targetProviderID, evalTargetToken string,
 ) (*model.ForgeIteration, error) {
 	_ = archAgent // architect uses persistent conversation from run.ArchitectConversationID
@@ -929,7 +938,7 @@ func (fc *ForgeController) runIteration(
 		log.Info("forge: phase=eval_designing — generating eval cases")
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
-		evalConv, err := evalDesignerClient.CreateConversationWithAPIKey(ctx, evalDesignerAgent.ID.String(), evalDesignerToken)
+		evalConv, err := evalDesignerClient.CreateConversationWithProvider(ctx, evalDesignerAgent.ID.String(), evalDesignerOverride)
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("creating eval designer conversation: %w", err)
@@ -1221,7 +1230,7 @@ evalPhase:
 	log.Info("forge: phase=judging — eval results to judge", "count", len(judgingResults))
 
 	// Create a judge conversation for this iteration.
-	judgeConv, err := judgeClient.CreateConversationWithAPIKey(ctx, judgeAgent.ID.String(), judgeToken)
+	judgeConv, err := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("creating judge conversation: %w", err)
@@ -1813,6 +1822,35 @@ func (fc *ForgeController) loadSystemAgent(name string) (*model.Agent, error) {
 		return nil, fmt.Errorf("system agent %q not found: %w", name, err)
 	}
 	return &agent, nil
+}
+
+// buildProviderOverride creates a per-conversation provider override from a
+// credential and proxy token. Uses BestModelForForge to pick the optimal model
+// for the credential's provider.
+func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyToken string) bridgepkg.ConversationProviderOverride {
+	// Map credential provider to Bridge provider type.
+	providerType := bridgepkg.Custom
+	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
+		providerType = pt
+	}
+
+	// Pick the best model for this provider.
+	model := cred.ProviderID // fallback to provider ID if no model found
+	if fc.registry != nil {
+		if bestModel, ok := fc.registry.BestModelForForge(cred.ProviderID); ok {
+			model = bestModel
+		}
+	}
+
+	// Build proxy base URL.
+	proxyBaseURL := fmt.Sprintf("https://%s/v1/proxy", fc.cfg.BridgeHost)
+
+	return bridgepkg.ConversationProviderOverride{
+		ProviderType: providerType,
+		Model:        model,
+		ApiKey:       proxyToken,
+		BaseUrl:      proxyBaseURL,
+	}
 }
 
 // disableBuiltInTools configures a forge system agent so Bridge registers zero

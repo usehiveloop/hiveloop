@@ -128,10 +128,19 @@ func (c *BridgeClient) HydrateConversations(ctx context.Context, agentID string,
 
 // --- Conversation operations ---
 
+// ConversationProviderOverride overrides the agent's LLM provider for a single
+// conversation. Supported since Bridge v0.17.1.
+type ConversationProviderOverride struct {
+	ProviderType ProviderType `json:"provider_type"`
+	Model        string       `json:"model"`
+	ApiKey       string       `json:"api_key"`
+	BaseUrl      string       `json:"base_url,omitempty"`
+}
+
 // CreateConversationRequest is the optional request body for creating a conversation.
 type CreateConversationRequest struct {
-	// ApiKey overrides the agent's LLM API key for this conversation only.
-	ApiKey string `json:"api_key,omitempty"`
+	// Provider overrides the agent's LLM provider for this conversation only.
+	Provider *ConversationProviderOverride `json:"provider,omitempty"`
 }
 
 // CreateConversation creates a new conversation for an agent.
@@ -139,10 +148,11 @@ func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (
 	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", nil)
 }
 
-// CreateConversationWithAPIKey creates a new conversation with a per-conversation API key override.
-// Used for system agents that don't have their own credential — the proxy token is passed here.
-func (c *BridgeClient) CreateConversationWithAPIKey(ctx context.Context, agentID, apiKey string) (*CreateConversationResponse, error) {
-	payload := CreateConversationRequest{ApiKey: apiKey}
+// CreateConversationWithProvider creates a new conversation with a per-conversation
+// provider override. Used for forge system agents — the model and API key are
+// resolved at runtime from the user's credential, not from the system agent definition.
+func (c *BridgeClient) CreateConversationWithProvider(ctx context.Context, agentID string, provider ConversationProviderOverride) (*CreateConversationResponse, error) {
+	payload := CreateConversationRequest{Provider: &provider}
 	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", payload)
 }
 
