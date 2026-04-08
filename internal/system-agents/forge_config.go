@@ -50,7 +50,11 @@ func ForgeAgentConfig(agentType string) ForgeConfig {
 	case "forge-eval-designer":
 		// No special permissions — submit_eval_cases has status guard in MCP handler.
 	case "forge-architect":
-		// No special permissions.
+		// Architect outputs text (system prompt in tags), not tool calls.
+		// Disable built-in tools but allow text output.
+		baseConfig.AgentConfigJSON = mustJSON(map[string]any{
+			"disabled_tools": allBuiltInTools,
+		})
 	case "forge-judge":
 		// No special permissions.
 	case "forge-planner":

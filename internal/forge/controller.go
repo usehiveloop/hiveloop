@@ -884,48 +884,46 @@ func (fc *ForgeController) runIteration(
 		return nil, fmt.Errorf("architect response: %w", err)
 	}
 
-	archOutput, err := ParseArchitectOutput(archResponse)
-	if err != nil {
-		log.Warn("architect returned invalid JSON, retrying", "error", err)
-		// Retry with corrective message.
+	systemPrompt := extractTag(archResponse, "system_prompt_output")
+	reasoning := extractTag(archResponse, "reasoning")
+
+	if systemPrompt == "" {
+		log.Warn("architect response missing <system_prompt_output> tags, retrying")
 		archResponse, err = fc.reader.ReadFullResponse(ctx, archClient, run.ArchitectConversationID,
-			"Your previous response was not valid JSON. Please respond with valid JSON matching the required schema.")
+			"Your response must wrap the system prompt in <system_prompt_output></system_prompt_output> tags and reasoning in <reasoning></reasoning> tags. Try again.")
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("architect retry response: %w", err)
 		}
-		archOutput, err = ParseArchitectOutput(archResponse)
-		if err != nil {
+		systemPrompt = extractTag(archResponse, "system_prompt_output")
+		reasoning = extractTag(archResponse, "reasoning")
+		if systemPrompt == "" {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
-			return nil, fmt.Errorf("architect output still invalid: %w", err)
+			return nil, fmt.Errorf("architect did not produce a system prompt in <system_prompt_output> tags")
 		}
 	}
 
 	// Persist architect output.
-	toolsJSON, _ := json.Marshal(archOutput.Tools)
-	configJSON, _ := json.Marshal(archOutput.AgentConfig)
 	fc.db.Model(&iter).Updates(map[string]any{
-		"system_prompt":       archOutput.SystemPrompt,
-		"tools":               model.RawJSON(toolsJSON),
-		"agent_config":        model.RawJSON(configJSON),
-		"architect_reasoning": archOutput.Reasoning,
+		"system_prompt":       systemPrompt,
+		"tools":               model.RawJSON("{}"),
+		"agent_config":        model.RawJSON("{}"),
+		"architect_reasoning": reasoning,
 		"architect_response":  archResponse,
 		"phase":               model.ForgePhaseEvalDesigning,
 	})
-	iter.SystemPrompt = archOutput.SystemPrompt
+	iter.SystemPrompt = systemPrompt
 	iter.Phase = model.ForgePhaseEvalDesigning
 
 	log.Info("forge: phase=designing — architect completed",
-		"system_prompt_len", len(archOutput.SystemPrompt),
-		"tools_count", len(archOutput.Tools),
-		"has_reasoning", archOutput.Reasoning != "",
+		"system_prompt_len", len(systemPrompt),
+		"has_reasoning", reasoning != "",
 		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
 	)
 
 	fc.events.emit(ctx, run.ID, EventArchitectCompleted, map[string]any{
 		"iteration":         iteration,
-		"system_prompt_len": len(archOutput.SystemPrompt),
-		"tools_count":       len(archOutput.Tools),
+		"system_prompt_len": len(systemPrompt),
 	})
 
 	// PHASE: EVAL_DESIGNING — only in iteration 1.
@@ -953,7 +951,7 @@ func (fc *ForgeController) runIteration(
 			return nil, fmt.Errorf("creating eval designer conversation: %w", err)
 		}
 
-		evalMessage := fc.buildEvalDesignerMessage(archOutput, &run.Agent)
+		evalMessage := fc.buildEvalDesignerMessage(iter.SystemPrompt, &run.Agent)
 		evalResponse, err := fc.reader.ReadFullResponse(ctx, evalDesignerClient, evalConv.ConversationId, evalMessage)
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
@@ -1076,7 +1074,7 @@ evalPhase:
 	evalTargetDef := bridgepkg.AgentDefinition{
 		Id:           evalTargetAgentID,
 		Name:         "forge-eval-target",
-		SystemPrompt: archOutput.SystemPrompt,
+		SystemPrompt: iter.SystemPrompt,
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: evalTargetProviderType,
 			Model:        run.Agent.Model,
@@ -1693,20 +1691,11 @@ func (fc *ForgeController) countHardTotal(evalCases []model.ForgeEvalCase) int {
 // buildEvalDesignerMessage constructs the message to send to the eval designer.
 // If the agent has integrations, the resolved action schemas are included so the
 // eval designer generates mocks that match the real API schemas exactly.
-func (fc *ForgeController) buildEvalDesignerMessage(archOutput *ArchitectOutput, agent *model.Agent) string {
-	toolsJSON, _ := json.Marshal(archOutput.Tools)
-	configJSON, _ := json.Marshal(archOutput.AgentConfig)
-
+func (fc *ForgeController) buildEvalDesignerMessage(systemPrompt string, agent *model.Agent) string {
 	msg := fmt.Sprintf(`Generate a comprehensive test suite for the following agent:
 
 System Prompt:
-%s
-
-Tools:
-%s
-
-Configuration:
-%s`, archOutput.SystemPrompt, string(toolsJSON), string(configJSON))
+%s`, systemPrompt)
 
 	// Inject real action schemas from the catalog if the agent has integrations.
 	if fc.catalog != nil {
@@ -2033,4 +2022,21 @@ func (fc *ForgeController) ResumeStaleRuns(ctx context.Context) {
 		)
 		fc.failRun(run.ID, "server restarted while forge was running")
 	}
+}
+
+// extractTag extracts content between <tag>...</tag> from text.
+// Returns empty string if not found.
+func extractTag(text, tag string) string {
+	openTag := "<" + tag + ">"
+	closeTag := "</" + tag + ">"
+	start := strings.Index(text, openTag)
+	if start == -1 {
+		return ""
+	}
+	start += len(openTag)
+	end := strings.Index(text[start:], closeTag)
+	if end == -1 {
+		return ""
+	}
+	return strings.TrimSpace(text[start : start+end])
 }

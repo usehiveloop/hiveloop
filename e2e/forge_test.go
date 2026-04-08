@@ -520,16 +520,15 @@ type testEval struct {
 	SampleCount     int
 }
 
-// validArchitectJSON returns a valid ArchitectOutput JSON string.
+// validArchitectJSON returns a valid architect response with tagged output.
 func validArchitectJSON(systemPrompt string) string {
-	out := map[string]any{
-		"system_prompt": systemPrompt,
-		"tools":         []any{},
-		"agent_config":  map[string]any{},
-		"reasoning":     "Improved the system prompt for better performance.",
-	}
-	b, _ := json.Marshal(out)
-	return string(b)
+	return fmt.Sprintf(`<reasoning>
+Improved the system prompt for better performance.
+</reasoning>
+
+<system_prompt_output>
+%s
+</system_prompt_output>`, systemPrompt)
 }
 
 // validEvalDesignerJSON returns a valid EvalDesignerOutput JSON string.
