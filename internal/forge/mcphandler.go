@@ -107,6 +107,7 @@ func (h *ForgeMCPHandler) serverFactory(r *http.Request) *mcpsdk.Server {
 		Version: "v1.0.0",
 	}, nil)
 
+	// Register integration tools (from architect output) with eval-case mocks.
 	for _, tool := range tools {
 		inputSchema := map[string]any{
 			"type":       "object",
@@ -126,7 +127,142 @@ func (h *ForgeMCPHandler) serverFactory(r *http.Request) *mcpsdk.Server {
 		)
 	}
 
+	// Register all Bridge built-in tools as mocks so the eval-target agent
+	// can call them without side effects (no real web requests, no real
+	// memory writes, no real shell commands).
+	for _, builtinTool := range builtinToolMocks {
+		// Skip if an integration tool already has this name.
+		alreadyRegistered := false
+		for _, tool := range tools {
+			if tool.Name == builtinTool.Name {
+				alreadyRegistered = true
+				break
+			}
+		}
+		if alreadyRegistered {
+			continue
+		}
+
+		server.AddTool(
+			&mcpsdk.Tool{
+				Name:        builtinTool.Name,
+				Description: builtinTool.Description,
+				InputSchema: builtinTool.Schema,
+			},
+			buildBuiltinMockHandler(runID, builtinTool.Name, builtinTool.DefaultResponse, toolMocks),
+		)
+	}
+
 	return server
+}
+
+// builtinToolMock defines a Bridge built-in tool with its default mock response.
+type builtinToolMock struct {
+	Name            string
+	Description     string
+	Schema          map[string]any
+	DefaultResponse string
+}
+
+// builtinToolMocks lists all Bridge built-in tools that get mocked during forge evals.
+// The eval-target agent has all built-in tools disabled — these MCP mocks replace them.
+var builtinToolMocks = []builtinToolMock{
+	// ── Filesystem ──
+	{Name: "Read", Description: "Read a file from the filesystem.", Schema: objSchema("file_path"), DefaultResponse: `{"content": "// mock file content\nline 1\nline 2\nline 3"}`},
+	{Name: "write", Description: "Write content to a file.", Schema: objSchema("file_path", "content"), DefaultResponse: `{"status": "ok", "bytes_written": 128}`},
+	{Name: "edit", Description: "Find and replace text in a file.", Schema: objSchema("file_path", "old_string", "new_string"), DefaultResponse: `{"status": "ok"}`},
+	{Name: "multiedit", Description: "Multiple find-and-replace edits in one file.", Schema: objSchema("file_path", "edits"), DefaultResponse: `{"status": "ok", "edits_applied": 1}`},
+	{Name: "apply_patch", Description: "Apply a diff patch to files.", Schema: objSchema("patch"), DefaultResponse: `{"status": "ok", "files_modified": 1}`},
+	{Name: "Glob", Description: "Find files matching a glob pattern.", Schema: objSchema("pattern"), DefaultResponse: `{"files": ["src/main.ts", "src/utils.ts"]}`},
+	{Name: "Grep", Description: "Search file contents with regex.", Schema: objSchema("pattern"), DefaultResponse: `{"matches": [{"file": "src/main.ts", "line": 10, "content": "mock match"}]}`},
+	{Name: "LS", Description: "List files and directories.", Schema: objSchema("path"), DefaultResponse: `{"entries": ["src/", "package.json", "README.md"]}`},
+
+	// ── Shell ──
+	{Name: "bash", Description: "Execute a shell command.", Schema: objSchema("command"), DefaultResponse: `{"exit_code": 0, "stdout": "mock output", "stderr": ""}`},
+
+	// ── Web ──
+	{Name: "web_fetch", Description: "Fetch a URL and extract readable content.", Schema: objSchema("url"), DefaultResponse: `{"content": "Mock webpage content.", "title": "Mock Page", "url": "https://example.com"}`},
+	{Name: "web_search", Description: "Search the web.", Schema: objSchema("query"), DefaultResponse: `{"results": [{"title": "Mock Result", "url": "https://example.com", "description": "A mock search result."}]}`},
+	{Name: "web_crawl", Description: "Crawl a website following links.", Schema: objSchema("url"), DefaultResponse: `{"pages": [{"url": "https://example.com", "content": "Mock crawled content."}]}`},
+	{Name: "web_get_links", Description: "Extract all links from a webpage.", Schema: objSchema("url"), DefaultResponse: `{"links": ["https://example.com/page1", "https://example.com/page2"]}`},
+	{Name: "web_screenshot", Description: "Take a screenshot of a webpage.", Schema: objSchema("url"), DefaultResponse: `{"screenshot": "base64_mock_data", "format": "png"}`},
+	{Name: "web_transform", Description: "Convert HTML to markdown.", Schema: objSchema("html"), DefaultResponse: `{"markdown": "# Mock\n\nConverted content."}`},
+
+	// ── Agent Orchestration ──
+	{Name: "agent", Description: "Launch a subagent for a focused task.", Schema: objSchema("prompt"), DefaultResponse: `{"task_id": "mock-task-001", "status": "completed", "result": "Mock subagent completed the task."}`},
+	{Name: "sub_agent", Description: "Launch a named subagent.", Schema: objSchema("subagent", "prompt"), DefaultResponse: `{"task_id": "mock-task-002", "status": "completed", "result": "Mock subagent completed."}`},
+	{Name: "parallel_agent", Description: "Run multiple subagents in parallel.", Schema: objSchema("tasks"), DefaultResponse: `{"results": [{"task_id": "mock-001", "status": "completed", "result": "Done."}]}`},
+	{Name: "batch", Description: "Execute multiple tools concurrently.", Schema: objSchema("calls"), DefaultResponse: `{"results": [{"status": "ok"}]}`},
+	{Name: "join", Description: "Wait for background tasks to complete.", Schema: objSchema("task_ids"), DefaultResponse: `{"results": [{"task_id": "mock-task-001", "status": "completed", "result": "Done."}]}`},
+
+	// ── Task Management ──
+	{Name: "todowrite", Description: "Create or update the task list.", Schema: objSchema("todos"), DefaultResponse: `{"status": "ok", "count": 3}`},
+	{Name: "todoread", Description: "Read the current task list.", Schema: objSchema(), DefaultResponse: `{"todos": [{"content": "Mock task", "status": "pending", "priority": "medium"}]}`},
+
+	// ── Journal ──
+	{Name: "journal_write", Description: "Write a journal entry.", Schema: objSchema("content"), DefaultResponse: `{"status": "ok", "entry_id": "journal-mock-001"}`},
+	{Name: "journal_read", Description: "Read all journal entries.", Schema: objSchema(), DefaultResponse: `{"entries": [{"content": "Mock journal entry.", "category": "progress", "timestamp": "2026-01-01T00:00:00Z"}]}`},
+
+	// ── Code Intelligence ──
+	{Name: "lsp", Description: "Query language server for diagnostics and navigation.", Schema: objSchema("action", "file_path"), DefaultResponse: `{"diagnostics": []}`},
+	{Name: "skill", Description: "Invoke a reusable skill.", Schema: objSchema("name"), DefaultResponse: `{"status": "ok", "result": "Skill executed."}`},
+
+	// ── Memory ──
+	{Name: "memory_recall", Description: "Search long-term memory for relevant context.", Schema: objSchema("query"), DefaultResponse: `{"memories": [{"content": "Mock recalled memory.", "relevance": 0.95}]}`},
+	{Name: "memory_retain", Description: "Store information to long-term memory.", Schema: objSchema("content"), DefaultResponse: `{"status": "ok", "memory_id": "mem-mock-001"}`},
+	{Name: "memory_reflect", Description: "Analyze memory for patterns and synthesis.", Schema: objSchema("query"), DefaultResponse: `{"reflection": "Based on past interactions, the pattern suggests..."}`},
+}
+
+// objSchema returns a minimal JSON Schema object with the given property names.
+func objSchema(properties ...string) map[string]any {
+	props := map[string]any{}
+	for _, prop := range properties {
+		props[prop] = map[string]any{"type": "string"}
+	}
+	return map[string]any{
+		"type":       "object",
+		"properties": props,
+	}
+}
+
+// buildBuiltinMockHandler returns a mock handler for a built-in tool.
+// If the eval case has a custom mock for this tool name, use that instead of the default.
+func buildBuiltinMockHandler(runID, toolName, defaultResponse string, toolMocks map[string][]MockSample) func(context.Context, *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
+	return func(ctx context.Context, req *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
+		// Check if the eval case has a custom mock for this built-in tool.
+		samples := toolMocks[toolName]
+		if len(samples) > 0 {
+			var args map[string]any
+			if req.Params.Arguments != nil {
+				json.Unmarshal(req.Params.Arguments, &args)
+			}
+			sample := findBestMock(args, samples)
+			respBytes, _ := json.Marshal(sample.Response)
+
+			slog.Debug("forge mcp: returning custom mock for builtin tool",
+				"forge_run_id", runID,
+				"tool", toolName,
+			)
+
+			return &mcpsdk.CallToolResult{
+				Content: []mcpsdk.Content{
+					&mcpsdk.TextContent{Text: string(respBytes)},
+				},
+			}, nil
+		}
+
+		// Return default mock response.
+		slog.Debug("forge mcp: returning default mock for builtin tool",
+			"forge_run_id", runID,
+			"tool", toolName,
+		)
+
+		return &mcpsdk.CallToolResult{
+			Content: []mcpsdk.Content{
+				&mcpsdk.TextContent{Text: defaultResponse},
+			},
+		}, nil
+	}
 }
 
 // buildMockHandler creates a tool call handler that returns the best matching

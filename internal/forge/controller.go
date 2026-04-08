@@ -1052,6 +1052,11 @@ evalPhase:
 		Transport: mcpTransport,
 	}}
 
+	// Disable all Bridge built-in tools — the forge-mock MCP server provides
+	// mock implementations for everything (integration tools + runtime tools).
+	// This prevents real web requests, real memory writes, real shell commands, etc.
+	noBuiltins := []bridgepkg.ToolDefinition{{Name: "_no_builtin_tools", Description: "placeholder"}}
+
 	evalTargetDef := bridgepkg.AgentDefinition{
 		Id:           evalTargetAgentID,
 		Name:         "forge-eval-target",
@@ -1062,6 +1067,7 @@ evalPhase:
 			ApiKey:       evalTargetToken,
 			BaseUrl:      &proxyBaseURL,
 		},
+		Tools:      &noBuiltins,
 		McpServers: &mcpServers,
 		Config:     defaultAgentConfig(),
 	}

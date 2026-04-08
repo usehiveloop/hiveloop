@@ -191,7 +191,7 @@ func TestForgeContextMCP_StartForge_StoresContext(t *testing.T) {
 	router.ServeHTTP(recorder, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-context/%s/mcp", run.ID), initBody))
 
 	// Call start_forge tool
-	callBody := fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"start_forge","arguments":{"requirements_summary":"A support triage agent","success_criteria":["Routes tickets correctly","Responds helpfully"],"edge_cases":["Angry customer"],"tone_and_style":"Friendly","constraints":["Never share IDs"],"priority_focus":"accuracy"}}}`)
+	callBody := fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"start_forge","arguments":{"requirements_summary":"A support triage agent","success_criteria":["Routes tickets correctly","Responds helpfully","Handles edge cases"],"edge_cases":["Angry customer"],"tone_and_style":"Friendly","constraints":["Never share IDs"],"example_interactions":[{"user":"I need help with billing","expected_response":"Let me route you to billing."},{"user":"My order is wrong","expected_response":"I will look into that for you."}],"priority_focus":"accuracy"}}}`)
 	recorder2 := httptest.NewRecorder()
 	router.ServeHTTP(recorder2, forgeMCPRequest(t, http.MethodPost, fmt.Sprintf("/forge-context/%s/mcp", run.ID), callBody))
 
@@ -215,8 +215,8 @@ func TestForgeContextMCP_StartForge_StoresContext(t *testing.T) {
 	if ctx.RequirementsSummary != "A support triage agent" {
 		t.Errorf("expected requirements_summary 'A support triage agent', got %q", ctx.RequirementsSummary)
 	}
-	if len(ctx.SuccessCriteria) != 2 {
-		t.Errorf("expected 2 success criteria, got %d", len(ctx.SuccessCriteria))
+	if len(ctx.SuccessCriteria) != 3 {
+		t.Errorf("expected 3 success criteria, got %d", len(ctx.SuccessCriteria))
 	}
 	if ctx.PriorityFocus != "accuracy" {
 		t.Errorf("expected priority_focus 'accuracy', got %q", ctx.PriorityFocus)
