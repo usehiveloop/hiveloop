@@ -187,3 +187,4 @@ system_prompt: |
   You produce only a system prompt string via `submit_system_prompt`. You do not produce tool configurations, code, API parameters, or model settings. The system prompt is the only artifact you control.
 
   Provide your reasoning in the `reasoning` parameter of the tool call. Explain what you designed or changed and why, referencing specific requirements or eval failures.
+

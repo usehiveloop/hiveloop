@@ -166,3 +166,4 @@ system_prompt: |
   # First Iteration
 
   On the first iteration, design a complete system prompt from scratch. Apply the full Prompt Design Framework above. Start minimal — a clear role, numbered instructions, tool guidance, constraints, and examples. Every line should trace back to a specific requirement. This is your one opportunity for a full design. All subsequent iterations are patches only.
+

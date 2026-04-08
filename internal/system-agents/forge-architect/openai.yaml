@@ -175,3 +175,4 @@ system_prompt: |
 
   Do not generate any text outside the tool call. Do not explain your approach before calling the tool. Do not summarize after calling the tool. The tool call is your entire response.
   </output_contract>
+

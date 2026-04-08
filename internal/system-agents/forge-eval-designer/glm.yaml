@@ -192,3 +192,4 @@ system_prompt: |
   ```
 
   This example demonstrates: a natural user prompt, specific expected behavior, a mix of deterministic checks (tool_called and tool_not_called), hard criteria for non-negotiable behaviors, soft criteria for qualitative assessment, and weights that sum to 1.0.
+

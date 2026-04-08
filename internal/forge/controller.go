@@ -88,6 +88,29 @@ type ForgeController struct {
 	inspector    *asynq.Inspector // for cancelling tasks
 }
 
+// evalTargetConfig returns agent config for the eval-target agent.
+// All built-in tools are disabled — the forge-mock MCP server provides mocks.
+func evalTargetConfig() *bridgepkg.AgentConfig {
+	config := defaultAgentConfig()
+	config.DisabledTools = []string{
+		// Filesystem
+		"Read", "write", "edit", "multiedit", "apply_patch", "Glob", "Grep", "LS",
+		// Shell
+		"bash",
+		// Web
+		"web_fetch", "web_search", "web_crawl", "web_get_links", "web_screenshot", "web_transform",
+		// Agent orchestration
+		"agent", "sub_agent", "parallel_agent", "batch", "join",
+		// Task management
+		"todowrite", "todoread",
+		// Journal
+		"journal_write", "journal_read",
+		// Code intelligence
+		"lsp", "skill",
+	}
+	return config
+}
+
 func defaultAgentConfig() *bridgepkg.AgentConfig {
 	maxTokens := int32(8192)
 	maxTurns := int32(250)
@@ -186,10 +209,8 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 		return nil, fmt.Errorf("loading context gatherer agent: %w", err)
 	}
 
-	// Set require_approval on start_forge so the user must approve before forge begins.
-	gathererAgent.Permissions = model.JSON{"start_forge": "require_approval"}
-
 	// Provision the system agent (sandbox + push to Bridge).
+	// Permissions (start_forge: require_approval) come from DB, set at seed time.
 	client, err := fc.ensureSystemAgentReady(ctx, gathererAgent)
 	if err != nil {
 		return nil, fmt.Errorf("provisioning context gatherer: %w", err)
@@ -1052,11 +1073,6 @@ evalPhase:
 		Transport: mcpTransport,
 	}}
 
-	// Disable all Bridge built-in tools — the forge-mock MCP server provides
-	// mock implementations for everything (integration tools + runtime tools).
-	// This prevents real web requests, real memory writes, real shell commands, etc.
-	noBuiltins := []bridgepkg.ToolDefinition{{Name: "_no_builtin_tools", Description: "placeholder"}}
-
 	evalTargetDef := bridgepkg.AgentDefinition{
 		Id:           evalTargetAgentID,
 		Name:         "forge-eval-target",
@@ -1067,9 +1083,8 @@ evalPhase:
 			ApiKey:       evalTargetToken,
 			BaseUrl:      &proxyBaseURL,
 		},
-		Tools:      &noBuiltins,
 		McpServers: &mcpServers,
-		Config:     defaultAgentConfig(),
+		Config:     evalTargetConfig(),
 	}
 
 	// Get a pool sandbox for the eval-target and push the agent.
@@ -1847,23 +1862,11 @@ func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyTo
 	}
 }
 
-// disableBuiltInTools configures a forge system agent so Bridge registers zero
-// built-in tools. The agent can only use its MCP tool (start_forge,
-// submit_system_prompt, etc.). Also sets tool_calls_only so the agent is
-// forced to call tools rather than generating text.
-func disableBuiltInTools(agent *model.Agent) {
-	agent.DisableBuiltInTools = true
-	if agent.AgentConfig == nil {
-		agent.AgentConfig = model.JSON{}
-	}
-	agent.AgentConfig["tool_calls_only"] = true
-}
-
 // ensureSystemAgentReady ensures a system agent has a pool sandbox and is pushed to Bridge.
 // Returns the Bridge client for the system agent's sandbox.
+// Agent config (tool_calls_only, permissions, tools) comes from DB — set at seed time
+// by ForgeAgentConfig(). No in-memory patching needed.
 func (fc *ForgeController) ensureSystemAgentReady(ctx context.Context, agent *model.Agent) (*bridgepkg.BridgeClient, error) {
-	// Disable all built-in tools — forge agents only use their MCP tool.
-	disableBuiltInTools(agent)
 
 	// Assign pool sandbox if not already assigned.
 	if agent.SandboxID == nil {

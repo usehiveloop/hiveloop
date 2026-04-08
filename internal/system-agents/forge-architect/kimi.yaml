@@ -154,3 +154,4 @@ system_prompt: |
   ## First Iteration
 
   Design a complete system prompt from scratch. Apply all principles above. Start minimal — every line traces to a requirement. This is your one chance for a full design. Subsequent iterations are patches only.
+

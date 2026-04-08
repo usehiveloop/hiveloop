@@ -40,9 +40,8 @@ type Agent struct {
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
-	Status              string `gorm:"not null;default:'active'"` // active, archived
-	IsSystem            bool   `gorm:"not null;default:false;index"`
-	DisableBuiltInTools bool   `gorm:"-"` // transient — not persisted. When true, pusher sets a dummy tool allow-list so Bridge registers zero built-in tools.
+	Status        string `gorm:"not null;default:'active'"` // active, archived
+	IsSystem      bool   `gorm:"not null;default:false;index"`
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
 	DeletedAt     *time.Time `gorm:"index"`
 	CreatedAt     time.Time

@@ -79,13 +79,17 @@ func seedAgent(db *gorm.DB, agentType, providerGroup, path string) error {
 
 	name := fmt.Sprintf("%s-%s", agentType, providerGroup)
 
+	// Forge agent config is set by ForgeAgentConfig() based on agent type, not YAML.
+	forgeConfig := ForgeAgentConfig(agentType)
+
 	now := time.Now()
 	result := db.Exec(`
 		INSERT INTO agents (name, is_system, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, subagents, agent_config, permissions, created_at, updated_at)
-		VALUES (?, true, ?, ?, ?, 'shared', 'active', '{}', '{}', '{}', '{}', '{}', '{}', '{}', ?, ?)
+		VALUES (?, true, ?, ?, ?, 'shared', 'active', ?, '{}', '{}', '{}', '{}', ?, ?, ?, ?)
 		ON CONFLICT (name) WHERE org_id IS NULL
-		DO UPDATE SET system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group, updated_at = EXCLUDED.updated_at
-	`, name, providerGroup, af.SystemPrompt, af.Model, now, now)
+		DO UPDATE SET system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group,
+		             permissions = EXCLUDED.permissions, agent_config = EXCLUDED.agent_config, tools = EXCLUDED.tools, updated_at = EXCLUDED.updated_at
+	`, name, providerGroup, af.SystemPrompt, af.Model, forgeConfig.ToolsJSON, forgeConfig.AgentConfigJSON, forgeConfig.PermissionsJSON, now, now)
 
 	if result.Error != nil {
 		return fmt.Errorf("seeding %s: %w", name, result.Error)

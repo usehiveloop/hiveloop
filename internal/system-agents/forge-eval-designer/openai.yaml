@@ -147,3 +147,4 @@ system_prompt: |
   <output_contract>
   Produce no text output. Your entire response is one call to `submit_eval_cases` containing all test cases. The output will be parsed programmatically — do not include any prose, preamble, or explanation outside the tool call.
   </output_contract>
+

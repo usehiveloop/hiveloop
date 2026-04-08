@@ -270,6 +270,11 @@ type AgentConfig struct {
 
 	// ToolCallsOnly Only allow tool calls, no text responses
 	ToolCallsOnly *bool `json:"tool_calls_only,omitempty"`
+
+	// DisabledTools List of tool names to completely remove from the agent.
+	// Disabled tools are removed from the registry before the agent is built —
+	// the LLM never sees them. Takes priority over permissions and tools allow-lists.
+	DisabledTools []string `json:"disabled_tools,omitempty"`
 }
 
 // AgentDefinition Complete definition of an AI agent fetched from the control plane.
