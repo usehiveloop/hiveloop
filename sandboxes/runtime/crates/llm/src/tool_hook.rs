@@ -200,7 +200,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     )
                     .await;
                 match decision {
-                    Ok(ApprovalDecision::Deny) => {
+                    Ok((ApprovalDecision::Deny, reason)) => {
                         info!(
                             agent_id = %self.agent_id,
                             conversation_id = %self.conversation_id,
@@ -208,7 +208,11 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                             decision = "denied",
                             "permission_decision"
                         );
-                        let error = json!({"error": "Tool call denied by user"}).to_string();
+                        let error_msg = match reason {
+                            Some(r) => format!("Tool '{}' denied by user: {}", effective_name, r),
+                            None => format!("Tool '{}' denied by user", effective_name),
+                        };
+                        let error = json!({"error": error_msg}).to_string();
                         let duration_ms = call_start.elapsed().as_millis() as u64;
                         self.metrics
                             .record_tool_call_detailed(&effective_name, true, duration_ms);
@@ -220,7 +224,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         ));
                         return ToolCallHookAction::Skip { reason: error };
                     }
-                    Ok(ApprovalDecision::Approve) => {
+                    Ok((ApprovalDecision::Approve, _)) => {
                         info!(
                             agent_id = %self.agent_id,
                             conversation_id = %self.conversation_id,

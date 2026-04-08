@@ -59,6 +59,10 @@ pub struct ApprovalRequest {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ApprovalReply {
     pub decision: ApprovalDecision,
+    /// Optional message explaining why the tool call was denied.
+    /// Included in the error returned to the LLM so the agent can adjust.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 /// HTTP request body for resolving multiple approvals at once.
@@ -67,4 +71,7 @@ pub struct ApprovalReply {
 pub struct BulkApprovalReply {
     pub request_ids: Vec<String>,
     pub decision: ApprovalDecision,
+    /// Optional message explaining why the tool calls were denied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }

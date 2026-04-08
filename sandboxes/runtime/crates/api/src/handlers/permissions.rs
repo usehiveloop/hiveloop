@@ -66,10 +66,12 @@ pub async fn resolve_approval(
     Path((_agent_id, _conv_id, request_id)): Path<(String, String, String)>,
     Json(body): Json<ApprovalReply>,
 ) -> Result<Json<ResolveApprovalResponse>, StatusCode> {
-    let resolved =
-        state
-            .permission_manager
-            .resolve(&request_id, body.decision, Some(&state.event_bus));
+    let resolved = state.permission_manager.resolve(
+        &request_id,
+        body.decision,
+        body.reason,
+        Some(&state.event_bus),
+    );
 
     if resolved {
         Ok(Json(ResolveApprovalResponse {
@@ -106,6 +108,7 @@ pub async fn bulk_resolve_approvals(
         if state.permission_manager.resolve(
             request_id,
             body.decision.clone(),
+            body.reason.clone(),
             Some(&state.event_bus),
         ) {
             resolved.push(request_id.clone());

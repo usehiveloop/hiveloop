@@ -7,11 +7,14 @@ use tokio::sync::oneshot;
 use tracing::{debug, warn};
 use webhooks::EventBus;
 
+/// An approval decision paired with an optional user-provided reason.
+pub type ApprovalResult = (ApprovalDecision, Option<String>);
+
 /// A pending approval that holds the request metadata and the channel sender
 /// to unblock the waiting tool call.
 pub struct PendingApproval {
     pub request: ApprovalRequest,
-    pub sender: oneshot::Sender<ApprovalDecision>,
+    pub sender: oneshot::Sender<ApprovalResult>,
 }
 
 /// Manages pending tool call approval requests across all conversations.
@@ -45,7 +48,7 @@ impl PermissionManager {
         event_bus: &Arc<EventBus>,
         integration_name: Option<String>,
         integration_action: Option<String>,
-    ) -> Result<ApprovalDecision, ()> {
+    ) -> Result<ApprovalResult, ()> {
         let request_id = uuid::Uuid::new_v4().to_string();
         let (tx, rx) = oneshot::channel();
 
@@ -103,28 +106,33 @@ impl PermissionManager {
         &self,
         request_id: &str,
         decision: ApprovalDecision,
+        reason: Option<String>,
         event_bus: Option<&Arc<EventBus>>,
     ) -> bool {
         if let Some((_, pending)) = self.pending.remove(request_id) {
             // Emit approval resolved event
             if let Some(bus) = event_bus {
+                let mut event_data = json!({
+                    "request_id": request_id,
+                    "decision": match &decision {
+                        ApprovalDecision::Approve => "approve",
+                        ApprovalDecision::Deny => "deny",
+                    },
+                });
+                if let Some(ref r) = reason {
+                    event_data["reason"] = json!(r);
+                }
                 bus.emit(BridgeEvent::new(
                     BridgeEventType::ToolApprovalResolved,
                     &pending.request.agent_id,
                     &pending.request.conversation_id,
-                    json!({
-                        "request_id": request_id,
-                        "decision": match &decision {
-                            ApprovalDecision::Approve => "approve",
-                            ApprovalDecision::Deny => "deny",
-                        },
-                    }),
+                    event_data,
                 ));
             }
 
             debug!(request_id = request_id, "approval resolved");
 
-            let _ = pending.sender.send(decision);
+            let _ = pending.sender.send((decision, reason));
             true
         } else {
             warn!(request_id = request_id, "approval request not found");
@@ -193,10 +201,15 @@ mod tests {
 
         let pending = manager.list_pending("conv1");
         assert_eq!(pending.len(), 1);
-        assert!(manager.resolve(&pending[0].id, ApprovalDecision::Approve, Some(&event_bus)));
+        assert!(manager.resolve(
+            &pending[0].id,
+            ApprovalDecision::Approve,
+            None,
+            Some(&event_bus)
+        ));
 
         let result = handle.await.unwrap();
-        assert_eq!(result, Ok(ApprovalDecision::Approve));
+        assert_eq!(result, Ok((ApprovalDecision::Approve, None)));
     }
 
     #[tokio::test]
@@ -226,10 +239,18 @@ mod tests {
 
         let pending = manager.list_pending("conv1");
         assert_eq!(pending.len(), 1);
-        assert!(manager.resolve(&pending[0].id, ApprovalDecision::Deny, Some(&event_bus)));
+        assert!(manager.resolve(
+            &pending[0].id,
+            ApprovalDecision::Deny,
+            Some("Not allowed".to_string()),
+            Some(&event_bus)
+        ));
 
         let result = handle.await.unwrap();
-        assert_eq!(result, Ok(ApprovalDecision::Deny));
+        assert_eq!(
+            result,
+            Ok((ApprovalDecision::Deny, Some("Not allowed".to_string())))
+        );
     }
 
     #[tokio::test]
@@ -309,6 +330,6 @@ mod tests {
     #[test]
     fn test_resolve_nonexistent() {
         let manager = PermissionManager::new();
-        assert!(!manager.resolve("nonexistent", ApprovalDecision::Approve, None));
+        assert!(!manager.resolve("nonexistent", ApprovalDecision::Approve, None, None));
     }
 }
