@@ -66,6 +66,9 @@ type ForgeOrchestrator interface {
 type ForgePusher interface {
 	PushAgent(ctx context.Context, agent *model.Agent) error
 	PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
+	// BuildSystemAgentDef builds a Bridge agent definition for a system agent.
+	// Used by forge controller to add MCP servers before upserting.
+	BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefinition
 }
 
 // ForgeController orchestrates forge runs — a persistent state machine
@@ -196,6 +199,34 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 	proxyToken, jti, err := fc.mintToken(forgeRun.OrgID, cred.ID)
 	if err != nil {
 		return nil, fmt.Errorf("minting context gatherer token: %w", err)
+	}
+
+	// Re-push the agent definition with the forge-context MCP server added so
+	// Bridge exposes the start_forge tool. PushAgentToSandbox already built the
+	// full definition (config, permissions, tools, etc.) — we just add the MCP server.
+	contextMCPURL := fmt.Sprintf("%s/forge-context/%s", fc.cfg.MCPBaseURL, forgeRun.ID.String())
+	mcpHeaders := map[string]string{"Authorization": "Bearer " + proxyToken}
+	var mcpTransport bridgepkg.McpTransport
+	mcpTransport.FromMcpTransport1(bridgepkg.McpTransport1{
+		Type:    bridgepkg.StreamableHttp,
+		Url:     contextMCPURL,
+		Headers: &mcpHeaders,
+	})
+	forgeMCP := bridgepkg.McpServerDefinition{
+		Name:      "forge-context",
+		Transport: mcpTransport,
+	}
+
+	// Build the same definition the pusher would, then append our MCP server.
+	agentDef := fc.pusher.BuildSystemAgentDef(gathererAgent)
+	if agentDef.McpServers == nil {
+		servers := []bridgepkg.McpServerDefinition{forgeMCP}
+		agentDef.McpServers = &servers
+	} else {
+		*agentDef.McpServers = append(*agentDef.McpServers, forgeMCP)
+	}
+	if err := client.UpsertAgent(ctx, gathererAgent.ID.String(), agentDef); err != nil {
+		return nil, fmt.Errorf("upserting context gatherer with MCP server: %w", err)
 	}
 
 	// Create Bridge conversation with per-conversation provider override.

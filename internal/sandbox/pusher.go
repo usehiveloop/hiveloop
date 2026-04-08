@@ -291,7 +291,9 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 // pushSystemAgentToSandbox builds and pushes a system agent definition to Bridge
 // without a credential. Uses agent.ProviderGroup for the Bridge ProviderType and
 // sets an empty API key — per-conversation auth token override will supply the real one.
-func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+// BuildSystemAgentDef builds a Bridge agent definition for a system agent.
+// Exported so the forge controller can add MCP servers before upserting.
+func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefinition {
 	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[agent.ProviderGroup]; ok {
 		providerType = pt
@@ -312,11 +314,8 @@ func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agen
 		},
 	}
 
-	// Set config with defaults for any unspecified fields
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
 
-	// Set tools if present. When DisableBuiltInTools is set, use a dummy
-	// allow-list that matches no built-in tool — Bridge registers zero built-ins.
 	if agent.DisableBuiltInTools {
 		placeholder := []bridgepkg.ToolDefinition{{Name: "_no_builtin_tools", Description: "placeholder"}}
 		def.Tools = &placeholder
@@ -327,29 +326,31 @@ func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agen
 		}
 	}
 
-	// Set MCP servers if present
 	mcpServers := decodeJSONAs[[]bridgepkg.McpServerDefinition](agent.McpServers)
 	if mcpServers != nil && len(*mcpServers) > 0 {
 		def.McpServers = mcpServers
 	}
 
-	// Set skills if present
 	skills := decodeJSONAs[[]bridgepkg.SkillDefinition](agent.Skills)
 	if skills != nil && len(*skills) > 0 {
 		def.Skills = skills
 	}
 
-	// Set subagents if present
 	subagents := decodeJSONAs[[]bridgepkg.AgentDefinition](agent.Subagents)
 	if subagents != nil && len(*subagents) > 0 {
 		def.Subagents = subagents
 	}
 
-	// Set permissions if present
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	if permissions != nil && len(*permissions) > 0 {
 		def.Permissions = permissions
 	}
+
+	return def
+}
+
+func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	def := p.BuildSystemAgentDef(agent)
 
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
