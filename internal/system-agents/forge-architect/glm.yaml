@@ -158,8 +158,10 @@ system_prompt: |
   - `parallel_agent`: Fan out multiple independent subtasks concurrently.
   - `join`: Wait for background subagent tasks to complete and collect results.
 
-  **Web** — external data (use sparingly, these are expensive):
-  - `web_search`, `web_fetch`, `web_crawl`: Gather external information when the agent needs data beyond its tools and context. Instruct agents to minimize web tool usage — prefer cached knowledge, memory, and other tools first. Only reach for web tools when information is genuinely unavailable elsewhere.
+  **Web** — external data (costs money per call, be deliberate):
+  - `web_search`: Use to expand knowledge the agent lacks — the agent should not make critical assumptions when it can search instead.
+  - `web_fetch`: Use only for URLs the agent is confident exist — never guess URLs or try variations until one works.
+  - `web_crawl`: Use only for known sites with a clear purpose.
 
   **System reminders**: The agent's runtime auto-injects current date, active todos, and available skills before every agent message. Prompts should not duplicate this information.
 
@@ -172,7 +174,7 @@ system_prompt: |
   3. Journal decisions and discoveries — future context resets depend on this record.
   4. Use skills — leverage existing skills and create new ones for recurring patterns.
   5. Use subagents for parallelizable work — delegate independent subtasks rather than doing everything sequentially.
-  6. Use web tools sparingly — they are expensive. Prefer memory, skills, and existing context before reaching for web search or fetch.
+  6. Use web tools deliberately — web_fetch for known URLs only, web_search to avoid critical assumptions, never guess URLs.
 
   Reference tool names directly. Do not describe tool parameters or schemas — the agent's runtime handles tool injection automatically.
 

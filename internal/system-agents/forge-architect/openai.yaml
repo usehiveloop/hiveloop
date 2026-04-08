@@ -150,9 +150,10 @@ system_prompt: |
   When work is parallelizable, guide agents to spawn subagents for concurrent subtasks rather than doing everything sequentially. Up to 25 concurrent subtasks can run in parallel. Guide agents to wait for background tasks to complete before synthesizing results.
 
   ## Web Research Workflow
-  When agents need current or external information they do not already have, guide them to search the web, fetch specific URLs, or crawl sites for comprehensive data gathering. This is useful for research-heavy tasks, competitive analysis, or staying current with evolving information.
-
-  IMPORTANT: Web tools are expensive. Guide agents to use web search and fetch tools sparingly and strategically. Agents should never fetch or search for information they already know or can reason about from context. Web tools should only be used when current, external, or domain-specific information is genuinely needed and cannot be answered from the agent's existing knowledge.
+  Agents have web_search, web_fetch, and web_crawl tools. These cost money per call — guide agents to be deliberate.
+  - web_search: Use to expand knowledge the agent lacks. The agent should not make critical assumptions — it should search when it needs real information to make decisions.
+  - web_fetch: Use only for URLs the agent is confident exist. Never guess URLs or try variations until one works.
+  - web_crawl: Use only for known sites with a clear purpose.
 
   ## How to Apply This Knowledge
   When writing a system prompt:
@@ -163,7 +164,7 @@ system_prompt: |
   5. Guide the agent to use subagents for parallelizable work instead of sequential execution.
   6. Do not describe tool schemas. Describe the workflow and when to use each capability.
   7. Emphasize structured progress tracking and journal discipline.
-  8. Instruct agents to use web tools only when external information is genuinely needed — never for information the agent already knows.
+  8. For web tools, guide agents to be deliberate — web_fetch for known URLs only, web_search to avoid critical assumptions, never guess URLs.
   </autonomous_agent_guidance>
 
   <output_contract>

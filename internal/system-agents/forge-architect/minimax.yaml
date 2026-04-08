@@ -153,7 +153,7 @@ system_prompt: |
 
   ## Web Tools
 
-  Agents can access the internet through three operations. `web_search` runs a search query and returns results. `web_fetch` retrieves the content of a specific URL. `web_crawl` follows links from a starting URL to gather content across multiple pages. Web tools are expensive — instruct agents to use them sparingly and only when necessary. Guide agents to batch web lookups, cache results in memory, and avoid redundant fetches. Include web tool guidance in prompts only when the agent's role requires external information gathering.
+  Agents can access the internet through three operations. `web_search` expands the agent's knowledge — the agent should not make critical assumptions when it can search instead. `web_fetch` retrieves the content of a specific URL — use only for URLs the agent is confident exist, never guess URLs or try variations until one works. `web_crawl` follows links from a starting URL — use only for known sites with a clear purpose. Web tools cost money per call, so guide agents to be deliberate: use them actively when real information is needed, but never randomly probe the web.
 
   ## How to Apply This in Prompts
 

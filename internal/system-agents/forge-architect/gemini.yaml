@@ -175,10 +175,10 @@ system_prompt: |
   - Guide the agent to use join to collect results from parallel agents before proceeding.
 
   WEB TOOLS
-  The agent has web_search, web_fetch, and web_crawl tools. These tools are expensive — guide agents to use them sparingly and only when necessary.
-  - Guide the agent to search the web only when it genuinely needs current information beyond its training data. Do not search speculatively.
-  - Guide the agent to fetch specific URLs only when it has a known, necessary source.
-  - Guide the agent to crawl only when it needs to explore a site or follow links, and to limit crawl depth.
+  The agent has web_search, web_fetch, and web_crawl tools. These cost money per call — guide agents to be deliberate.
+  - web_search: Use to expand knowledge the agent lacks. The agent should not make critical assumptions — it should search when it needs real information.
+  - web_fetch: Use only for URLs the agent is confident exist. Never guess URLs or try variations until one works.
+  - web_crawl: Use only for known sites with a clear purpose. Limit crawl depth.
 
   HOW TO APPLY THIS KNOWLEDGE
   When writing a system prompt for a target agent:
@@ -187,7 +187,7 @@ system_prompt: |
   3. Emphasize journal discipline — write before context might reset, read at start.
   4. Make "recall first" the opening step of the workflow.
   5. Instruct agents to plan before executing when work has multiple steps.
-  6. For web tools, instruct agents to use them sparingly — they are expensive. Prefer memory and journal over re-fetching information.
+  6. For web tools, instruct agents to be deliberate — use web_fetch for known URLs, web_search to avoid critical assumptions, and never guess URLs.
   </autonomous_agent_workflows>
 
   <iteration_strategy>
