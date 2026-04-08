@@ -306,11 +306,9 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 			return toolError("eval cases have already been submitted for this run (status: %s). Do not call this tool again.", run.Status)
 		}
 
-		var args struct {
-			Evals []EvalCase `json:"evals"`
-		}
-		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
-			return toolError("invalid JSON arguments: %s. Ensure you are passing a valid JSON object with an 'evals' array.", err)
+		evals, parseErr := parseEvalsFromArguments(req.Params.Arguments)
+		if parseErr != nil {
+			return toolError("%s", parseErr)
 		}
 
 		// ── Validate each eval case ──────────────────────────────────────
@@ -324,12 +322,12 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 
 		var errors []string
 
-		if len(args.Evals) < 5 {
-			errors = append(errors, fmt.Sprintf("You submitted %d eval cases. Minimum is 5. Add more test cases covering: basic happy paths, edge cases, adversarial scenarios, and tool errors.", len(args.Evals)))
+		if len(evals) < 5 {
+			errors = append(errors, fmt.Sprintf("You submitted %d eval cases. Minimum is 5. Add more test cases covering: basic happy paths, edge cases, adversarial scenarios, and tool errors.", len(evals)))
 		}
 
 		names := make(map[string]bool)
-		for index, evalCase := range args.Evals {
+		for index, evalCase := range evals {
 			prefix := fmt.Sprintf("evals[%d] (%s)", index, evalCase.Name)
 
 			if evalCase.Name == "" {
@@ -447,7 +445,7 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 		// ── All valid — save to DB ───────────────────────────────────────
 		parsedRunID := mustParseUUID(runID)
 
-		for index, evalCase := range args.Evals {
+		for index, evalCase := range evals {
 			mocksJSON, _ := json.Marshal(evalCase.ToolMocks)
 			rubricJSON, _ := json.Marshal(evalCase.Rubric)
 			checksJSON, _ := json.Marshal(evalCase.DeterministicChecks)
@@ -488,16 +486,73 @@ func (h *ForgeEvalDesignerMCPHandler) handle(runID string) func(context.Context,
 
 		slog.Info("forge eval designer mcp: eval cases submitted",
 			"forge_run_id", runID,
-			"count", len(args.Evals),
+			"count", len(evals),
 		)
 
 		if h.eventBus != nil {
-			payload, _ := json.Marshal(map[string]any{"count": len(args.Evals)})
+			payload, _ := json.Marshal(map[string]any{"count": len(evals)})
 			h.eventBus.Publish(ctx, "forge:"+runID, EventEvalsDesigned, payload)
 		}
 
 		return toolSuccess("eval_cases_saved")
 	}
+}
+
+// parseEvalsFromArguments handles common LLM argument formats:
+//  1. Standard: {"evals": [{...}, {...}]}
+//  2. String-wrapped: {"evals": "[{...}, {...}]"} — LLM JSON-encodes the array as a string
+//  3. Wrong key: {"eval_cases": [{...}]} — LLM uses a different key name
+//  4. Single eval: {"evals": {...}} — LLM sends one eval without wrapping in array
+func parseEvalsFromArguments(raw json.RawMessage) ([]EvalCase, error) {
+	// Try standard format first.
+	var standard struct {
+		Evals []EvalCase `json:"evals"`
+	}
+	if err := json.Unmarshal(raw, &standard); err == nil && len(standard.Evals) > 0 {
+		return standard.Evals, nil
+	}
+
+	// Try string-wrapped: {"evals": "[...]"}
+	var stringWrapped struct {
+		Evals string `json:"evals"`
+	}
+	if err := json.Unmarshal(raw, &stringWrapped); err == nil && stringWrapped.Evals != "" {
+		var evalsList []EvalCase
+		if err := json.Unmarshal([]byte(stringWrapped.Evals), &evalsList); err == nil && len(evalsList) > 0 {
+			return evalsList, nil
+		}
+	}
+
+	// Try wrong key: {"eval_cases": [...]}
+	var altKey struct {
+		EvalCases []EvalCase `json:"eval_cases"`
+	}
+	if err := json.Unmarshal(raw, &altKey); err == nil && len(altKey.EvalCases) > 0 {
+		return altKey.EvalCases, nil
+	}
+
+	// Try single eval not wrapped in array: {"evals": {...}}
+	var singleWrapped struct {
+		Evals EvalCase `json:"evals"`
+	}
+	if err := json.Unmarshal(raw, &singleWrapped); err == nil && singleWrapped.Evals.Name != "" {
+		return []EvalCase{singleWrapped.Evals}, nil
+	}
+
+	// Try top-level array (no wrapper): [{...}, {...}]
+	var topLevel []EvalCase
+	if err := json.Unmarshal(raw, &topLevel); err == nil && len(topLevel) > 0 {
+		return topLevel, nil
+	}
+
+	return nil, fmt.Errorf("could not parse eval cases from arguments. Send a JSON object with an 'evals' array: {\"evals\": [{...}, {...}]}. Received: %s", truncate(string(raw), 200))
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // ─── Judge MCP ──────────────────────────────────────────────────────────────
