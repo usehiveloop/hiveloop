@@ -190,6 +190,7 @@ type ForgeEvalCase struct {
 
 	// Test definition.
 	TestName         string  `gorm:"not null" json:"test_name"`
+	Description      string  `gorm:"type:text" json:"description"`
 	Category         string  `json:"category"`                                          // happy_path, edge_case, adversarial, tool_error
 	Tier             string  `gorm:"not null;default:'standard'" json:"tier"`            // basic, standard, adversarial
 	RequirementType  string  `gorm:"not null;default:'soft'" json:"requirement_type"`    // hard, soft

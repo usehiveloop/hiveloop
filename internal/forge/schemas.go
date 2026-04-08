@@ -27,6 +27,7 @@ type EvalDesignerOutput struct {
 // deterministic checks, tool mocks, and structured scoring rubric.
 type EvalCase struct {
 	Name                string               `json:"name"`
+	Description         string               `json:"description"`          // what this test validates and why it matters
 	Category            string               `json:"category"`             // happy_path, edge_case, adversarial, tool_error
 	Tier                string               `json:"tier"`                 // basic, standard, adversarial
 	RequirementType     string               `json:"requirement_type"`     // hard, soft
