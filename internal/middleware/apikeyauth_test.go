@@ -576,8 +576,17 @@ func TestIntegration_MultiAuth_JWTPath(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
-	userID := uuid.New().String()
-	jwtToken, err := auth.IssueAccessToken(privKey, testIssuer, testAudience, userID, orgID.String(), "admin", time.Hour)
+	userID := uuid.New()
+	user := model.User{ID: userID, Email: fmt.Sprintf("multiauth-%s@test.com", userID.String()[:8]), Name: "Test User"}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+	membership := model.OrgMembership{UserID: userID, OrgID: orgID, Role: "admin"}
+	if err := db.Create(&membership).Error; err != nil {
+		t.Fatalf("failed to create membership: %v", err)
+	}
+
+	jwtToken, err := auth.IssueAccessToken(privKey, testIssuer, testAudience, userID.String(), orgID.String(), "admin", time.Hour)
 	if err != nil {
 		t.Fatalf("issue token: %v", err)
 	}
