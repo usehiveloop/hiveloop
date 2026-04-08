@@ -77,8 +77,8 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 			"apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*",
 	)
 
-	// Home directory
-	image = image.Run(fmt.Sprintf("mkdir -p %s", daytonaHome))
+	// Home directory + Bridge storage directory
+	image = image.Run(fmt.Sprintf("mkdir -p %s/.bridge", daytonaHome))
 
 	// Bridge binary
 	image = image.Run(fmt.Sprintf(
@@ -94,7 +94,7 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 
 	// Working directory and entrypoint — start Bridge automatically
 	image = image.Workdir(daytonaHome)
-	image = image.Entrypoint([]string{"/bin/sh", "-c", "/usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
+	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
 	return image
 }
