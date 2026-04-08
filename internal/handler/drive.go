@@ -18,6 +18,7 @@ import (
 )
 
 // DriveHandler handles agent drive asset CRUD.
+// Authenticated via proxy token (TokenAuth middleware).
 type DriveHandler struct {
 	db      *gorm.DB
 	storage *storage.S3Client
@@ -73,22 +74,51 @@ func toDriveAssetResponse(asset model.DriveAsset) driveAssetResponse {
 	}
 }
 
-// Upload handles POST /v1/agents/{id}/drive/assets.
-func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+// resolveAgentFromToken extracts the org and agent from the proxy token claims.
+// Returns the orgID and agent, or writes an error response and returns false.
+func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, request *http.Request) (uuid.UUID, *model.Agent, bool) {
+	claims, ok := middleware.ClaimsFromContext(request.Context())
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing token claims"})
+		return uuid.Nil, nil, false
 	}
 
-	agentID := chi.URLParam(request, "id")
+	orgID, err := uuid.Parse(claims.OrgID)
+	if err != nil {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "invalid org in token"})
+		return uuid.Nil, nil, false
+	}
+
+	// Look up agent_id from the token's meta JSONB field.
+	var tokenRecord model.Token
+	if err := handler.db.Select("meta").Where("jti = ?", claims.JTI).First(&tokenRecord).Error; err != nil {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "token not found"})
+		return uuid.Nil, nil, false
+	}
+
+	agentIDStr, ok := tokenRecord.Meta["agent_id"].(string)
+	if !ok || agentIDStr == "" {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "token is not scoped to an agent"})
+		return uuid.Nil, nil, false
+	}
+
 	var agent model.Agent
-	if err := handler.db.Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", agentID, org.ID).First(&agent).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", agentIDStr, orgID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "agent not found"})
-			return
+			return uuid.Nil, nil, false
 		}
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to find agent"})
+		return uuid.Nil, nil, false
+	}
+
+	return orgID, &agent, true
+}
+
+// Upload handles POST /v1/drive/assets.
+func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Request) {
+	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
+	if !ok {
 		return
 	}
 
@@ -142,7 +172,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 
 		asset := model.DriveAsset{
 			ID:          assetID,
-			OrgID:       org.ID,
+			OrgID:       orgID,
 			AgentID:     agent.ID,
 			Filename:    fileHeader.Filename,
 			ContentType: contentType,
@@ -163,22 +193,10 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 	writeJSON(writer, http.StatusCreated, map[string]any{"data": assets})
 }
 
-// List handles GET /v1/agents/{id}/drive/assets.
+// List handles GET /v1/drive/assets.
 func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-
-	agentID := chi.URLParam(request, "id")
-	var agent model.Agent
-	if err := handler.db.Select("id").Where("id = ? AND org_id = ? AND is_system = false AND deleted_at IS NULL", agentID, org.ID).First(&agent).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "agent not found"})
-			return
-		}
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to find agent"})
 		return
 	}
 
@@ -188,7 +206,7 @@ func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	query := handler.db.Where("org_id = ? AND agent_id = ?", org.ID, agent.ID)
+	query := handler.db.Where("org_id = ? AND agent_id = ?", orgID, agent.ID)
 
 	// Optional content_type prefix filter (e.g. ?content_type=image).
 	if contentTypeFilter := request.URL.Query().Get("content_type"); contentTypeFilter != "" {
@@ -224,19 +242,17 @@ func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Requ
 	writeJSON(writer, http.StatusOK, response)
 }
 
-// Get handles GET /v1/agents/{id}/drive/assets/{assetID}.
+// Get handles GET /v1/drive/assets/{assetID}.
 func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
-	agentID := chi.URLParam(request, "id")
 	assetID := chi.URLParam(request, "assetID")
 
 	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, org.ID, agentID).First(&asset).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return
@@ -258,19 +274,17 @@ func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Reque
 	writeJSON(writer, http.StatusOK, response)
 }
 
-// Delete handles DELETE /v1/agents/{id}/drive/assets/{assetID}.
+// Delete handles DELETE /v1/drive/assets/{assetID}.
 func (handler *DriveHandler) Delete(writer http.ResponseWriter, request *http.Request) {
-	org, ok := middleware.OrgFromContext(request.Context())
+	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
 	if !ok {
-		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
 
-	agentID := chi.URLParam(request, "id")
 	assetID := chi.URLParam(request, "assetID")
 
 	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, org.ID, agentID).First(&asset).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return
