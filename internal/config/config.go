@@ -102,7 +102,8 @@ type Config struct {
 
 	// Bridge (agent runtime in sandboxes)
 	BridgeBaseImagePrefix string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"` // full snapshot name (no size suffix appended)
-	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook/proxy URLs
+	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook URLs
+	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.ziraloop.com"`                   // LLM proxy hostname (proxy.ziraloop.com)
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
