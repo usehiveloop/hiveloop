@@ -2,6 +2,18 @@
 
 Every tool available to Bridge agents, with exact names and descriptions.
 
+Any tool listed here can be disabled per-agent via `config.disabled_tools`:
+
+```json
+{
+  "config": {
+    "disabled_tools": ["bash", "write", "edit"]
+  }
+}
+```
+
+Disabled tools are completely removed — the LLM never sees them. See [Tools Reference](index.md) for the full permissions model.
+
 ---
 
 ## Filesystem

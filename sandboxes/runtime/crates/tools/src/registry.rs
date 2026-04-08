@@ -40,6 +40,11 @@ impl ToolRegistry {
         self.builtin_tools.insert(tool.name().to_string(), tool);
     }
 
+    /// Remove a tool from the registry by name.
+    pub fn remove(&mut self, name: &str) {
+        self.builtin_tools.remove(name);
+    }
+
     /// Look up a tool by name.
     pub fn get(&self, name: &str) -> Option<Arc<dyn ToolExecutor>> {
         self.builtin_tools.get(name).cloned()

@@ -110,6 +110,13 @@ pub struct AgentConfig {
     /// windows transparently while maintaining a living journal.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub immortal: Option<ImmortalConfig>,
+
+    /// Tools to disable for this agent. Takes priority over everything else —
+    /// disabled tools are removed from the registry before the agent is built,
+    /// so the LLM never sees them. Works for built-in tools, MCP tools, codedb
+    /// tools, integration tools, and spider tools.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub disabled_tools: Vec<String>,
 }
 
 /// Configuration for immortal conversations (chain-based context management).

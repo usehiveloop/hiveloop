@@ -287,7 +287,18 @@ impl AgentSupervisor {
             }
         }
 
+        // Remove disabled tools — takes priority over everything else.
+        // The LLM will never see these tools.
+        for name in &definition.config.disabled_tools {
+            tool_registry.remove(name);
+        }
+
         // Collect all tool executors for the LLM agent
+        // Remove disabled tools — takes priority over everything else.
+        for name in &definition.config.disabled_tools {
+            tool_registry.remove(name);
+        }
+
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry
             .list()
             .iter()
@@ -1016,6 +1027,11 @@ impl AgentSupervisor {
                     .permissions
                     .insert(tool.name().to_string(), permission.clone());
             }
+        }
+
+        // Remove disabled tools — takes priority over everything else.
+        for name in &definition.config.disabled_tools {
+            tool_registry.remove(name);
         }
 
         let all_executors: Vec<Arc<dyn tools::ToolExecutor>> = tool_registry

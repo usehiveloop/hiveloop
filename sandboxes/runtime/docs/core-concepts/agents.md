@@ -164,6 +164,7 @@ The `config` object supports the following optional fields:
 | `tool_calls_only` | boolean | Accept tool-only turns as success | Default: `false` |
 | `max_tasks_per_conversation` | integer | Max subagent tasks per conversation | Default: `50` |
 | `max_concurrent_conversations` | integer | Per-agent concurrent conversation limit | Overrides global setting |
+| `disabled_tools` | string[] | Tools to completely remove from the agent | Default: `[]` |
 
 #### `tool_calls_only`
 

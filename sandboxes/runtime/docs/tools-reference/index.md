@@ -24,7 +24,32 @@ Control tool execution behavior per-agent using the `permissions` field. Tools n
 |------------|----------|
 | `allow` | Runs immediately (default for all tools) |
 | `require_approval` | Pauses and waits for user approval via the approvals API |
-| `deny` | Blocked — returns an error to the LLM |
+| `deny` | Blocked — returns an error to the LLM. The tool is still visible to the LLM but execution fails with an error message |
+
+---
+
+## Disabling Tools
+
+Use `disabled_tools` in the agent config to completely remove tools from the agent. Disabled tools are removed from the registry before the agent is built — the LLM never sees them. This takes priority over everything else, including `permissions` and `tools` allow-lists.
+
+Works for any tool type: built-in, MCP, codedb, spider, integration, and skills.
+
+```json
+{
+  "config": {
+    "disabled_tools": ["bash", "write", "edit", "multiedit", "apply_patch"]
+  }
+}
+```
+
+**`disabled_tools` vs `permissions: deny`:**
+
+| | `disabled_tools` | `permissions: "deny"` |
+|---|---|---|
+| LLM sees the tool | No | Yes |
+| LLM can attempt to call it | No | Yes (gets an error back) |
+| Wastes a tool call turn | No | Yes |
+| Use when | Tool should not exist for this agent | Tool exists but needs to be gated |
 
 ---
 
@@ -214,6 +239,7 @@ Any MCP server connected to the agent exposes its tools. Tool names are determin
   "integrations": [],
   "config": {
     "max_turns": 50,
+    "disabled_tools": ["parallel_agent", "batch"],
     "immortal": {
       "token_budget": 100000,
       "carry_forward_turns": 2,
