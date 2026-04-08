@@ -1202,6 +1202,19 @@ definitions:
       tools:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
+  internal_handler.createCheckoutRequest:
+    properties:
+      product_type:
+        description: '"pro_shared" or "pro_dedicated"'
+        type: string
+      success_url:
+        type: string
+    type: object
+  internal_handler.createCheckoutResponse:
+    properties:
+      checkout_url:
+        type: string
+    type: object
   internal_handler.createConnectSessionRequest:
     properties:
       allowed_integrations:
@@ -2292,6 +2305,11 @@ definitions:
           type: array
         type: object
     type: object
+  internal_handler.portalResponse:
+    properties:
+      portal_url:
+        type: string
+    type: object
   internal_handler.providerDetail:
     properties:
       api:
@@ -2527,6 +2545,15 @@ definitions:
   internal_handler.statusResponse:
     properties:
       message:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_handler.subscriptionResponse:
+    properties:
+      plan:
+        type: string
+      product_type:
         type: string
       status:
         type: string
@@ -5912,6 +5939,95 @@ paths:
       summary: List audit log entries
       tags:
       - audit
+  /v1/billing/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Creates a Polar checkout session for upgrading to a Pro plan. Returns
+        a checkout URL to redirect the user to.
+      parameters:
+      - description: Checkout request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createCheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.createCheckoutResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create checkout session
+      tags:
+      - billing
+  /v1/billing/portal:
+    post:
+      description: Creates a Polar customer portal session where the user can manage
+        their subscription, payment methods, and invoices.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.portalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create billing portal session
+      tags:
+      - billing
+  /v1/billing/subscription:
+    get:
+      description: Returns the current billing plan and subscription status for the
+        org.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.subscriptionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get subscription status
+      tags:
+      - billing
   /v1/catalog/integrations:
     get:
       description: Returns every integration provider in the catalog with action counts.

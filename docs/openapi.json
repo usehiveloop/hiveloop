@@ -5659,6 +5659,175 @@
         }
       }
     },
+    "/v1/billing/checkout": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.",
+        "tags": [
+          "billing"
+        ],
+        "summary": "Create checkout session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createCheckoutRequest"
+              }
+            }
+          },
+          "description": "Checkout request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/createCheckoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/portal": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.",
+        "tags": [
+          "billing"
+        ],
+        "summary": "Create billing portal session",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/portalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns the current billing plan and subscription status for the org.",
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get subscription status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/subscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/catalog/integrations": {
       "get": {
         "description": "Returns every integration provider in the catalog with action counts.",
@@ -13904,6 +14073,26 @@
           }
         }
       },
+      "createCheckoutRequest": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "description": "\"pro_shared\" or \"pro_dedicated\"",
+            "type": "string"
+          },
+          "success_url": {
+            "type": "string"
+          }
+        }
+      },
+      "createCheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "checkout_url": {
+            "type": "string"
+          }
+        }
+      },
       "createConnectSessionRequest": {
         "type": "object",
         "properties": {
@@ -15579,6 +15768,14 @@
           }
         }
       },
+      "portalResponse": {
+        "type": "object",
+        "properties": {
+          "portal_url": {
+            "type": "string"
+          }
+        }
+      },
       "providerDetail": {
         "type": "object",
         "properties": {
@@ -15938,6 +16135,20 @@
         "type": "object",
         "properties": {
           "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "subscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "product_type": {
             "type": "string"
           },
           "status": {

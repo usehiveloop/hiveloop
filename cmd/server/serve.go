@@ -179,7 +179,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
 	if cfg.PolarWebhookSecret != "" {
-		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret)
+		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret, cfg.PolarProductFreeID)
 		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
 	}
 

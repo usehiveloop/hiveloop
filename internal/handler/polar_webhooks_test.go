@@ -31,7 +31,7 @@ func newPolarWebhookHarness(t *testing.T) *polarWebhookTestHarness {
 	t.Helper()
 
 	db := connectTestDB(t)
-	webhookHandler := handler.NewPolarWebhookHandler(db, testWebhookSecret)
+	webhookHandler := handler.NewPolarWebhookHandler(db, testWebhookSecret, "test-free-product-id")
 
 	router := chi.NewRouter()
 	router.Post("/internal/webhooks/polar", webhookHandler.Handle)
@@ -261,6 +261,62 @@ func TestPolarWebhook_SubscriptionRevoked_DowngradeToFree(t *testing.T) {
 	harness.db.Where("id = ?", org.ID).First(&updatedOrg)
 	if updatedOrg.BillingPlan != "free" {
 		t.Fatalf("expected org billing plan 'free' after revocation, got %q", updatedOrg.BillingPlan)
+	}
+}
+
+// --------------------------------------------------------------------------
+// subscription.updated with Free product — downgrades org
+// --------------------------------------------------------------------------
+
+func TestPolarWebhook_SubscriptionUpdated_DowngradeToFree(t *testing.T) {
+	harness := newPolarWebhookHarness(t)
+	polarCustomerID := "polar_cust_" + uuid.New().String()[:8]
+	org := createWebhookTestOrg(t, harness.db, polarCustomerID)
+
+	// Mark org as pro
+	harness.db.Model(&model.Org{}).Where("id = ?", org.ID).Update("billing_plan", "pro")
+
+	// Seed an active subscription
+	polarSubID := "polar_sub_" + uuid.New().String()[:8]
+	subscription := model.Subscription{
+		OrgID:               org.ID,
+		PolarSubscriptionID: polarSubID,
+		PolarProductID:      "test-pro-product-id",
+		ProductType:         "pro_shared",
+		Status:              "active",
+	}
+	if err := harness.db.Create(&subscription).Error; err != nil {
+		t.Fatalf("create subscription: %v", err)
+	}
+
+	// Polar sends subscription.updated with product changed to Free
+	webhookPayload := map[string]any{
+		"type": "subscription.updated",
+		"data": map[string]any{
+			"id":         polarSubID,
+			"status":     "active",
+			"product_id": "test-free-product-id",
+			"customer_id": polarCustomerID,
+			"customer": map[string]any{
+				"external_id": org.ID.String(),
+			},
+			"current_period_start": time.Now().Format(time.RFC3339),
+			"current_period_end":   time.Now().Add(30 * 24 * time.Hour).Format(time.RFC3339),
+		},
+	}
+	payloadBytes, _ := json.Marshal(webhookPayload)
+
+	recorder := harness.doWebhook(t, payloadBytes, true)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body: %s", recorder.Code, recorder.Body.String())
+	}
+
+	// Verify org downgraded to free
+	var updatedOrg model.Org
+	harness.db.Where("id = ?", org.ID).First(&updatedOrg)
+	if updatedOrg.BillingPlan != "free" {
+		t.Fatalf("expected org billing plan 'free' after downgrade, got %q", updatedOrg.BillingPlan)
 	}
 }
 

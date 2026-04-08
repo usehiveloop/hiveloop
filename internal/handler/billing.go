@@ -45,6 +45,18 @@ type createCheckoutResponse struct {
 }
 
 // CreateCheckout creates a Polar checkout session for the org.
+// @Summary Create checkout session
+// @Description Creates a Polar checkout session for upgrading to a Pro plan. Returns a checkout URL to redirect the user to.
+// @Tags billing
+// @Accept json
+// @Produce json
+// @Param body body createCheckoutRequest true "Checkout request"
+// @Success 200 {object} createCheckoutResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/billing/checkout [post]
 func (handler *BillingHandler) CreateCheckout(writer http.ResponseWriter, request *http.Request) {
 	org, ok := middleware.OrgFromContext(request.Context())
 	if !ok {
@@ -104,6 +116,15 @@ type subscriptionResponse struct {
 }
 
 // GetSubscription returns the org's current subscription status.
+// @Summary Get subscription status
+// @Description Returns the current billing plan and subscription status for the org.
+// @Tags billing
+// @Produce json
+// @Success 200 {object} subscriptionResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/billing/subscription [get]
 func (handler *BillingHandler) GetSubscription(writer http.ResponseWriter, request *http.Request) {
 	org, ok := middleware.OrgFromContext(request.Context())
 	if !ok {
@@ -140,6 +161,16 @@ type portalResponse struct {
 }
 
 // CreatePortal creates a Polar customer portal session.
+// @Summary Create billing portal session
+// @Description Creates a Polar customer portal session where the user can manage their subscription, payment methods, and invoices.
+// @Tags billing
+// @Produce json
+// @Success 200 {object} portalResponse
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/billing/portal [post]
 func (handler *BillingHandler) CreatePortal(writer http.ResponseWriter, request *http.Request) {
 	org, ok := middleware.OrgFromContext(request.Context())
 	if !ok {

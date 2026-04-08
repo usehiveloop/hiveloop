@@ -355,10 +355,10 @@ export default function Home() {
                   <div className="mt-6 pt-4 border-t border-border/60 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
-                        6 agents x $3.99/mo
+                        6 agents x $4.99/mo
                       </span>
                       <span className="text-2xl font-heading font-bold text-foreground -tracking-[0.5px]">
-                        $23.94/mo
+                        $29.94/mo
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -366,7 +366,7 @@ export default function Home() {
                         Same capabilities. You own the agents.
                       </span>
                       <span className="text-xs font-mono text-green-600 dark:text-green-400">
-                        saving $699/mo
+                        saving $693/mo
                       </span>
                     </div>
                   </div>
@@ -841,7 +841,7 @@ export default function Home() {
                 Simple, transparent pricing.
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Start free with one agent. Scale to production at $3.99/month
+                Start free with one agent. Scale to production at $4.99/month
                 per agent.
               </p>
             </div>
@@ -918,7 +918,7 @@ export default function Home() {
                   </span>
                   <div className="flex items-baseline gap-1">
                     <span className="font-heading text-[48px] font-bold text-foreground leading-none">
-                      $3.99
+                      $4.99
                     </span>
                     <span className="text-sm text-muted-foreground">
                       /month per agent
@@ -934,9 +934,9 @@ export default function Home() {
                   </span>
                   {[
                     "Unlimited agents",
-                    "500 runs/agent/month included",
+                    "300 runs/agent/month included",
                     "5 concurrent runs per agent",
-                    "Dedicated sandbox (+$3/agent/mo)",
+                    "Dedicated sandbox (+$2/agent/mo)",
                     "Agent Forge (auto-optimization)",
                     "Persistent agent memory (1 GB/agent)",
                     "Advanced analytics & audit logs",

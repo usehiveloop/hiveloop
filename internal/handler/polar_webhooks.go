@@ -18,15 +18,17 @@ import (
 
 // PolarWebhookHandler receives and verifies webhook events from Polar.
 type PolarWebhookHandler struct {
-	db            *gorm.DB
-	webhookSecret string
+	db             *gorm.DB
+	webhookSecret  string
+	freeProductID  string
 }
 
 // NewPolarWebhookHandler creates a Polar webhook handler.
-func NewPolarWebhookHandler(db *gorm.DB, webhookSecret string) *PolarWebhookHandler {
+func NewPolarWebhookHandler(db *gorm.DB, webhookSecret string, freeProductID string) *PolarWebhookHandler {
 	return &PolarWebhookHandler{
 		db:            db,
 		webhookSecret: webhookSecret,
+		freeProductID: freeProductID,
 	}
 }
 
@@ -151,8 +153,14 @@ func (h *PolarWebhookHandler) handleSubscriptionUpsert(data json.RawMessage) {
 		slog.Info("polar webhook: subscription updated", "subscription_id", subData.ID, "status", subData.Status)
 	}
 
-	// Update org billing plan
-	h.db.Model(&model.Org{}).Where("id = ?", orgID).Update("billing_plan", "pro")
+	// Update org billing plan based on product
+	billingPlan := "pro"
+	if subData.ProductID == h.freeProductID {
+		billingPlan = "free"
+	}
+	h.db.Model(&model.Org{}).Where("id = ?", orgID).Update("billing_plan", billingPlan)
+
+	slog.Info("polar webhook: org billing plan updated", "org_id", orgID, "billing_plan", billingPlan, "product_id", subData.ProductID)
 }
 
 func (h *PolarWebhookHandler) handleSubscriptionCanceled(data json.RawMessage) {
