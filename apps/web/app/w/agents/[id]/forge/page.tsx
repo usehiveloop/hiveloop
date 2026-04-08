@@ -1,19 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { AnimatePresence, motion } from "motion/react"
 import { Streamdown } from "streamdown"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { $api } from "@/lib/api/hooks"
 import { MessageInput } from "@/components/message-input"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   SparklesIcon,
   Tick02Icon,
-  Cancel02Icon,
   Loading03Icon,
   ArrowDown01Icon,
+  Add01Icon,
+  Edit02Icon,
+  Delete02Icon,
+  CheckListIcon,
+  InformationCircleIcon,
 } from "@hugeicons/core-free-icons"
 
 // ─── Types (exact match to backend JSON) ────────────────────────────────────
@@ -302,7 +318,7 @@ function scoreBgMuted(score: number) {
 
 // ─── Navigation ─────────────────────────────────────────────────────────────
 
-type NavId = "context" | "iteration-1" | "iteration-2" | "iteration-3" | "results"
+type NavId = "context" | "evals" | "iteration-1" | "iteration-2" | "iteration-3" | "results"
 
 function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId) => void }) {
   const bestScore = Math.max(...ITERATIONS.filter((iter) => iter.score !== null).map((iter) => iter.score!))
@@ -327,7 +343,7 @@ function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId
       </div>
 
       {/* Nav sections */}
-      <div className="flex-1 px-2 pb-2">
+      <div className="flex-1 px-2 pb-2 flex flex-col gap-1">
         {/* Context */}
         <NavItem
           id="context"
@@ -335,10 +351,26 @@ function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId
           onSelect={onSelect}
           label="Requirements"
           status="completed"
+          sublabel="Captured"
+        />
+
+        {/* Evals */}
+        <NavItem
+          id="evals"
+          activeId={activeId}
+          onSelect={onSelect}
+          label="Test Cases"
+          status="completed"
+          trailing={
+            <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">
+              {EVAL_CASES.length}
+            </span>
+          }
+          sublabel="Approved"
         />
 
         {/* Iterations */}
-        <div className="mt-4 mb-1.5 px-2">
+        <div className="mt-3 mb-1.5 px-2">
           <span className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/30">Iterations</span>
         </div>
 
@@ -376,7 +408,7 @@ function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId
         })}
 
         {/* Results */}
-        <div className="mt-4 mb-1.5 px-2">
+        <div className="mt-3 mb-1.5 px-2">
           <span className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/30">Output</span>
         </div>
 
@@ -386,6 +418,7 @@ function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId
           onSelect={onSelect}
           label="Results"
           status="pending"
+          sublabel="Pending"
         />
       </div>
 
@@ -514,11 +547,11 @@ function ContextPanel() {
             </div>
 
             <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center gap-2">
-              <Button size="sm" className="rounded-lg">
+              <Button size="sm" >
                 <HugeiconsIcon icon={SparklesIcon} size={12} data-icon="inline-start" />
                 Start optimization
               </Button>
-              <Button size="sm" variant="ghost" className="rounded-lg text-muted-foreground">Adjust</Button>
+              <Button size="sm" variant="ghost" className="text-muted-foreground">Adjust</Button>
             </div>
           </motion.div>
         </div>
@@ -840,6 +873,341 @@ function IterationPanel({ iteration }: { iteration: Iteration }) {
   )
 }
 
+function FieldLabel({ htmlFor, children, tooltip }: { htmlFor?: string; children: React.ReactNode; tooltip?: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor} className="text-[13px]">{children}</Label>
+      {tooltip && (
+        <Tooltip>
+          <TooltipTrigger className="cursor-default">
+            <HugeiconsIcon icon={InformationCircleIcon} size={13} className="text-muted-foreground/30" />
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-56 text-xs leading-relaxed">
+            {tooltip}
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
+function AddEvalDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [testName, setTestName] = useState("")
+  const [testPrompt, setTestPrompt] = useState("")
+  const [expectedBehavior, setExpectedBehavior] = useState("")
+  const [tier, setTier] = useState("standard")
+  const [requirementType, setRequirementType] = useState("soft")
+  const [category, setCategory] = useState("happy_path")
+  const [sampleCount, setSampleCount] = useState(3)
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    // Static demo — just close
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton className="sm:max-w-lg max-h-[85dvh] overflow-y-auto">
+        <DialogTitle>Add test case</DialogTitle>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+          {/* Test name */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="eval-name" className="text-[13px]">Name</Label>
+            <Input
+              id="eval-name"
+              value={testName}
+              onChange={(event) => setTestName(event.target.value)}
+              placeholder="e.g. Angry customer de-escalation"
+              autoFocus
+            />
+          </div>
+
+          {/* Test prompt */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor="eval-prompt" tooltip="The exact message sent to your agent during each test run. Write it as a real user would.">Test prompt</FieldLabel>
+            <Textarea
+              id="eval-prompt"
+              value={testPrompt}
+              onChange={(event) => setTestPrompt(event.target.value)}
+              placeholder="The message that will be sent to the agent during evaluation..."
+              rows={3}
+            />
+            <p className="text-[11px] text-muted-foreground/50">This exact message will be sent to the agent in each sample run.</p>
+          </div>
+
+          {/* Expected behavior */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor="eval-expected" tooltip="Describe what a correct response looks like. The judge LLM scores the agent's actual response against this.">Expected behavior</FieldLabel>
+            <Textarea
+              id="eval-expected"
+              value={expectedBehavior}
+              onChange={(event) => setExpectedBehavior(event.target.value)}
+              placeholder="Describe what the agent should do when it receives this prompt..."
+              rows={3}
+            />
+            <p className="text-[11px] text-muted-foreground/50">The judge will score the agent&apos;s response against this expectation.</p>
+          </div>
+
+          {/* Tier */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel tooltip="Basic evals test fundamental correctness and must always pass. Standard tests typical behavior. Adversarial tests edge cases and robustness.">Tier</FieldLabel>
+            <ToggleGroup
+              value={[tier]}
+              onValueChange={(value) => { if (value.length) setTier(value[0]) }}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {(["basic", "standard", "adversarial"] as const).map((option) => (
+                <ToggleGroupItem key={option} value={option} className="flex-1 text-[12px]">
+                  {option}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+
+          {/* Requirement type */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel tooltip="Hard evals are pass/fail — the agent either meets the criteria or doesn't. Soft evals allow partial credit with a score between 0 and 1.">Requirement type</FieldLabel>
+            <ToggleGroup
+              value={[requirementType]}
+              onValueChange={(value) => { if (value.length) setRequirementType(value[0]) }}
+              variant="outline"
+              size="sm"
+            >
+              <ToggleGroupItem value="hard" className="text-[12px]">Hard</ToggleGroupItem>
+              <ToggleGroupItem value="soft" className="text-[12px]">Soft</ToggleGroupItem>
+            </ToggleGroup>
+            <p className="text-[11px] text-muted-foreground/50">{requirementType === "hard" ? "Binary pass/fail — no partial credit" : "Allows partial scores between 0 and 1"}</p>
+          </div>
+
+          {/* Category */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel tooltip="Happy path tests normal usage. Edge case tests unusual inputs. Adversarial tests hostile/tricky inputs. Tool error tests how the agent handles tool failures.">Category</FieldLabel>
+            <ToggleGroup
+              value={[category]}
+              onValueChange={(value) => { if (value.length) setCategory(value[0]) }}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {(["happy_path", "edge_case", "adversarial", "tool_error"] as const).map((option) => (
+                <ToggleGroupItem key={option} value={option} className="flex-1 text-[12px]">
+                  {option.replaceAll("_", " ")}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+
+          {/* Sample count */}
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel tooltip="How many times to run this test per iteration. More samples give more reliable results but use more tokens. Use 1 for deterministic checks, 3-5 for behavioral tests.">Samples</FieldLabel>
+            <ToggleGroup
+              value={[String(sampleCount)]}
+              onValueChange={(value) => { if (value.length) setSampleCount(Number(value[0])) }}
+              variant="outline"
+              size="sm"
+            >
+              {[1, 2, 3, 4, 5].map((count) => (
+                <ToggleGroupItem key={count} value={String(count)} className="w-9 font-mono text-[13px]">
+                  {count}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <p className="text-[11px] text-muted-foreground/50">More samples = more reliable but costs more tokens</p>
+          </div>
+
+          {/* Submit */}
+          <Button type="submit" className="w-full" disabled={!testName.trim() || !testPrompt.trim()}>
+            Add test case
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EvalCaseCard({ evalCase, index }: { evalCase: typeof EVAL_CASES[number]; index: number }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-2xl border border-border overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-start gap-3 px-5 py-4">
+        <span className="font-mono text-[10px] text-muted-foreground/30 mt-1 w-5 shrink-0 tabular-nums">{index + 1}</span>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-foreground">{evalCase.test_name}</span>
+            <Badge variant="secondary" className="text-[9px]">{evalCase.tier}</Badge>
+            <span className={cn(
+              "font-mono text-[10px] px-1.5 py-0.5 rounded",
+              evalCase.requirement_type === "hard" ? "bg-muted text-muted-foreground" : "text-muted-foreground/40",
+            )}>
+              {evalCase.requirement_type}
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-foreground/60 leading-relaxed line-clamp-2">{evalCase.test_prompt}</p>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <button className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors">
+            <HugeiconsIcon icon={Edit02Icon} size={13} className="text-muted-foreground/40" />
+          </button>
+          <button className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors">
+            <HugeiconsIcon icon={Delete02Icon} size={13} className="text-muted-foreground/40 hover:text-destructive" />
+          </button>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors"
+          >
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              size={12}
+              className={cn("text-muted-foreground/30 transition-transform duration-200", expanded && "rotate-180")}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      <div className="grid transition-all duration-300" style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-4 pt-0 ml-8 flex flex-col gap-4 border-t border-border/50 pt-4">
+            {/* Expected behavior */}
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/40 mb-1.5">Expected behavior</p>
+              <p className="text-[12px] text-foreground/80 leading-relaxed">{evalCase.expected_behavior}</p>
+            </div>
+
+            {/* Test prompt */}
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/40 mb-1.5">Test prompt</p>
+              <div className="rounded-xl bg-muted/30 px-3.5 py-2.5">
+                <p className="text-[12px] text-foreground leading-relaxed">{evalCase.test_prompt}</p>
+              </div>
+            </div>
+
+            {/* Meta row */}
+            <div className="flex items-center gap-4 text-[10px] font-mono tabular-nums text-muted-foreground/40">
+              <span>{evalCase.sample_count} samples</span>
+              <span>{evalCase.category}</span>
+              <span>{evalCase.tier} tier</span>
+              <span>{evalCase.requirement_type}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function EvalsPanel() {
+  const [addOpen, setAddOpen] = useState(false)
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-xl mx-auto px-6 py-10">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-start justify-between mb-8"
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <HugeiconsIcon icon={CheckListIcon} size={14} className="text-primary" />
+                <h2 className="font-heading text-base font-semibold text-foreground">Test Cases</h2>
+              </div>
+              <p className="text-[13px] text-muted-foreground/60 max-w-sm">
+                These test cases will be used to evaluate each iteration. Edit, add, or remove before approving.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center gap-6 mb-8 text-sm"
+          >
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Total</p>
+              <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">{EVAL_CASES.length}</p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Hard</p>
+              <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">
+                {EVAL_CASES.filter((evalCase) => evalCase.requirement_type === "hard").length}
+              </p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Soft</p>
+              <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">
+                {EVAL_CASES.filter((evalCase) => evalCase.requirement_type === "soft").length}
+              </p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div>
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Tiers</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                {["basic", "standard", "adversarial"].map((tier) => {
+                  const count = EVAL_CASES.filter((evalCase) => evalCase.tier === tier).length
+                  return count > 0 ? (
+                    <Badge key={tier} variant="secondary" className="text-[9px]">{tier} ({count})</Badge>
+                  ) : null
+                })}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Eval list */}
+          <div className="flex flex-col gap-2">
+            {EVAL_CASES.map((evalCase, index) => (
+              <EvalCaseCard key={evalCase.test_name} evalCase={evalCase} index={index} />
+            ))}
+
+            <Button variant="secondary" className="w-full h-12" onClick={() => setAddOpen(true)}>
+              <HugeiconsIcon icon={Add01Icon} size={14} data-icon="inline-start" />
+              Add test case
+            </Button>
+          </div>
+
+          <AddEvalDialog open={addOpen} onOpenChange={setAddOpen} />
+
+          {/* Approve */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-3 mt-10 pt-8 border-t border-border"
+          >
+            <Button >
+              <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
+              Approve & start forge
+            </Button>
+            <Button variant="ghost" className="text-muted-foreground">
+              Regenerate
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ResultsPanel() {
   const scores = [62, 78, 92]
 
@@ -922,11 +1290,11 @@ function ResultsPanel() {
             transition={{ delay: 0.6 }}
             className="flex items-center gap-3 pt-8 border-t border-border"
           >
-            <Button className="rounded-lg">
+            <Button >
               <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
               Apply to agent
             </Button>
-            <Button variant="ghost" className="rounded-lg text-muted-foreground">Discard</Button>
+            <Button variant="ghost" className="text-muted-foreground">Discard</Button>
           </motion.div>
         </div>
       </div>
@@ -937,10 +1305,24 @@ function ResultsPanel() {
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function ForgePage() {
+  const params = useParams<{ id: string }>()
   const [activeNav, setActiveNav] = useState<NavId>("iteration-3")
+
+  const { data: agent, isLoading: agentLoading } = $api.useQuery(
+    "get",
+    "/v1/agents/{id}",
+    { params: { path: { id: params.id } } },
+  )
+
+  useEffect(() => {
+    if (agent) {
+      console.log("[forge] agent loaded", agent)
+    }
+  }, [agent])
 
   function renderContent() {
     if (activeNav === "context") return <ContextPanel />
+    if (activeNav === "evals") return <EvalsPanel />
     if (activeNav === "results") return <ResultsPanel />
 
     const iterationNumber = parseInt(activeNav.split("-")[1])

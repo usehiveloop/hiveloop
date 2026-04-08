@@ -78,14 +78,15 @@ type RubricScore struct {
 
 // ForgeContext holds the structured requirements gathered from the user
 // during the context-gathering conversation before forge begins.
+// All fields are required — the context gatherer must fill every field.
 type ForgeContext struct {
 	RequirementsSummary string               `json:"requirements_summary"`
 	SuccessCriteria     []string             `json:"success_criteria"`
-	EdgeCases           []string             `json:"edge_cases,omitempty"`
-	ToneAndStyle        string               `json:"tone_and_style,omitempty"`
-	Constraints         []string             `json:"constraints,omitempty"`
-	ExampleInteractions []ExampleInteraction  `json:"example_interactions,omitempty"`
-	PriorityFocus       string               `json:"priority_focus,omitempty"`
+	EdgeCases           []string             `json:"edge_cases"`
+	ToneAndStyle        string               `json:"tone_and_style"`
+	Constraints         []string             `json:"constraints"`
+	ExampleInteractions []ExampleInteraction  `json:"example_interactions"`
+	PriorityFocus       string               `json:"priority_focus"`
 }
 
 // ExampleInteraction is a sample user↔agent exchange provided during context gathering.
@@ -139,7 +140,7 @@ func StartForgeToolSchema() map[string]any {
 				"description": "What matters most: accuracy, safety, speed, personality, etc.",
 			},
 		},
-		"required": []string{"requirements_summary", "success_criteria"},
+		"required": []string{"requirements_summary", "success_criteria", "edge_cases", "tone_and_style", "constraints", "example_interactions", "priority_focus"},
 	}
 }
 

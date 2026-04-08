@@ -323,6 +323,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/cancel", forgeHandler.Cancel)
 						r.Post("/apply", forgeHandler.Apply)
 						r.Get("/iterations/{iterationID}/evals", forgeHandler.ListEvals)
+						r.Get("/eval-cases", forgeHandler.ListEvalCases)
+						r.Post("/eval-cases", forgeHandler.CreateEvalCase)
+						r.Get("/eval-cases/{caseID}", forgeHandler.GetEvalCase)
+						r.Put("/eval-cases/{caseID}", forgeHandler.UpdateEvalCase)
+						r.Delete("/eval-cases/{caseID}", forgeHandler.DeleteEvalCase)
+						r.Post("/approve-evals", forgeHandler.ApproveEvals)
 					})
 				}
 				if conversationHandler != nil {
@@ -578,6 +584,28 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/", forgeContextMCPHandler.StreamableHTTPHandler())
 	})
 	slog.Info("forge context MCP registered on /forge-context/{forgeRunID}")
+
+	forgeArchitectMCP := forge.NewForgeArchitectMCPHandler(database)
+	mcpRouter.Route("/forge-architect/{forgeRunID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", forgeArchitectMCP.StreamableHTTPHandler())
+		r.Handle("/", forgeArchitectMCP.StreamableHTTPHandler())
+	})
+
+	forgeEvalDesignerMCP := forge.NewForgeEvalDesignerMCPHandler(database)
+	mcpRouter.Route("/forge-eval-designer/{forgeRunID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", forgeEvalDesignerMCP.StreamableHTTPHandler())
+		r.Handle("/", forgeEvalDesignerMCP.StreamableHTTPHandler())
+	})
+
+	forgeJudgeMCP := forge.NewForgeJudgeMCPHandler(database)
+	mcpRouter.Route("/forge-judge/{forgeRunID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", forgeJudgeMCP.StreamableHTTPHandler())
+		r.Handle("/", forgeJudgeMCP.StreamableHTTPHandler())
+	})
+	slog.Info("forge agent MCP tools registered (architect, eval-designer, judge)")
 
 	mcpRouter.Route("/{jti}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))

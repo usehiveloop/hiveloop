@@ -1828,6 +1828,8 @@ definitions:
     type: object
   internal_handler.meResponse:
     properties:
+      is_platform_admin:
+        type: boolean
       orgs:
         items:
           $ref: '#/definitions/internal_handler.orgMemberDTO'
@@ -4788,6 +4790,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Force-confirm user email
+      tags:
+      - admin
+  /admin/v1/users/{id}/impersonate:
+    post:
+      consumes:
+      - application/json
+      description: Issues access and refresh tokens for the target user. Requires
+        platform admin privileges.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Impersonate a user
       tags:
       - admin
   /admin/v1/users/{id}/unban:

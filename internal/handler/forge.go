@@ -334,18 +334,56 @@ func (h *ForgeHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load iterations.
+	// Load all iterations for this run.
 	var iterations []model.ForgeIteration
 	h.db.Where("forge_run_id = ?", run.ID).Order("iteration ASC").Find(&iterations)
 
-	type iterResp struct {
-		forgeRunResponse
-		Iterations []model.ForgeIteration `json:"iterations"`
+	// Load all eval cases for this run.
+	var evalCases []model.ForgeEvalCase
+	h.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
+
+	// Load all eval results across all iterations, with eval case preloaded.
+	iterationIDs := make([]uuid.UUID, len(iterations))
+	for index, iter := range iterations {
+		iterationIDs[index] = iter.ID
+	}
+
+	var evalResults []model.ForgeEvalResult
+	if len(iterationIDs) > 0 {
+		h.db.Preload("ForgeEvalCase").
+			Where("forge_iteration_id IN ?", iterationIDs).
+			Order("created_at ASC").
+			Find(&evalResults)
+	}
+
+	// Group eval results by iteration ID for the response.
+	resultsByIteration := map[string][]model.ForgeEvalResult{}
+	for _, result := range evalResults {
+		key := result.ForgeIterationID.String()
+		resultsByIteration[key] = append(resultsByIteration[key], result)
+	}
+
+	// Build iteration responses with their eval results.
+	type iterationWithResults struct {
+		model.ForgeIteration
+		EvalResults []model.ForgeEvalResult `json:"eval_results"`
+	}
+
+	iterResponses := make([]iterationWithResults, len(iterations))
+	for index, iter := range iterations {
+		iterResponses[index] = iterationWithResults{
+			ForgeIteration: iter,
+			EvalResults:    resultsByIteration[iter.ID.String()],
+		}
+		if iterResponses[index].EvalResults == nil {
+			iterResponses[index].EvalResults = []model.ForgeEvalResult{}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"run":        toForgeRunResponse(run),
-		"iterations": iterations,
+		"iterations": iterResponses,
+		"eval_cases": evalCases,
 	})
 }
 
@@ -462,13 +500,20 @@ func (h *ForgeHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if run.Status != model.ForgeStatusRunning && run.Status != model.ForgeStatusQueued && run.Status != model.ForgeStatusGatheringContext {
+	cancellableStatuses := map[string]bool{
+		model.ForgeStatusRunning:          true,
+		model.ForgeStatusQueued:           true,
+		model.ForgeStatusGatheringContext: true,
+		model.ForgeStatusDesigningEvals:   true,
+		model.ForgeStatusReviewingEvals:   true,
+	}
+	if !cancellableStatuses[run.Status] {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "forge run is not active"})
 		return
 	}
 
-	// For gathering_context runs, directly mark as cancelled (no Asynq task to cancel).
-	if run.Status == model.ForgeStatusGatheringContext {
+	// For user-facing states with no Asynq task, cancel directly.
+	if run.Status == model.ForgeStatusGatheringContext || run.Status == model.ForgeStatusReviewingEvals {
 		h.db.Model(&run).Updates(map[string]any{
 			"status":       model.ForgeStatusCancelled,
 			"completed_at": time.Now(),
@@ -611,4 +656,300 @@ func (h *ForgeHandler) ListEvals(w http.ResponseWriter, r *http.Request) {
 	var results []model.ForgeEvalResult
 	h.db.Preload("ForgeEvalCase").Where("forge_iteration_id = ?", iterID).Order("created_at ASC").Find(&results)
 	writeJSON(w, http.StatusOK, results)
+}
+
+func defaultRawJSON(raw model.RawJSON, fallback string) model.RawJSON {
+	if len(raw) == 0 {
+		return model.RawJSON(fallback)
+	}
+	return raw
+}
+
+// ─── Eval Case CRUD ─────────────────────────────────────────────────────────
+
+// loadForgeRunForOrg loads a forge run and verifies it belongs to the org.
+func (h *ForgeHandler) loadForgeRunForOrg(w http.ResponseWriter, r *http.Request) (*model.ForgeRun, bool) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return nil, false
+	}
+	runID := chi.URLParam(r, "runID")
+	var run model.ForgeRun
+	if err := h.db.Where("id = ? AND org_id = ?", runID, org.ID).First(&run).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "forge run not found"})
+			return nil, false
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load forge run"})
+		return nil, false
+	}
+	return &run, true
+}
+
+// ListEvalCases handles GET /v1/forge-runs/{runID}/eval-cases.
+func (h *ForgeHandler) ListEvalCases(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	var cases []model.ForgeEvalCase
+	h.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&cases)
+	writeJSON(w, http.StatusOK, cases)
+}
+
+// GetEvalCase handles GET /v1/forge-runs/{runID}/eval-cases/{caseID}.
+func (h *ForgeHandler) GetEvalCase(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	caseID := chi.URLParam(r, "caseID")
+	var evalCase model.ForgeEvalCase
+	if err := h.db.Where("id = ? AND forge_run_id = ?", caseID, run.ID).First(&evalCase).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "eval case not found"})
+		return
+	}
+	writeJSON(w, http.StatusOK, evalCase)
+}
+
+type updateEvalCaseRequest struct {
+	TestName            *string         `json:"test_name,omitempty"`
+	Category            *string         `json:"category,omitempty"`
+	Tier                *string         `json:"tier,omitempty"`
+	RequirementType     *string         `json:"requirement_type,omitempty"`
+	SampleCount         *int            `json:"sample_count,omitempty"`
+	TestPrompt          *string         `json:"test_prompt,omitempty"`
+	ExpectedBehavior    *string         `json:"expected_behavior,omitempty"`
+	ToolMocks           *model.RawJSON  `json:"tool_mocks,omitempty"`
+	Rubric              *model.RawJSON  `json:"rubric,omitempty"`
+	DeterministicChecks *model.RawJSON  `json:"deterministic_checks,omitempty"`
+	OrderIndex          *int            `json:"order_index,omitempty"`
+}
+
+var validTiers = map[string]bool{"basic": true, "standard": true, "adversarial": true}
+var validRequirementTypes = map[string]bool{"hard": true, "soft": true}
+
+// UpdateEvalCase handles PUT /v1/forge-runs/{runID}/eval-cases/{caseID}.
+func (h *ForgeHandler) UpdateEvalCase(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != model.ForgeStatusReviewingEvals {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "eval cases can only be edited during review"})
+		return
+	}
+
+	caseID := chi.URLParam(r, "caseID")
+	var evalCase model.ForgeEvalCase
+	if err := h.db.Where("id = ? AND forge_run_id = ?", caseID, run.ID).First(&evalCase).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "eval case not found"})
+		return
+	}
+
+	var req updateEvalCaseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	if req.TestName != nil {
+		if *req.TestName == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "test_name cannot be empty"})
+			return
+		}
+		updates["test_name"] = *req.TestName
+	}
+	if req.Category != nil {
+		updates["category"] = *req.Category
+	}
+	if req.Tier != nil {
+		if !validTiers[*req.Tier] {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "tier must be basic, standard, or adversarial"})
+			return
+		}
+		updates["tier"] = *req.Tier
+	}
+	if req.RequirementType != nil {
+		if !validRequirementTypes[*req.RequirementType] {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "requirement_type must be hard or soft"})
+			return
+		}
+		updates["requirement_type"] = *req.RequirementType
+	}
+	if req.SampleCount != nil {
+		if *req.SampleCount < 1 || *req.SampleCount > 5 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sample_count must be 1-5"})
+			return
+		}
+		updates["sample_count"] = *req.SampleCount
+	}
+	if req.TestPrompt != nil {
+		if *req.TestPrompt == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "test_prompt cannot be empty"})
+			return
+		}
+		updates["test_prompt"] = *req.TestPrompt
+	}
+	if req.ExpectedBehavior != nil {
+		updates["expected_behavior"] = *req.ExpectedBehavior
+	}
+	if req.ToolMocks != nil {
+		updates["tool_mocks"] = *req.ToolMocks
+	}
+	if req.Rubric != nil {
+		updates["rubric"] = *req.Rubric
+	}
+	if req.DeterministicChecks != nil {
+		updates["deterministic_checks"] = *req.DeterministicChecks
+	}
+	if req.OrderIndex != nil {
+		updates["order_index"] = *req.OrderIndex
+	}
+
+	if len(updates) == 0 {
+		writeJSON(w, http.StatusOK, evalCase)
+		return
+	}
+
+	h.db.Model(&evalCase).Updates(updates)
+	h.db.Where("id = ?", evalCase.ID).First(&evalCase)
+	writeJSON(w, http.StatusOK, evalCase)
+}
+
+type createEvalCaseRequest struct {
+	TestName            string         `json:"test_name"`
+	Category            string         `json:"category"`
+	Tier                string         `json:"tier"`
+	RequirementType     string         `json:"requirement_type"`
+	SampleCount         int            `json:"sample_count"`
+	TestPrompt          string         `json:"test_prompt"`
+	ExpectedBehavior    string         `json:"expected_behavior"`
+	ToolMocks           model.RawJSON  `json:"tool_mocks"`
+	Rubric              model.RawJSON  `json:"rubric"`
+	DeterministicChecks model.RawJSON  `json:"deterministic_checks"`
+}
+
+// CreateEvalCase handles POST /v1/forge-runs/{runID}/eval-cases.
+func (h *ForgeHandler) CreateEvalCase(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != model.ForgeStatusReviewingEvals {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "eval cases can only be added during review"})
+		return
+	}
+
+	var req createEvalCaseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.TestName == "" || req.TestPrompt == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "test_name and test_prompt are required"})
+		return
+	}
+	if !validTiers[req.Tier] {
+		req.Tier = "standard"
+	}
+	if !validRequirementTypes[req.RequirementType] {
+		req.RequirementType = "soft"
+	}
+	if req.SampleCount < 1 || req.SampleCount > 5 {
+		req.SampleCount = 3
+	}
+
+	// Set order_index to max existing + 1.
+	var maxOrder int
+	h.db.Model(&model.ForgeEvalCase{}).Where("forge_run_id = ?", run.ID).Select("COALESCE(MAX(order_index), -1)").Scan(&maxOrder)
+
+	evalCase := model.ForgeEvalCase{
+		ForgeRunID:          run.ID,
+		TestName:            req.TestName,
+		Category:            req.Category,
+		Tier:                req.Tier,
+		RequirementType:     req.RequirementType,
+		SampleCount:         req.SampleCount,
+		TestPrompt:          req.TestPrompt,
+		ExpectedBehavior:    req.ExpectedBehavior,
+		ToolMocks:           defaultRawJSON(req.ToolMocks, "{}"),
+		Rubric:              defaultRawJSON(req.Rubric, "[]"),
+		DeterministicChecks: defaultRawJSON(req.DeterministicChecks, "[]"),
+		OrderIndex:          maxOrder + 1,
+	}
+	if err := h.db.Create(&evalCase).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create eval case"})
+		return
+	}
+	writeJSON(w, http.StatusCreated, evalCase)
+}
+
+// DeleteEvalCase handles DELETE /v1/forge-runs/{runID}/eval-cases/{caseID}.
+func (h *ForgeHandler) DeleteEvalCase(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != model.ForgeStatusReviewingEvals {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "eval cases can only be deleted during review"})
+		return
+	}
+
+	caseID := chi.URLParam(r, "caseID")
+
+	// Ensure at least 1 eval case remains.
+	var count int64
+	h.db.Model(&model.ForgeEvalCase{}).Where("forge_run_id = ?", run.ID).Count(&count)
+	if count <= 1 {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "cannot delete the last eval case"})
+		return
+	}
+
+	result := h.db.Where("id = ? AND forge_run_id = ?", caseID, run.ID).Delete(&model.ForgeEvalCase{})
+	if result.RowsAffected == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "eval case not found"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// ApproveEvals handles POST /v1/forge-runs/{runID}/approve-evals.
+func (h *ForgeHandler) ApproveEvals(w http.ResponseWriter, r *http.Request) {
+	run, ok := h.loadForgeRunForOrg(w, r)
+	if !ok {
+		return
+	}
+	if run.Status != model.ForgeStatusReviewingEvals {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "evals can only be approved during review"})
+		return
+	}
+
+	var count int64
+	h.db.Model(&model.ForgeEvalCase{}).Where("forge_run_id = ?", run.ID).Count(&count)
+	if count == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no eval cases to approve"})
+		return
+	}
+
+	h.db.Model(run).Update("status", model.ForgeStatusQueued)
+
+	if h.enqueuer != nil {
+		task, err := tasks.NewForgeRunTask(run.ID)
+		if err == nil {
+			info, err := h.enqueuer.Enqueue(task)
+			if err == nil {
+				h.db.Model(run).Update("asynq_task_id", info.ID)
+			}
+		}
+	} else if h.controller != nil {
+		go h.controller.Execute(r.Context(), run.ID)
+	}
+
+	h.eventBus.Publish(r.Context(), "forge:"+run.ID.String(), forge.EventEvalsApproved, json.RawMessage(`{}`))
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "approved"})
 }

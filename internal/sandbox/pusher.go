@@ -315,10 +315,16 @@ func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agen
 	// Set config with defaults for any unspecified fields
 	def.Config = applyAgentConfigDefaults(decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig), agent.ProviderGroup, agent.Model)
 
-	// Set tools if present
-	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
-	if tools != nil && len(*tools) > 0 {
-		def.Tools = tools
+	// Set tools if present. When DisableBuiltInTools is set, use a dummy
+	// allow-list that matches no built-in tool — Bridge registers zero built-ins.
+	if agent.DisableBuiltInTools {
+		placeholder := []bridgepkg.ToolDefinition{{Name: "_no_builtin_tools", Description: "placeholder"}}
+		def.Tools = &placeholder
+	} else {
+		tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
+		if tools != nil && len(*tools) > 0 {
+			def.Tools = tools
+		}
 	}
 
 	// Set MCP servers if present
@@ -416,10 +422,16 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 		def.Permissions = permissions
 	}
 
-	// Set tools if present
-	tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
-	if tools != nil && len(*tools) > 0 {
-		def.Tools = tools
+	// Set tools if present. When DisableBuiltInTools is set, use a dummy
+	// allow-list that matches no built-in tool — Bridge registers zero built-ins.
+	if agent.DisableBuiltInTools {
+		placeholder := []bridgepkg.ToolDefinition{{Name: "_no_builtin_tools", Description: "placeholder"}}
+		def.Tools = &placeholder
+	} else {
+		tools := decodeJSONAs[[]bridgepkg.ToolDefinition](agent.Tools)
+		if tools != nil && len(*tools) > 0 {
+			def.Tools = tools
+		}
 	}
 
 	// Set MCP servers — start with user-configured ones
