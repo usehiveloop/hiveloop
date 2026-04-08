@@ -112,7 +112,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			conversationHandler.SetEnqueuer(enqueuer)
 		}
 		systemConvHandler = handler.NewSystemConversationHandler(database, orchestrator, agentPusher, eventBus, signingKey, cfg)
-		forgeCtrl = forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global(), cfg.AsynqRedisOpt())
+		forgeCtrl = forge.NewForgeController(database, orchestrator, agentPusher, signingKey, cfg, eventBus, catalog.Global(), reg, cfg.AsynqRedisOpt())
 		forgeHandler = handler.NewForgeHandler(database, forgeCtrl, eventBus, enqueuer)
 		slog.Info("forge controller ready")
 	}
@@ -135,6 +135,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		agentHandler.SetForgeController(forgeCtrl)
 	}
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
+
+	// Billing handler (optional — nil PolarClient means billing is disabled)
+	var billingHandler *handler.BillingHandler
+	if deps.PolarClient != nil {
+		billingHandler = handler.NewBillingHandler(database, deps.PolarClient, cfg)
+	}
 
 	// Router
 	r := chi.NewRouter()
@@ -172,6 +178,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// Webhook receivers (HMAC-verified, no auth middleware)
 	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
+	if cfg.PolarWebhookSecret != "" {
+		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret)
+		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
+	}
 
 	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
@@ -230,6 +240,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Post("/api-keys", apiKeyHandler.Create)
 			r.Get("/api-keys", apiKeyHandler.List)
 			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
+
+			if billingHandler != nil {
+				r.Post("/billing/checkout", billingHandler.CreateCheckout)
+				r.Get("/billing/subscription", billingHandler.GetSubscription)
+				r.Post("/billing/portal", billingHandler.CreatePortal)
+			}
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))
