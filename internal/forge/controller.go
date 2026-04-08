@@ -1932,12 +1932,26 @@ func (fc *ForgeController) pushEvalTargetToPool(ctx context.Context, agentID str
 	return &sb, client, nil
 }
 
-// mintToken mints a proxy token for a forge agent.
+// mintToken mints a proxy token for a forge agent and persists it in the
+// tokens table so the proxy middleware can validate it.
 func (fc *ForgeController) mintToken(orgID, credentialID uuid.UUID) (string, string, error) {
 	tokenStr, jti, err := token.Mint(fc.signingKey, orgID.String(), credentialID.String(), forgeTokenTTL)
 	if err != nil {
 		return "", "", err
 	}
+
+	// Persist token so the proxy middleware can look it up by JTI.
+	dbToken := model.Token{
+		OrgID:        orgID,
+		CredentialID: credentialID,
+		JTI:          jti,
+		ExpiresAt:    time.Now().Add(forgeTokenTTL),
+		Meta:         model.JSON{"type": "forge_proxy"},
+	}
+	if err := fc.db.Create(&dbToken).Error; err != nil {
+		return "", "", fmt.Errorf("persisting token: %w", err)
+	}
+
 	return "ptok_" + tokenStr, jti, nil
 }
 
