@@ -1,0 +1,10 @@
+{
+  "title": "Tutorials",
+  "defaultOpen": true,
+  "pages": [
+    "build-your-first-agent",
+    "install-from-marketplace",
+    "create-with-forge",
+    "set-up-your-workspace"
+  ]
+}

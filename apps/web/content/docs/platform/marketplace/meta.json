@@ -1,0 +1,9 @@
+{
+  "title": "Marketplace",
+  "defaultOpen": true,
+  "pages": [
+    "overview",
+    "publishing-agents",
+    "revenue-share"
+  ]
+}

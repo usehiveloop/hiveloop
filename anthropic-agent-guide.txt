@@ -1,0 +1,116 @@
+1. Minimize context, maximize signal.
+Example: Instead of dumping an entire 500-line API response into context, parse it first and only pass the 3-4 fields the agent actually needs. In your tool implementation: return { id, status, error } not return entireAPIResponse.
+2. Write system prompts at the "right altitude."
+Bad (too rigid): "If the user says 'deploy', run deploy.sh. If the user says 'test', run test.sh. If the user says 'build'..."
+Bad (too vague): "Help the user with their code."
+Good: "You are a deployment assistant. When the user wants to ship code, verify tests pass before deploying. If tests fail, diagnose the failure and suggest fixes before retrying. Never deploy with failing tests."
+3. Structure prompts with clear sections.
+<role>You are a senior code reviewer.</role>
+<rules>
+- Flag security vulnerabilities as blocking.
+- Flag style issues as non-blocking.
+</rules>
+<output_format>
+Return a JSON array of findings: {file, line, severity, message}
+</output_format>
+4. Start minimal, iterate on failure modes.
+Start with: "You are a customer support agent. Answer questions using the knowledge base tool."
+Then after testing you notice it hallucinates when the KB has no answer, so you add: "If the knowledge base returns no relevant results, say you don't know and escalate to a human. Never guess."
+5. Build non-overlapping tools with descriptive parameters.
+Bad: search_data(query) and find_info(query) — what's the difference?
+Good: search_customers(email: string) and search_orders(order_id: string) — each tool has one job, clear input, zero ambiguity.
+6. Make tools return token-efficient responses.
+Bad tool response: returns the full customer object with 40 fields including internal metadata.
+Good: your tool wrapper strips it down:
+pythondef search_customer(email):
+    raw = api.get_customer(email)
+    return {"name": raw.name, "plan": raw.plan, "status": raw.status}
+7. Use diverse canonical examples instead of rule walls.
+Instead of writing 15 rules about tone, show 3 examples:
+<examples>
+User: "This is broken, fix it now!"
+Assistant: "I understand the urgency. Let me look into this right away. Can you share the error message you're seeing?"
+
+User: "Hey, quick question about billing"
+Assistant: "Sure! What's your billing question?"
+
+User: "I want to cancel."
+Assistant: "I'm sorry to hear that. Before I process the cancellation, can I ask what's prompting the change?"
+</examples>
+8. Use just-in-time context retrieval.
+Instead of preloading all docs into the prompt:
+You have access to these tools:
+- read_file(path): reads a file's contents
+- list_directory(path): lists files in a directory
+- search_codebase(query): greps across the repo
+
+Do NOT ask for all files upfront. Navigate the codebase as needed.
+9. Let agents progressively discover context.
+When starting a task:
+1. First run list_directory(".") to understand project structure.
+2. Read README.md or config files to understand conventions.
+3. Then navigate to the relevant files based on what you learned.
+Do not assume file locations. Explore first.
+10. Implement compaction.
+In your agent loop logic:
+If message_history token count > 80% of context window:
+    Call the model with: "Summarize this conversation so far.
+    Preserve: all architectural decisions, unresolved bugs,
+    file paths modified, current task status.
+    Discard: redundant tool outputs, exploratory dead ends."
+    Replace message_history with summary + last 5 messages.
+11. Tune compaction for recall first, then precision.
+In your compaction prompt, be explicit:
+"When summarizing, ERR ON THE SIDE OF KEEPING TOO MUCH.
+Include: decisions made and why, files touched, errors encountered,
+constraints discovered, things still to do.
+Only exclude: raw file contents already saved to disk,
+duplicate tool calls that returned the same result."
+12. Clear old tool call results from history.
+In your agent loop, after every N turns:
+pythonfor msg in message_history[:-10]:  # keep last 10 intact
+    if msg.role == "tool_result":
+        msg.content = f"[Result from {msg.tool_name} — already processed]"
+This keeps the fact that the tool was called but drops the raw payload.
+13. Implement structured note-taking.
+Add this to your system prompt:
+You have a scratchpad tool: write_notes(content) and read_notes().
+After completing each subtask, write a progress note:
+- What you just did
+- What you learned
+- What's left to do
+Before starting work, always read_notes() to restore context.
+14. Use sub-agent architectures for complex tasks.
+python# Lead agent prompt
+"You are a research coordinator. Break the user's question into
+sub-questions. For each, dispatch a research_agent(question) call.
+Each sub-agent will return a 200-word summary. Synthesize all
+summaries into a final answer. Never do deep research yourself."
+
+# Sub-agent prompt
+"Answer this specific question thoroughly. Return ONLY a concise
+summary of your findings in under 200 words."
+15. Match context strategy to task type.
+In your orchestration layer, decide before the agent runs:
+pythonif task.type == "conversation":  # back-and-forth
+    strategy = "compaction"
+elif task.type == "multi_step_build":  # coding, migrations
+    strategy = "note_taking"
+elif task.type == "research":  # parallel exploration
+    strategy = "sub_agents"
+16. Hybrid retrieval — preload essentials, explore the rest.
+<preloaded_context>
+{contents of project README}
+{contents of .env.example}
+{project directory tree, 2 levels deep}
+</preloaded_context>
+
+<instructions>
+The above gives you project orientation. For everything else,
+use read_file() and search_codebase() to find what you need
+at the moment you need it. Do not ask for more files upfront.
+</instructions>
+17. Default to the simplest thing that works.
+Before adding complexity, ask: does the model already handle this without extra instructions? Start with:
+"You are a coding assistant. Help the user with their codebase."
+Only add guardrails, tools, and structure when you observe specific failures. Every line in your prompt should trace back to a real failure you saw in testing — if it doesn't, delete it.

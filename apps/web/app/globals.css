@@ -1,9 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-openapi/css/preset.css";
 @import "streamdown/styles.css";
 
 @source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../node_modules/fumadocs-openapi/dist/**/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -132,6 +137,11 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Add spacing between top-level sidebar folder sections */
+[data-radix-scroll-area-viewport] > div > div[data-state] + div[data-state] {
+  margin-top: 24px !important;
 }
 
 [data-streamdown="unordered-list"] {

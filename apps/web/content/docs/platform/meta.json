@@ -1,0 +1,11 @@
+{
+  "title": "Platform",
+  "root": true,
+  "pages": [
+    "index",
+    "introduction",
+    "tutorials",
+    "agents",
+    "marketplace"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Agents",
+  "defaultOpen": true,
+  "pages": [
+    "create-agents",
+    "trigger-agents",
+    "forge-agents",
+    "publish-agents"
+  ]
+}

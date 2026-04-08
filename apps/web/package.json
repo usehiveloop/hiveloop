@@ -11,6 +11,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "generate": "openapi-typescript ../../docs/openapi.json -o lib/api/schema.d.ts",
+    "generate:docs": "tsx scripts/generate-openapi-docs.mts",
     "setup:polar": "NODE_OPTIONS='--tls-cipher-list=DEFAULT:@SECLEVEL=0' tsx scripts/setup-polar-pricing.ts"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "cmdk": "^1.1.1",
     "fumadocs-core": "^16.7.10",
     "fumadocs-mdx": "^14.2.11",
+    "fumadocs-openapi": "^10.6.7",
     "fumadocs-ui": "^16.7.10",
     "input-otp": "^1.4.2",
     "motion": "^12.38.0",
