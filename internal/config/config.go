@@ -129,6 +129,13 @@ type Config struct {
 	PolarProductProSharedID    string `env:"POLAR_PRODUCT_PRO_SHARED_ID"`
 	PolarProductProDedicatedID string `env:"POLAR_PRODUCT_PRO_DEDICATED_ID"`
 
+	// S3 (agent drive storage — empty AWS_S3_BUCKET_NAME disables the drive)
+	S3Bucket    string `env:"AWS_S3_BUCKET_NAME"`
+	S3Region    string `env:"AWS_DEFAULT_REGION" envDefault:"us-east-1"`
+	S3Endpoint  string `env:"AWS_ENDPOINT_URL"` // for MinIO / R2 / local dev
+	S3AccessKey string `env:"AWS_ACCESS_KEY_ID"`
+	S3SecretKey string `env:"AWS_SECRET_ACCESS_KEY"`
+
 	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
 	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
 
@@ -154,9 +161,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Enforce AWS KMS or Vault in production — AEAD is not allowed.
-	if cfg.Environment == "production" && cfg.KMSType != "awskms" && cfg.KMSType != "vault" {
-		return nil, fmt.Errorf("KMS_TYPE must be 'awskms' or 'vault' in production (got %q)", cfg.KMSType)
+	// Enforce a supported KMS type.
+	if cfg.KMSType != "aead" && cfg.KMSType != "awskms" && cfg.KMSType != "vault" {
+		return nil, fmt.Errorf("KMS_TYPE must be 'aead', 'awskms', or 'vault' (got %q)", cfg.KMSType)
 	}
 
 	// Require at least one Redis connection method.

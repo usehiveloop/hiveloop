@@ -67,6 +67,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&MarketplaceAgent{},
 		&ToolUsage{},
 		&Subscription{},
+		&DriveAsset{},
 	); err != nil {
 		return err
 	}

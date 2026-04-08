@@ -26,6 +26,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/sandbox/daytona"
 	"github.com/ziraloop/ziraloop/internal/spider"
+	"github.com/ziraloop/ziraloop/internal/storage"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/turso"
 
@@ -58,6 +59,7 @@ type Deps struct {
 	SpiderClient    *spider.Client             // nil if spider not configured
 	ToolUsageWriter *middleware.ToolUsageWriter // nil if spider not configured
 	PolarClient     *polargo.Polar             // nil if POLAR_ACCESS_TOKEN not set
+	S3Client        *storage.S3Client          // nil if AWS_S3_BUCKET_NAME not set
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -250,6 +252,16 @@ func New(ctx context.Context) (*Deps, error) {
 		slog.Info("polar billing client initialized", "server", cfg.PolarServer)
 	}
 
+	// 18. S3 storage (agent drive — optional)
+	var s3Client *storage.S3Client
+	if cfg.S3Bucket != "" {
+		s3Client, err = storage.NewS3Client(cfg.S3Bucket, cfg.S3Region, cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey)
+		if err != nil {
+			return nil, fmt.Errorf("creating S3 client: %w", err)
+		}
+		slog.Info("s3 storage ready", "bucket", cfg.S3Bucket)
+	}
+
 	return &Deps{
 		Config:          cfg,
 		DB:              database,
@@ -274,6 +286,7 @@ func New(ctx context.Context) (*Deps, error) {
 		SpiderClient:    spiderClient,
 		ToolUsageWriter: toolUsageWriter,
 		PolarClient:     polarClient,
+		S3Client:        s3Client,
 	}, nil
 }
 

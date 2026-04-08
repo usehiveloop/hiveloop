@@ -136,6 +136,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
 
+	// Drive handler (optional — nil S3Client means drive is disabled)
+	var driveHandler *handler.DriveHandler
+	if deps.S3Client != nil {
+		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
+	}
+
 	// Billing handler (optional — nil PolarClient means billing is disabled)
 	var billingHandler *handler.BillingHandler
 	if deps.PolarClient != nil {
@@ -323,6 +329,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					if forgeHandler != nil {
 						r.Post("/{agentID}/forge", forgeHandler.Start)
 						r.Get("/{agentID}/forge", forgeHandler.ListRuns)
+					}
+					if driveHandler != nil {
+						r.Route("/{id}/drive", func(r chi.Router) {
+							r.Post("/assets", driveHandler.Upload)
+							r.Get("/assets", driveHandler.List)
+							r.Get("/assets/{assetID}", driveHandler.Get)
+							r.Delete("/assets/{assetID}", driveHandler.Delete)
+						})
 					}
 				})
 				r.Route("/marketplace/agents", func(r chi.Router) {
