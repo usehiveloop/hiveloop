@@ -128,9 +128,22 @@ func (c *BridgeClient) HydrateConversations(ctx context.Context, agentID string,
 
 // --- Conversation operations ---
 
+// CreateConversationRequest is the optional request body for creating a conversation.
+type CreateConversationRequest struct {
+	// ApiKey overrides the agent's LLM API key for this conversation only.
+	ApiKey string `json:"api_key,omitempty"`
+}
+
 // CreateConversation creates a new conversation for an agent.
 func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (*CreateConversationResponse, error) {
 	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", nil)
+}
+
+// CreateConversationWithAPIKey creates a new conversation with a per-conversation API key override.
+// Used for system agents that don't have their own credential — the proxy token is passed here.
+func (c *BridgeClient) CreateConversationWithAPIKey(ctx context.Context, agentID, apiKey string) (*CreateConversationResponse, error) {
+	payload := CreateConversationRequest{ApiKey: apiKey}
+	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", payload)
 }
 
 // SendMessage sends a message to a conversation (async, returns 202).

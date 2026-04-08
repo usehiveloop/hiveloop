@@ -193,10 +193,10 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 	if err != nil {
 		return nil, fmt.Errorf("minting context gatherer token: %w", err)
 	}
-	_ = proxyToken // TODO: pass as per-conversation auth override when Bridge supports it
 
-	// Create Bridge conversation.
-	convResp, err := client.CreateConversation(ctx, gathererAgent.ID.String())
+	// Create Bridge conversation with per-conversation API key override.
+	// System agents have ApiKey: "" — the proxy token authenticates LLM calls.
+	convResp, err := client.CreateConversationWithAPIKey(ctx, gathererAgent.ID.String(), proxyToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating context conversation: %w", err)
 	}
@@ -366,14 +366,14 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 	}
 
 	// Mint proxy token.
-	_, _, err = fc.mintToken(run.OrgID, evalCred.ID)
+	evalDesignerToken, _, err := fc.mintToken(run.OrgID, evalCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting eval designer token: %v", err))
 		return
 	}
 
-	// Create conversation and send eval designer prompt.
-	evalConv, err := evalClient.CreateConversation(ctx, evalDesignerAgent.ID.String())
+	// Create conversation with per-conversation API key override.
+	evalConv, err := evalClient.CreateConversationWithAPIKey(ctx, evalDesignerAgent.ID.String(), evalDesignerToken)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating eval designer conversation: %v", err))
 		return
@@ -661,18 +661,16 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		fc.failRun(runID, fmt.Sprintf("minting architect token: %v", err))
 		return
 	}
-	_, evalJTI, err := fc.mintToken(run.OrgID, evalCred.ID)
+	evalDesignerToken, evalJTI, err := fc.mintToken(run.OrgID, evalCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting eval designer token: %v", err))
 		return
 	}
-	_, judgeJTI, err := fc.mintToken(run.OrgID, judgeCred.ID)
+	judgeToken, judgeJTI, err := fc.mintToken(run.OrgID, judgeCred.ID)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("minting judge token: %v", err))
 		return
 	}
-	// TODO: Pass tokens as per-conversation auth override when Bridge supports it.
-	_ = archToken
 
 	// Mint eval target token (for direct proxy calls during eval execution).
 	evalTargetToken, evalTargetJTI, err := fc.mintToken(run.OrgID, targetCred.ID)
@@ -709,8 +707,8 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		"elapsed_ms", time.Since(started).Milliseconds(),
 	)
 
-	// Create architect conversation (reused across iterations).
-	archConv, err := archClient.CreateConversation(ctx, archAgent.ID.String())
+	// Create architect conversation with per-conversation API key override.
+	archConv, err := archClient.CreateConversationWithAPIKey(ctx, archAgent.ID.String(), archToken)
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating architect conversation: %v", err))
 		return
@@ -748,8 +746,8 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 
 		iter, err := fc.runIteration(ctx, &run, i,
 			archAgent, archClient,
-			evalDesignerAgent, evalDesignerClient,
-			judgeAgent, judgeClient,
+			evalDesignerAgent, evalDesignerClient, evalDesignerToken,
+			judgeAgent, judgeClient, judgeToken,
 			targetProviderID, evalTargetToken,
 		)
 		if err != nil {
@@ -837,8 +835,8 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 func (fc *ForgeController) runIteration(
 	ctx context.Context, run *model.ForgeRun, iteration int,
 	archAgent *model.Agent, archClient *bridgepkg.BridgeClient,
-	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient,
-	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient,
+	evalDesignerAgent *model.Agent, evalDesignerClient *bridgepkg.BridgeClient, evalDesignerToken string,
+	judgeAgent *model.Agent, judgeClient *bridgepkg.BridgeClient, judgeToken string,
 	targetProviderID, evalTargetToken string,
 ) (*model.ForgeIteration, error) {
 	_ = archAgent // architect uses persistent conversation from run.ArchitectConversationID
@@ -931,7 +929,7 @@ func (fc *ForgeController) runIteration(
 		log.Info("forge: phase=eval_designing — generating eval cases")
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
-		evalConv, err := evalDesignerClient.CreateConversation(ctx, evalDesignerAgent.ID.String())
+		evalConv, err := evalDesignerClient.CreateConversationWithAPIKey(ctx, evalDesignerAgent.ID.String(), evalDesignerToken)
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("creating eval designer conversation: %w", err)
@@ -1223,7 +1221,7 @@ evalPhase:
 	log.Info("forge: phase=judging — eval results to judge", "count", len(judgingResults))
 
 	// Create a judge conversation for this iteration.
-	judgeConv, err := judgeClient.CreateConversation(ctx, judgeAgent.ID.String())
+	judgeConv, err := judgeClient.CreateConversationWithAPIKey(ctx, judgeAgent.ID.String(), judgeToken)
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("creating judge conversation: %w", err)
