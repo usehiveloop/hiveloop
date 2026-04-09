@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef, useCallback } from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { useState, useMemo, useRef } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -11,10 +10,7 @@ import {
   Tick02Icon,
   Notification03Icon,
   Cancel01Icon,
-  Add01Icon,
-  Delete02Icon,
   FlashIcon,
-  Edit02Icon,
 } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -471,7 +467,7 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, s
 }
 
 /* ────────────────────────────────────────
-   View 4: Context recipe builder
+   View 4: Context recipe (YAML editor)
    ──────────────────────────────────────── */
 
 interface ContextConfigViewProps {
@@ -484,6 +480,107 @@ interface ContextConfigViewProps {
   onBack: () => void
 }
 
+function contextActionsToYaml(actions: ContextActionConfig[]): string {
+  if (actions.length === 0) return "context:\n  # Add context actions here\n  # Example:\n  # - as: issue\n  #   action: issues_get\n  #   ref: issue\n"
+  const lines = ["context:"]
+  for (const action of actions) {
+    lines.push(`  - as: ${action.as}`)
+    lines.push(`    action: ${action.action}`)
+    if (action.ref) {
+      lines.push(`    ref: ${action.ref}`)
+    }
+    if (action.params && Object.keys(action.params).length > 0) {
+      lines.push("    params:")
+      for (const [key, value] of Object.entries(action.params)) {
+        const stringValue = String(value)
+        if (stringValue.includes("{{") || stringValue.includes(" ")) {
+          lines.push(`      ${key}: "${stringValue}"`)
+        } else {
+          lines.push(`      ${key}: ${stringValue}`)
+        }
+      }
+    }
+    if (action.optional) {
+      lines.push("    optional: true")
+    }
+  }
+  return lines.join("\n") + "\n"
+}
+
+function yamlToContextActions(yamlText: string): ContextActionConfig[] | null {
+  try {
+    const actions: ContextActionConfig[] = []
+    const lines = yamlText.split("\n")
+    let currentAction: Partial<ContextActionConfig> | null = null
+    let inParams = false
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd()
+      const trimmed = line.trim()
+
+      if (trimmed === "" || trimmed.startsWith("#") || trimmed === "context:") continue
+
+      if (trimmed.startsWith("- as:")) {
+        if (currentAction?.as && currentAction?.action) {
+          actions.push({
+            as: currentAction.as,
+            action: currentAction.action,
+            actionDisplayName: currentAction.action,
+            ref: currentAction.ref,
+            params: currentAction.params,
+            optional: currentAction.optional,
+          })
+        }
+        currentAction = { as: trimmed.replace("- as:", "").trim() }
+        inParams = false
+        continue
+      }
+
+      if (!currentAction) continue
+
+      if (trimmed.startsWith("action:")) {
+        currentAction.action = trimmed.replace("action:", "").trim()
+        inParams = false
+      } else if (trimmed.startsWith("ref:")) {
+        currentAction.ref = trimmed.replace("ref:", "").trim()
+        inParams = false
+      } else if (trimmed.startsWith("optional:")) {
+        currentAction.optional = trimmed.replace("optional:", "").trim() === "true"
+        inParams = false
+      } else if (trimmed === "params:") {
+        currentAction.params = {}
+        inParams = true
+      } else if (inParams && trimmed.includes(":")) {
+        const colonIndex = trimmed.indexOf(":")
+        const paramKey = trimmed.slice(0, colonIndex).trim()
+        let paramValue = trimmed.slice(colonIndex + 1).trim()
+        // Strip surrounding quotes.
+        if ((paramValue.startsWith('"') && paramValue.endsWith('"')) || (paramValue.startsWith("'") && paramValue.endsWith("'"))) {
+          paramValue = paramValue.slice(1, -1)
+        }
+        if (!currentAction.params) currentAction.params = {}
+        currentAction.params[paramKey] = paramValue
+      }
+    }
+
+    // Push last action.
+    if (currentAction?.as && currentAction?.action) {
+      actions.push({
+        as: currentAction.as,
+        action: currentAction.action,
+        actionDisplayName: currentAction.action,
+        ref: currentAction.ref,
+        params: currentAction.params,
+        optional: currentAction.optional,
+      })
+    }
+
+    return actions
+  } catch {
+    return null
+  }
+}
+
 function ContextConfigView({
   provider,
   triggerDisplayNames,
@@ -493,164 +590,21 @@ function ContextConfigView({
   onConfirm,
   onBack,
 }: ContextConfigViewProps) {
-  const [showActionPicker, setShowActionPicker] = useState(false)
-  const [actionSearch, setActionSearch] = useState("")
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const pickerScrollRef = useRef<HTMLDivElement>(null)
+  const [yamlText, setYamlText] = useState(() => contextActionsToYaml(contextActions))
+  const [parseError, setParseError] = useState<string | null>(null)
 
-  // Fetch the provider's integration detail (includes resources with ref_bindings).
-  const { data: integrationData } = $api.useQuery(
-    "get",
-    "/v1/catalog/integrations/{id}",
-    { params: { path: { id: provider } } },
-    { enabled: !!provider },
-  )
-
-  const resources = integrationData?.resources ?? {}
-
-  // Fetch read actions for this provider.
-  const { data: actionsData, isLoading } = $api.useQuery(
-    "get",
-    "/v1/catalog/integrations/{id}/actions",
-    { params: { path: { id: provider }, query: { access: "read" } } },
-    { enabled: !!provider },
-  )
-  const readActions = actionsData ?? []
-
-  // Fetch flattened schema paths for autocomplete.
-  const { data: schemaPathsData } = $api.useQuery(
-    "get",
-    "/v1/catalog/integrations/{id}/schema-paths",
-    { params: { path: { id: provider } } },
-    { enabled: !!provider },
-  )
-
-  const filteredReadActions = useMemo(() => {
-    if (!actionSearch.trim()) return readActions
-    const query = actionSearch.toLowerCase()
-    return readActions.filter(
-      (action) =>
-        (action.display_name ?? "").toLowerCase().includes(query) ||
-        (action.description ?? "").toLowerCase().includes(query) ||
-        (action.key ?? "").toLowerCase().includes(query),
-    )
-  }, [readActions, actionSearch])
-
-  const selectedActionKeys = new Set(contextActions.map((contextAction) => contextAction.action))
-
-  const virtualizer = useVirtualizer({
-    count: filteredReadActions.length,
-    getScrollElement: () => pickerScrollRef.current,
-    estimateSize: () => 52,
-    overscan: 10,
-  })
-
-  // Check if an action can be auto-resolved via ref_bindings.
-  const getAutoRef = useCallback((actionKey: string): string | undefined => {
-    const action = readActions.find((readAction) => readAction.key === actionKey)
-    if (!action?.resource_type) return undefined
-    const resource = resources[action.resource_type] as any
-    if (!resource?.ref_bindings) return undefined
-    // Check that all ref_binding values exist in our refs.
-    const bindings = resource.ref_bindings as Record<string, string>
-    const allRefsAvailable = Object.values(bindings).every((refValue: string) => {
-      const refName = refValue.replace("$refs.", "")
-      return refName in refs
-    })
-    return allRefsAvailable ? action.resource_type : undefined
-  }, [readActions, resources, refs])
-
-  // Extract param names from an action's JSON Schema parameters field.
-  const getActionParamNames = useCallback((actionKey: string): string[] => {
-    const action = readActions.find((readAction) => readAction.key === actionKey)
-    if (!action?.parameters) return []
-    try {
-      const schema = typeof action.parameters === "string"
-        ? JSON.parse(action.parameters as string)
-        : action.parameters
-      if (schema?.properties) {
-        return Object.keys(schema.properties)
-      }
-    } catch {
-      // parameters might be raw bytes
+  function handleConfirm() {
+    const parsed = yamlToContextActions(yamlText)
+    if (!parsed) {
+      setParseError("Invalid YAML format")
+      return
     }
-    return []
-  }, [readActions])
-
-  function handleAddAction(actionKey: string, actionDisplayName: string) {
-    if (selectedActionKeys.has(actionKey)) return
-    const autoRef = getAutoRef(actionKey)
-    const asName = actionKey.replace(/\./g, "_")
-
-    // Pre-populate params from the action's parameter schema.
-    let initialParams: Record<string, string> | undefined
-    if (!autoRef) {
-      const paramNames = getActionParamNames(actionKey)
-      initialParams = {}
-      for (const paramName of paramNames) {
-        // Check if this param has a matching $ref available.
-        const matchingRef = Object.keys(refs).find((refName) => refName === paramName)
-        initialParams[paramName] = matchingRef ? `$refs.${matchingRef}` : ""
-      }
-    }
-
-    onSetContextActions([
-      ...contextActions,
-      {
-        as: asName,
-        action: actionKey,
-        actionDisplayName,
-        ref: autoRef,
-        params: initialParams,
-      },
-    ])
+    setParseError(null)
+    onSetContextActions(parsed)
+    onConfirm()
   }
 
-  function handleRemoveAction(index: number) {
-    onSetContextActions(contextActions.filter((_, actionIndex) => actionIndex !== index))
-    if (editingIndex === index) setEditingIndex(null)
-  }
-
-  function handleUpdateParam(index: number, paramKey: string, paramValue: string) {
-    const updated = [...contextActions]
-    const action = { ...updated[index] }
-    action.params = { ...(action.params ?? {}), [paramKey]: paramValue }
-    updated[index] = action
-    onSetContextActions(updated)
-  }
-
-  // Build autocomplete options for a given step index.
-  // Includes $refs.* and $step_name.field paths from prior steps (resolved from schema-paths API).
-  const getAutocompleteOptions = useCallback((currentIndex: number) => {
-    const options: Array<{ path: string; type: string; source: string }> = []
-
-    // $refs from trigger.
-    const refTypes = (schemaPathsData as any)?.refs ?? {}
-    for (const [refName, refType] of Object.entries(refs)) {
-      options.push({ path: `$refs.${refName}`, type: (refTypes[refName] as string) ?? "string", source: "trigger" })
-    }
-
-    // $step.field from prior context actions (schema paths from API).
-    const actionSchemas = (schemaPathsData as any)?.actions ?? {}
-    for (let stepIndex = 0; stepIndex < currentIndex; stepIndex++) {
-      const priorAction = contextActions[stepIndex]
-      const schemaPaths = actionSchemas[priorAction.action]?.paths as Array<{ path: string; type: string }> | undefined
-      if (schemaPaths) {
-        for (const schemaPath of schemaPaths) {
-          options.push({
-            path: `$${priorAction.as}.${schemaPath.path}`,
-            type: schemaPath.type,
-            source: priorAction.actionDisplayName,
-          })
-        }
-      } else {
-        // No schema paths available — show just the step name.
-        options.push({ path: `$${priorAction.as}`, type: "object", source: priorAction.actionDisplayName })
-      }
-    }
-
-    return options
-  }, [refs, contextActions, schemaPathsData])
+  const refsList = Object.keys(refs).map((refName) => `$refs.${refName}`).join(", ")
 
   return (
     <>
@@ -662,265 +616,34 @@ function ContextConfigView({
           <DialogTitle>Context recipe</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          When {triggerDisplayNames.length === 1 ? (
-            <span className="font-medium text-foreground">{triggerDisplayNames[0]}</span>
-          ) : (
-            <span className="font-medium text-foreground">{triggerDisplayNames.length} events</span>
-          )} fire, these read actions run first to gather context for the agent.
+          Define which read actions run before the agent starts.
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-        {/* Current context actions */}
-        {contextActions.length > 0 && (
-          <div className="flex flex-col gap-1.5 mb-2">
-            {contextActions.map((contextAction, index) => (
-              <div key={`${contextAction.action}-${index}`} className="rounded-xl bg-primary/5 border border-primary/20 p-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{contextAction.actionDisplayName}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-muted-foreground font-mono">{contextAction.as}</span>
-                      {contextAction.ref && (
-                        <span className="text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded-full">
-                          auto: ref={contextAction.ref}
-                        </span>
-                      )}
-                      {!contextAction.ref && (
-                        <span className="text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full">
-                          {Object.keys(contextAction.params ?? {}).length > 0 ? "custom params" : "needs params"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditingIndex(editingIndex === index ? null : index)}
-                    className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted transition-colors shrink-0"
-                  >
-                    <HugeiconsIcon icon={Edit02Icon} size={12} className="text-muted-foreground" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAction(index)}
-                    className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-destructive/10 transition-colors shrink-0"
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} size={12} className="text-destructive" />
-                  </button>
-                </div>
+      <div className="flex flex-col gap-3 mt-4 flex-1 min-h-0">
+        <textarea
+          value={yamlText}
+          onChange={(event) => { setYamlText(event.target.value); setParseError(null) }}
+          spellCheck={false}
+          className="flex-1 min-h-0 w-full rounded-xl border border-input bg-muted/30 px-4 py-3 font-mono text-[12px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring resize-none"
+          placeholder="context:&#10;  - as: issue&#10;    action: issues_get&#10;    ref: issue"
+        />
 
-                {/* Param editor (expanded) */}
-                {editingIndex === index && !contextAction.ref && (
-                  <div className="mt-3 pt-3 border-t border-primary/10">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Parameters</p>
-                    {Object.entries(contextAction.params ?? {}).map(([paramKey, paramValue]) => (
-                      <ParamEditor
-                        key={paramKey}
-                        paramKey={paramKey}
-                        paramValue={paramValue as string}
-                        autocompleteOptions={getAutocompleteOptions(index)}
-                        onChange={(newValue) => handleUpdateParam(index, paramKey, newValue)}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Auto-resolved ref info */}
-                {editingIndex === index && contextAction.ref && (
-                  <div className="mt-3 pt-3 border-t border-primary/10">
-                    <p className="text-[11px] text-muted-foreground">
-                      Parameters auto-filled from <span className="font-mono">{contextAction.ref}</span> resource ref_bindings. No manual configuration needed.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        {parseError && (
+          <p className="text-xs text-destructive px-1">{parseError}</p>
         )}
 
-        {/* Add action button / picker */}
-        {!showActionPicker ? (
-          <button
-            type="button"
-            onClick={() => { setShowActionPicker(true); setActionSearch("") }}
-            className="flex items-center gap-2 w-full rounded-xl border border-dashed border-muted-foreground/20 p-3 text-left transition-colors hover:bg-muted/50 cursor-pointer"
-          >
-            <HugeiconsIcon icon={Add01Icon} size={14} className="text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Add a context action</span>
-          </button>
-        ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Read actions</p>
-              <button type="button" onClick={() => setShowActionPicker(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Done
-              </button>
-            </div>
-            <div className="relative">
-              <HugeiconsIcon icon={Search01Icon} size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search read actions..." value={actionSearch} onChange={(event) => setActionSearch(event.target.value)} className="pl-8 h-8 text-xs" autoFocus />
-            </div>
-            <div ref={pickerScrollRef} className="max-h-[240px] overflow-y-auto">
-              {isLoading ? (
-                <div className="flex flex-col gap-1">
-                  {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[48px] w-full rounded-lg" />)}
-                </div>
-              ) : filteredReadActions.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">No read actions found.</p>
-              ) : (
-                <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-                  {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const action = filteredReadActions[virtualItem.index]
-                    const isAlreadyAdded = selectedActionKeys.has(action.key!)
-                    const autoRef = getAutoRef(action.key!)
-                    return (
-                      <div key={action.key} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualItem.start}px)` }}>
-                        <button
-                          type="button"
-                          disabled={isAlreadyAdded}
-                          onClick={() => handleAddAction(action.key!, action.display_name ?? action.key!)}
-                          className={`flex items-start gap-2 w-full rounded-lg p-2 text-left transition-colors ${isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted cursor-pointer"}`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-xs font-medium text-foreground truncate">{action.display_name}</p>
-                              {autoRef && (
-                                <span className="text-[9px] bg-green-500/10 text-green-600 px-1 py-0.5 rounded shrink-0">auto</span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground line-clamp-1">{action.description}</p>
-                          </div>
-                          {isAlreadyAdded ? (
-                            <HugeiconsIcon icon={Tick02Icon} size={12} className="text-primary shrink-0 mt-0.5" />
-                          ) : (
-                            <HugeiconsIcon icon={Add01Icon} size={12} className="text-muted-foreground shrink-0 mt-0.5" />
-                          )}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {contextActions.length === 0 && !showActionPicker && (
-          <div className="flex items-center justify-center py-6">
-            <p className="text-sm text-muted-foreground text-center max-w-[260px]">
-              Context actions are optional. The agent will still receive the raw webhook payload.
-            </p>
-          </div>
-        )}
+        <div className="rounded-lg bg-muted/50 px-3 py-2">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Available refs</p>
+          <p className="text-[11px] font-mono text-muted-foreground leading-relaxed break-all">{refsList}</p>
+        </div>
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={onConfirm} className="w-full">
-          {contextActions.length > 0
-            ? `Confirm with ${contextActions.length} context action${contextActions.length > 1 ? "s" : ""}`
-            : "Confirm trigger"}
+        <Button onClick={handleConfirm} className="w-full">
+          Confirm trigger
         </Button>
       </div>
     </>
-  )
-}
-
-/* ────────────────────────────────────────
-   ParamEditor — searchable combobox for
-   picking $refs or $step.field paths
-   ──────────────────────────────────────── */
-
-interface ParamEditorProps {
-  paramKey: string
-  paramValue: string
-  autocompleteOptions: Array<{ path: string; type: string; source: string }>
-  onChange: (value: string) => void
-}
-
-function ParamEditor({ paramKey, paramValue, autocompleteOptions, onChange }: ParamEditorProps) {
-  const [open, setOpen] = useState(false)
-  const [filterText, setFilterText] = useState("")
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const filtered = useMemo(() => {
-    if (!filterText.trim()) return autocompleteOptions
-    const query = filterText.toLowerCase()
-    return autocompleteOptions.filter(
-      (option) => option.path.toLowerCase().includes(query) || option.source.toLowerCase().includes(query),
-    )
-  }, [autocompleteOptions, filterText])
-
-  function handleSelect(path: string) {
-    // If the current value is empty or a simple variable, replace entirely.
-    // If it already has content (composing a template), insert at end.
-    if (!paramValue || paramValue.startsWith("$")) {
-      onChange(path)
-    } else {
-      // Wrap in {{ }} for interpolation within a larger string.
-      onChange(paramValue + `{{${path}}}`)
-    }
-    setOpen(false)
-    setFilterText("")
-  }
-
-  return (
-    <div className="flex items-start gap-2 mb-2">
-      <span className="text-[11px] font-mono text-muted-foreground w-24 shrink-0 pt-1.5 truncate" title={paramKey}>
-        {paramKey}
-      </span>
-      <div className="flex-1 relative">
-        <div className="flex gap-1">
-          <Input
-            ref={inputRef}
-            value={paramValue}
-            onChange={(event) => onChange(event.target.value)}
-            onFocus={() => setOpen(true)}
-            className="h-7 text-xs font-mono flex-1"
-            placeholder="type or pick from dropdown"
-          />
-          <button
-            type="button"
-            onClick={() => { setOpen(!open); setFilterText("") }}
-            className="flex items-center justify-center h-7 w-7 shrink-0 rounded-md border border-input bg-background hover:bg-muted transition-colors"
-          >
-            <HugeiconsIcon icon={ArrowRight01Icon} size={10} className={`text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
-          </button>
-        </div>
-
-        {open && (
-          <div className="absolute z-50 top-8 left-0 right-0 rounded-lg border border-border bg-popover shadow-md">
-            <div className="p-1.5">
-              <Input
-                value={filterText}
-                onChange={(event) => setFilterText(event.target.value)}
-                placeholder="Search paths..."
-                className="h-6 text-[11px] font-mono"
-                autoFocus
-              />
-            </div>
-            <div className="max-h-[200px] overflow-y-auto">
-              {filtered.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground text-center py-3">No matching paths</p>
-              ) : (
-                filtered.map((option) => (
-                  <button
-                    key={option.path}
-                    type="button"
-                    onClick={() => handleSelect(option.path)}
-                    className="flex items-center justify-between w-full px-2 py-1 text-left hover:bg-muted transition-colors"
-                  >
-                    <span className="text-[11px] font-mono text-foreground truncate">{option.path}</span>
-                    <span className="text-[9px] text-muted-foreground shrink-0 ml-2">{option.type}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
   )
 }
