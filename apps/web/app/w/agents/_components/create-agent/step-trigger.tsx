@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useCallback } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -14,6 +14,7 @@ import {
   Add01Icon,
   Delete02Icon,
   FlashIcon,
+  Edit02Icon,
 } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -25,32 +26,23 @@ import { useCreateAgent } from "./context"
 
 type TriggerView = "choice" | "connections" | "triggers" | "context"
 
+interface ContextActionConfig {
+  as: string
+  action: string
+  actionDisplayName: string
+  ref?: string
+  params?: Record<string, string>
+  optional?: boolean
+}
+
 interface TriggerSelection {
   connectionId: string
   connectionName: string
   provider: string
-  triggerKey: string
-  triggerDisplayName: string
+  triggerKeys: string[]
+  triggerDisplayNames: string[]
+  refs: Record<string, string>
   contextActions: ContextActionConfig[]
-}
-
-interface ContextActionConfig {
-  id: string
-  action: string
-  actionDisplayName: string
-  params: Record<string, string>
-}
-
-interface TriggerDefinition {
-  display_name: string
-  description: string
-  resource_type: string
-  payload_schema: string
-}
-
-interface TriggersResponse {
-  display_name?: string
-  triggers?: Record<string, TriggerDefinition>
 }
 
 export function StepTrigger() {
@@ -61,11 +53,9 @@ export function StepTrigger() {
     name: string
     provider: string
   } | null>(null)
-  const [selectedTrigger, setSelectedTrigger] = useState<{
-    key: string
-    displayName: string
-    resourceType: string
-  } | null>(null)
+  const [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([])
+  const [selectedTriggerNames, setSelectedTriggerNames] = useState<string[]>([])
+  const [mergedRefs, setMergedRefs] = useState<Record<string, string>>({})
   const [contextActions, setContextActions] = useState<ContextActionConfig[]>([])
   const [triggerSelection, setTriggerSelection] = useState<TriggerSelection | null>(null)
   const [search, setSearch] = useState("")
@@ -86,36 +76,39 @@ export function StepTrigger() {
 
   function handlePickConnection(connectionId: string, connectionName: string, provider: string) {
     setSelectedConnection({ id: connectionId, name: connectionName, provider })
+    setSelectedTriggerKeys([])
+    setSelectedTriggerNames([])
+    setMergedRefs({})
     navigateTo("triggers")
   }
 
-  function handlePickTrigger(triggerKey: string, displayName: string, resourceType: string) {
-    setSelectedTrigger({ key: triggerKey, displayName, resourceType })
+  function handleToggleTrigger(triggerKey: string, displayName: string, refs: Record<string, string>) {
+    setSelectedTriggerKeys((previous) => {
+      if (previous.includes(triggerKey)) {
+        setSelectedTriggerNames((names) => names.filter((_, index) => previous[index] !== triggerKey))
+        return previous.filter((key) => key !== triggerKey)
+      }
+      setSelectedTriggerNames((names) => [...names, displayName])
+      return [...previous, triggerKey]
+    })
+    // Merge refs from all selected triggers.
+    setMergedRefs((previous) => ({ ...previous, ...refs }))
+  }
+
+  function handleConfirmTriggers() {
     setContextActions([])
     navigateTo("context")
   }
 
-  function handleAddContextAction(actionKey: string, actionDisplayName: string) {
-    const contextId = actionKey.replace(/\./g, "_")
-    if (contextActions.some((contextAction) => contextAction.action === actionKey)) return
-    setContextActions((previous) => [
-      ...previous,
-      { id: contextId, action: actionKey, actionDisplayName, params: {} },
-    ])
-  }
-
-  function handleRemoveContextAction(actionKey: string) {
-    setContextActions((previous) => previous.filter((contextAction) => contextAction.action !== actionKey))
-  }
-
   function handleConfirmTrigger() {
-    if (!selectedConnection || !selectedTrigger) return
+    if (!selectedConnection || selectedTriggerKeys.length === 0) return
     setTriggerSelection({
       connectionId: selectedConnection.id,
       connectionName: selectedConnection.name,
       provider: selectedConnection.provider,
-      triggerKey: selectedTrigger.key,
-      triggerDisplayName: selectedTrigger.displayName,
+      triggerKeys: selectedTriggerKeys,
+      triggerDisplayNames: selectedTriggerNames,
+      refs: mergedRefs,
       contextActions,
     })
     navigateTo("choice")
@@ -124,12 +117,10 @@ export function StepTrigger() {
   function handleRemoveTrigger() {
     setTriggerSelection(null)
     setSelectedConnection(null)
-    setSelectedTrigger(null)
+    setSelectedTriggerKeys([])
+    setSelectedTriggerNames([])
+    setMergedRefs({})
     setContextActions([])
-  }
-
-  function handleSkip() {
-    goTo("llm-key")
   }
 
   return (
@@ -150,7 +141,7 @@ export function StepTrigger() {
               triggerSelection={triggerSelection}
               onAddTrigger={() => navigateTo("connections")}
               onRemoveTrigger={handleRemoveTrigger}
-              onContinue={handleSkip}
+              onContinue={() => goTo("llm-key")}
               onBack={() => goTo("integrations")}
             />
           )}
@@ -168,17 +159,19 @@ export function StepTrigger() {
               connectionName={selectedConnection.name}
               search={search}
               onSearchChange={setSearch}
-              onPickTrigger={handlePickTrigger}
+              selectedKeys={selectedTriggerKeys}
+              onToggleTrigger={handleToggleTrigger}
+              onConfirm={handleConfirmTriggers}
               onBack={() => navigateTo("connections")}
             />
           )}
-          {view === "context" && selectedConnection && selectedTrigger && (
+          {view === "context" && selectedConnection && (
             <ContextConfigView
               provider={selectedConnection.provider}
-              triggerDisplayName={selectedTrigger.displayName}
+              triggerDisplayNames={selectedTriggerNames}
+              refs={mergedRefs}
               contextActions={contextActions}
-              onAddAction={handleAddContextAction}
-              onRemoveAction={handleRemoveContextAction}
+              onSetContextActions={setContextActions}
               onConfirm={handleConfirmTrigger}
               onBack={() => navigateTo("triggers")}
             />
@@ -222,32 +215,26 @@ function ChoiceView({ triggerSelection, onAddTrigger, onRemoveTrigger, onContinu
             <div className="flex items-start gap-3">
               <IntegrationLogo provider={triggerSelection.provider} size={32} className="shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">{triggerSelection.triggerDisplayName}</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  via {triggerSelection.connectionName}
+                <p className="text-sm font-semibold text-foreground">
+                  {triggerSelection.triggerKeys.length} event{triggerSelection.triggerKeys.length > 1 ? "s" : ""}
                 </p>
-                {triggerSelection.contextActions.length > 0 && (
-                  <p className="text-[12px] text-muted-foreground mt-1">
-                    {triggerSelection.contextActions.length} context action{triggerSelection.contextActions.length > 1 ? "s" : ""} configured
-                  </p>
-                )}
+                <p className="text-[13px] text-muted-foreground mt-0.5">
+                  {triggerSelection.triggerDisplayNames.slice(0, 3).join(", ")}
+                  {triggerSelection.triggerDisplayNames.length > 3 && ` +${triggerSelection.triggerDisplayNames.length - 3} more`}
+                </p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  via {triggerSelection.connectionName}
+                  {triggerSelection.contextActions.length > 0 && ` · ${triggerSelection.contextActions.length} context action${triggerSelection.contextActions.length > 1 ? "s" : ""}`}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={onRemoveTrigger}
-                className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors"
-              >
+              <button type="button" onClick={onRemoveTrigger} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors">
                 <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-destructive" />
               </button>
             </div>
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={onAddTrigger}
-              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer border border-transparent"
-            >
+            <button type="button" onClick={onAddTrigger} className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer border border-transparent">
               <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 shrink-0">
                 <HugeiconsIcon icon={FlashIcon} size={20} className="text-primary" />
               </div>
@@ -259,17 +246,13 @@ function ChoiceView({ triggerSelection, onAddTrigger, onRemoveTrigger, onContinu
               </div>
               <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
             </button>
-
             <div className="flex items-center gap-3 px-4 py-2">
               <div className="h-px flex-1 bg-border" />
               <span className="text-xs text-muted-foreground">or</span>
               <div className="h-px flex-1 bg-border" />
             </div>
-
             <div className="px-4 py-2">
-              <p className="text-sm text-muted-foreground text-center">
-                Skip this step to create a manually-triggered agent.
-              </p>
+              <p className="text-sm text-muted-foreground text-center">Skip this step to create a manually-triggered agent.</p>
             </div>
           </>
         )}
@@ -299,8 +282,6 @@ function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack
   const { selectedIntegrations } = useCreateAgent()
   const { data: connectionsData, isLoading } = $api.useQuery("get", "/v1/in/connections")
   const allConnections = connectionsData?.data ?? []
-
-  // Only show connections that were selected in the integrations step.
   const connections = useMemo(
     () => allConnections.filter((connection) => selectedIntegrations.has(connection.id!)),
     [allConnections, selectedIntegrations],
@@ -325,26 +306,17 @@ function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack
           </button>
           <DialogTitle>Choose connection</DialogTitle>
         </div>
-        <DialogDescription className="mt-2">
-          Pick which integration connection this trigger listens on.
-        </DialogDescription>
+        <DialogDescription className="mt-2">Pick which integration connection this trigger listens on.</DialogDescription>
       </DialogHeader>
 
       <div className="relative mt-4">
         <HugeiconsIcon icon={Search01Icon} size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search connections..."
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className="pl-9 h-9"
-        />
+        <Input placeholder="Search connections..." value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-9 h-9" />
       </div>
 
       <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-[64px] w-full rounded-xl" />
-          ))
+          Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-[64px] w-full rounded-xl" />)
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <p className="text-sm text-muted-foreground">No connections found.</p>
@@ -372,7 +344,7 @@ function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack
 }
 
 /* ────────────────────────────────────────
-   View 3: Trigger picker (webhook events)
+   View 3: Trigger picker (multi-select)
    ──────────────────────────────────────── */
 
 interface TriggerPickerViewProps {
@@ -380,12 +352,14 @@ interface TriggerPickerViewProps {
   connectionName: string
   search: string
   onSearchChange: (value: string) => void
-  onPickTrigger: (triggerKey: string, displayName: string, resourceType: string) => void
+  selectedKeys: string[]
+  onToggleTrigger: (triggerKey: string, displayName: string, refs: Record<string, string>) => void
+  onConfirm: () => void
   onBack: () => void
 }
 
-function TriggerPickerView({ provider, connectionName, search, onSearchChange, onPickTrigger, onBack }: TriggerPickerViewProps) {
-  const { data: triggersData, isLoading: isLoadingTriggers } = $api.useQuery(
+function TriggerPickerView({ provider, connectionName, search, onSearchChange, selectedKeys, onToggleTrigger, onConfirm, onBack }: TriggerPickerViewProps) {
+  const { data: triggersData, isLoading } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/triggers",
     { params: { path: { id: provider } } },
@@ -418,6 +392,8 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, o
     return groups
   }, [filtered])
 
+  const selectedSet = new Set(selectedKeys)
+
   return (
     <>
       <DialogHeader>
@@ -427,29 +403,22 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, o
           </button>
           <div className="flex items-center gap-2.5">
             <IntegrationLogo provider={provider} size={20} />
-            <DialogTitle>Pick a trigger</DialogTitle>
+            <DialogTitle>Pick triggers</DialogTitle>
           </div>
         </div>
         <DialogDescription className="mt-2">
-          Choose which webhook event starts this agent on {connectionName}.
+          Choose which webhook events start this agent. You can select multiple.
         </DialogDescription>
       </DialogHeader>
 
       <div className="relative mt-4">
         <HugeiconsIcon icon={Search01Icon} size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search triggers..."
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className="pl-9 h-9"
-        />
+        <Input placeholder="Search triggers..." value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-9 h-9" />
       </div>
 
       <div className="flex flex-col gap-1 mt-4 flex-1 overflow-y-auto">
-        {isLoadingTriggers ? (
-          Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 w-full rounded-xl" />
-          ))
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-[56px] w-full rounded-xl" />)
         ) : Object.keys(grouped).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="flex items-center justify-center size-12 rounded-full bg-muted">
@@ -460,70 +429,92 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, o
         ) : (
           Object.entries(grouped).map(([resourceType, resourceTriggers]) => (
             <div key={resourceType} className="mb-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">
-                {resourceType}
-              </p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">{resourceType}</p>
               <div className="flex flex-col gap-1">
-                {resourceTriggers.map((trigger) => (
-                  <button
-                    key={trigger.key}
-                    type="button"
-                    onClick={() => onPickTrigger(trigger.key ?? "", trigger.display_name ?? "", trigger.resource_type ?? "")}
-                    className="flex items-start gap-3 w-full rounded-xl p-3 text-left transition-colors hover:bg-muted cursor-pointer bg-muted/50 border border-transparent"
-                  >
-                    <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
-                      <HugeiconsIcon icon={FlashIcon} size={12} className="text-amber-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{trigger.display_name}</p>
-                      <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
-                    </div>
-                    <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
-                  </button>
-                ))}
+                {resourceTriggers.map((trigger) => {
+                  const isSelected = selectedSet.has(trigger.key ?? "")
+                  return (
+                    <button
+                      key={trigger.key}
+                      type="button"
+                      onClick={() => onToggleTrigger(trigger.key ?? "", trigger.display_name ?? "", (trigger as any).refs ?? {})}
+                      className={`flex items-start gap-3 w-full rounded-xl p-3 text-left transition-colors cursor-pointer ${
+                        isSelected ? "bg-primary/5 border border-primary/20" : "bg-muted/50 hover:bg-muted border border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
+                        <HugeiconsIcon icon={FlashIcon} size={12} className="text-amber-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{trigger.display_name}</p>
+                        <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
+                      </div>
+                      {isSelected && <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0 mt-0.5" />}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ))
         )}
+      </div>
+
+      <div className="pt-4 shrink-0">
+        <Button onClick={onConfirm} disabled={selectedKeys.length === 0} className="w-full">
+          {selectedKeys.length > 0
+            ? `Continue with ${selectedKeys.length} event${selectedKeys.length > 1 ? "s" : ""}`
+            : "Select at least one event"}
+        </Button>
       </div>
     </>
   )
 }
 
 /* ────────────────────────────────────────
-   View 4: Context action configuration
+   View 4: Context recipe builder
    ──────────────────────────────────────── */
 
 interface ContextConfigViewProps {
   provider: string
-  triggerDisplayName: string
+  triggerDisplayNames: string[]
+  refs: Record<string, string>
   contextActions: ContextActionConfig[]
-  onAddAction: (actionKey: string, actionDisplayName: string) => void
-  onRemoveAction: (actionKey: string) => void
+  onSetContextActions: (actions: ContextActionConfig[]) => void
   onConfirm: () => void
   onBack: () => void
 }
 
 function ContextConfigView({
   provider,
-  triggerDisplayName,
+  triggerDisplayNames,
+  refs,
   contextActions,
-  onAddAction,
-  onRemoveAction,
+  onSetContextActions,
   onConfirm,
   onBack,
 }: ContextConfigViewProps) {
   const [showActionPicker, setShowActionPicker] = useState(false)
   const [actionSearch, setActionSearch] = useState("")
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const pickerScrollRef = useRef<HTMLDivElement>(null)
 
+  // Fetch the provider's integration detail (includes resources with ref_bindings).
+  const { data: integrationData } = $api.useQuery(
+    "get",
+    "/v1/catalog/integrations/{id}",
+    { params: { path: { id: provider } } },
+    { enabled: !!provider },
+  )
+
+  const resources = integrationData?.resources ?? {}
+
+  // Fetch read actions for this provider.
   const { data: actionsData, isLoading } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/actions",
     { params: { path: { id: provider }, query: { access: "read" } } },
     { enabled: !!provider },
   )
-
   const readActions = actionsData ?? []
 
   const filteredReadActions = useMemo(() => {
@@ -546,6 +537,64 @@ function ContextConfigView({
     overscan: 10,
   })
 
+  // Check if an action can be auto-resolved via ref_bindings.
+  const getAutoRef = useCallback((actionKey: string): string | undefined => {
+    const action = readActions.find((readAction) => readAction.key === actionKey)
+    if (!action?.resource_type) return undefined
+    const resource = resources[action.resource_type] as any
+    if (!resource?.ref_bindings) return undefined
+    // Check that all ref_binding values exist in our refs.
+    const bindings = resource.ref_bindings as Record<string, string>
+    const allRefsAvailable = Object.values(bindings).every((refValue: string) => {
+      const refName = refValue.replace("$refs.", "")
+      return refName in refs
+    })
+    return allRefsAvailable ? action.resource_type : undefined
+  }, [readActions, resources, refs])
+
+  function handleAddAction(actionKey: string, actionDisplayName: string) {
+    if (selectedActionKeys.has(actionKey)) return
+    const autoRef = getAutoRef(actionKey)
+    const asName = actionKey.replace(/\./g, "_")
+    onSetContextActions([
+      ...contextActions,
+      {
+        as: asName,
+        action: actionKey,
+        actionDisplayName,
+        ref: autoRef,
+        params: autoRef ? undefined : {},
+      },
+    ])
+  }
+
+  function handleRemoveAction(index: number) {
+    onSetContextActions(contextActions.filter((_, actionIndex) => actionIndex !== index))
+    if (editingIndex === index) setEditingIndex(null)
+  }
+
+  function handleUpdateParam(index: number, paramKey: string, paramValue: string) {
+    const updated = [...contextActions]
+    const action = { ...updated[index] }
+    action.params = { ...(action.params ?? {}), [paramKey]: paramValue }
+    updated[index] = action
+    onSetContextActions(updated)
+  }
+
+  // Available template variables for the param input hints.
+  const availableVars = useMemo(() => {
+    const variables: Array<{ label: string; value: string; source: string }> = []
+    // $refs from the trigger.
+    for (const refName of Object.keys(refs)) {
+      variables.push({ label: refName, value: `$refs.${refName}`, source: "trigger ref" })
+    }
+    // {{step.field}} from prior context actions — we show the step name.
+    for (const contextAction of contextActions) {
+      variables.push({ label: contextAction.as, value: `{{${contextAction.as}}}`, source: "context step" })
+    }
+    return variables
+  }, [refs, contextActions])
+
   return (
     <>
       <DialogHeader>
@@ -553,36 +602,104 @@ function ContextConfigView({
           <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
-          <DialogTitle>Context actions</DialogTitle>
+          <DialogTitle>Context recipe</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          When <span className="font-medium text-foreground">{triggerDisplayName}</span> fires, these read actions run first to gather context for the agent.
+          When {triggerDisplayNames.length === 1 ? (
+            <span className="font-medium text-foreground">{triggerDisplayNames[0]}</span>
+          ) : (
+            <span className="font-medium text-foreground">{triggerDisplayNames.length} events</span>
+          )} fire, these read actions run first to gather context for the agent.
         </DialogDescription>
       </DialogHeader>
 
       <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-        {/* Currently added context actions */}
+        {/* Current context actions */}
         {contextActions.length > 0 && (
           <div className="flex flex-col gap-1.5 mb-2">
             {contextActions.map((contextAction, index) => (
-              <div
-                key={contextAction.action}
-                className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/20 p-3"
-              >
-                <span className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                  {index + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{contextAction.actionDisplayName}</p>
-                  <p className="text-[11px] text-muted-foreground font-mono">{contextAction.action}</p>
+              <div key={`${contextAction.action}-${index}`} className="rounded-xl bg-primary/5 border border-primary/20 p-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/10 text-[10px] font-bold text-primary shrink-0">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{contextAction.actionDisplayName}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-muted-foreground font-mono">{contextAction.as}</span>
+                      {contextAction.ref && (
+                        <span className="text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded-full">
+                          auto: ref={contextAction.ref}
+                        </span>
+                      )}
+                      {!contextAction.ref && (
+                        <span className="text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full">
+                          {Object.keys(contextAction.params ?? {}).length > 0 ? "custom params" : "needs params"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                    className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted transition-colors shrink-0"
+                  >
+                    <HugeiconsIcon icon={Edit02Icon} size={12} className="text-muted-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAction(index)}
+                    className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-destructive/10 transition-colors shrink-0"
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} size={12} className="text-destructive" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onRemoveAction(contextAction.action)}
-                  className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-destructive/10 transition-colors shrink-0"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} size={12} className="text-destructive" />
-                </button>
+
+                {/* Param editor (expanded) */}
+                {editingIndex === index && !contextAction.ref && (
+                  <div className="mt-3 pt-3 border-t border-primary/10">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Parameters</p>
+                    {Object.entries(contextAction.params ?? {}).map(([paramKey, paramValue]) => (
+                      <div key={paramKey} className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[11px] font-mono text-muted-foreground w-20 shrink-0 truncate">{paramKey}</span>
+                        <Input
+                          value={paramValue}
+                          onChange={(event) => handleUpdateParam(index, paramKey, event.target.value)}
+                          className="h-7 text-xs font-mono"
+                          placeholder={`$refs.${paramKey} or {{step.field}}`}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateParam(index, "", "")}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground mt-1"
+                    >
+                      <HugeiconsIcon icon={Add01Icon} size={10} /> Add parameter
+                    </button>
+                    {availableVars.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-primary/10">
+                        <p className="text-[10px] text-muted-foreground mb-1">Available variables:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {availableVars.map((variable) => (
+                            <span key={variable.value} className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                              {variable.value}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Auto-resolved ref info */}
+                {editingIndex === index && contextAction.ref && (
+                  <div className="mt-3 pt-3 border-t border-primary/10">
+                    <p className="text-[11px] text-muted-foreground">
+                      Parameters auto-filled from <span className="font-mono">{contextAction.ref}</span> resource ref_bindings. No manual configuration needed.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -592,7 +709,7 @@ function ContextConfigView({
         {!showActionPicker ? (
           <button
             type="button"
-            onClick={() => { setShowActionPicker(true); setActionSearch(""); }}
+            onClick={() => { setShowActionPicker(true); setActionSearch("") }}
             className="flex items-center gap-2 w-full rounded-xl border border-dashed border-muted-foreground/20 p-3 text-left transition-colors hover:bg-muted/50 cursor-pointer"
           >
             <HugeiconsIcon icon={Add01Icon} size={14} className="text-muted-foreground" />
@@ -601,35 +718,19 @@ function ContextConfigView({
         ) : (
           <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Read actions
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowActionPicker(false)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Read actions</p>
+              <button type="button" onClick={() => setShowActionPicker(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 Done
               </button>
             </div>
-
             <div className="relative">
               <HugeiconsIcon icon={Search01Icon} size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search read actions..."
-                value={actionSearch}
-                onChange={(event) => setActionSearch(event.target.value)}
-                className="pl-8 h-8 text-xs"
-                autoFocus
-              />
+              <Input placeholder="Search read actions..." value={actionSearch} onChange={(event) => setActionSearch(event.target.value)} className="pl-8 h-8 text-xs" autoFocus />
             </div>
-
             <div ref={pickerScrollRef} className="max-h-[240px] overflow-y-auto">
               {isLoading ? (
                 <div className="flex flex-col gap-1">
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <Skeleton key={index} className="h-[48px] w-full rounded-lg" />
-                  ))}
+                  {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-[48px] w-full rounded-lg" />)}
                 </div>
               ) : filteredReadActions.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">No read actions found.</p>
@@ -638,29 +739,22 @@ function ContextConfigView({
                   {virtualizer.getVirtualItems().map((virtualItem) => {
                     const action = filteredReadActions[virtualItem.index]
                     const isAlreadyAdded = selectedActionKeys.has(action.key!)
+                    const autoRef = getAutoRef(action.key!)
                     return (
-                      <div
-                        key={action.key}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                      >
+                      <div key={action.key} style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualItem.start}px)` }}>
                         <button
                           type="button"
                           disabled={isAlreadyAdded}
-                          onClick={() => onAddAction(action.key!, action.display_name ?? action.key!)}
-                          className={`flex items-start gap-2 w-full rounded-lg p-2 text-left transition-colors ${
-                            isAlreadyAdded
-                              ? "opacity-40 cursor-not-allowed"
-                              : "hover:bg-muted cursor-pointer"
-                          }`}
+                          onClick={() => handleAddAction(action.key!, action.display_name ?? action.key!)}
+                          className={`flex items-start gap-2 w-full rounded-lg p-2 text-left transition-colors ${isAlreadyAdded ? "opacity-40 cursor-not-allowed" : "hover:bg-muted cursor-pointer"}`}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">{action.display_name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-medium text-foreground truncate">{action.display_name}</p>
+                              {autoRef && (
+                                <span className="text-[9px] bg-green-500/10 text-green-600 px-1 py-0.5 rounded shrink-0">auto</span>
+                              )}
+                            </div>
                             <p className="text-[11px] text-muted-foreground line-clamp-1">{action.description}</p>
                           </div>
                           {isAlreadyAdded ? (
@@ -690,7 +784,7 @@ function ContextConfigView({
       <div className="pt-4 shrink-0">
         <Button onClick={onConfirm} className="w-full">
           {contextActions.length > 0
-            ? `Confirm trigger with ${contextActions.length} context action${contextActions.length > 1 ? "s" : ""}`
+            ? `Confirm with ${contextActions.length} context action${contextActions.length > 1 ? "s" : ""}`
             : "Confirm trigger"}
         </Button>
       </div>

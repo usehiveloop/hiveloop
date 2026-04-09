@@ -29,10 +29,10 @@ func NewAgentTriggerHandler(db *gorm.DB, catalog *catalog.Catalog) *AgentTrigger
 // --- Request / Response DTOs ---
 
 type createAgentTriggerRequest struct {
-	ConnectionID   string              `json:"connection_id"`
-	TriggerKey     string              `json:"trigger_key"`
-	Enabled        *bool               `json:"enabled,omitempty"`
-	Conditions     *model.TriggerMatch `json:"conditions,omitempty"`
+	ConnectionID   string                `json:"connection_id"`
+	TriggerKeys    []string              `json:"trigger_keys"`
+	Enabled        *bool                 `json:"enabled,omitempty"`
+	Conditions     *model.TriggerMatch   `json:"conditions,omitempty"`
 	ContextActions []model.ContextAction `json:"context_actions,omitempty"`
 }
 
@@ -47,7 +47,7 @@ type agentTriggerResponse struct {
 	AgentID        string               `json:"agent_id"`
 	ConnectionID   string               `json:"connection_id"`
 	Provider       string               `json:"provider"`
-	TriggerKey     string               `json:"trigger_key"`
+	TriggerKeys    []string             `json:"trigger_keys"`
 	Enabled        bool                 `json:"enabled"`
 	Conditions     *model.TriggerMatch  `json:"conditions"`
 	ContextActions []model.ContextAction `json:"context_actions"`
@@ -61,7 +61,7 @@ func toAgentTriggerResponse(trigger model.AgentTrigger, provider string) agentTr
 		AgentID:      trigger.AgentID.String(),
 		ConnectionID: trigger.ConnectionID.String(),
 		Provider:     provider,
-		TriggerKey:   trigger.TriggerKey,
+		TriggerKeys:  trigger.TriggerKeys,
 		Enabled:      trigger.Enabled,
 		CreatedAt:    trigger.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    trigger.UpdatedAt.Format(time.RFC3339),
@@ -133,13 +133,13 @@ func validateContextActions(actionsCatalog *catalog.Catalog, contextActions []mo
 	seenIDs := make(map[string]bool)
 	for idx, contextAction := range contextActions {
 		// Unique ID check.
-		if contextAction.ID == "" {
-			return fmt.Sprintf("context_actions[%d].id is required", idx)
+		if contextAction.As == "" {
+			return fmt.Sprintf("context_actions[%d].as is required", idx)
 		}
-		if seenIDs[contextAction.ID] {
-			return fmt.Sprintf("context_actions[%d].id %q is a duplicate", idx, contextAction.ID)
+		if seenIDs[contextAction.As] {
+			return fmt.Sprintf("context_actions[%d].as %q is a duplicate", idx, contextAction.As)
 		}
-		seenIDs[contextAction.ID] = true
+		seenIDs[contextAction.As] = true
 
 		// Action must exist in catalog.
 		if contextAction.Action == "" {
@@ -174,8 +174,8 @@ func resolveProviderFromConnection(db *gorm.DB, connectionID, orgID uuid.UUID) (
 // agentIntegrations is the agent's Integrations JSON (connection IDs as keys).
 // Returns (provider, errorMessage). If errorMessage is non-empty, validation failed.
 func validateTriggerRequest(db *gorm.DB, actionsCatalog *catalog.Catalog, req *createAgentTriggerRequest, orgID uuid.UUID, agentIntegrations model.JSON) (string, string) {
-	if req.ConnectionID == "" || req.TriggerKey == "" {
-		return "", "trigger.connection_id and trigger.trigger_key are required"
+	if req.ConnectionID == "" || len(req.TriggerKeys) == 0 {
+		return "", "trigger.connection_id and trigger.trigger_keys are required"
 	}
 
 	connectionID, err := uuid.Parse(req.ConnectionID)
@@ -197,8 +197,8 @@ func validateTriggerRequest(db *gorm.DB, actionsCatalog *catalog.Catalog, req *c
 		return "", "failed to validate trigger connection"
 	}
 
-	// Validate trigger_key exists in catalog for this provider.
-	if err := actionsCatalog.ValidateTriggers(provider, []string{req.TriggerKey}); err != nil {
+	// Validate all trigger_keys exist in catalog for this provider.
+	if err := actionsCatalog.ValidateTriggers(provider, req.TriggerKeys); err != nil {
 		// Try variant lookup.
 		if _, ok := actionsCatalog.GetProviderTriggersForVariant(provider); !ok {
 			return "", err.Error()
@@ -278,7 +278,7 @@ func (h *AgentTriggerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		OrgID:          org.ID,
 		AgentID:        agent.ID,
 		ConnectionID:   connectionID,
-		TriggerKey:     req.TriggerKey,
+		TriggerKeys:    req.TriggerKeys,
 		Enabled:        enabled,
 		Conditions:     conditionsJSON,
 		ContextActions: contextActionsJSON,
@@ -286,7 +286,7 @@ func (h *AgentTriggerHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.db.Create(&trigger).Error; err != nil {
 		if isDuplicateKeyError(err) {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("trigger %q already exists for this agent and connection", req.TriggerKey)})
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "trigger with these keys already exists for this agent and connection"})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create trigger"})

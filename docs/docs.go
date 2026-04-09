@@ -10595,6 +10595,39 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.ContextAction": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "catalog action key, e.g. \"issues_get\"",
+                    "type": "string"
+                },
+                "as": {
+                    "description": "name in the context bag (used in prompt template + referenced by later steps)",
+                    "type": "string"
+                },
+                "only_when": {
+                    "description": "only run when the event matches these trigger keys",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "optional": {
+                    "description": "if true, failure doesn't block the trigger",
+                    "type": "boolean"
+                },
+                "params": {
+                    "description": "explicit/override params (supports $refs.x and {{step.field}} templates)",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "ref": {
+                    "description": "resource ref — auto-fills params from resource's ref_bindings",
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase": {
             "type": "object",
             "properties": {
@@ -10813,6 +10846,37 @@ const docTemplate = `{
                 },
                 "webhook_user_defined_secret": {
                     "type": "boolean"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_model.TriggerCondition": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "description": "equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists",
+                    "type": "string"
+                },
+                "path": {
+                    "description": "dot-path into payload, e.g. \"repository.full_name\"",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "string or []string depending on operator"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_model.TriggerMatch": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerCondition"
+                    }
+                },
+                "mode": {
+                    "description": "\"all\" (AND) or \"any\" (OR)",
+                    "type": "string"
                 }
             }
         },
@@ -12350,6 +12414,40 @@ const docTemplate = `{
                 },
                 "tools": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "trigger": {
+                    "description": "optional webhook trigger to create with the agent",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_handler.createAgentTriggerRequest"
+                        }
+                    ]
+                }
+            }
+        },
+        "internal_handler.createAgentTriggerRequest": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch"
+                },
+                "connection_id": {
+                    "type": "string"
+                },
+                "context_actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ContextAction"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "trigger_keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -14378,6 +14476,12 @@ const docTemplate = `{
                 },
                 "name_field": {
                     "type": "string"
+                },
+                "ref_bindings": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -14714,6 +14818,13 @@ const docTemplate = `{
                 },
                 "payload_schema": {
                     "type": "string"
+                },
+                "refs": {
+                    "description": "ref_name → dot-path into payload",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "resource_type": {
                     "type": "string"

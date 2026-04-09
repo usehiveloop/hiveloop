@@ -4,23 +4,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
-// AgentTrigger links an agent to a webhook event trigger on a specific connection.
-// When the trigger fires and conditions match, context actions are gathered and
+// AgentTrigger links an agent to one or more webhook event triggers on a specific connection.
+// When a trigger fires and conditions match, context actions are gathered and
 // the agent is kicked off with the enriched payload.
 type AgentTrigger struct {
-	ID             uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID          uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Org            Org        `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	AgentID        uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Agent          Agent      `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
-	ConnectionID   uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Connection     Connection `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
-	TriggerKey     string     `gorm:"not null"` // e.g. "issues.opened", validated against catalog
-	Enabled        bool       `gorm:"not null;default:true"`
-	Conditions     RawJSON    `gorm:"type:jsonb"` // TriggerMatch JSON
-	ContextActions RawJSON    `gorm:"type:jsonb"` // []ContextAction JSON
+	ID             uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID          uuid.UUID      `gorm:"type:uuid;not null;index"`
+	Org            Org            `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	AgentID        uuid.UUID      `gorm:"type:uuid;not null;index"`
+	Agent          Agent          `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	ConnectionID   uuid.UUID      `gorm:"type:uuid;not null;index"`
+	Connection     Connection     `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
+	TriggerKeys    pq.StringArray `gorm:"type:text[];not null"` // e.g. {"issues.opened","issues.reopened"}, validated against catalog
+	Enabled        bool           `gorm:"not null;default:true"`
+	Conditions     RawJSON        `gorm:"type:jsonb"` // TriggerMatch JSON
+	ContextActions RawJSON        `gorm:"type:jsonb"` // []ContextAction JSON
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -41,8 +42,14 @@ type TriggerCondition struct {
 }
 
 // ContextAction defines a READ action to execute for gathering context before triggering the agent.
+// Params support two resolution modes:
+//   - "$refs.x" — static entity ref extracted from the webhook payload (resolved before any fetches)
+//   - "{{step_name.field}}" — interpolated from a previously fetched context step (resolved after earlier steps)
 type ContextAction struct {
-	ID     string            `json:"id"`     // unique key for referencing in later templates
-	Action string            `json:"action"` // catalog action key, e.g. "issues_get"
-	Params map[string]string `json:"params"` // template strings, e.g. {"owner": "{{ trigger.repository.owner.login }}"}
+	As       string         `json:"as"`                  // name in the context bag (used in prompt template + referenced by later steps)
+	Action   string         `json:"action"`              // catalog action key, e.g. "issues_get"
+	Ref      string         `json:"ref,omitempty"`       // resource ref — auto-fills params from resource's ref_bindings
+	Params   map[string]any `json:"params,omitempty"`    // explicit/override params (supports $refs.x and {{step.field}} templates)
+	Optional bool           `json:"optional,omitempty"`  // if true, failure doesn't block the trigger
+	OnlyWhen []string       `json:"only_when,omitempty"` // only run when the event matches these trigger keys
 }

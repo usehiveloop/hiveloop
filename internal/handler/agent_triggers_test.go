@@ -33,20 +33,23 @@ func newTriggerHarness(t *testing.T) *triggerTestHarness {
 	t.Helper()
 	db := connectTestDB(t)
 
-	// Ensure the agent_triggers table exists.
-	db.Exec(`CREATE TABLE IF NOT EXISTS agent_triggers (
+	// Recreate the agent_triggers table with current schema.
+	db.Exec(`DROP TABLE IF EXISTS agent_triggers`)
+	db.Exec(`CREATE TABLE agent_triggers (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		org_id UUID NOT NULL,
 		agent_id UUID NOT NULL,
 		connection_id UUID NOT NULL,
-		trigger_key TEXT NOT NULL,
+		trigger_keys TEXT[] NOT NULL,
 		enabled BOOLEAN NOT NULL DEFAULT true,
 		conditions JSONB,
 		context_actions JSONB,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 	)`)
-	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_unique ON agent_triggers (agent_id, connection_id, trigger_key)`)
+	// Drop old indexes if they exist from prior test runs.
+	db.Exec(`DROP INDEX IF EXISTS idx_agent_triggers_unique`)
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_agent_conn ON agent_triggers (agent_id, connection_id)`)
 
 	actionsCatalog := catalog.Global()
 
@@ -134,7 +137,7 @@ func TestAgentTrigger_Create_Success(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if recorder.Code != http.StatusCreated {
@@ -142,8 +145,9 @@ func TestAgentTrigger_Create_Success(t *testing.T) {
 	}
 
 	resp := parseResponse(t, recorder)
-	if resp["trigger_key"] != "issues.opened" {
-		t.Fatalf("expected trigger_key=issues.opened, got %v", resp["trigger_key"])
+	triggerKeys := resp["trigger_keys"].([]any)
+	if len(triggerKeys) != 1 || triggerKeys[0] != "issues.opened" {
+		t.Fatalf("expected trigger_keys=[issues.opened], got %v", triggerKeys)
 	}
 	if resp["enabled"] != true {
 		t.Fatalf("expected enabled=true, got %v", resp["enabled"])
@@ -161,7 +165,7 @@ func TestAgentTrigger_Create_WithConditions(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "push",
+		"trigger_keys": []string{"push"},
 		"conditions": map[string]any{
 			"mode": "all",
 			"conditions": []map[string]any{
@@ -191,10 +195,10 @@ func TestAgentTrigger_Create_WithContextActions(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"context_actions": []map[string]any{
 			{
-				"id":     "issue_detail",
+				"as": "issue_detail",
 				"action": "issues_get",
 				"params": map[string]string{
 					"owner":        "{{ trigger.repository.owner.login }}",
@@ -203,7 +207,7 @@ func TestAgentTrigger_Create_WithContextActions(t *testing.T) {
 				},
 			},
 			{
-				"id":     "labels",
+				"as": "labels",
 				"action": "issues_list_labels_on_issue",
 				"params": map[string]string{
 					"owner":        "{{ trigger.repository.owner.login }}",
@@ -230,7 +234,7 @@ func TestAgentTrigger_Create_DisabledByDefault(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "pull_request.opened",
+		"trigger_keys": []string{"pull_request.opened"},
 		"enabled":       false,
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
@@ -262,7 +266,7 @@ func TestAgentTrigger_Create_InvalidTriggerKey(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "nonexistent.event",
+		"trigger_keys": []string{"nonexistent.event"},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if recorder.Code != http.StatusBadRequest {
@@ -271,7 +275,7 @@ func TestAgentTrigger_Create_InvalidTriggerKey(t *testing.T) {
 	resp := parseResponse(t, recorder)
 	errMsg := resp["error"].(string)
 	if errMsg == "" {
-		t.Fatal("expected error message about invalid trigger_key")
+		t.Fatal("expected error message about invalid trigger_keys")
 	}
 }
 
@@ -280,7 +284,7 @@ func TestAgentTrigger_Create_InvalidConnectionID(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": uuid.New().String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if recorder.Code != http.StatusBadRequest {
@@ -293,7 +297,7 @@ func TestAgentTrigger_Create_AgentNotFound(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 	}
 	fakeAgentPath := "/v1/agents/" + uuid.New().String() + "/triggers"
 	recorder := h.doRequest(t, http.MethodPost, fakeAgentPath, body)
@@ -307,7 +311,7 @@ func TestAgentTrigger_Create_InvalidConditionOperator(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"conditions": map[string]any{
 			"mode": "all",
 			"conditions": []map[string]any{
@@ -326,7 +330,7 @@ func TestAgentTrigger_Create_InvalidConditionMode(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"conditions": map[string]any{
 			"mode": "invalid_mode",
 			"conditions": []map[string]any{
@@ -345,7 +349,7 @@ func TestAgentTrigger_Create_ConditionMissingPath(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"conditions": map[string]any{
 			"mode": "all",
 			"conditions": []map[string]any{
@@ -364,7 +368,7 @@ func TestAgentTrigger_Create_ConditionMissingValueForNonExistsOperator(t *testin
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"conditions": map[string]any{
 			"mode": "all",
 			"conditions": []map[string]any{
@@ -383,7 +387,7 @@ func TestAgentTrigger_Create_ExistsOperatorNoValueRequired(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "release.published",
+		"trigger_keys": []string{"release.published"},
 		"conditions": map[string]any{
 			"mode": "all",
 			"conditions": []map[string]any{
@@ -402,9 +406,9 @@ func TestAgentTrigger_Create_ContextActionInvalidAction(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"context_actions": []map[string]any{
-			{"id": "data", "action": "nonexistent_action", "params": map[string]string{}},
+			{  "as": "data", "action": "nonexistent_action", "params": map[string]string{}},
 		},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
@@ -418,10 +422,10 @@ func TestAgentTrigger_Create_ContextActionWriteActionRejected(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"context_actions": []map[string]any{
 			{
-				"id":     "create_issue",
+				"as": "create_issue",
 				"action": "issues_create",
 				"params": map[string]string{
 					"owner": "test",
@@ -446,10 +450,10 @@ func TestAgentTrigger_Create_ContextActionDuplicateID(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"context_actions": []map[string]any{
-			{"id": "same_id", "action": "issues_get", "params": map[string]string{}},
-			{"id": "same_id", "action": "issues_list_comments", "params": map[string]string{}},
+			{"as": "same_id", "action": "issues_get", "params": map[string]string{}},
+			{"as": "same_id", "action": "issues_list_comments", "params": map[string]string{}},
 		},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
@@ -463,9 +467,9 @@ func TestAgentTrigger_Create_ContextActionMissingID(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.opened",
+		"trigger_keys": []string{"issues.opened"},
 		"context_actions": []map[string]any{
-			{"id": "", "action": "issues_get", "params": map[string]string{}},
+			{"as": "", "action": "issues_get", "params": map[string]string{}},
 		},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
@@ -483,7 +487,7 @@ func TestAgentTrigger_Create_ConnectionNotInAgentIntegrations(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": conn2.ID.String(),
-		"trigger_key":   "message",
+		"trigger_keys": []string{"message"},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if recorder.Code != http.StatusBadRequest {
@@ -496,20 +500,24 @@ func TestAgentTrigger_Create_ConnectionNotInAgentIntegrations(t *testing.T) {
 	}
 }
 
-func TestAgentTrigger_Create_DuplicateTriggerKey(t *testing.T) {
+func TestAgentTrigger_Create_DuplicateConnection(t *testing.T) {
 	h := newTriggerHarness(t)
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "issues.closed",
+		"trigger_keys": []string{"issues.closed"},
 	}
 	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("first create: expected 201, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	// Same trigger_key + connection + agent should conflict.
-	recorder = h.doRequest(t, http.MethodPost, h.basePath(), body)
+	// Same connection + agent should conflict (even with different trigger keys).
+	body2 := map[string]any{
+		"connection_id": h.conn.ID.String(),
+		"trigger_keys": []string{"issues.opened"},
+	}
+	recorder = h.doRequest(t, http.MethodPost, h.basePath(), body2)
 	if recorder.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
@@ -522,27 +530,29 @@ func TestAgentTrigger_Create_DuplicateTriggerKey(t *testing.T) {
 func TestAgentTrigger_List(t *testing.T) {
 	h := newTriggerHarness(t)
 
-	// Create two triggers.
-	for _, triggerKey := range []string{"issues.opened", "pull_request.opened"} {
-		body := map[string]any{
-			"connection_id": h.conn.ID.String(),
-			"trigger_key":   triggerKey,
-		}
-		recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
-		if recorder.Code != http.StatusCreated {
-			t.Fatalf("create %s: expected 201, got %d; body: %s", triggerKey, recorder.Code, recorder.Body.String())
-		}
+	// Create a trigger with multiple keys.
+	body := map[string]any{
+		"connection_id": h.conn.ID.String(),
+		"trigger_keys":  []string{"issues.opened", "pull_request.opened"},
+	}
+	recorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	recorder := h.doRequest(t, http.MethodGet, h.basePath(), nil)
+	recorder = h.doRequest(t, http.MethodGet, h.basePath(), nil)
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d; body: %s", recorder.Code, recorder.Body.String())
 	}
 
 	resp := parseResponse(t, recorder)
 	data := resp["data"].([]any)
-	if len(data) != 2 {
-		t.Fatalf("expected 2 triggers, got %d", len(data))
+	if len(data) != 1 {
+		t.Fatalf("expected 1 trigger, got %d", len(data))
+	}
+	triggerKeys := data[0].(map[string]any)["trigger_keys"].([]any)
+	if len(triggerKeys) != 2 {
+		t.Fatalf("expected 2 trigger_keys, got %d", len(triggerKeys))
 	}
 }
 
@@ -555,7 +565,7 @@ func TestAgentTrigger_Get(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "workflow_run.completed",
+		"trigger_keys": []string{"workflow_run.completed"},
 	}
 	createRecorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if createRecorder.Code != http.StatusCreated {
@@ -570,8 +580,9 @@ func TestAgentTrigger_Get(t *testing.T) {
 	}
 
 	resp := parseResponse(t, recorder)
-	if resp["trigger_key"] != "workflow_run.completed" {
-		t.Fatalf("expected trigger_key=workflow_run.completed, got %v", resp["trigger_key"])
+	triggerKeys := resp["trigger_keys"].([]any)
+	if len(triggerKeys) != 1 || triggerKeys[0] != "workflow_run.completed" {
+		t.Fatalf("expected trigger_keys=[workflow_run.completed], got %v", triggerKeys)
 	}
 }
 
@@ -593,7 +604,7 @@ func TestAgentTrigger_Update_ToggleEnabled(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "create",
+		"trigger_keys": []string{"create"},
 	}
 	createRecorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if createRecorder.Code != http.StatusCreated {
@@ -620,7 +631,7 @@ func TestAgentTrigger_Update_ContextActionsValidated(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "delete",
+		"trigger_keys": []string{"delete"},
 	}
 	createRecorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if createRecorder.Code != http.StatusCreated {
@@ -632,7 +643,7 @@ func TestAgentTrigger_Update_ContextActionsValidated(t *testing.T) {
 	// Try to add a write action as context — should fail.
 	updateBody := map[string]any{
 		"context_actions": []map[string]any{
-			{"id": "bad", "action": "issues_create", "params": map[string]string{}},
+			{"as": "bad", "action": "issues_create", "params": map[string]string{}},
 		},
 	}
 	recorder := h.doRequest(t, http.MethodPut, h.basePath()+"/"+triggerID, updateBody)
@@ -659,7 +670,7 @@ func TestAgentTrigger_Delete(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_key":   "release.created",
+		"trigger_keys": []string{"release.created"},
 	}
 	createRecorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if createRecorder.Code != http.StatusCreated {

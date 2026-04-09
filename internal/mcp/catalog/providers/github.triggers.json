@@ -5,241 +5,548 @@
       "display_name": "Issue Opened",
       "description": "Triggered when a new issue is created in a repository",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issues.closed": {
       "display_name": "Issue Closed",
       "description": "Triggered when an issue is closed",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issues.reopened": {
       "display_name": "Issue Reopened",
       "description": "Triggered when a previously closed issue is reopened",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issues.edited": {
       "display_name": "Issue Edited",
       "description": "Triggered when the title or body of an issue is edited",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issues.assigned": {
       "display_name": "Issue Assigned",
       "description": "Triggered when a user is assigned to an issue",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issues.labeled": {
       "display_name": "Issue Labeled",
       "description": "Triggered when a label is added to an issue",
       "resource_type": "issue",
-      "payload_schema": "issues_event"
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title"
+      }
     },
     "issue_comment.created": {
       "display_name": "Issue Comment Created",
       "description": "Triggered when a comment is created on an issue or pull request",
       "resource_type": "issue",
-      "payload_schema": "issue_comment_event"
+      "payload_schema": "issue_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title",
+        "comment": "comment.id"
+      }
     },
     "issue_comment.edited": {
       "display_name": "Issue Comment Edited",
       "description": "Triggered when a comment on an issue or pull request is edited",
       "resource_type": "issue",
-      "payload_schema": "issue_comment_event"
+      "payload_schema": "issue_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue": "issue.number",
+        "issue_title": "issue.title",
+        "comment": "comment.id"
+      }
     },
     "pull_request.opened": {
       "display_name": "Pull Request Opened",
       "description": "Triggered when a pull request is created",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.closed": {
       "display_name": "Pull Request Closed",
       "description": "Triggered when a pull request is closed (check merged field to distinguish merge vs close)",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.reopened": {
       "display_name": "Pull Request Reopened",
       "description": "Triggered when a previously closed pull request is reopened",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.ready_for_review": {
       "display_name": "Pull Request Ready for Review",
       "description": "Triggered when a draft pull request is marked as ready for review",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.review_requested": {
       "display_name": "Pull Request Review Requested",
       "description": "Triggered when a review is requested on a pull request",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.synchronize": {
       "display_name": "Pull Request Synchronized",
       "description": "Triggered when new commits are pushed to a pull request branch",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.labeled": {
       "display_name": "Pull Request Labeled",
       "description": "Triggered when a label is added to a pull request",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request.edited": {
       "display_name": "Pull Request Edited",
       "description": "Triggered when the title or body of a pull request is edited",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_event"
+      "payload_schema": "pull_request_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title"
+      }
     },
     "pull_request_review.submitted": {
       "display_name": "Pull Request Review Submitted",
       "description": "Triggered when a pull request review is submitted (approved, changes requested, or commented)",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_review_event"
+      "payload_schema": "pull_request_review_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title",
+        "review": "review.id"
+      }
     },
     "pull_request_review.dismissed": {
       "display_name": "Pull Request Review Dismissed",
       "description": "Triggered when a pull request review is dismissed",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_review_event"
+      "payload_schema": "pull_request_review_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title",
+        "review": "review.id"
+      }
     },
     "pull_request_review_comment.created": {
       "display_name": "Pull Request Review Comment Created",
       "description": "Triggered when a review comment is created on a pull request diff",
       "resource_type": "pull_request",
-      "payload_schema": "pull_request_review_comment_event"
+      "payload_schema": "pull_request_review_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "pull_request": "pull_request.number",
+        "pull_request_title": "pull_request.title",
+        "comment": "comment.id"
+      }
     },
     "workflow_run.completed": {
       "display_name": "Workflow Run Completed",
       "description": "Triggered when a GitHub Actions workflow run completes (check conclusion for success/failure)",
       "resource_type": "workflow",
-      "payload_schema": "workflow_run_event"
+      "payload_schema": "workflow_run_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "workflow_run": "workflow_run.id",
+        "workflow_name": "workflow_run.name"
+      }
     },
     "workflow_run.requested": {
       "display_name": "Workflow Run Requested",
       "description": "Triggered when a GitHub Actions workflow run is requested",
       "resource_type": "workflow",
-      "payload_schema": "workflow_run_event"
+      "payload_schema": "workflow_run_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "workflow_run": "workflow_run.id",
+        "workflow_name": "workflow_run.name"
+      }
     },
     "workflow_job.completed": {
       "display_name": "Workflow Job Completed",
       "description": "Triggered when a GitHub Actions workflow job completes",
       "resource_type": "workflow",
-      "payload_schema": "workflow_job_event"
+      "payload_schema": "workflow_job_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "workflow_run": "workflow_run.id",
+        "workflow_name": "workflow_run.name"
+      }
     },
     "workflow_job.queued": {
       "display_name": "Workflow Job Queued",
       "description": "Triggered when a GitHub Actions workflow job is queued",
       "resource_type": "workflow",
-      "payload_schema": "workflow_job_event"
+      "payload_schema": "workflow_job_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "workflow_run": "workflow_run.id",
+        "workflow_name": "workflow_run.name"
+      }
     },
     "check_run.completed": {
       "display_name": "Check Run Completed",
       "description": "Triggered when a check run completes (CI status check)",
       "resource_type": "workflow",
-      "payload_schema": "check_run_event"
+      "payload_schema": "check_run_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "workflow_run": "check_run.id",
+        "workflow_name": "workflow_run.name"
+      }
     },
     "deployment_status.created": {
       "display_name": "Deployment Status Created",
       "description": "Triggered when a deployment status is created (success, failure, pending, etc.)",
       "resource_type": "repository",
-      "payload_schema": "deployment_status_event"
+      "payload_schema": "deployment_status_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "deployment": "deployment.id"
+      }
     },
     "push": {
       "display_name": "Push",
       "description": "Triggered when commits are pushed to a repository branch or tag",
       "resource_type": "repository",
-      "payload_schema": "push_event"
+      "payload_schema": "push_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "ref": "ref",
+        "before": "before",
+        "after": "after"
+      }
     },
     "create": {
       "display_name": "Branch or Tag Created",
       "description": "Triggered when a branch or tag is created",
       "resource_type": "branch",
-      "payload_schema": "create_event"
+      "payload_schema": "create_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "branch": "ref",
+        "ref": "ref",
+        "ref_type": "ref_type"
+      }
     },
     "delete": {
       "display_name": "Branch or Tag Deleted",
       "description": "Triggered when a branch or tag is deleted",
       "resource_type": "branch",
-      "payload_schema": "delete_event"
+      "payload_schema": "delete_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "branch": "ref",
+        "ref": "ref",
+        "ref_type": "ref_type"
+      }
     },
     "release.published": {
       "display_name": "Release Published",
       "description": "Triggered when a release is published and available to users",
       "resource_type": "release",
-      "payload_schema": "release_event"
+      "payload_schema": "release_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "release": "release.id",
+        "release_tag": "release.tag_name"
+      }
     },
     "release.created": {
       "display_name": "Release Created",
       "description": "Triggered when a new release is created (may be draft)",
       "resource_type": "release",
-      "payload_schema": "release_event"
+      "payload_schema": "release_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "release": "release.id",
+        "release_tag": "release.tag_name"
+      }
     },
     "repository.created": {
       "display_name": "Repository Created",
       "description": "Triggered when a new repository is created in the organization",
       "resource_type": "repository",
-      "payload_schema": "repository_event"
+      "payload_schema": "repository_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login"
+      }
     },
     "discussion.created": {
       "display_name": "Discussion Created",
       "description": "Triggered when a new discussion is created in a repository",
       "resource_type": "repository",
-      "payload_schema": "discussion_event"
+      "payload_schema": "discussion_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion": "discussion.number"
+      }
     },
     "discussion.answered": {
       "display_name": "Discussion Answered",
       "description": "Triggered when a discussion is marked as answered",
       "resource_type": "repository",
-      "payload_schema": "discussion_event"
+      "payload_schema": "discussion_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion": "discussion.number"
+      }
     },
     "discussion_comment.created": {
       "display_name": "Discussion Comment Created",
       "description": "Triggered when a comment is created on a discussion",
       "resource_type": "repository",
-      "payload_schema": "discussion_comment_event"
+      "payload_schema": "discussion_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "discussion": "discussion.number",
+        "comment": "comment.id"
+      }
     },
     "organization.member_added": {
       "display_name": "Organization Member Added",
       "description": "Triggered when a user is added to an organization",
       "resource_type": "organization",
-      "payload_schema": "organization_event"
+      "payload_schema": "organization_event",
+      "refs": {
+        "sender": "sender.login",
+        "org": "organization.login"
+      }
     },
     "organization.member_removed": {
       "display_name": "Organization Member Removed",
       "description": "Triggered when a user is removed from an organization",
       "resource_type": "organization",
-      "payload_schema": "organization_event"
+      "payload_schema": "organization_event",
+      "refs": {
+        "sender": "sender.login",
+        "org": "organization.login"
+      }
     },
     "team.added_to_repository": {
       "display_name": "Team Added to Repository",
       "description": "Triggered when a team is granted access to a repository",
       "resource_type": "team",
-      "payload_schema": "team_event"
+      "payload_schema": "team_event",
+      "refs": {
+        "sender": "sender.login",
+        "org": "organization.login",
+        "team": "team.slug"
+      }
     },
     "team.removed_from_repository": {
       "display_name": "Team Removed from Repository",
       "description": "Triggered when a team's access to a repository is revoked",
       "resource_type": "team",
-      "payload_schema": "team_event"
+      "payload_schema": "team_event",
+      "refs": {
+        "sender": "sender.login",
+        "org": "organization.login",
+        "team": "team.slug"
+      }
     },
     "branch_protection_rule.created": {
       "display_name": "Branch Protection Rule Created",
       "description": "Triggered when a branch protection rule is created",
       "resource_type": "branch",
-      "payload_schema": "branch_protection_rule_event"
+      "payload_schema": "branch_protection_rule_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "branch": "ref"
+      }
     },
     "branch_protection_rule.edited": {
       "display_name": "Branch Protection Rule Edited",
       "description": "Triggered when a branch protection rule is edited",
       "resource_type": "branch",
-      "payload_schema": "branch_protection_rule_event"
+      "payload_schema": "branch_protection_rule_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "branch": "ref"
+      }
     }
   },
   "schemas": {

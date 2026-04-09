@@ -91,9 +91,11 @@ func AutoMigrate(db *gorm.DB) error {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_gen_tags ON generations USING GIN (tags)")
 
 	// Partial index for efficient webhook → trigger lookup (only enabled triggers).
-	db.Exec(`CREATE INDEX IF NOT EXISTS idx_agent_triggers_lookup ON agent_triggers (connection_id, trigger_key) WHERE enabled = true`)
-	// Unique constraint: one trigger key per agent+connection pair.
-	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_unique ON agent_triggers (agent_id, connection_id, trigger_key)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_agent_triggers_lookup ON agent_triggers (connection_id) WHERE enabled = true`)
+	// Drop old single-key unique index if it exists.
+	db.Exec(`DROP INDEX IF EXISTS idx_agent_triggers_unique`)
+	// Unique constraint: one trigger config per agent+connection pair.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_agent_conn ON agent_triggers (agent_id, connection_id)`)
 
 	return nil
 }

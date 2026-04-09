@@ -12176,6 +12176,22 @@ export interface components {
             title?: string;
             type?: string;
         };
+        ContextAction: {
+            /** @description catalog action key, e.g. "issues_get" */
+            action?: string;
+            /** @description name in the context bag (used in prompt template + referenced by later steps) */
+            as?: string;
+            /** @description only run when the event matches these trigger keys */
+            only_when?: string[];
+            /** @description if true, failure doesn't block the trigger */
+            optional?: boolean;
+            /** @description explicit/override params (supports $refs.x and {{step.field}} templates) */
+            params?: {
+                [key: string]: unknown;
+            };
+            /** @description resource ref — auto-fills params from resource's ref_bindings */
+            ref?: string;
+        };
         ForgeEvalCase: {
             /** @description happy_path, edge_case, adversarial, tool_error */
             category?: string;
@@ -12257,6 +12273,19 @@ export interface components {
             webhook_secret?: string;
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
+        };
+        TriggerCondition: {
+            /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
+            operator?: string;
+            /** @description dot-path into payload, e.g. "repository.full_name" */
+            path?: string;
+            /** @description string or []string depending on operator */
+            value?: unknown;
+        };
+        TriggerMatch: {
+            conditions?: components["schemas"]["TriggerCondition"][];
+            /** @description "all" (AND) or "any" (OR) */
+            mode?: string;
         };
         "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             app_id?: string;
@@ -12767,6 +12796,15 @@ export interface components {
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
+            /** @description optional webhook trigger to create with the agent */
+            trigger?: components["schemas"]["createAgentTriggerRequest"];
+        };
+        createAgentTriggerRequest: {
+            conditions?: components["schemas"]["TriggerMatch"];
+            connection_id?: string;
+            context_actions?: components["schemas"]["ContextAction"][];
+            enabled?: boolean;
+            trigger_keys?: string[];
         };
         createCheckoutRequest: {
             /** @description "pro_shared" or "pro_dedicated" */
@@ -13428,6 +13466,9 @@ export interface components {
             icon?: string;
             id_field?: string;
             name_field?: string;
+            ref_bindings?: {
+                [key: string]: string;
+            };
         };
         sandboxResponse: {
             agent_id?: string;
@@ -13542,6 +13583,10 @@ export interface components {
             display_name?: string;
             key?: string;
             payload_schema?: string;
+            /** @description ref_name → dot-path into payload */
+            refs?: {
+                [key: string]: string;
+            };
             resource_type?: string;
         };
         updateAgentRequest: {
