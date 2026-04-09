@@ -547,6 +547,45 @@
         "sender": "sender.login",
         "branch_name": "ref"
       }
+    },
+    "issues.unassigned": {
+      "display_name": "Issue Unassigned",
+      "description": "Triggered when a user is unassigned from an issue",
+      "resource_type": "issue",
+      "payload_schema": "issues_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "issue_number": "issue.number",
+        "issue_title": "issue.title"
+      }
+    },
+    "star.created": {
+      "display_name": "Repository Starred",
+      "description": "Triggered when someone stars the repository",
+      "resource_type": "repository",
+      "payload_schema": "star_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login"
+      }
+    },
+    "commit_comment.created": {
+      "display_name": "Commit Comment Created",
+      "description": "Triggered when a comment is created on a commit",
+      "resource_type": "repository",
+      "payload_schema": "commit_comment_event",
+      "refs": {
+        "owner": "repository.owner.login",
+        "repo": "repository.name",
+        "repository": "repository.full_name",
+        "sender": "sender.login",
+        "comment_id": "comment.id"
+      }
     }
   },
   "schemas": {
@@ -1356,6 +1395,71 @@
         "repository": {
           "type": "object",
           "description": "The repository where the rule applies",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "description": "The organization that owns the repository, if applicable",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "description": "The user that triggered the event",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object",
+          "description": "The GitHub App installation, if the event was triggered via an app"
+        }
+      }
+    },
+    "star_event": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The action performed: created or deleted"
+        },
+        "starred_at": {
+          "type": "string",
+          "description": "Timestamp when the star was created",
+          "nullable": true
+        },
+        "repository": {
+          "type": "object",
+          "description": "The repository that was starred",
+          "schema_ref": "repository"
+        },
+        "organization": {
+          "type": "object",
+          "description": "The organization that owns the repository, if applicable",
+          "schema_ref": "organization-full"
+        },
+        "sender": {
+          "type": "object",
+          "description": "The user that triggered the event",
+          "schema_ref": "simple-user"
+        },
+        "installation": {
+          "type": "object",
+          "description": "The GitHub App installation, if the event was triggered via an app"
+        }
+      }
+    },
+    "commit_comment_event": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The action performed: created"
+        },
+        "comment": {
+          "type": "object",
+          "description": "The commit comment object including id, body, path, position, line, commit_id, user, created_at, updated_at, html_url"
+        },
+        "repository": {
+          "type": "object",
+          "description": "The repository where the comment was made",
           "schema_ref": "repository"
         },
         "organization": {
