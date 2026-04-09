@@ -83,9 +83,6 @@ type forgeGetRunResponse struct {
 	Events     []model.ForgeEvent       `json:"events"`
 }
 
-type forgeFullResponse struct {
-	Runs []forgeGetRunResponse `json:"runs"`
-}
 
 func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
 	resp := forgeRunResponse{
@@ -333,17 +330,18 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toForgeRunResponse(run))
 }
 
-// ListRuns lists forge runs for an agent with full details.
-// @Summary List forge runs
-// @Description Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.
+// GetLatestRun returns the latest forge run for an agent with full details.
+// @Summary Get latest forge run
+// @Description Returns the most recent forge run for the agent, including iterations, eval results, eval cases, and events.
 // @Tags forge
 // @Produce json
 // @Param agentID path string true "Agent ID"
-// @Success 200 {object} forgeFullResponse
+// @Success 200 {object} forgeGetRunResponse
 // @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/agents/{agentID}/forge [get]
-func (h *ForgeHandler) ListRuns(w http.ResponseWriter, r *http.Request) {
+func (h *ForgeHandler) GetLatestRun(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
@@ -352,18 +350,19 @@ func (h *ForgeHandler) ListRuns(w http.ResponseWriter, r *http.Request) {
 
 	agentID := chi.URLParam(r, "agentID")
 
-	var runs []model.ForgeRun
-	h.db.Where("agent_id = ? AND org_id = ?", agentID, org.ID).
+	var run model.ForgeRun
+	if err := h.db.Where("agent_id = ? AND org_id = ?", agentID, org.ID).
 		Order("created_at DESC").
-		Find(&runs)
+		First(&run).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no forge runs found for this agent"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load forge run"})
+		return
+	}
 
-	resp := forgeFullResponse{
-		Runs: make([]forgeGetRunResponse, len(runs)),
-	}
-	for index, run := range runs {
-		resp.Runs[index] = h.buildFullRunResponse(run)
-	}
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, h.buildFullRunResponse(run))
 }
 
 // GetRun returns a forge run with its iterations.

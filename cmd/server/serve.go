@@ -328,7 +328,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					}
 					if forgeHandler != nil {
 						r.Post("/{agentID}/forge", forgeHandler.Start)
-						r.Get("/{agentID}/forge", forgeHandler.ListRuns)
+						r.Get("/{agentID}/forge", forgeHandler.GetLatestRun)
 					}
 					})
 				r.Route("/marketplace/agents", func(r chi.Router) {

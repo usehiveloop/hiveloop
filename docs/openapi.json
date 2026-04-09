@@ -4945,11 +4945,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.",
+        "description": "Returns the most recent forge run for the agent, including iterations, eval results, eval cases, and events.",
         "tags": [
           "forge"
         ],
-        "summary": "List forge runs",
+        "summary": "Get latest forge run",
         "parameters": [
           {
             "description": "Agent ID",
@@ -4967,13 +4967,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/forgeFullResponse"
+                  "$ref": "#/components/schemas/forgeGetRunResponse"
                 }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -14992,17 +15002,6 @@
           },
           "success": {
             "type": "boolean"
-          }
-        }
-      },
-      "forgeFullResponse": {
-        "type": "object",
-        "properties": {
-          "runs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/forgeGetRunResponse"
-            }
           }
         }
       },

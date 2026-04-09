@@ -4814,8 +4814,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List forge runs
-         * @description Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.
+         * Get latest forge run
+         * @description Returns the most recent forge run for the agent, including iterations, eval results, eval cases, and events.
          */
         get: {
             parameters: {
@@ -4835,11 +4835,20 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["forgeFullResponse"];
+                        "application/json": components["schemas"]["forgeGetRunResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -12850,9 +12859,6 @@ export interface components {
         execResponse: {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
-        };
-        forgeFullResponse: {
-            runs?: components["schemas"]["forgeGetRunResponse"][];
         };
         forgeGetRunResponse: {
             eval_cases?: components["schemas"]["ForgeEvalCase"][];
