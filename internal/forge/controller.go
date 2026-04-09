@@ -2038,6 +2038,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		}
 
 		agentConv := model.AgentConversation{
+			ID:                   uuid.New(),
 			OrgID:                run.OrgID,
 			AgentID:              uuid.MustParse(iter.EvalTargetAgentID),
 			SandboxID:            *iter.EvalTargetSandboxID,
@@ -2151,6 +2152,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 
 	// Create AgentConversation for judge so webhooks are stored.
 	judgeAgentConv := model.AgentConversation{
+		ID:                   uuid.New(),
 		OrgID:                run.OrgID,
 		AgentID:              judgeAgent.ID,
 		SandboxID:            *judgeAgent.SandboxID,
