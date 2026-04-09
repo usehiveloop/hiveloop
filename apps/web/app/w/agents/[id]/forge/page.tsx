@@ -322,7 +322,7 @@ function scoreBgMuted(score: number) {
 
 // ─── Navigation ─────────────────────────────────────────────────────────────
 
-type NavId = "context" | "evals" | `iteration-${number}` | "results"
+type NavId = "context" | "evals" | `iteration-${string}` | "results"
 
 function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
   const { forge } = useForge()
@@ -409,7 +409,7 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           return (
             <NavItem
               key={iteration.id}
-              id={`iteration-${iterationNumber}` as NavId}
+              id={`iteration-${iteration.id}` as NavId}
               activeId={activeId}
               onSelect={onSelect}
               label={`Iteration ${iterationNumber}`}
@@ -1381,9 +1381,12 @@ function ForgePageContent() {
     if (activeNav === "evals") return <EvalsPanel />
     if (activeNav === "results") return <ResultsPanel />
 
-    const iterationNumber = parseInt(activeNav.split("-")[1])
-    const iteration = ITERATIONS.find((iter) => iter.number === iterationNumber)
-    if (iteration) return <IterationPanel iteration={iteration} />
+    if (activeNav.startsWith("iteration-")) {
+      const iterationId = activeNav.slice("iteration-".length)
+      // TODO: wire to real iteration data from forge context
+      const iteration = ITERATIONS.find((iter) => iter.number === parseInt(iterationId))
+      if (iteration) return <IterationPanel iteration={iteration} />
+    }
 
     return null
   }
