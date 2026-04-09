@@ -856,6 +856,7 @@ function EvalDetail({ evalItem }: { evalItem: IterationEval }) {
 
 function IterationPanel({ iterationId }: { iterationId: string }) {
   const { forge } = useForge()
+  const [tab, setTab] = useState<"evals" | "prompt">("evals")
 
   const apiIteration = forge?.iterations?.find((iter) => iter.id === iterationId)
   if (!apiIteration) return null
@@ -894,6 +895,7 @@ function IterationPanel({ iterationId }: { iterationId: string }) {
   const completedCount = evalItems.filter((evalItem) => evalItem.status === "completed").length
   const passedCount = evalItems.filter((evalItem) => evalItem.passed).length
   const architectReasoning = apiIteration.architect_reasoning ?? ""
+  const systemPrompt = apiIteration.system_prompt ?? ""
 
   return (
     <div className="flex flex-col h-full">
@@ -962,7 +964,7 @@ function IterationPanel({ iterationId }: { iterationId: string }) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4, ease }}
-              className="mb-10"
+              className="mb-8"
             >
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-2">What changed</p>
               <div className="text-[13px] text-foreground/80 leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none">
@@ -971,51 +973,75 @@ function IterationPanel({ iterationId }: { iterationId: string }) {
             </motion.div>
           )}
 
-          {/* Eval bar */}
-          {evalItems.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.15, duration: 0.3 }}
-              className="flex items-center gap-1 mb-4"
-            >
-              {evalItems.map((evalItem) => (
-                <motion.span
-                  key={evalItem.test_name}
-                  className={cn(
-                    "h-1.5 flex-1 rounded-full",
-                    evalItem.status === "completed" && evalItem.passed && "bg-emerald-500",
-                    evalItem.status === "completed" && !evalItem.passed && "bg-rose-500",
-                    evalItem.status === "running" && "bg-primary animate-pulse",
-                    evalItem.status === "pending" && "bg-muted-foreground/8",
-                    evalItem.status === "judging" && "bg-amber-500 animate-pulse",
-                  )}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.3, ease }}
-                />
-              ))}
-            </motion.div>
-          )}
-
-          {/* Eval list */}
+          {/* Tab switcher */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.4, ease }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.3 }}
+            className="flex items-center gap-1 mb-6 border-b border-border"
           >
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">
-                Evals {completedCount}/{totalEvals}
-              </p>
-            </div>
-
-            <div className="flex flex-col">
-              {evalItems.map((evalItem) => (
-                <EvalDetail key={evalItem.test_name} evalItem={evalItem} />
-              ))}
-            </div>
+            <button
+              onClick={() => setTab("evals")}
+              className={cn(
+                "px-3 py-2 text-[12px] font-medium transition-colors border-b-2 -mb-px",
+                tab === "evals" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground/50 hover:text-muted-foreground",
+              )}
+            >
+              Evals {completedCount}/{totalEvals}
+            </button>
+            <button
+              onClick={() => setTab("prompt")}
+              className={cn(
+                "px-3 py-2 text-[12px] font-medium transition-colors border-b-2 -mb-px",
+                tab === "prompt" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground/50 hover:text-muted-foreground",
+              )}
+            >
+              System Prompt
+            </button>
           </motion.div>
+
+          {tab === "evals" ? (
+            <>
+              {/* Eval bar */}
+              {evalItems.length > 0 && (
+                <div className="flex items-center gap-1 mb-4">
+                  {evalItems.map((evalItem) => (
+                    <span
+                      key={evalItem.test_name}
+                      className={cn(
+                        "h-1.5 flex-1 rounded-full",
+                        evalItem.status === "completed" && evalItem.passed && "bg-emerald-500",
+                        evalItem.status === "completed" && !evalItem.passed && "bg-rose-500",
+                        evalItem.status === "running" && "bg-primary animate-pulse",
+                        evalItem.status === "pending" && "bg-muted-foreground/8",
+                        evalItem.status === "judging" && "bg-amber-500 animate-pulse",
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Eval list */}
+              <div className="flex flex-col">
+                {evalItems.map((evalItem) => (
+                  <EvalDetail key={evalItem.test_name} evalItem={evalItem} />
+                ))}
+              </div>
+            </>
+          ) : (
+            /* System prompt */
+            systemPrompt ? (
+              <div className="rounded-2xl border border-border p-6">
+                <div className="text-[13px] text-foreground leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-2 prose-headings:mt-5 prose-headings:mb-2 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-strong:text-foreground">
+                  <Streamdown>{systemPrompt}</Streamdown>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-20">
+                <p className="text-sm text-muted-foreground/40">No system prompt generated yet</p>
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>
