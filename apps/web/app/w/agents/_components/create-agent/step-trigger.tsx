@@ -659,7 +659,6 @@ function ContextConfigView({
   const [yamlText, setYamlText] = useState(() => recipeToYaml(contextActions, prompt, triggerKeys, refs))
   const [parseError, setParseError] = useState<string | null>(null)
 
-  // Fetch schema paths for autocomplete.
   const { data: schemaPathsData } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/schema-paths",
@@ -667,7 +666,6 @@ function ContextConfigView({
     { enabled: !!provider },
   )
 
-  // Fetch read actions for this provider (for action key autocomplete).
   const { data: readActionsData } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/actions",
@@ -678,10 +676,10 @@ function ContextConfigView({
   const refNames = useMemo(() => Object.keys(refs), [refs])
 
   const actionPaths = useMemo(() => {
-    const rawActions = (schemaPathsData as any)?.actions ?? {}
+    const rawActions = (schemaPathsData)?.actions ?? {}
     const result: Record<string, Array<{ path: string; type: string }>> = {}
     for (const [actionKey, actionData] of Object.entries(rawActions)) {
-      const paths = (actionData as any)?.paths as Array<{ path: string; type: string }> | undefined
+      const paths = (actionData)?.paths as Array<{ path: string; type: string }> | undefined
       if (paths) result[actionKey] = paths
     }
     return result
@@ -695,7 +693,7 @@ function ContextConfigView({
       access: action.access ?? "",
       resourceType: action.resource_type ?? "",
     }))
-  }, [allActionsData])
+  }, [readActionsData])
 
   function handleConfirm() {
     const parsed = parseRecipeYaml(yamlText)
