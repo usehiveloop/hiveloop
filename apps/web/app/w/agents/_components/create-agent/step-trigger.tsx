@@ -32,6 +32,17 @@ interface ContextActionConfig {
   optional?: boolean
 }
 
+interface TriggerConditionConfig {
+  path: string
+  operator: string
+  value: any
+}
+
+interface TriggerConditionsConfig {
+  match: "all" | "any"
+  rules: TriggerConditionConfig[]
+}
+
 interface TriggerSelection {
   connectionId: string
   connectionName: string
@@ -40,6 +51,7 @@ interface TriggerSelection {
   triggerDisplayNames: string[]
   refs: Record<string, string>
   contextActions: ContextActionConfig[]
+  conditions?: TriggerConditionsConfig
   prompt: string
 }
 
@@ -55,6 +67,7 @@ export function StepTrigger() {
   const [selectedTriggerNames, setSelectedTriggerNames] = useState<string[]>([])
   const [mergedRefs, setMergedRefs] = useState<Record<string, string>>({})
   const [contextActions, setContextActions] = useState<ContextActionConfig[]>([])
+  const [triggerConditions, setTriggerConditions] = useState<TriggerConditionsConfig | undefined>(undefined)
   const [triggerPrompt, setTriggerPrompt] = useState("")
   const [triggerSelection, setTriggerSelection] = useState<TriggerSelection | null>(null)
   const [search, setSearch] = useState("")
@@ -99,9 +112,10 @@ export function StepTrigger() {
     navigateTo("context")
   }
 
-  function handleConfirmTrigger(parsedActions: ContextActionConfig[], parsedPrompt: string) {
+  function handleConfirmTrigger(parsedActions: ContextActionConfig[], parsedConditions: TriggerConditionsConfig | undefined, parsedPrompt: string) {
     if (!selectedConnection || selectedTriggerKeys.length === 0) return
     setContextActions(parsedActions)
+    setTriggerConditions(parsedConditions)
     setTriggerPrompt(parsedPrompt)
     setTriggerSelection({
       connectionId: selectedConnection.id,
@@ -111,6 +125,7 @@ export function StepTrigger() {
       triggerDisplayNames: selectedTriggerNames,
       refs: mergedRefs,
       contextActions: parsedActions,
+      conditions: parsedConditions,
       prompt: parsedPrompt,
     })
     navigateTo("choice")
@@ -123,6 +138,7 @@ export function StepTrigger() {
     setSelectedTriggerNames([])
     setMergedRefs({})
     setContextActions([])
+    setTriggerConditions(undefined)
     setTriggerPrompt("")
   }
 
@@ -175,6 +191,7 @@ export function StepTrigger() {
               triggerKeys={selectedTriggerKeys}
               refs={mergedRefs}
               contextActions={contextActions}
+              conditions={triggerConditions}
               prompt={triggerPrompt}
               onConfirm={handleConfirmTrigger}
               onBack={() => navigateTo("triggers")}
@@ -492,18 +509,52 @@ interface ContextConfigViewProps {
   triggerKeys: string[]
   refs: Record<string, string>
   contextActions: ContextActionConfig[]
+  conditions?: TriggerConditionsConfig
   prompt: string
-  onConfirm: (actions: ContextActionConfig[], prompt: string) => void
+  onConfirm: (actions: ContextActionConfig[], conditions: TriggerConditionsConfig | undefined, prompt: string) => void
   onBack: () => void
 }
 
 interface ParsedRecipe {
+  conditions?: TriggerConditionsConfig
   context: ContextActionConfig[]
   prompt: string
 }
 
-function recipeToYaml(actions: ContextActionConfig[], prompt: string, triggerKeys: string[], refs: Record<string, string>): string {
+function recipeToYaml(actions: ContextActionConfig[], conditions: TriggerConditionsConfig | undefined, prompt: string, triggerKeys: string[], refs: Record<string, string>): string {
   const lines: string[] = []
+
+  // Conditions section.
+  if (conditions && conditions.rules.length > 0) {
+    lines.push(`conditions:`)
+    lines.push(`  match: ${conditions.match}`)
+    lines.push(`  rules:`)
+    for (const rule of conditions.rules) {
+      lines.push(`    - path: ${rule.path}`)
+      lines.push(`      operator: ${rule.operator}`)
+      if (Array.isArray(rule.value)) {
+        lines.push(`      value: [${rule.value.join(", ")}]`)
+      } else if (typeof rule.value === "boolean") {
+        lines.push(`      value: ${rule.value}`)
+      } else {
+        const stringValue = String(rule.value)
+        if (stringValue.includes(" ") || stringValue.includes("@")) {
+          lines.push(`      value: "${stringValue}"`)
+        } else {
+          lines.push(`      value: ${stringValue}`)
+        }
+      }
+    }
+    lines.push("")
+  } else {
+    lines.push("# conditions:")
+    lines.push("#   match: all")
+    lines.push("#   rules:")
+    lines.push('#     - path: comment.body')
+    lines.push('#       operator: contains')
+    lines.push('#       value: "@zira"')
+    lines.push("")
+  }
 
   // Context section.
   if (actions.length === 0) {
@@ -577,9 +628,22 @@ function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
     const lines = yamlText.split("\n")
     let currentAction: Partial<ContextActionConfig> | null = null
     let inParams = false
-    let section: "none" | "context" | "prompt" = "none"
+    let section: "none" | "conditions" | "context" | "prompt" = "none"
     let inPromptBlock = false
     const promptLines: string[] = []
+
+    // Conditions parsing state.
+    let conditionsMatch: "all" | "any" = "all"
+    const conditionRules: TriggerConditionConfig[] = []
+    let currentRule: Partial<TriggerConditionConfig> | null = null
+    let inRules = false
+
+    function flushRule() {
+      if (currentRule?.path && currentRule?.operator) {
+        conditionRules.push({ path: currentRule.path, operator: currentRule.operator, value: currentRule.value ?? null })
+      }
+      currentRule = null
+    }
 
     function flushAction() {
       if (currentAction?.as && currentAction?.action) {
@@ -593,9 +657,11 @@ function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
       const line = rawLine.trimEnd()
       const trimmed = line.trim()
 
-      if (trimmed === "context:") { flushAction(); section = "context"; inPromptBlock = false; continue }
+      // Section headers.
+      if (trimmed === "conditions:") { flushRule(); flushAction(); section = "conditions"; inPromptBlock = false; inRules = false; continue }
+      if (trimmed === "context:") { flushRule(); flushAction(); section = "context"; inPromptBlock = false; continue }
       if (trimmed.startsWith("prompt:")) {
-        flushAction()
+        flushRule(); flushAction()
         section = "prompt"
         inPromptBlock = true
         const inlineValue = trimmed.slice("prompt:".length).trim()
@@ -603,6 +669,7 @@ function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
         continue
       }
 
+      // Prompt block.
       if (section === "prompt" && inPromptBlock) {
         if (line.startsWith("  ")) { promptLines.push(line.slice(2)); continue }
         if (trimmed === "") { promptLines.push(""); continue }
@@ -610,6 +677,43 @@ function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
         continue
       }
 
+      // Conditions section.
+      if (section === "conditions") {
+        if (trimmed === "" || trimmed.startsWith("#")) continue
+        if (trimmed.startsWith("match:")) { conditionsMatch = trimmed.replace("match:", "").trim() as "all" | "any"; continue }
+        if (trimmed === "rules:") { inRules = true; continue }
+        if (inRules) {
+          if (trimmed.startsWith("- path:")) {
+            flushRule()
+            currentRule = { path: trimmed.replace("- path:", "").trim() }
+            continue
+          }
+          if (currentRule) {
+            if (trimmed.startsWith("operator:")) {
+              currentRule.operator = trimmed.replace("operator:", "").trim()
+            } else if (trimmed.startsWith("value:")) {
+              let rawValue = trimmed.replace("value:", "").trim()
+              // Strip quotes.
+              if ((rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+                rawValue = rawValue.slice(1, -1)
+              }
+              // Parse array values: [a, b, c]
+              if (rawValue.startsWith("[") && rawValue.endsWith("]")) {
+                currentRule.value = rawValue.slice(1, -1).split(",").map((item) => item.trim())
+              } else if (rawValue === "true") {
+                currentRule.value = true
+              } else if (rawValue === "false") {
+                currentRule.value = false
+              } else {
+                currentRule.value = rawValue
+              }
+            }
+          }
+        }
+        continue
+      }
+
+      // Context section.
       if (section !== "context") continue
       if (trimmed === "" || trimmed.startsWith("#")) continue
 
@@ -637,10 +741,13 @@ function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
       }
     }
 
+    flushRule()
     flushAction()
     while (promptLines.length > 0 && promptLines[promptLines.length - 1].trim() === "") promptLines.pop()
 
-    return { context: actions, prompt: promptLines.join("\n") }
+    const conditions = conditionRules.length > 0 ? { match: conditionsMatch, rules: conditionRules } : undefined
+
+    return { conditions, context: actions, prompt: promptLines.join("\n") }
   } catch {
     return null
   }
@@ -656,7 +763,7 @@ function ContextConfigView({
   onConfirm,
   onBack,
 }: ContextConfigViewProps) {
-  const [yamlText, setYamlText] = useState(() => recipeToYaml(contextActions, prompt, triggerKeys, refs))
+  const [yamlText, setYamlText] = useState(() => recipeToYaml(contextActions, conditions, prompt, triggerKeys, refs))
   const [parseError, setParseError] = useState<string | null>(null)
 
   const { data: schemaPathsData } = $api.useQuery(
@@ -702,7 +809,7 @@ function ContextConfigView({
       return
     }
     setParseError(null)
-    onConfirm(parsed.context, parsed.prompt)
+    onConfirm(parsed.context, parsed.conditions, parsed.prompt)
   }
 
   const refsList = refNames.map((refName) => `$refs.${refName}`).join(", ")
