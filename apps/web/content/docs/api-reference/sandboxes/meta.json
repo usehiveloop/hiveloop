@@ -1,0 +1,11 @@
+{
+  "title": "Sandboxes",
+  "description": "Sandboxes",
+  "pages": [
+    "v1/sandboxes/get",
+    "v1/sandboxes/id/get",
+    "v1/sandboxes/id/delete",
+    "v1/sandboxes/id/exec/post",
+    "v1/sandboxes/id/stop/post"
+  ]
+}

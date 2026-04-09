@@ -1,0 +1,7 @@
+{
+  "title": "Reporting",
+  "description": "Reporting",
+  "pages": [
+    "v1/reporting/get"
+  ]
+}

@@ -1,5 +1,6 @@
 {
   "title": "Platform",
+  "icon": "DashboardSquare01Icon",
   "root": true,
   "pages": [
     "index",

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useRef } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -514,6 +515,7 @@ function ContextConfigView({
 }: ContextConfigViewProps) {
   const [showActionPicker, setShowActionPicker] = useState(false)
   const [actionSearch, setActionSearch] = useState("")
+  const pickerScrollRef = useRef<HTMLDivElement>(null)
 
   const { data: actionsData, isLoading } = $api.useQuery(
     "get",
@@ -536,6 +538,13 @@ function ContextConfigView({
   }, [readActions, actionSearch])
 
   const selectedActionKeys = new Set(contextActions.map((contextAction) => contextAction.action))
+
+  const virtualizer = useVirtualizer({
+    count: filteredReadActions.length,
+    getScrollElement: () => pickerScrollRef.current,
+    estimateSize: () => 52,
+    overscan: 10,
+  })
 
   return (
     <>
@@ -615,40 +624,55 @@ function ContextConfigView({
               />
             </div>
 
-            <div className="flex flex-col gap-1 max-h-[240px] overflow-y-auto">
+            <div ref={pickerScrollRef} className="max-h-[240px] overflow-y-auto">
               {isLoading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[44px] w-full rounded-lg" />
-                ))
+                <div className="flex flex-col gap-1">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <Skeleton key={index} className="h-[48px] w-full rounded-lg" />
+                  ))}
+                </div>
               ) : filteredReadActions.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">No read actions found.</p>
               ) : (
-                filteredReadActions.map((action) => {
-                  const isAlreadyAdded = selectedActionKeys.has(action.key!)
-                  return (
-                    <button
-                      key={action.key}
-                      type="button"
-                      disabled={isAlreadyAdded}
-                      onClick={() => onAddAction(action.key!, action.display_name ?? action.key!)}
-                      className={`flex items-start gap-2 w-full rounded-lg p-2 text-left transition-colors ${
-                        isAlreadyAdded
-                          ? "opacity-40 cursor-not-allowed"
-                          : "hover:bg-muted cursor-pointer"
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{action.display_name}</p>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">{action.description}</p>
+                <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const action = filteredReadActions[virtualItem.index]
+                    const isAlreadyAdded = selectedActionKeys.has(action.key!)
+                    return (
+                      <div
+                        key={action.key}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          disabled={isAlreadyAdded}
+                          onClick={() => onAddAction(action.key!, action.display_name ?? action.key!)}
+                          className={`flex items-start gap-2 w-full rounded-lg p-2 text-left transition-colors ${
+                            isAlreadyAdded
+                              ? "opacity-40 cursor-not-allowed"
+                              : "hover:bg-muted cursor-pointer"
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{action.display_name}</p>
+                            <p className="text-[11px] text-muted-foreground line-clamp-1">{action.description}</p>
+                          </div>
+                          {isAlreadyAdded ? (
+                            <HugeiconsIcon icon={Tick02Icon} size={12} className="text-primary shrink-0 mt-0.5" />
+                          ) : (
+                            <HugeiconsIcon icon={Add01Icon} size={12} className="text-muted-foreground shrink-0 mt-0.5" />
+                          )}
+                        </button>
                       </div>
-                      {isAlreadyAdded ? (
-                        <HugeiconsIcon icon={Tick02Icon} size={12} className="text-primary shrink-0 mt-0.5" />
-                      ) : (
-                        <HugeiconsIcon icon={Add01Icon} size={12} className="text-muted-foreground shrink-0 mt-0.5" />
-                      )}
-                    </button>
-                  )
-                })
+                    )
+                  })}
+                </div>
               )}
             </div>
           </div>

@@ -1,0 +1,8 @@
+{
+  "title": "Generations",
+  "description": "Generations",
+  "pages": [
+    "v1/generations/get",
+    "v1/generations/id/get"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Forge",
+  "description": "Forge",
+  "pages": [
+    "v1/agents/agentid/forge/get",
+    "v1/agents/agentid/forge/post",
+    "v1/forge-runs/runid/get",
+    "v1/forge-runs/runid/apply/post",
+    "v1/forge-runs/runid/cancel/post",
+    "v1/forge-runs/runid/events/get",
+    "v1/forge-runs/runid/iterations/iterationid/evals/get",
+    "v1/forge-runs/runid/stream/get"
+  ]
+}

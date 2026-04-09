@@ -1,0 +1,11 @@
+{
+  "title": "Marketplace",
+  "description": "Marketplace",
+  "pages": [
+    "v1/marketplace/agents/get",
+    "v1/marketplace/agents/post",
+    "v1/marketplace/agents/id/delete",
+    "v1/marketplace/agents/id/put",
+    "v1/marketplace/agents/slug/get"
+  ]
+}

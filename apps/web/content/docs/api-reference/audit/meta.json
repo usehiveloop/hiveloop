@@ -1,0 +1,7 @@
+{
+  "title": "Audit",
+  "description": "Audit",
+  "pages": [
+    "v1/audit/get"
+  ]
+}

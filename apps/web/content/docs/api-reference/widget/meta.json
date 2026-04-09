@@ -1,0 +1,18 @@
+{
+  "title": "Widget",
+  "description": "Widget",
+  "pages": [
+    "v1/widget/connections/get",
+    "v1/widget/connections/post",
+    "v1/widget/connections/id/delete",
+    "v1/widget/connections/id/verify/post",
+    "v1/widget/integrations/get",
+    "v1/widget/integrations/id/connect-session/post",
+    "v1/widget/integrations/id/connections/post",
+    "v1/widget/integrations/id/connections/connectionid/patch",
+    "v1/widget/integrations/id/connections/connectionid/delete",
+    "v1/widget/integrations/id/resources/type/available/get",
+    "v1/widget/providers/get",
+    "v1/widget/session/get"
+  ]
+}

@@ -92,6 +92,7 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 		bridgeDir, bridgeDir,
 	))
 
+
 	// Working directory and entrypoint — start Bridge automatically
 	image = image.Workdir(daytonaHome)
 	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})

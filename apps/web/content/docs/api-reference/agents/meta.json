@@ -1,0 +1,13 @@
+{
+  "title": "Agents",
+  "description": "Agents",
+  "pages": [
+    "v1/agents/get",
+    "v1/agents/post",
+    "v1/agents/id/get",
+    "v1/agents/id/delete",
+    "v1/agents/id/put",
+    "v1/agents/id/setup/get",
+    "v1/agents/id/setup/put"
+  ]
+}
