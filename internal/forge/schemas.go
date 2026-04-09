@@ -2,6 +2,7 @@ package forge
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -283,23 +284,45 @@ func ParseEvalDesignerOutput(data string) (*EvalDesignerOutput, error) {
 }
 
 // ParseJudgeOutput parses a JSON string into JudgeOutput.
-// Strips markdown code fences if present (LLMs often wrap JSON in ```json ... ```).
+// Handles common LLM output formats: raw JSON, markdown-fenced JSON, or JSON
+// embedded in surrounding text/HTML.
 func ParseJudgeOutput(data string) (*JudgeOutput, error) {
 	cleaned := strings.TrimSpace(data)
-	if strings.HasPrefix(cleaned, "```") {
-		// Remove opening fence (```json or ```)
-		if idx := strings.Index(cleaned, "\n"); idx != -1 {
-			cleaned = cleaned[idx+1:]
-		}
-		// Remove closing fence
-		if idx := strings.LastIndex(cleaned, "```"); idx != -1 {
-			cleaned = cleaned[:idx]
-		}
-		cleaned = strings.TrimSpace(cleaned)
-	}
+
+	// Try raw parse first.
 	var out JudgeOutput
-	if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
-		return nil, err
+	if err := json.Unmarshal([]byte(cleaned), &out); err == nil {
+		return &out, nil
 	}
-	return &out, nil
+
+	// Strip markdown code fences.
+	if strings.Contains(cleaned, "```") {
+		inner := cleaned
+		if start := strings.Index(inner, "```"); start != -1 {
+			inner = inner[start+3:]
+			// Skip optional language tag (e.g., "json\n")
+			if idx := strings.Index(inner, "\n"); idx != -1 {
+				inner = inner[idx+1:]
+			}
+		}
+		if end := strings.LastIndex(inner, "```"); end != -1 {
+			inner = inner[:end]
+		}
+		inner = strings.TrimSpace(inner)
+		if err := json.Unmarshal([]byte(inner), &out); err == nil {
+			return &out, nil
+		}
+	}
+
+	// Extract JSON object between first { and last }.
+	firstBrace := strings.Index(cleaned, "{")
+	lastBrace := strings.LastIndex(cleaned, "}")
+	if firstBrace != -1 && lastBrace > firstBrace {
+		candidate := cleaned[firstBrace : lastBrace+1]
+		if err := json.Unmarshal([]byte(candidate), &out); err == nil {
+			return &out, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no valid JSON found in judge response (len=%d, prefix=%q)", len(data), data[:min(80, len(data))])
 }
