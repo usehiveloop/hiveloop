@@ -4250,14 +4250,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.",
+                "description": "Returns the most recent forge run for the agent, including iterations, eval results, eval cases, and events.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "forge"
                 ],
-                "summary": "List forge runs",
+                "summary": "Get latest forge run",
                 "parameters": [
                     {
                         "type": "string",
@@ -4271,11 +4271,17 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.forgeFullResponse"
+                            "$ref": "#/definitions/internal_handler.forgeGetRunResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -12739,17 +12745,6 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "internal_handler.forgeFullResponse": {
-            "type": "object",
-            "properties": {
-                "runs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.forgeGetRunResponse"
-                    }
                 }
             }
         },

@@ -1474,13 +1474,6 @@ definitions:
       success:
         type: boolean
     type: object
-  internal_handler.forgeFullResponse:
-    properties:
-      runs:
-        items:
-          $ref: '#/definitions/internal_handler.forgeGetRunResponse'
-        type: array
-    type: object
   internal_handler.forgeGetRunResponse:
     properties:
       eval_cases:
@@ -5689,8 +5682,8 @@ paths:
       - conversations
   /v1/agents/{agentID}/forge:
     get:
-      description: Returns all forge runs for the specified agent with iterations,
-        eval cases, eval results, and events.
+      description: Returns the most recent forge run for the agent, including iterations,
+        eval results, eval cases, and events.
       parameters:
       - description: Agent ID
         in: path
@@ -5703,14 +5696,18 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handler.forgeFullResponse'
+            $ref: '#/definitions/internal_handler.forgeGetRunResponse'
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
       security:
       - BearerAuth: []
-      summary: List forge runs
+      summary: Get latest forge run
       tags:
       - forge
     post:
