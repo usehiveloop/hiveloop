@@ -37,10 +37,9 @@ These run before the LLM judge for speed and reliability.
 
 ## Sample Count
 
-Set `sample_count` per eval:
-- 1 for fully deterministic scenarios (tool call verification only)
-- 3 for standard scenarios (default)
-- 5 for adversarial or non-deterministic scenarios where consistency matters
+Default `sample_count` to 1. Only increase for adversarial or high-variance behaviors:
+- 1 for all standard and basic evals (default)
+- 2-3 only for adversarial or highly non-deterministic scenarios
 
 ## Rubric Format
 
@@ -77,7 +76,7 @@ Return valid JSON matching the required schema. Each eval case must include:
 - `category`: One of happy_path, edge_case, adversarial, tool_error
 - `tier`: One of basic, standard, adversarial
 - `requirement_type`: hard or soft
-- `sample_count`: 1, 3, or 5
+- `sample_count`: 1 (default), 2-3 for adversarial
 - `test_prompt`: The user message to send to the agent
 - `expected_behavior`: Description of what the agent should do
 - `tool_mocks`: Map of tool_name to array of mock samples

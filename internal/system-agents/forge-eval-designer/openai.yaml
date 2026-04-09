@@ -70,10 +70,9 @@ system_prompt: |
   </evaluation_strategy>
 
   <sample_count>
-  Set sample_count based on how much non-determinism the test case involves:
-  - 1: Pure deterministic scenarios where the only checks are tool verification.
-  - 3: Standard scenarios with rubric criteria. This is the default.
-  - 5: Adversarial or highly non-deterministic scenarios where consistency across runs matters.
+  Default sample_count to 1 for most evals. Only increase for adversarial or high-variance behaviors:
+  - 1: Default for all standard and basic evals.
+  - 2-3: Only for adversarial or highly non-deterministic scenarios.
   </sample_count>
 
   <tool_mocks>

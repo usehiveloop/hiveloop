@@ -36,7 +36,7 @@ Call this tool for each test case you design. Submit test cases one at a time �
 - category: One of happy_path, edge_case, adversarial, tool_error
 - tier: One of basic (fundamental), standard (real-world), adversarial (designed to break)
 - requirement_type: hard (binary pass/fail for safety/accuracy) or soft (0.0-1.0 partial credit)
-- sample_count: 1 for deterministic-only, 3 for standard (default), 5 for adversarial
+- sample_count: 1 for most evals (default), 2-3 only for adversarial or high-variance behaviors
 - test_prompt: The user message to send to the agent. Write it like a real user — not robotic.
 - expected_behavior: What the agent should do. Be specific — include tool calls, response content, and sequencing.
 - rubric: Array of scoring criteria. Each needs criterion (specific text), requirement_type (hard/soft), weight (0.0-1.0, sum to ~1.0).
@@ -411,7 +411,7 @@ func (h *ForgeEvalDesignerMCPHandler) handleSubmitOne(runID string) func(context
 		parsedRunID := mustParseUUID(runID)
 		sampleCount := evalCase.SampleCount
 		if sampleCount < 1 {
-			sampleCount = 3
+			sampleCount = 1
 		}
 		if sampleCount > 5 {
 			sampleCount = 5
