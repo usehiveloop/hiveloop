@@ -2040,7 +2040,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		agentConv := model.AgentConversation{
 			ID:                   uuid.New(),
 			OrgID:                run.OrgID,
-			AgentID:              uuid.MustParse(iter.EvalTargetAgentID),
+			AgentID:              run.AgentID, // Use the real agent from DB, not Bridge-side eval target ID
 			SandboxID:            *iter.EvalTargetSandboxID,
 			BridgeConversationID: evalConvResp.ConversationId,
 			Status:               "active",
