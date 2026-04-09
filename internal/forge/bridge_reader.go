@@ -357,14 +357,20 @@ func GetMaxSequenceNumber(db *gorm.DB, conversationID uuid.UUID) int64 {
 
 // WaitForResponseFromRedis subscribes to a conversation's Redis stream and
 // waits for a response_completed event. Returns the full_response text.
-// This is the primary method for capturing forge agent responses — no SSE,
-// no DB polling. Events arrive via Bridge webhook → EventBus → Redis stream.
+// NOTE: This subscribes THEN waits. For cases where you need to subscribe
+// BEFORE sending a message (to avoid race conditions), use
+// eventBus.Subscribe() directly + waitForResponseFromChannel().
 func WaitForResponseFromRedis(ctx context.Context, eventBus *streaming.EventBus, conversationID string, timeout time.Duration) (string, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	ch := eventBus.Subscribe(timeoutCtx, conversationID, "$")
+	return waitForResponseFromChannel(ch, timeout)
+}
 
+// waitForResponseFromChannel reads events from a Redis stream subscription
+// channel and returns when a response_completed event is found.
+func waitForResponseFromChannel(ch <-chan streaming.StreamEvent, timeout time.Duration) (string, error) {
 	for event := range ch {
 		switch event.EventType {
 		case "response_completed":
@@ -383,8 +389,7 @@ func WaitForResponseFromRedis(ctx context.Context, eventBus *streaming.EventBus,
 				}
 			}
 			if eventData.FullResponse != "" {
-				slog.Info("WaitForResponseFromRedis: response captured",
-					"conversation_id", conversationID,
+				slog.Info("waitForResponseFromChannel: response captured",
 					"response_len", len(eventData.FullResponse),
 				)
 				return eventData.FullResponse, nil

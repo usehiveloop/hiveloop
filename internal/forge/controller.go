@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 	"github.com/ziraloop/ziraloop/internal/config"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
@@ -86,6 +87,7 @@ type ForgeController struct {
 	reader       *BridgeReader
 	events       *eventEmitter
 	inspector    *asynq.Inspector // for cancelling tasks
+	enqueuer     *asynq.Client   // for enqueuing eval_judge tasks
 }
 
 // evalTargetConfig returns agent config for the eval-target agent.
@@ -152,6 +154,7 @@ func NewForgeController(
 	}
 	if len(redisOpt) > 0 && redisOpt[0] != nil {
 		fc.inspector = asynq.NewInspector(redisOpt[0])
+		fc.enqueuer = asynq.NewClient(redisOpt[0])
 	}
 	return fc
 }
@@ -892,8 +895,10 @@ func (fc *ForgeController) runIteration(
 
 	archMessage := fc.buildArchitectMessage(run, iteration)
 
-	// Record current max sequence before sending, so we only pick up NEW events.
-	lastSeq := GetMaxSequenceNumber(fc.db, archAgentConvID)
+	// Subscribe to Redis BEFORE sending (to avoid race condition).
+	archTimeoutCtx, archCancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer archCancel()
+	archCh := fc.eventBus.Subscribe(archTimeoutCtx, archAgentConvID.String(), "$")
 
 	// Send message to architect (async — returns 202).
 	if err := archClient.SendMessage(ctx, run.ArchitectConversationID, archMessage); err != nil {
@@ -901,8 +906,8 @@ func (fc *ForgeController) runIteration(
 		return nil, fmt.Errorf("sending architect message: %w", err)
 	}
 
-	// Wait for response via DB events (webhook → flusher → postgres).
-	archResponse, err := WaitForResponseFromDB(ctx, fc.db, archAgentConvID, lastSeq, 5*time.Minute)
+	// Wait for response from Redis stream.
+	archResponse, err := waitForResponseFromChannel(archCh, 5*time.Minute)
 	if err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("architect response: %w", err)
@@ -1112,12 +1117,17 @@ evalPhase:
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("pushing eval target to pool: %w", err)
 	}
-	_ = evalTargetSb // used for cleanup
 	defer func() {
 		_ = evalTargetClient.RemoveAgentDefinition(ctx, evalTargetAgentID)
 	}()
 
-	// Create ForgeEvalResult records for each eval case in this iteration.
+	// Persist eval-target reference so eval_judge tasks can find it.
+	fc.db.Model(&iter).Updates(map[string]any{
+		"eval_target_agent_id":   evalTargetAgentID,
+		"eval_target_sandbox_id": evalTargetSb.ID,
+	})
+
+	// Create ForgeEvalResult records for each eval case.
 	var evalResults []model.ForgeEvalResult
 	for _, ec := range evalCases {
 		result := model.ForgeEvalResult{
@@ -1129,221 +1139,149 @@ evalPhase:
 		evalResults = append(evalResults, result)
 	}
 
-	log.Info("forge: phase=evaluating — running eval cases", "eval_result_count", len(evalResults))
-
-	// Run samples for each eval case.
-	for idx := range evalResults {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-		result := &evalResults[idx]
-
-		// Find the corresponding eval case.
-		var evalCase model.ForgeEvalCase
-		for _, ec := range evalCases {
-			if ec.ID == result.ForgeEvalCaseID {
-				evalCase = ec
+	if fc.enqueuer != nil {
+		// Production: enqueue eval_judge tasks via asynq (parallel, self-replenishing).
+		log.Info("forge: phase=evaluating — enqueuing eval_judge tasks", "eval_count", len(evalResults))
+		maxConcurrency := 3
+		enqueued := 0
+		for idx := range evalResults {
+			if enqueued >= maxConcurrency {
 				break
+			}
+			payload := tasks.ForgeEvalJudgePayload{
+				RunID:          run.ID,
+				IterationID:    iter.ID,
+				EvalResultID:   evalResults[idx].ID,
+				EvalCaseID:     evalResults[idx].ForgeEvalCaseID,
+				MaxConcurrency: maxConcurrency,
+			}
+			task, taskErr := tasks.NewForgeEvalJudgeTask(payload)
+			if taskErr != nil {
+				log.Error("forge: failed to create eval_judge task", "error", taskErr)
+				continue
+			}
+			if _, enqErr := fc.enqueuer.Enqueue(task); enqErr != nil {
+				log.Error("forge: failed to enqueue eval_judge task", "error", enqErr)
+			} else {
+				enqueued++
 			}
 		}
 
-		fc.events.emit(ctx, run.ID, EventEvalStarted, map[string]any{
-			"iteration":    iteration,
-			"eval_name":    evalCase.TestName,
-			"category":     evalCase.Category,
-			"tier":         evalCase.Tier,
-			"sample_count": evalCase.SampleCount,
-		})
-
-		// Mark result as running — the forge MCP server queries for this.
-		fc.db.Model(result).Update("status", model.ForgeEvalRunning)
-
-		sampleCount := evalCase.SampleCount
-		if sampleCount < 1 {
-			sampleCount = 1
-		}
-
-		var sampleResults []SampleResult
-		var allToolCalls []ToolCallInfo // aggregate tool calls across samples for deterministic checks
-		var lastResponse string
-
-		for s := 0; s < sampleCount; s++ {
+		// Wait for all eval results to complete (poll DB every 3 seconds).
+		log.Info("forge: waiting for eval_judge tasks to complete", "total", len(evalResults))
+		waitDeadline := time.Now().Add(30 * time.Minute)
+		for time.Now().Before(waitDeadline) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-
-			// Create conversation, send test prompt, read response.
-			evalConvResp, err := evalTargetClient.CreateConversation(ctx, evalTargetAgentID)
-			if err != nil {
-				log.Warn("eval conversation creation failed",
-					"eval_name", evalCase.TestName, "sample", s, "error", err)
-				sampleResults = append(sampleResults, SampleResult{
-					SampleIndex: s,
-					Passed:      false,
-					Score:       0,
-				})
-				continue
+			var pendingCount int64
+			fc.db.Model(&model.ForgeEvalResult{}).
+				Where("forge_iteration_id = ? AND status IN ?", iter.ID,
+					[]string{model.ForgeEvalPending, model.ForgeEvalRunning, model.ForgeEvalJudging}).
+				Count(&pendingCount)
+			if pendingCount == 0 {
+				break
 			}
-
-			bridgeResp, err := fc.reader.ReadFullResponseWithTools(ctx, evalTargetClient, evalConvResp.ConversationId, evalCase.TestPrompt)
-			_ = evalTargetClient.EndConversation(ctx, evalConvResp.ConversationId)
-
-			if err != nil {
-				log.Warn("eval execution failed",
-					"eval_name", evalCase.TestName, "sample", s, "error", err)
-				sampleResults = append(sampleResults, SampleResult{
-					SampleIndex: s,
-					Passed:      false,
-					Score:       0,
-				})
-				continue
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(3 * time.Second):
 			}
+		}
+	} else {
+		// Fallback (tests): run eval+judge inline sequentially using SSE.
+		log.Info("forge: phase=evaluating — running inline (no enqueuer)", "eval_count", len(evalResults))
+		for idx := range evalResults {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			result := &evalResults[idx]
+			var evalCase model.ForgeEvalCase
+			for _, ec := range evalCases {
+				if ec.ID == result.ForgeEvalCaseID {
+					evalCase = ec
+					break
+				}
+			}
+			fc.db.Model(result).Update("status", model.ForgeEvalRunning)
 
-			sampleResults = append(sampleResults, SampleResult{
-				SampleIndex: s,
-				Response:    bridgeResp.Text,
-				ToolCalls:   bridgeResp.ToolCalls,
+			sampleCount := evalCase.SampleCount
+			if sampleCount < 1 {
+				sampleCount = 1
+			}
+			var sampleResults []SampleResult
+			var allToolCalls []ToolCallInfo
+			var lastResponse string
+			for s := 0; s < sampleCount; s++ {
+				evalConvResp, convErr := evalTargetClient.CreateConversation(ctx, evalTargetAgentID)
+				if convErr != nil {
+					sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+					continue
+				}
+				bridgeResp, readErr := fc.reader.ReadFullResponseWithTools(ctx, evalTargetClient, evalConvResp.ConversationId, evalCase.TestPrompt)
+				_ = evalTargetClient.EndConversation(ctx, evalConvResp.ConversationId)
+				if readErr != nil {
+					sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+					continue
+				}
+				sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Response: bridgeResp.Text, ToolCalls: bridgeResp.ToolCalls})
+				allToolCalls = append(allToolCalls, bridgeResp.ToolCalls...)
+				lastResponse = bridgeResp.Text
+			}
+			var deterministicChecks []DeterministicCheck
+			if len(evalCase.DeterministicChecks) > 0 {
+				json.Unmarshal(evalCase.DeterministicChecks, &deterministicChecks)
+			}
+			var deterministicResults []DeterministicResult
+			if len(deterministicChecks) > 0 {
+				deterministicResults = RunDeterministicChecks(deterministicChecks, lastResponse, allToolCalls)
+			}
+			sampleResultsJSON, _ := json.Marshal(sampleResults)
+			deterministicJSON, _ := json.Marshal(deterministicResults)
+			fc.db.Model(result).Updates(map[string]any{
+				"sample_results": model.RawJSON(sampleResultsJSON), "deterministic_results": model.RawJSON(deterministicJSON), "status": model.ForgeEvalJudging,
 			})
 
-			// Track aggregate tool calls and last response for deterministic checks.
-			allToolCalls = append(allToolCalls, bridgeResp.ToolCalls...)
-			lastResponse = bridgeResp.Text
-		}
-
-		// Run deterministic checks before judge.
-		var deterministicChecks []DeterministicCheck
-		if len(evalCase.DeterministicChecks) > 0 {
-			json.Unmarshal(evalCase.DeterministicChecks, &deterministicChecks)
-		}
-
-		var deterministicResults []DeterministicResult
-		if len(deterministicChecks) > 0 {
-			deterministicResults = RunDeterministicChecks(deterministicChecks, lastResponse, allToolCalls)
-		}
-
-		// Persist sample results and deterministic results, move to judging.
-		sampleResultsJSON, _ := json.Marshal(sampleResults)
-		deterministicJSON, _ := json.Marshal(deterministicResults)
-		fc.db.Model(result).Updates(map[string]any{
-			"sample_results":       model.RawJSON(sampleResultsJSON),
-			"deterministic_results": model.RawJSON(deterministicJSON),
-			"status":               model.ForgeEvalJudging,
-		})
-		result.SampleResults = model.RawJSON(sampleResultsJSON)
-		result.DeterministicResults = model.RawJSON(deterministicJSON)
-
-		fc.events.emit(ctx, run.ID, EventEvalCompleted, map[string]any{
-			"iteration":       iteration,
-			"eval_name":       evalCase.TestName,
-			"sample_count":    sampleCount,
-			"samples_run":     len(sampleResults),
-			"det_checks_run":  len(deterministicResults),
-		})
-	}
-
-	log.Info("forge: phase=evaluating — all evals executed",
-		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
-	)
-
-	fc.db.Model(&iter).Update("phase", model.ForgePhaseJudging)
-	iter.Phase = model.ForgePhaseJudging
-
-	// PHASE: JUDGING
-	phaseStart = time.Now()
-	log.Info("forge: phase=judging — scoring eval results")
-
-	// Reload eval results with judging status.
-	var judgingResults []model.ForgeEvalResult
-	fc.db.Where("forge_iteration_id = ? AND status = ?", iter.ID, model.ForgeEvalJudging).Find(&judgingResults)
-	log.Info("forge: phase=judging — eval results to judge", "count", len(judgingResults))
-
-	// Create a judge conversation for this iteration.
-	judgeConv, err := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
-	if err != nil {
-		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
-		return nil, fmt.Errorf("creating judge conversation: %w", err)
-	}
-
-	for idx := range judgingResults {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-		result := &judgingResults[idx]
-
-		// Load the corresponding eval case.
-		var evalCase model.ForgeEvalCase
-		fc.db.Where("id = ?", result.ForgeEvalCaseID).First(&evalCase)
-
-		fc.events.emit(ctx, run.ID, EventJudgeStarted, map[string]any{
-			"iteration": iteration,
-			"eval_name": evalCase.TestName,
-		})
-
-		judgeMessage := fc.buildJudgeMessage(&evalCase, result)
-		judgeResponse, err := fc.reader.ReadFullResponse(ctx, judgeClient, judgeConv.ConversationId, judgeMessage)
-		if err != nil {
-			log.Warn("judge failed", "eval_name", evalCase.TestName, "error", err)
-			fc.db.Model(result).Update("status", model.ForgeEvalFailed)
-			continue
-		}
-
-		judgeOutput, err := ParseJudgeOutput(judgeResponse)
-		if err != nil {
-			log.Warn("judge returned invalid JSON", "eval_name", evalCase.TestName, "error", err)
-			fc.db.Model(result).Update("status", model.ForgeEvalFailed)
-			continue
-		}
-
-		// Compute pass rate from sample results.
-		var sampleResults []SampleResult
-		json.Unmarshal(result.SampleResults, &sampleResults)
-
-		samplesPassed := 0
-		for si := range sampleResults {
-			// Mark each sample based on judge score (passed if score >= 0.5).
-			sampleResults[si].Passed = judgeOutput.Passed
-			sampleResults[si].Score = judgeOutput.Score
-			if judgeOutput.Passed {
-				samplesPassed++
+			// Inline judge
+			judgeConvInline, judgeConvErr := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
+			if judgeConvErr != nil {
+				fc.db.Model(result).Update("status", model.ForgeEvalFailed)
+				continue
 			}
+			judgeMsg := fc.buildJudgeMessage(&evalCase, result)
+			judgeResp, judgeReadErr := fc.reader.ReadFullResponse(ctx, judgeClient, judgeConvInline.ConversationId, judgeMsg)
+			if judgeReadErr != nil {
+				fc.db.Model(result).Update("status", model.ForgeEvalFailed)
+				continue
+			}
+			judgeOutput, parseErr := ParseJudgeOutput(judgeResp)
+			if parseErr != nil {
+				fc.db.Model(result).Update("status", model.ForgeEvalFailed)
+				continue
+			}
+			samplesPassed := 0
+			for si := range sampleResults {
+				sampleResults[si].Passed = judgeOutput.Passed
+				sampleResults[si].Score = judgeOutput.Score
+				if judgeOutput.Passed {
+					samplesPassed++
+				}
+			}
+			var passRate float64
+			if len(sampleResults) > 0 {
+				passRate = float64(samplesPassed) / float64(len(sampleResults))
+			}
+			sampleResultsJSON, _ = json.Marshal(sampleResults)
+			rubricScoresJSON, _ := json.Marshal(judgeOutput.RubricScores)
+			fc.db.Model(result).Updates(map[string]any{
+				"score": judgeOutput.Score, "passed": judgeOutput.Passed, "failure_category": judgeOutput.FailureCategory,
+				"critique": judgeOutput.Critique, "rubric_scores": model.RawJSON(rubricScoresJSON),
+				"pass_rate": passRate, "sample_results": model.RawJSON(sampleResultsJSON), "status": model.ForgeEvalCompleted,
+			})
 		}
-		var passRate float64
-		if len(sampleResults) > 0 {
-			passRate = float64(samplesPassed) / float64(len(sampleResults))
-		}
-
-		sampleResultsJSON, _ := json.Marshal(sampleResults)
-		rubricScoresJSON, _ := json.Marshal(judgeOutput.RubricScores)
-		fc.db.Model(result).Updates(map[string]any{
-			"score":            judgeOutput.Score,
-			"passed":           judgeOutput.Passed,
-			"failure_category": judgeOutput.FailureCategory,
-			"critique":         judgeOutput.Critique,
-			"rubric_scores":    model.RawJSON(rubricScoresJSON),
-			"pass_rate":        passRate,
-			"sample_results":   model.RawJSON(sampleResultsJSON),
-			"status":           model.ForgeEvalCompleted,
-		})
-		result.Score = judgeOutput.Score
-		result.Passed = judgeOutput.Passed
-		result.FailureCategory = judgeOutput.FailureCategory
-		result.Critique = judgeOutput.Critique
-		result.PassRate = passRate
-		result.Status = model.ForgeEvalCompleted
-
-		fc.events.emit(ctx, run.ID, EventJudgeCompleted, map[string]any{
-			"iteration":        iteration,
-			"eval_name":        evalCase.TestName,
-			"score":            judgeOutput.Score,
-			"passed":           judgeOutput.Passed,
-			"pass_rate":        passRate,
-			"failure_category": judgeOutput.FailureCategory,
-		})
 	}
 
-	_ = judgeClient.EndConversation(ctx, judgeConv.ConversationId)
-
-	log.Info("forge: phase=judging — all evals judged",
+	log.Info("forge: phase=evaluating+judging — all evals completed",
 		"phase_elapsed_ms", time.Since(phaseStart).Milliseconds(),
 	)
 
@@ -1997,6 +1935,299 @@ func (fc *ForgeController) completeRun(ctx context.Context, run *model.ForgeRun,
 }
 
 // failRun marks a forge run as failed.
+// ExecuteEvalJudge runs ONE eval case end-to-end: eval target → judge → save score.
+// Called by the forge:eval_judge asynq task handler. Each task is self-contained
+// and self-replenishing — on completion, it enqueues the next pending eval.
+func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.ForgeEvalJudgePayload) {
+	log := slog.With("forge_run_id", payload.RunID, "eval_result_id", payload.EvalResultID)
+
+	// Load all required state from DB.
+	var run model.ForgeRun
+	if err := fc.db.Preload("Agent").Where("id = ?", payload.RunID).First(&run).Error; err != nil {
+		log.Error("eval_judge: failed to load run", "error", err)
+		return
+	}
+
+	var iter model.ForgeIteration
+	if err := fc.db.Where("id = ?", payload.IterationID).First(&iter).Error; err != nil {
+		log.Error("eval_judge: failed to load iteration", "error", err)
+		return
+	}
+
+	var evalCase model.ForgeEvalCase
+	if err := fc.db.Where("id = ?", payload.EvalCaseID).First(&evalCase).Error; err != nil {
+		log.Error("eval_judge: failed to load eval case", "error", err)
+		return
+	}
+
+	var evalResult model.ForgeEvalResult
+	if err := fc.db.Where("id = ?", payload.EvalResultID).First(&evalResult).Error; err != nil {
+		log.Error("eval_judge: failed to load eval result", "error", err)
+		return
+	}
+
+	// Get Bridge client for the eval-target sandbox.
+	if iter.EvalTargetSandboxID == nil {
+		log.Error("eval_judge: no eval target sandbox")
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+	var sandbox model.Sandbox
+	if err := fc.db.Where("id = ?", *iter.EvalTargetSandboxID).First(&sandbox).Error; err != nil {
+		log.Error("eval_judge: failed to load sandbox", "error", err)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+	evalTargetClient, err := fc.orchestrator.GetBridgeClient(ctx, &sandbox)
+	if err != nil {
+		log.Error("eval_judge: failed to get bridge client", "error", err)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	log.Info("eval_judge: starting", "eval_name", evalCase.TestName)
+	fc.db.Model(&evalResult).Update("status", model.ForgeEvalRunning)
+
+	// ── EVAL PHASE: run samples ──
+	sampleCount := evalCase.SampleCount
+	if sampleCount < 1 {
+		sampleCount = 1
+	}
+
+	var sampleResults []SampleResult
+	var allToolCalls []ToolCallInfo
+	var lastResponse string
+
+	for s := 0; s < sampleCount; s++ {
+		if ctx.Err() != nil {
+			fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+			fc.selfReplenish(ctx, payload)
+			return
+		}
+
+		// Create conversation + AgentConversation record.
+		evalConvResp, convErr := evalTargetClient.CreateConversation(ctx, iter.EvalTargetAgentID)
+		if convErr != nil {
+			log.Warn("eval_judge: eval conversation failed", "sample", s, "error", convErr)
+			sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+			continue
+		}
+
+		agentConv := model.AgentConversation{
+			OrgID:                run.OrgID,
+			AgentID:              uuid.MustParse(iter.EvalTargetAgentID),
+			SandboxID:            *iter.EvalTargetSandboxID,
+			BridgeConversationID: evalConvResp.ConversationId,
+			Status:               "active",
+		}
+		fc.db.Create(&agentConv)
+
+		// Subscribe BEFORE sending to avoid race condition.
+		evalTimeoutCtx, evalCancel := context.WithTimeout(ctx, 3*time.Minute)
+		evalCh := fc.eventBus.Subscribe(evalTimeoutCtx, agentConv.ID.String(), "$")
+
+		// Send test prompt.
+		if sendErr := evalTargetClient.SendMessage(ctx, evalConvResp.ConversationId, evalCase.TestPrompt); sendErr != nil {
+			evalCancel()
+			log.Warn("eval_judge: send message failed", "sample", s, "error", sendErr)
+			sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+			continue
+		}
+
+		// Wait for response via Redis.
+		responseText, waitErr := waitForResponseFromChannel(evalCh, 3*time.Minute)
+		evalCancel()
+		if waitErr != nil {
+			log.Warn("eval_judge: wait for response failed", "sample", s, "error", waitErr)
+			sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+			continue
+		}
+
+		// TODO: extract tool calls from events (for now, text only)
+		sampleResults = append(sampleResults, SampleResult{
+			SampleIndex: s,
+			Response:    responseText,
+		})
+		allToolCalls = append(allToolCalls) // tool calls not yet captured from events
+		lastResponse = responseText
+	}
+
+	// Run deterministic checks.
+	var deterministicChecks []DeterministicCheck
+	if len(evalCase.DeterministicChecks) > 0 {
+		json.Unmarshal(evalCase.DeterministicChecks, &deterministicChecks)
+	}
+	var deterministicResults []DeterministicResult
+	if len(deterministicChecks) > 0 {
+		deterministicResults = RunDeterministicChecks(deterministicChecks, lastResponse, allToolCalls)
+	}
+
+	// Save eval results.
+	sampleResultsJSON, _ := json.Marshal(sampleResults)
+	deterministicJSON, _ := json.Marshal(deterministicResults)
+	fc.db.Model(&evalResult).Updates(map[string]any{
+		"sample_results":        model.RawJSON(sampleResultsJSON),
+		"deterministic_results": model.RawJSON(deterministicJSON),
+		"status":                model.ForgeEvalJudging,
+	})
+
+	// ── JUDGE PHASE ──
+	// Load judge system agent.
+	providerGroup := systemagents.MapProviderToGroup(run.JudgeCredentialID.String())
+	// Actually we need the provider ID, not the credential ID. Load the credential.
+	var judgeCred model.Credential
+	if err := fc.db.Where("id = ?", run.JudgeCredentialID).First(&judgeCred).Error; err != nil {
+		log.Error("eval_judge: failed to load judge credential", "error", err)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+	providerGroup = systemagents.MapProviderToGroup(judgeCred.ProviderID)
+	judgeAgent, loadErr := fc.loadSystemAgent(fmt.Sprintf("forge-judge-%s", providerGroup))
+	if loadErr != nil {
+		log.Error("eval_judge: failed to load judge agent", "error", loadErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	judgeClient, judgeErr := fc.ensureSystemAgentReady(ctx, judgeAgent)
+	if judgeErr != nil {
+		log.Error("eval_judge: failed to prepare judge", "error", judgeErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	// Mint judge token and create conversation.
+	judgeToken, _, tokenErr := fc.mintToken(run.OrgID, judgeCred.ID)
+	if tokenErr != nil {
+		log.Error("eval_judge: failed to mint judge token", "error", tokenErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	judgeOverride := fc.buildProviderOverride(&judgeCred, judgeToken)
+	judgeConv, judgeConvErr := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
+	if judgeConvErr != nil {
+		log.Error("eval_judge: failed to create judge conversation", "error", judgeConvErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	// Create AgentConversation for judge so webhooks are stored.
+	judgeAgentConv := model.AgentConversation{
+		OrgID:                run.OrgID,
+		AgentID:              judgeAgent.ID,
+		SandboxID:            *judgeAgent.SandboxID,
+		BridgeConversationID: judgeConv.ConversationId,
+		Status:               "active",
+	}
+	fc.db.Create(&judgeAgentConv)
+
+	// Subscribe BEFORE sending to avoid race condition.
+	judgeTimeoutCtx, judgeCancel := context.WithTimeout(ctx, 3*time.Minute)
+	judgeCh := fc.eventBus.Subscribe(judgeTimeoutCtx, judgeAgentConv.ID.String(), "$")
+
+	// Send judge message.
+	judgeMessage := fc.buildJudgeMessage(&evalCase, &evalResult)
+	if sendErr := judgeClient.SendMessage(ctx, judgeConv.ConversationId, judgeMessage); sendErr != nil {
+		judgeCancel()
+		log.Error("eval_judge: failed to send judge message", "error", sendErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	judgeResponse, waitErr := waitForResponseFromChannel(judgeCh, 3*time.Minute)
+	judgeCancel()
+	if waitErr != nil {
+		log.Warn("eval_judge: judge response failed", "eval_name", evalCase.TestName, "error", waitErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	judgeOutput, parseErr := ParseJudgeOutput(judgeResponse)
+	if parseErr != nil {
+		log.Warn("eval_judge: judge returned invalid JSON", "eval_name", evalCase.TestName, "error", parseErr)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
+
+	// Compute pass rate.
+	samplesPassed := 0
+	for si := range sampleResults {
+		sampleResults[si].Passed = judgeOutput.Passed
+		sampleResults[si].Score = judgeOutput.Score
+		if judgeOutput.Passed {
+			samplesPassed++
+		}
+	}
+	var passRate float64
+	if len(sampleResults) > 0 {
+		passRate = float64(samplesPassed) / float64(len(sampleResults))
+	}
+
+	sampleResultsJSON, _ = json.Marshal(sampleResults)
+	rubricScoresJSON, _ := json.Marshal(judgeOutput.RubricScores)
+	fc.db.Model(&evalResult).Updates(map[string]any{
+		"score":            judgeOutput.Score,
+		"passed":           judgeOutput.Passed,
+		"failure_category": judgeOutput.FailureCategory,
+		"critique":         judgeOutput.Critique,
+		"rubric_scores":    model.RawJSON(rubricScoresJSON),
+		"pass_rate":        passRate,
+		"sample_results":   model.RawJSON(sampleResultsJSON),
+		"status":           model.ForgeEvalCompleted,
+	})
+
+	log.Info("eval_judge: completed",
+		"eval_name", evalCase.TestName,
+		"score", judgeOutput.Score,
+		"passed", judgeOutput.Passed,
+	)
+
+	// Self-replenish: enqueue the next pending eval.
+	fc.selfReplenish(ctx, payload)
+}
+
+// selfReplenish checks for pending eval results and enqueues the next one.
+func (fc *ForgeController) selfReplenish(ctx context.Context, payload tasks.ForgeEvalJudgePayload) {
+	if fc.enqueuer == nil {
+		return
+	}
+
+	var nextResult model.ForgeEvalResult
+	err := fc.db.Where("forge_iteration_id = ? AND status = ?", payload.IterationID, model.ForgeEvalPending).
+		Order("id ASC").First(&nextResult).Error
+	if err != nil {
+		return // no more pending — all done
+	}
+
+	nextPayload := tasks.ForgeEvalJudgePayload{
+		RunID:          payload.RunID,
+		IterationID:    payload.IterationID,
+		EvalResultID:   nextResult.ID,
+		EvalCaseID:     nextResult.ForgeEvalCaseID,
+		MaxConcurrency: payload.MaxConcurrency,
+	}
+	task, taskErr := tasks.NewForgeEvalJudgeTask(nextPayload)
+	if taskErr != nil {
+		slog.Error("selfReplenish: failed to create task", "error", taskErr)
+		return
+	}
+	if _, enqErr := fc.enqueuer.Enqueue(task); enqErr != nil {
+		slog.Error("selfReplenish: failed to enqueue", "error", enqErr)
+	}
+}
+
 func (fc *ForgeController) failRun(runID uuid.UUID, errMsg string) {
 	slog.Error("forge: run failed", "forge_run_id", runID, "error", errMsg)
 	fc.db.Model(&model.ForgeRun{}).Where("id = ?", runID).Updates(map[string]any{

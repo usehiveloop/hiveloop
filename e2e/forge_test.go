@@ -34,6 +34,7 @@ import (
 type MockBridgeServer struct {
 	mu              sync.Mutex
 	db              *gorm.DB
+	eventBus        *streaming.EventBus
 	server          *httptest.Server
 	agents          map[string]json.RawMessage // agentID -> definition
 	conversations   map[string]string          // convID -> agentID
@@ -43,9 +44,10 @@ type MockBridgeServer struct {
 	seqCounters     map[string]int64           // convID -> sequence counter
 }
 
-func NewMockBridgeServer(db *gorm.DB) *MockBridgeServer {
+func NewMockBridgeServer(db *gorm.DB, eventBus *streaming.EventBus) *MockBridgeServer {
 	m := &MockBridgeServer{
 		db:              db,
+		eventBus:        eventBus,
 		agents:          make(map[string]json.RawMessage),
 		conversations:   make(map[string]string),
 		messages:        make(map[string][]string),
@@ -168,6 +170,10 @@ func NewMockBridgeServer(db *gorm.DB) *MockBridgeServer {
 					Data:                 model.RawJSON(eventData),
 				}
 				m.db.Create(&event)
+				// Publish to Redis for WaitForResponseFromRedis
+				if m.eventBus != nil {
+					m.eventBus.Publish(context.Background(), agentConv.ID.String(), "response_completed", json.RawMessage(eventData))
+				}
 			}
 		}
 
@@ -423,8 +429,11 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 		t.Fatalf("create agent: %v", err)
 	}
 
+	// EventBus (created before mock bridge so it can publish events)
+	eventBus := streaming.NewEventBus(rc)
+
 	// Start MockBridgeServer
-	mockBridge := NewMockBridgeServer(db)
+	mockBridge := NewMockBridgeServer(db, eventBus)
 
 	// Create a shared pool sandbox pointing to MockBridgeServer.
 	apiKey := "test-bridge-api-key"
@@ -447,9 +456,6 @@ func newForgeTestHarness(t *testing.T) *forgeTestHarness {
 	// Create mock orchestrator and pusher
 	mockOrchestrator := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
 	mockPusher := &MockForgePusher{}
-
-	// EventBus
-	eventBus := streaming.NewEventBus(rc)
 
 	// Config
 	cfg := &config.Config{
@@ -666,7 +672,7 @@ func TestForge_HappyPath_ThresholdMet(t *testing.T) {
 	queueGlobal := &globalResponseQueue{}
 
 	// Override the mock bridge's stream handler to use the global queue.
-	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db)
+	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db, h.eventBus)
 	defer mockBridge.Close()
 
 	// Replace the controller's orchestrator to use the new mock bridge.
@@ -819,7 +825,7 @@ func TestForge_Convergence(t *testing.T) {
 	})
 
 	queueGlobal := &globalResponseQueue{}
-	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db)
+	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db, h.eventBus)
 	defer mockBridge.Close()
 
 	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
@@ -887,7 +893,7 @@ func TestForge_MaxIterations(t *testing.T) {
 	})
 
 	queueGlobal := &globalResponseQueue{}
-	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db)
+	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db, h.eventBus)
 	defer mockBridge.Close()
 
 	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
@@ -955,7 +961,7 @@ func TestForge_EvalDesigner_OnlyRunsOnce(t *testing.T) {
 	})
 
 	queueGlobal := &globalResponseQueue{}
-	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db)
+	mockBridge := NewMockBridgeServerWithGlobalQueue(queueGlobal, h.db, h.eventBus)
 	defer mockBridge.Close()
 
 	mockOrch := &MockForgeOrchestrator{bridgeURL: mockBridge.URL()}
@@ -1071,9 +1077,10 @@ func (q *globalResponseQueue) Pop() string {
 
 // NewMockBridgeServerWithGlobalQueue creates a mock bridge server that
 // uses a global FIFO response queue instead of per-agent queues.
-func NewMockBridgeServerWithGlobalQueue(queue *globalResponseQueue, db *gorm.DB) *MockBridgeServer {
+func NewMockBridgeServerWithGlobalQueue(queue *globalResponseQueue, db *gorm.DB, eventBus *streaming.EventBus) *MockBridgeServer {
 	m := &MockBridgeServer{
 		db:              db,
+		eventBus:        eventBus,
 		agents:          make(map[string]json.RawMessage),
 		conversations:   make(map[string]string),
 		messages:        make(map[string][]string),
@@ -1189,6 +1196,9 @@ func NewMockBridgeServerWithGlobalQueue(queue *globalResponseQueue, db *gorm.DB)
 					Data:                 model.RawJSON(eventData),
 				}
 				m.db.Create(&event)
+				if m.eventBus != nil {
+					m.eventBus.Publish(context.Background(), agentConv.ID.String(), "response_completed", json.RawMessage(eventData))
+				}
 			}
 		}
 

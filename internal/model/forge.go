@@ -147,6 +147,10 @@ type ForgeIteration struct {
 	// Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed.
 	Phase string `gorm:"not null;default:'designing'" json:"phase"`
 
+	// Eval-target agent reference — set during the evaluating phase so eval_judge tasks can find it.
+	EvalTargetAgentID   string     `gorm:"default:''" json:"-"`
+	EvalTargetSandboxID *uuid.UUID `gorm:"type:uuid" json:"-"`
+
 	// Architect output — persisted after designing phase.
 	SystemPrompt       string  `gorm:"type:text" json:"system_prompt,omitempty"`
 	Tools              RawJSON `gorm:"type:jsonb" json:"tools,omitempty"`

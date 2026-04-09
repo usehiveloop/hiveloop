@@ -67,6 +67,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		)
 		workerDeps.ForgeExecute = forgeCtrl.Execute
 		workerDeps.ForgeDesignEvals = forgeCtrl.DesignEvals
+		workerDeps.ForgeEvalJudge = forgeCtrl.ExecuteEvalJudge
 		slog.Info("forge controller ready (worker)")
 	}
 	mux := tasks.NewServeMux(workerDeps)
