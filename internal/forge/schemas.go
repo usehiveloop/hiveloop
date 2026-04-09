@@ -1,6 +1,9 @@
 package forge
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 // ArchitectOutput is the fixed schema returned by the architect agent.
 // It defines the target agent's system prompt, tools, and configuration.
@@ -280,9 +283,22 @@ func ParseEvalDesignerOutput(data string) (*EvalDesignerOutput, error) {
 }
 
 // ParseJudgeOutput parses a JSON string into JudgeOutput.
+// Strips markdown code fences if present (LLMs often wrap JSON in ```json ... ```).
 func ParseJudgeOutput(data string) (*JudgeOutput, error) {
+	cleaned := strings.TrimSpace(data)
+	if strings.HasPrefix(cleaned, "```") {
+		// Remove opening fence (```json or ```)
+		if idx := strings.Index(cleaned, "\n"); idx != -1 {
+			cleaned = cleaned[idx+1:]
+		}
+		// Remove closing fence
+		if idx := strings.LastIndex(cleaned, "```"); idx != -1 {
+			cleaned = cleaned[:idx]
+		}
+		cleaned = strings.TrimSpace(cleaned)
+	}
 	var out JudgeOutput
-	if err := json.Unmarshal([]byte(data), &out); err != nil {
+	if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
