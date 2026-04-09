@@ -1,0 +1,13 @@
+{
+  "title": "Oauth",
+  "description": "OAuth",
+  "pages": [
+    "oauth/exchange/post",
+    "oauth/github/get",
+    "oauth/github/callback/get",
+    "oauth/google/get",
+    "oauth/google/callback/get",
+    "oauth/x/get",
+    "oauth/x/callback/get"
+  ]
+}

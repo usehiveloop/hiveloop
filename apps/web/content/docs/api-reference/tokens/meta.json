@@ -1,0 +1,9 @@
+{
+  "title": "Tokens",
+  "description": "Tokens",
+  "pages": [
+    "v1/tokens/get",
+    "v1/tokens/post",
+    "v1/tokens/jti/delete"
+  ]
+}

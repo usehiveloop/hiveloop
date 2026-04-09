@@ -1,0 +1,11 @@
+{
+  "title": "Identities",
+  "description": "Identities",
+  "pages": [
+    "v1/identities/get",
+    "v1/identities/post",
+    "v1/identities/id/get",
+    "v1/identities/id/delete",
+    "v1/identities/id/put"
+  ]
+}

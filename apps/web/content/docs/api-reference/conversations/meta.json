@@ -1,0 +1,16 @@
+{
+  "title": "Conversations",
+  "description": "Conversations",
+  "pages": [
+    "v1/agents/agentid/conversations/get",
+    "v1/agents/agentid/conversations/post",
+    "v1/conversations/convid/get",
+    "v1/conversations/convid/delete",
+    "v1/conversations/convid/abort/post",
+    "v1/conversations/convid/approvals/get",
+    "v1/conversations/convid/approvals/requestid/post",
+    "v1/conversations/convid/events/get",
+    "v1/conversations/convid/messages/post",
+    "v1/conversations/convid/stream/get"
+  ]
+}

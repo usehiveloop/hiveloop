@@ -1,0 +1,9 @@
+{
+  "title": "Api keys",
+  "description": "API Keys",
+  "pages": [
+    "v1/api-keys/get",
+    "v1/api-keys/post",
+    "v1/api-keys/id/delete"
+  ]
+}

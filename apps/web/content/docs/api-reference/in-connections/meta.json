@@ -1,0 +1,10 @@
+{
+  "title": "In connections",
+  "description": "Internal Connections",
+  "pages": [
+    "v1/in/connections/get",
+    "v1/in/connections/id/delete",
+    "v1/in/integrations/id/connect-session/post",
+    "v1/in/integrations/id/connections/post"
+  ]
+}

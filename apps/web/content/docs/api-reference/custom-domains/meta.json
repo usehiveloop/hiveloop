@@ -1,0 +1,10 @@
+{
+  "title": "Custom domains",
+  "description": "Custom Domains",
+  "pages": [
+    "v1/custom-domains/get",
+    "v1/custom-domains/post",
+    "v1/custom-domains/id/delete",
+    "v1/custom-domains/id/verify/post"
+  ]
+}
