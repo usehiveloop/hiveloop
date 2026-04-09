@@ -160,8 +160,35 @@ func (h *ForgeHandler) buildFullRunResponse(run model.ForgeRun) forgeGetRunRespo
 		}
 	}
 
+	// Compute token totals from conversation events.
+	// For each conversation, the last turn_completed event has cumulative totals.
+	// Sum those across all conversations created during this forge run.
+	var tokenTotals struct {
+		InputTokens  int64
+		OutputTokens int64
+	}
+	h.db.Raw(`
+		SELECT
+			COALESCE(SUM((last_turn.data->>'cumulative_input_tokens')::bigint), 0) AS input_tokens,
+			COALESCE(SUM((last_turn.data->>'cumulative_output_tokens')::bigint), 0) AS output_tokens
+		FROM (
+			SELECT DISTINCT ON (ce.conversation_id)
+				ce.data
+			FROM conversation_events ce
+			JOIN agent_conversations ac ON ac.id = ce.conversation_id
+			WHERE ac.org_id = ?
+			  AND ac.created_at >= ?
+			  AND ce.event_type = 'turn_completed'
+			ORDER BY ce.conversation_id, ce.sequence_number DESC
+		) last_turn
+	`, run.OrgID, run.CreatedAt).Scan(&tokenTotals)
+
+	runResp := toForgeRunResponse(run)
+	runResp.TotalInputTokens = int(tokenTotals.InputTokens)
+	runResp.TotalOutputTokens = int(tokenTotals.OutputTokens)
+
 	return forgeGetRunResponse{
-		Run:        toForgeRunResponse(run),
+		Run:        runResp,
 		Iterations: iterResponses,
 		EvalCases:  evalCases,
 		Events:     events,
