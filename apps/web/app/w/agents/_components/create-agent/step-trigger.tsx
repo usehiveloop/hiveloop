@@ -39,6 +39,7 @@ interface TriggerSelection {
   triggerDisplayNames: string[]
   refs: Record<string, string>
   contextActions: ContextActionConfig[]
+  prompt: string
 }
 
 export function StepTrigger() {
@@ -53,6 +54,7 @@ export function StepTrigger() {
   const [selectedTriggerNames, setSelectedTriggerNames] = useState<string[]>([])
   const [mergedRefs, setMergedRefs] = useState<Record<string, string>>({})
   const [contextActions, setContextActions] = useState<ContextActionConfig[]>([])
+  const [triggerPrompt, setTriggerPrompt] = useState("")
   const [triggerSelection, setTriggerSelection] = useState<TriggerSelection | null>(null)
   const [search, setSearch] = useState("")
   const navDirection = useRef<1 | -1>(1)
@@ -96,8 +98,10 @@ export function StepTrigger() {
     navigateTo("context")
   }
 
-  function handleConfirmTrigger() {
+  function handleConfirmTrigger(parsedActions: ContextActionConfig[], parsedPrompt: string) {
     if (!selectedConnection || selectedTriggerKeys.length === 0) return
+    setContextActions(parsedActions)
+    setTriggerPrompt(parsedPrompt)
     setTriggerSelection({
       connectionId: selectedConnection.id,
       connectionName: selectedConnection.name,
@@ -105,7 +109,8 @@ export function StepTrigger() {
       triggerKeys: selectedTriggerKeys,
       triggerDisplayNames: selectedTriggerNames,
       refs: mergedRefs,
-      contextActions,
+      contextActions: parsedActions,
+      prompt: parsedPrompt,
     })
     navigateTo("choice")
   }
@@ -117,6 +122,7 @@ export function StepTrigger() {
     setSelectedTriggerNames([])
     setMergedRefs({})
     setContextActions([])
+    setTriggerPrompt("")
   }
 
   return (
@@ -165,9 +171,10 @@ export function StepTrigger() {
             <ContextConfigView
               provider={selectedConnection.provider}
               triggerDisplayNames={selectedTriggerNames}
+              triggerKeys={selectedTriggerKeys}
               refs={mergedRefs}
               contextActions={contextActions}
-              onSetContextActions={setContextActions}
+              prompt={triggerPrompt}
               onConfirm={handleConfirmTrigger}
               onBack={() => navigateTo("triggers")}
             />
@@ -473,88 +480,146 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, s
 interface ContextConfigViewProps {
   provider: string
   triggerDisplayNames: string[]
+  triggerKeys: string[]
   refs: Record<string, string>
   contextActions: ContextActionConfig[]
-  onSetContextActions: (actions: ContextActionConfig[]) => void
-  onConfirm: () => void
+  prompt: string
+  onConfirm: (actions: ContextActionConfig[], prompt: string) => void
   onBack: () => void
 }
 
-function contextActionsToYaml(actions: ContextActionConfig[]): string {
-  if (actions.length === 0) return "context:\n  # Add context actions here\n  # Example:\n  # - as: issue\n  #   action: issues_get\n  #   ref: issue\n"
-  const lines = ["context:"]
-  for (const action of actions) {
-    lines.push(`  - as: ${action.as}`)
-    lines.push(`    action: ${action.action}`)
-    if (action.ref) {
-      lines.push(`    ref: ${action.ref}`)
-    }
-    if (action.params && Object.keys(action.params).length > 0) {
-      lines.push("    params:")
-      for (const [key, value] of Object.entries(action.params)) {
-        const stringValue = String(value)
-        if (stringValue.includes("{{") || stringValue.includes(" ")) {
-          lines.push(`      ${key}: "${stringValue}"`)
-        } else {
-          lines.push(`      ${key}: ${stringValue}`)
+interface ParsedRecipe {
+  context: ContextActionConfig[]
+  prompt: string
+}
+
+function recipeToYaml(actions: ContextActionConfig[], prompt: string, triggerKeys: string[], refs: Record<string, string>): string {
+  const lines: string[] = []
+
+  // Context section.
+  if (actions.length === 0) {
+    lines.push("context:")
+    lines.push("  # - as: issue")
+    lines.push("  #   action: issues_get")
+    lines.push("  #   ref: issue")
+  } else {
+    lines.push("context:")
+    for (const action of actions) {
+      lines.push(`  - as: ${action.as}`)
+      lines.push(`    action: ${action.action}`)
+      if (action.ref) lines.push(`    ref: ${action.ref}`)
+      if (action.params && Object.keys(action.params).length > 0) {
+        lines.push("    params:")
+        for (const [key, value] of Object.entries(action.params)) {
+          const stringValue = String(value)
+          if (stringValue.includes("{{") || stringValue.includes(" ")) {
+            lines.push(`      ${key}: "${stringValue}"`)
+          } else {
+            lines.push(`      ${key}: ${stringValue}`)
+          }
         }
       }
-    }
-    if (action.optional) {
-      lines.push("    optional: true")
+      if (action.optional) lines.push("    optional: true")
     }
   }
+
+  lines.push("")
+
+  // Prompt section.
+  if (prompt) {
+    lines.push("prompt: |")
+    for (const promptLine of prompt.split("\n")) {
+      lines.push(`  ${promptLine}`)
+    }
+  } else {
+    // Generate starter prompt from trigger context.
+    const eventNames = triggerKeys.map((key) => key.split(".").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")).join(" / ")
+    const refNames = Object.keys(refs)
+    const hasIssue = refNames.includes("issue_number")
+    const hasPR = refNames.includes("pull_number")
+
+    lines.push("prompt: |")
+    lines.push(`  You are an automation agent for $refs.repository.`)
+    lines.push("")
+    lines.push(`  ## Triggering Event`)
+    lines.push(`  ${eventNames}`)
+    lines.push("")
+    if (hasIssue) {
+      lines.push("  ## Issue")
+      lines.push("  **{{$issue.title}}**")
+      lines.push("  {{$issue.body}}")
+      lines.push("")
+    }
+    if (hasPR) {
+      lines.push("  ## Pull Request")
+      lines.push("  **{{$pr.title}}**")
+      lines.push("  {{$pr.body}}")
+      lines.push("")
+    }
+    lines.push("  Analyze the event and take appropriate action.")
+  }
+
   return lines.join("\n") + "\n"
 }
 
-function yamlToContextActions(yamlText: string): ContextActionConfig[] | null {
+function parseRecipeYaml(yamlText: string): ParsedRecipe | null {
   try {
     const actions: ContextActionConfig[] = []
     const lines = yamlText.split("\n")
     let currentAction: Partial<ContextActionConfig> | null = null
     let inParams = false
+    let section: "none" | "context" | "prompt" = "none"
+    let inPromptBlock = false
+    const promptLines: string[] = []
+
+    function flushAction() {
+      if (currentAction?.as && currentAction?.action) {
+        actions.push({ as: currentAction.as, action: currentAction.action, actionDisplayName: currentAction.action, ref: currentAction.ref, params: currentAction.params, optional: currentAction.optional })
+      }
+      currentAction = null
+      inParams = false
+    }
 
     for (const rawLine of lines) {
       const line = rawLine.trimEnd()
       const trimmed = line.trim()
 
-      if (trimmed === "" || trimmed.startsWith("#") || trimmed === "context:") continue
+      if (trimmed === "context:") { flushAction(); section = "context"; inPromptBlock = false; continue }
+      if (trimmed.startsWith("prompt:")) {
+        flushAction()
+        section = "prompt"
+        inPromptBlock = true
+        const inlineValue = trimmed.slice("prompt:".length).trim()
+        if (inlineValue && inlineValue !== "|") promptLines.push(inlineValue)
+        continue
+      }
+
+      if (section === "prompt" && inPromptBlock) {
+        if (line.startsWith("  ")) { promptLines.push(line.slice(2)); continue }
+        if (trimmed === "") { promptLines.push(""); continue }
+        inPromptBlock = false
+        continue
+      }
+
+      if (section !== "context") continue
+      if (trimmed === "" || trimmed.startsWith("#")) continue
 
       if (trimmed.startsWith("- as:")) {
-        if (currentAction?.as && currentAction?.action) {
-          actions.push({
-            as: currentAction.as,
-            action: currentAction.action,
-            actionDisplayName: currentAction.action,
-            ref: currentAction.ref,
-            params: currentAction.params,
-            optional: currentAction.optional,
-          })
-        }
+        flushAction()
         currentAction = { as: trimmed.replace("- as:", "").trim() }
-        inParams = false
         continue
       }
 
       if (!currentAction) continue
 
-      if (trimmed.startsWith("action:")) {
-        currentAction.action = trimmed.replace("action:", "").trim()
-        inParams = false
-      } else if (trimmed.startsWith("ref:")) {
-        currentAction.ref = trimmed.replace("ref:", "").trim()
-        inParams = false
-      } else if (trimmed.startsWith("optional:")) {
-        currentAction.optional = trimmed.replace("optional:", "").trim() === "true"
-        inParams = false
-      } else if (trimmed === "params:") {
-        currentAction.params = {}
-        inParams = true
-      } else if (inParams && trimmed.includes(":")) {
+      if (trimmed.startsWith("action:")) { currentAction.action = trimmed.replace("action:", "").trim(); inParams = false }
+      else if (trimmed.startsWith("ref:")) { currentAction.ref = trimmed.replace("ref:", "").trim(); inParams = false }
+      else if (trimmed.startsWith("optional:")) { currentAction.optional = trimmed.replace("optional:", "").trim() === "true"; inParams = false }
+      else if (trimmed === "params:") { currentAction.params = {}; inParams = true }
+      else if (inParams && trimmed.includes(":")) {
         const colonIndex = trimmed.indexOf(":")
         const paramKey = trimmed.slice(0, colonIndex).trim()
         let paramValue = trimmed.slice(colonIndex + 1).trim()
-        // Strip surrounding quotes.
         if ((paramValue.startsWith('"') && paramValue.endsWith('"')) || (paramValue.startsWith("'") && paramValue.endsWith("'"))) {
           paramValue = paramValue.slice(1, -1)
         }
@@ -563,19 +628,10 @@ function yamlToContextActions(yamlText: string): ContextActionConfig[] | null {
       }
     }
 
-    // Push last action.
-    if (currentAction?.as && currentAction?.action) {
-      actions.push({
-        as: currentAction.as,
-        action: currentAction.action,
-        actionDisplayName: currentAction.action,
-        ref: currentAction.ref,
-        params: currentAction.params,
-        optional: currentAction.optional,
-      })
-    }
+    flushAction()
+    while (promptLines.length > 0 && promptLines[promptLines.length - 1].trim() === "") promptLines.pop()
 
-    return actions
+    return { context: actions, prompt: promptLines.join("\n") }
   } catch {
     return null
   }
@@ -584,24 +640,24 @@ function yamlToContextActions(yamlText: string): ContextActionConfig[] | null {
 function ContextConfigView({
   provider,
   triggerDisplayNames,
+  triggerKeys,
   refs,
   contextActions,
-  onSetContextActions,
+  prompt,
   onConfirm,
   onBack,
 }: ContextConfigViewProps) {
-  const [yamlText, setYamlText] = useState(() => contextActionsToYaml(contextActions))
+  const [yamlText, setYamlText] = useState(() => recipeToYaml(contextActions, prompt, triggerKeys, refs))
   const [parseError, setParseError] = useState<string | null>(null)
 
   function handleConfirm() {
-    const parsed = yamlToContextActions(yamlText)
+    const parsed = parseRecipeYaml(yamlText)
     if (!parsed) {
-      setParseError("Invalid YAML format")
+      setParseError("Could not parse YAML. Check your formatting.")
       return
     }
     setParseError(null)
-    onSetContextActions(parsed)
-    onConfirm()
+    onConfirm(parsed.context, parsed.prompt)
   }
 
   const refsList = Object.keys(refs).map((refName) => `$refs.${refName}`).join(", ")
@@ -613,10 +669,10 @@ function ContextConfigView({
           <button type="button" onClick={onBack} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
           </button>
-          <DialogTitle>Context recipe</DialogTitle>
+          <DialogTitle>Trigger recipe</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          Define which read actions run before the agent starts.
+          Define the context to gather and the prompt for your agent.
         </DialogDescription>
       </DialogHeader>
 
@@ -626,7 +682,6 @@ function ContextConfigView({
           onChange={(event) => { setYamlText(event.target.value); setParseError(null) }}
           spellCheck={false}
           className="flex-1 min-h-0 w-full rounded-xl border border-input bg-muted/30 px-4 py-3 font-mono text-[12px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring resize-none"
-          placeholder="context:&#10;  - as: issue&#10;    action: issues_get&#10;    ref: issue"
         />
 
         {parseError && (
