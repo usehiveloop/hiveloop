@@ -381,7 +381,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 				OrgID:          org.ID,
 				AgentID:        agent.ID,
 				ConnectionID:   connectionID,
-				TriggerKey:     req.Trigger.TriggerKey,
+				TriggerKeys:    req.Trigger.TriggerKeys,
 				Enabled:        enabled,
 				Conditions:     conditionsJSON,
 				ContextActions: contextActionsJSON,

@@ -30,13 +30,14 @@ type RequestConfig struct {
 
 // ResourceDef describes a resource type that can be configured for a provider.
 type ResourceDef struct {
-	DisplayName   string         `json:"display_name"`
-	Description   string         `json:"description"`
-	IDField       string         `json:"id_field"`
-	NameField     string         `json:"name_field"`
-	Icon          string         `json:"icon,omitempty"`
-	ListAction    string         `json:"list_action"`
-	RequestConfig *RequestConfig `json:"request_config,omitempty"` // Optional request customization
+	DisplayName   string            `json:"display_name"`
+	Description   string            `json:"description"`
+	IDField       string            `json:"id_field"`
+	NameField     string            `json:"name_field"`
+	Icon          string            `json:"icon,omitempty"`
+	ListAction    string            `json:"list_action"`
+	RequestConfig *RequestConfig    `json:"request_config,omitempty"` // Optional request customization
+	RefBindings   map[string]string `json:"ref_bindings,omitempty"`  // action_param_name → "$refs.ref_name" mapping for auto-filling context action params
 }
 
 // ProviderActions describes a provider and its available actions.
@@ -96,10 +97,11 @@ type SchemaRef struct {
 
 // TriggerDef describes a single webhook event trigger a provider supports.
 type TriggerDef struct {
-	DisplayName   string `json:"display_name"`
-	Description   string `json:"description"`
-	ResourceType  string `json:"resource_type"`            // which resource this trigger relates to
-	PayloadSchema string `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
+	DisplayName   string            `json:"display_name"`
+	Description   string            `json:"description"`
+	ResourceType  string            `json:"resource_type"`            // which resource this trigger relates to
+	PayloadSchema string            `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
+	Refs          map[string]string `json:"refs,omitempty"`           // ref_name → dot-path into webhook payload for entity extraction
 }
 
 // ProviderTriggers describes a provider's webhook event triggers.

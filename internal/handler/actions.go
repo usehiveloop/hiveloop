@@ -37,11 +37,12 @@ type integrationDetail struct {
 }
 
 type resource struct {
-	DisplayName string `json:"display_name"`
-	Description string `json:"description"`
-	IDField     string `json:"id_field"`
-	NameField   string `json:"name_field"`
-	Icon        string `json:"icon,omitempty"`
+	DisplayName string            `json:"display_name"`
+	Description string            `json:"description"`
+	IDField     string            `json:"id_field"`
+	NameField   string            `json:"name_field"`
+	Icon        string            `json:"icon,omitempty"`
+	RefBindings map[string]string `json:"ref_bindings,omitempty"`
 }
 
 type actionSummary struct {
@@ -119,6 +120,7 @@ func (h *ActionsHandler) GetIntegration(w http.ResponseWriter, r *http.Request) 
 			IDField:     r.IDField,
 			NameField:   r.NameField,
 			Icon:        r.Icon,
+			RefBindings: r.RefBindings,
 		}
 	}
 
@@ -167,11 +169,12 @@ func (h *ActionsHandler) ListActions(w http.ResponseWriter, r *http.Request) {
 }
 
 type triggerSummary struct {
-	Key           string `json:"key"`
-	DisplayName   string `json:"display_name"`
-	Description   string `json:"description"`
-	ResourceType  string `json:"resource_type"`
-	PayloadSchema string `json:"payload_schema,omitempty"`
+	Key           string            `json:"key"`
+	DisplayName   string            `json:"display_name"`
+	Description   string            `json:"description"`
+	ResourceType  string            `json:"resource_type"`
+	PayloadSchema string            `json:"payload_schema,omitempty"`
+	Refs          map[string]string `json:"refs,omitempty"` // ref_name → dot-path into payload
 }
 
 // ListTriggers handles GET /v1/catalog/integrations/{id}/triggers — returns webhook triggers for a provider.
@@ -204,6 +207,7 @@ func (h *ActionsHandler) ListTriggers(w http.ResponseWriter, r *http.Request) {
 			Description:   trigger.Description,
 			ResourceType:  trigger.ResourceType,
 			PayloadSchema: trigger.PayloadSchema,
+			Refs:          trigger.Refs,
 		})
 	}
 	sort.Slice(triggers, func(i, j int) bool {

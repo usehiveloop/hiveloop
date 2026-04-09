@@ -34,6 +34,10 @@ type ResourceFilterConfig struct {
 	ListAction        string
 	ListRequestConfig *RequestConfig
 
+	// Ref bindings — maps action param names to $refs for auto-filling context action params.
+	// When a context action says ref: "issue", the system finds this resource and uses these bindings.
+	RefBindings map[string]string
+
 	// Action filtering — actions matching these paths belong to this resource
 	PathPrefixes []string // any action path starting with these prefixes
 	ExactPaths   []string // any action path exactly equal to these
@@ -144,6 +148,10 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "full_name",
 			NameField:   "name",
 			Icon:         "repo",
+			RefBindings: map[string]string{
+				"owner": "$refs.owner",
+				"repo":  "$refs.repo",
+			},
 			ListAction:  "/installation/repositories",
 			ListRequestConfig: &RequestConfig{
 				Method:       "GET",
@@ -178,6 +186,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "number",
 			NameField:   "title",
 			Icon:         "issue-opened",
+			RefBindings: map[string]string{
+				"owner":        "$refs.owner",
+				"repo":         "$refs.repo",
+				"issue_number": "$refs.issue",
+			},
 			ListAction:  "/repos/{owner}/{repo}/issues",
 			ListRequestConfig: &RequestConfig{
 				Method: "GET",
@@ -197,6 +210,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "number",
 			NameField:   "title",
 			Icon:         "git-pull-request",
+			RefBindings: map[string]string{
+				"owner":       "$refs.owner",
+				"repo":        "$refs.repo",
+				"pull_number": "$refs.pull_request",
+			},
 			ListAction:  "/repos/{owner}/{repo}/pulls",
 			ListRequestConfig: &RequestConfig{
 				Method: "GET",
@@ -215,6 +233,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "id",
 			NameField:   "tag_name",
 			Icon:         "tag",
+			RefBindings: map[string]string{
+				"owner":      "$refs.owner",
+				"repo":       "$refs.repo",
+				"release_id": "$refs.release",
+			},
 			ListAction:  "/repos/{owner}/{repo}/releases",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -230,6 +253,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "id",
 			NameField:   "name",
 			Icon:         "play",
+			RefBindings: map[string]string{
+				"owner":  "$refs.owner",
+				"repo":   "$refs.repo",
+				"run_id": "$refs.workflow_run",
+			},
 			ListAction:  "/repos/{owner}/{repo}/actions/workflows",
 			ListRequestConfig: &RequestConfig{
 				Method:       "GET",
@@ -249,6 +277,10 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "id",
 			NameField:   "name",
 			Icon:         "tag",
+			RefBindings: map[string]string{
+				"owner": "$refs.owner",
+				"repo":  "$refs.repo",
+			},
 			ListAction:  "/repos/{owner}/{repo}/labels",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -264,6 +296,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "number",
 			NameField:   "title",
 			Icon:         "milestone",
+			RefBindings: map[string]string{
+				"owner":            "$refs.owner",
+				"repo":             "$refs.repo",
+				"milestone_number": "$refs.milestone",
+			},
 			ListAction:  "/repos/{owner}/{repo}/milestones",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -279,6 +316,11 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "name",
 			NameField:   "name",
 			Icon:         "git-branch",
+			RefBindings: map[string]string{
+				"owner":  "$refs.owner",
+				"repo":   "$refs.repo",
+				"branch": "$refs.branch",
+			},
 			ListAction:  "/repos/{owner}/{repo}/branches",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -294,6 +336,9 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "login",
 			NameField:   "login",
 			Icon:         "organization",
+			RefBindings: map[string]string{
+				"org": "$refs.org",
+			},
 			ListAction:  "/user/orgs",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -315,6 +360,10 @@ func githubResources() map[string]ResourceFilterConfig {
 			IDField:     "slug",
 			NameField:   "name",
 			Icon:         "people",
+			RefBindings: map[string]string{
+				"org":       "$refs.org",
+				"team_slug": "$refs.team",
+			},
 			ListAction:  "/orgs/{org}/teams",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
