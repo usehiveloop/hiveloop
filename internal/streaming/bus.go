@@ -54,6 +54,13 @@ func (b *EventBus) Publish(ctx context.Context, convID string, eventType string,
 		return "", fmt.Errorf("XADD: %w", err)
 	}
 
+	slog.Info("eventbus.Publish: event added",
+		"stream_key", b.streamKey(convID),
+		"event_type", eventType,
+		"entry_id", result,
+		"conversation_id", convID,
+	)
+
 	// Track this conversation as active for the flusher
 	b.redis.SAdd(ctx, b.prefix+"active", convID)
 
@@ -87,20 +94,40 @@ func (b *EventBus) Subscribe(ctx context.Context, convID string, cursor string) 
 			pos = "0" // replay everything by default
 		}
 
+		streamKey := b.streamKey(convID)
+		slog.Info("eventbus.Subscribe: started",
+			"stream_key", streamKey,
+			"cursor", pos,
+			"conversation_id", convID,
+		)
+		pollCount := 0
+
 		for {
 			select {
 			case <-ctx.Done():
+				slog.Info("eventbus.Subscribe: context cancelled",
+					"stream_key", streamKey,
+					"polls", pollCount,
+				)
 				return
 			default:
 			}
 
+			pollCount++
 			streams, err := b.redis.XRead(ctx, &redis.XReadArgs{
-				Streams: []string{b.streamKey(convID), pos},
+				Streams: []string{streamKey, pos},
 				Block:   5 * time.Second,
 				Count:   50,
 			}).Result()
 			if err != nil {
 				if err == redis.Nil || err == context.Canceled || err == context.DeadlineExceeded {
+					if pollCount%12 == 0 { // log every ~60s
+						slog.Info("eventbus.Subscribe: still waiting",
+							"stream_key", streamKey,
+							"polls", pollCount,
+							"cursor", pos,
+						)
+					}
 					continue
 				}
 				if ctx.Err() != nil {
