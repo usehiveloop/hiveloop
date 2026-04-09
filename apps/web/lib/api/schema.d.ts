@@ -5796,6 +5796,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/catalog/integrations/{id}/schema-paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get schema paths for an integration
+         * @description Returns flattened schema property paths (up to 3 levels) for trigger refs and read action responses. Used for template autocomplete.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Provider ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["schemaPathsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/catalog/integrations/{id}/triggers": {
         parameters: {
             query?: never;
@@ -12165,6 +12216,24 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
+            /** @description for array types */
+            items?: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef"];
+            properties?: {
+                [key: string]: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef"];
+            };
+            type?: string;
+        };
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef": {
+            description?: string;
+            nullable?: boolean;
+            /** @description references another schema by name for nested object resolution */
+            schema_ref?: string;
+            type?: string;
+        };
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef": {
+            $ref?: string;
+        };
         ConnectionConfigField: {
             automated?: boolean;
             description?: string;
@@ -12324,6 +12393,10 @@ export interface components {
         "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
             resources?: components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.AvailableResource"][];
         };
+        actionSchemaPaths: {
+            paths?: components["schemas"]["schemaPath"][];
+            response_schema?: string;
+        };
         actionSummary: {
             access?: string;
             description?: string;
@@ -12331,6 +12404,7 @@ export interface components {
             key?: string;
             parameters?: number[];
             resource_type?: string;
+            response_schema?: string;
         };
         adminAPIKeyResponse: {
             created_at?: string;
@@ -13108,6 +13182,9 @@ export interface components {
             resources?: {
                 [key: string]: components["schemas"]["resource"];
             };
+            schemas?: {
+                [key: string]: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition"];
+            };
         };
         integrationProviderInfo: {
             auth_mode?: string;
@@ -13491,6 +13568,18 @@ export interface components {
             id?: string;
             name?: string;
             updated_at?: string;
+        };
+        schemaPath: {
+            path?: string;
+            type?: string;
+        };
+        schemaPathsResponse: {
+            actions?: {
+                [key: string]: components["schemas"]["actionSchemaPaths"];
+            };
+            refs?: {
+                [key: string]: string;
+            };
         };
         sessionInfoResponse: {
             activated_at?: string;

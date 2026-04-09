@@ -13,6 +13,11 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "branch": "$refs.branch_name",
+        "owner": "$refs.owner",
+        "repo": "$refs.repo"
       }
     },
     "issue": {
@@ -28,6 +33,11 @@
           "per_page": "100",
           "state": "all"
         }
+      },
+      "ref_bindings": {
+        "issue_number": "$refs.issue_number",
+        "owner": "$refs.owner",
+        "repo": "$refs.repo"
       }
     },
     "label": {
@@ -42,6 +52,10 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "owner": "$refs.owner",
+        "repo": "$refs.repo"
       }
     },
     "milestone": {
@@ -56,6 +70,11 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "milestone_number": "$refs.milestone_number",
+        "owner": "$refs.owner",
+        "repo": "$refs.repo"
       }
     },
     "organization": {
@@ -70,6 +89,9 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "org": "$refs.org"
       }
     },
     "pull_request": {
@@ -85,6 +107,11 @@
           "per_page": "100",
           "state": "all"
         }
+      },
+      "ref_bindings": {
+        "owner": "$refs.owner",
+        "pull_number": "$refs.pull_number",
+        "repo": "$refs.repo"
       }
     },
     "release": {
@@ -99,6 +126,11 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "owner": "$refs.owner",
+        "release_id": "$refs.release_id",
+        "repo": "$refs.repo"
       }
     },
     "repository": {
@@ -114,6 +146,10 @@
           "per_page": "100"
         },
         "response_path": "repositories"
+      },
+      "ref_bindings": {
+        "owner": "$refs.owner",
+        "repo": "$refs.repo"
       }
     },
     "team": {
@@ -128,6 +164,10 @@
         "query_params": {
           "per_page": "100"
         }
+      },
+      "ref_bindings": {
+        "org": "$refs.org",
+        "team_slug": "$refs.team_slug"
       }
     },
     "workflow": {
@@ -143,6 +183,11 @@
           "per_page": "100"
         },
         "response_path": "workflows"
+      },
+      "ref_bindings": {
+        "owner": "$refs.owner",
+        "repo": "$refs.repo",
+        "run_id": "$refs.run_id"
       }
     }
   },

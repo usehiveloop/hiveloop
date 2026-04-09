@@ -517,6 +517,14 @@ function ContextConfigView({
   )
   const readActions = actionsData ?? []
 
+  // Fetch flattened schema paths for autocomplete.
+  const { data: schemaPathsData } = $api.useQuery(
+    "get",
+    "/v1/catalog/integrations/{id}/schema-paths",
+    { params: { path: { id: provider } } },
+    { enabled: !!provider },
+  )
+
   const filteredReadActions = useMemo(() => {
     if (!actionSearch.trim()) return readActions
     const query = actionSearch.toLowerCase()
@@ -552,10 +560,40 @@ function ContextConfigView({
     return allRefsAvailable ? action.resource_type : undefined
   }, [readActions, resources, refs])
 
+  // Extract param names from an action's JSON Schema parameters field.
+  const getActionParamNames = useCallback((actionKey: string): string[] => {
+    const action = readActions.find((readAction) => readAction.key === actionKey)
+    if (!action?.parameters) return []
+    try {
+      const schema = typeof action.parameters === "string"
+        ? JSON.parse(action.parameters as string)
+        : action.parameters
+      if (schema?.properties) {
+        return Object.keys(schema.properties)
+      }
+    } catch {
+      // parameters might be raw bytes
+    }
+    return []
+  }, [readActions])
+
   function handleAddAction(actionKey: string, actionDisplayName: string) {
     if (selectedActionKeys.has(actionKey)) return
     const autoRef = getAutoRef(actionKey)
     const asName = actionKey.replace(/\./g, "_")
+
+    // Pre-populate params from the action's parameter schema.
+    let initialParams: Record<string, string> | undefined
+    if (!autoRef) {
+      const paramNames = getActionParamNames(actionKey)
+      initialParams = {}
+      for (const paramName of paramNames) {
+        // Check if this param has a matching $ref available.
+        const matchingRef = Object.keys(refs).find((refName) => refName === paramName)
+        initialParams[paramName] = matchingRef ? `$refs.${matchingRef}` : ""
+      }
+    }
+
     onSetContextActions([
       ...contextActions,
       {
@@ -563,7 +601,7 @@ function ContextConfigView({
         action: actionKey,
         actionDisplayName,
         ref: autoRef,
-        params: autoRef ? undefined : {},
+        params: initialParams,
       },
     ])
   }
@@ -581,19 +619,38 @@ function ContextConfigView({
     onSetContextActions(updated)
   }
 
-  // Available template variables for the param input hints.
-  const availableVars = useMemo(() => {
-    const variables: Array<{ label: string; value: string; source: string }> = []
-    // $refs from the trigger.
-    for (const refName of Object.keys(refs)) {
-      variables.push({ label: refName, value: `$refs.${refName}`, source: "trigger ref" })
+  // Build autocomplete options for a given step index.
+  // Includes $refs.* and $step_name.field paths from prior steps (resolved from schema-paths API).
+  const getAutocompleteOptions = useCallback((currentIndex: number) => {
+    const options: Array<{ path: string; type: string; source: string }> = []
+
+    // $refs from trigger.
+    const refTypes = (schemaPathsData as any)?.refs ?? {}
+    for (const [refName, refType] of Object.entries(refs)) {
+      options.push({ path: `$refs.${refName}`, type: (refTypes[refName] as string) ?? "string", source: "trigger" })
     }
-    // {{step.field}} from prior context actions — we show the step name.
-    for (const contextAction of contextActions) {
-      variables.push({ label: contextAction.as, value: `{{${contextAction.as}}}`, source: "context step" })
+
+    // $step.field from prior context actions (schema paths from API).
+    const actionSchemas = (schemaPathsData as any)?.actions ?? {}
+    for (let stepIndex = 0; stepIndex < currentIndex; stepIndex++) {
+      const priorAction = contextActions[stepIndex]
+      const schemaPaths = actionSchemas[priorAction.action]?.paths as Array<{ path: string; type: string }> | undefined
+      if (schemaPaths) {
+        for (const schemaPath of schemaPaths) {
+          options.push({
+            path: `$${priorAction.as}.${schemaPath.path}`,
+            type: schemaPath.type,
+            source: priorAction.actionDisplayName,
+          })
+        }
+      } else {
+        // No schema paths available — show just the step name.
+        options.push({ path: `$${priorAction.as}`, type: "object", source: priorAction.actionDisplayName })
+      }
     }
-    return variables
-  }, [refs, contextActions])
+
+    return options
+  }, [refs, contextActions, schemaPathsData])
 
   return (
     <>
@@ -660,35 +717,14 @@ function ContextConfigView({
                   <div className="mt-3 pt-3 border-t border-primary/10">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Parameters</p>
                     {Object.entries(contextAction.params ?? {}).map(([paramKey, paramValue]) => (
-                      <div key={paramKey} className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[11px] font-mono text-muted-foreground w-20 shrink-0 truncate">{paramKey}</span>
-                        <Input
-                          value={paramValue}
-                          onChange={(event) => handleUpdateParam(index, paramKey, event.target.value)}
-                          className="h-7 text-xs font-mono"
-                          placeholder={`$refs.${paramKey} or {{step.field}}`}
-                        />
-                      </div>
+                      <ParamEditor
+                        key={paramKey}
+                        paramKey={paramKey}
+                        paramValue={paramValue as string}
+                        autocompleteOptions={getAutocompleteOptions(index)}
+                        onChange={(newValue) => handleUpdateParam(index, paramKey, newValue)}
+                      />
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateParam(index, "", "")}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground mt-1"
-                    >
-                      <HugeiconsIcon icon={Add01Icon} size={10} /> Add parameter
-                    </button>
-                    {availableVars.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-primary/10">
-                        <p className="text-[10px] text-muted-foreground mb-1">Available variables:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {availableVars.map((variable) => (
-                            <span key={variable.value} className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                              {variable.value}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -789,5 +825,102 @@ function ContextConfigView({
         </Button>
       </div>
     </>
+  )
+}
+
+/* ────────────────────────────────────────
+   ParamEditor — searchable combobox for
+   picking $refs or $step.field paths
+   ──────────────────────────────────────── */
+
+interface ParamEditorProps {
+  paramKey: string
+  paramValue: string
+  autocompleteOptions: Array<{ path: string; type: string; source: string }>
+  onChange: (value: string) => void
+}
+
+function ParamEditor({ paramKey, paramValue, autocompleteOptions, onChange }: ParamEditorProps) {
+  const [open, setOpen] = useState(false)
+  const [filterText, setFilterText] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const filtered = useMemo(() => {
+    if (!filterText.trim()) return autocompleteOptions
+    const query = filterText.toLowerCase()
+    return autocompleteOptions.filter(
+      (option) => option.path.toLowerCase().includes(query) || option.source.toLowerCase().includes(query),
+    )
+  }, [autocompleteOptions, filterText])
+
+  function handleSelect(path: string) {
+    // If the current value is empty or a simple variable, replace entirely.
+    // If it already has content (composing a template), insert at end.
+    if (!paramValue || paramValue.startsWith("$")) {
+      onChange(path)
+    } else {
+      // Wrap in {{ }} for interpolation within a larger string.
+      onChange(paramValue + `{{${path}}}`)
+    }
+    setOpen(false)
+    setFilterText("")
+  }
+
+  return (
+    <div className="flex items-start gap-2 mb-2">
+      <span className="text-[11px] font-mono text-muted-foreground w-24 shrink-0 pt-1.5 truncate" title={paramKey}>
+        {paramKey}
+      </span>
+      <div className="flex-1 relative">
+        <div className="flex gap-1">
+          <Input
+            ref={inputRef}
+            value={paramValue}
+            onChange={(event) => onChange(event.target.value)}
+            onFocus={() => setOpen(true)}
+            className="h-7 text-xs font-mono flex-1"
+            placeholder="type or pick from dropdown"
+          />
+          <button
+            type="button"
+            onClick={() => { setOpen(!open); setFilterText("") }}
+            className="flex items-center justify-center h-7 w-7 shrink-0 rounded-md border border-input bg-background hover:bg-muted transition-colors"
+          >
+            <HugeiconsIcon icon={ArrowRight01Icon} size={10} className={`text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+          </button>
+        </div>
+
+        {open && (
+          <div className="absolute z-50 top-8 left-0 right-0 rounded-lg border border-border bg-popover shadow-md">
+            <div className="p-1.5">
+              <Input
+                value={filterText}
+                onChange={(event) => setFilterText(event.target.value)}
+                placeholder="Search paths..."
+                className="h-6 text-[11px] font-mono"
+                autoFocus
+              />
+            </div>
+            <div className="max-h-[200px] overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground text-center py-3">No matching paths</p>
+              ) : (
+                filtered.map((option) => (
+                  <button
+                    key={option.path}
+                    type="button"
+                    onClick={() => handleSelect(option.path)}
+                    className="flex items-center justify-between w-full px-2 py-1 text-left hover:bg-muted transition-colors"
+                  >
+                    <span className="text-[11px] font-mono text-foreground truncate">{option.path}</span>
+                    <span className="text-[9px] text-muted-foreground shrink-0 ml-2">{option.type}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

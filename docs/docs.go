@@ -5071,6 +5071,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/catalog/integrations/{id}/schema-paths": {
+            "get": {
+                "description": "Returns flattened schema property paths (up to 3 levels) for trigger refs and read action responses. Used for template autocomplete.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "integrations"
+                ],
+                "summary": "Get schema paths for an integration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.schemaPathsResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/catalog/integrations/{id}/triggers": {
             "get": {
                 "description": "Returns all webhook event triggers for a single integration.",
@@ -10563,6 +10598,54 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "description": "for array types",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef"
+                        }
+                    ]
+                },
+                "properties": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "nullable": {
+                    "type": "boolean"
+                },
+                "schema_ref": {
+                    "description": "references another schema by name for nested object resolution",
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef": {
+            "type": "object",
+            "properties": {
+                "$ref": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField": {
             "type": "object",
             "properties": {
@@ -10990,6 +11073,20 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.actionSchemaPaths": {
+            "type": "object",
+            "properties": {
+                "paths": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.schemaPath"
+                    }
+                },
+                "response_schema": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.actionSummary": {
             "type": "object",
             "properties": {
@@ -11012,6 +11109,9 @@ const docTemplate = `{
                     }
                 },
                 "resource_type": {
+                    "type": "string"
+                },
+                "response_schema": {
                     "type": "string"
                 }
             }
@@ -13355,6 +13455,12 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/internal_handler.resource"
                     }
+                },
+                "schemas": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition"
+                    }
                 }
             }
         },
@@ -14546,6 +14652,34 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.schemaPath": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.schemaPathsResponse": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/internal_handler.actionSchemaPaths"
+                    }
+                },
+                "refs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

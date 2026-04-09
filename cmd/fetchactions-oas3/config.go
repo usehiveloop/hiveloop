@@ -189,7 +189,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":        "$refs.owner",
 				"repo":         "$refs.repo",
-				"issue_number": "$refs.issue",
+				"issue_number": "$refs.issue_number",
 			},
 			ListAction:  "/repos/{owner}/{repo}/issues",
 			ListRequestConfig: &RequestConfig{
@@ -213,7 +213,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":       "$refs.owner",
 				"repo":        "$refs.repo",
-				"pull_number": "$refs.pull_request",
+				"pull_number": "$refs.pull_number",
 			},
 			ListAction:  "/repos/{owner}/{repo}/pulls",
 			ListRequestConfig: &RequestConfig{
@@ -236,7 +236,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":      "$refs.owner",
 				"repo":       "$refs.repo",
-				"release_id": "$refs.release",
+				"release_id": "$refs.release_id",
 			},
 			ListAction:  "/repos/{owner}/{repo}/releases",
 			ListRequestConfig: &RequestConfig{
@@ -256,7 +256,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":  "$refs.owner",
 				"repo":   "$refs.repo",
-				"run_id": "$refs.workflow_run",
+				"run_id": "$refs.run_id",
 			},
 			ListAction:  "/repos/{owner}/{repo}/actions/workflows",
 			ListRequestConfig: &RequestConfig{
@@ -299,7 +299,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":            "$refs.owner",
 				"repo":             "$refs.repo",
-				"milestone_number": "$refs.milestone",
+				"milestone_number": "$refs.milestone_number",
 			},
 			ListAction:  "/repos/{owner}/{repo}/milestones",
 			ListRequestConfig: &RequestConfig{
@@ -319,7 +319,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			RefBindings: map[string]string{
 				"owner":  "$refs.owner",
 				"repo":   "$refs.repo",
-				"branch": "$refs.branch",
+				"branch": "$refs.branch_name",
 			},
 			ListAction:  "/repos/{owner}/{repo}/branches",
 			ListRequestConfig: &RequestConfig{
@@ -362,7 +362,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			Icon:         "people",
 			RefBindings: map[string]string{
 				"org":       "$refs.org",
-				"team_slug": "$refs.team",
+				"team_slug": "$refs.team_slug",
 			},
 			ListAction:  "/orgs/{org}/teams",
 			ListRequestConfig: &RequestConfig{

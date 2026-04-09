@@ -5954,6 +5954,48 @@
         }
       }
     },
+    "/v1/catalog/integrations/{id}/schema-paths": {
+      "get": {
+        "description": "Returns flattened schema property paths (up to 3 levels) for trigger refs and read action responses. Used for template autocomplete.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Get schema paths for an integration",
+        "parameters": [
+          {
+            "description": "Provider ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemaPathsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/catalog/integrations/{id}/triggers": {
       "get": {
         "description": "Returns all webhook event triggers for a single integration.",
@@ -12827,6 +12869,54 @@
           }
         }
       },
+      "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "for array types",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef"
+              }
+            ]
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef"
+            }
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "schema_ref": {
+            "description": "references another schema by name for nested object resolution",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef": {
+        "type": "object",
+        "properties": {
+          "$ref": {
+            "type": "string"
+          }
+        }
+      },
       "ConnectionConfigField": {
         "type": "object",
         "properties": {
@@ -13254,6 +13344,20 @@
           }
         }
       },
+      "actionSchemaPaths": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/schemaPath"
+            }
+          },
+          "response_schema": {
+            "type": "string"
+          }
+        }
+      },
       "actionSummary": {
         "type": "object",
         "properties": {
@@ -13276,6 +13380,9 @@
             }
           },
           "resource_type": {
+            "type": "string"
+          },
+          "response_schema": {
             "type": "string"
           }
         }
@@ -15619,6 +15726,12 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/resource"
             }
+          },
+          "schemas": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition"
+            }
           }
         }
       },
@@ -16810,6 +16923,34 @@
           },
           "updated_at": {
             "type": "string"
+          }
+        }
+      },
+      "schemaPath": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "schemaPathsResponse": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/actionSchemaPaths"
+            }
+          },
+          "refs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },

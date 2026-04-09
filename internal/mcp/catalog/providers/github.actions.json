@@ -15,7 +15,7 @@
         }
       },
       "ref_bindings": {
-        "branch": "$refs.branch",
+        "branch": "$refs.branch_name",
         "owner": "$refs.owner",
         "repo": "$refs.repo"
       }
@@ -35,7 +35,7 @@
         }
       },
       "ref_bindings": {
-        "issue_number": "$refs.issue",
+        "issue_number": "$refs.issue_number",
         "owner": "$refs.owner",
         "repo": "$refs.repo"
       }
@@ -72,7 +72,7 @@
         }
       },
       "ref_bindings": {
-        "milestone_number": "$refs.milestone",
+        "milestone_number": "$refs.milestone_number",
         "owner": "$refs.owner",
         "repo": "$refs.repo"
       }
@@ -110,7 +110,7 @@
       },
       "ref_bindings": {
         "owner": "$refs.owner",
-        "pull_number": "$refs.pull_request",
+        "pull_number": "$refs.pull_number",
         "repo": "$refs.repo"
       }
     },
@@ -129,7 +129,7 @@
       },
       "ref_bindings": {
         "owner": "$refs.owner",
-        "release_id": "$refs.release",
+        "release_id": "$refs.release_id",
         "repo": "$refs.repo"
       }
     },
@@ -167,7 +167,7 @@
       },
       "ref_bindings": {
         "org": "$refs.org",
-        "team_slug": "$refs.team"
+        "team_slug": "$refs.team_slug"
       }
     },
     "workflow": {
@@ -187,7 +187,7 @@
       "ref_bindings": {
         "owner": "$refs.owner",
         "repo": "$refs.repo",
-        "run_id": "$refs.workflow_run"
+        "run_id": "$refs.run_id"
       }
     }
   },

@@ -179,6 +179,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
 	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
 	r.Get("/v1/catalog/integrations/{id}/triggers", actionsHandler.ListTriggers)
+	r.Get("/v1/catalog/integrations/{id}/schema-paths", actionsHandler.GetSchemaPaths)
 
 	// Marketplace discovery (no auth, Redis cached)
 	r.Get("/v1/marketplace/agents", marketplaceHandler.List)
