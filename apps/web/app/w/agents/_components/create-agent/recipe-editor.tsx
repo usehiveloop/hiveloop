@@ -168,7 +168,7 @@ export function RecipeEditor({ value, onChange, refNames, actionPaths, actionKey
         const yamlKeywords = [
           { label: "conditions:", detail: "Filter conditions section" },
           { label: "context:", detail: "Context actions section" },
-          { label: "prompt: |", detail: "Prompt template section" },
+          { label: "instructions: |", detail: "Instructions sent to agent when trigger fires" },
           { label: "match:", detail: "Condition match mode (all/any)" },
           { label: "rules:", detail: "Condition rules list" },
           { label: "- path:", detail: "Condition payload path" },
