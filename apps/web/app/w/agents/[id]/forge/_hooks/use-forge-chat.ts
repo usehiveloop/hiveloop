@@ -43,13 +43,25 @@ export function useForgeChat() {
   const historyMessages: StreamMessage[] = useMemo(() => {
     if (!isComplete || !eventsQuery.data) return []
 
-    const events = (eventsQuery.data as { data?: Array<{ event_type?: string; event_id?: string; timestamp?: string; data?: Record<string, unknown> }> })?.data ?? []
+    const rawEvents = (eventsQuery.data as { data?: Array<{ event_type?: string; event_id?: string; timestamp?: string; data?: unknown }> })?.data ?? []
 
     const messages: StreamMessage[] = []
 
-    for (const event of events) {
+    for (const event of rawEvents) {
       const eventType = event.event_type
-      const eventData = event.data ?? {}
+
+      // event.data may be a parsed object, a byte array (number[]), or a string.
+      let eventData: Record<string, unknown> = {}
+      if (event.data && typeof event.data === "object" && !Array.isArray(event.data)) {
+        eventData = event.data as Record<string, unknown>
+      } else if (Array.isArray(event.data)) {
+        try {
+          const decoded = String.fromCharCode(...(event.data as number[]))
+          eventData = JSON.parse(decoded)
+        } catch { /* skip unparseable */ }
+      } else if (typeof event.data === "string") {
+        try { eventData = JSON.parse(event.data) } catch { /* skip */ }
+      }
 
       if (eventType === "message_received") {
         const content = eventData.content as string
@@ -62,13 +74,17 @@ export function useForgeChat() {
           })
         }
       } else if (eventType === "response_completed") {
-        const fullResponse = eventData.full_response as string
+        // full_response may be at top level or nested inside data envelope from webhook.
+        let fullResponse = eventData.full_response as string | undefined
+        if (!fullResponse && eventData.data && typeof eventData.data === "object") {
+          fullResponse = (eventData.data as Record<string, unknown>).full_response as string
+        }
         if (fullResponse) {
           messages.push({
             id: event.event_id ?? `resp-${messages.length}`,
             role: "agent",
             content: fullResponse,
-            messageId: eventData.message_id as string,
+            messageId: (eventData.message_id ?? (eventData.data as Record<string, unknown>)?.message_id) as string,
             timestamp: event.timestamp ?? "",
             model: eventData.model as string,
             inputTokens: eventData.input_tokens as number,
