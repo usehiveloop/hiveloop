@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useQueryClient } from "@tanstack/react-query"
 import { $api } from "@/lib/api/hooks"
 import type { components } from "@/lib/api/schema"
 import { ForgeProvider, useForge } from "./_context/forge-context"
@@ -601,9 +602,9 @@ function ContextPanel() {
                 <p className="text-[12px] text-muted-foreground/60">The context gatherer has collected enough information. Approve to begin generating test cases.</p>
               </div>
               <div className="px-5 py-3 border-t border-primary/10 flex items-center gap-2">
-                <Button size="sm" onClick={() => chat.approveForge()} disabled={chat.approving}>
+                <Button size="sm" onClick={() => chat.approveForge()} loading={chat.approving}>
                   <HugeiconsIcon icon={Tick02Icon} size={12} data-icon="inline-start" />
-                  {chat.approving ? "Approving..." : "Approve & continue"}
+                  Approve & continue
                 </Button>
               </div>
             </motion.div>
@@ -1260,9 +1261,13 @@ function EvalCaseCard({ evalCase, index }: { evalCase: ForgeEvalCase; index: num
 function EvalsPanel() {
   const [addOpen, setAddOpen] = useState(false)
   const { forge } = useForge()
+  const queryClient = useQueryClient()
 
   const evalCases = forge?.eval_cases ?? []
   const runStatus = forge?.run?.status
+  const runId = forge?.run?.id
+
+  const approveEvalsMutation = $api.useMutation("post", "/v1/forge-runs/{runID}/approve-evals")
 
   if (evalCases.length === 0) {
     return (
@@ -1359,7 +1364,21 @@ function EvalsPanel() {
                 transition={{ delay: 0.3 }}
                 className="flex items-center gap-3 mt-10 pt-8 border-t border-border"
               >
-                <Button>
+                <Button
+                  loading={approveEvalsMutation.isPending}
+                  disabled={!runId}
+                  onClick={() => {
+                    if (!runId) return
+                    approveEvalsMutation.mutate(
+                      { params: { path: { runID: runId } } },
+                      {
+                        onSuccess: () => {
+                          queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents/{agentID}/forge"] })
+                        },
+                      },
+                    )
+                  }}
+                >
                   <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
                   Approve & start forge
                 </Button>
