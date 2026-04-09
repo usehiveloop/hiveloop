@@ -778,10 +778,46 @@ function EvalDetail({ evalItem }: { evalItem: IterationEval }) {
   )
 }
 
-function IterationPanel({ iteration }: { iteration: Iteration }) {
-  const isActive = iteration.phase !== "completed" && iteration.phase !== "failed"
-  const completedCount = iteration.evals.filter((evalItem) => evalItem.status === "completed").length
-  const passedCount = iteration.evals.filter((evalItem) => evalItem.passed).length
+function IterationPanel({ iterationId }: { iterationId: string }) {
+  const { forge } = useForge()
+
+  const apiIteration = forge?.iterations?.find((iter) => iter.id === iterationId)
+  if (!apiIteration) return null
+
+  const evalCasesMap = new Map((forge?.eval_cases ?? []).map((ec) => [ec.id, ec]))
+  const evalResults = apiIteration.eval_results ?? []
+
+  // Build combined eval items by joining eval results with their eval cases.
+  const evalItems: IterationEval[] = evalResults.map((result) => {
+    const evalCase = evalCasesMap.get(result.forge_eval_case_id ?? "")
+    return {
+      test_name: evalCase?.test_name ?? "Unknown",
+      category: evalCase?.category ?? "",
+      tier: evalCase?.tier ?? "standard",
+      requirement_type: evalCase?.requirement_type ?? "soft",
+      sample_count: evalCase?.sample_count ?? 1,
+      test_prompt: evalCase?.test_prompt ?? "",
+      expected_behavior: evalCase?.expected_behavior ?? "",
+      status: (result.status as IterationEval["status"]) ?? "pending",
+      score: result.score ?? null,
+      passed: result.passed ?? null,
+      pass_rate: result.pass_rate ?? null,
+      failure_category: result.failure_category,
+      critique: result.critique,
+    }
+  })
+
+  const iterationNumber = apiIteration.iteration ?? 0
+  const phase = apiIteration.phase ?? "pending"
+  const isActive = phase !== "completed" && phase !== "failed"
+  const score = apiIteration.score ?? null
+  const hardScore = apiIteration.hard_score ?? null
+  const softScore = apiIteration.soft_score ?? null
+  const allHardPassed = apiIteration.all_hard_passed ?? null
+  const totalEvals = apiIteration.total_evals ?? evalItems.length
+  const completedCount = evalItems.filter((evalItem) => evalItem.status === "completed").length
+  const passedCount = evalItems.filter((evalItem) => evalItem.passed).length
+  const architectReasoning = apiIteration.architect_reasoning ?? ""
 
   return (
     <div className="flex flex-col h-full">
@@ -793,30 +829,30 @@ function IterationPanel({ iteration }: { iteration: Iteration }) {
               <div className="flex items-center gap-3">
                 <span className={cn(
                   "flex items-center justify-center h-8 w-8 rounded-full text-[12px] font-bold",
-                  isActive ? "bg-primary/10 text-primary" : iteration.score !== null && iteration.score >= 0.8 ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground",
+                  isActive ? "bg-primary/10 text-primary" : score !== null && score >= 0.8 ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground",
                 )}>
-                  {iteration.number}
+                  {iterationNumber}
                 </span>
                 <div>
-                  <h2 className="font-heading text-base font-semibold text-foreground">Iteration {iteration.number}</h2>
+                  <h2 className="font-heading text-base font-semibold text-foreground">Iteration {iterationNumber}</h2>
                   {isActive && (
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {iteration.phase === "evaluating" ? `Running eval ${completedCount + 1} of ${iteration.total_evals}` : iteration.phase === "judging" ? "Scoring results" : "Designing prompt"}
+                      {phase === "evaluating" ? `Running eval ${completedCount + 1} of ${totalEvals}` : phase === "judging" ? "Scoring results" : "Designing prompt"}
                     </p>
                   )}
                 </div>
               </div>
 
-              {iteration.score !== null && (
-                <span className={cn("font-mono text-3xl font-black tabular-nums tracking-tighter", scoreColor(iteration.score))}>
-                  {Math.round(iteration.score * 100)}
+              {score !== null && (
+                <span className={cn("font-mono text-3xl font-black tabular-nums tracking-tighter", scoreColor(score))}>
+                  {Math.round(score * 100)}
                 </span>
               )}
             </div>
           </motion.div>
 
           {/* Score cards */}
-          {iteration.score !== null && (
+          {score !== null && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -825,60 +861,64 @@ function IterationPanel({ iteration }: { iteration: Iteration }) {
             >
               <div>
                 <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Hard</p>
-                <p className={cn("font-mono text-lg font-bold mt-0.5", iteration.all_hard_passed ? "text-emerald-500" : "text-rose-500")}>
-                  {Math.round(iteration.hard_score! * 100)}%
+                <p className={cn("font-mono text-lg font-bold mt-0.5", allHardPassed ? "text-emerald-500" : "text-rose-500")}>
+                  {Math.round((hardScore ?? 0) * 100)}%
                 </p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
                 <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Soft</p>
-                <p className={cn("font-mono text-lg font-bold mt-0.5", scoreColor(iteration.soft_score!))}>
-                  {Math.round(iteration.soft_score! * 100)}%
+                <p className={cn("font-mono text-lg font-bold mt-0.5", scoreColor(softScore ?? 0))}>
+                  {Math.round((softScore ?? 0) * 100)}%
                 </p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
                 <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Passed</p>
-                <p className="font-mono text-lg font-bold mt-0.5 text-foreground">{passedCount}/{iteration.total_evals}</p>
+                <p className="font-mono text-lg font-bold mt-0.5 text-foreground">{passedCount}/{totalEvals}</p>
               </div>
             </motion.div>
           )}
 
           {/* Architect reasoning */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4, ease }}
-            className="mb-10"
-          >
-            <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-2">What changed</p>
-            <p className="text-[13px] text-foreground/80 leading-relaxed">{iteration.architect_reasoning}</p>
-          </motion.div>
+          {architectReasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.4, ease }}
+              className="mb-10"
+            >
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-2">What changed</p>
+              <p className="text-[13px] text-foreground/80 leading-relaxed">{architectReasoning}</p>
+            </motion.div>
+          )}
 
           {/* Eval bar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.3 }}
-            className="flex items-center gap-1 mb-4"
-          >
-            {iteration.evals.map((evalItem) => (
-              <motion.span
-                key={evalItem.test_name}
-                className={cn(
-                  "h-1.5 flex-1 rounded-full",
-                  evalItem.status === "completed" && evalItem.passed && "bg-emerald-500",
-                  evalItem.status === "completed" && !evalItem.passed && "bg-rose-500",
-                  evalItem.status === "running" && "bg-primary animate-pulse",
-                  evalItem.status === "pending" && "bg-muted-foreground/8",
-                  evalItem.status === "judging" && "bg-amber-500 animate-pulse",
-                )}
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.3, ease }}
-              />
-            ))}
-          </motion.div>
+          {evalItems.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              className="flex items-center gap-1 mb-4"
+            >
+              {evalItems.map((evalItem) => (
+                <motion.span
+                  key={evalItem.test_name}
+                  className={cn(
+                    "h-1.5 flex-1 rounded-full",
+                    evalItem.status === "completed" && evalItem.passed && "bg-emerald-500",
+                    evalItem.status === "completed" && !evalItem.passed && "bg-rose-500",
+                    evalItem.status === "running" && "bg-primary animate-pulse",
+                    evalItem.status === "pending" && "bg-muted-foreground/8",
+                    evalItem.status === "judging" && "bg-amber-500 animate-pulse",
+                  )}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.3, ease }}
+                />
+              ))}
+            </motion.div>
+          )}
 
           {/* Eval list */}
           <motion.div
@@ -888,12 +928,12 @@ function IterationPanel({ iteration }: { iteration: Iteration }) {
           >
             <div className="flex items-center justify-between mb-2">
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">
-                Evals {completedCount}/{iteration.total_evals}
+                Evals {completedCount}/{totalEvals}
               </p>
             </div>
 
             <div className="flex flex-col">
-              {iteration.evals.map((evalItem) => (
+              {evalItems.map((evalItem) => (
                 <EvalDetail key={evalItem.test_name} evalItem={evalItem} />
               ))}
             </div>
@@ -1383,9 +1423,7 @@ function ForgePageContent() {
 
     if (activeNav.startsWith("iteration-")) {
       const iterationId = activeNav.slice("iteration-".length)
-      // TODO: wire to real iteration data from forge context
-      const iteration = ITERATIONS.find((iter) => iter.number === parseInt(iterationId))
-      if (iteration) return <IterationPanel iteration={iteration} />
+      return <IterationPanel iterationId={iterationId} />
     }
 
     return null
