@@ -1262,6 +1262,16 @@ function EvalsPanel() {
   const { forge } = useForge()
 
   const evalCases = forge?.eval_cases ?? []
+  const runStatus = forge?.run?.status
+
+  if (evalCases.length === 0) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center gap-3">
+        <HugeiconsIcon icon={Loading03Icon} size={20} className="text-muted-foreground/30 animate-spin" />
+        <p className="text-sm text-muted-foreground/40">Generating test cases...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -1330,29 +1340,35 @@ function EvalsPanel() {
               <EvalCaseCard key={evalCase.id ?? evalCase.test_name} evalCase={evalCase} index={index} />
             ))}
 
-            <Button variant="secondary" className="w-full h-12" onClick={() => setAddOpen(true)}>
-              <HugeiconsIcon icon={Add01Icon} size={14} data-icon="inline-start" />
-              Add test case
-            </Button>
+            {runStatus === "reviewing_evals" && (
+              <Button variant="secondary" className="w-full h-12" onClick={() => setAddOpen(true)}>
+                <HugeiconsIcon icon={Add01Icon} size={14} data-icon="inline-start" />
+                Add test case
+              </Button>
+            )}
           </div>
 
-          <AddEvalDialog open={addOpen} onOpenChange={setAddOpen} />
+          {runStatus === "reviewing_evals" && (
+            <>
+              <AddEvalDialog open={addOpen} onOpenChange={setAddOpen} />
 
-          {/* Approve */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center gap-3 mt-10 pt-8 border-t border-border"
-          >
-            <Button >
-              <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
-              Approve & start forge
-            </Button>
-            <Button variant="ghost" className="text-muted-foreground">
-              Regenerate
-            </Button>
-          </motion.div>
+              {/* Approve */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center gap-3 mt-10 pt-8 border-t border-border"
+              >
+                <Button>
+                  <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
+                  Approve & start forge
+                </Button>
+                <Button variant="ghost" className="text-muted-foreground">
+                  Regenerate
+                </Button>
+              </motion.div>
+            </>
+          )}
         </div>
       </div>
     </div>
