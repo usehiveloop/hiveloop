@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
 import { AnimatePresence, motion } from "motion/react"
 import { Streamdown } from "streamdown"
@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { $api } from "@/lib/api/hooks"
 import type { components } from "@/lib/api/schema"
 import { ForgeProvider, useForge } from "./_context/forge-context"
+import { useForgeChat } from "./_hooks/use-forge-chat"
 
 type ForgeEvalCase = components["schemas"]["ForgeEvalCase"]
 import { MessageInput } from "@/components/message-input"
@@ -513,86 +514,160 @@ function NavItem({ id, activeId, onSelect, label, status, trailing, sublabel }: 
 // ─── Content panels ─────────────────────────────────────────────────────────
 
 function ContextPanel() {
+  const { forge } = useForge()
+  const chat = useForgeChat()
+
+  // Parse captured context from forge run (available after approval).
+  const context = forge?.run ? (() => {
+    try {
+      const raw = (forge.run as Record<string, unknown>).context
+      if (typeof raw === "string") return JSON.parse(raw)
+      if (raw && typeof raw === "object") return raw
+    } catch { /* ignore */ }
+    return null
+  })() as {
+    requirements_summary?: string
+    success_criteria?: string[]
+    constraints?: string[]
+    edge_cases?: string[]
+    tone_and_style?: string
+    priority_focus?: string
+  } | null : null
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll when new messages arrive.
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [chat.messages.length])
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="max-w-xl mx-auto px-6 pt-10 pb-6">
           {/* Messages */}
-          <div className="flex flex-col gap-2 mb-8">
-            {MESSAGES.map((message, index) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04, duration: 0.35, ease }}
-              >
-                {message.role === "user" ? (
-                  <div className="ml-16 rounded-2xl rounded-tr-md bg-primary/[0.06] px-4 py-3">
-                    <p className="text-[13px] text-foreground leading-relaxed">{message.content}</p>
-                  </div>
-                ) : (
-                  <div className="mr-8 px-1 py-3">
-                    <div className="text-[13px] text-foreground/90 leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-strong:text-foreground">
-                      <Streamdown>{message.content}</Streamdown>
+          {chat.messages.length > 0 ? (
+            <div className="flex flex-col gap-2 mb-8">
+              {chat.messages.map((message, index) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.35, ease }}
+                >
+                  {message.role === "user" ? (
+                    <div className="ml-16 rounded-2xl rounded-tr-md bg-primary/[0.06] px-4 py-3">
+                      <p className="text-[13px] text-foreground leading-relaxed">{message.content}</p>
+                    </div>
+                  ) : (
+                    <div className="mr-8 px-1 py-3">
+                      <div className="text-[13px] text-foreground/90 leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-strong:text-foreground">
+                        <Streamdown>{message.content}</Streamdown>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+
+              {/* Streaming indicator */}
+              {chat.isStreaming && (
+                <div className="mr-8 px-1 py-2">
+                  <HugeiconsIcon icon={Loading03Icon} size={14} className="text-muted-foreground/30 animate-spin" />
+                </div>
+              )}
+            </div>
+          ) : chat.historyLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <HugeiconsIcon icon={Loading03Icon} size={20} className="text-muted-foreground/30 animate-spin" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-20">
+              <p className="text-sm text-muted-foreground/40">Waiting for context gatherer...</p>
+            </div>
+          )}
+
+          {/* Approval card — shown when context gatherer calls start_forge */}
+          {chat.startForgeApproval && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease }}
+              className="rounded-2xl border border-primary/20 bg-primary/[0.03] overflow-hidden mb-4"
+            >
+              <div className="px-5 py-4">
+                <p className="text-[13px] text-foreground font-medium mb-1">Ready to start optimization</p>
+                <p className="text-[12px] text-muted-foreground/60">The context gatherer has collected enough information. Approve to begin generating test cases.</p>
+              </div>
+              <div className="px-5 py-3 border-t border-primary/10 flex items-center gap-2">
+                <Button size="sm" onClick={() => chat.approveForge()} disabled={chat.approving}>
+                  <HugeiconsIcon icon={Tick02Icon} size={12} data-icon="inline-start" />
+                  {chat.approving ? "Approving..." : "Approve & continue"}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Requirements summary — shown after context is captured */}
+          {context && chat.isComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5, ease }}
+              className="rounded-2xl border border-border overflow-hidden"
+            >
+              {context.requirements_summary && (
+                <div className="px-5 pt-5 pb-4">
+                  <p className="text-[13px] text-foreground leading-relaxed">{context.requirements_summary}</p>
+                </div>
+              )}
+
+              <div className="px-5 pb-4 flex flex-col gap-3">
+                {context.success_criteria && context.success_criteria.length > 0 && (
+                  <div>
+                    <span className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/50">Will optimize for</span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {context.success_criteria.map((criterion) => (
+                        <span key={criterion} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/[0.07] px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                          <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                          {criterion}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )}
-              </motion.div>
-            ))}
+                {context.constraints && context.constraints.length > 0 && (
+                  <div>
+                    <span className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/50">Must never</span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {context.constraints.map((constraint) => (
+                        <span key={constraint} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/[0.07] px-2.5 py-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-400">
+                          <span className="h-1 w-1 rounded-full bg-rose-500" />
+                          {constraint}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* Input — only shown during active gathering */}
+      {chat.isGathering && (
+        <div className="shrink-0 border-t border-border">
+          <div className="max-w-xl mx-auto px-6 py-3">
+            <MessageInput
+              placeholder="Reply to the context gatherer..."
+              onSend={(content) => chat.sendMessage(content)}
+              disabled={chat.isStreaming}
+            />
           </div>
-
-          {/* Requirements card */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5, ease }}
-            className="rounded-2xl border border-border overflow-hidden"
-          >
-            <div className="px-5 pt-5 pb-4">
-              <p className="text-[13px] text-foreground leading-relaxed">{REQUIREMENTS.summary}</p>
-            </div>
-
-            <div className="px-5 pb-4 flex flex-col gap-3">
-              <div>
-                <span className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/50">Will optimize for</span>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {REQUIREMENTS.criteria.map((criterion) => (
-                    <span key={criterion} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/[0.07] px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                      <span className="h-1 w-1 rounded-full bg-emerald-500" />
-                      {criterion}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="font-mono text-[9px] font-medium uppercase tracking-[1.5px] text-muted-foreground/50">Must never</span>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {REQUIREMENTS.constraints.map((constraint) => (
-                    <span key={constraint} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/[0.07] px-2.5 py-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-400">
-                      <span className="h-1 w-1 rounded-full bg-rose-500" />
-                      {constraint}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center gap-2">
-              <Button size="sm" >
-                <HugeiconsIcon icon={SparklesIcon} size={12} data-icon="inline-start" />
-                Start optimization
-              </Button>
-              <Button size="sm" variant="ghost" className="text-muted-foreground">Adjust</Button>
-            </div>
-          </motion.div>
         </div>
-      </div>
-
-      <div className="shrink-0 border-t border-border">
-        <div className="max-w-xl mx-auto px-6 py-3">
-          <MessageInput placeholder="Adjust requirements..." onSend={() => {}} />
-        </div>
-      </div>
+      )}
     </div>
   )
 }
