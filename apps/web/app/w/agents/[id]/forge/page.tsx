@@ -18,6 +18,10 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { $api } from "@/lib/api/hooks"
+import type { components } from "@/lib/api/schema"
+import { ForgeProvider, useForge } from "./_context/forge-context"
+
+type ForgeEvalCase = components["schemas"]["ForgeEvalCase"]
 import { MessageInput } from "@/components/message-input"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -321,6 +325,9 @@ function scoreBgMuted(score: number) {
 type NavId = "context" | "evals" | "iteration-1" | "iteration-2" | "iteration-3" | "results"
 
 function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
+  const { forge } = useForge()
+
+  const evalCaseCount = forge?.eval_cases?.length ?? 0
   const bestScore = Math.max(...ITERATIONS.filter((iter) => iter.score !== null).map((iter) => iter.score!))
 
   return (
@@ -363,7 +370,7 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           status="completed"
           trailing={
             <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">
-              {EVAL_CASES.length}
+              {evalCaseCount}
             </span>
           }
           sublabel="Approved"
@@ -1029,7 +1036,7 @@ function AddEvalDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   )
 }
 
-function EvalCaseCard({ evalCase, index }: { evalCase: typeof EVAL_CASES[number]; index: number }) {
+function EvalCaseCard({ evalCase, index }: { evalCase: ForgeEvalCase; index: number }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -1111,6 +1118,9 @@ function EvalCaseCard({ evalCase, index }: { evalCase: typeof EVAL_CASES[number]
 
 function EvalsPanel() {
   const [addOpen, setAddOpen] = useState(false)
+  const { forge } = useForge()
+
+  const evalCases = forge?.eval_cases ?? []
 
   return (
     <div className="flex flex-col h-full">
@@ -1143,20 +1153,20 @@ function EvalsPanel() {
           >
             <div>
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Total</p>
-              <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">{EVAL_CASES.length}</p>
+              <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">{evalCases.length}</p>
             </div>
             <div className="h-8 w-px bg-border" />
             <div>
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Hard</p>
               <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">
-                {EVAL_CASES.filter((evalCase) => evalCase.requirement_type === "hard").length}
+                {evalCases.filter((evalCase) => evalCase.requirement_type === "hard").length}
               </p>
             </div>
             <div className="h-8 w-px bg-border" />
             <div>
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Soft</p>
               <p className="font-mono text-lg font-bold tabular-nums mt-0.5 text-foreground">
-                {EVAL_CASES.filter((evalCase) => evalCase.requirement_type === "soft").length}
+                {evalCases.filter((evalCase) => evalCase.requirement_type === "soft").length}
               </p>
             </div>
             <div className="h-8 w-px bg-border" />
@@ -1164,7 +1174,7 @@ function EvalsPanel() {
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">Tiers</p>
               <div className="flex items-center gap-1.5 mt-1">
                 {["basic", "standard", "adversarial"].map((tier) => {
-                  const count = EVAL_CASES.filter((evalCase) => evalCase.tier === tier).length
+                  const count = evalCases.filter((evalCase) => evalCase.tier === tier).length
                   return count > 0 ? (
                     <Badge key={tier} variant="secondary" className="text-[9px]">{tier} ({count})</Badge>
                   ) : null
@@ -1175,8 +1185,8 @@ function EvalsPanel() {
 
           {/* Eval list */}
           <div className="flex flex-col gap-2">
-            {EVAL_CASES.map((evalCase, index) => (
-              <EvalCaseCard key={evalCase.test_name} evalCase={evalCase} index={index} />
+            {evalCases.map((evalCase, index) => (
+              <EvalCaseCard key={evalCase.id ?? evalCase.test_name} evalCase={evalCase} index={index} />
             ))}
 
             <Button variant="secondary" className="w-full h-12" onClick={() => setAddOpen(true)}>
@@ -1306,7 +1316,6 @@ function ResultsPanel() {
 
 export default function ForgePage() {
   const params = useParams<{ id: string }>()
-  const [activeNav, setActiveNav] = useState<NavId>("iteration-3")
 
   const { data: agent, isLoading: agentLoading } = $api.useQuery(
     "get",
@@ -1331,6 +1340,17 @@ export default function ForgePage() {
       console.log("[forge] forge data loaded", forge)
     }
   }, [forge])
+
+  return (
+    <ForgeProvider agent={agent} agentLoading={agentLoading} forge={forge} forgeLoading={forgeLoading}>
+      <ForgePageContent />
+    </ForgeProvider>
+  )
+}
+
+function ForgePageContent() {
+  const { agent } = useForge()
+  const [activeNav, setActiveNav] = useState<NavId>("iteration-3")
 
   function renderContent() {
     if (activeNav === "context") return <ContextPanel />
