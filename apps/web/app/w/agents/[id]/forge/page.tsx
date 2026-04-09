@@ -1508,6 +1508,14 @@ export default function ForgePage() {
     "get",
     "/v1/agents/{agentID}/forge",
     { params: { path: { agentID: params.id } } },
+    {
+      refetchInterval: (query) => {
+        const status = query.state.data?.run?.status
+        if (!status) return 5000
+        const terminal = status === "completed" || status === "failed" || status === "cancelled"
+        return terminal ? false : 5000
+      },
+    },
   )
 
   useEffect(() => {
