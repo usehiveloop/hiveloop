@@ -24,14 +24,21 @@ export function StepIntegrations() {
   const connections = connectionsData?.data ?? []
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return connections
-    const query = search.toLowerCase()
-    return connections.filter(
-      (connection) =>
-        (connection.display_name ?? "").toLowerCase().includes(query) ||
-        (connection.provider ?? "").toLowerCase().includes(query),
-    )
-  }, [connections, search])
+    let result = connections
+    if (search.trim()) {
+      const query = search.toLowerCase()
+      result = result.filter(
+        (connection) =>
+          (connection.display_name ?? "").toLowerCase().includes(query) ||
+          (connection.provider ?? "").toLowerCase().includes(query),
+      )
+    }
+    return [...result].sort((first, second) => {
+      const firstSelected = selectedIntegrations.has(first.id!) ? 0 : 1
+      const secondSelected = selectedIntegrations.has(second.id!) ? 0 : 1
+      return firstSelected - secondSelected
+    })
+  }, [connections, search, selectedIntegrations])
 
   const selectedCount = selectedIntegrations.size
   const detailConnection = connections.find((connection) => connection.id === detailConnectionId)

@@ -386,6 +386,8 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, s
     )
   }, [triggers, search])
 
+  const selectedSet = new Set(selectedKeys)
+
   const grouped = useMemo(() => {
     const groups: Record<string, typeof filtered> = {}
     for (const trigger of filtered) {
@@ -393,10 +395,16 @@ function TriggerPickerView({ provider, connectionName, search, onSearchChange, s
       if (!groups[resourceType]) groups[resourceType] = []
       groups[resourceType].push(trigger)
     }
+    // Sort selected triggers to top within each group.
+    for (const group of Object.values(groups)) {
+      group.sort((first, second) => {
+        const firstSelected = selectedSet.has(first.key ?? "") ? 0 : 1
+        const secondSelected = selectedSet.has(second.key ?? "") ? 0 : 1
+        return firstSelected - secondSelected
+      })
+    }
     return groups
-  }, [filtered])
-
-  const selectedSet = new Set(selectedKeys)
+  }, [filtered, selectedSet])
 
   return (
     <>
