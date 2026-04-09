@@ -325,7 +325,7 @@ function scoreBgMuted(score: number) {
 
 type NavId = "context" | "evals" | `iteration-${string}` | "results"
 
-function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
+function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId | null; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
   const { forge } = useForge()
 
   const runStatus = forge?.run?.status
@@ -466,7 +466,7 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
 
 function NavItem({ id, activeId, onSelect, label, status, trailing, sublabel }: {
   id: NavId
-  activeId: NavId
+  activeId: NavId | null
   onSelect: (id: NavId) => void
   label: string
   status: "active" | "completed" | "pending" | "failed"
@@ -1529,16 +1529,63 @@ export default function ForgePage() {
   )
 }
 
+function deriveInitialNav(forge: ReturnType<typeof useForge>["forge"]): NavId {
+  const status = forge?.run?.status
+  if (!status) return "context"
+
+  switch (status) {
+    case "gathering_context":
+      return "context"
+    case "designing_evals":
+    case "reviewing_evals":
+      return "evals"
+    case "completed":
+    case "failed":
+    case "cancelled":
+      return "results"
+    case "running":
+    case "queued":
+    case "provisioning": {
+      // Navigate to the latest iteration if available.
+      const iterations = forge?.iterations ?? []
+      if (iterations.length > 0) {
+        const latest = iterations[iterations.length - 1]
+        return `iteration-${latest.id}` as NavId
+      }
+      return "evals"
+    }
+    default:
+      return "context"
+  }
+}
+
 function ForgePageContent() {
-  const { agent } = useForge()
-  const [activeNav, setActiveNav] = useState<NavId>("context")
+  const { agent, agentLoading, forge, forgeLoading } = useForge()
+  const [activeNav, setActiveNav] = useState<NavId | null>(null)
+
+  // Set initial tab based on forge status — only once when data first loads.
+  useEffect(() => {
+    if (activeNav === null && forge) {
+      setActiveNav(deriveInitialNav(forge))
+    }
+  }, [activeNav, forge])
+
+  const isLoading = agentLoading || forgeLoading || activeNav === null
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[calc(100vh-54px)] items-center justify-center">
+        <HugeiconsIcon icon={Loading03Icon} size={24} className="text-muted-foreground/30 animate-spin" />
+      </div>
+    )
+  }
 
   function renderContent() {
     if (activeNav === "context") return <ContextPanel />
     if (activeNav === "evals") return <EvalsPanel />
     if (activeNav === "results") return <ResultsPanel />
 
-    if (activeNav.startsWith("iteration-")) {
+    if (activeNav?.startsWith("iteration-")) {
       const iterationId = activeNav.slice("iteration-".length)
       return <IterationPanel iterationId={iterationId} />
     }
@@ -1548,7 +1595,7 @@ function ForgePageContent() {
 
   return (
     <div className="flex h-[calc(100vh-54px)]">
-      <Sidebar activeId={activeNav} onSelect={setActiveNav} agentName={agent?.name ?? "Loading..."} agentModel={agent?.model ?? ""} />
+      <Sidebar activeId={activeNav} onSelect={setActiveNav} agentName={agent?.name ?? ""} agentModel={agent?.model ?? ""} />
       <div className="flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
