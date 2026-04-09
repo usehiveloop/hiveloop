@@ -2045,7 +2045,11 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 			BridgeConversationID: evalConvResp.ConversationId,
 			Status:               "active",
 		}
-		fc.db.Create(&agentConv)
+		if err := fc.db.Create(&agentConv).Error; err != nil {
+			log.Warn("eval_judge: failed to create AgentConversation", "sample", s, "error", err)
+			sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
+			continue
+		}
 
 		// Subscribe BEFORE sending to avoid race condition.
 		evalTimeoutCtx, evalCancel := context.WithTimeout(ctx, 3*time.Minute)
@@ -2159,7 +2163,12 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		BridgeConversationID: judgeConv.ConversationId,
 		Status:               "active",
 	}
-	fc.db.Create(&judgeAgentConv)
+	if err := fc.db.Create(&judgeAgentConv).Error; err != nil {
+		log.Error("eval_judge: failed to create judge AgentConversation", "error", err)
+		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
+		fc.selfReplenish(ctx, payload)
+		return
+	}
 
 	// Subscribe BEFORE sending to avoid race condition.
 	judgeTimeoutCtx, judgeCancel := context.WithTimeout(ctx, 3*time.Minute)
