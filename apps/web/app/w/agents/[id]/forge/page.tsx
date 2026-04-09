@@ -1511,9 +1511,9 @@ export default function ForgePage() {
     {
       refetchInterval: (query) => {
         const status = query.state.data?.run?.status
-        if (!status) return 5000
-        const terminal = status === "completed" || status === "failed" || status === "cancelled"
-        return terminal ? false : 5000
+        if (!status) return false
+        if (status === "completed" || status === "failed" || status === "cancelled" || status === "gathering_context") return false
+        return 5000
       },
     },
   )
