@@ -578,9 +578,9 @@ function ContextPanel() {
                 </div>
               )}
             </div>
-          ) : chat.historyLoading ? (
+          ) : chat.isComplete ? (
             <div className="flex items-center justify-center py-20">
-              <HugeiconsIcon icon={Loading03Icon} size={20} className="text-muted-foreground/30 animate-spin" />
+              <p className="text-sm text-muted-foreground/40">Context gathering completed</p>
             </div>
           ) : (
             <div className="flex items-center justify-center py-20">
