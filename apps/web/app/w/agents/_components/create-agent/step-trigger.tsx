@@ -659,6 +659,14 @@ function ContextConfigView({
     { enabled: !!provider },
   )
 
+  // Fetch all actions for this provider (for action key autocomplete).
+  const { data: allActionsData } = $api.useQuery(
+    "get",
+    "/v1/catalog/integrations/{id}/actions",
+    { params: { path: { id: provider } } },
+    { enabled: !!provider },
+  )
+
   const refNames = useMemo(() => Object.keys(refs), [refs])
 
   const actionPaths = useMemo(() => {
@@ -670,6 +678,16 @@ function ContextConfigView({
     }
     return result
   }, [schemaPathsData])
+
+  const actionKeysForEditor = useMemo(() => {
+    if (!allActionsData || !Array.isArray(allActionsData)) return []
+    return allActionsData.map((action) => ({
+      key: action.key ?? "",
+      displayName: action.display_name ?? "",
+      access: action.access ?? "",
+      resourceType: action.resource_type ?? "",
+    }))
+  }, [allActionsData])
 
   function handleConfirm() {
     const parsed = parseRecipeYaml(yamlText)
@@ -703,6 +721,7 @@ function ContextConfigView({
           onChange={(newValue) => { setYamlText(newValue); setParseError(null) }}
           refNames={refNames}
           actionPaths={actionPaths}
+          actionKeys={actionKeysForEditor}
         />
 
         {parseError && (

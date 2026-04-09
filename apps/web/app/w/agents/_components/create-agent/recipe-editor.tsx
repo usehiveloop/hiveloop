@@ -17,9 +17,10 @@ interface RecipeEditorProps {
   onChange: (value: string) => void
   refNames: string[]
   actionPaths: Record<string, Array<{ path: string; type: string }>>
+  actionKeys: Array<{ key: string; displayName: string; access: string; resourceType: string }>
 }
 
-export function RecipeEditor({ value, onChange, refNames, actionPaths }: RecipeEditorProps) {
+export function RecipeEditor({ value, onChange, refNames, actionPaths, actionKeys }: RecipeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const disposablesRef = useRef<IDisposable[]>([])
 
@@ -28,7 +29,7 @@ export function RecipeEditor({ value, onChange, refNames, actionPaths }: RecipeE
     disposablesRef.current = []
 
     const disposable = monaco.languages.registerCompletionItemProvider("yaml", {
-      triggerCharacters: ["$", ".", "{"],
+      triggerCharacters: ["$", ".", "{", ":", " "],
       provideCompletionItems(model: editor.ITextModel, position: any) {
         const word = model.getWordUntilPosition(position)
         const lineContent = model.getLineContent(position.lineNumber)
@@ -89,6 +90,38 @@ export function RecipeEditor({ value, onChange, refNames, actionPaths }: RecipeE
               })
             }
           }
+        }
+
+        // Action key completions — triggered after "action:" on the same line.
+        if (textBeforeCursor.match(/action:\s*$/)) {
+          for (const action of actionKeys) {
+            suggestions.push({
+              label: action.key,
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertText: action.key,
+              detail: `${action.displayName} (${action.access})`,
+              documentation: action.resourceType ? `resource: ${action.resourceType}` : undefined,
+              range,
+              sortText: `0_${action.key}`,
+            })
+          }
+          return { suggestions }
+        }
+
+        // Ref name completions — triggered after "ref:" on the same line.
+        if (textBeforeCursor.match(/ref:\s*$/)) {
+          const resourceTypes = new Set(actionKeys.map((action) => action.resourceType).filter(Boolean))
+          for (const resourceType of resourceTypes) {
+            suggestions.push({
+              label: resourceType,
+              kind: monaco.languages.CompletionItemKind.Enum,
+              insertText: resourceType,
+              detail: "resource type",
+              range,
+              sortText: `0_${resourceType}`,
+            })
+          }
+          return { suggestions }
         }
 
         const yamlKeywords = [
