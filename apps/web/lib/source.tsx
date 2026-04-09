@@ -1,10 +1,7 @@
 import { docs } from 'collections/server';
 import { loader } from 'fumadocs-core/source';
 import { HugeiconsIcon } from '@hugeicons/react';
-import BookOpen01Icon from '@hugeicons/core-free-icons/BookOpen01Icon';
-import CompassIcon from '@hugeicons/core-free-icons/CompassIcon';
-import DashboardSquare01Icon from '@hugeicons/core-free-icons/DashboardSquare01Icon';
-import ApiIcon from '@hugeicons/core-free-icons/ApiIcon';
+import { BookOpen01Icon, CompassIcon, DashboardSquare01Icon, ApiIcon } from '@hugeicons/core-free-icons';
 
 const icons: Record<string, typeof BookOpen01Icon> = {
   BookOpen01Icon,
