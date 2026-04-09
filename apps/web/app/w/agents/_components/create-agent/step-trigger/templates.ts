@@ -104,6 +104,98 @@ instructions: |
   5. If everything looks good, approve the pull request
 `,
     },
+    {
+      name: "PR Mention Responder",
+      description: "Respond when @ziraloop is mentioned in a pull request comment",
+      yaml: `conditions:
+  match: all
+  rules:
+    - path: comment.body
+      operator: contains
+      value: "@ziraloop"
+    - path: issue.pull_request
+      operator: exists
+
+context:
+  - as: pr
+    action: pulls_get
+    ref: pull_request
+
+  - as: files
+    action: pulls_list_files
+    ref: pull_request
+
+  - as: comments
+    action: issues_list_comments
+    ref: issue
+
+instructions: |
+  You were mentioned in a pull request comment in $refs.repository.
+
+  ## Comment
+  {{$refs.sender}} said:
+  > {{$comment.body}}
+
+  ## Pull Request
+  **{{$pr.title}}** (#{{$refs.pull_number}}) by {{$pr.user.login}}
+  {{$pr.body}}
+
+  ## Changed Files
+  {{$files}}
+
+  ## Conversation
+  {{$comments}}
+
+  Respond to the mention. If asked a question, answer it based on the PR context and code changes.
+  If asked to do something (fix, update, review), take the appropriate action.
+`,
+    },
+    {
+      name: "Issue Mention Responder",
+      description: "Respond when @ziraloop is mentioned in an issue comment",
+      yaml: `conditions:
+  match: all
+  rules:
+    - path: comment.body
+      operator: contains
+      value: "@ziraloop"
+    - path: issue.pull_request
+      operator: not_exists
+
+context:
+  - as: issue
+    action: issues_get
+    ref: issue
+
+  - as: comments
+    action: issues_list_comments
+    ref: issue
+
+  - as: labels
+    action: issues_list_labels_for_repo
+    ref: repository
+
+instructions: |
+  You were mentioned in an issue comment in $refs.repository.
+
+  ## Comment
+  {{$refs.sender}} said:
+  > {{$comment.body}}
+
+  ## Issue
+  **{{$issue.title}}** (#{{$refs.issue_number}})
+  {{$issue.body}}
+
+  ## Conversation
+  {{$comments}}
+
+  ## Available Labels
+  {{$labels}}
+
+  Respond to the mention. If asked a question, answer it based on the issue context.
+  If asked to do something (label, close, investigate), take the appropriate action.
+`,
+    },
   ],
 }
 
