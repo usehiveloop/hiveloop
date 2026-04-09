@@ -322,13 +322,16 @@ function scoreBgMuted(score: number) {
 
 // ─── Navigation ─────────────────────────────────────────────────────────────
 
-type NavId = "context" | "evals" | "iteration-1" | "iteration-2" | "iteration-3" | "results"
+type NavId = "context" | "evals" | `iteration-${number}` | "results"
 
 function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
   const { forge } = useForge()
 
+  const runStatus = forge?.run?.status
   const evalCaseCount = forge?.eval_cases?.length ?? 0
-  const bestScore = Math.max(...ITERATIONS.filter((iter) => iter.score !== null).map((iter) => iter.score!))
+  const iterations = forge?.iterations ?? []
+  const iterationScores = iterations.filter((iter) => iter.score != null && iter.score > 0).map((iter) => iter.score!)
+  const bestScore = iterationScores.length > 0 ? Math.max(...iterationScores) : 0
 
   return (
     <div className="flex w-80 shrink-0 flex-col border-r border-border overflow-y-auto">
@@ -357,8 +360,8 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           activeId={activeId}
           onSelect={onSelect}
           label="Requirements"
-          status="completed"
-          sublabel="Captured"
+          status={runStatus === "gathering_context" ? "active" : runStatus ? "completed" : "pending"}
+          sublabel={runStatus === "gathering_context" ? "Gathering" : runStatus ? "Captured" : "Pending"}
         />
 
         {/* Evals */}
@@ -367,13 +370,25 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           activeId={activeId}
           onSelect={onSelect}
           label="Test Cases"
-          status="completed"
-          trailing={
-            <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">
-              {evalCaseCount}
-            </span>
+          status={
+            runStatus === "designing_evals" ? "active"
+            : runStatus === "reviewing_evals" ? "active"
+            : evalCaseCount > 0 ? "completed"
+            : "pending"
           }
-          sublabel="Approved"
+          trailing={
+            evalCaseCount > 0 ? (
+              <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">
+                {evalCaseCount}
+              </span>
+            ) : null
+          }
+          sublabel={
+            runStatus === "designing_evals" ? "Designing"
+            : runStatus === "reviewing_evals" ? "Review"
+            : evalCaseCount > 0 ? "Approved"
+            : "Pending"
+          }
         />
 
         {/* Iterations */}
@@ -381,34 +396,43 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           <span className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/30">Iterations</span>
         </div>
 
-        {ITERATIONS.map((iteration) => {
-          const isActive = iteration.phase !== "completed" && iteration.phase !== "failed"
-          const completedCount = iteration.evals.filter((evalItem) => evalItem.status === "completed").length
-          const passedCount = iteration.evals.filter((evalItem) => evalItem.passed).length
+        {iterations.map((iteration) => {
+          const phase = iteration.phase ?? "pending"
+          const isActive = phase !== "completed" && phase !== "failed"
+          const evalResults = iteration.eval_results ?? []
+          const completedCount = evalResults.filter((result) => result.status === "completed").length
+          const passedCount = evalResults.filter((result) => result.passed).length
+          const totalEvals = iteration.total_evals ?? evalCaseCount
+          const score = iteration.score ?? null
+          const iterationNumber = iteration.iteration ?? 0
 
           return (
             <NavItem
-              key={iteration.number}
-              id={`iteration-${iteration.number}` as NavId}
+              key={iteration.id}
+              id={`iteration-${iterationNumber}` as NavId}
               activeId={activeId}
               onSelect={onSelect}
-              label={`Iteration ${iteration.number}`}
-              status={isActive ? "active" : iteration.phase === "completed" ? "completed" : "failed"}
+              label={`Iteration ${iterationNumber}`}
+              status={isActive ? "active" : phase === "completed" ? "completed" : "failed"}
               trailing={
-                iteration.score !== null ? (
-                  <span className={cn("font-mono text-[11px] font-bold tabular-nums", scoreColor(iteration.score))}>
-                    {Math.round(iteration.score * 100)}
+                score !== null && score > 0 ? (
+                  <span className={cn("font-mono text-[11px] font-bold tabular-nums", scoreColor(score))}>
+                    {Math.round(score * 100)}
                   </span>
                 ) : isActive ? (
-                  <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">{completedCount}/{iteration.total_evals}</span>
-                ) : null
+                  <span className="font-mono text-[10px] text-muted-foreground/50 tabular-nums">{completedCount}/{totalEvals}</span>
+                ) : (
+                  <span className={cn("font-mono text-[11px] font-bold tabular-nums", scoreColor(0))}>
+                    0
+                  </span>
+                )
               }
               sublabel={
-                iteration.score !== null
-                  ? `${passedCount}/${iteration.total_evals} passed`
+                phase === "completed"
+                  ? `${passedCount}/${totalEvals} passed`
                   : isActive
-                    ? iteration.phase === "evaluating" ? "Running evals" : iteration.phase === "designing" ? "Designing" : "Judging"
-                    : undefined
+                    ? phase === "evaluating" ? "Running evals" : phase === "designing" ? "Designing" : phase === "judging" ? "Judging" : phase
+                    : phase === "failed" ? "Failed" : undefined
               }
             />
           )
@@ -424,8 +448,8 @@ function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavI
           activeId={activeId}
           onSelect={onSelect}
           label="Results"
-          status="pending"
-          sublabel="Pending"
+          status={forge?.run?.status === "completed" ? "completed" : "pending"}
+          sublabel={forge?.run?.status === "completed" ? (forge?.run?.stop_reason ?? "Done") : "Pending"}
         />
       </div>
 
@@ -1350,7 +1374,7 @@ export default function ForgePage() {
 
 function ForgePageContent() {
   const { agent } = useForge()
-  const [activeNav, setActiveNav] = useState<NavId>("iteration-3")
+  const [activeNav, setActiveNav] = useState<NavId>("context")
 
   function renderContent() {
     if (activeNav === "context") return <ContextPanel />
