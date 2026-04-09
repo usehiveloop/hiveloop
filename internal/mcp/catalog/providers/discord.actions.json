@@ -87,7 +87,8 @@
           "nick": "nick",
           "roles": "roles"
         }
-      }
+      },
+      "response_schema": "GuildMemberResponse"
     },
     "add_guild_member_role": {
       "display_name": "Add Guild Member Role",
@@ -151,7 +152,8 @@
           "flags": "flags",
           "metadata": "metadata"
         }
-      }
+      },
+      "response_schema": "LobbyMemberResponse"
     },
     "add_my_message_reaction": {
       "display_name": "Add My Message Reaction",
@@ -230,7 +232,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/activity-instances/{instance_id}"
-      }
+      },
+      "response_schema": "EmbeddedActivityInstance"
     },
     "ban_user_from_guild": {
       "display_name": "Ban User From Guild",
@@ -293,7 +296,8 @@
           "external_user_id": "external_user_id",
           "preferred_global_name": "preferred_global_name"
         }
-      }
+      },
+      "response_schema": "ProvisionalTokenResponse"
     },
     "bot_partner_sdk_unmerge_provisional_account": {
       "display_name": "Bot Partner Sdk Unmerge Provisional Account",
@@ -349,7 +353,8 @@
           "delete_message_seconds": "delete_message_seconds",
           "user_ids": "user_ids"
         }
-      }
+      },
+      "response_schema": "BulkBanUsersResponse"
     },
     "bulk_delete_messages": {
       "display_name": "Bulk Delete Messages",
@@ -398,7 +403,8 @@
       "execution": {
         "method": "PUT",
         "path": "/applications/{application_id}/commands"
-      }
+      },
+      "response_schema": "ApplicationCommandResponse_list"
     },
     "bulk_set_guild_application_commands": {
       "display_name": "Bulk Set Guild Application Commands",
@@ -423,7 +429,8 @@
       "execution": {
         "method": "PUT",
         "path": "/applications/{application_id}/guilds/{guild_id}/commands"
-      }
+      },
+      "response_schema": "ApplicationCommandResponse_list"
     },
     "bulk_update_guild_channels": {
       "display_name": "Bulk Update Guild Channels",
@@ -465,7 +472,8 @@
       "execution": {
         "method": "PATCH",
         "path": "/guilds/{guild_id}/roles"
-      }
+      },
+      "response_schema": "GuildRoleResponse_list"
     },
     "bulk_update_lobby_members": {
       "display_name": "Bulk Update Lobby Members",
@@ -486,7 +494,8 @@
       "execution": {
         "method": "POST",
         "path": "/lobbies/{lobby_id}/members/bulk"
-      }
+      },
+      "response_schema": "LobbyMemberResponse_list"
     },
     "consume_entitlement": {
       "display_name": "Consume Entitlement",
@@ -579,7 +588,8 @@
           "options": "options",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "create_application_emoji": {
       "display_name": "Create Application Emoji",
@@ -612,7 +622,8 @@
           "image": "image",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "create_auto_moderation_rule": {
       "display_name": "Create Auto Moderation Rule",
@@ -700,7 +711,8 @@
           "owner_type": "owner_type",
           "sku_id": "sku_id"
         }
-      }
+      },
+      "response_schema": "EntitlementResponse"
     },
     "create_guild_application_command": {
       "display_name": "Create Guild Application Command",
@@ -772,7 +784,8 @@
           "options": "options",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "create_guild_channel": {
       "display_name": "Create Guild Channel",
@@ -872,7 +885,8 @@
           "user_limit": "user_limit",
           "video_quality_mode": "video_quality_mode"
         }
-      }
+      },
+      "response_schema": "GuildChannelResponse"
     },
     "create_guild_emoji": {
       "display_name": "Create Guild Emoji",
@@ -909,7 +923,8 @@
           "name": "name",
           "roles": "roles"
         }
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "create_guild_role": {
       "display_name": "Create Guild Role",
@@ -964,7 +979,8 @@
           "permissions": "permissions",
           "unicode_emoji": "unicode_emoji"
         }
-      }
+      },
+      "response_schema": "GuildRoleResponse"
     },
     "create_guild_scheduled_event": {
       "display_name": "Create Guild Scheduled Event",
@@ -1030,7 +1046,8 @@
           "sound": "sound",
           "volume": "volume"
         }
-      }
+      },
+      "response_schema": "SoundboardSoundResponse"
     },
     "create_guild_template": {
       "display_name": "Create Guild Template",
@@ -1062,7 +1079,8 @@
           "description": "description",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "GuildTemplateResponse"
     },
     "create_linked_lobby_guild_invite_for_self": {
       "display_name": "Create Linked Lobby Guild Invite For Self",
@@ -1083,7 +1101,8 @@
       "execution": {
         "method": "POST",
         "path": "/lobbies/{lobby_id}/members/@me/invites"
-      }
+      },
+      "response_schema": "LobbyGuildInviteResponse"
     },
     "create_linked_lobby_guild_invite_for_user": {
       "display_name": "Create Linked Lobby Guild Invite For User",
@@ -1108,7 +1127,8 @@
       "execution": {
         "method": "POST",
         "path": "/lobbies/{lobby_id}/members/{user_id}/invites"
-      }
+      },
+      "response_schema": "LobbyGuildInviteResponse"
     },
     "create_lobby": {
       "display_name": "Create Lobby",
@@ -1145,7 +1165,8 @@
           "metadata": "metadata",
           "override_event_webhooks_url": "override_event_webhooks_url"
         }
-      }
+      },
+      "response_schema": "LobbyResponse"
     },
     "create_or_join_lobby": {
       "display_name": "Create Or Join Lobby",
@@ -1185,7 +1206,8 @@
           "member_metadata": "member_metadata",
           "secret": "secret"
         }
-      }
+      },
+      "response_schema": "LobbyResponse"
     },
     "create_pin": {
       "display_name": "Create Pin",
@@ -1251,7 +1273,8 @@
           "send_start_notification": "send_start_notification",
           "topic": "topic"
         }
-      }
+      },
+      "response_schema": "StageInstanceResponse"
     },
     "create_thread_from_message": {
       "display_name": "Create Thread From Message",
@@ -1291,7 +1314,8 @@
           "name": "name",
           "rate_limit_per_user": "rate_limit_per_user"
         }
-      }
+      },
+      "response_schema": "ThreadResponse"
     },
     "create_webhook": {
       "display_name": "Create Webhook",
@@ -1323,7 +1347,8 @@
           "avatar": "avatar",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "GuildIncomingWebhookResponse"
     },
     "crosspost_message": {
       "display_name": "Crosspost Message",
@@ -1348,7 +1373,8 @@
       "execution": {
         "method": "POST",
         "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
-      }
+      },
+      "response_schema": "MessageResponse"
     },
     "delete_all_message_reactions": {
       "display_name": "Delete All Message Reactions",
@@ -1852,7 +1878,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/guilds/{guild_id}/templates/{code}"
-      }
+      },
+      "response_schema": "GuildTemplateResponse"
     },
     "delete_lobby_member": {
       "display_name": "Delete Lobby Member",
@@ -2218,7 +2245,8 @@
       "execution": {
         "method": "GET",
         "path": "/channels/{channel_id}/pins"
-      }
+      },
+      "response_schema": "MessageResponse_list"
     },
     "edit_lobby": {
       "display_name": "Edit Lobby",
@@ -2261,7 +2289,8 @@
           "metadata": "metadata",
           "override_event_webhooks_url": "override_event_webhooks_url"
         }
-      }
+      },
+      "response_schema": "LobbyResponse"
     },
     "edit_lobby_channel_link": {
       "display_name": "Edit Lobby Channel Link",
@@ -2288,7 +2317,8 @@
         "body_mapping": {
           "channel_id": "channel_id"
         }
-      }
+      },
+      "response_schema": "LobbyResponse"
     },
     "execute_github_compatible_webhook": {
       "display_name": "Execute Github Compatible Webhook",
@@ -2434,7 +2464,8 @@
         "body_mapping": {
           "webhook_channel_id": "webhook_channel_id"
         }
-      }
+      },
+      "response_schema": "ChannelFollowerResponse"
     },
     "get_active_guild_threads": {
       "display_name": "Get Active Guild Threads",
@@ -2455,7 +2486,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/threads/active"
-      }
+      },
+      "response_schema": "ThreadsResponse"
     },
     "get_answer_voters": {
       "display_name": "Get Answer Voters",
@@ -2494,7 +2526,8 @@
           "after": "after",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "PollAnswerDetailsResponse"
     },
     "get_application": {
       "display_name": "Get Application",
@@ -2515,7 +2548,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}"
-      }
+      },
+      "response_schema": "PrivateApplicationResponse"
     },
     "get_application_command": {
       "display_name": "Get Application Command",
@@ -2540,7 +2574,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/commands/{command_id}"
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "get_application_emoji": {
       "display_name": "Get Application Emoji",
@@ -2565,7 +2600,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/emojis/{emoji_id}"
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "get_application_role_connections_metadata": {
       "display_name": "Get Application Role Connections Metadata",
@@ -2586,7 +2622,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/role-connections/metadata"
-      }
+      },
+      "response_schema": "ApplicationRoleConnectionsMetadataItemResponse_list"
     },
     "get_application_user_role_connection": {
       "display_name": "Get Application User Role Connection",
@@ -2607,7 +2644,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/@me/applications/{application_id}/role-connection"
-      }
+      },
+      "response_schema": "ApplicationUserRoleConnectionResponse"
     },
     "get_auto_moderation_rule": {
       "display_name": "Get Auto Moderation Rule",
@@ -2646,7 +2684,8 @@
       "execution": {
         "method": "GET",
         "path": "/gateway/bot"
-      }
+      },
+      "response_schema": "GatewayBotResponse"
     },
     "get_channel": {
       "display_name": "Get Channel",
@@ -2723,7 +2762,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/entitlements/{entitlement_id}"
-      }
+      },
+      "response_schema": "EntitlementResponse"
     },
     "get_entitlements": {
       "display_name": "Get Entitlements",
@@ -2796,7 +2836,8 @@
       "execution": {
         "method": "GET",
         "path": "/gateway"
-      }
+      },
+      "response_schema": "GatewayResponse"
     },
     "get_guild": {
       "display_name": "Get Guild",
@@ -2823,7 +2864,8 @@
         "query_mapping": {
           "with_counts": "with_counts"
         }
-      }
+      },
+      "response_schema": "GuildWithCountsResponse"
     },
     "get_guild_application_command": {
       "display_name": "Get Guild Application Command",
@@ -2852,7 +2894,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}"
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "get_guild_application_command_permissions": {
       "display_name": "Get Guild Application Command Permissions",
@@ -2881,7 +2924,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions"
-      }
+      },
+      "response_schema": "CommandPermissionsResponse"
     },
     "get_guild_ban": {
       "display_name": "Get Guild Ban",
@@ -2906,7 +2950,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/bans/{user_id}"
-      }
+      },
+      "response_schema": "GuildBanResponse"
     },
     "get_guild_emoji": {
       "display_name": "Get Guild Emoji",
@@ -2931,7 +2976,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/emojis/{emoji_id}"
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "get_guild_member": {
       "display_name": "Get Guild Member",
@@ -2956,7 +3002,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/members/{user_id}"
-      }
+      },
+      "response_schema": "GuildMemberResponse"
     },
     "get_guild_new_member_welcome": {
       "display_name": "Get Guild New Member Welcome",
@@ -2977,7 +3024,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/new-member-welcome"
-      }
+      },
+      "response_schema": "GuildHomeSettingsResponse"
     },
     "get_guild_preview": {
       "display_name": "Get Guild Preview",
@@ -2998,7 +3046,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/preview"
-      }
+      },
+      "response_schema": "GuildPreviewResponse"
     },
     "get_guild_role": {
       "display_name": "Get Guild Role",
@@ -3023,7 +3072,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/roles/{role_id}"
-      }
+      },
+      "response_schema": "GuildRoleResponse"
     },
     "get_guild_scheduled_event": {
       "display_name": "Get Guild Scheduled Event",
@@ -3079,7 +3129,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}"
-      }
+      },
+      "response_schema": "SoundboardSoundResponse"
     },
     "get_guild_sticker": {
       "display_name": "Get Guild Sticker",
@@ -3104,7 +3155,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/stickers/{sticker_id}"
-      }
+      },
+      "response_schema": "GuildStickerResponse"
     },
     "get_guild_template": {
       "display_name": "Get Guild Template",
@@ -3125,7 +3177,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/templates/{code}"
-      }
+      },
+      "response_schema": "GuildTemplateResponse"
     },
     "get_guild_vanity_url": {
       "display_name": "Get Guild Vanity Url",
@@ -3146,7 +3199,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/vanity-url"
-      }
+      },
+      "response_schema": "VanityURLResponse"
     },
     "get_guild_webhooks": {
       "display_name": "Get Guild Webhooks",
@@ -3188,7 +3242,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/welcome-screen"
-      }
+      },
+      "response_schema": "GuildWelcomeScreenResponse"
     },
     "get_guild_widget": {
       "display_name": "Get Guild Widget",
@@ -3209,7 +3264,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/widget.json"
-      }
+      },
+      "response_schema": "WidgetResponse"
     },
     "get_guild_widget_png": {
       "display_name": "Get Guild Widget Png",
@@ -3257,7 +3313,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/widget"
-      }
+      },
+      "response_schema": "WidgetSettingsResponse"
     },
     "get_guilds_onboarding": {
       "display_name": "Get Guilds Onboarding",
@@ -3278,7 +3335,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/onboarding"
-      }
+      },
+      "response_schema": "UserGuildOnboardingResponse"
     },
     "get_invite_target_users": {
       "display_name": "Get Invite Target Users",
@@ -3320,7 +3378,8 @@
       "execution": {
         "method": "GET",
         "path": "/invites/{code}/target-users/job-status"
-      }
+      },
+      "response_schema": "TargetUsersJobStatusResponse"
     },
     "get_lobby": {
       "display_name": "Get Lobby",
@@ -3341,7 +3400,8 @@
       "execution": {
         "method": "GET",
         "path": "/lobbies/{lobby_id}"
-      }
+      },
+      "response_schema": "LobbyResponse"
     },
     "get_lobby_messages": {
       "display_name": "Get Lobby Messages",
@@ -3368,7 +3428,8 @@
         "query_mapping": {
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "LobbyMessageResponse_list"
     },
     "get_message": {
       "display_name": "Get Message",
@@ -3393,7 +3454,8 @@
       "execution": {
         "method": "GET",
         "path": "/channels/{channel_id}/messages/{message_id}"
-      }
+      },
+      "response_schema": "MessageResponse"
     },
     "get_my_application": {
       "display_name": "Get My Application",
@@ -3407,7 +3469,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/@me"
-      }
+      },
+      "response_schema": "PrivateApplicationResponse"
     },
     "get_my_guild_member": {
       "display_name": "Get My Guild Member",
@@ -3428,7 +3491,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/@me/guilds/{guild_id}/member"
-      }
+      },
+      "response_schema": "PrivateGuildMemberResponse"
     },
     "get_my_oauth2_application": {
       "display_name": "Get My Oauth2 Application",
@@ -3442,7 +3506,8 @@
       "execution": {
         "method": "GET",
         "path": "/oauth2/applications/@me"
-      }
+      },
+      "response_schema": "PrivateApplicationResponse"
     },
     "get_my_oauth2_authorization": {
       "display_name": "Get My Oauth2 Authorization",
@@ -3456,7 +3521,8 @@
       "execution": {
         "method": "GET",
         "path": "/oauth2/@me"
-      }
+      },
+      "response_schema": "OAuth2GetAuthorizationResponse"
     },
     "get_my_user": {
       "display_name": "Get My User",
@@ -3470,7 +3536,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/@me"
-      }
+      },
+      "response_schema": "UserPIIResponse"
     },
     "get_openid_connect_userinfo": {
       "display_name": "Get Openid Connect Userinfo",
@@ -3484,7 +3551,8 @@
       "execution": {
         "method": "GET",
         "path": "/oauth2/userinfo"
-      }
+      },
+      "response_schema": "OAuth2GetOpenIDConnectUserInfoResponse"
     },
     "get_original_webhook_message": {
       "display_name": "Get Original Webhook Message",
@@ -3515,7 +3583,8 @@
         "query_mapping": {
           "thread_id": "thread_id"
         }
-      }
+      },
+      "response_schema": "MessageResponse"
     },
     "get_public_keys": {
       "display_name": "Get Public Keys",
@@ -3529,7 +3598,8 @@
       "execution": {
         "method": "GET",
         "path": "/oauth2/keys"
-      }
+      },
+      "response_schema": "OAuth2GetKeys"
     },
     "get_self_voice_state": {
       "display_name": "Get Self Voice State",
@@ -3550,7 +3620,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/voice-states/@me"
-      }
+      },
+      "response_schema": "VoiceStateResponse"
     },
     "get_soundboard_default_sounds": {
       "display_name": "Get Soundboard Default Sounds",
@@ -3564,7 +3635,8 @@
       "execution": {
         "method": "GET",
         "path": "/soundboard-default-sounds"
-      }
+      },
+      "response_schema": "SoundboardSoundResponse_list"
     },
     "get_stage_instance": {
       "display_name": "Get Stage Instance",
@@ -3585,7 +3657,8 @@
       "execution": {
         "method": "GET",
         "path": "/stage-instances/{channel_id}"
-      }
+      },
+      "response_schema": "StageInstanceResponse"
     },
     "get_sticker": {
       "display_name": "Get Sticker",
@@ -3627,7 +3700,8 @@
       "execution": {
         "method": "GET",
         "path": "/sticker-packs/{pack_id}"
-      }
+      },
+      "response_schema": "StickerPackResponse"
     },
     "get_thread_member": {
       "display_name": "Get Thread Member",
@@ -3658,7 +3732,8 @@
         "query_mapping": {
           "with_member": "with_member"
         }
-      }
+      },
+      "response_schema": "ThreadMemberResponse"
     },
     "get_user": {
       "display_name": "Get User",
@@ -3679,7 +3754,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{user_id}"
-      }
+      },
+      "response_schema": "UserResponse"
     },
     "get_voice_state": {
       "display_name": "Get Voice State",
@@ -3704,7 +3780,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/voice-states/{user_id}"
-      }
+      },
+      "response_schema": "VoiceStateResponse"
     },
     "get_webhook": {
       "display_name": "Get Webhook",
@@ -3785,7 +3862,8 @@
         "query_mapping": {
           "thread_id": "thread_id"
         }
-      }
+      },
+      "response_schema": "MessageResponse"
     },
     "guild_role_member_counts": {
       "display_name": "Guild Role Member Counts",
@@ -3807,6 +3885,126 @@
         "method": "GET",
         "path": "/guilds/{guild_id}/roles/member-counts"
       }
+    },
+    "guild_search": {
+      "display_name": "Guild Search",
+      "description": "",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "attachment_extension": {
+            "type": "array"
+          },
+          "attachment_filename": {
+            "type": "array"
+          },
+          "author_id": {
+            "type": "array"
+          },
+          "author_type": {
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "array"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed_provider": {
+            "type": "array"
+          },
+          "embed_type": {
+            "type": "array"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "has": {
+            "type": "array"
+          },
+          "include_nsfw": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "link_hostname": {
+            "type": "array"
+          },
+          "max_id": {
+            "type": "string"
+          },
+          "mention_everyone": {
+            "type": "boolean"
+          },
+          "mentions": {
+            "type": "array"
+          },
+          "mentions_role_id": {
+            "type": "array"
+          },
+          "min_id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "replied_to_message_id": {
+            "type": "array"
+          },
+          "replied_to_user_id": {
+            "type": "array"
+          },
+          "slop": {
+            "type": "integer"
+          },
+          "sort_by": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guild_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/guilds/{guild_id}/messages/search",
+        "query_mapping": {
+          "attachment_extension": "attachment_extension",
+          "attachment_filename": "attachment_filename",
+          "author_id": "author_id",
+          "author_type": "author_type",
+          "channel_id": "channel_id",
+          "content": "content",
+          "embed_provider": "embed_provider",
+          "embed_type": "embed_type",
+          "has": "has",
+          "include_nsfw": "include_nsfw",
+          "limit": "limit",
+          "link_hostname": "link_hostname",
+          "max_id": "max_id",
+          "mention_everyone": "mention_everyone",
+          "mentions": "mentions",
+          "mentions_role_id": "mentions_role_id",
+          "min_id": "min_id",
+          "offset": "offset",
+          "pinned": "pinned",
+          "replied_to_message_id": "replied_to_message_id",
+          "replied_to_user_id": "replied_to_user_id",
+          "slop": "slop",
+          "sort_by": "sort_by",
+          "sort_order": "sort_order"
+        }
+      },
+      "response_schema": "GuildSearchResponse"
     },
     "invite_resolve": {
       "display_name": "Invite Resolve",
@@ -3969,7 +4167,8 @@
         "query_mapping": {
           "with_localizations": "with_localizations"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse_list"
     },
     "list_application_emojis": {
       "display_name": "List Application Emojis",
@@ -3991,7 +4190,8 @@
         "method": "GET",
         "path": "/applications/{application_id}/emojis",
         "response_path": "items"
-      }
+      },
+      "response_schema": "ListApplicationEmojisResponse"
     },
     "list_auto_moderation_rules": {
       "display_name": "List Auto Moderation Rules",
@@ -4079,7 +4279,8 @@
       "execution": {
         "method": "GET",
         "path": "/applications/{application_id}/guilds/{guild_id}/commands/permissions"
-      }
+      },
+      "response_schema": "CommandPermissionsResponse_list"
     },
     "list_guild_application_commands": {
       "display_name": "List Guild Application Commands",
@@ -4110,7 +4311,8 @@
         "query_mapping": {
           "with_localizations": "with_localizations"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse_list"
     },
     "list_guild_audit_log_entries": {
       "display_name": "List Guild Audit Log Entries",
@@ -4157,7 +4359,8 @@
           "target_id": "target_id",
           "user_id": "user_id"
         }
-      }
+      },
+      "response_schema": "GuildAuditLogResponse"
     },
     "list_guild_bans": {
       "display_name": "List Guild Bans",
@@ -4192,7 +4395,8 @@
           "before": "before",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "GuildBanResponse_list"
     },
     "list_guild_channels": {
       "display_name": "List Guild Channels",
@@ -4234,7 +4438,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/emojis"
-      }
+      },
+      "response_schema": "EmojiResponse_list"
     },
     "list_guild_integrations": {
       "display_name": "List Guild Integrations",
@@ -4307,7 +4512,8 @@
           "after": "after",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "GuildMemberResponse_list"
     },
     "list_guild_roles": {
       "display_name": "List Guild Roles",
@@ -4328,7 +4534,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/roles"
-      }
+      },
+      "response_schema": "GuildRoleResponse_list"
     },
     "list_guild_scheduled_event_users": {
       "display_name": "List Guild Scheduled Event Users",
@@ -4371,7 +4578,8 @@
           "limit": "limit",
           "with_member": "with_member"
         }
-      }
+      },
+      "response_schema": "ScheduledEventUserResponse_list"
     },
     "list_guild_scheduled_events": {
       "display_name": "List Guild Scheduled Events",
@@ -4420,7 +4628,8 @@
         "method": "GET",
         "path": "/guilds/{guild_id}/soundboard-sounds",
         "response_path": "items"
-      }
+      },
+      "response_schema": "ListGuildSoundboardSoundsResponse"
     },
     "list_guild_stickers": {
       "display_name": "List Guild Stickers",
@@ -4441,7 +4650,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/stickers"
-      }
+      },
+      "response_schema": "GuildStickerResponse_list"
     },
     "list_guild_templates": {
       "display_name": "List Guild Templates",
@@ -4462,7 +4672,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/templates"
-      }
+      },
+      "response_schema": "GuildTemplateResponse_list"
     },
     "list_guild_voice_regions": {
       "display_name": "List Guild Voice Regions",
@@ -4483,7 +4694,8 @@
       "execution": {
         "method": "GET",
         "path": "/guilds/{guild_id}/regions"
-      }
+      },
+      "response_schema": "VoiceRegionResponse_list"
     },
     "list_message_reactions_by_emoji": {
       "display_name": "List Message Reactions By Emoji",
@@ -4526,7 +4738,8 @@
           "limit": "limit",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "UserResponse_list"
     },
     "list_messages": {
       "display_name": "List Messages",
@@ -4565,7 +4778,8 @@
           "before": "before",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "MessageResponse_list"
     },
     "list_my_connections": {
       "display_name": "List My Connections",
@@ -4579,7 +4793,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/@me/connections"
-      }
+      },
+      "response_schema": "ConnectedAccountResponse_list"
     },
     "list_my_guilds": {
       "display_name": "List My Guilds",
@@ -4612,7 +4827,8 @@
           "limit": "limit",
           "with_counts": "with_counts"
         }
-      }
+      },
+      "response_schema": "MyGuildResponse_list"
     },
     "list_my_private_archived_threads": {
       "display_name": "List My Private Archived Threads",
@@ -4643,7 +4859,8 @@
           "before": "before",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "ThreadsResponse"
     },
     "list_pins": {
       "display_name": "List Pins",
@@ -4675,7 +4892,8 @@
           "limit": "limit"
         },
         "response_path": "items"
-      }
+      },
+      "response_schema": "PinnedMessagesResponse"
     },
     "list_private_archived_threads": {
       "display_name": "List Private Archived Threads",
@@ -4706,7 +4924,8 @@
           "before": "before",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "ThreadsResponse"
     },
     "list_public_archived_threads": {
       "display_name": "List Public Archived Threads",
@@ -4737,7 +4956,8 @@
           "before": "before",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "ThreadsResponse"
     },
     "list_sticker_packs": {
       "display_name": "List Sticker Packs",
@@ -4751,7 +4971,8 @@
       "execution": {
         "method": "GET",
         "path": "/sticker-packs"
-      }
+      },
+      "response_schema": "StickerPackCollectionResponse"
     },
     "list_thread_members": {
       "display_name": "List Thread Members",
@@ -4786,7 +5007,8 @@
           "limit": "limit",
           "with_member": "with_member"
         }
-      }
+      },
+      "response_schema": "ThreadMemberResponse_list"
     },
     "list_voice_regions": {
       "display_name": "List Voice Regions",
@@ -4800,7 +5022,8 @@
       "execution": {
         "method": "GET",
         "path": "/voice/regions"
-      }
+      },
+      "response_schema": "VoiceRegionResponse_list"
     },
     "partner_sdk_token": {
       "display_name": "Partner Sdk Token",
@@ -4838,7 +5061,8 @@
           "external_auth_token": "external_auth_token",
           "external_auth_type": "external_auth_type"
         }
-      }
+      },
+      "response_schema": "ProvisionalTokenResponse"
     },
     "partner_sdk_unmerge_provisional_account": {
       "display_name": "Partner Sdk Unmerge Provisional Account",
@@ -4901,7 +5125,8 @@
       "execution": {
         "method": "POST",
         "path": "/channels/{channel_id}/polls/{message_id}/expire"
-      }
+      },
+      "response_schema": "MessageResponse"
     },
     "preview_prune_guild": {
       "display_name": "Preview Prune Guild",
@@ -4932,7 +5157,8 @@
           "days": "days",
           "include_roles": "include_roles"
         }
-      }
+      },
+      "response_schema": "GuildPruneResponse"
     },
     "prune_guild": {
       "display_name": "Prune Guild",
@@ -4967,7 +5193,8 @@
           "days": "days",
           "include_roles": "include_roles"
         }
-      }
+      },
+      "response_schema": "GuildPruneResponse"
     },
     "put_guilds_onboarding": {
       "display_name": "Put Guilds Onboarding",
@@ -5006,7 +5233,8 @@
           "mode": "mode",
           "prompts": "prompts"
         }
-      }
+      },
+      "response_schema": "GuildOnboardingResponse"
     },
     "search_guild_members": {
       "display_name": "Search Guild Members",
@@ -5037,7 +5265,8 @@
           "limit": "limit",
           "query": "query"
         }
-      }
+      },
+      "response_schema": "GuildMemberResponse_list"
     },
     "send_soundboard_sound": {
       "display_name": "Send Soundboard Sound",
@@ -5143,7 +5372,8 @@
         "body_mapping": {
           "permissions": "permissions"
         }
-      }
+      },
+      "response_schema": "CommandPermissionsResponse"
     },
     "sync_guild_template": {
       "display_name": "Sync Guild Template",
@@ -5168,7 +5398,8 @@
       "execution": {
         "method": "PUT",
         "path": "/guilds/{guild_id}/templates/{code}"
-      }
+      },
+      "response_schema": "GuildTemplateResponse"
     },
     "thread_search": {
       "display_name": "Thread Search",
@@ -5235,7 +5466,8 @@
           "tag": "tag",
           "tag_setting": "tag_setting"
         }
-      }
+      },
+      "response_schema": "ThreadSearchResponse"
     },
     "trigger_typing_indicator": {
       "display_name": "Trigger Typing Indicator",
@@ -5256,7 +5488,8 @@
       "execution": {
         "method": "POST",
         "path": "/channels/{channel_id}/typing"
-      }
+      },
+      "response_schema": "TypingIndicatorResponse"
     },
     "unban_user_from_guild": {
       "display_name": "Unban User From Guild",
@@ -5360,7 +5593,8 @@
           "team_id": "team_id",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "PrivateApplicationResponse"
     },
     "update_application_command": {
       "display_name": "Update Application Command",
@@ -5427,7 +5661,8 @@
           "name_localizations": "name_localizations",
           "options": "options"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "update_application_emoji": {
       "display_name": "Update Application Emoji",
@@ -5458,7 +5693,8 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "update_application_role_connections_metadata": {
       "display_name": "Update Application Role Connections Metadata",
@@ -5479,7 +5715,8 @@
       "execution": {
         "method": "PUT",
         "path": "/applications/{application_id}/role-connections/metadata"
-      }
+      },
+      "response_schema": "ApplicationRoleConnectionsMetadataItemResponse_list"
     },
     "update_application_user_role_connection": {
       "display_name": "Update Application User Role Connection",
@@ -5514,7 +5751,8 @@
           "platform_name": "platform_name",
           "platform_username": "platform_username"
         }
-      }
+      },
+      "response_schema": "ApplicationUserRoleConnectionResponse"
     },
     "update_auto_moderation_rule": {
       "display_name": "Update Auto Moderation Rule",
@@ -5667,7 +5905,8 @@
           "system_channel_id": "system_channel_id",
           "verification_level": "verification_level"
         }
-      }
+      },
+      "response_schema": "GuildResponse"
     },
     "update_guild_application_command": {
       "display_name": "Update Guild Application Command",
@@ -5738,7 +5977,8 @@
           "name_localizations": "name_localizations",
           "options": "options"
         }
-      }
+      },
+      "response_schema": "ApplicationCommandResponse"
     },
     "update_guild_emoji": {
       "display_name": "Update Guild Emoji",
@@ -5773,7 +6013,8 @@
           "name": "name",
           "roles": "roles"
         }
-      }
+      },
+      "response_schema": "EmojiResponse"
     },
     "update_guild_member": {
       "display_name": "Update Guild Member",
@@ -5828,7 +6069,8 @@
           "nick": "nick",
           "roles": "roles"
         }
-      }
+      },
+      "response_schema": "GuildMemberResponse"
     },
     "update_guild_role": {
       "display_name": "Update Guild Role",
@@ -5887,7 +6129,8 @@
           "permissions": "permissions",
           "unicode_emoji": "unicode_emoji"
         }
-      }
+      },
+      "response_schema": "GuildRoleResponse"
     },
     "update_guild_scheduled_event": {
       "display_name": "Update Guild Scheduled Event",
@@ -5955,7 +6198,8 @@
           "name": "name",
           "volume": "volume"
         }
-      }
+      },
+      "response_schema": "SoundboardSoundResponse"
     },
     "update_guild_sticker": {
       "display_name": "Update Guild Sticker",
@@ -5994,7 +6238,8 @@
           "name": "name",
           "tags": "tags"
         }
-      }
+      },
+      "response_schema": "GuildStickerResponse"
     },
     "update_guild_template": {
       "display_name": "Update Guild Template",
@@ -6029,7 +6274,8 @@
           "description": "description",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "GuildTemplateResponse"
     },
     "update_guild_welcome_screen": {
       "display_name": "Update Guild Welcome Screen",
@@ -6064,7 +6310,8 @@
           "enabled": "enabled",
           "welcome_channels": "welcome_channels"
         }
-      }
+      },
+      "response_schema": "GuildWelcomeScreenResponse"
     },
     "update_guild_widget_settings": {
       "display_name": "Update Guild Widget Settings",
@@ -6095,7 +6342,8 @@
           "channel_id": "channel_id",
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "WidgetSettingsResponse"
     },
     "update_my_application": {
       "display_name": "Update My Application",
@@ -6168,7 +6416,8 @@
           "team_id": "team_id",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "PrivateApplicationResponse"
     },
     "update_my_guild_member": {
       "display_name": "Update My Guild Member",
@@ -6207,7 +6456,8 @@
           "bio": "bio",
           "nick": "nick"
         }
-      }
+      },
+      "response_schema": "PrivateGuildMemberResponse"
     },
     "update_my_user": {
       "display_name": "Update My User",
@@ -6239,7 +6489,8 @@
           "banner": "banner",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "UserPIIResponse"
     },
     "update_self_voice_state": {
       "display_name": "Update Self Voice State",
@@ -6305,7 +6556,8 @@
           "privacy_level": "privacy_level",
           "topic": "topic"
         }
-      }
+      },
+      "response_schema": "StageInstanceResponse"
     },
     "update_voice_state": {
       "display_name": "Update Voice State",
@@ -6409,6 +6661,2103 @@
         "body_mapping": {
           "avatar": "avatar",
           "name": "name"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "ApplicationCommandResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "contexts": {
+          "type": "array"
+        },
+        "default_member_permissions": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "description_localizations": {
+          "type": "object"
+        },
+        "description_localized": {
+          "type": "string"
+        },
+        "dm_permission": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integration_types": {
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "name_localizations": {
+          "type": "object"
+        },
+        "name_localized": {
+          "type": "string"
+        },
+        "nsfw": {
+          "type": "boolean"
+        },
+        "options": {
+          "type": "array"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "ApplicationCommandResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ApplicationCommandResponse"
+      }
+    },
+    "ApplicationRoleConnectionsMetadataItemResponse": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "description_localizations": {
+          "type": "object"
+        },
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "name_localizations": {
+          "type": "object"
+        },
+        "type": {
+          "type": "integer"
+        }
+      }
+    },
+    "ApplicationRoleConnectionsMetadataItemResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ApplicationRoleConnectionsMetadataItemResponse"
+      }
+    },
+    "ApplicationUserRoleConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "type": "object"
+        },
+        "platform_name": {
+          "type": "string"
+        },
+        "platform_username": {
+          "type": "string"
+        }
+      }
+    },
+    "BulkBanUsersResponse": {
+      "type": "object",
+      "properties": {
+        "banned_users": {
+          "type": "array"
+        },
+        "failed_users": {
+          "type": "array"
+        }
+      }
+    },
+    "ChannelFollowerResponse": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "webhook_id": {
+          "type": "string"
+        }
+      }
+    },
+    "CommandPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "array"
+        }
+      }
+    },
+    "CommandPermissionsResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "CommandPermissionsResponse"
+      }
+    },
+    "ConnectedAccountResponse": {
+      "type": "object",
+      "properties": {
+        "friend_sync": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integrations": {
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "show_activity": {
+          "type": "boolean"
+        },
+        "two_way_link": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "visibility": {
+          "type": "integer"
+        }
+      }
+    },
+    "ConnectedAccountResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ConnectedAccountResponse"
+      }
+    },
+    "EmbeddedActivityInstance": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "instance_id": {
+          "type": "string"
+        },
+        "launch_id": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "users": {
+          "type": "array"
+        }
+      }
+    },
+    "EmojiResponse": {
+      "type": "object",
+      "properties": {
+        "animated": {
+          "type": "boolean"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "managed": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "require_colons": {
+          "type": "boolean"
+        },
+        "roles": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "EmojiResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "EmojiResponse"
+      }
+    },
+    "EntitlementResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "consumed": {
+          "type": "boolean"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "ends_at": {
+          "type": "string"
+        },
+        "fulfilled_at": {
+          "type": "string"
+        },
+        "fulfillment_status": {
+          "type": "string"
+        },
+        "gifter_user_id": {
+          "type": "string"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "sku_id": {
+          "type": "string"
+        },
+        "starts_at": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "GatewayBotResponse": {
+      "type": "object",
+      "properties": {
+        "session_start_limit": {
+          "type": "object"
+        },
+        "shards": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "GatewayResponse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "GuildAuditLogResponse": {
+      "type": "object",
+      "properties": {
+        "application_commands": {
+          "type": "array"
+        },
+        "audit_log_entries": {
+          "type": "array"
+        },
+        "auto_moderation_rules": {
+          "type": "array"
+        },
+        "guild_scheduled_events": {
+          "type": "array"
+        },
+        "integrations": {
+          "type": "array"
+        },
+        "threads": {
+          "type": "array"
+        },
+        "users": {
+          "type": "array"
+        },
+        "webhooks": {
+          "type": "array"
+        }
+      }
+    },
+    "GuildBanResponse": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "GuildBanResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "GuildBanResponse"
+      }
+    },
+    "GuildChannelResponse": {
+      "type": "object",
+      "properties": {
+        "available_tags": {
+          "type": "array"
+        },
+        "bitrate": {
+          "type": "integer"
+        },
+        "default_auto_archive_duration": {
+          "type": "integer"
+        },
+        "default_forum_layout": {
+          "type": "string"
+        },
+        "default_reaction_emoji": {
+          "type": "string"
+        },
+        "default_sort_order": {
+          "type": "string"
+        },
+        "default_tag_setting": {
+          "type": "string"
+        },
+        "default_thread_rate_limit_per_user": {
+          "type": "integer"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "hd_streaming_buyer_id": {
+          "type": "string"
+        },
+        "hd_streaming_until": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_message_id": {
+          "type": "string"
+        },
+        "last_pin_timestamp": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nsfw": {
+          "type": "boolean"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "permission_overwrites": {
+          "type": "array"
+        },
+        "permissions": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "rate_limit_per_user": {
+          "type": "integer"
+        },
+        "rtc_region": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "user_limit": {
+          "type": "integer"
+        },
+        "video_quality_mode": {
+          "type": "integer"
+        }
+      }
+    },
+    "GuildHomeSettingsResponse": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "new_member_actions": {
+          "type": "array"
+        },
+        "resource_channels": {
+          "type": "array"
+        },
+        "welcome_message": {
+          "type": "object"
+        }
+      }
+    },
+    "GuildIncomingWebhookResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "channel_id": {
+          "type": "string"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "GuildMemberResponse": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_decoration_data": {
+          "type": "string"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "collectibles": {
+          "type": "string"
+        },
+        "communication_disabled_until": {
+          "type": "string"
+        },
+        "deaf": {
+          "type": "boolean"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "joined_at": {
+          "type": "string"
+        },
+        "mute": {
+          "type": "boolean"
+        },
+        "nick": {
+          "type": "string"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "premium_since": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "GuildMemberResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "GuildMemberResponse"
+      }
+    },
+    "GuildOnboardingResponse": {
+      "type": "object",
+      "properties": {
+        "default_channel_ids": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "prompts": {
+          "type": "array"
+        }
+      }
+    },
+    "GuildPreviewResponse": {
+      "type": "object",
+      "properties": {
+        "approximate_member_count": {
+          "type": "integer"
+        },
+        "approximate_presence_count": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "discovery_splash": {
+          "type": "string"
+        },
+        "emojis": {
+          "type": "array"
+        },
+        "features": {
+          "type": "array"
+        },
+        "home_header": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "splash": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "array"
+        }
+      }
+    },
+    "GuildPruneResponse": {
+      "type": "object",
+      "properties": {
+        "pruned": {
+          "type": "integer"
+        }
+      }
+    },
+    "GuildResponse": {
+      "type": "object",
+      "properties": {
+        "afk_channel_id": {
+          "type": "string"
+        },
+        "afk_timeout": {
+          "type": "integer"
+        },
+        "application_id": {
+          "type": "string"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "default_message_notifications": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "discovery_splash": {
+          "type": "string"
+        },
+        "emojis": {
+          "type": "array"
+        },
+        "explicit_content_filter": {
+          "type": "integer"
+        },
+        "features": {
+          "type": "array"
+        },
+        "home_header": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "max_members": {
+          "type": "integer"
+        },
+        "max_presences": {
+          "type": "integer"
+        },
+        "max_stage_video_channel_users": {
+          "type": "integer"
+        },
+        "max_video_channel_users": {
+          "type": "integer"
+        },
+        "mfa_level": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nsfw": {
+          "type": "boolean"
+        },
+        "nsfw_level": {
+          "type": "integer"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "preferred_locale": {
+          "type": "string"
+        },
+        "premium_progress_bar_enabled": {
+          "type": "boolean"
+        },
+        "premium_progress_bar_enabled_user_updated_at": {
+          "type": "string"
+        },
+        "premium_subscription_count": {
+          "type": "integer"
+        },
+        "premium_tier": {
+          "type": "integer"
+        },
+        "public_updates_channel_id": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array"
+        },
+        "rules_channel_id": {
+          "type": "string"
+        },
+        "safety_alerts_channel_id": {
+          "type": "string"
+        },
+        "splash": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "array"
+        },
+        "system_channel_flags": {
+          "type": "integer"
+        },
+        "system_channel_id": {
+          "type": "string"
+        },
+        "vanity_url_code": {
+          "type": "string"
+        },
+        "verification_level": {
+          "type": "integer"
+        },
+        "widget_channel_id": {
+          "type": "string"
+        },
+        "widget_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GuildRoleResponse": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "integer"
+        },
+        "colors": {
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "hoist": {
+          "type": "boolean"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "managed": {
+          "type": "boolean"
+        },
+        "mentionable": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "tags": {
+          "type": "object"
+        },
+        "unicode_emoji": {
+          "type": "string"
+        }
+      }
+    },
+    "GuildRoleResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "GuildRoleResponse"
+      }
+    },
+    "GuildSearchResponse": {
+      "type": "object",
+      "properties": {
+        "documents_indexed": {
+          "type": "integer"
+        },
+        "doing_deep_historical_index": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "threads": {
+          "type": "array"
+        },
+        "total_results": {
+          "type": "integer"
+        }
+      }
+    },
+    "GuildStickerResponse": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "format_type": {
+          "type": "string"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "GuildStickerResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "GuildStickerResponse"
+      }
+    },
+    "GuildTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "creator": {
+          "type": "string"
+        },
+        "creator_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "is_dirty": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "serialized_source_guild": {
+          "type": "object"
+        },
+        "source_guild_id": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "usage_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "GuildTemplateResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "GuildTemplateResponse"
+      }
+    },
+    "GuildWelcomeScreenResponse": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "welcome_channels": {
+          "type": "array"
+        }
+      }
+    },
+    "GuildWithCountsResponse": {
+      "type": "object",
+      "properties": {
+        "afk_channel_id": {
+          "type": "string"
+        },
+        "afk_timeout": {
+          "type": "integer"
+        },
+        "application_id": {
+          "type": "string"
+        },
+        "approximate_member_count": {
+          "type": "integer"
+        },
+        "approximate_presence_count": {
+          "type": "integer"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "default_message_notifications": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "discovery_splash": {
+          "type": "string"
+        },
+        "emojis": {
+          "type": "array"
+        },
+        "explicit_content_filter": {
+          "type": "integer"
+        },
+        "features": {
+          "type": "array"
+        },
+        "home_header": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "max_members": {
+          "type": "integer"
+        },
+        "max_presences": {
+          "type": "integer"
+        },
+        "max_stage_video_channel_users": {
+          "type": "integer"
+        },
+        "max_video_channel_users": {
+          "type": "integer"
+        },
+        "mfa_level": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nsfw": {
+          "type": "boolean"
+        },
+        "nsfw_level": {
+          "type": "integer"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "preferred_locale": {
+          "type": "string"
+        },
+        "premium_progress_bar_enabled": {
+          "type": "boolean"
+        },
+        "premium_progress_bar_enabled_user_updated_at": {
+          "type": "string"
+        },
+        "premium_subscription_count": {
+          "type": "integer"
+        },
+        "premium_tier": {
+          "type": "integer"
+        },
+        "public_updates_channel_id": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array"
+        },
+        "rules_channel_id": {
+          "type": "string"
+        },
+        "safety_alerts_channel_id": {
+          "type": "string"
+        },
+        "splash": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "array"
+        },
+        "system_channel_flags": {
+          "type": "integer"
+        },
+        "system_channel_id": {
+          "type": "string"
+        },
+        "vanity_url_code": {
+          "type": "string"
+        },
+        "verification_level": {
+          "type": "integer"
+        },
+        "widget_channel_id": {
+          "type": "string"
+        },
+        "widget_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ListApplicationEmojisResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        }
+      }
+    },
+    "ListGuildSoundboardSoundsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        }
+      }
+    },
+    "LobbyGuildInviteResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      }
+    },
+    "LobbyMemberResponse": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "LobbyMemberResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "LobbyMemberResponse"
+      }
+    },
+    "LobbyMessageResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "author": {
+          "type": "object"
+        },
+        "channel_id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "lobby_id": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "moderation_metadata": {
+          "type": "object"
+        },
+        "type": {
+          "type": "integer"
+        }
+      }
+    },
+    "LobbyMessageResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "LobbyMessageResponse"
+      }
+    },
+    "LobbyResponse": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "linked_channel": {
+          "type": "object"
+        },
+        "members": {
+          "type": "array"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "override_event_webhooks_url": {
+          "type": "string"
+        }
+      }
+    },
+    "MessageResponse": {
+      "type": "object",
+      "properties": {
+        "activity": {
+          "type": "object"
+        },
+        "application": {
+          "type": "object"
+        },
+        "application_id": {
+          "type": "string"
+        },
+        "attachments": {
+          "type": "array"
+        },
+        "author": {
+          "type": "object"
+        },
+        "call": {
+          "type": "object"
+        },
+        "channel_id": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array"
+        },
+        "content": {
+          "type": "string"
+        },
+        "edited_timestamp": {
+          "type": "string"
+        },
+        "embeds": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "interaction": {
+          "type": "object"
+        },
+        "interaction_metadata": {
+          "type": "string"
+        },
+        "mention_channels": {
+          "type": "array"
+        },
+        "mention_everyone": {
+          "type": "boolean"
+        },
+        "mention_roles": {
+          "type": "array"
+        },
+        "mentions": {
+          "type": "array"
+        },
+        "message_reference": {
+          "type": "object"
+        },
+        "message_snapshots": {
+          "type": "array"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "poll": {
+          "type": "object"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "purchase_notification": {
+          "type": "object"
+        },
+        "reactions": {
+          "type": "array"
+        },
+        "referenced_message": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": "object"
+        },
+        "role_subscription_data": {
+          "type": "object"
+        },
+        "shared_client_theme": {
+          "type": "string"
+        },
+        "sticker_items": {
+          "type": "array"
+        },
+        "stickers": {
+          "type": "array"
+        },
+        "thread": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "tts": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "webhook_id": {
+          "type": "string"
+        }
+      }
+    },
+    "MessageResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "MessageResponse"
+      }
+    },
+    "MyGuildResponse": {
+      "type": "object",
+      "properties": {
+        "approximate_member_count": {
+          "type": "integer"
+        },
+        "approximate_presence_count": {
+          "type": "integer"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "boolean"
+        },
+        "permissions": {
+          "type": "string"
+        }
+      }
+    },
+    "MyGuildResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "MyGuildResponse"
+      }
+    },
+    "OAuth2GetAuthorizationResponse": {
+      "type": "object",
+      "properties": {
+        "application": {
+          "type": "object"
+        },
+        "expires": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "OAuth2GetKeys": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array"
+        }
+      }
+    },
+    "OAuth2GetOpenIDConnectUserInfoResponse": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "email_verified": {
+          "type": "boolean"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        },
+        "preferred_username": {
+          "type": "string"
+        },
+        "sub": {
+          "type": "string"
+        }
+      }
+    },
+    "PinnedMessagesResponse": {
+      "type": "object",
+      "properties": {
+        "has_more": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array"
+        }
+      }
+    },
+    "PollAnswerDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array"
+        }
+      }
+    },
+    "PrivateApplicationResponse": {
+      "type": "object",
+      "properties": {
+        "approximate_guild_count": {
+          "type": "integer"
+        },
+        "approximate_user_authorization_count": {
+          "type": "integer"
+        },
+        "approximate_user_install_count": {
+          "type": "integer"
+        },
+        "bot": {
+          "type": "object"
+        },
+        "bot_public": {
+          "type": "boolean"
+        },
+        "bot_require_code_grant": {
+          "type": "boolean"
+        },
+        "cover_image": {
+          "type": "string"
+        },
+        "custom_install_url": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "explicit_content_filter": {
+          "type": "integer"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "install_params": {
+          "type": "object"
+        },
+        "integration_types_config": {
+          "type": "object"
+        },
+        "interactions_endpoint_url": {
+          "type": "string"
+        },
+        "max_participants": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "primary_sku_id": {
+          "type": "string"
+        },
+        "privacy_policy_url": {
+          "type": "string"
+        },
+        "redirect_uris": {
+          "type": "array"
+        },
+        "role_connections_verification_url": {
+          "type": "string"
+        },
+        "rpc_origins": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "team": {
+          "type": "string"
+        },
+        "terms_of_service_url": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "verify_key": {
+          "type": "string"
+        }
+      }
+    },
+    "PrivateGuildMemberResponse": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_decoration_data": {
+          "type": "string"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "collectibles": {
+          "type": "string"
+        },
+        "communication_disabled_until": {
+          "type": "string"
+        },
+        "deaf": {
+          "type": "boolean"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "joined_at": {
+          "type": "string"
+        },
+        "mute": {
+          "type": "boolean"
+        },
+        "nick": {
+          "type": "string"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "permissions": {
+          "type": "string"
+        },
+        "premium_since": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "ProvisionalTokenResponse": {
+      "type": "object",
+      "properties": {
+        "access_token": {
+          "type": "string"
+        },
+        "expires_at_s": {
+          "type": "integer"
+        },
+        "expires_in": {
+          "type": "integer"
+        },
+        "id_token": {
+          "type": "string"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array"
+        },
+        "token_type": {
+          "type": "string"
+        }
+      }
+    },
+    "ScheduledEventUserResponse": {
+      "type": "object",
+      "properties": {
+        "guild_scheduled_event_id": {
+          "type": "string"
+        },
+        "member": {
+          "type": "object"
+        },
+        "user": {
+          "type": "object"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "ScheduledEventUserResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ScheduledEventUserResponse"
+      }
+    },
+    "SoundboardSoundResponse": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "emoji_id": {
+          "type": "string"
+        },
+        "emoji_name": {
+          "type": "string"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sound_id": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object"
+        },
+        "volume": {
+          "type": "number"
+        }
+      }
+    },
+    "SoundboardSoundResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "SoundboardSoundResponse"
+      }
+    },
+    "StageInstanceResponse": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "discoverable_disabled": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "guild_scheduled_event_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "privacy_level": {
+          "type": "integer"
+        },
+        "topic": {
+          "type": "string"
+        }
+      }
+    },
+    "StickerPackCollectionResponse": {
+      "type": "object",
+      "properties": {
+        "sticker_packs": {
+          "type": "array"
+        }
+      }
+    },
+    "StickerPackResponse": {
+      "type": "object",
+      "properties": {
+        "banner_asset_id": {
+          "type": "string"
+        },
+        "cover_sticker_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sku_id": {
+          "type": "string"
+        },
+        "stickers": {
+          "type": "array"
+        }
+      }
+    },
+    "TargetUsersJobStatusResponse": {
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "description": "The timestamp when the job was successfully completed."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The timestamp when the job was created."
+        },
+        "error_message": {
+          "type": "string",
+          "description": "The error message if the job failed."
+        },
+        "processed_users": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "total_users": {
+          "type": "integer"
+        }
+      }
+    },
+    "ThreadMemberResponse": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "join_timestamp": {
+          "type": "string"
+        },
+        "member": {
+          "type": "object"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "ThreadMemberResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ThreadMemberResponse"
+      }
+    },
+    "ThreadResponse": {
+      "type": "object",
+      "properties": {
+        "applied_tags": {
+          "type": "array"
+        },
+        "bitrate": {
+          "type": "integer"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_message_id": {
+          "type": "string"
+        },
+        "last_pin_timestamp": {
+          "type": "string"
+        },
+        "member": {
+          "type": "object"
+        },
+        "member_count": {
+          "type": "integer"
+        },
+        "message_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "string"
+        },
+        "rate_limit_per_user": {
+          "type": "integer"
+        },
+        "rtc_region": {
+          "type": "string"
+        },
+        "thread_metadata": {
+          "type": "object"
+        },
+        "total_message_sent": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "user_limit": {
+          "type": "integer"
+        },
+        "video_quality_mode": {
+          "type": "integer"
+        }
+      }
+    },
+    "ThreadSearchResponse": {
+      "type": "object",
+      "properties": {
+        "first_messages": {
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array"
+        },
+        "threads": {
+          "type": "array"
+        },
+        "total_results": {
+          "type": "integer"
+        }
+      }
+    },
+    "ThreadsResponse": {
+      "type": "object",
+      "properties": {
+        "first_messages": {
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array"
+        },
+        "threads": {
+          "type": "array"
+        }
+      }
+    },
+    "TypingIndicatorResponse": {
+      "type": "object"
+    },
+    "UserGuildOnboardingResponse": {
+      "type": "object",
+      "properties": {
+        "default_channel_ids": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "prompts": {
+          "type": "array"
+        }
+      }
+    },
+    "UserPIIResponse": {
+      "type": "object",
+      "properties": {
+        "accent_color": {
+          "type": "integer"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_decoration_data": {
+          "type": "string"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "bot": {
+          "type": "boolean"
+        },
+        "collectibles": {
+          "type": "string"
+        },
+        "discriminator": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "global_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "mfa_enabled": {
+          "type": "boolean"
+        },
+        "premium_type": {
+          "type": "integer"
+        },
+        "primary_guild": {
+          "type": "string"
+        },
+        "public_flags": {
+          "type": "integer"
+        },
+        "system": {
+          "type": "boolean"
+        },
+        "username": {
+          "type": "string"
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "UserResponse": {
+      "type": "object",
+      "properties": {
+        "accent_color": {
+          "type": "integer"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_decoration_data": {
+          "type": "string"
+        },
+        "banner": {
+          "type": "string"
+        },
+        "bot": {
+          "type": "boolean"
+        },
+        "collectibles": {
+          "type": "string"
+        },
+        "discriminator": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "integer"
+        },
+        "global_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "primary_guild": {
+          "type": "string"
+        },
+        "public_flags": {
+          "type": "integer"
+        },
+        "system": {
+          "type": "boolean"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "UserResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "UserResponse"
+      }
+    },
+    "VanityURLResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "uses": {
+          "type": "integer"
+        }
+      }
+    },
+    "VoiceRegionResponse": {
+      "type": "object",
+      "properties": {
+        "custom": {
+          "type": "boolean"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "optimal": {
+          "type": "boolean"
+        }
+      }
+    },
+    "VoiceRegionResponse_list": {
+      "type": "array",
+      "items": {
+        "$ref": "VoiceRegionResponse"
+      }
+    },
+    "VoiceStateResponse": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "deaf": {
+          "type": "boolean"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "member": {
+          "type": "object"
+        },
+        "mute": {
+          "type": "boolean"
+        },
+        "request_to_speak_timestamp": {
+          "type": "string"
+        },
+        "self_deaf": {
+          "type": "boolean"
+        },
+        "self_mute": {
+          "type": "boolean"
+        },
+        "self_stream": {
+          "type": "boolean"
+        },
+        "self_video": {
+          "type": "boolean"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "suppress": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "WidgetResponse": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "instant_invite": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "presence_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "WidgetSettingsResponse": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
         }
       }
     }

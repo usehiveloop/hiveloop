@@ -27,7 +27,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/v1/files/{file_key}/comments/{comment_id}"
-      }
+      },
+      "response_schema": "delete_comment_response"
     },
     "delete_comment_reaction": {
       "display_name": "Delete a reaction",
@@ -60,7 +61,8 @@
         "query_mapping": {
           "emoji": "emoji"
         }
-      }
+      },
+      "response_schema": "delete_comment_reaction_response"
     },
     "delete_dev_resource": {
       "display_name": "Delete dev resource",
@@ -109,7 +111,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/v2/webhooks/{webhook_id}"
-      }
+      },
+      "response_schema": "WebhookV2"
     },
     "get_activity_logs": {
       "display_name": "Get activity logs",
@@ -151,7 +154,8 @@
           "order": "order",
           "start_time": "start_time"
         }
-      }
+      },
+      "response_schema": "get_activity_logs_response"
     },
     "get_comment_reactions": {
       "display_name": "Get reactions for a comment",
@@ -185,7 +189,8 @@
         "query_mapping": {
           "cursor": "cursor"
         }
-      }
+      },
+      "response_schema": "get_comment_reactions_response"
     },
     "get_comments": {
       "display_name": "Get comments in a file",
@@ -214,7 +219,8 @@
         "query_mapping": {
           "as_md": "as_md"
         }
-      }
+      },
+      "response_schema": "get_comments_response"
     },
     "get_component": {
       "display_name": "Get component",
@@ -236,7 +242,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/components/{key}"
-      }
+      },
+      "response_schema": "get_component_response"
     },
     "get_component_set": {
       "display_name": "Get component set",
@@ -258,7 +265,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/component_sets/{key}"
-      }
+      },
+      "response_schema": "get_component_set_response"
     },
     "get_dev_resources": {
       "display_name": "Get dev resources",
@@ -287,7 +295,8 @@
         "query_mapping": {
           "node_ids": "node_ids"
         }
-      }
+      },
+      "response_schema": "get_dev_resources_response"
     },
     "get_file": {
       "display_name": "Get file JSON",
@@ -341,7 +350,8 @@
           "plugin_data": "plugin_data",
           "version": "version"
         }
-      }
+      },
+      "response_schema": "get_file_response"
     },
     "get_file_component_sets": {
       "display_name": "Get file component sets",
@@ -363,7 +373,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/component_sets"
-      }
+      },
+      "response_schema": "get_file_component_sets_response"
     },
     "get_file_components": {
       "display_name": "Get file components",
@@ -385,7 +396,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/components"
-      }
+      },
+      "response_schema": "get_file_components_response"
     },
     "get_file_meta": {
       "display_name": "Get file metadata",
@@ -407,7 +419,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/meta"
-      }
+      },
+      "response_schema": "get_file_meta_response"
     },
     "get_file_nodes": {
       "display_name": "Get file JSON for specific nodes",
@@ -456,7 +469,8 @@
           "plugin_data": "plugin_data",
           "version": "version"
         }
-      }
+      },
+      "response_schema": "get_file_nodes_response"
     },
     "get_file_styles": {
       "display_name": "Get file styles",
@@ -478,7 +492,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/styles"
-      }
+      },
+      "response_schema": "get_file_styles_response"
     },
     "get_file_versions": {
       "display_name": "Get versions of a file",
@@ -517,7 +532,8 @@
           "before": "before",
           "page_size": "page_size"
         }
-      }
+      },
+      "response_schema": "get_file_versions_response"
     },
     "get_image_fills": {
       "display_name": "Get image fills",
@@ -539,7 +555,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/images"
-      }
+      },
+      "response_schema": "get_image_fills_response"
     },
     "get_images": {
       "display_name": "Render images of file nodes",
@@ -613,7 +630,8 @@
           "use_absolute_bounds": "use_absolute_bounds",
           "version": "version"
         }
-      }
+      },
+      "response_schema": "get_images_response"
     },
     "get_library_analytics_component_actions": {
       "display_name": "Get library analytics component action data.",
@@ -657,7 +675,8 @@
           "group_by": "group_by",
           "start_date": "start_date"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_component_actions_response"
     },
     "get_library_analytics_component_usages": {
       "display_name": "Get library analytics component usage data.",
@@ -691,7 +710,8 @@
           "cursor": "cursor",
           "group_by": "group_by"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_component_usages_response"
     },
     "get_library_analytics_style_actions": {
       "display_name": "Get library analytics style action data.",
@@ -735,7 +755,8 @@
           "group_by": "group_by",
           "start_date": "start_date"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_style_actions_response"
     },
     "get_library_analytics_style_usages": {
       "display_name": "Get library analytics style usage data.",
@@ -769,7 +790,8 @@
           "cursor": "cursor",
           "group_by": "group_by"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_style_usages_response"
     },
     "get_library_analytics_variable_actions": {
       "display_name": "Get library analytics variable action data.",
@@ -813,7 +835,8 @@
           "group_by": "group_by",
           "start_date": "start_date"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_variable_actions_response"
     },
     "get_library_analytics_variable_usages": {
       "display_name": "Get library analytics variable usage data.",
@@ -847,7 +870,8 @@
           "cursor": "cursor",
           "group_by": "group_by"
         }
-      }
+      },
+      "response_schema": "get_library_analytics_variable_usages_response"
     },
     "get_local_variables": {
       "display_name": "Get local variables",
@@ -869,7 +893,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/variables/local"
-      }
+      },
+      "response_schema": "get_local_variables_response"
     },
     "get_me": {
       "display_name": "Get current user",
@@ -884,6 +909,39 @@
         "method": "GET",
         "path": "/v1/me"
       }
+    },
+    "get_o_embed": {
+      "display_name": "Get oEmbed data",
+      "description": "Returns oEmbed data for a Figma file or published Make site URL, following the [oEmbed specification](https://oembed.com/).",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "maxheight": {
+            "type": "integer",
+            "description": "Maximum height of the embed in pixels. Defaults to 450. The response height will be adjusted to maintain a 16:9 aspect ratio with maxwidth."
+          },
+          "maxwidth": {
+            "type": "integer",
+            "description": "Maximum width of the embed in pixels. Defaults to 800. The response width will be adjusted to maintain a 16:9 aspect ratio with maxheight."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the Figma file or published Make site to retrieve oEmbed data for."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v1/oembed",
+        "query_mapping": {
+          "maxheight": "maxheight",
+          "maxwidth": "maxwidth",
+          "url": "url"
+        }
+      },
+      "response_schema": "get_o_embed_response"
     },
     "get_payments": {
       "display_name": "Get payments",
@@ -925,7 +983,8 @@
           "user_id": "user_id",
           "widget_id": "widget_id"
         }
-      }
+      },
+      "response_schema": "get_payments_response"
     },
     "get_project_files": {
       "display_name": "Get files in a project",
@@ -954,7 +1013,8 @@
         "query_mapping": {
           "branch_data": "branch_data"
         }
-      }
+      },
+      "response_schema": "get_project_files_response"
     },
     "get_published_variables": {
       "display_name": "Get published variables",
@@ -976,7 +1036,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/files/{file_key}/variables/published"
-      }
+      },
+      "response_schema": "get_published_variables_response"
     },
     "get_style": {
       "display_name": "Get style",
@@ -998,7 +1059,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/styles/{key}"
-      }
+      },
+      "response_schema": "get_style_response"
     },
     "get_team_component_sets": {
       "display_name": "Get team component sets",
@@ -1037,7 +1099,8 @@
           "before": "before",
           "page_size": "page_size"
         }
-      }
+      },
+      "response_schema": "get_team_component_sets_response"
     },
     "get_team_components": {
       "display_name": "Get team components",
@@ -1076,7 +1139,8 @@
           "before": "before",
           "page_size": "page_size"
         }
-      }
+      },
+      "response_schema": "get_team_components_response"
     },
     "get_team_projects": {
       "display_name": "Get projects in a team",
@@ -1098,7 +1162,8 @@
       "execution": {
         "method": "GET",
         "path": "/v1/teams/{team_id}/projects"
-      }
+      },
+      "response_schema": "get_team_projects_response"
     },
     "get_team_styles": {
       "display_name": "Get team styles",
@@ -1137,7 +1202,8 @@
           "before": "before",
           "page_size": "page_size"
         }
-      }
+      },
+      "response_schema": "get_team_styles_response"
     },
     "get_webhook": {
       "display_name": "Get a webhook",
@@ -1159,7 +1225,8 @@
       "execution": {
         "method": "GET",
         "path": "/v2/webhooks/{webhook_id}"
-      }
+      },
+      "response_schema": "WebhookV2"
     },
     "get_webhook_requests": {
       "display_name": "Get webhook requests",
@@ -1181,7 +1248,8 @@
       "execution": {
         "method": "GET",
         "path": "/v2/webhooks/{webhook_id}/requests"
-      }
+      },
+      "response_schema": "get_webhook_requests_response"
     },
     "get_webhooks": {
       "display_name": "Get webhooks by context or plan",
@@ -1218,7 +1286,8 @@
           "cursor": "cursor",
           "plan_api_id": "plan_api_id"
         }
-      }
+      },
+      "response_schema": "get_webhooks_response"
     },
     "post_comment": {
       "display_name": "Add a comment to a file",
@@ -1258,7 +1327,8 @@
           "comment_id": "comment_id",
           "message": "message"
         }
-      }
+      },
+      "response_schema": "Comment"
     },
     "post_comment_reaction": {
       "display_name": "Add a reaction to a comment",
@@ -1293,7 +1363,8 @@
         "body_mapping": {
           "emoji": "emoji"
         }
-      }
+      },
+      "response_schema": "post_comment_reaction_response"
     },
     "post_dev_resources": {
       "display_name": "Create dev resources",
@@ -1318,7 +1389,8 @@
         "body_mapping": {
           "dev_resources": "dev_resources"
         }
-      }
+      },
+      "response_schema": "post_dev_resources_response"
     },
     "post_variables": {
       "display_name": "Create/modify/delete variables",
@@ -1362,7 +1434,8 @@
           "variableModes": "variableModes",
           "variables": "variables"
         }
-      }
+      },
+      "response_schema": "post_variables_response"
     },
     "post_webhook": {
       "display_name": "Create a webhook",
@@ -1426,7 +1499,8 @@
           "status": "status",
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "WebhookV2"
     },
     "put_dev_resources": {
       "display_name": "Update dev resources",
@@ -1451,7 +1525,8 @@
         "body_mapping": {
           "dev_resources": "dev_resources"
         }
-      }
+      },
+      "response_schema": "put_dev_resources_response"
     },
     "put_webhook": {
       "display_name": "Update a webhook",
@@ -1502,6 +1577,830 @@
           "event_type": "event_type",
           "passcode": "passcode",
           "status": "status"
+        }
+      },
+      "response_schema": "WebhookV2"
+    }
+  },
+  "schemas": {
+    "Comment": {
+      "type": "object",
+      "properties": {
+        "client_meta": {
+          "type": "string",
+          "description": "Positioning information of the comment. Includes information on the location of the comment pin, which is either the absolute coordinates on the canvas or a relative offset within a frame. If the comment is a region, it will also contain the region height, width, and position of the anchor in regards to the region."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The UTC ISO 8601 time at which the comment was left"
+        },
+        "file_key": {
+          "type": "string",
+          "description": "The file in which the comment lives"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for comment."
+        },
+        "message": {
+          "type": "string",
+          "description": "The content of the comment"
+        },
+        "order_id": {
+          "type": "string",
+          "description": "Only set for top level comments. The number displayed with the comment in the UI"
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "If present, the id of the comment to which this is the reply"
+        },
+        "reactions": {
+          "type": "array",
+          "description": "An array of reactions to the comment"
+        },
+        "resolved_at": {
+          "type": "string",
+          "description": "If set, the UTC ISO 8601 time the comment was resolved"
+        },
+        "user": {
+          "type": "object",
+          "description": "A description of a user."
+        }
+      }
+    },
+    "WebhookV2": {
+      "type": "object",
+      "properties": {
+        "client_id": {
+          "type": "string",
+          "description": "The client ID of the OAuth application that registered this webhook, if any"
+        },
+        "context": {
+          "type": "string",
+          "description": "The type of context this webhook is attached to. The value will be \"PROJECT\", \"TEAM\", or \"FILE\""
+        },
+        "context_id": {
+          "type": "string",
+          "description": "The ID of the context this webhook is attached to"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional user-provided description or name for the webhook. This is provided to help make maintaining a number of webhooks more convenient. Max length 140 characters."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "The endpoint that will be hit when the webhook is triggered"
+        },
+        "event_type": {
+          "type": "string",
+          "description": "An enum representing the possible events that a webhook can subscribe to"
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the webhook"
+        },
+        "passcode": {
+          "type": "string",
+          "description": "The passcode that will be passed back to the webhook endpoint. For security, when using the GET endpoints, the value is an empty string"
+        },
+        "plan_api_id": {
+          "type": "string",
+          "description": "The plan API ID of the team or organization where this webhook was created"
+        },
+        "status": {
+          "type": "string",
+          "description": "An enum representing the possible statuses you can set a webhook to:\n- `ACTIVE`: The webhook is healthy and receive all events\n- `PAUSED`: The webhook is paused and will not receive any events"
+        },
+        "team_id": {
+          "type": "string",
+          "description": "The team id you are subscribed to for updates. This is deprecated, use context and context_id instead"
+        }
+      }
+    },
+    "delete_comment_reaction_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "delete_comment_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_activity_logs_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The response status code."
+        }
+      }
+    },
+    "get_comment_reactions_response": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "type": "object",
+          "description": "If pagination is needed due to the length of the response, identifies the next and previous pages."
+        },
+        "reactions": {
+          "type": "array",
+          "description": "An array of reactions."
+        }
+      }
+    },
+    "get_comments_response": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "description": "An array of comments."
+        }
+      }
+    },
+    "get_component_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object",
+          "description": "An arrangement of published UI elements that can be instantiated across figma files."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_component_set_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object",
+          "description": "A node containing a set of variants of a component."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_dev_resources_response": {
+      "type": "object",
+      "properties": {
+        "dev_resources": {
+          "type": "array",
+          "description": "An array of dev resources."
+        }
+      }
+    },
+    "get_file_component_sets_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_file_components_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_file_meta_response": {
+      "type": "object",
+      "properties": {
+        "creator": {
+          "type": "object",
+          "description": "A description of a user."
+        },
+        "editorType": {
+          "type": "string",
+          "description": "The type of editor associated with this file."
+        },
+        "folder_name": {
+          "type": "string",
+          "description": "The name of the project containing the file."
+        },
+        "last_touched_at": {
+          "type": "string",
+          "description": "The UTC ISO 8601 time at which the file content was last modified."
+        },
+        "last_touched_by": {
+          "type": "object",
+          "description": "A description of a user."
+        },
+        "link_access": {
+          "type": "string",
+          "description": "Access policy for users who have the link to the resource."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user making the API request in relation to the resource."
+        },
+        "thumbnail_url": {
+          "type": "string",
+          "description": "A URL to a thumbnail image of the file."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the file."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version number of the file. This number is incremented when a file is modified and can be used to check if the file has changed between requests."
+        }
+      }
+    },
+    "get_file_nodes_response": {
+      "type": "object",
+      "properties": {
+        "editorType": {
+          "type": "string",
+          "description": "The type of editor associated with this file."
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "The UTC ISO 8601 time at which the file was last modified."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file as it appears in the editor."
+        },
+        "nodes": {
+          "type": "object",
+          "description": "A mapping from node IDs to node metadata."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user making the API request in relation to the resource."
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "A URL to a thumbnail image of the file."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version number of the file. This number is incremented when a file is modified and can be used to check if the file has changed between requests."
+        }
+      }
+    },
+    "get_file_response": {
+      "type": "object",
+      "properties": {
+        "branches": {
+          "type": "array",
+          "description": "A list of branches for this file."
+        },
+        "componentSets": {
+          "type": "object",
+          "description": "A mapping from component set IDs to component set metadata."
+        },
+        "components": {
+          "type": "object",
+          "description": "A mapping from component IDs to component metadata."
+        },
+        "document": {
+          "type": "object"
+        },
+        "editorType": {
+          "type": "string",
+          "description": "The type of editor associated with this file."
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "The UTC ISO 8601 time at which the file was last modified."
+        },
+        "linkAccess": {
+          "type": "string",
+          "description": "The share permission level of the file link."
+        },
+        "mainFileKey": {
+          "type": "string",
+          "description": "The key of the main file for this file. If present, this file is a component or component set."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file as it appears in the editor."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user making the API request in relation to the resource."
+        },
+        "schemaVersion": {
+          "type": "number",
+          "description": "The version of the file schema that this file uses."
+        },
+        "styles": {
+          "type": "object",
+          "description": "A mapping from style IDs to style metadata."
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "A URL to a thumbnail image of the file."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version number of the file. This number is incremented when a file is modified and can be used to check if the file has changed between requests."
+        }
+      }
+    },
+    "get_file_styles_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_file_versions_response": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "type": "object",
+          "description": "If pagination is needed due to the length of the response, identifies the next and previous pages."
+        },
+        "versions": {
+          "type": "array",
+          "description": "An array of versions."
+        }
+      }
+    },
+    "get_image_fills_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "Status code"
+        }
+      }
+    },
+    "get_images_response": {
+      "type": "object",
+      "properties": {
+        "err": {
+          "type": "null",
+          "description": "For successful requests, this value is always `null`."
+        },
+        "images": {
+          "type": "object",
+          "description": "A map from node IDs to URLs of the rendered images."
+        }
+      }
+    },
+    "get_library_analytics_component_actions_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_library_analytics_component_usages_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_library_analytics_style_actions_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_library_analytics_style_usages_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_library_analytics_variable_actions_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_library_analytics_variable_usages_response": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "description": "The cursor to use to fetch the next page of data. Not present if next_page is false."
+        },
+        "next_page": {
+          "type": "boolean",
+          "description": "Whether there is a next page of data that can be fetched."
+        },
+        "rows": {
+          "type": "string",
+          "description": "An array of analytics data."
+        }
+      }
+    },
+    "get_local_variables_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The response status code."
+        }
+      }
+    },
+    "get_o_embed_response": {
+      "type": "object",
+      "properties": {
+        "cache_age": {
+          "type": "integer",
+          "description": "Suggested cache lifetime for this response in seconds. Always 3600."
+        },
+        "folder_name": {
+          "type": "string",
+          "description": "The name of the folder containing the file, if the file resides in a folder."
+        },
+        "height": {
+          "type": "integer",
+          "description": "Height of the embed in pixels."
+        },
+        "html": {
+          "type": "string",
+          "description": "The HTML for embedding the file. Contains an iframe pointing to the Figma embed URL."
+        },
+        "is_published_site": {
+          "type": "boolean",
+          "description": "Only present and \"true\" when the resource is a published Make."
+        },
+        "key": {
+          "type": "string",
+          "description": "The key of the Figma file. Not present for published Makes"
+        },
+        "provider_name": {
+          "type": "string",
+          "description": "The name of the content provider. Always \"Figma\" or \"Make\"."
+        },
+        "provider_url": {
+          "type": "string",
+          "description": "The URL of the content provider's website. Always \"https://www.figma.com\"."
+        },
+        "thumbnail_height": {
+          "type": "integer",
+          "description": "Height of the thumbnail image in pixels."
+        },
+        "thumbnail_url": {
+          "type": "string",
+          "description": "URL of a thumbnail image for the file."
+        },
+        "thumbnail_width": {
+          "type": "integer",
+          "description": "Width of the thumbnail image in pixels."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the Figma file or published Make site."
+        },
+        "type": {
+          "type": "string",
+          "description": "The oEmbed response type. Always \"rich\"."
+        },
+        "url": {
+          "type": "string",
+          "description": "The canonical URL of the resource."
+        },
+        "version": {
+          "type": "string",
+          "description": "The oEmbed specification version. Always \"1.0\"."
+        },
+        "width": {
+          "type": "integer",
+          "description": "Width of the embed in pixels."
+        }
+      }
+    },
+    "get_payments_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object",
+          "description": "An object describing a user's payment information for a plugin, widget, or Community file."
+        },
+        "status": {
+          "type": "number",
+          "description": "The response status code."
+        }
+      }
+    },
+    "get_project_files_response": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "An array of files."
+        },
+        "name": {
+          "type": "string",
+          "description": "The project's name."
+        }
+      }
+    },
+    "get_published_variables_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The response status code."
+        }
+      }
+    },
+    "get_style_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object",
+          "description": "A set of published properties that can be applied to nodes."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_team_component_sets_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_team_components_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_team_projects_response": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The team's name."
+        },
+        "projects": {
+          "type": "array",
+          "description": "An array of projects."
+        }
+      }
+    },
+    "get_team_styles_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "get_webhook_requests_response": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "array",
+          "description": "An array of webhook requests."
+        }
+      }
+    },
+    "get_webhooks_response": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "type": "object",
+          "description": "If pagination is needed due to the length of the response, identifies the next and previous pages."
+        },
+        "webhooks": {
+          "type": "array",
+          "description": "An array of webhooks."
+        }
+      }
+    },
+    "post_comment_reaction_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "status": {
+          "type": "number",
+          "description": "The status of the request."
+        }
+      }
+    },
+    "post_dev_resources_response": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array",
+          "description": "An array of errors."
+        },
+        "links_created": {
+          "type": "array",
+          "description": "An array of links created."
+        }
+      }
+    },
+    "post_variables_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "boolean",
+          "description": "For successful requests, this value is always `false`."
+        },
+        "meta": {
+          "type": "object"
+        },
+        "status": {
+          "type": "number",
+          "description": "The response status code."
+        }
+      }
+    },
+    "put_dev_resources_response": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array",
+          "description": "An array of errors."
+        },
+        "links_updated": {
+          "type": "array",
+          "description": "An array of links updated."
         }
       }
     }

@@ -33,7 +33,8 @@
           "bundle_method": "bundle_method",
           "certificate": "certificate"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_analyze_response"
     },
     "api_shield_api_discovery_retrieve_discovered_operations_on_a_zone": {
       "display_name": "Retrieve discovered operations on a zone",
@@ -121,7 +122,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/api_gateway/discovery"
-      }
+      },
+      "response_schema": "api-shield_schema_response_discovery"
     },
     "api_shield_api_patch_discovered_operation": {
       "display_name": "Patch discovered operation",
@@ -153,7 +155,8 @@
         "body_mapping": {
           "state": "state"
         }
-      }
+      },
+      "response_schema": "api-shield_patch_discovery_response"
     },
     "api_shield_api_patch_discovered_operations": {
       "display_name": "Patch discovered operations",
@@ -174,7 +177,8 @@
       "execution": {
         "method": "PATCH",
         "path": "/zones/{zone_id}/api_gateway/discovery/operations"
-      }
+      },
+      "response_schema": "api-shield_patch_discoveries_response"
     },
     "api_shield_delete_user_label": {
       "display_name": "Delete user label",
@@ -241,7 +245,8 @@
           "host": "host",
           "method": "method"
         }
-      }
+      },
+      "response_schema": "api-shield_single-operation-response"
     },
     "api_shield_endpoint_management_add_operations_to_a_zone": {
       "display_name": "Add operations to a zone",
@@ -262,7 +267,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/api_gateway/operations"
-      }
+      },
+      "response_schema": "api-shield_multiple-operation-response"
     },
     "api_shield_endpoint_management_delete_an_operation": {
       "display_name": "Delete an operation",
@@ -288,7 +294,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/api_gateway/operations/{operation_id}"
-      }
+      },
+      "response_schema": "api-shield_api-response-common"
     },
     "api_shield_endpoint_management_delete_multiple_operations": {
       "display_name": "Delete multiple operations",
@@ -309,7 +316,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/api_gateway/operations"
-      }
+      },
+      "response_schema": "api-shield_api-response-common"
     },
     "api_shield_endpoint_management_retrieve_information_about_all_operations_on_a_zone": {
       "display_name": "Retrieve information about all operations on a zone",
@@ -367,7 +375,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "api-shield_multiple-operation-response-paginated"
     },
     "api_shield_endpoint_management_retrieve_information_about_an_operation": {
       "display_name": "Retrieve information about an operation",
@@ -400,7 +409,8 @@
         "query_mapping": {
           "feature": "feature"
         }
-      }
+      },
+      "response_schema": "api-shield_single-operation-response"
     },
     "api_shield_endpoint_management_retrieve_operations_and_features_as_open_api_schemas": {
       "display_name": "Retrieve operations and features as OpenAPI schemas",
@@ -432,7 +442,8 @@
           "feature": "feature",
           "host": "host"
         }
-      }
+      },
+      "response_schema": "api-shield_schema-response-with-thresholds"
     },
     "api_shield_expression_templates_fallthrough": {
       "display_name": "Generate fallthrough WAF expression template from a set of API hosts",
@@ -1026,7 +1037,8 @@
         "query_mapping": {
           "normalize": "normalize"
         }
-      }
+      },
+      "response_schema": "api-shield_configuration-single-response"
     },
     "api_shield_settings_set_configuration_properties": {
       "display_name": "Update configuration properties",
@@ -1061,11 +1073,12 @@
         "query_mapping": {
           "normalize": "normalize"
         }
-      }
+      },
+      "response_schema": "api-shield_configuration-single-response"
     },
     "archive_zone_security_center_insight": {
       "display_name": "Archives Zone Security Center Insight",
-      "description": "Archives Zone Security Center Insight",
+      "description": "Archives a zone-specific Security Center insight, removing it from the active zone insights while preserving historical data.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -1113,7 +1126,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/analytics/latency/colos"
-      }
+      },
+      "response_schema": "argo-analytics_response_single"
     },
     "argo_analytics_for_zone_argo_analytics_for_a_zone": {
       "display_name": "Argo Analytics for a zone",
@@ -1140,7 +1154,8 @@
         "query_mapping": {
           "bins": "bins"
         }
-      }
+      },
+      "response_schema": "argo-analytics_response_single"
     },
     "argo_smart_routing_get_argo_smart_routing_setting": {
       "display_name": "Get Argo Smart Routing setting",
@@ -1161,7 +1176,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/argo/smart_routing"
-      }
+      },
+      "response_schema": "argo-config_api_response_single"
     },
     "argo_smart_routing_patch_argo_smart_routing_setting": {
       "display_name": "Patch Argo Smart Routing setting",
@@ -1190,7 +1206,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "argo-config_api_response_single"
     },
     "bot_management_for_a_zone_get_config": {
       "display_name": "Get Zone Bot Management Config",
@@ -1211,7 +1228,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/bot_management"
-      }
+      },
+      "response_schema": "bot-management_bot_management_response_body"
     },
     "bot_management_for_a_zone_update_config": {
       "display_name": "Update Zone Bot Management Config",
@@ -1232,7 +1250,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/bot_management"
-      }
+      },
+      "response_schema": "bot-management_bot_management_response_body"
     },
     "bot_management_zone_feedback_create": {
       "display_name": "Submit a feedback report",
@@ -1334,7 +1353,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/bot_management/feedback"
-      }
+      },
+      "response_schema": "bot-management_feedback_report_list"
     },
     "certificate_packs_delete_advanced_certificate_manager_certificate_pack": {
       "display_name": "Delete Advanced Certificate Manager Certificate Pack",
@@ -1359,7 +1379,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/ssl/certificate_packs/{certificate_pack_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_delete_advanced_certificate_pack_response_single"
     },
     "certificate_packs_get_certificate_pack": {
       "display_name": "Get Certificate Pack",
@@ -1384,7 +1405,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/ssl/certificate_packs/{certificate_pack_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_pack_response_single"
     },
     "certificate_packs_get_certificate_pack_quotas": {
       "display_name": "Get Certificate Pack Quotas",
@@ -1405,7 +1427,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/ssl/certificate_packs/quota"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_pack_quota_response"
     },
     "certificate_packs_list_certificate_packs": {
       "display_name": "List Certificate Packs",
@@ -1444,7 +1467,8 @@
           "per_page": "per_page",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_pack_response_collection"
     },
     "certificate_packs_order_advanced_certificate_manager_certificate_pack": {
       "display_name": "Order Advanced Certificate Manager Certificate Pack",
@@ -1502,7 +1526,8 @@
           "validation_method": "validation_method",
           "validity_days": "validity_days"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_advanced_certificate_pack_response_single"
     },
     "certificate_packs_restart_validation_for_advanced_certificate_manager_certificate_pack": {
       "display_name": "Restart Validation or Update Advanced Certificate Manager Certificate Pack",
@@ -1534,7 +1559,8 @@
         "body_mapping": {
           "cloudflare_branding": "cloudflare_branding"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_advanced_certificate_pack_response_single"
     },
     "client_certificate_for_a_zone_client_certificate_details": {
       "display_name": "Client Certificate Details",
@@ -1559,7 +1585,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/client_certificates/{client_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_client_certificate_response_single"
     },
     "client_certificate_for_a_zone_create_client_certificate": {
       "display_name": "Create Client Certificate",
@@ -1594,7 +1621,8 @@
           "csr": "csr",
           "validity_days": "validity_days"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_client_certificate_response_single"
     },
     "client_certificate_for_a_zone_delete_client_certificate": {
       "display_name": "Revoke Client Certificate",
@@ -1619,7 +1647,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/client_certificates/{client_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_client_certificate_response_single"
     },
     "client_certificate_for_a_zone_edit_client_certificate": {
       "display_name": "Reactivate Client Certificate",
@@ -1650,7 +1679,8 @@
         "body_mapping": {
           "reactivate": "reactivate"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_client_certificate_response_single"
     },
     "client_certificate_for_a_zone_list_client_certificates": {
       "display_name": "List Client Certificates",
@@ -1693,7 +1723,8 @@
           "per_page": "per_page",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_client_certificate_response_collection"
     },
     "client_certificate_for_a_zone_list_hostname_associations": {
       "display_name": "List Hostname Associations",
@@ -1720,7 +1751,8 @@
         "query_mapping": {
           "mtls_certificate_id": "mtls_certificate_id"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname_associations_response"
     },
     "client_certificate_for_a_zone_put_hostname_associations": {
       "display_name": "Replace Hostname Associations",
@@ -1752,7 +1784,8 @@
           "hostnames": "hostnames",
           "mtls_certificate_id": "mtls_certificate_id"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname_associations_response"
     },
     "create_zone_ruleset": {
       "display_name": "Create a zone ruleset",
@@ -1800,6 +1833,171 @@
         "path": "/zones/{zone_id}/rulesets/{ruleset_id}/rules"
       }
     },
+    "custom_assets_for_a_zone_create_a_custom_asset": {
+      "display_name": "Create a custom asset",
+      "description": "Creates a new custom asset at the zone level.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "A short description of the custom asset."
+          },
+          "name": {
+            "type": "string",
+            "description": "The unique name of the custom asset. Can only contain letters (A-Z, a-z), numbers (0-9), and underscores (_)."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL where the asset content is fetched from."
+          },
+          "zone_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_identifier",
+          "name",
+          "description",
+          "url"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/zones/{zone_identifier}/custom_pages/assets",
+        "body_mapping": {
+          "description": "description",
+          "name": "name",
+          "url": "url"
+        }
+      },
+      "response_schema": "custom-pages_custom_asset_result"
+    },
+    "custom_assets_for_a_zone_delete_a_custom_asset": {
+      "display_name": "Delete a custom asset",
+      "description": "Deletes an existing custom asset.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "asset_name": {
+            "type": "string"
+          },
+          "zone_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_name",
+          "zone_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/zones/{zone_identifier}/custom_pages/assets/{asset_name}"
+      }
+    },
+    "custom_assets_for_a_zone_get_a_custom_asset": {
+      "display_name": "Get a custom asset",
+      "description": "Fetches the details of a custom asset.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "asset_name": {
+            "type": "string"
+          },
+          "zone_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_name",
+          "zone_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_identifier}/custom_pages/assets/{asset_name}"
+      },
+      "response_schema": "custom-pages_custom_asset_result"
+    },
+    "custom_assets_for_a_zone_list_custom_assets": {
+      "display_name": "List custom assets",
+      "description": "Fetches all the custom assets at the zone level.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "zone_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_identifier"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_identifier}/custom_pages/assets",
+        "query_mapping": {
+          "page": "page",
+          "per_page": "per_page"
+        }
+      },
+      "response_schema": "custom-pages_custom_asset_result_list"
+    },
+    "custom_assets_for_a_zone_update_a_custom_asset": {
+      "display_name": "Update a custom asset",
+      "description": "Updates the configuration of an existing custom asset.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "asset_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "A short description of the custom asset."
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL where the asset content is fetched from."
+          },
+          "zone_identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_name",
+          "zone_identifier",
+          "description",
+          "url"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/zones/{zone_identifier}/custom_pages/assets/{asset_name}",
+        "body_mapping": {
+          "description": "description",
+          "url": "url"
+        }
+      },
+      "response_schema": "custom-pages_custom_asset_result"
+    },
     "custom_hostname_fallback_origin_for_a_zone_delete_fallback_origin_for_custom_hostnames": {
       "display_name": "Delete Fallback Origin for Custom Hostnames",
       "description": "Removes the fallback origin configuration for custom hostnames on a zone. Custom hostnames without specific origins will no longer have a fallback.",
@@ -1819,7 +2017,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/custom_hostnames/fallback_origin"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_fallback_origin_response"
     },
     "custom_hostname_fallback_origin_for_a_zone_get_fallback_origin_for_custom_hostnames": {
       "display_name": "Get Fallback Origin for Custom Hostnames",
@@ -1840,7 +2039,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/custom_hostnames/fallback_origin"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_fallback_origin_response"
     },
     "custom_hostname_fallback_origin_for_a_zone_update_fallback_origin_for_custom_hostnames": {
       "display_name": "Update Fallback Origin for Custom Hostnames",
@@ -1869,7 +2069,8 @@
         "body_mapping": {
           "origin": "origin"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_fallback_origin_response"
     },
     "custom_hostname_for_a_zone_create_custom_hostname": {
       "display_name": "Create Custom Hostname",
@@ -1908,7 +2109,8 @@
           "hostname": "hostname",
           "ssl": "ssl"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_hostname_response_single"
     },
     "custom_hostname_for_a_zone_custom_hostname_details": {
       "display_name": "Custom Hostname Details",
@@ -1933,7 +2135,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/custom_hostnames/{custom_hostname_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_hostname_response_single"
     },
     "custom_hostname_for_a_zone_delete_custom_hostname_and_any_issued_ssl_certificates": {
       "display_name": "Delete Custom Hostname (and any issued SSL certificates)",
@@ -1958,7 +2161,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/custom_hostnames/{custom_hostname_id}"
-      }
+      },
+      "response_schema": "custom_hostname_for_a_zone_delete_custom_hostname_and_any_issued_ssl_certificates_response"
     },
     "custom_hostname_for_a_zone_delete_single_certificate_and_key_in_a_custom_hostname": {
       "display_name": "Delete Single Certificate And Key For Custom Hostname",
@@ -2085,7 +2289,8 @@
           "custom_origin_sni": "custom_origin_sni",
           "ssl": "ssl"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_hostname_response_single"
     },
     "custom_hostname_for_a_zone_list_custom_hostnames": {
       "display_name": "List Custom Hostnames",
@@ -2095,6 +2300,9 @@
       "parameters": {
         "properties": {
           "certificate_authority": {
+            "type": "string"
+          },
+          "custom_origin_server": {
             "type": "string"
           },
           "direction": {
@@ -2144,6 +2352,7 @@
         "path": "/zones/{zone_id}/custom_hostnames",
         "query_mapping": {
           "certificate_authority": "certificate_authority",
+          "custom_origin_server": "custom_origin_server",
           "direction": "direction",
           "hostname": "hostname",
           "hostname.contain": "hostname.contain",
@@ -2156,7 +2365,8 @@
           "ssl_status": "ssl_status",
           "wildcard": "wildcard"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_hostname_response_collection"
     },
     "custom_origin_trust_store_create": {
       "display_name": "Upload Custom Origin Trust Store",
@@ -2185,7 +2395,8 @@
         "body_mapping": {
           "certificate": "certificate"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_trust_store_response_single"
     },
     "custom_origin_trust_store_delete": {
       "display_name": "Delete Custom Origin Trust Store",
@@ -2210,7 +2421,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/acm/custom_trust_store/{custom_origin_trust_store_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_trust_store_response_id_only"
     },
     "custom_origin_trust_store_details": {
       "display_name": "Custom Origin Trust Store Details",
@@ -2235,7 +2447,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/acm/custom_trust_store/{custom_origin_trust_store_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_trust_store_response_single"
     },
     "custom_origin_trust_store_list_details": {
       "display_name": "List Custom Origin Trust Store Details",
@@ -2274,7 +2487,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_custom_trust_store_response_collection"
     },
     "custom_pages_for_a_zone_get_a_custom_page": {
       "display_name": "Get a custom page",
@@ -2299,7 +2513,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_identifier}/custom_pages/{identifier}"
-      }
+      },
+      "response_schema": "custom-pages_custom_page"
     },
     "custom_pages_for_a_zone_list_custom_pages": {
       "display_name": "List custom pages",
@@ -2320,7 +2535,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_identifier}/custom_pages"
-      }
+      },
+      "response_schema": "custom-pages_custom_page_result_list"
     },
     "custom_pages_for_a_zone_update_a_custom_page": {
       "display_name": "Update a custom page",
@@ -2359,7 +2575,8 @@
           "state": "state",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "custom-pages_custom_page_result"
     },
     "custom_ssl_for_a_zone_create_ssl_configuration": {
       "display_name": "Create SSL Configuration",
@@ -2424,7 +2641,8 @@
           "private_key": "private_key",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_single"
     },
     "custom_ssl_for_a_zone_delete_ssl_configuration": {
       "display_name": "Delete SSL Configuration",
@@ -2449,7 +2667,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/custom_certificates/{custom_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_id_only"
     },
     "custom_ssl_for_a_zone_edit_ssl_configuration": {
       "display_name": "Edit SSL Configuration",
@@ -2511,7 +2730,8 @@
           "policy": "policy",
           "private_key": "private_key"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_single"
     },
     "custom_ssl_for_a_zone_list_ssl_configurations": {
       "display_name": "List SSL Configurations",
@@ -2550,7 +2770,8 @@
           "per_page": "per_page",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_collection"
     },
     "custom_ssl_for_a_zone_re_prioritize_ssl_certificates": {
       "display_name": "Re-prioritize SSL Certificates",
@@ -2579,7 +2800,8 @@
         "body_mapping": {
           "certificates": "certificates"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_collection"
     },
     "custom_ssl_for_a_zone_ssl_configuration_details": {
       "display_name": "SSL Configuration Details",
@@ -2604,7 +2826,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/custom_certificates/{custom_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_certificate_response_single"
     },
     "dcv_delegation_uuid_get": {
       "display_name": "Retrieve the DCV Delegation unique identifier.",
@@ -2625,7 +2848,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dcv_delegation/uuid"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_dcv_delegation_response"
     },
     "delete_managed_transforms": {
       "display_name": "Delete Managed Transforms",
@@ -2650,7 +2874,7 @@
     },
     "delete_security_txt": {
       "display_name": "Deletes security.txt",
-      "description": "Deletes security.txt",
+      "description": "Removes the security.txt file configuration for a zone. The /.well-known/security.txt endpoint will no longer be served.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -2863,7 +3087,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/devices/policy/certificates"
-      }
+      },
+      "response_schema": "teams-devices_devices_policy_certificates_single"
     },
     "devices_update_policy_certificates": {
       "display_name": "Update device certificate provisioning status",
@@ -2892,7 +3117,8 @@
         "body_mapping": {
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "teams-devices_devices_policy_certificates_single"
     },
     "dls_account_regional_hostnames_account_create_hostname": {
       "display_name": "Create Regional Hostname",
@@ -3173,7 +3399,8 @@
           "accepts": "accepts",
           "rejects": "rejects"
         }
-      }
+      },
+      "response_schema": "dns-records_dns_response_review_scan"
     },
     "dns_records_for_a_zone_batch_dns_records": {
       "display_name": "Batch DNS Records",
@@ -3212,7 +3439,8 @@
           "posts": "posts",
           "puts": "puts"
         }
-      }
+      },
+      "response_schema": "dns-records_dns_response_batch"
     },
     "dns_records_for_a_zone_create_dns_record": {
       "display_name": "Create DNS Record",
@@ -3233,7 +3461,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/dns_records"
-      }
+      },
+      "response_schema": "dns-records_dns_response_single"
     },
     "dns_records_for_a_zone_delete_dns_record": {
       "display_name": "Delete DNS Record",
@@ -3258,7 +3487,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/dns_records/{dns_record_id}"
-      }
+      },
+      "response_schema": "dns_records_for_a_zone_delete_dns_record_response"
     },
     "dns_records_for_a_zone_dns_record_details": {
       "display_name": "DNS Record Details",
@@ -3283,7 +3513,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dns_records/{dns_record_id}"
-      }
+      },
+      "response_schema": "dns-records_dns_response_single"
     },
     "dns_records_for_a_zone_export_dns_records": {
       "display_name": "Export DNS Records",
@@ -3325,7 +3556,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dns_records/usage"
-      }
+      },
+      "response_schema": "dns-records_dns_response_zone_usage"
     },
     "dns_records_for_a_zone_list_dns_records": {
       "display_name": "List DNS Records",
@@ -3480,7 +3712,8 @@
           "tag_match": "tag_match",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "dns-records_dns_response_collection"
     },
     "dns_records_for_a_zone_patch_dns_record": {
       "display_name": "Update DNS Record",
@@ -3505,7 +3738,8 @@
       "execution": {
         "method": "PATCH",
         "path": "/zones/{zone_id}/dns_records/{dns_record_id}"
-      }
+      },
+      "response_schema": "dns-records_dns_response_single"
     },
     "dns_records_for_a_zone_review_dns_scan": {
       "display_name": "List Scanned DNS Records",
@@ -3526,7 +3760,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dns_records/scan/review"
-      }
+      },
+      "response_schema": "dns-records_dns_response_collection"
     },
     "dns_records_for_a_zone_trigger_dns_scan": {
       "display_name": "Trigger DNS Record Scan",
@@ -3547,7 +3782,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/dns_records/scan/trigger"
-      }
+      },
+      "response_schema": "dns-records_dns_response_trigger_scan"
     },
     "dns_records_for_a_zone_update_dns_record": {
       "display_name": "Overwrite DNS Record",
@@ -3572,7 +3808,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/dns_records/{dns_record_id}"
-      }
+      },
+      "response_schema": "dns-records_dns_response_single"
     },
     "dns_settings_for_a_zone_list_dns_settings": {
       "display_name": "Show DNS Settings",
@@ -3593,7 +3830,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dns_settings"
-      }
+      },
+      "response_schema": "dns-settings_schemas-dns_response_single"
     },
     "dns_settings_for_a_zone_update_dns_settings": {
       "display_name": "Update DNS Settings",
@@ -3614,7 +3852,8 @@
       "execution": {
         "method": "PATCH",
         "path": "/zones/{zone_id}/dns_settings"
-      }
+      },
+      "response_schema": "dns-settings_schemas-dns_response_single"
     },
     "dnssec_delete_dnssec_records": {
       "display_name": "Delete DNSSEC records",
@@ -3635,7 +3874,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/dnssec"
-      }
+      },
+      "response_schema": "dnssec_delete_dnssec_response_single"
     },
     "dnssec_dnssec_details": {
       "display_name": "DNSSEC Details",
@@ -3656,7 +3896,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/dnssec"
-      }
+      },
+      "response_schema": "dnssec_dnssec_response_single"
     },
     "dnssec_edit_dnssec_status": {
       "display_name": "Edit DNSSEC Status",
@@ -3699,7 +3940,8 @@
           "dnssec_use_nsec3": "dnssec_use_nsec3",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "dnssec_dnssec_response_single"
     },
     "email_routing_routing_rules_create_routing_rule": {
       "display_name": "Create routing rule",
@@ -3749,7 +3991,8 @@
           "name": "name",
           "priority": "priority"
         }
-      }
+      },
+      "response_schema": "email_rule_response_single"
     },
     "email_routing_routing_rules_delete_routing_rule": {
       "display_name": "Delete routing rule",
@@ -3774,7 +4017,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/email/routing/rules/{rule_identifier}"
-      }
+      },
+      "response_schema": "email_rule_response_single"
     },
     "email_routing_routing_rules_get_catch_all_rule": {
       "display_name": "Get catch-all rule",
@@ -3795,7 +4039,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/routing/rules/catch_all"
-      }
+      },
+      "response_schema": "email_catch_all_rule_response_single"
     },
     "email_routing_routing_rules_get_routing_rule": {
       "display_name": "Get routing rule",
@@ -3820,7 +4065,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/routing/rules/{rule_identifier}"
-      }
+      },
+      "response_schema": "email_rule_response_single"
     },
     "email_routing_routing_rules_list_routing_rules": {
       "display_name": "List routing rules",
@@ -3855,7 +4101,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "email_rules_response_collection"
     },
     "email_routing_routing_rules_update_catch_all_rule": {
       "display_name": "Update catch-all rule",
@@ -3900,7 +4147,8 @@
           "matchers": "matchers",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "email_catch_all_rule_response_single"
     },
     "email_routing_routing_rules_update_routing_rule": {
       "display_name": "Update routing rule",
@@ -3954,7 +4202,8 @@
           "name": "name",
           "priority": "priority"
         }
-      }
+      },
+      "response_schema": "email_rule_response_single"
     },
     "email_routing_settings_disable_email_routing_dns": {
       "display_name": "Disable Email Routing",
@@ -4037,7 +4286,8 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "email_email_settings_response_single"
     },
     "email_routing_settings_get_email_routing_settings": {
       "display_name": "Get Email Routing settings",
@@ -4058,7 +4308,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/routing"
-      }
+      },
+      "response_schema": "email_email_settings_response_single"
     },
     "email_routing_settings_unlock_email_routing_dns": {
       "display_name": "Unlock Email Routing",
@@ -4086,7 +4337,8 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "email_email_settings_response_single"
     },
     "email_sending_subdomains_create_sending_subdomain": {
       "display_name": "Create a sending subdomain",
@@ -4115,7 +4367,8 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "email_sending_subdomain_response_single"
     },
     "email_sending_subdomains_delete_sending_subdomain": {
       "display_name": "Delete a sending subdomain",
@@ -4140,7 +4393,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/email/sending/subdomains/{subdomain_id}"
-      }
+      },
+      "response_schema": "email_api-response-single"
     },
     "email_sending_subdomains_get_sending_subdomain": {
       "display_name": "Get a sending subdomain",
@@ -4165,7 +4419,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/sending/subdomains/{subdomain_id}"
-      }
+      },
+      "response_schema": "email_sending_subdomain_response_single"
     },
     "email_sending_subdomains_get_sending_subdomain_dns": {
       "display_name": "Get sending subdomain DNS records",
@@ -4190,7 +4445,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/sending/subdomains/{subdomain_id}/dns"
-      }
+      },
+      "response_schema": "email_dns_settings_response_collection"
     },
     "email_sending_subdomains_list_sending_subdomains": {
       "display_name": "List sending subdomains",
@@ -4211,7 +4467,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/email/sending/subdomains"
-      }
+      },
+      "response_schema": "email_sending_subdomains_response_collection"
     },
     "email_sending_subdomains_preview_sending_subdomain": {
       "display_name": "Preview sending subdomain DNS",
@@ -4240,7 +4497,110 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "email_sending_subdomain_preview_response"
+    },
+    "firewall_for_ai_custom_topics_get": {
+      "display_name": "Get Firewall for AI Custom Topics",
+      "description": "Get the Firewall for AI custom topic categories for a zone.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "zone_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_id}/firewall-for-ai/custom-topics"
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-topics"
+    },
+    "firewall_for_ai_custom_topics_put": {
+      "display_name": "Set Firewall for AI Custom Topics",
+      "description": "Set the Firewall for AI custom topic categories for a zone. A maximum of 20 custom topics can be configured per zone. Each topic label must be 2–20 characters using only lowercase letters (a–z)...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "topics": {
+            "type": "array",
+            "description": "Custom topic categories for Firewall for AI content detection."
+          },
+          "zone_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/zones/{zone_id}/firewall-for-ai/custom-topics",
+        "body_mapping": {
+          "topics": "topics"
+        }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-topics"
+    },
+    "firewall_for_ai_settings_get": {
+      "display_name": "Get Firewall for AI Status",
+      "description": "Get whether Firewall for AI is enabled or disabled for a zone.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "zone_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_id}/firewall-for-ai/settings"
+      },
+      "response_schema": "waf-product-api-bundle_response-settings"
+    },
+    "firewall_for_ai_settings_put": {
+      "display_name": "Set Firewall for AI Status",
+      "description": "Enable or disable Firewall for AI for a zone. Changes can take up to a minute to propagate to the zone.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "pii_detection_enabled": {
+            "type": "boolean",
+            "description": "Whether Firewall for AI is enabled on the zone. Despite the field name, this controls the entire Firewall for AI feature, not just PII detection."
+          },
+          "zone_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/zones/{zone_id}/firewall-for-ai/settings",
+        "body_mapping": {
+          "pii_detection_enabled": "pii_detection_enabled"
+        }
+      },
+      "response_schema": "waf-product-api-bundle_response-settings"
     },
     "fraud_detection_zone_get_settings": {
       "display_name": "Get Fraud Detection Settings",
@@ -4261,7 +4621,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/fraud_detection/settings"
-      }
+      },
+      "response_schema": "fraud_fraud_settings_response_body"
     },
     "fraud_detection_zone_update_settings": {
       "display_name": "Update Fraud Detection Settings",
@@ -4294,11 +4655,12 @@
           "user_profiles": "user_profiles",
           "username_expressions": "username_expressions"
         }
-      }
+      },
+      "response_schema": "fraud_fraud_settings_response_body"
     },
     "get_security_txt": {
       "display_name": "Retrieves security.txt",
-      "description": "Retrieves security.txt",
+      "description": "Retrieves the current security.txt file configuration for a zone, used for security vulnerability reporting.",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -4448,7 +4810,7 @@
     },
     "get_zone_security_center_insight_counts_by_class": {
       "display_name": "Retrieves Zone Security Center Insight Counts by Class",
-      "description": "Retrieves Zone Security Center Insight Counts by Class",
+      "description": "Retrieves zone-specific Security Center insight counts aggregated by classification class.",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -4511,11 +4873,12 @@
           "subject": "subject",
           "subject~neq": "subject~neq"
         }
-      }
+      },
+      "response_schema": "security-center_valueCountsResponse"
     },
     "get_zone_security_center_insight_counts_by_severity": {
       "display_name": "Retrieves Zone Security Center Insight Counts by Severity",
-      "description": "Retrieves Zone Security Center Insight Counts by Severity",
+      "description": "Retrieves zone-specific Security Center insight counts aggregated by severity level.",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -4578,11 +4941,12 @@
           "subject": "subject",
           "subject~neq": "subject~neq"
         }
-      }
+      },
+      "response_schema": "security-center_valueCountsResponse"
     },
     "get_zone_security_center_insight_counts_by_type": {
       "display_name": "Retrieves Zone Security Center Insight Counts by Type",
-      "description": "Retrieves Zone Security Center Insight Counts by Type",
+      "description": "Retrieves zone-specific Security Center insight counts aggregated by insight type.",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -4645,11 +5009,12 @@
           "subject": "subject",
           "subject~neq": "subject~neq"
         }
-      }
+      },
+      "response_schema": "security-center_valueCountsResponse"
     },
     "get_zone_security_center_insights": {
       "display_name": "Retrieves Zone Security Center Insights",
-      "description": "Retrieves Zone Security Center Insights",
+      "description": "Lists Security Center insights for a specific zone, showing zone-level security findings.",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -4795,7 +5160,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logpush/datasets/{dataset_id}/fields"
-      }
+      },
+      "response_schema": "logpush_logpush_field_response_collection"
     },
     "get_zones_zone_id_logpush_datasets_dataset_id_jobs": {
       "display_name": "List Logpush jobs for a dataset",
@@ -4820,7 +5186,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logpush/datasets/{dataset_id}/jobs"
-      }
+      },
+      "response_schema": "logpush_logpush_job_response_collection"
     },
     "get_zones_zone_id_logpush_edge_jobs": {
       "display_name": "List Instant Logs jobs",
@@ -4841,7 +5208,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logpush/edge/jobs"
-      }
+      },
+      "response_schema": "logpush_instant_logs_job_response_collection"
     },
     "get_zones_zone_id_logpush_jobs": {
       "display_name": "List Logpush jobs",
@@ -4862,7 +5230,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logpush/jobs"
-      }
+      },
+      "response_schema": "logpush_logpush_job_response_collection"
     },
     "get_zones_zone_id_logpush_jobs_job_id": {
       "display_name": "Get Logpush job details",
@@ -4887,7 +5256,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logpush/jobs/{job_id}"
-      }
+      },
+      "response_schema": "logpush_logpush_job_response_single"
     },
     "get_zones_zone_id_logs_control_retention_flag": {
       "display_name": "Get log retention flag",
@@ -4908,7 +5278,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logs/control/retention/flag"
-      }
+      },
+      "response_schema": "logcontrol_retention_flag_response_single"
     },
     "get_zones_zone_id_logs_rayids_ray_id": {
       "display_name": "Get logs RayIDs",
@@ -4943,7 +5314,8 @@
           "fields": "fields",
           "timestamps": "timestamps"
         }
-      }
+      },
+      "response_schema": "logshare_logs_response_json_lines"
     },
     "get_zones_zone_id_logs_received": {
       "display_name": "Get logs received",
@@ -4990,7 +5362,8 @@
           "start": "start",
           "timestamps": "timestamps"
         }
-      }
+      },
+      "response_schema": "logshare_logs_response_json_lines"
     },
     "get_zones_zone_id_logs_received_fields": {
       "display_name": "List fields",
@@ -5011,7 +5384,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/logs/received/fields"
-      }
+      },
+      "response_schema": "logshare_fields_response"
     },
     "get_zones_zone_identifier_zaraz_config": {
       "display_name": "Get Zaraz configuration",
@@ -5032,7 +5406,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/zaraz/config"
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-response"
     },
     "get_zones_zone_identifier_zaraz_config_history": {
       "display_name": "Get Zaraz historical configurations by ID(s)",
@@ -5043,7 +5418,7 @@
         "properties": {
           "ids": {
             "type": "array",
-            "description": "Comma separated list of Zaraz configuration IDs"
+            "description": "Comma separated list of Zaraz configuration IDs."
           },
           "zone_id": {
             "type": "string"
@@ -5060,7 +5435,8 @@
         "query_mapping": {
           "ids": "ids"
         }
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-history-response"
     },
     "get_zones_zone_identifier_zaraz_default": {
       "display_name": "Get default Zaraz configuration",
@@ -5081,7 +5457,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/zaraz/default"
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-response"
     },
     "get_zones_zone_identifier_zaraz_export": {
       "display_name": "Export Zaraz configuration",
@@ -5102,7 +5479,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/zaraz/export"
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-return"
     },
     "get_zones_zone_identifier_zaraz_history": {
       "display_name": "List Zaraz historical configuration records",
@@ -5145,7 +5523,8 @@
           "sortField": "sortField",
           "sortOrder": "sortOrder"
         }
-      }
+      },
+      "response_schema": "zaraz_zaraz-history-response"
     },
     "get_zones_zone_identifier_zaraz_workflow": {
       "display_name": "Get Zaraz workflow",
@@ -5166,7 +5545,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/zaraz/workflow"
-      }
+      },
+      "response_schema": "zaraz_zaraz-workflow-response"
     },
     "health_checks_create_health_check": {
       "display_name": "Create Health Check",
@@ -5256,7 +5636,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "health_checks_create_preview_health_check": {
       "display_name": "Create Preview Health Check",
@@ -5346,7 +5727,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "health_checks_delete_health_check": {
       "display_name": "Delete Health Check",
@@ -5371,7 +5753,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/healthchecks/{healthcheck_id}"
-      }
+      },
+      "response_schema": "healthchecks_id_response"
     },
     "health_checks_delete_preview_health_check": {
       "display_name": "Delete Preview Health Check",
@@ -5396,7 +5779,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/healthchecks/preview/{healthcheck_id}"
-      }
+      },
+      "response_schema": "healthchecks_id_response"
     },
     "health_checks_health_check_details": {
       "display_name": "Health Check Details",
@@ -5421,7 +5805,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/healthchecks/{healthcheck_id}"
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "health_checks_health_check_preview_details": {
       "display_name": "Health Check Preview Details",
@@ -5446,7 +5831,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/healthchecks/preview/{healthcheck_id}"
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "health_checks_list_health_checks": {
       "display_name": "List Health Checks",
@@ -5479,7 +5865,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "healthchecks_response_collection"
     },
     "health_checks_patch_health_check": {
       "display_name": "Patch Health Check",
@@ -5573,7 +5960,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "health_checks_update_health_check": {
       "display_name": "Update Health Check",
@@ -5667,7 +6055,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "healthchecks_single_response"
     },
     "ip_access_rules_for_a_zone_create_an_ip_access_rule": {
       "display_name": "Create an IP Access rule",
@@ -5706,7 +6095,8 @@
           "mode": "mode",
           "notes": "notes"
         }
-      }
+      },
+      "response_schema": "firewall_rule_single_response"
     },
     "ip_access_rules_for_a_zone_delete_an_ip_access_rule": {
       "display_name": "Delete an IP Access rule",
@@ -5738,7 +6128,8 @@
         "body_mapping": {
           "cascade": "cascade"
         }
-      }
+      },
+      "response_schema": "firewall_rule_single_id_response"
     },
     "ip_access_rules_for_a_zone_list_ip_access_rules": {
       "display_name": "List IP Access rules",
@@ -5797,7 +6188,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "firewall_rule_collection_response"
     },
     "ip_access_rules_for_a_zone_update_an_ip_access_rule": {
       "display_name": "Update an IP Access rule",
@@ -5834,7 +6226,8 @@
           "mode": "mode",
           "notes": "notes"
         }
-      }
+      },
+      "response_schema": "firewall_rule_single_response"
     },
     "keyless_ssl_for_a_zone_create_keyless_ssl_configuration": {
       "display_name": "Create Keyless SSL Configuration",
@@ -5890,7 +6283,8 @@
           "port": "port",
           "tunnel": "tunnel"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_keyless_response_single"
     },
     "keyless_ssl_for_a_zone_delete_keyless_ssl_configuration": {
       "display_name": "Delete Keyless SSL Configuration",
@@ -5915,7 +6309,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/keyless_certificates/{keyless_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_keyless_response_single_id"
     },
     "keyless_ssl_for_a_zone_edit_keyless_ssl_configuration": {
       "display_name": "Edit Keyless SSL Configuration",
@@ -5967,7 +6362,8 @@
           "port": "port",
           "tunnel": "tunnel"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_keyless_response_single"
     },
     "keyless_ssl_for_a_zone_get_keyless_ssl_configuration": {
       "display_name": "Get Keyless SSL Configuration",
@@ -5992,7 +6388,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/keyless_certificates/{keyless_certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_keyless_response_single"
     },
     "keyless_ssl_for_a_zone_list_keyless_ssl_configurations": {
       "display_name": "List Keyless SSL Configurations",
@@ -6013,7 +6410,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/keyless_certificates"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_keyless_response_collection"
     },
     "list_managed_transforms": {
       "display_name": "List Managed Transforms",
@@ -6316,7 +6714,8 @@
           "steering_policy": "steering_policy",
           "ttl": "ttl"
         }
-      }
+      },
+      "response_schema": "load-balancing_load-balancer_components-schemas-single_response"
     },
     "load_balancers_delete_load_balancer": {
       "display_name": "Delete Load Balancer",
@@ -6341,7 +6740,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/load_balancers/{load_balancer_id}"
-      }
+      },
+      "response_schema": "load-balancing_components-schemas-id_response"
     },
     "load_balancers_list_load_balancers": {
       "display_name": "List Load Balancers",
@@ -6362,7 +6762,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/load_balancers"
-      }
+      },
+      "response_schema": "load-balancing_load-balancer_components-schemas-response_collection"
     },
     "load_balancers_load_balancer_details": {
       "display_name": "Load Balancer Details",
@@ -6387,7 +6788,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/load_balancers/{load_balancer_id}"
-      }
+      },
+      "response_schema": "load-balancing_load-balancer_components-schemas-single_response"
     },
     "load_balancers_patch_load_balancer": {
       "display_name": "Patch Load Balancer",
@@ -6504,7 +6906,8 @@
           "steering_policy": "steering_policy",
           "ttl": "ttl"
         }
-      }
+      },
+      "response_schema": "load-balancing_load-balancer_components-schemas-single_response"
     },
     "load_balancers_update_load_balancer": {
       "display_name": "Update Load Balancer",
@@ -6629,7 +7032,8 @@
           "steering_policy": "steering_policy",
           "ttl": "ttl"
         }
-      }
+      },
+      "response_schema": "load-balancing_load-balancer_components-schemas-single_response"
     },
     "page_rules_create_a_page_rule": {
       "display_name": "Create a Page Rule",
@@ -6699,7 +7103,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/pagerules/{pagerule_id}"
-      }
+      },
+      "response_schema": "zones_schemas-api-response-single-id"
     },
     "page_rules_edit_a_page_rule": {
       "display_name": "Edit a Page Rule",
@@ -6912,7 +7317,8 @@
           "expression": "expression",
           "value": "value"
         }
-      }
+      },
+      "response_schema": "page-shield_get-zone-policy-response"
     },
     "page_shield_delete_policy": {
       "display_name": "Delete a Page Shield policy",
@@ -6962,7 +7368,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/page_shield/connections/{connection_id}"
-      }
+      },
+      "response_schema": "page-shield_get-zone-connection-response"
     },
     "page_shield_get_cookie": {
       "display_name": "Get a Page Shield cookie",
@@ -6987,7 +7394,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/page_shield/cookies/{cookie_id}"
-      }
+      },
+      "response_schema": "page-shield_get-zone-cookie-response"
     },
     "page_shield_get_policy": {
       "display_name": "Get a Page Shield policy",
@@ -7012,7 +7420,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/page_shield/policies/{policy_id}"
-      }
+      },
+      "response_schema": "page-shield_get-zone-policy-response"
     },
     "page_shield_get_script": {
       "display_name": "Get a Page Shield script",
@@ -7037,7 +7446,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/page_shield/scripts/{script_id}"
-      }
+      },
+      "response_schema": "page-shield_get-zone-script-response"
     },
     "page_shield_get_settings": {
       "display_name": "Get Page Shield settings",
@@ -7129,7 +7539,8 @@
           "status": "status",
           "urls": "urls"
         }
-      }
+      },
+      "response_schema": "page-shield_list-zone-connections-response"
     },
     "page_shield_list_cookies": {
       "display_name": "List Page Shield Cookies",
@@ -7208,7 +7619,8 @@
           "secure": "secure",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "page-shield_list-zone-cookies-response"
     },
     "page_shield_list_policies": {
       "display_name": "List Page Shield policies",
@@ -7229,7 +7641,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/page_shield/policies"
-      }
+      },
+      "response_schema": "page-shield_list-zone-policies-response"
     },
     "page_shield_list_scripts": {
       "display_name": "List Page Shield scripts",
@@ -7304,7 +7717,8 @@
           "status": "status",
           "urls": "urls"
         }
-      }
+      },
+      "response_schema": "page-shield_list-zone-scripts-response"
     },
     "page_shield_update_policy": {
       "display_name": "Update a Page Shield policy",
@@ -7356,7 +7770,8 @@
           "expression": "expression",
           "value": "value"
         }
-      }
+      },
+      "response_schema": "page-shield_get-zone-policy-response"
     },
     "page_shield_update_settings": {
       "display_name": "Update Page Shield settings",
@@ -7430,7 +7845,8 @@
           "enabled": "enabled",
           "price_usd_microcents": "price_usd_microcents"
         }
-      }
+      },
+      "response_schema": "pay-per-crawl_getConfigResponse"
     },
     "pay_per_crawl_get_config": {
       "display_name": "Get the pay-per-crawl config",
@@ -7452,7 +7868,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/pay-per-crawl/configuration"
-      }
+      },
+      "response_schema": "pay-per-crawl_getConfigResponse"
     },
     "pay_per_crawl_patch_config": {
       "display_name": "Changes pay-per-crawl config for a zone",
@@ -7488,7 +7905,8 @@
           "enabled": "enabled",
           "price_usd_microcents": "price_usd_microcents"
         }
-      }
+      },
+      "response_schema": "pay-per-crawl_getConfigResponse"
     },
     "per_hostname_authenticated_origin_pull_delete_hostname_client_certificate": {
       "display_name": "Delete Hostname Client Certificate",
@@ -7513,7 +7931,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/origin_tls_client_auth/hostnames/certificates/{certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_single"
     },
     "per_hostname_authenticated_origin_pull_enable_or_disable_a_hostname_for_client_authentication": {
       "display_name": "Enable or Disable a Hostname for Client Authentication",
@@ -7541,7 +7960,8 @@
         "body_mapping": {
           "config": "config"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname_aop_response_collection"
     },
     "per_hostname_authenticated_origin_pull_get_the_hostname_client_certificate": {
       "display_name": "Get the Hostname Client Certificate",
@@ -7566,7 +7986,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth/hostnames/certificates/{certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_single"
     },
     "per_hostname_authenticated_origin_pull_get_the_hostname_status_for_client_authentication": {
       "display_name": "Get the Hostname Status for Client Authentication",
@@ -7591,7 +8012,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth/hostnames/{hostname}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname_aop_single_response"
     },
     "per_hostname_authenticated_origin_pull_list_certificates": {
       "display_name": "List Certificates",
@@ -7612,7 +8034,44 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth/hostnames/certificates"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_collection"
+    },
+    "per_hostname_authenticated_origin_pull_list_hostname_associations": {
+      "display_name": "List Hostname Associations",
+      "description": "List certificate ID - hostname associations for the given zone. Shows which hostnames are associated to which certificates for authenticated origin pulls.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "per_page": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "zone_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_id}/origin_tls_client_auth/hostnames",
+        "query_mapping": {
+          "page": "page",
+          "per_page": "per_page",
+          "status": "status"
+        }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname_assoc_response_collection"
     },
     "per_hostname_authenticated_origin_pull_upload_a_hostname_client_certificate": {
       "display_name": "Upload a Hostname Client Certificate",
@@ -7647,7 +8106,8 @@
           "certificate": "certificate",
           "private_key": "private_key"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_single"
     },
     "per_hostname_tls_settings_delete": {
       "display_name": "Delete TLS setting for hostname",
@@ -7676,7 +8136,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/hostnames/settings/{setting_id}/{hostname}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_per_hostname_settings_response_delete"
     },
     "per_hostname_tls_settings_get": {
       "display_name": "Get TLS setting for hostname",
@@ -7705,7 +8166,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/hostnames/settings/{setting_id}/{hostname}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_per_hostname_settings_response"
     },
     "per_hostname_tls_settings_list": {
       "display_name": "List TLS setting for hostnames",
@@ -7730,7 +8192,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/hostnames/settings/{setting_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_per_hostname_settings_response_collection"
     },
     "per_hostname_tls_settings_put": {
       "display_name": "Edit TLS setting for hostname",
@@ -7767,7 +8230,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_per_hostname_settings_response"
     },
     "post_zones_zone_id_logpush_edge_jobs": {
       "display_name": "Create Instant Logs job",
@@ -7805,7 +8269,8 @@
           "filter": "filter",
           "sample": "sample"
         }
-      }
+      },
+      "response_schema": "logpush_instant_logs_job_response_single"
     },
     "post_zones_zone_id_logpush_jobs": {
       "display_name": "Create Logpush job",
@@ -7894,7 +8359,8 @@
           "output_options": "output_options",
           "ownership_challenge": "ownership_challenge"
         }
-      }
+      },
+      "response_schema": "logpush_logpush_job_response_single"
     },
     "post_zones_zone_id_logpush_ownership": {
       "display_name": "Get ownership challenge",
@@ -7923,7 +8389,8 @@
         "body_mapping": {
           "destination_conf": "destination_conf"
         }
-      }
+      },
+      "response_schema": "logpush_get_ownership_response"
     },
     "post_zones_zone_id_logpush_ownership_validate": {
       "display_name": "Validate ownership challenge",
@@ -7958,7 +8425,8 @@
           "destination_conf": "destination_conf",
           "ownership_challenge": "ownership_challenge"
         }
-      }
+      },
+      "response_schema": "logpush_validate_ownership_response"
     },
     "post_zones_zone_id_logpush_validate_destination": {
       "display_name": "Validate destination",
@@ -7987,7 +8455,8 @@
         "body_mapping": {
           "destination_conf": "destination_conf"
         }
-      }
+      },
+      "response_schema": "logpush_validate_response"
     },
     "post_zones_zone_id_logpush_validate_destination_exists": {
       "display_name": "Check destination exists",
@@ -8016,7 +8485,8 @@
         "body_mapping": {
           "destination_conf": "destination_conf"
         }
-      }
+      },
+      "response_schema": "logpush_destination_exists_response"
     },
     "post_zones_zone_id_logpush_validate_origin": {
       "display_name": "Validate origin",
@@ -8045,7 +8515,8 @@
         "body_mapping": {
           "logpull_options": "logpull_options"
         }
-      }
+      },
+      "response_schema": "logpush_validate_response"
     },
     "post_zones_zone_id_logs_control_retention_flag": {
       "display_name": "Update log retention flag",
@@ -8073,7 +8544,8 @@
         "body_mapping": {
           "flag": "flag"
         }
-      }
+      },
+      "response_schema": "logcontrol_retention_flag_response_single"
     },
     "post_zones_zone_identifier_zaraz_publish": {
       "display_name": "Publish Zaraz preview configuration",
@@ -8203,7 +8675,8 @@
           "output_options": "output_options",
           "ownership_challenge": "ownership_challenge"
         }
-      }
+      },
+      "response_schema": "logpush_logpush_job_response_single"
     },
     "put_zones_zone_identifier_zaraz_config": {
       "display_name": "Update Zaraz configuration",
@@ -8224,7 +8697,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/settings/zaraz/config"
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-response"
     },
     "put_zones_zone_identifier_zaraz_history": {
       "display_name": "Restore Zaraz historical configuration by ID",
@@ -8245,7 +8719,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/settings/zaraz/history"
-      }
+      },
+      "response_schema": "zaraz_zaraz-config-response"
     },
     "put_zones_zone_identifier_zaraz_workflow": {
       "display_name": "Update Zaraz workflow",
@@ -8266,7 +8741,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/settings/zaraz/workflow"
-      }
+      },
+      "response_schema": "zaraz_zaraz-workflow-response"
     },
     "schema_validation_bulk_edit_per_operation_settings": {
       "display_name": "Bulk edit per-operation schema validation settings",
@@ -8419,7 +8895,8 @@
         "body_mapping": {
           "validation_enabled": "validation_enabled"
         }
-      }
+      },
+      "response_schema": "api-shield_public_schema_success_result"
     },
     "schema_validation_edit_settings": {
       "display_name": "Edit global schema validation settings",
@@ -8571,7 +9048,8 @@
         "query_mapping": {
           "omit_source": "omit_source"
         }
-      }
+      },
+      "response_schema": "api-shield_public_schema_success_result"
     },
     "schema_validation_get_settings": {
       "display_name": "Get global schema validation settings",
@@ -8788,7 +9266,8 @@
           "name": "name",
           "peers": "peers"
         }
-      }
+      },
+      "response_schema": "secondary-dns_single_response_outgoing"
     },
     "secondary_dns_primary_zone_delete_primary_zone_configuration": {
       "display_name": "Delete Primary Zone Configuration",
@@ -8809,7 +9288,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/secondary_dns/outgoing"
-      }
+      },
+      "response_schema": "secondary-dns_id_response"
     },
     "secondary_dns_primary_zone_disable_outgoing_zone_transfers": {
       "display_name": "Disable Outgoing Zone Transfers",
@@ -8830,7 +9310,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/secondary_dns/outgoing/disable"
-      }
+      },
+      "response_schema": "secondary-dns_disable_transfer_response"
     },
     "secondary_dns_primary_zone_enable_outgoing_zone_transfers": {
       "display_name": "Enable Outgoing Zone Transfers",
@@ -8851,7 +9332,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/secondary_dns/outgoing/enable"
-      }
+      },
+      "response_schema": "secondary-dns_enable_transfer_response"
     },
     "secondary_dns_primary_zone_force_dns_notify": {
       "display_name": "Force DNS NOTIFY",
@@ -8872,7 +9354,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/secondary_dns/outgoing/force_notify"
-      }
+      },
+      "response_schema": "secondary-dns_schemas-force_response"
     },
     "secondary_dns_primary_zone_get_outgoing_zone_transfer_status": {
       "display_name": "Get Outgoing Zone Transfer Status",
@@ -8893,7 +9376,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/secondary_dns/outgoing/status"
-      }
+      },
+      "response_schema": "secondary-dns_enable_transfer_response"
     },
     "secondary_dns_primary_zone_primary_zone_configuration_details": {
       "display_name": "Primary Zone Configuration Details",
@@ -8914,7 +9398,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/secondary_dns/outgoing"
-      }
+      },
+      "response_schema": "secondary-dns_single_response_outgoing"
     },
     "secondary_dns_primary_zone_update_primary_zone_configuration": {
       "display_name": "Update Primary Zone Configuration",
@@ -8954,7 +9439,8 @@
           "name": "name",
           "peers": "peers"
         }
-      }
+      },
+      "response_schema": "secondary-dns_single_response_outgoing"
     },
     "secondary_dns_secondary_zone_create_secondary_zone_configuration": {
       "display_name": "Create Secondary Zone Configuration",
@@ -9000,7 +9486,8 @@
           "name": "name",
           "peers": "peers"
         }
-      }
+      },
+      "response_schema": "secondary-dns_single_response_incoming"
     },
     "secondary_dns_secondary_zone_delete_secondary_zone_configuration": {
       "display_name": "Delete Secondary Zone Configuration",
@@ -9021,7 +9508,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/secondary_dns/incoming"
-      }
+      },
+      "response_schema": "secondary-dns_id_response"
     },
     "secondary_dns_secondary_zone_force_axfr": {
       "display_name": "Force AXFR",
@@ -9042,7 +9530,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/secondary_dns/force_axfr"
-      }
+      },
+      "response_schema": "secondary-dns_force_response"
     },
     "secondary_dns_secondary_zone_secondary_zone_configuration_details": {
       "display_name": "Secondary Zone Configuration Details",
@@ -9063,7 +9552,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/secondary_dns/incoming"
-      }
+      },
+      "response_schema": "secondary-dns_single_response_incoming"
     },
     "secondary_dns_secondary_zone_update_secondary_zone_configuration": {
       "display_name": "Update Secondary Zone Configuration",
@@ -9109,7 +9599,8 @@
           "name": "name",
           "peers": "peers"
         }
-      }
+      },
+      "response_schema": "secondary-dns_single_response_incoming"
     },
     "smart_shield_create_health_check": {
       "display_name": "Create Health Check",
@@ -9199,7 +9690,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "smartshield_single_hc_response"
     },
     "smart_shield_delete_health_check": {
       "display_name": "Delete Health Check",
@@ -9224,7 +9716,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/smart_shield/healthchecks/{healthcheck_id}"
-      }
+      },
+      "response_schema": "smartshield_single_hc_id_response"
     },
     "smart_shield_get_settings": {
       "display_name": "Get Smart Shield Settings",
@@ -9270,7 +9763,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/smart_shield/healthchecks/{healthcheck_id}"
-      }
+      },
+      "response_schema": "smartshield_single_hc_response"
     },
     "smart_shield_list_health_checks": {
       "display_name": "List Health Checks",
@@ -9303,7 +9797,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "smartshield_response_collection"
     },
     "smart_shield_patch_health_check": {
       "display_name": "Patch Health Check",
@@ -9397,7 +9892,8 @@
           "timeout": "timeout",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "smartshield_single_hc_response"
     },
     "smart_shield_patch_settings": {
       "display_name": "Patch Smart Shield Settings",
@@ -9503,7 +9999,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/smart_shield/healthchecks/{healthcheck_id}"
-      }
+      },
+      "response_schema": "smartshield_single_hc_response"
     },
     "smart_tiered_cache_delete_smart_tiered_cache_setting": {
       "display_name": "Delete Smart Tiered Cache setting",
@@ -9605,7 +10102,8 @@
           "appID": "appID",
           "colo_name": "colo_name"
         }
-      }
+      },
+      "response_schema": "spectrum-analytics_query-response-aggregate"
     },
     "spectrum_analytics_by_time_get_analytics_by_time": {
       "display_name": "Get analytics by time",
@@ -9656,7 +10154,8 @@
           "time_delta": "time_delta",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "spectrum-analytics_query-response-single"
     },
     "spectrum_analytics_summary_get_analytics_summary": {
       "display_name": "Get analytics summary",
@@ -9703,7 +10202,8 @@
           "sort": "sort",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "spectrum-analytics_query-response-single"
     },
     "spectrum_applications_create_spectrum_application_using_a_name_for_the_origin": {
       "display_name": "Create Spectrum application using a name for the origin",
@@ -9724,7 +10224,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/spectrum/apps"
-      }
+      },
+      "response_schema": "spectrum-config_app_config_single"
     },
     "spectrum_applications_delete_spectrum_application": {
       "display_name": "Delete Spectrum application",
@@ -9749,7 +10250,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/spectrum/apps/{app_id}"
-      }
+      },
+      "response_schema": "spectrum-config_api-response-single-id"
     },
     "spectrum_applications_get_spectrum_application_configuration": {
       "display_name": "Get Spectrum application configuration",
@@ -9774,7 +10276,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/spectrum/apps/{app_id}"
-      }
+      },
+      "response_schema": "spectrum-config_app_config_single"
     },
     "spectrum_applications_list_spectrum_applications": {
       "display_name": "List Spectrum applications",
@@ -9813,7 +10316,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "spectrum-config_app_config_collection"
     },
     "spectrum_applications_update_spectrum_application_configuration_using_a_name_for_the_origin": {
       "display_name": "Update Spectrum application configuration using a name for the origin",
@@ -9838,7 +10342,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/spectrum/apps/{app_id}"
-      }
+      },
+      "response_schema": "spectrum-config_app_config_single"
     },
     "speed_create_scheduled_test": {
       "display_name": "Create scheduled page test",
@@ -9874,7 +10379,8 @@
           "frequency": "frequency",
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_create-schedule-response"
     },
     "speed_create_test": {
       "display_name": "Start page test",
@@ -9905,7 +10411,8 @@
         "body_mapping": {
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_page-test-response-single"
     },
     "speed_delete_test_schedule": {
       "display_name": "Delete scheduled page test",
@@ -9936,7 +10443,8 @@
         "query_mapping": {
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_count-response"
     },
     "speed_delete_tests": {
       "display_name": "Delete all page tests",
@@ -9967,7 +10475,8 @@
         "query_mapping": {
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_count-response"
     },
     "speed_get_availabilities": {
       "display_name": "Get quota and availability",
@@ -9988,7 +10497,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/speed_api/availabilities"
-      }
+      },
+      "response_schema": "observatory_availabilities-response"
     },
     "speed_get_scheduled_test": {
       "display_name": "Get a page test schedule",
@@ -10019,7 +10529,8 @@
         "query_mapping": {
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_schedule-response-single"
     },
     "speed_get_test": {
       "display_name": "Get a page test result",
@@ -10048,7 +10559,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/speed_api/pages/{url}/tests/{test_id}"
-      }
+      },
+      "response_schema": "observatory_page-test-response-single"
     },
     "speed_list_page_trend": {
       "display_name": "List core web vital metrics trend",
@@ -10101,7 +10613,8 @@
           "start": "start",
           "tz": "tz"
         }
-      }
+      },
+      "response_schema": "observatory_trend-response"
     },
     "speed_list_pages": {
       "display_name": "List tested webpages",
@@ -10122,7 +10635,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/speed_api/pages"
-      }
+      },
+      "response_schema": "observatory_pages-response-collection"
     },
     "speed_list_test_history": {
       "display_name": "List page test history",
@@ -10161,7 +10675,8 @@
           "per_page": "per_page",
           "region": "region"
         }
-      }
+      },
+      "response_schema": "observatory_page-test-response-collection"
     },
     "ssl_detector_automatic_mode_get_enrollment": {
       "display_name": "Get Automatic SSL/TLS enrollment status for the given zone",
@@ -10182,7 +10697,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/ssl_automatic_mode"
-      }
+      },
+      "response_schema": "cache_api-response-single-id"
     },
     "ssl_detector_automatic_mode_patch_enrollment": {
       "display_name": "Patch Automatic SSL/TLS Enrollment status for given zone",
@@ -10211,7 +10727,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "cache_api-response-single-id"
     },
     "ssl_verification_edit_ssl_certificate_pack_validation_method": {
       "display_name": "Edit SSL Certificate Pack Validation Method",
@@ -10244,7 +10761,8 @@
         "body_mapping": {
           "validation_method": "validation_method"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_ssl_validation_method_response_collection"
     },
     "ssl_verification_ssl_verification_details": {
       "display_name": "SSL Verification Details",
@@ -10271,7 +10789,8 @@
         "query_mapping": {
           "retry": "retry"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_ssl_verification_response_collection"
     },
     "tags_zone_delete": {
       "display_name": "Delete tags from a zone-level resource",
@@ -10334,7 +10853,8 @@
           "resource_id": "resource_id",
           "resource_type": "resource_type"
         }
-      }
+      },
+      "response_schema": "resource-tagging_tagged_resource_response_single"
     },
     "tags_zone_set": {
       "display_name": "Set tags for a zone-level resource",
@@ -10359,7 +10879,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/tags"
-      }
+      },
+      "response_schema": "resource-tagging_tagged_resource_response_single"
     },
     "tiered_caching_get_tiered_caching_setting": {
       "display_name": "Get Tiered Caching setting",
@@ -10704,7 +11225,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/token_validation/rules/{rule_id}"
-      }
+      },
+      "response_schema": "api-shield_api-response-single-obj"
     },
     "token_validation_rules_edit": {
       "display_name": "Edit a zone token validation rule",
@@ -10925,7 +11447,8 @@
           "certificate_authority": "certificate_authority",
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_total_tls_settings_response"
     },
     "total_tls_total_tls_settings_details": {
       "display_name": "Total TLS Settings Details",
@@ -10946,7 +11469,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/acm/total_tls"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_total_tls_settings_response"
     },
     "universal_ssl_settings_for_a_zone_edit_universal_ssl_settings": {
       "display_name": "Edit Universal SSL Settings",
@@ -10974,7 +11498,8 @@
         "body_mapping": {
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_ssl_universal_settings_response"
     },
     "universal_ssl_settings_for_a_zone_universal_ssl_settings_details": {
       "display_name": "Universal SSL Settings Details",
@@ -10995,7 +11520,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/ssl/universal/settings"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_ssl_universal_settings_response"
     },
     "update_managed_transforms": {
       "display_name": "Update Managed Transforms",
@@ -11034,7 +11560,7 @@
     },
     "update_security_txt": {
       "display_name": "Updates security.txt",
-      "description": "Updates security.txt",
+      "description": "Updates the security.txt file configuration for a zone, which provides security researchers with vulnerability reporting information.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -11276,7 +11802,8 @@
           "mode": "mode",
           "paused": "paused"
         }
-      }
+      },
+      "response_schema": "firewall_firewalluablock_response_single"
     },
     "user_agent_blocking_rules_delete_a_user_agent_blocking_rule": {
       "display_name": "Delete a User Agent Blocking rule",
@@ -11326,7 +11853,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/firewall/ua_rules/{ua_rule_id}"
-      }
+      },
+      "response_schema": "firewall_firewalluablock_response_single"
     },
     "user_agent_blocking_rules_list_user_agent_blocking_rules": {
       "display_name": "List User Agent Blocking rules",
@@ -11369,7 +11897,8 @@
           "per_page": "per_page",
           "user_agent": "user_agent"
         }
-      }
+      },
+      "response_schema": "firewall_firewalluablock_response_collection"
     },
     "user_agent_blocking_rules_update_a_user_agent_blocking_rule": {
       "display_name": "Update a User Agent Blocking rule",
@@ -11424,7 +11953,8 @@
           "mode": "mode",
           "paused": "paused"
         }
-      }
+      },
+      "response_schema": "firewall_firewalluablock_response_single"
     },
     "waf_content_scanning_add_custom_scan_expressions": {
       "display_name": "Add Custom Scan Expressions",
@@ -11445,7 +11975,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/content-upload-scan/payloads"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-scan-collection"
     },
     "waf_content_scanning_delete_custom_scan_expressions": {
       "display_name": "Delete a Custom Scan Expression",
@@ -11470,7 +12001,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/content-upload-scan/payloads/{expression_id}"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-scan-collection"
     },
     "waf_content_scanning_disable": {
       "display_name": "Disable Content Scanning",
@@ -11491,7 +12023,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/content-upload-scan/disable"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_schemas-api-response-common"
     },
     "waf_content_scanning_enable": {
       "display_name": "Enable Content Scanning",
@@ -11512,7 +12045,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/content-upload-scan/enable"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_schemas-api-response-common"
     },
     "waf_content_scanning_get_status": {
       "display_name": "Get Content Scanning Status",
@@ -11533,7 +12067,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/content-upload-scan/settings"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_schemas-response-status"
     },
     "waf_content_scanning_list_custom_scan_expressions": {
       "display_name": "List Existing Custom Scan Expressions",
@@ -11554,7 +12089,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/content-upload-scan/payloads"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-scan-collection"
     },
     "waf_content_scanning_update_settings": {
       "display_name": "Update Content Scanning Status",
@@ -11583,7 +12119,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "waf-product-api-bundle_schemas-response-status"
     },
     "waf_product_api_leaked_credentials_create_detection": {
       "display_name": "Create Leaked Credential Checks Custom Detection",
@@ -11621,7 +12158,8 @@
           "password": "password",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-detection"
     },
     "waf_product_api_leaked_credentials_delete_detection": {
       "display_name": "Delete Leaked Credential Checks Custom Detection",
@@ -11646,7 +12184,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/leaked-credential-checks/detections/{detection_id}"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_api-response-common"
     },
     "waf_product_api_leaked_credentials_get_detection": {
       "display_name": "Get Leaked Credential Checks Custom Detection",
@@ -11671,7 +12210,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/leaked-credential-checks/detections/{detection_id}"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-detection"
     },
     "waf_product_api_leaked_credentials_get_status": {
       "display_name": "Get Leaked Credential Checks Status",
@@ -11692,7 +12232,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/leaked-credential-checks"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-status"
     },
     "waf_product_api_leaked_credentials_list_detections": {
       "display_name": "List Leaked Credential Checks Custom Detections",
@@ -11713,7 +12254,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/leaked-credential-checks/detections"
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-detection-collection"
     },
     "waf_product_api_leaked_credentials_set_status": {
       "display_name": "Set Leaked Credential Checks Status",
@@ -11741,7 +12283,8 @@
         "body_mapping": {
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-status"
     },
     "waf_product_api_leaked_credentials_update_detection": {
       "display_name": "Update Leaked Credential Checks Custom Detection",
@@ -11783,7 +12326,8 @@
           "password": "password",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "waf-product-api-bundle_response-custom-detection"
     },
     "waiting_room_create_a_custom_waiting_room_page_preview": {
       "display_name": "Create a custom waiting room page preview",
@@ -11812,7 +12356,8 @@
         "body_mapping": {
           "custom_html": "custom_html"
         }
-      }
+      },
+      "response_schema": "waitingroom_preview_response"
     },
     "waiting_room_create_event": {
       "display_name": "Create event",
@@ -11917,7 +12462,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_event_response"
     },
     "waiting_room_create_waiting_room": {
       "display_name": "Create waiting room",
@@ -12049,7 +12595,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_single_response"
     },
     "waiting_room_create_waiting_room_rule": {
       "display_name": "Create Waiting Room Rule",
@@ -12098,7 +12645,8 @@
           "enabled": "enabled",
           "expression": "expression"
         }
-      }
+      },
+      "response_schema": "waitingroom_rules_response_collection"
     },
     "waiting_room_delete_event": {
       "display_name": "Delete event",
@@ -12127,7 +12675,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/events/{event_id}"
-      }
+      },
+      "response_schema": "waitingroom_event_id_response"
     },
     "waiting_room_delete_waiting_room": {
       "display_name": "Delete waiting room",
@@ -12152,7 +12701,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}"
-      }
+      },
+      "response_schema": "waitingroom_waiting_room_id_response"
     },
     "waiting_room_delete_waiting_room_rule": {
       "display_name": "Delete Waiting Room Rule",
@@ -12181,7 +12731,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/rules/{rule_id}"
-      }
+      },
+      "response_schema": "waitingroom_rules_response_collection"
     },
     "waiting_room_event_details": {
       "display_name": "Event details",
@@ -12210,7 +12761,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/events/{event_id}"
-      }
+      },
+      "response_schema": "waitingroom_event_response"
     },
     "waiting_room_get_waiting_room_status": {
       "display_name": "Get waiting room status",
@@ -12235,7 +12787,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/status"
-      }
+      },
+      "response_schema": "waitingroom_status_response"
     },
     "waiting_room_get_zone_settings": {
       "display_name": "Get zone-level Waiting Room settings",
@@ -12256,7 +12809,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/settings"
-      }
+      },
+      "response_schema": "waitingroom_zone_settings_response"
     },
     "waiting_room_list_events": {
       "display_name": "List events",
@@ -12293,7 +12847,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "waitingroom_event_response_collection"
     },
     "waiting_room_list_waiting_room_rules": {
       "display_name": "List Waiting Room Rules",
@@ -12318,7 +12873,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/rules"
-      }
+      },
+      "response_schema": "waitingroom_rules_response_collection"
     },
     "waiting_room_list_waiting_rooms": {
       "display_name": "List waiting rooms for zone",
@@ -12351,7 +12907,8 @@
           "page": "page",
           "per_page": "per_page"
         }
-      }
+      },
+      "response_schema": "waitingroom_response_collection"
     },
     "waiting_room_patch_event": {
       "display_name": "Patch event",
@@ -12460,7 +13017,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_event_response"
     },
     "waiting_room_patch_waiting_room": {
       "display_name": "Patch waiting room",
@@ -12596,7 +13154,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_single_response"
     },
     "waiting_room_patch_waiting_room_rule": {
       "display_name": "Patch Waiting Room Rule",
@@ -12654,7 +13213,8 @@
           "expression": "expression",
           "position": "position"
         }
-      }
+      },
+      "response_schema": "waitingroom_rules_response_collection"
     },
     "waiting_room_patch_zone_settings": {
       "display_name": "Patch zone-level Waiting Room settings",
@@ -12682,7 +13242,8 @@
         "body_mapping": {
           "search_engine_crawler_bypass": "search_engine_crawler_bypass"
         }
-      }
+      },
+      "response_schema": "waitingroom_zone_settings_response"
     },
     "waiting_room_preview_active_event_details": {
       "display_name": "Preview active event details",
@@ -12711,7 +13272,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/events/{event_id}/details"
-      }
+      },
+      "response_schema": "waitingroom_event_details_response"
     },
     "waiting_room_replace_waiting_room_rules": {
       "display_name": "Replace Waiting Room Rules",
@@ -12736,7 +13298,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}/rules"
-      }
+      },
+      "response_schema": "waitingroom_rules_response_collection"
     },
     "waiting_room_update_event": {
       "display_name": "Update event",
@@ -12845,7 +13408,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_event_response"
     },
     "waiting_room_update_waiting_room": {
       "display_name": "Update waiting room",
@@ -12981,7 +13545,8 @@
           "turnstile_action": "turnstile_action",
           "turnstile_mode": "turnstile_mode"
         }
-      }
+      },
+      "response_schema": "waitingroom_single_response"
     },
     "waiting_room_update_zone_settings": {
       "display_name": "Update zone-level Waiting Room settings",
@@ -13009,7 +13574,8 @@
         "body_mapping": {
           "search_engine_crawler_bypass": "search_engine_crawler_bypass"
         }
-      }
+      },
+      "response_schema": "waitingroom_zone_settings_response"
     },
     "waiting_room_waiting_room_details": {
       "display_name": "Waiting room details",
@@ -13034,7 +13600,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/waiting_rooms/{waiting_room_id}"
-      }
+      },
+      "response_schema": "waitingroom_single_response"
     },
     "web3_hostname_create_ipfs_universal_path_gateway_content_list_entry": {
       "display_name": "Create IPFS Universal Path Gateway Content List Entry",
@@ -13078,7 +13645,8 @@
           "description": "description",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "web3_content_list_entry_single_response"
     },
     "web3_hostname_create_web3_hostname": {
       "display_name": "Create Web3 Hostname",
@@ -13123,7 +13691,8 @@
           "name": "name",
           "target": "target"
         }
-      }
+      },
+      "response_schema": "web3_single_response"
     },
     "web3_hostname_delete_ipfs_universal_path_gateway_content_list_entry": {
       "display_name": "Delete IPFS Universal Path Gateway Content List Entry",
@@ -13152,7 +13721,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}/ipfs_universal_path/content_list/entries/{content_list_entry_identifier}"
-      }
+      },
+      "response_schema": "web3_api-response-single-id"
     },
     "web3_hostname_delete_web3_hostname": {
       "display_name": "Delete Web3 Hostname",
@@ -13177,7 +13747,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}"
-      }
+      },
+      "response_schema": "web3_api-response-single-id"
     },
     "web3_hostname_edit_ipfs_universal_path_gateway_content_list_entry": {
       "display_name": "Edit IPFS Universal Path Gateway Content List Entry",
@@ -13225,7 +13796,8 @@
           "description": "description",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "web3_content_list_entry_single_response"
     },
     "web3_hostname_edit_web3_hostname": {
       "display_name": "Edit Web3 Hostname",
@@ -13262,7 +13834,8 @@
           "description": "description",
           "dnslink": "dnslink"
         }
-      }
+      },
+      "response_schema": "web3_single_response"
     },
     "web3_hostname_ipfs_universal_path_gateway_content_list_details": {
       "display_name": "IPFS Universal Path Gateway Content List Details",
@@ -13287,7 +13860,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}/ipfs_universal_path/content_list"
-      }
+      },
+      "response_schema": "web3_content_list_details_response"
     },
     "web3_hostname_ipfs_universal_path_gateway_content_list_entry_details": {
       "display_name": "IPFS Universal Path Gateway Content List Entry Details",
@@ -13316,7 +13890,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}/ipfs_universal_path/content_list/entries/{content_list_entry_identifier}"
-      }
+      },
+      "response_schema": "web3_content_list_entry_single_response"
     },
     "web3_hostname_list_ipfs_universal_path_gateway_content_list_entries": {
       "display_name": "List IPFS Universal Path Gateway Content List Entries",
@@ -13341,7 +13916,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}/ipfs_universal_path/content_list/entries"
-      }
+      },
+      "response_schema": "web3_content_list_entry_collection_response"
     },
     "web3_hostname_list_web3_hostnames": {
       "display_name": "List Web3 Hostnames",
@@ -13362,7 +13938,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/web3/hostnames"
-      }
+      },
+      "response_schema": "web3_collection_response"
     },
     "web3_hostname_update_ipfs_universal_path_gateway_content_list": {
       "display_name": "Update IPFS Universal Path Gateway Content List",
@@ -13401,7 +13978,8 @@
           "action": "action",
           "entries": "entries"
         }
-      }
+      },
+      "response_schema": "web3_content_list_details_response"
     },
     "web3_hostname_web3_hostname_details": {
       "display_name": "Web3 Hostname Details",
@@ -13426,7 +14004,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/web3/hostnames/{identifier}"
-      }
+      },
+      "response_schema": "web3_single_response"
     },
     "web_analytics_get_rum_status": {
       "display_name": "Get RUM status for a zone",
@@ -13447,7 +14026,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/rum"
-      }
+      },
+      "response_schema": "rum_rum-site-response-single"
     },
     "web_analytics_toggle_rum": {
       "display_name": "Toggle RUM on/off for a zone",
@@ -13475,7 +14055,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "rum_rum-site-response-single"
     },
     "worker_routes_create_route": {
       "display_name": "Create Route",
@@ -13715,7 +14296,8 @@
         "body_mapping": {
           "value": "value"
         }
-      }
+      },
+      "response_schema": "cache-rules_origin_h2_max_streams_response_value"
     },
     "zone_cache_settings_change_origin_max_http_version_setting": {
       "display_name": "Change Origin Max HTTP Version Setting",
@@ -13936,7 +14518,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/settings/origin_h2_max_streams"
-      }
+      },
+      "response_schema": "cache-rules_origin_h2_max_streams_response_value"
     },
     "zone_cache_settings_get_origin_max_http_version_setting": {
       "display_name": "Get Origin Max HTTP Version Setting",
@@ -14154,7 +14737,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/{app_id}"
-      }
+      },
+      "response_schema": "access_apps_components-schemas-single_response-2"
     },
     "zone_level_access_applications_list_access_applications": {
       "display_name": "List Access Applications",
@@ -14175,7 +14759,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps"
-      }
+      },
+      "response_schema": "access_apps_components-schemas-response_collection-2"
     },
     "zone_level_access_applications_patch_update_access_application_settings": {
       "display_name": "Update application settings",
@@ -14299,7 +14884,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/{app_id}/user_policy_checks"
-      }
+      },
+      "response_schema": "access_schemas-policy_check_response"
     },
     "zone_level_access_applications_update_a_bookmark_application": {
       "display_name": "Update an Access application",
@@ -14369,7 +14955,8 @@
           "name": "name",
           "require": "require"
         }
-      }
+      },
+      "response_schema": "access_groups_components-schemas-single_response-2"
     },
     "zone_level_access_groups_delete_an_access_group": {
       "display_name": "Delete an Access group",
@@ -14419,7 +15006,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/groups/{group_id}"
-      }
+      },
+      "response_schema": "access_groups_components-schemas-single_response-2"
     },
     "zone_level_access_groups_list_access_groups": {
       "display_name": "List Access groups",
@@ -14440,7 +15028,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/groups"
-      }
+      },
+      "response_schema": "access_groups_components-schemas-response_collection"
     },
     "zone_level_access_groups_update_an_access_group": {
       "display_name": "Update an Access group",
@@ -14489,7 +15078,8 @@
           "name": "name",
           "require": "require"
         }
-      }
+      },
+      "response_schema": "access_groups_components-schemas-single_response-2"
     },
     "zone_level_access_identity_providers_add_an_access_identity_provider": {
       "display_name": "Add an Access identity provider",
@@ -14510,7 +15100,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/access/identity_providers"
-      }
+      },
+      "response_schema": "access_identity-providers_components-schemas-single_response"
     },
     "zone_level_access_identity_providers_delete_an_access_identity_provider": {
       "display_name": "Delete an Access identity provider",
@@ -14560,7 +15151,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/identity_providers/{identity_provider_id}"
-      }
+      },
+      "response_schema": "access_identity-providers_components-schemas-single_response"
     },
     "zone_level_access_identity_providers_list_access_identity_providers": {
       "display_name": "List Access identity providers",
@@ -14581,7 +15173,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/identity_providers"
-      }
+      },
+      "response_schema": "access_identity-providers_components-schemas-response_collection"
     },
     "zone_level_access_identity_providers_update_an_access_identity_provider": {
       "display_name": "Update an Access identity provider",
@@ -14606,7 +15199,8 @@
       "execution": {
         "method": "PUT",
         "path": "/zones/{zone_id}/access/identity_providers/{identity_provider_id}"
-      }
+      },
+      "response_schema": "access_identity-providers_components-schemas-single_response"
     },
     "zone_level_access_mtls_authentication_add_an_mtls_certificate": {
       "display_name": "Add an mTLS certificate",
@@ -14646,7 +15240,8 @@
           "certificate": "certificate",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "access_certificates_components-schemas-single_response-2"
     },
     "zone_level_access_mtls_authentication_delete_an_mtls_certificate": {
       "display_name": "Delete an mTLS certificate",
@@ -14671,7 +15266,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/access/certificates/{certificate_id}"
-      }
+      },
+      "response_schema": "access_components-schemas-id_response"
     },
     "zone_level_access_mtls_authentication_get_an_mtls_certificate": {
       "display_name": "Get an mTLS certificate",
@@ -14696,7 +15292,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/certificates/{certificate_id}"
-      }
+      },
+      "response_schema": "access_certificates_components-schemas-single_response-2"
     },
     "zone_level_access_mtls_authentication_list_mtls_certificates": {
       "display_name": "List mTLS certificates",
@@ -14717,7 +15314,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/certificates"
-      }
+      },
+      "response_schema": "access_certificates_components-schemas-response_collection-2"
     },
     "zone_level_access_mtls_authentication_list_mtls_certificates_hostname_settings": {
       "display_name": "List all mTLS hostname settings",
@@ -14738,7 +15336,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/certificates/settings"
-      }
+      },
+      "response_schema": "access_schemas-response_collection_hostnames"
     },
     "zone_level_access_mtls_authentication_update_an_mtls_certificate": {
       "display_name": "Update an mTLS certificate",
@@ -14776,7 +15375,8 @@
           "associated_hostnames": "associated_hostnames",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "access_certificates_components-schemas-single_response-2"
     },
     "zone_level_access_mtls_authentication_update_an_mtls_certificate_settings": {
       "display_name": "Update an mTLS certificate's hostname settings",
@@ -14889,7 +15489,8 @@
           "purpose_justification_required": "purpose_justification_required",
           "require": "require"
         }
-      }
+      },
+      "response_schema": "access_policies_components-schemas-single_response"
     },
     "zone_level_access_policies_delete_an_access_policy": {
       "display_name": "Delete an Access policy",
@@ -14947,7 +15548,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/{app_id}/policies/{policy_id}"
-      }
+      },
+      "response_schema": "access_policies_components-schemas-single_response"
     },
     "zone_level_access_policies_list_access_policies": {
       "display_name": "List Access policies",
@@ -14972,7 +15574,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/{app_id}/policies"
-      }
+      },
+      "response_schema": "access_policies_components-schemas-response_collection"
     },
     "zone_level_access_policies_update_an_access_policy": {
       "display_name": "Update an Access policy",
@@ -15061,7 +15664,8 @@
           "purpose_justification_required": "purpose_justification_required",
           "require": "require"
         }
-      }
+      },
+      "response_schema": "access_policies_components-schemas-single_response"
     },
     "zone_level_access_service_tokens_create_a_service_token": {
       "display_name": "Create a service token",
@@ -15105,7 +15709,8 @@
           "name": "name",
           "previous_client_secret_expires_at": "previous_client_secret_expires_at"
         }
-      }
+      },
+      "response_schema": "access_schemas-create_response"
     },
     "zone_level_access_service_tokens_delete_a_service_token": {
       "display_name": "Delete a service token",
@@ -15130,7 +15735,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/access/service_tokens/{service_token_id}"
-      }
+      },
+      "response_schema": "access_service-tokens_components-schemas-single_response"
     },
     "zone_level_access_service_tokens_get_a_service_token": {
       "display_name": "Get a service token",
@@ -15155,7 +15761,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/service_tokens/{service_token_id}"
-      }
+      },
+      "response_schema": "access_service-tokens_components-schemas-single_response"
     },
     "zone_level_access_service_tokens_list_service_tokens": {
       "display_name": "List service tokens",
@@ -15176,7 +15783,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/service_tokens"
-      }
+      },
+      "response_schema": "access_service-tokens_components-schemas-response_collection"
     },
     "zone_level_access_service_tokens_update_a_service_token": {
       "display_name": "Update a service token",
@@ -15223,7 +15831,8 @@
           "name": "name",
           "previous_client_secret_expires_at": "previous_client_secret_expires_at"
         }
-      }
+      },
+      "response_schema": "access_service-tokens_components-schemas-single_response"
     },
     "zone_level_access_short_lived_certificate_c_as_create_a_short_lived_certificate_ca": {
       "display_name": "Create a short-lived certificate CA",
@@ -15248,7 +15857,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/access/apps/{app_id}/ca"
-      }
+      },
+      "response_schema": "access_ca_components-schemas-single_response-2"
     },
     "zone_level_access_short_lived_certificate_c_as_delete_a_short_lived_certificate_ca": {
       "display_name": "Delete a short-lived certificate CA",
@@ -15298,7 +15908,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/{app_id}/ca"
-      }
+      },
+      "response_schema": "access_ca_components-schemas-single_response-2"
     },
     "zone_level_access_short_lived_certificate_c_as_list_short_lived_certificate_c_as": {
       "display_name": "List short-lived certificate CAs",
@@ -15319,7 +15930,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/apps/ca"
-      }
+      },
+      "response_schema": "access_ca_components-schemas-response_collection-2"
     },
     "zone_level_authenticated_origin_pulls_delete_certificate": {
       "display_name": "Delete Certificate",
@@ -15344,7 +15956,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/origin_tls_client_auth/{certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_components-schemas-certificate_response_single"
     },
     "zone_level_authenticated_origin_pulls_get_certificate_details": {
       "display_name": "Get Certificate Details",
@@ -15369,7 +15982,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth/{certificate_id}"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_components-schemas-certificate_response_single"
     },
     "zone_level_authenticated_origin_pulls_get_enablement_setting_for_zone": {
       "display_name": "Get Enablement Setting for Zone",
@@ -15390,7 +16004,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth/settings"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_enabled_response"
     },
     "zone_level_authenticated_origin_pulls_list_certificates": {
       "display_name": "List Certificates",
@@ -15411,7 +16026,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/origin_tls_client_auth"
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_components-schemas-certificate_response_collection"
     },
     "zone_level_authenticated_origin_pulls_set_enablement_for_zone": {
       "display_name": "Set Enablement for Zone",
@@ -15440,7 +16056,8 @@
         "body_mapping": {
           "enabled": "enabled"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_enabled_response"
     },
     "zone_level_authenticated_origin_pulls_upload_certificate": {
       "display_name": "Upload Certificate",
@@ -15475,7 +16092,8 @@
           "certificate": "certificate",
           "private_key": "private_key"
         }
-      }
+      },
+      "response_schema": "tls-certificates-and-hostnames_components-schemas-certificate_response_single"
     },
     "zone_level_zero_trust_organization_create_your_zero_trust_organization": {
       "display_name": "Create your Zero Trust organization",
@@ -15529,7 +16147,8 @@
           "ui_read_only_toggle_reason": "ui_read_only_toggle_reason",
           "user_seat_expiration_inactive_time": "user_seat_expiration_inactive_time"
         }
-      }
+      },
+      "response_schema": "access_organizations_components-schemas-single_response"
     },
     "zone_level_zero_trust_organization_get_your_zero_trust_organization": {
       "display_name": "Get your Zero Trust organization",
@@ -15550,7 +16169,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/access/organizations"
-      }
+      },
+      "response_schema": "access_organizations_components-schemas-single_response"
     },
     "zone_level_zero_trust_organization_revoke_all_access_tokens_for_a_user": {
       "display_name": "Revoke all Access tokens for a user",
@@ -15579,7 +16199,8 @@
         "body_mapping": {
           "email": "email"
         }
-      }
+      },
+      "response_schema": "access_empty_response"
     },
     "zone_level_zero_trust_organization_update_your_zero_trust_organization": {
       "display_name": "Update your Zero Trust organization",
@@ -15631,7 +16252,8 @@
           "ui_read_only_toggle_reason": "ui_read_only_toggle_reason",
           "user_seat_expiration_inactive_time": "user_seat_expiration_inactive_time"
         }
-      }
+      },
+      "response_schema": "access_organizations_components-schemas-single_response"
     },
     "zone_lockdown_create_a_zone_lockdown_rule": {
       "display_name": "Create a Zone Lockdown rule",
@@ -15681,7 +16303,8 @@
           "priority": "priority",
           "urls": "urls"
         }
-      }
+      },
+      "response_schema": "firewall_zonelockdown_response_single"
     },
     "zone_lockdown_delete_a_zone_lockdown_rule": {
       "display_name": "Delete a Zone Lockdown rule",
@@ -15706,7 +16329,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}/firewall/lockdowns/{lock_downs_id}"
-      }
+      },
+      "response_schema": "zone_lockdown_delete_a_zone_lockdown_rule_response"
     },
     "zone_lockdown_get_a_zone_lockdown_rule": {
       "display_name": "Get a Zone Lockdown rule",
@@ -15731,7 +16355,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/firewall/lockdowns/{lock_downs_id}"
-      }
+      },
+      "response_schema": "firewall_zonelockdown_response_single"
     },
     "zone_lockdown_list_zone_lockdown_rules": {
       "display_name": "List Zone Lockdown rules",
@@ -15798,7 +16423,8 @@
           "priority": "priority",
           "uri_search": "uri_search"
         }
-      }
+      },
+      "response_schema": "firewall_zonelockdown_response_collection"
     },
     "zone_lockdown_update_a_zone_lockdown_rule": {
       "display_name": "Update a Zone Lockdown rule",
@@ -15837,7 +16463,8 @@
           "configurations": "configurations",
           "urls": "urls"
         }
-      }
+      },
+      "response_schema": "firewall_zonelockdown_response_single"
     },
     "zone_purge": {
       "display_name": "Purge Cached Content",
@@ -15858,7 +16485,8 @@
       "execution": {
         "method": "POST",
         "path": "/zones/{zone_id}/purge_cache"
-      }
+      },
+      "response_schema": "cache-purge_api-response-single-id"
     },
     "zone_rate_plan_available_plan_details": {
       "display_name": "Available Plan Details",
@@ -15925,7 +16553,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/available_rate_plans"
-      }
+      },
+      "response_schema": "bill-subs-api_plan_response_collection"
     },
     "zone_settings_change_fonts_setting": {
       "display_name": "Change Cloudflare Fonts setting",
@@ -16225,7 +16854,8 @@
           "state": "state",
           "zone": "zone"
         }
-      }
+      },
+      "response_schema": "bill-subs-api_zone_subscription_response_single"
     },
     "zone_subscription_update_zone_subscription": {
       "display_name": "Update Zone Subscription",
@@ -16302,7 +16932,8 @@
           "state": "state",
           "zone": "zone"
         }
-      }
+      },
+      "response_schema": "bill-subs-api_zone_subscription_response_single"
     },
     "zone_subscription_zone_subscription_details": {
       "display_name": "Zone Subscription Details",
@@ -16323,7 +16954,8 @@
       "execution": {
         "method": "GET",
         "path": "/zones/{zone_id}/subscription"
-      }
+      },
+      "response_schema": "bill-subs-api_zone_subscription_response_single"
     },
     "zones_0_delete": {
       "display_name": "Delete Zone",
@@ -16344,7 +16976,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/zones/{zone_id}"
-      }
+      },
+      "response_schema": "zones_api-response-single-id"
     },
     "zones_0_get": {
       "display_name": "Zone Details",
@@ -16524,6 +17157,175 @@
         }
       }
     },
+    "zones_environments_create": {
+      "display_name": "Create zone environments",
+      "description": "Create zone environments",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "environments": {
+            "type": "array"
+          },
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id",
+          "environments"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/zones/{zone_id}/environments",
+        "body_mapping": {
+          "environments": "environments"
+        }
+      },
+      "response_schema": "kamino_environments_response"
+    },
+    "zones_environments_delete": {
+      "display_name": "Delete zone environment",
+      "description": "Delete zone environment",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "environment_id": {
+            "type": "string",
+            "description": "Reference identifier for the environment."
+          },
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id",
+          "environment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/zones/{zone_id}/environments/{environment_id}"
+      },
+      "response_schema": "kamino_environments_response"
+    },
+    "zones_environments_edit": {
+      "display_name": "Partially update zone environments",
+      "description": "Partially update zone environments",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "environments": {
+            "type": "array"
+          },
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id",
+          "environments"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PATCH",
+        "path": "/zones/{zone_id}/environments",
+        "body_mapping": {
+          "environments": "environments"
+        }
+      },
+      "response_schema": "kamino_environments_response"
+    },
+    "zones_environments_list": {
+      "display_name": "List zone environments",
+      "description": "List zone environments",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/zones/{zone_id}/environments"
+      },
+      "response_schema": "kamino_environments_response"
+    },
+    "zones_environments_rollback": {
+      "display_name": "Roll back zone environment",
+      "description": "Roll back zone environment",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "environment_id": {
+            "type": "string",
+            "description": "Reference identifier for the environment."
+          },
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id",
+          "environment_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/zones/{zone_id}/environments/{environment_id}/rollback"
+      },
+      "response_schema": "kamino_environments_response"
+    },
+    "zones_environments_update": {
+      "display_name": "Upsert zone environments",
+      "description": "Upsert zone environments",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "environments": {
+            "type": "array"
+          },
+          "zone_id": {
+            "type": "string",
+            "description": "Identifier of the zone."
+          }
+        },
+        "required": [
+          "zone_id",
+          "environments"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/zones/{zone_id}/environments",
+        "body_mapping": {
+          "environments": "environments"
+        }
+      },
+      "response_schema": "kamino_environments_response"
+    },
     "zones_get": {
       "display_name": "List Zones",
       "description": "Lists, searches, sorts, and filters your zones. Listing zones across more than 500 accounts is currently not allowed.",
@@ -16611,6 +17413,819 @@
           "type": "type"
         }
       }
+    }
+  },
+  "schemas": {
+    "access_apps_components-schemas-response_collection-2": {
+      "type": "object"
+    },
+    "access_apps_components-schemas-single_response-2": {
+      "type": "object"
+    },
+    "access_ca_components-schemas-response_collection-2": {
+      "type": "object"
+    },
+    "access_ca_components-schemas-single_response-2": {
+      "type": "object"
+    },
+    "access_certificates_components-schemas-response_collection-2": {
+      "type": "object"
+    },
+    "access_certificates_components-schemas-single_response-2": {
+      "type": "object"
+    },
+    "access_components-schemas-id_response": {
+      "type": "object"
+    },
+    "access_empty_response": {
+      "type": "object"
+    },
+    "access_groups_components-schemas-response_collection": {
+      "type": "object"
+    },
+    "access_groups_components-schemas-single_response-2": {
+      "type": "object"
+    },
+    "access_identity-providers_components-schemas-response_collection": {
+      "type": "object"
+    },
+    "access_identity-providers_components-schemas-single_response": {
+      "type": "object"
+    },
+    "access_organizations_components-schemas-single_response": {
+      "type": "object"
+    },
+    "access_policies_components-schemas-response_collection": {
+      "type": "object"
+    },
+    "access_policies_components-schemas-single_response": {
+      "type": "object"
+    },
+    "access_schemas-create_response": {
+      "type": "object"
+    },
+    "access_schemas-policy_check_response": {
+      "type": "object"
+    },
+    "access_schemas-response_collection_hostnames": {
+      "type": "object"
+    },
+    "access_service-tokens_components-schemas-response_collection": {
+      "type": "object"
+    },
+    "access_service-tokens_components-schemas-single_response": {
+      "type": "object"
+    },
+    "api-shield_api-response-common": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the API call was successful."
+        }
+      }
+    },
+    "api-shield_api-response-single-obj": {
+      "type": "object"
+    },
+    "api-shield_configuration-single-response": {
+      "type": "object"
+    },
+    "api-shield_multiple-operation-response": {
+      "type": "object"
+    },
+    "api-shield_multiple-operation-response-paginated": {
+      "type": "object"
+    },
+    "api-shield_patch_discoveries_response": {
+      "type": "object"
+    },
+    "api-shield_patch_discovery_response": {
+      "type": "object"
+    },
+    "api-shield_public_schema_success_result": {
+      "type": "object"
+    },
+    "api-shield_schema-response-with-thresholds": {
+      "type": "object"
+    },
+    "api-shield_schema_response_discovery": {
+      "type": "object"
+    },
+    "api-shield_single-operation-response": {
+      "type": "object"
+    },
+    "argo-analytics_response_single": {
+      "type": "object"
+    },
+    "argo-config_api_response_single": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "object"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Describes a successful API response."
+        }
+      }
+    },
+    "bill-subs-api_plan_response_collection": {
+      "type": "object"
+    },
+    "bill-subs-api_zone_subscription_response_single": {
+      "type": "object"
+    },
+    "bot-management_bot_management_response_body": {
+      "type": "object"
+    },
+    "bot-management_feedback_report": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string",
+          "description": "Wirefilter expression describing the traffic being reported."
+        },
+        "first_request_seen_at": {
+          "type": "string"
+        },
+        "last_request_seen_at": {
+          "type": "string"
+        },
+        "requests": {
+          "type": "integer"
+        },
+        "requests_by_attribute": {
+          "type": "object",
+          "description": "Top attributes contributing to the feedback sample. Keys include topASNs, topCountries, topHosts, topIPs, topJA3Hashes, topJA4s, topPaths, topUserAgents."
+        },
+        "requests_by_score": {
+          "type": "object",
+          "description": "Map of bot scores (1-99) to request counts. Sum must equal `requests`."
+        },
+        "requests_by_score_src": {
+          "type": "object",
+          "description": "Map of score source to request counts. Sum must equal `requests`."
+        },
+        "subtype": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of feedback report."
+        }
+      }
+    },
+    "bot-management_feedback_report_list": {
+      "type": "array",
+      "items": {
+        "$ref": "bot-management_feedback_report"
+      }
+    },
+    "cache-purge_api-response-single-id": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "object",
+          "nullable": true
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Indicates the API call's success or failure."
+        }
+      }
+    },
+    "cache-rules_origin_h2_max_streams_response_value": {
+      "type": "object"
+    },
+    "cache_api-response-single-id": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "object"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Indicates the API call's success or failure."
+        }
+      }
+    },
+    "custom-pages_custom_asset_result": {
+      "type": "object"
+    },
+    "custom-pages_custom_asset_result_list": {
+      "type": "object"
+    },
+    "custom-pages_custom_page": {
+      "type": "object",
+      "properties": {
+        "created_on": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "modified_on": {
+          "type": "string"
+        },
+        "preview_target": {
+          "type": "string"
+        },
+        "required_tokens": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string",
+          "description": "The custom page state."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL associated with the custom page."
+        }
+      }
+    },
+    "custom-pages_custom_page_result": {
+      "type": "object"
+    },
+    "custom-pages_custom_page_result_list": {
+      "type": "object"
+    },
+    "custom_hostname_for_a_zone_delete_custom_hostname_and_any_issued_ssl_certificates_response": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier."
+        }
+      }
+    },
+    "dns-records_dns_response_batch": {
+      "type": "object"
+    },
+    "dns-records_dns_response_collection": {
+      "type": "object"
+    },
+    "dns-records_dns_response_review_scan": {
+      "type": "object"
+    },
+    "dns-records_dns_response_single": {
+      "type": "object"
+    },
+    "dns-records_dns_response_trigger_scan": {
+      "type": "object"
+    },
+    "dns-records_dns_response_zone_usage": {
+      "type": "object"
+    },
+    "dns-settings_schemas-dns_response_single": {
+      "type": "object"
+    },
+    "dns_records_for_a_zone_delete_dns_record_response": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "object"
+        }
+      }
+    },
+    "dnssec_delete_dnssec_response_single": {
+      "type": "object"
+    },
+    "dnssec_dnssec_response_single": {
+      "type": "object"
+    },
+    "email_api-response-single": {
+      "type": "object"
+    },
+    "email_catch_all_rule_response_single": {
+      "type": "object"
+    },
+    "email_dns_settings_response_collection": {
+      "type": "object"
+    },
+    "email_email_settings_response_single": {
+      "type": "object"
+    },
+    "email_rule_response_single": {
+      "type": "object"
+    },
+    "email_rules_response_collection": {
+      "type": "object"
+    },
+    "email_sending_subdomain_preview_response": {
+      "type": "object"
+    },
+    "email_sending_subdomain_response_single": {
+      "type": "object"
+    },
+    "email_sending_subdomains_response_collection": {
+      "type": "object"
+    },
+    "firewall_firewalluablock_response_collection": {
+      "type": "object"
+    },
+    "firewall_firewalluablock_response_single": {
+      "type": "object"
+    },
+    "firewall_rule_collection_response": {
+      "type": "object"
+    },
+    "firewall_rule_single_id_response": {
+      "type": "object"
+    },
+    "firewall_rule_single_response": {
+      "type": "object"
+    },
+    "firewall_zonelockdown_response_collection": {
+      "type": "object"
+    },
+    "firewall_zonelockdown_response_single": {
+      "type": "object"
+    },
+    "fraud_fraud_settings_response_body": {
+      "type": "object"
+    },
+    "healthchecks_id_response": {
+      "type": "object"
+    },
+    "healthchecks_response_collection": {
+      "type": "object"
+    },
+    "healthchecks_single_response": {
+      "type": "object"
+    },
+    "kamino_environments_response": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "object"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "load-balancing_components-schemas-id_response": {
+      "type": "object"
+    },
+    "load-balancing_load-balancer_components-schemas-response_collection": {
+      "type": "object"
+    },
+    "load-balancing_load-balancer_components-schemas-single_response": {
+      "type": "object"
+    },
+    "logcontrol_retention_flag_response_single": {
+      "type": "object"
+    },
+    "logpush_destination_exists_response": {
+      "type": "object"
+    },
+    "logpush_get_ownership_response": {
+      "type": "object"
+    },
+    "logpush_instant_logs_job_response_collection": {
+      "type": "object"
+    },
+    "logpush_instant_logs_job_response_single": {
+      "type": "object"
+    },
+    "logpush_logpush_field_response_collection": {
+      "type": "object"
+    },
+    "logpush_logpush_job_response_collection": {
+      "type": "object"
+    },
+    "logpush_logpush_job_response_single": {
+      "type": "object"
+    },
+    "logpush_validate_ownership_response": {
+      "type": "object"
+    },
+    "logpush_validate_response": {
+      "type": "object"
+    },
+    "logshare_fields_response": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "logshare_logs_response_json_lines": {
+      "type": "object"
+    },
+    "observatory_availabilities-response": {
+      "type": "object"
+    },
+    "observatory_count-response": {
+      "type": "object"
+    },
+    "observatory_create-schedule-response": {
+      "type": "object"
+    },
+    "observatory_page-test-response-collection": {
+      "type": "object"
+    },
+    "observatory_page-test-response-single": {
+      "type": "object"
+    },
+    "observatory_pages-response-collection": {
+      "type": "object"
+    },
+    "observatory_schedule-response-single": {
+      "type": "object"
+    },
+    "observatory_trend-response": {
+      "type": "object"
+    },
+    "page-shield_get-zone-connection-response": {
+      "type": "object"
+    },
+    "page-shield_get-zone-cookie-response": {
+      "type": "object"
+    },
+    "page-shield_get-zone-policy-response": {
+      "type": "object"
+    },
+    "page-shield_get-zone-script-response": {
+      "type": "object"
+    },
+    "page-shield_list-zone-connections-response": {
+      "type": "object"
+    },
+    "page-shield_list-zone-cookies-response": {
+      "type": "object"
+    },
+    "page-shield_list-zone-policies-response": {
+      "type": "object"
+    },
+    "page-shield_list-zone-scripts-response": {
+      "type": "object"
+    },
+    "pay-per-crawl_getConfigResponse": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "object"
+        },
+        "result_info": {
+          "type": "object"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resource-tagging_tagged_resource_response_single": {
+      "type": "object"
+    },
+    "rum_rum-site-response-single": {
+      "type": "object"
+    },
+    "secondary-dns_disable_transfer_response": {
+      "type": "object"
+    },
+    "secondary-dns_enable_transfer_response": {
+      "type": "object"
+    },
+    "secondary-dns_force_response": {
+      "type": "object"
+    },
+    "secondary-dns_id_response": {
+      "type": "object"
+    },
+    "secondary-dns_schemas-force_response": {
+      "type": "object"
+    },
+    "secondary-dns_single_response_incoming": {
+      "type": "object"
+    },
+    "secondary-dns_single_response_outgoing": {
+      "type": "object"
+    },
+    "security-center_valueCountsResponse": {
+      "type": "object"
+    },
+    "smartshield_response_collection": {
+      "type": "object"
+    },
+    "smartshield_single_hc_id_response": {
+      "type": "object"
+    },
+    "smartshield_single_hc_response": {
+      "type": "object"
+    },
+    "spectrum-analytics_query-response-aggregate": {
+      "type": "object"
+    },
+    "spectrum-analytics_query-response-single": {
+      "type": "object"
+    },
+    "spectrum-config_api-response-single-id": {
+      "type": "object"
+    },
+    "spectrum-config_app_config_collection": {
+      "type": "object"
+    },
+    "spectrum-config_app_config_single": {
+      "type": "object"
+    },
+    "teams-devices_devices_policy_certificates_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_advanced_certificate_pack_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_analyze_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_pack_quota_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_pack_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_pack_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_response_id_only": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_certificate_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_client_certificate_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_client_certificate_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_components-schemas-certificate_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_components-schemas-certificate_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_custom_hostname_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_custom_hostname_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_custom_trust_store_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_custom_trust_store_response_id_only": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_custom_trust_store_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_dcv_delegation_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_delete_advanced_certificate_pack_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_enabled_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_fallback_origin_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname-authenticated-origin-pull_components-schemas-certificate_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname_aop_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname_aop_single_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname_assoc_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_hostname_associations_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_keyless_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_keyless_response_single": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_keyless_response_single_id": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_per_hostname_settings_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_per_hostname_settings_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_per_hostname_settings_response_delete": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_ssl_universal_settings_response": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_ssl_validation_method_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_ssl_verification_response_collection": {
+      "type": "object"
+    },
+    "tls-certificates-and-hostnames_total_tls_settings_response": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_api-response-common": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Defines whether the API call was successful."
+        }
+      }
+    },
+    "waf-product-api-bundle_response-custom-detection": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_response-custom-detection-collection": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_response-custom-scan-collection": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_response-custom-topics": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_response-settings": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_response-status": {
+      "type": "object"
+    },
+    "waf-product-api-bundle_schemas-api-response-common": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "result": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the API call was successful."
+        }
+      }
+    },
+    "waf-product-api-bundle_schemas-response-status": {
+      "type": "object"
+    },
+    "waitingroom_event_details_response": {
+      "type": "object"
+    },
+    "waitingroom_event_id_response": {
+      "type": "object"
+    },
+    "waitingroom_event_response": {
+      "type": "object"
+    },
+    "waitingroom_event_response_collection": {
+      "type": "object"
+    },
+    "waitingroom_preview_response": {
+      "type": "object"
+    },
+    "waitingroom_response_collection": {
+      "type": "object"
+    },
+    "waitingroom_rules_response_collection": {
+      "type": "object"
+    },
+    "waitingroom_single_response": {
+      "type": "object"
+    },
+    "waitingroom_status_response": {
+      "type": "object"
+    },
+    "waitingroom_waiting_room_id_response": {
+      "type": "object"
+    },
+    "waitingroom_zone_settings_response": {
+      "type": "object"
+    },
+    "web3_api-response-single-id": {
+      "type": "object"
+    },
+    "web3_collection_response": {
+      "type": "object"
+    },
+    "web3_content_list_details_response": {
+      "type": "object"
+    },
+    "web3_content_list_entry_collection_response": {
+      "type": "object"
+    },
+    "web3_content_list_entry_single_response": {
+      "type": "object"
+    },
+    "web3_single_response": {
+      "type": "object"
+    },
+    "zaraz_zaraz-config-history-response": {
+      "type": "object"
+    },
+    "zaraz_zaraz-config-response": {
+      "type": "object"
+    },
+    "zaraz_zaraz-config-return": {
+      "type": "object"
+    },
+    "zaraz_zaraz-history-response": {
+      "type": "object"
+    },
+    "zaraz_zaraz-workflow-response": {
+      "type": "object"
+    },
+    "zone_lockdown_delete_a_zone_lockdown_rule_response": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "object"
+        }
+      }
+    },
+    "zones_api-response-single-id": {
+      "type": "object"
+    },
+    "zones_schemas-api-response-single-id": {
+      "type": "object"
     }
   }
 }

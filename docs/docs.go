@@ -5071,6 +5071,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/catalog/integrations/{id}/triggers": {
+            "get": {
+                "description": "Returns all webhook event triggers for a single integration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "integrations"
+                ],
+                "summary": "List triggers for an integration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_handler.triggerSummary"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/connect/sessions": {
             "get": {
                 "security": [
@@ -14658,6 +14696,26 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.triggerSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "payload_schema": {
+                    "type": "string"
+                },
+                "resource_type": {
                     "type": "string"
                 }
             }

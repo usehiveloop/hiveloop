@@ -5954,6 +5954,51 @@
         }
       }
     },
+    "/v1/catalog/integrations/{id}/triggers": {
+      "get": {
+        "description": "Returns all webhook event triggers for a single integration.",
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List triggers for an integration",
+        "parameters": [
+          {
+            "description": "Provider ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/triggerSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/connect/sessions": {
       "get": {
         "security": [
@@ -16915,6 +16960,26 @@
             "type": "number"
           },
           "user_id": {
+            "type": "string"
+          }
+        }
+      },
+      "triggerSummary": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "payload_schema": {
+            "type": "string"
+          },
+          "resource_type": {
             "type": "string"
           }
         }

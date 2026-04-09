@@ -1,0 +1,172 @@
+{
+  "display_name": "Intercom",
+  "triggers": {
+    "conversation.user.created": {
+      "display_name": "Conversation Created by User",
+      "description": "Triggered when a user starts a new conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.user.replied": {
+      "display_name": "Conversation User Replied",
+      "description": "Triggered when a user replies to a conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.replied": {
+      "display_name": "Conversation Admin Replied",
+      "description": "Triggered when an admin or teammate replies to a conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.closed": {
+      "display_name": "Conversation Closed",
+      "description": "Triggered when an admin closes a conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.opened": {
+      "display_name": "Conversation Opened",
+      "description": "Triggered when an admin opens a conversation (marks it as open)",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.assigned": {
+      "display_name": "Conversation Assigned",
+      "description": "Triggered when a conversation is assigned to an admin or team",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.noted": {
+      "display_name": "Conversation Note Added",
+      "description": "Triggered when an admin adds an internal note to a conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.admin.snoozed": {
+      "display_name": "Conversation Snoozed",
+      "description": "Triggered when an admin snoozes a conversation to resurface later",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.rating.added": {
+      "display_name": "Conversation Rating Added",
+      "description": "Triggered when a user rates a conversation",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "conversation.priority.updated": {
+      "display_name": "Conversation Priority Updated",
+      "description": "Triggered when the priority of a conversation is changed",
+      "resource_type": "conversation",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.user.created": {
+      "display_name": "User Contact Created",
+      "description": "Triggered when a new user contact is created",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.lead.created": {
+      "display_name": "Lead Contact Created",
+      "description": "Triggered when a new lead contact is created",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.lead.signed_up": {
+      "display_name": "Lead Signed Up",
+      "description": "Triggered when a lead contact converts to a user by signing up",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.deleted": {
+      "display_name": "Contact Deleted",
+      "description": "Triggered when a contact is deleted",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.email.updated": {
+      "display_name": "Contact Email Updated",
+      "description": "Triggered when a contact's email address is updated",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.user.tag.created": {
+      "display_name": "Contact Tagged",
+      "description": "Triggered when a tag is added to a contact",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "contact.user.tag.deleted": {
+      "display_name": "Contact Tag Removed",
+      "description": "Triggered when a tag is removed from a contact",
+      "resource_type": "contact",
+      "payload_schema": "intercom_notification_event"
+    },
+    "company.created": {
+      "display_name": "Company Created",
+      "description": "Triggered when a new company is created",
+      "resource_type": "company",
+      "payload_schema": "intercom_notification_event"
+    },
+    "ticket.created": {
+      "display_name": "Ticket Created",
+      "description": "Triggered when a new ticket is created",
+      "resource_type": "ticket",
+      "payload_schema": "intercom_notification_event"
+    },
+    "ticket.state.updated": {
+      "display_name": "Ticket State Updated",
+      "description": "Triggered when a ticket's state changes (e.g. open to resolved)",
+      "resource_type": "ticket",
+      "payload_schema": "intercom_notification_event"
+    }
+  },
+  "schemas": {
+    "intercom_notification_event": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of the payload, always 'notification_event'"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this notification event"
+        },
+        "app_id": {
+          "type": "string",
+          "description": "The Intercom app ID that received the webhook"
+        },
+        "topic": {
+          "type": "string",
+          "description": "The topic name that identifies the event type (e.g. conversation.user.created, contact.deleted)"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "Unix timestamp of when the event was created"
+        },
+        "delivery_status": {
+          "type": "string",
+          "description": "The delivery status of this webhook notification (e.g. pending, retry)"
+        },
+        "delivery_attempts": {
+          "type": "integer",
+          "description": "The number of delivery attempts made for this notification"
+        },
+        "data": {
+          "type": "object",
+          "description": "The event data wrapper containing 'type' and 'item'. The 'item' field holds the full resource object (conversation, contact, company, or ticket) with all its properties"
+        },
+        "first_sent_at": {
+          "type": "integer",
+          "description": "Unix timestamp of when this notification was first sent"
+        },
+        "self": {
+          "type": "string",
+          "description": "URL to this notification event resource in the Intercom API"
+        }
+      }
+    }
+  }
+}

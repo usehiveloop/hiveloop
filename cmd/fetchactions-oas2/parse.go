@@ -6,17 +6,19 @@ import (
 	"strings"
 
 	"github.com/pb33f/libopenapi"
+	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
 	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
 )
 
 // ActionDef mirrors the catalog ActionDef for JSON output.
 type ActionDef struct {
-	DisplayName  string           `json:"display_name"`
-	Description  string           `json:"description"`
-	Access       string           `json:"access"`
-	ResourceType string           `json:"resource_type"`
-	Parameters   json.RawMessage  `json:"parameters"`
-	Execution    *ExecutionConfig `json:"execution,omitempty"`
+	DisplayName    string           `json:"display_name"`
+	Description    string           `json:"description"`
+	Access         string           `json:"access"`
+	ResourceType   string           `json:"resource_type"`
+	Parameters     json.RawMessage  `json:"parameters"`
+	Execution      *ExecutionConfig `json:"execution,omitempty"`
+	ResponseSchema string           `json:"response_schema,omitempty"` // ref into top-level schemas map
 }
 
 // ExecutionConfig mirrors the catalog ExecutionConfig.
@@ -35,8 +37,34 @@ type jsonSchemaProperty struct {
 	Description string `json:"description,omitempty"`
 }
 
-// parseSpec parses a Swagger 2.0 spec and returns a map of action key → ActionDef.
-func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error) {
+// SchemaProperty describes a single property in a flattened response schema.
+type SchemaProperty struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+	Nullable    bool   `json:"nullable,omitempty"`
+	SchemaRef   string `json:"schema_ref,omitempty"` // references another schema for nested object resolution
+}
+
+// FlatSchema is a flattened top-level-only representation of a response schema.
+type FlatSchema struct {
+	Type       string                    `json:"type"`
+	Properties map[string]SchemaProperty `json:"properties,omitempty"`
+	Items      *FlatSchemaRef            `json:"items,omitempty"` // for array types
+}
+
+// FlatSchemaRef references another schema by name (for array item types).
+type FlatSchemaRef struct {
+	Ref string `json:"$ref,omitempty"`
+}
+
+// ParseResult holds parsed actions and the referenced response schemas.
+type ParseResult struct {
+	Actions map[string]ActionDef
+	Schemas map[string]FlatSchema
+}
+
+// parseSpec parses a Swagger 2.0 spec and returns actions + referenced response schemas.
+func parseSpec(specData []byte, cfg ServiceConfig) (*ParseResult, error) {
 	doc, err := libopenapi.NewDocument(specData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing Swagger document: %w", err)
@@ -53,9 +81,19 @@ func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error)
 	}
 
 	actions := make(map[string]ActionDef)
+	schemas := make(map[string]FlatSchema)
 
 	if model.Model.Paths == nil || model.Model.Paths.PathItems == nil {
-		return actions, nil
+		return &ParseResult{Actions: actions, Schemas: schemas}, nil
+	}
+
+	// Build definitions lookup for resolving $ref in response schemas.
+	definitions := model.Model.Definitions
+	definitionsMap := make(map[string]*highbase.SchemaProxy)
+	if definitions != nil && definitions.Definitions != nil {
+		for pair := definitions.Definitions.First(); pair != nil; pair = pair.Next() {
+			definitionsMap[pair.Key()] = pair.Value()
+		}
 	}
 
 	for pair := model.Model.Paths.PathItems.First(); pair != nil; pair = pair.Next() {
@@ -96,18 +134,21 @@ func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error)
 
 			access := inferAccess(method, actionKey, fullPath)
 
+			responseSchemaRef := extractV2ResponseSchema(op, definitionsMap, schemas)
+
 			actions[actionKey] = ActionDef{
-				DisplayName:  displayName,
-				Description:  desc,
-				Access:       access,
-				ResourceType: resourceType,
-				Parameters:   params,
-				Execution:    exec,
+				DisplayName:    displayName,
+				Description:    desc,
+				Access:         access,
+				ResourceType:   resourceType,
+				Parameters:     params,
+				Execution:      exec,
+				ResponseSchema: responseSchemaRef,
 			}
 		}
 	}
 
-	return actions, nil
+	return &ParseResult{Actions: actions, Schemas: schemas}, nil
 }
 
 // getV2Operations returns method → operation for a Swagger 2.0 path item.
@@ -362,4 +403,184 @@ func dedupStrings(ss []string) []string {
 		}
 	}
 	return result
+}
+
+// extractV2ResponseSchema looks at the 200 response of a Swagger 2.0 operation,
+// resolves the schema ref name, flattens it into the schemas map, and returns
+// the ref name. Returns "" if no usable response schema is found.
+func extractV2ResponseSchema(op *v2high.Operation, definitions map[string]*highbase.SchemaProxy, schemas map[string]FlatSchema) string {
+	if op.Responses == nil || op.Responses.Codes == nil {
+		return ""
+	}
+
+	for _, code := range []string{"200", "201"} {
+		resp := op.Responses.Codes.GetOrZero(code)
+		if resp == nil || resp.Schema == nil {
+			continue
+		}
+
+		schema := resp.Schema.Schema()
+		if schema == nil {
+			continue
+		}
+
+		// Case 1: Direct $ref to a definition.
+		refName := extractRefName(resp.Schema)
+		if refName != "" {
+			flattenV2Definition(refName, definitions, schemas)
+			return refName
+		}
+
+		// Case 2: Array with $ref items.
+		if len(schema.Type) > 0 && schema.Type[0] == "array" && schema.Items != nil && schema.Items.A != nil {
+			itemRef := extractRefName(schema.Items.A)
+			if itemRef != "" {
+				// Store the array wrapper schema pointing to the item schema.
+				arraySchemaName := itemRef + "_list"
+				if _, exists := schemas[arraySchemaName]; !exists {
+					flattenV2Definition(itemRef, definitions, schemas)
+					schemas[arraySchemaName] = FlatSchema{
+						Type:  "array",
+						Items: &FlatSchemaRef{Ref: itemRef},
+					}
+				}
+				return arraySchemaName
+			}
+		}
+
+		// Case 3: Inline object — flatten it directly using the operation ID as name.
+		if len(schema.Type) > 0 && schema.Type[0] == "object" && schema.Properties != nil {
+			inlineName := toSnakeCase(op.OperationId) + "_response"
+			if _, exists := schemas[inlineName]; !exists {
+				flat := FlatSchema{
+					Type:       "object",
+					Properties: make(map[string]SchemaProperty),
+				}
+				for prop := schema.Properties.First(); prop != nil; prop = prop.Next() {
+					propName := prop.Key()
+					propProxy := prop.Value()
+					flat.Properties[propName] = flattenV2Property(propProxy)
+				}
+				schemas[inlineName] = flat
+			}
+			return inlineName
+		}
+	}
+
+	return ""
+}
+
+// extractRefName pulls the definition name from a schema proxy's $ref if present.
+func extractRefName(proxy *highbase.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
+	// GetReference returns the raw $ref string like "#/definitions/objs_message".
+	ref := proxy.GetReference()
+	if ref == "" {
+		return ""
+	}
+	const prefix = "#/definitions/"
+	if strings.HasPrefix(ref, prefix) {
+		return strings.TrimPrefix(ref, prefix)
+	}
+	// Fall back to last segment for any ref format.
+	parts := strings.Split(ref, "/")
+	return parts[len(parts)-1]
+}
+
+// flattenV2Definition resolves a Swagger 2.0 definition by name and stores its
+// flattened top-level properties in the schemas map. Nested $refs are collapsed
+// to their type only (no recursion).
+func flattenV2Definition(name string, definitions map[string]*highbase.SchemaProxy, schemas map[string]FlatSchema) {
+	if _, exists := schemas[name]; exists {
+		return
+	}
+
+	proxy, ok := definitions[name]
+	if !ok {
+		return
+	}
+	schema := proxy.Schema()
+	if schema == nil {
+		return
+	}
+
+	flat := FlatSchema{
+		Type:       "object",
+		Properties: make(map[string]SchemaProperty),
+	}
+
+	if len(schema.Type) > 0 {
+		flat.Type = schema.Type[0]
+	}
+
+	// For array types, try to resolve item ref.
+	if flat.Type == "array" && schema.Items != nil && schema.Items.A != nil {
+		itemRef := extractRefName(schema.Items.A)
+		if itemRef != "" {
+			flattenV2Definition(itemRef, definitions, schemas)
+			flat.Items = &FlatSchemaRef{Ref: itemRef}
+		}
+		schemas[name] = flat
+		return
+	}
+
+	if schema.Properties != nil {
+		for prop := schema.Properties.First(); prop != nil; prop = prop.Next() {
+			propName := prop.Key()
+			propProxy := prop.Value()
+			flat.Properties[propName] = flattenV2Property(propProxy)
+		}
+	}
+
+	schemas[name] = flat
+
+	// Transitively flatten any schemas referenced by properties via schema_ref.
+	for _, propDef := range flat.Properties {
+		if propDef.SchemaRef != "" {
+			flattenV2Definition(propDef.SchemaRef, definitions, schemas)
+		}
+	}
+}
+
+// flattenV2Property extracts type + description from a schema proxy without recursing.
+// When the property is a $ref to a named definition, the ref name is preserved
+// as SchemaRef so the frontend can resolve nested object types.
+func flattenV2Property(proxy *highbase.SchemaProxy) SchemaProperty {
+	prop := SchemaProperty{Type: "string"}
+	if proxy == nil {
+		return prop
+	}
+
+	refName := extractRefName(proxy)
+
+	schema := proxy.Schema()
+	if schema == nil {
+		if refName != "" {
+			prop.Type = "object"
+			prop.SchemaRef = refName
+		}
+		return prop
+	}
+
+	if len(schema.Type) > 0 {
+		prop.Type = schema.Type[0]
+	} else if refName != "" {
+		prop.Type = "object"
+	}
+
+	if refName != "" && prop.Type == "object" {
+		prop.SchemaRef = refName
+	}
+
+	if schema.Description != "" {
+		prop.Description = schema.Description
+	}
+
+	if schema.Nullable != nil && *schema.Nullable {
+		prop.Nullable = true
+	}
+
+	return prop
 }

@@ -25,7 +25,8 @@
       "execution": {
         "method": "POST",
         "path": "/contacts/{contact_id}/archive"
-      }
+      },
+      "response_schema": "contact_archived"
     },
     "attach_contact_to_a_company": {
       "display_name": "Attach a Contact to a Company",
@@ -58,7 +59,8 @@
         "body_mapping": {
           "id": "id"
         }
-      }
+      },
+      "response_schema": "company"
     },
     "attach_contact_to_conversation": {
       "display_name": "Attach a contact to a conversation",
@@ -94,7 +96,8 @@
           "admin_id": "admin_id",
           "customer": "customer"
         }
-      }
+      },
+      "response_schema": "conversation"
     },
     "attach_subscription_type_to_contact": {
       "display_name": "Add subscription to a contact",
@@ -133,7 +136,8 @@
           "consent_type": "consent_type",
           "id": "id"
         }
-      }
+      },
+      "response_schema": "subscription_type"
     },
     "attach_tag_to_contact": {
       "display_name": "Add tag to a contact",
@@ -166,7 +170,8 @@
         "body_mapping": {
           "id": "id"
         }
-      }
+      },
+      "response_schema": "tag"
     },
     "attach_tag_to_conversation": {
       "display_name": "Add tag to a conversation",
@@ -205,7 +210,8 @@
           "admin_id": "admin_id",
           "id": "id"
         }
-      }
+      },
+      "response_schema": "tag"
     },
     "attach_tag_to_ticket": {
       "display_name": "Add tag to a ticket",
@@ -244,7 +250,8 @@
           "admin_id": "admin_id",
           "id": "id"
         }
-      }
+      },
+      "response_schema": "tag"
     },
     "block_contact": {
       "display_name": "Block contact",
@@ -269,7 +276,8 @@
       "execution": {
         "method": "POST",
         "path": "/contacts/{contact_id}/block"
-      }
+      },
+      "response_schema": "contact_blocked"
     },
     "cancel_data_export": {
       "display_name": "Cancel content data export",
@@ -294,7 +302,8 @@
       "execution": {
         "method": "POST",
         "path": "/export/cancel/{job_identifier}"
-      }
+      },
+      "response_schema": "data_export"
     },
     "collect_fin_voice_call_by_external_id": {
       "display_name": "Collect Fin Voice call by external ID",
@@ -316,7 +325,8 @@
       "execution": {
         "method": "GET",
         "path": "/fin_voice/external_id/{external_id}"
-      }
+      },
+      "response_schema": "ai_call_response"
     },
     "collect_fin_voice_call_by_id": {
       "display_name": "Collect Fin Voice call by ID",
@@ -338,7 +348,8 @@
       "execution": {
         "method": "GET",
         "path": "/fin_voice/collect/{id}"
-      }
+      },
+      "response_schema": "ai_call_response"
     },
     "collect_fin_voice_call_by_phone_number": {
       "display_name": "Collect Fin Voice call by phone number",
@@ -382,7 +393,8 @@
       "execution": {
         "method": "GET",
         "path": "/fin_voice/conversation/{conversation_id}"
-      }
+      },
+      "response_schema": "ai_call_response_list"
     },
     "convert_conversation_to_ticket": {
       "display_name": "Convert a conversation to a ticket",
@@ -420,7 +432,8 @@
           "attributes": "attributes",
           "ticket_type_id": "ticket_type_id"
         }
-      }
+      },
+      "response_schema": "ticket"
     },
     "convert_visitor": {
       "display_name": "Convert a visitor",
@@ -460,7 +473,8 @@
           "user": "user",
           "visitor": "visitor"
         }
-      }
+      },
+      "response_schema": "contact"
     },
     "create_article": {
       "display_name": "Create an article",
@@ -524,7 +538,8 @@
           "title": "title",
           "translated_content": "translated_content"
         }
-      }
+      },
+      "response_schema": "article"
     },
     "create_collection": {
       "display_name": "Create a collection",
@@ -572,7 +587,8 @@
           "parent_id": "parent_id",
           "translated_content": "translated_content"
         }
-      }
+      },
+      "response_schema": "collection"
     },
     "create_contact": {
       "display_name": "Create contact",
@@ -590,7 +606,8 @@
       "execution": {
         "method": "POST",
         "path": "/contacts"
-      }
+      },
+      "response_schema": "create_contact_response"
     },
     "create_content_import_source": {
       "display_name": "Create a content import source",
@@ -629,7 +646,8 @@
           "sync_behavior": "sync_behavior",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "content_import_source"
     },
     "create_conversation": {
       "display_name": "Creates a conversation",
@@ -640,6 +658,10 @@
         "properties": {
           "Intercom-Version": {
             "type": "string"
+          },
+          "attachment_urls": {
+            "type": "array",
+            "description": "A list of image URLs that will be added as attachments. You can include up to 10 URLs."
           },
           "body": {
             "type": "string",
@@ -663,6 +685,7 @@
         "method": "POST",
         "path": "/conversations",
         "body_mapping": {
+          "attachment_urls": "attachment_urls",
           "body": "body",
           "created_at": "created_at",
           "from": "from"
@@ -714,7 +737,8 @@
           "external_id": "external_id",
           "external_updated_at": "external_updated_at"
         }
-      }
+      },
+      "response_schema": "custom_object_instance"
     },
     "create_data_attribute": {
       "display_name": "Create a data attribute",
@@ -758,7 +782,8 @@
           "model": "model",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "data_attribute"
     },
     "create_data_event": {
       "display_name": "Submit a data event",
@@ -842,7 +867,8 @@
           "created_at_after": "created_at_after",
           "created_at_before": "created_at_before"
         }
-      }
+      },
+      "response_schema": "data_export"
     },
     "create_external_page": {
       "display_name": "Create an external page (or update an external page by external ID)",
@@ -909,7 +935,8 @@
           "title": "title",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "external_page"
     },
     "create_internal_article": {
       "display_name": "Create an internal article",
@@ -954,7 +981,8 @@
           "owner_id": "owner_id",
           "title": "title"
         }
-      }
+      },
+      "response_schema": "internal_article"
     },
     "create_message": {
       "display_name": "Create a message",
@@ -1021,7 +1049,8 @@
           "template": "template",
           "to": "to"
         }
-      }
+      },
+      "response_schema": "message"
     },
     "create_news_item": {
       "display_name": "Create a news item",
@@ -1085,7 +1114,8 @@
           "state": "state",
           "title": "title"
         }
-      }
+      },
+      "response_schema": "news_item"
     },
     "create_note": {
       "display_name": "Create a note",
@@ -1123,7 +1153,8 @@
           "admin_id": "admin_id",
           "body": "body"
         }
-      }
+      },
+      "response_schema": "note"
     },
     "create_or_update_company": {
       "display_name": "Create or Update a company",
@@ -1188,7 +1219,8 @@
           "size": "size",
           "website": "website"
         }
-      }
+      },
+      "response_schema": "company"
     },
     "create_phone_switch": {
       "display_name": "Create a phone Switch",
@@ -1221,7 +1253,8 @@
           "custom_attributes": "custom_attributes",
           "phone": "phone"
         }
-      }
+      },
+      "response_schema": "phone_switch"
     },
     "create_tag": {
       "display_name": "Create or update a tag, Tag or untag companies, Tag contacts",
@@ -1239,7 +1272,8 @@
       "execution": {
         "method": "POST",
         "path": "/tags"
-      }
+      },
+      "response_schema": "tag_basic"
     },
     "create_ticket": {
       "display_name": "Create a ticket",
@@ -1264,7 +1298,8 @@
         "body_mapping": {
           "skip_notifications": "skip_notifications"
         }
-      }
+      },
+      "response_schema": "ticket"
     },
     "create_ticket_type": {
       "display_name": "Create a ticket type",
@@ -1312,7 +1347,8 @@
           "is_internal": "is_internal",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "ticket_type"
     },
     "create_ticket_type_attribute": {
       "display_name": "Create a new attribute for a ticket type",
@@ -1392,7 +1428,8 @@
           "visible_on_create": "visible_on_create",
           "visible_to_contacts": "visible_to_contacts"
         }
-      }
+      },
+      "response_schema": "ticket_type_attribute"
     },
     "data_event_summaries": {
       "display_name": "Create event summaries",
@@ -1447,7 +1484,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/articles/{article_id}"
-      }
+      },
+      "response_schema": "deleted_article_object"
     },
     "delete_collection": {
       "display_name": "Delete a collection",
@@ -1472,7 +1510,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/help_center/collections/{collection_id}"
-      }
+      },
+      "response_schema": "deleted_collection_object"
     },
     "delete_company": {
       "display_name": "Delete a company",
@@ -1497,7 +1536,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/companies/{company_id}"
-      }
+      },
+      "response_schema": "deleted_company_object"
     },
     "delete_contact": {
       "display_name": "Delete a contact",
@@ -1522,7 +1562,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/contacts/{contact_id}"
-      }
+      },
+      "response_schema": "contact_deleted"
     },
     "delete_content_import_source": {
       "display_name": "Delete a content import source",
@@ -1572,7 +1613,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/conversations/{conversation_id}"
-      }
+      },
+      "response_schema": "conversation_deleted"
     },
     "delete_custom_object_instances_by_external_id": {
       "display_name": "Delete a Custom Object Instance by ID",
@@ -1602,7 +1644,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/custom_object_instances/{custom_object_type_identifier}/{custom_object_instance_id}"
-      }
+      },
+      "response_schema": "custom_object_instance_deleted"
     },
     "delete_custom_object_instances_by_id": {
       "display_name": "Delete a Custom Object Instance by External ID",
@@ -1633,7 +1676,8 @@
         "query_mapping": {
           "external_id": "external_id"
         }
-      }
+      },
+      "response_schema": "custom_object_instance_deleted"
     },
     "delete_external_page": {
       "display_name": "Delete an external page",
@@ -1658,7 +1702,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/ai/external_pages/{page_id}"
-      }
+      },
+      "response_schema": "external_page"
     },
     "delete_internal_article": {
       "display_name": "Delete an internal article",
@@ -1683,7 +1728,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/internal_articles/{internal_article_id}"
-      }
+      },
+      "response_schema": "deleted_internal_article_object"
     },
     "delete_news_item": {
       "display_name": "Delete a news item",
@@ -1708,7 +1754,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/news/news_items/{news_item_id}"
-      }
+      },
+      "response_schema": "deleted_object"
     },
     "delete_tag": {
       "display_name": "Delete tag",
@@ -1758,7 +1805,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/tickets/{ticket_id}"
-      }
+      },
+      "response_schema": "ticket_deleted"
     },
     "detach_contact_from_a_company": {
       "display_name": "Detach a contact from a company",
@@ -1788,7 +1836,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/contacts/{contact_id}/companies/{company_id}"
-      }
+      },
+      "response_schema": "company"
     },
     "detach_contact_from_conversation": {
       "display_name": "Detach a contact from a group conversation",
@@ -1826,7 +1875,8 @@
         "body_mapping": {
           "admin_id": "admin_id"
         }
-      }
+      },
+      "response_schema": "conversation"
     },
     "detach_subscription_type_to_contact": {
       "display_name": "Remove subscription from a contact",
@@ -1856,7 +1906,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/contacts/{contact_id}/subscriptions/{subscription_id}"
-      }
+      },
+      "response_schema": "subscription_type"
     },
     "detach_tag_from_contact": {
       "display_name": "Remove tag from a contact",
@@ -1886,7 +1937,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/contacts/{contact_id}/tags/{tag_id}"
-      }
+      },
+      "response_schema": "tag"
     },
     "detach_tag_from_conversation": {
       "display_name": "Remove tag from a conversation",
@@ -1924,7 +1976,8 @@
         "body_mapping": {
           "admin_id": "admin_id"
         }
-      }
+      },
+      "response_schema": "tag"
     },
     "detach_tag_from_ticket": {
       "display_name": "Remove tag from a ticket",
@@ -1962,7 +2015,8 @@
         "body_mapping": {
           "admin_id": "admin_id"
         }
-      }
+      },
+      "response_schema": "tag"
     },
     "download_data_export": {
       "display_name": "Download content data export",
@@ -2012,7 +2066,8 @@
         "body_mapping": {
           "skip_notifications": "skip_notifications"
         }
-      }
+      },
+      "response_schema": "jobs"
     },
     "export_workflow": {
       "display_name": "Export a workflow",
@@ -2037,7 +2092,8 @@
       "execution": {
         "method": "GET",
         "path": "/export/workflows/{id}"
-      }
+      },
+      "response_schema": "workflow_export"
     },
     "find_tag": {
       "display_name": "Find a specific tag",
@@ -2062,7 +2118,8 @@
       "execution": {
         "method": "GET",
         "path": "/tags/{tag_id}"
-      }
+      },
+      "response_schema": "tag_basic"
     },
     "get_content_import_source": {
       "display_name": "Retrieve a content import source",
@@ -2087,7 +2144,8 @@
       "execution": {
         "method": "GET",
         "path": "/ai/content_import_sources/{source_id}"
-      }
+      },
+      "response_schema": "content_import_source"
     },
     "get_custom_object_instances_by_external_id": {
       "display_name": "Get Custom Object Instance by External ID",
@@ -2118,7 +2176,8 @@
         "query_mapping": {
           "external_id": "external_id"
         }
-      }
+      },
+      "response_schema": "custom_object_instance"
     },
     "get_custom_object_instances_by_id": {
       "display_name": "Get Custom Object Instance by ID",
@@ -2148,7 +2207,8 @@
       "execution": {
         "method": "GET",
         "path": "/custom_object_instances/{custom_object_type_identifier}/{custom_object_instance_id}"
-      }
+      },
+      "response_schema": "custom_object_instance"
     },
     "get_data_export": {
       "display_name": "Show content data export",
@@ -2173,7 +2233,8 @@
       "execution": {
         "method": "GET",
         "path": "/export/content/data/{job_identifier}"
-      }
+      },
+      "response_schema": "data_export"
     },
     "get_download_reporting_data_job_identifier": {
       "display_name": "Download completed export job data",
@@ -2283,7 +2344,8 @@
       "execution": {
         "method": "GET",
         "path": "/ai/external_pages/{page_id}"
-      }
+      },
+      "response_schema": "external_page"
     },
     "get_ip_allowlist": {
       "display_name": "Get IP allowlist settings",
@@ -2301,7 +2363,8 @@
       "execution": {
         "method": "GET",
         "path": "/ip_allowlist"
-      }
+      },
+      "response_schema": "ip_allowlist"
     },
     "get_ticket": {
       "display_name": "Retrieve a ticket",
@@ -2326,7 +2389,8 @@
       "execution": {
         "method": "GET",
         "path": "/tickets/{ticket_id}"
-      }
+      },
+      "response_schema": "ticket"
     },
     "get_ticket_type": {
       "display_name": "Retrieve a ticket type",
@@ -2351,7 +2415,8 @@
       "execution": {
         "method": "GET",
         "path": "/ticket_types/{ticket_type_id}"
-      }
+      },
+      "response_schema": "ticket_type"
     },
     "identify_admin": {
       "display_name": "Identify an admin",
@@ -2369,7 +2434,8 @@
       "execution": {
         "method": "GET",
         "path": "/me"
-      }
+      },
+      "response_schema": "admin_with_app"
     },
     "jobs_status": {
       "display_name": "Retrieve job status",
@@ -2394,7 +2460,8 @@
       "execution": {
         "method": "GET",
         "path": "/jobs/status/{job_id}"
-      }
+      },
+      "response_schema": "jobs"
     },
     "lis_data_attributes": {
       "display_name": "List all data attributes",
@@ -2425,7 +2492,8 @@
           "model": "model"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "data_attribute_list"
     },
     "lis_data_events": {
       "display_name": "List all data events",
@@ -2459,7 +2527,8 @@
           "summary": "summary",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "data_event_summary"
     },
     "list_activity_logs": {
       "display_name": "List all activity logs",
@@ -2489,7 +2558,8 @@
           "created_at_after": "created_at_after",
           "created_at_before": "created_at_before"
         }
-      }
+      },
+      "response_schema": "activity_log_list"
     },
     "list_admins": {
       "display_name": "List all admins",
@@ -2507,7 +2577,8 @@
       "execution": {
         "method": "GET",
         "path": "/admins"
-      }
+      },
+      "response_schema": "admin_list"
     },
     "list_all_collections": {
       "display_name": "List all collections",
@@ -2526,7 +2597,8 @@
         "method": "GET",
         "path": "/help_center/collections",
         "response_path": "data"
-      }
+      },
+      "response_schema": "collection_list"
     },
     "list_all_companies": {
       "display_name": "List all companies",
@@ -2562,7 +2634,8 @@
           "per_page": "per_page"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "company_list"
     },
     "list_articles": {
       "display_name": "List all articles",
@@ -2581,7 +2654,8 @@
         "method": "GET",
         "path": "/articles",
         "response_path": "data"
-      }
+      },
+      "response_schema": "article_list"
     },
     "list_attached_contacts": {
       "display_name": "List attached contacts",
@@ -2607,7 +2681,8 @@
         "method": "GET",
         "path": "/companies/{company_id}/contacts",
         "response_path": "data"
-      }
+      },
+      "response_schema": "company_attached_contacts"
     },
     "list_attached_segments_for_companies": {
       "display_name": "List attached segments for companies",
@@ -2633,7 +2708,8 @@
         "method": "GET",
         "path": "/companies/{company_id}/segments",
         "response_path": "data"
-      }
+      },
+      "response_schema": "company_attached_segments"
     },
     "list_away_status_reasons": {
       "display_name": "List all away status reasons",
@@ -2651,7 +2727,8 @@
       "execution": {
         "method": "GET",
         "path": "/away_status_reasons"
-      }
+      },
+      "response_schema": "away_status_reason_list"
     },
     "list_brands": {
       "display_name": "List all brands",
@@ -2670,7 +2747,8 @@
         "method": "GET",
         "path": "/brands",
         "response_path": "data"
-      }
+      },
+      "response_schema": "brand_list"
     },
     "list_calls": {
       "display_name": "List all calls",
@@ -2701,7 +2779,8 @@
           "per_page": "per_page"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "call_list"
     },
     "list_calls_with_transcripts": {
       "display_name": "List calls with transcripts",
@@ -2730,7 +2809,8 @@
           "conversation_ids": "conversation_ids"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "list_calls_with_transcripts_response"
     },
     "list_companies_for_a_contact": {
       "display_name": "List attached companies for contact",
@@ -2755,7 +2835,8 @@
       "execution": {
         "method": "GET",
         "path": "/contacts/{contact_id}/companies"
-      }
+      },
+      "response_schema": "contact_attached_companies"
     },
     "list_company_notes": {
       "display_name": "List all company notes",
@@ -2781,7 +2862,8 @@
         "method": "GET",
         "path": "/companies/{company_id}/notes",
         "response_path": "data"
-      }
+      },
+      "response_schema": "note_list"
     },
     "list_contacts": {
       "display_name": "List all contacts",
@@ -2800,7 +2882,8 @@
         "method": "GET",
         "path": "/contacts",
         "response_path": "data"
-      }
+      },
+      "response_schema": "contact_list"
     },
     "list_content_import_sources": {
       "display_name": "List content import sources",
@@ -2819,7 +2902,8 @@
         "method": "GET",
         "path": "/ai/content_import_sources",
         "response_path": "data"
-      }
+      },
+      "response_schema": "content_import_sources_list"
     },
     "list_conversations": {
       "display_name": "List all conversations",
@@ -2849,7 +2933,8 @@
           "per_page": "per_page",
           "starting_after": "starting_after"
         }
-      }
+      },
+      "response_schema": "conversation_list"
     },
     "list_emails": {
       "display_name": "List all email settings",
@@ -2868,7 +2953,8 @@
         "method": "GET",
         "path": "/emails",
         "response_path": "data"
-      }
+      },
+      "response_schema": "email_list"
     },
     "list_external_pages": {
       "display_name": "List external pages",
@@ -2887,7 +2973,8 @@
         "method": "GET",
         "path": "/ai/external_pages",
         "response_path": "data"
-      }
+      },
+      "response_schema": "external_pages_list"
     },
     "list_help_centers": {
       "display_name": "List all Help Centers",
@@ -2906,7 +2993,8 @@
         "method": "GET",
         "path": "/help_center/help_centers",
         "response_path": "data"
-      }
+      },
+      "response_schema": "help_center_list"
     },
     "list_internal_articles": {
       "display_name": "List all articles",
@@ -2925,7 +3013,8 @@
         "method": "GET",
         "path": "/internal_articles",
         "response_path": "data"
-      }
+      },
+      "response_schema": "internal_article_list"
     },
     "list_live_newsfeed_items": {
       "display_name": "List all live newsfeed items",
@@ -2951,7 +3040,8 @@
         "method": "GET",
         "path": "/news/newsfeeds/{newsfeed_id}/items",
         "response_path": "data"
-      }
+      },
+      "response_schema": "paginated_response"
     },
     "list_news_items": {
       "display_name": "List all news items",
@@ -2970,7 +3060,8 @@
         "method": "GET",
         "path": "/news/news_items",
         "response_path": "data"
-      }
+      },
+      "response_schema": "paginated_response"
     },
     "list_newsfeeds": {
       "display_name": "List all newsfeeds",
@@ -2989,7 +3080,8 @@
         "method": "GET",
         "path": "/news/newsfeeds",
         "response_path": "data"
-      }
+      },
+      "response_schema": "paginated_response"
     },
     "list_notes": {
       "display_name": "List all notes",
@@ -3015,7 +3107,8 @@
         "method": "GET",
         "path": "/contacts/{contact_id}/notes",
         "response_path": "data"
-      }
+      },
+      "response_schema": "note_list"
     },
     "list_segments": {
       "display_name": "List all segments",
@@ -3040,7 +3133,8 @@
         "query_mapping": {
           "include_count": "include_count"
         }
-      }
+      },
+      "response_schema": "segment_list"
     },
     "list_segments_for_a_contact": {
       "display_name": "List attached segments for contact",
@@ -3066,7 +3160,8 @@
         "method": "GET",
         "path": "/contacts/{contact_id}/segments",
         "response_path": "data"
-      }
+      },
+      "response_schema": "contact_segments"
     },
     "list_subscription_types": {
       "display_name": "List subscription types",
@@ -3085,7 +3180,8 @@
         "method": "GET",
         "path": "/subscription_types",
         "response_path": "data"
-      }
+      },
+      "response_schema": "subscription_type_list"
     },
     "list_subscriptions_for_a_contact": {
       "display_name": "List subscriptions for a contact",
@@ -3111,7 +3207,8 @@
         "method": "GET",
         "path": "/contacts/{contact_id}/subscriptions",
         "response_path": "data"
-      }
+      },
+      "response_schema": "subscription_type_list"
     },
     "list_tags": {
       "display_name": "List all tags",
@@ -3130,7 +3227,8 @@
         "method": "GET",
         "path": "/tags",
         "response_path": "data"
-      }
+      },
+      "response_schema": "tag_list"
     },
     "list_tags_for_a_contact": {
       "display_name": "List tags attached to a contact",
@@ -3156,7 +3254,8 @@
         "method": "GET",
         "path": "/contacts/{contact_id}/tags",
         "response_path": "data"
-      }
+      },
+      "response_schema": "tag_list"
     },
     "list_teams": {
       "display_name": "List all teams",
@@ -3174,7 +3273,8 @@
       "execution": {
         "method": "GET",
         "path": "/teams"
-      }
+      },
+      "response_schema": "team_list"
     },
     "list_ticket_states": {
       "display_name": "List all ticket states",
@@ -3193,7 +3293,8 @@
         "method": "GET",
         "path": "/ticket_states",
         "response_path": "data"
-      }
+      },
+      "response_schema": "ticket_state_list"
     },
     "list_ticket_types": {
       "display_name": "List all ticket types",
@@ -3212,7 +3313,8 @@
         "method": "GET",
         "path": "/ticket_types",
         "response_path": "data"
-      }
+      },
+      "response_schema": "ticket_type_list"
     },
     "manage_conversation": {
       "display_name": "Manage a conversation",
@@ -3237,7 +3339,8 @@
       "execution": {
         "method": "POST",
         "path": "/conversations/{conversation_id}/parts"
-      }
+      },
+      "response_schema": "conversation"
     },
     "merge_contact": {
       "display_name": "Merge a lead and a user",
@@ -3267,7 +3370,8 @@
           "from": "from",
           "into": "into"
         }
-      }
+      },
+      "response_schema": "merge_contact_response"
     },
     "notify_attribute_collected": {
       "display_name": "Notify Intercom of an attribute collector response in a custom channel conver...",
@@ -3281,7 +3385,8 @@
       "execution": {
         "method": "POST",
         "path": "/custom_channel_events/notify_attribute_collected"
-      }
+      },
+      "response_schema": "custom_channel_notification_response"
     },
     "notify_new_conversation": {
       "display_name": "Notify Intercom of a new conversation created in a custom channel",
@@ -3317,7 +3422,8 @@
           "event_id": "event_id",
           "external_conversation_id": "external_conversation_id"
         }
-      }
+      },
+      "response_schema": "custom_channel_notification_response"
     },
     "notify_new_message": {
       "display_name": "Notify Intercom of a new message in a custom channel conversation",
@@ -3331,7 +3437,8 @@
       "execution": {
         "method": "POST",
         "path": "/custom_channel_events/notify_new_message"
-      }
+      },
+      "response_schema": "custom_channel_notification_response"
     },
     "notify_quick_reply_selected": {
       "display_name": "Notify Intercom of a quick reply response in a custom channel conversation",
@@ -3345,7 +3452,8 @@
       "execution": {
         "method": "POST",
         "path": "/custom_channel_events/notify_quick_reply_selected"
-      }
+      },
+      "response_schema": "custom_channel_notification_response"
     },
     "post_export_reporting_data_enqueue": {
       "display_name": "Enqueue a new reporting data export job",
@@ -3405,7 +3513,8 @@
       "execution": {
         "method": "POST",
         "path": "/conversations/redact"
-      }
+      },
+      "response_schema": "conversation"
     },
     "register_fin_voice_call": {
       "display_name": "Register a Fin Voice call",
@@ -3446,7 +3555,8 @@
           "phone_number": "phone_number",
           "source": "source"
         }
-      }
+      },
+      "response_schema": "ai_call_response"
     },
     "reply_conversation": {
       "display_name": "Reply to a conversation",
@@ -3471,7 +3581,8 @@
       "execution": {
         "method": "POST",
         "path": "/conversations/{conversation_id}/reply"
-      }
+      },
+      "response_schema": "conversation"
     },
     "reply_ticket": {
       "display_name": "Reply to a ticket",
@@ -3502,7 +3613,8 @@
         "body_mapping": {
           "skip_notifications": "skip_notifications"
         }
-      }
+      },
+      "response_schema": "ticket_reply"
     },
     "retrieve_a_company_by_id": {
       "display_name": "Retrieve a company by ID",
@@ -3527,7 +3639,8 @@
       "execution": {
         "method": "GET",
         "path": "/companies/{company_id}"
-      }
+      },
+      "response_schema": "company"
     },
     "retrieve_admin": {
       "display_name": "Retrieve an admin",
@@ -3552,7 +3665,8 @@
       "execution": {
         "method": "GET",
         "path": "/admins/{admin_id}"
-      }
+      },
+      "response_schema": "admin"
     },
     "retrieve_article": {
       "display_name": "Retrieve an article",
@@ -3577,7 +3691,8 @@
       "execution": {
         "method": "GET",
         "path": "/articles/{article_id}"
-      }
+      },
+      "response_schema": "article"
     },
     "retrieve_brand": {
       "display_name": "Retrieve a brand",
@@ -3602,7 +3717,8 @@
       "execution": {
         "method": "GET",
         "path": "/brands/{id}"
-      }
+      },
+      "response_schema": "brand"
     },
     "retrieve_collection": {
       "display_name": "Retrieve a collection",
@@ -3627,7 +3743,8 @@
       "execution": {
         "method": "GET",
         "path": "/help_center/collections/{collection_id}"
-      }
+      },
+      "response_schema": "collection"
     },
     "retrieve_company": {
       "display_name": "Retrieve companies",
@@ -3678,7 +3795,8 @@
           "tag_id": "tag_id"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "company_list"
     },
     "retrieve_conversation": {
       "display_name": "Retrieve a conversation",
@@ -3715,7 +3833,8 @@
           "display_as": "display_as",
           "include_translations": "include_translations"
         }
-      }
+      },
+      "response_schema": "conversation"
     },
     "retrieve_email": {
       "display_name": "Retrieve an email setting",
@@ -3740,7 +3859,8 @@
       "execution": {
         "method": "GET",
         "path": "/emails/{id}"
-      }
+      },
+      "response_schema": "email_setting"
     },
     "retrieve_help_center": {
       "display_name": "Retrieve a Help Center",
@@ -3765,7 +3885,8 @@
       "execution": {
         "method": "GET",
         "path": "/help_center/help_centers/{help_center_id}"
-      }
+      },
+      "response_schema": "help_center"
     },
     "retrieve_internal_article": {
       "display_name": "Retrieve an internal article",
@@ -3790,7 +3911,8 @@
       "execution": {
         "method": "GET",
         "path": "/internal_articles/{internal_article_id}"
-      }
+      },
+      "response_schema": "internal_article"
     },
     "retrieve_news_item": {
       "display_name": "Retrieve a news item",
@@ -3815,7 +3937,8 @@
       "execution": {
         "method": "GET",
         "path": "/news/news_items/{news_item_id}"
-      }
+      },
+      "response_schema": "news_item"
     },
     "retrieve_newsfeed": {
       "display_name": "Retrieve a newsfeed",
@@ -3840,7 +3963,8 @@
       "execution": {
         "method": "GET",
         "path": "/news/newsfeeds/{newsfeed_id}"
-      }
+      },
+      "response_schema": "newsfeed"
     },
     "retrieve_note": {
       "display_name": "Retrieve a note",
@@ -3865,7 +3989,8 @@
       "execution": {
         "method": "GET",
         "path": "/notes/{note_id}"
-      }
+      },
+      "response_schema": "note"
     },
     "retrieve_segment": {
       "display_name": "Retrieve a segment",
@@ -3890,7 +4015,8 @@
       "execution": {
         "method": "GET",
         "path": "/segments/{segment_id}"
-      }
+      },
+      "response_schema": "segment"
     },
     "retrieve_team": {
       "display_name": "Retrieve a team",
@@ -3915,7 +4041,8 @@
       "execution": {
         "method": "GET",
         "path": "/teams/{team_id}"
-      }
+      },
+      "response_schema": "team"
     },
     "retrieve_visitor_with_user_id": {
       "display_name": "Retrieve a visitor with User ID",
@@ -3940,7 +4067,8 @@
         "query_mapping": {
           "user_id": "user_id"
         }
-      }
+      },
+      "response_schema": "visitor"
     },
     "scroll_over_all_companies": {
       "display_name": "Scroll over all companies",
@@ -3965,7 +4093,8 @@
           "scroll_param": "scroll_param"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "company_scroll"
     },
     "search_articles": {
       "display_name": "Search for articles",
@@ -4005,7 +4134,8 @@
           "phrase": "phrase",
           "state": "state"
         }
-      }
+      },
+      "response_schema": "article_search_response"
     },
     "search_contacts": {
       "display_name": "Search contacts",
@@ -4037,7 +4167,8 @@
           "query": "query"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "contact_list"
     },
     "search_conversations": {
       "display_name": "Search conversations",
@@ -4068,7 +4199,8 @@
           "pagination": "pagination",
           "query": "query"
         }
-      }
+      },
+      "response_schema": "conversation_list"
     },
     "search_internal_articles": {
       "display_name": "Search for internal articles",
@@ -4093,7 +4225,8 @@
         "query_mapping": {
           "folder_id": "folder_id"
         }
-      }
+      },
+      "response_schema": "internal_article_search_response"
     },
     "search_tickets": {
       "display_name": "Search tickets",
@@ -4124,7 +4257,8 @@
           "pagination": "pagination",
           "query": "query"
         }
-      }
+      },
+      "response_schema": "ticket_list"
     },
     "set_away_admin": {
       "display_name": "Set an admin to away",
@@ -4168,7 +4302,8 @@
           "away_mode_reassign": "away_mode_reassign",
           "away_status_reason_id": "away_status_reason_id"
         }
-      }
+      },
+      "response_schema": "admin"
     },
     "show_call": {
       "display_name": "Get a call",
@@ -4193,7 +4328,8 @@
       "execution": {
         "method": "GET",
         "path": "/calls/{call_id}"
-      }
+      },
+      "response_schema": "call"
     },
     "show_call_recording": {
       "display_name": "Get call recording by call id",
@@ -4268,7 +4404,8 @@
       "execution": {
         "method": "GET",
         "path": "/contacts/{contact_id}"
-      }
+      },
+      "response_schema": "show_contact_response"
     },
     "show_contact_by_external_id": {
       "display_name": "Get a contact by External ID",
@@ -4293,7 +4430,8 @@
       "execution": {
         "method": "GET",
         "path": "/contacts/find_by_external_id/{external_id}"
-      }
+      },
+      "response_schema": "show_contact_by_external_id_response"
     },
     "unarchive_contact": {
       "display_name": "Unarchive contact",
@@ -4318,7 +4456,8 @@
       "execution": {
         "method": "POST",
         "path": "/contacts/{contact_id}/unarchive"
-      }
+      },
+      "response_schema": "contact_unarchived"
     },
     "update_article": {
       "display_name": "Update an article",
@@ -4385,7 +4524,8 @@
           "title": "title",
           "translated_content": "translated_content"
         }
-      }
+      },
+      "response_schema": "article"
     },
     "update_collection": {
       "display_name": "Update a collection",
@@ -4432,7 +4572,8 @@
           "parent_id": "parent_id",
           "translated_content": "translated_content"
         }
-      }
+      },
+      "response_schema": "collection"
     },
     "update_company": {
       "display_name": "Update a company",
@@ -4494,7 +4635,8 @@
           "size": "size",
           "website": "website"
         }
-      }
+      },
+      "response_schema": "company"
     },
     "update_contact": {
       "display_name": "Update a contact",
@@ -4519,7 +4661,8 @@
       "execution": {
         "method": "PUT",
         "path": "/contacts/{contact_id}"
-      }
+      },
+      "response_schema": "update_contact_response"
     },
     "update_content_import_source": {
       "display_name": "Update a content import source",
@@ -4563,7 +4706,8 @@
           "sync_behavior": "sync_behavior",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "content_import_source"
     },
     "update_conversation": {
       "display_name": "Update a conversation",
@@ -4617,7 +4761,8 @@
         "query_mapping": {
           "display_as": "display_as"
         }
-      }
+      },
+      "response_schema": "conversation"
     },
     "update_data_attribute": {
       "display_name": "Update a data attribute",
@@ -4659,7 +4804,8 @@
           "description": "description",
           "messenger_writable": "messenger_writable"
         }
-      }
+      },
+      "response_schema": "data_attribute"
     },
     "update_external_page": {
       "display_name": "Update an external page",
@@ -4726,7 +4872,8 @@
           "title": "title",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "external_page"
     },
     "update_internal_article": {
       "display_name": "Update an internal article",
@@ -4773,7 +4920,8 @@
           "owner_id": "owner_id",
           "title": "title"
         }
-      }
+      },
+      "response_schema": "internal_article"
     },
     "update_ip_allowlist": {
       "display_name": "Update IP allowlist settings",
@@ -4808,7 +4956,8 @@
           "ip_allowlist": "ip_allowlist",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "ip_allowlist"
     },
     "update_news_item": {
       "display_name": "Update a news item",
@@ -4877,7 +5026,8 @@
           "state": "state",
           "title": "title"
         }
-      }
+      },
+      "response_schema": "news_item"
     },
     "update_ticket": {
       "display_name": "Update a ticket",
@@ -4909,7 +5059,8 @@
         "body_mapping": {
           "skip_notifications": "skip_notifications"
         }
-      }
+      },
+      "response_schema": "ticket"
     },
     "update_ticket_type": {
       "display_name": "Update a ticket type",
@@ -4966,7 +5117,8 @@
           "is_internal": "is_internal",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "ticket_type"
     },
     "update_ticket_type_attribute": {
       "display_name": "Update an existing attribute for a ticket type",
@@ -5048,7 +5200,8 @@
           "visible_on_create": "visible_on_create",
           "visible_to_contacts": "visible_to_contacts"
         }
-      }
+      },
+      "response_schema": "ticket_type_attribute"
     },
     "update_visitor": {
       "display_name": "Update a visitor",
@@ -5087,6 +5240,2759 @@
           "id": "id",
           "name": "name",
           "user_id": "user_id"
+        }
+      },
+      "response_schema": "visitor"
+    }
+  },
+  "schemas": {
+    "activity_log_list": {
+      "type": "object",
+      "properties": {
+        "activity_logs": {
+          "type": "array",
+          "description": "An array of activity logs"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `activity_log.list`."
+        }
+      }
+    },
+    "admin": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string",
+          "description": "Image for the associated team or teammate",
+          "nullable": true
+        },
+        "away_mode_enabled": {
+          "type": "boolean",
+          "description": "Identifies if this admin is currently set in away mode."
+        },
+        "away_mode_reassign": {
+          "type": "boolean",
+          "description": "Identifies if this admin is set to automatically reassign new conversations to the apps default inbox."
+        },
+        "away_status_reason_id": {
+          "type": "integer",
+          "description": "The unique identifier of the away status reason",
+          "nullable": true
+        },
+        "email": {
+          "type": "string",
+          "description": "The email of the admin."
+        },
+        "has_inbox_seat": {
+          "type": "boolean",
+          "description": "Identifies if this admin has a paid inbox seat to restrict/allow features that require them."
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the admin."
+        },
+        "job_title": {
+          "type": "string",
+          "description": "The job title of the admin."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the admin."
+        },
+        "team_ids": {
+          "type": "array",
+          "description": "This object represents the avatar associated with the admin."
+        },
+        "team_priority_level": {
+          "type": "object",
+          "description": "Admin priority levels for teams",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `admin`."
+        }
+      }
+    },
+    "admin_list": {
+      "type": "object",
+      "properties": {
+        "admins": {
+          "type": "array",
+          "description": "A list of admins associated with a given workspace."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `admin.list`."
+        }
+      }
+    },
+    "admin_with_app": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "object",
+          "description": "App is a workspace on Intercom",
+          "nullable": true
+        },
+        "avatar": {
+          "type": "object",
+          "description": "This object represents the avatar associated with the admin."
+        },
+        "away_mode_enabled": {
+          "type": "boolean",
+          "description": "Identifies if this admin is currently set in away mode."
+        },
+        "away_mode_reassign": {
+          "type": "boolean",
+          "description": "Identifies if this admin is set to automatically reassign new conversations to the apps default inbox."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email of the admin."
+        },
+        "email_verified": {
+          "type": "boolean",
+          "description": "Identifies if this admin's email is verified.",
+          "nullable": true
+        },
+        "has_inbox_seat": {
+          "type": "boolean",
+          "description": "Identifies if this admin has a paid inbox seat to restrict/allow features that require them."
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the admin."
+        },
+        "job_title": {
+          "type": "string",
+          "description": "The job title of the admin."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the admin."
+        },
+        "team_ids": {
+          "type": "array",
+          "description": "This is a list of ids of the teams that this admin is part of."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `admin`."
+        }
+      }
+    },
+    "ai_call_response": {
+      "type": "object",
+      "properties": {
+        "app_id": {
+          "type": "integer",
+          "description": "The workspace identifier"
+        },
+        "call_summary": {
+          "type": "string",
+          "description": "Summary of the call conversation, truncated to 256 characters. Empty string if no summary available."
+        },
+        "call_transcript": {
+          "type": "array",
+          "description": "Array of transcript entries for the call"
+        },
+        "external_call_id": {
+          "type": "string",
+          "description": "The external call identifier from the call provider"
+        },
+        "id": {
+          "type": "integer",
+          "description": "The unique identifier for the external reference"
+        },
+        "intent": {
+          "type": "array",
+          "description": "Array of intent classifications for the call"
+        },
+        "intercom_call_id": {
+          "type": "string",
+          "description": "The Intercom call identifier, if the call has been matched",
+          "nullable": true
+        },
+        "intercom_conversation_id": {
+          "type": "string",
+          "description": "The Intercom conversation identifier, if a conversation has been created",
+          "nullable": true
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the call. Can be \"registered\", \"in-progress\", or a resolution state"
+        },
+        "user_phone_number": {
+          "type": "string",
+          "description": "Phone number in E.164 format for the call"
+        }
+      }
+    },
+    "ai_call_response_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ai_call_response"
+      }
+    },
+    "article": {
+      "type": "object",
+      "properties": {
+        "statistics": {
+          "type": "object",
+          "description": "The statistics of an article.",
+          "nullable": true
+        }
+      }
+    },
+    "article_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of Article objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of articles."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "article_search_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An object containing the results of the search."
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of Articles matching the search query"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "away_status_reason": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "The Unix timestamp when the status reason was created"
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the status reason has been soft deleted"
+        },
+        "emoji": {
+          "type": "string",
+          "description": "The emoji associated with the status reason"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the away status reason"
+        },
+        "label": {
+          "type": "string",
+          "description": "The display text for the away status reason"
+        },
+        "order": {
+          "type": "integer",
+          "description": "The display order of the status reason"
+        },
+        "type": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The Unix timestamp when the status reason was last updated"
+        }
+      }
+    },
+    "away_status_reason_list": {
+      "type": "array",
+      "items": {
+        "$ref": "away_status_reason"
+      }
+    },
+    "brand": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "Unix timestamp of brand creation"
+        },
+        "default_address_settings_id": {
+          "type": "string",
+          "description": "Default email settings ID for this brand"
+        },
+        "help_center_id": {
+          "type": "string",
+          "description": "Associated help center identifier"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique brand identifier. For default brand, matches the workspace ID"
+        },
+        "is_default": {
+          "type": "boolean",
+          "description": "Whether this is the workspace's default brand"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the brand"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "Unix timestamp of last modification"
+        }
+      }
+    },
+    "brand_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        }
+      }
+    },
+    "call": {
+      "type": "object",
+      "properties": {
+        "admin_id": {
+          "type": "string",
+          "description": "The id of the admin associated with the call, if any.",
+          "nullable": true
+        },
+        "answered_at": {
+          "type": "object"
+        },
+        "call_type": {
+          "type": "string",
+          "description": "The type of call."
+        },
+        "contact_id": {
+          "type": "string",
+          "description": "The id of the contact associated with the call, if any.",
+          "nullable": true
+        },
+        "conversation_id": {
+          "type": "string",
+          "description": "The id of the conversation associated with the call, if any.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "object"
+        },
+        "direction": {
+          "type": "string",
+          "description": "The direction of the call."
+        },
+        "ended_at": {
+          "type": "object"
+        },
+        "ended_reason": {
+          "type": "string",
+          "description": "The reason for the call end, if applicable.",
+          "nullable": true
+        },
+        "fin_recording_url": {
+          "type": "string",
+          "description": "API URL to the AI Agent (Fin) call recording if available.",
+          "nullable": true
+        },
+        "fin_transcription_url": {
+          "type": "string",
+          "description": "API URL to the AI Agent (Fin) call transcript if available.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The id of the call."
+        },
+        "initiated_at": {
+          "type": "object"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number involved in the call, in E.164 format.",
+          "nullable": true
+        },
+        "recording_url": {
+          "type": "string",
+          "description": "API URL to download or redirect to the call recording if available.",
+          "nullable": true
+        },
+        "state": {
+          "type": "string",
+          "description": "The current state of the call."
+        },
+        "transcription_url": {
+          "type": "string",
+          "description": "API URL to download or redirect to the call transcript if available.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `call`."
+        },
+        "updated_at": {
+          "type": "object"
+        }
+      }
+    },
+    "call_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of calls."
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "Total number of items available."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `list`."
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "The time when the article was created (seconds). For multilingual articles, this will be the timestamp of creation of the default language's content."
+        },
+        "default_locale": {
+          "type": "string",
+          "description": "The default locale of the help center. This field is only returned for multilingual help centers."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the collection. For multilingual help centers, this will be the description of the collection for the default language.",
+          "nullable": true
+        },
+        "help_center_id": {
+          "type": "integer",
+          "description": "The id of the help center the collection is in.",
+          "nullable": true
+        },
+        "icon": {
+          "type": "string",
+          "description": "The icon of the collection.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the collection which is given by Intercom."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the collection. For multilingual collections, this will be the name of the default language's content."
+        },
+        "order": {
+          "type": "integer",
+          "description": "The order of the section in relation to others sections within a collection. Values go from `0` upwards. `0` is the default if there's no order."
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "The id of the parent collection. If `null` then it is the first level collection.",
+          "nullable": true
+        },
+        "translated_content": {
+          "type": "object",
+          "description": "The Translated Content of an Group. The keys are the locale codes and the values are the translated content of the Group.",
+          "nullable": true
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time when the article was last updated (seconds). For multilingual articles, this will be the timestamp of last update of the default language's content."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the collection. For multilingual help centers, this will be the URL of the collection for the default language.",
+          "nullable": true
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace which the collection belongs to."
+        }
+      }
+    },
+    "collection_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of collection objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of collections."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "company": {
+      "type": "object",
+      "properties": {
+        "app_id": {
+          "type": "string",
+          "description": "The Intercom defined code of the workspace the company is associated to."
+        },
+        "company_id": {
+          "type": "string",
+          "description": "The company id you have defined for the company."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the company was added in Intercom."
+        },
+        "custom_attributes": {
+          "type": "object",
+          "description": "The custom attributes you have set on the company."
+        },
+        "id": {
+          "type": "string",
+          "description": "The Intercom defined id representing the company."
+        },
+        "industry": {
+          "type": "string",
+          "description": "The industry that the company operates in."
+        },
+        "last_request_at": {
+          "type": "integer",
+          "description": "The time the company last recorded making a request."
+        },
+        "monthly_spend": {
+          "type": "integer",
+          "description": "How much revenue the company generates for your business."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the company."
+        },
+        "plan": {
+          "type": "object"
+        },
+        "remote_created_at": {
+          "type": "integer",
+          "description": "The time the company was created by you."
+        },
+        "segments": {
+          "type": "object",
+          "description": "The list of segments associated with the company"
+        },
+        "session_count": {
+          "type": "integer",
+          "description": "How many sessions the company has recorded."
+        },
+        "size": {
+          "type": "integer",
+          "description": "The number of employees in the company."
+        },
+        "tags": {
+          "type": "object",
+          "description": "The list of tags associated with the company"
+        },
+        "type": {
+          "type": "string",
+          "description": "Value is `company`"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The last time the company was updated."
+        },
+        "user_count": {
+          "type": "integer",
+          "description": "The number of users in the company."
+        },
+        "website": {
+          "type": "string",
+          "description": "The URL for the company website."
+        }
+      }
+    },
+    "company_attached_contacts": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array containing Contact Objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of contacts"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object - `list`"
+        }
+      }
+    },
+    "company_attached_segments": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array containing Segment Objects"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object - `list`"
+        }
+      }
+    },
+    "company_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array containing Company Objects."
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of companies."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object - `list`."
+        }
+      }
+    },
+    "company_scroll": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "scroll_param": {
+          "type": "string",
+          "description": "The scroll parameter to use in the next request to fetch the next page of results."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of companies",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object - `list`"
+        }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "android_app_name": {
+          "type": "string",
+          "description": "The name of the Android app which the contact is using.",
+          "nullable": true
+        },
+        "android_app_version": {
+          "type": "string",
+          "description": "The version of the Android app which the contact is using.",
+          "nullable": true
+        },
+        "android_device": {
+          "type": "string",
+          "description": "The Android device which the contact is using.",
+          "nullable": true
+        },
+        "android_last_seen_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact was last seen on an Android device.",
+          "nullable": true
+        },
+        "android_os_version": {
+          "type": "string",
+          "description": "The version of the Android OS which the contact is using.",
+          "nullable": true
+        },
+        "android_sdk_version": {
+          "type": "string",
+          "description": "The version of the Android SDK which the contact is using.",
+          "nullable": true
+        },
+        "avatar": {
+          "type": "object",
+          "nullable": true
+        },
+        "browser": {
+          "type": "string",
+          "description": "The name of the browser which the contact is using.",
+          "nullable": true
+        },
+        "browser_language": {
+          "type": "string",
+          "description": "The language set by the browser which the contact is using.",
+          "nullable": true
+        },
+        "browser_version": {
+          "type": "string",
+          "description": "The version of the browser which the contact is using.",
+          "nullable": true
+        },
+        "companies": {
+          "type": "object",
+          "description": "An object with metadata about companies attached to a contact . Up to 10 will be displayed here. Use the url to get more."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact was created."
+        },
+        "custom_attributes": {
+          "type": "object",
+          "description": "The custom attributes which are set for the contact."
+        },
+        "email": {
+          "type": "string",
+          "description": "The contact's email."
+        },
+        "email_domain": {
+          "type": "string",
+          "description": "The contact's email domain."
+        },
+        "external_id": {
+          "type": "string",
+          "description": "The unique identifier for the contact which is provided by the Client.",
+          "nullable": true
+        },
+        "has_hard_bounced": {
+          "type": "boolean",
+          "description": "Whether the contact has had an email sent to them hard bounce."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the contact which is given by Intercom."
+        },
+        "ios_app_name": {
+          "type": "string",
+          "description": "The name of the iOS app which the contact is using.",
+          "nullable": true
+        },
+        "ios_app_version": {
+          "type": "string",
+          "description": "The version of the iOS app which the contact is using.",
+          "nullable": true
+        },
+        "ios_device": {
+          "type": "string",
+          "description": "The iOS device which the contact is using.",
+          "nullable": true
+        },
+        "ios_last_seen_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The last time the contact used the iOS app.",
+          "nullable": true
+        },
+        "ios_os_version": {
+          "type": "string",
+          "description": "The version of iOS which the contact is using.",
+          "nullable": true
+        },
+        "ios_sdk_version": {
+          "type": "string",
+          "description": "The version of the iOS SDK which the contact is using.",
+          "nullable": true
+        },
+        "language_override": {
+          "type": "string",
+          "description": "A preferred language setting for the contact, used by the Intercom Messenger even if their browser settings change.",
+          "nullable": true
+        },
+        "last_contacted_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact was last messaged.",
+          "nullable": true
+        },
+        "last_email_clicked_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact last clicked a link in an email.",
+          "nullable": true
+        },
+        "last_email_opened_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact last opened an email.",
+          "nullable": true
+        },
+        "last_replied_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact last messaged in.",
+          "nullable": true
+        },
+        "last_seen_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact was last seen (either where the Intercom Messenger was installed or when specified manually).",
+          "nullable": true
+        },
+        "location": {
+          "type": "object",
+          "description": "An object containing location meta data about a Intercom contact."
+        },
+        "marked_email_as_spam": {
+          "type": "boolean",
+          "description": "Whether the contact has marked an email sent to them as spam."
+        },
+        "name": {
+          "type": "string",
+          "description": "The contacts name.",
+          "nullable": true
+        },
+        "notes": {
+          "type": "object",
+          "description": "An object containing notes meta data about the notes that a contact has. Up to 10 will be displayed here. Use the url to get more."
+        },
+        "os": {
+          "type": "string",
+          "description": "The operating system which the contact is using.",
+          "nullable": true
+        },
+        "owner_id": {
+          "type": "integer",
+          "description": "The id of an admin that has been assigned account ownership of the contact.",
+          "nullable": true
+        },
+        "phone": {
+          "type": "string",
+          "description": "The contacts phone.",
+          "nullable": true
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the contact."
+        },
+        "signed_up_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time specified for when a contact signed up.",
+          "nullable": true
+        },
+        "social_profiles": {
+          "type": "object",
+          "description": "An object containing social profiles that a contact has."
+        },
+        "tags": {
+          "type": "object",
+          "description": "An object containing tags meta data about the tags that a contact has. Up to 10 will be displayed here. Use the url to get more.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object."
+        },
+        "unsubscribed_from_emails": {
+          "type": "boolean",
+          "description": "Whether the contact is unsubscribed from emails."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "(UNIX timestamp) The time when the contact was last updated."
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace which the contact belongs to."
+        }
+      }
+    },
+    "contact_archived": {
+      "type": "object",
+      "properties": {
+        "archived": {
+          "type": "boolean",
+          "description": "Whether the contact is archived or not."
+        }
+      }
+    },
+    "contact_attached_companies": {
+      "type": "object",
+      "properties": {
+        "companies": {
+          "type": "array",
+          "description": "An array containing Company Objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "The majority of list resources in the API are paginated to allow clients to traverse data over multiple requests.\n\nTheir responses are likely to contain a pages object that hosts pagination links which a client can use to paginate through the data without having to construct a query. The link relations for the pages field are as follows.\n"
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of companies associated to this contact"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        }
+      }
+    },
+    "contact_blocked": {
+      "type": "object",
+      "properties": {
+        "blocked": {
+          "type": "boolean",
+          "description": "Always true."
+        }
+      }
+    },
+    "contact_deleted": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the contact is deleted or not."
+        }
+      }
+    },
+    "contact_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "The list of contact objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of objects."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always list"
+        }
+      }
+    },
+    "contact_segments": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "Segment objects associated with the contact."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "contact_unarchived": {
+      "type": "object",
+      "properties": {
+        "archived": {
+          "type": "boolean",
+          "description": "Whether the contact is archived or not."
+        }
+      }
+    },
+    "content_import_source": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "The time when the content import source was created."
+        },
+        "id": {
+          "type": "integer",
+          "description": "The unique identifier for the content import source which is given by Intercom."
+        },
+        "last_synced_at": {
+          "type": "integer",
+          "description": "The time when the content import source was last synced."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the content import source."
+        },
+        "sync_behavior": {
+          "type": "string",
+          "description": "If you intend to create or update External Pages via the API, this should be set to `api`."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always external_page"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time when the content import source was last updated."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the root of the external source."
+        }
+      }
+    },
+    "content_import_sources_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of Content Import Source objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "The majority of list resources in the API are paginated to allow clients to traverse data over multiple requests.\n\nTheir responses are likely to contain a pages object that hosts pagination links which a client can use to paginate through the data without having to construct a query. The link relations for the pages field are as follows.\n"
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of content import sources."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "conversation": {
+      "type": "object",
+      "properties": {
+        "admin_assignee_id": {
+          "type": "integer",
+          "description": "The id of the admin assigned to the conversation. If it's not assigned to an admin it will return null.",
+          "nullable": true
+        },
+        "ai_agent": {
+          "type": "object",
+          "description": "Data related to AI Agent involvement in the conversation."
+        },
+        "ai_agent_participated": {
+          "type": "boolean",
+          "description": "Indicates whether the AI Agent participated in the conversation."
+        },
+        "company": {
+          "type": "object",
+          "description": "Companies allow you to represent organizations using your product. Each company will have its own description and be associated with contacts. You can fetch, create, update and list companies."
+        },
+        "contacts": {
+          "type": "object",
+          "description": "The list of contacts (users or leads) involved in this conversation. This will only contain one customer unless more were added via the group conversation feature."
+        },
+        "conversation_parts": {
+          "type": "object",
+          "description": "A list of Conversation Part objects for each part message in the conversation. This is only returned when Retrieving a Conversation, and ignored when Listing all Conversations. There is a limit of 500 parts."
+        },
+        "conversation_rating": {
+          "type": "object",
+          "description": "The Conversation Rating object which contains information on the rating and/or remark added by a Contact and the Admin assigned to the conversation.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the conversation was created."
+        },
+        "custom_attributes": {
+          "type": "object",
+          "description": "An object containing the different custom attributes associated to the conversation as key-value pairs. For relationship attributes the value will be a list of custom object instance models."
+        },
+        "first_contact_reply": {
+          "type": "object",
+          "description": "An object containing information on the first users message. For a contact initiated message this will represent the users original message.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the conversation."
+        },
+        "linked_objects": {
+          "type": "object",
+          "description": "An object containing metadata about linked conversations and linked tickets. Up to 1000 can be returned."
+        },
+        "open": {
+          "type": "boolean",
+          "description": "Indicates whether a conversation is open (true) or closed (false)."
+        },
+        "priority": {
+          "type": "string",
+          "description": "If marked as priority, it will return priority or else not_priority."
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates whether a conversation has been read."
+        },
+        "sla_applied": {
+          "type": "object",
+          "description": "The SLA Applied object contains the details for which SLA has been applied to this conversation.\nImportant: if there are any canceled sla_events for the conversation - meaning an SLA has been manually removed from a conversation, the sla_status will always be returned as null.\n",
+          "nullable": true
+        },
+        "snoozed_until": {
+          "type": "integer",
+          "description": "If set this is the time in the future when this conversation will be marked as open. i.e. it will be in a snoozed state until this time. i.e. it will be in a snoozed state until this time.",
+          "nullable": true
+        },
+        "source": {
+          "type": "object",
+          "description": "The type of the conversation part that started this conversation. Can be Contact, Admin, Campaign, Automated or Operator initiated."
+        },
+        "state": {
+          "type": "string",
+          "description": "Can be set to \"open\", \"closed\" or \"snoozed\"."
+        },
+        "statistics": {
+          "type": "object",
+          "description": "A Statistics object containing all information required for reporting, with timestamps and calculated metrics.",
+          "nullable": true
+        },
+        "tags": {
+          "type": "object",
+          "description": "A list of tags objects associated with a conversation"
+        },
+        "team_assignee_id": {
+          "type": "string",
+          "description": "The id of the team assigned to the conversation. If it's not assigned to a team it will return null.",
+          "nullable": true
+        },
+        "teammates": {
+          "type": "object",
+          "description": "The list of teammates who participated in the conversation (wrote at least one conversation part).",
+          "nullable": true
+        },
+        "title": {
+          "type": "string",
+          "description": "The title given to the conversation.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "Always conversation."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The last time the conversation was updated."
+        },
+        "waiting_since": {
+          "type": "integer",
+          "description": "The last time a Contact responded to an Admin. In other words, the time a customer started waiting for a response. Set to null if last reply is from an Admin.",
+          "nullable": true
+        }
+      }
+    },
+    "conversation_deleted": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the conversation is deleted or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the conversation."
+        },
+        "object": {
+          "type": "string",
+          "description": "always conversation"
+        }
+      }
+    },
+    "conversation_list": {
+      "type": "object",
+      "properties": {
+        "conversations": {
+          "type": "array",
+          "description": "The list of conversation objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of objects."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always conversation.list"
+        }
+      }
+    },
+    "create_contact_response": {
+      "type": "object",
+      "properties": {
+        "enabled_push_messaging": {
+          "type": "boolean",
+          "description": "If the user has enabled push messaging.",
+          "nullable": true
+        }
+      }
+    },
+    "custom_channel_notification_response": {
+      "type": "object",
+      "properties": {
+        "contact_id": {
+          "type": "string",
+          "description": "The Intercom contact ID mapped to the external contact ID"
+        },
+        "conversation_id": {
+          "type": "string",
+          "description": "The Intercom conversation ID mapped to the external conversation ID"
+        },
+        "external_contact_id": {
+          "type": "string",
+          "description": "The external contact ID provided in the notification request"
+        },
+        "external_conversation_id": {
+          "type": "string",
+          "description": "The external conversation ID provided in the notification request"
+        }
+      }
+    },
+    "custom_object_instance": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "The time the attribute was created as a UTC Unix timestamp"
+        },
+        "custom_attributes": {
+          "type": "object",
+          "description": "The custom attributes you have set on the custom object instance."
+        },
+        "external_created_at": {
+          "type": "integer",
+          "description": "The time when the Custom Object instance was created in the external system it originated from.",
+          "nullable": true
+        },
+        "external_id": {
+          "type": "string",
+          "description": "The id you have defined for the custom object instance."
+        },
+        "external_updated_at": {
+          "type": "integer",
+          "description": "The time when the Custom Object instance was last updated in the external system it originated from.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The Intercom defined id representing the custom object instance."
+        },
+        "type": {
+          "type": "string",
+          "description": "The identifier of the custom object type that defines the structure of the custom object instance."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time the attribute was last updated as a UTC Unix timestamp"
+        }
+      }
+    },
+    "custom_object_instance_deleted": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the Custom Object instance is deleted or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The Intercom defined id representing the Custom Object instance."
+        },
+        "object": {
+          "type": "string",
+          "description": "The unique identifier of the Custom Object type that defines the structure of the Custom Object instance."
+        }
+      }
+    },
+    "data_attribute": {
+      "type": "object",
+      "properties": {
+        "admin_id": {
+          "type": "string",
+          "description": "Teammate who created the attribute. Only applicable to CDAs"
+        },
+        "api_writable": {
+          "type": "boolean",
+          "description": "Can this attribute be updated through API"
+        },
+        "archived": {
+          "type": "boolean",
+          "description": "Is this attribute archived. (Only applicable to CDAs)"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the attribute was created as a UTC Unix timestamp"
+        },
+        "custom": {
+          "type": "boolean",
+          "description": "Set to true if this is a CDA"
+        },
+        "data_type": {
+          "type": "string",
+          "description": "The data type of the attribute."
+        },
+        "description": {
+          "type": "string",
+          "description": "Readable description of the attribute."
+        },
+        "full_name": {
+          "type": "string",
+          "description": "Full name of the attribute. Should match the name unless it's a nested attribute. We can split full_name on `.` to access nested user object values."
+        },
+        "id": {
+          "type": "integer",
+          "description": "The unique identifier for the data attribute which is given by Intercom. Only available for custom attributes."
+        },
+        "label": {
+          "type": "string",
+          "description": "Readable name of the attribute (i.e. name you see in the UI)"
+        },
+        "messenger_writable": {
+          "type": "boolean",
+          "description": "Can this attribute be updated by the Messenger"
+        },
+        "model": {
+          "type": "string",
+          "description": "Value is `contact` for user/lead attributes and `company` for company attributes."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the attribute."
+        },
+        "options": {
+          "type": "array",
+          "description": "List of predefined options for attribute value."
+        },
+        "type": {
+          "type": "string",
+          "description": "Value is `data_attribute`."
+        },
+        "ui_writable": {
+          "type": "boolean",
+          "description": "Can this attribute be updated in the UI"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time the attribute was last updated as a UTC Unix timestamp"
+        }
+      }
+    },
+    "data_attribute_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of data attributes"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "data_event_summary": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email address of the user"
+        },
+        "events": {
+          "type": "array",
+          "description": "A summary of data events"
+        },
+        "intercom_user_id": {
+          "type": "string",
+          "description": "The Intercom user ID of the user"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        },
+        "user_id": {
+          "type": "string",
+          "description": "The user ID of the user"
+        }
+      }
+    },
+    "data_export": {
+      "type": "object",
+      "properties": {
+        "download_expires_at": {
+          "type": "string",
+          "description": "The time after which you will not be able to access the data."
+        },
+        "download_url": {
+          "type": "string",
+          "description": "The location where you can download your data."
+        },
+        "job_identifier": {
+          "type": "string",
+          "description": "The identifier for your job."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current state of your job."
+        }
+      }
+    },
+    "deleted_article_object": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the article was deleted successfully or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the article which you provided in the URL."
+        },
+        "object": {
+          "type": "string",
+          "description": "The type of object which was deleted. - article"
+        }
+      }
+    },
+    "deleted_collection_object": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the collection was deleted successfully or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the collection which you provided in the URL."
+        },
+        "object": {
+          "type": "string",
+          "description": "The type of object which was deleted. - `collection`"
+        }
+      }
+    },
+    "deleted_company_object": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the company was deleted successfully or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the company which is given by Intercom."
+        },
+        "object": {
+          "type": "string",
+          "description": "The type of object which was deleted. - `company`"
+        }
+      }
+    },
+    "deleted_internal_article_object": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the internal article was deleted successfully or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the internal article which you provided in the URL."
+        },
+        "object": {
+          "type": "string",
+          "description": "The type of object which was deleted. - internal_article"
+        }
+      }
+    },
+    "deleted_object": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the news item was deleted successfully or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the news item which you provided in the URL."
+        },
+        "object": {
+          "type": "string",
+          "description": "The type of object which was deleted - news-item."
+        }
+      }
+    },
+    "email_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        }
+      }
+    },
+    "email_setting": {
+      "type": "object",
+      "properties": {
+        "brand_id": {
+          "type": "string",
+          "description": "Associated brand identifier"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "Unix timestamp of creation"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain portion of the email address"
+        },
+        "email": {
+          "type": "string",
+          "description": "Full sender email address"
+        },
+        "forwarded_email_last_received_at": {
+          "type": "integer",
+          "description": "Unix timestamp of last forwarded email received (null if never)",
+          "nullable": true
+        },
+        "forwarding_enabled": {
+          "type": "boolean",
+          "description": "Whether email forwarding is active"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique email setting identifier"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "Unix timestamp of last modification"
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Whether the email address has been verified"
+        }
+      }
+    },
+    "external_page": {
+      "type": "object",
+      "properties": {
+        "ai_agent_availability": {
+          "type": "boolean",
+          "description": "Whether the external page should be used to answer questions by AI Agent."
+        },
+        "ai_copilot_availability": {
+          "type": "boolean",
+          "description": "Whether the external page should be used to answer questions by AI Copilot."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time when the external page was created."
+        },
+        "external_id": {
+          "type": "string",
+          "description": "The identifier for the external page which was given by the source. Must be unique for the source."
+        },
+        "fin_availability": {
+          "type": "boolean",
+          "description": "Deprecated. Use ai_agent_availability and ai_copilot_availability instead."
+        },
+        "html": {
+          "type": "string",
+          "description": "The body of the external page in HTML."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the external page which is given by Intercom."
+        },
+        "last_ingested_at": {
+          "type": "integer",
+          "description": "The time when the external page was last ingested."
+        },
+        "locale": {
+          "type": "string",
+          "description": "Always en"
+        },
+        "source_id": {
+          "type": "integer",
+          "description": "The unique identifier for the source of the external page which was given by Intercom. Every external page must be associated with a Content Import Source which represents the place it comes from and from which it inherits a default audience (configured in the UI). For a new source, make a POST request to the Content Import Source endpoint and an ID for the source will be returned in the response."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the external page."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always external_page"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time when the external page was last updated."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the external page. This will be used by Fin to link end users to the page it based its answer on."
+        }
+      }
+    },
+    "external_pages_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of External Page objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "The majority of list resources in the API are paginated to allow clients to traverse data over multiple requests.\n\nTheir responses are likely to contain a pages object that hosts pagination links which a client can use to paginate through the data without having to construct a query. The link relations for the pages field are as follows.\n"
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of external pages."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "help_center": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "The time when the Help Center was created."
+        },
+        "custom_domain": {
+          "type": "string",
+          "description": "Custom domain configured for the help center",
+          "nullable": true
+        },
+        "display_name": {
+          "type": "string",
+          "description": "The display name of the Help Center only seen by teammates."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the Help Center which is given by Intercom."
+        },
+        "identifier": {
+          "type": "string",
+          "description": "The identifier of the Help Center. This is used in the URL of the Help Center."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time when the Help Center was last updated."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL for the help center, if you have a custom domain then this will show the URL using the custom domain."
+        },
+        "website_turned_on": {
+          "type": "boolean",
+          "description": "Whether the Help Center is turned on or not. This is controlled in your Help Center settings."
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace which the Help Center belongs to."
+        }
+      }
+    },
+    "help_center_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of Help Center objects"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "internal_article": {
+      "type": "object"
+    },
+    "internal_article_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of Internal Article objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of internal articles."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "internal_article_search_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An object containing the results of the search."
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of Internal Articles matching the search query"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - `list`."
+        }
+      }
+    },
+    "ip_allowlist": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the IP allowlist is enabled for the workspace."
+        },
+        "ip_allowlist": {
+          "type": "array",
+          "description": "List of allowed IP addresses and/or IP ranges in CIDR notation.\nExamples:\n- Single IP: `192.168.0.1`\n- IP range: `192.168.0.1/24` (allows 192.168.0.0 - 192.168.0.255)\n"
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `ip_allowlist`."
+        }
+      }
+    },
+    "jobs": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The id of the job that's currently being processed or has completed."
+        },
+        "resource_id": {
+          "type": "string",
+          "description": "The id of the resource created during job execution (e.g. ticket id)",
+          "nullable": true
+        },
+        "resource_type": {
+          "type": "string",
+          "description": "The type of resource created during job execution."
+        },
+        "resource_url": {
+          "type": "string",
+          "description": "The url of the resource created during job exeuction. Use this url to fetch the resource.",
+          "nullable": true
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the job execution."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        },
+        "url": {
+          "type": "string",
+          "description": "API endpoint URL to check the job status."
+        }
+      }
+    },
+    "list_calls_with_transcripts_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "merge_contact_response": {
+      "type": "object",
+      "properties": {
+        "enabled_push_messaging": {
+          "type": "boolean",
+          "description": "If the user has enabled push messaging.",
+          "nullable": true
+        }
+      }
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "description": "The message body, which may contain HTML."
+        },
+        "conversation_id": {
+          "type": "string",
+          "description": "The associated conversation_id"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the conversation was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the message."
+        },
+        "message_type": {
+          "type": "string",
+          "description": "The type of message that was sent. Can be email, inapp, facebook or twitter."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject of the message. Only present if message_type: email."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the message"
+        }
+      }
+    },
+    "news_item": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "description": "The news item body, which may contain HTML."
+        },
+        "cover_image_url": {
+          "type": "string",
+          "description": "URL of the image used as cover. Must have .jpg or .png extension.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "Timestamp for when the news item was created."
+        },
+        "deliver_silently": {
+          "type": "boolean",
+          "description": "When set to true, the news item will appear in the messenger newsfeed without showing a notification badge."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the news item which is given by Intercom."
+        },
+        "labels": {
+          "type": "array",
+          "description": "Label names displayed to users to categorize the news item."
+        },
+        "newsfeed_assignments": {
+          "type": "array",
+          "description": "A list of newsfeed_assignments to assign to the specified newsfeed."
+        },
+        "reactions": {
+          "type": "array",
+          "description": "Ordered list of emoji reactions to the news item. When empty, reactions are disabled."
+        },
+        "sender_id": {
+          "type": "integer",
+          "description": "The id of the sender of the news item. Must be a teammate on the workspace."
+        },
+        "state": {
+          "type": "string",
+          "description": "News items will not be visible to your users in the assigned newsfeeds until they are set live."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the news item."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "Timestamp for when the news item was last updated."
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace which the news item belongs to."
+        }
+      }
+    },
+    "newsfeed": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "integer",
+          "description": "Timestamp for when the newsfeed was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the newsfeed which is given by Intercom."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the newsfeed. This name will never be visible to your users."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "Timestamp for when the newsfeed was last updated."
+        }
+      }
+    },
+    "note": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "object",
+          "description": "Admins are teammate accounts that have access to a workspace.",
+          "nullable": true
+        },
+        "body": {
+          "type": "string",
+          "description": "The body text of the note."
+        },
+        "contact": {
+          "type": "object",
+          "description": "Represents the contact that the note was created about.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the note was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The id of the note."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `note`."
+        }
+      }
+    },
+    "note_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of notes."
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of notes."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `list`."
+        }
+      }
+    },
+    "paginated_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "An array of Objects"
+        },
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of objects."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object"
+        }
+      }
+    },
+    "phone_switch": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string",
+          "description": "Phone number in E.164 format, that has received the SMS to continue the conversation in the Messenger."
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "The number of items in the user segment. It's returned when `include_count=true` is included in the request.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the segment was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier representing the segment."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the segment."
+        },
+        "person_type": {
+          "type": "string",
+          "description": "Type of the contact: contact (lead) or user."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of object."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The time the segment was updated."
+        }
+      }
+    },
+    "segment_list": {
+      "type": "object",
+      "properties": {
+        "pages": {
+          "type": "object",
+          "description": "A pagination object, which may be empty, indicating no further pages to fetch."
+        },
+        "segments": {
+          "type": "array",
+          "description": "A list of Segment objects"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "show_contact_by_external_id_response": {
+      "type": "object",
+      "properties": {
+        "enabled_push_messaging": {
+          "type": "boolean",
+          "description": "If the user has enabled push messaging.",
+          "nullable": true
+        }
+      }
+    },
+    "show_contact_response": {
+      "type": "object",
+      "properties": {
+        "enabled_push_messaging": {
+          "type": "boolean",
+          "description": "If the user has enabled push messaging.",
+          "nullable": true
+        }
+      }
+    },
+    "subscription_type": {
+      "type": "object",
+      "properties": {
+        "consent_type": {
+          "type": "string",
+          "description": "Describes the type of consent."
+        },
+        "content_types": {
+          "type": "array",
+          "description": "The message types that this subscription supports - can contain `email` or `sms_message`."
+        },
+        "default_translation": {
+          "type": "object",
+          "description": "A translation object contains the localised details of a subscription type."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier representing the subscription type."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state of the subscription type."
+        },
+        "translations": {
+          "type": "array",
+          "description": "An array of translations objects with the localised version of the subscription type in each available locale within your translation settings."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object - subscription"
+        }
+      }
+    },
+    "subscription_type_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of subscription type objects associated with the workspace ."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "properties": {
+        "applied_at": {
+          "type": "integer",
+          "description": "The time when the tag was applied to the object",
+          "nullable": true
+        },
+        "applied_by": {
+          "type": "object",
+          "description": "The admin who applied the tag",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The id of the tag"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tag"
+        },
+        "type": {
+          "type": "string",
+          "description": "value is \"tag\""
+        }
+      }
+    },
+    "tag_basic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The id of the tag"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tag"
+        },
+        "type": {
+          "type": "string",
+          "description": "value is \"tag\""
+        }
+      }
+    },
+    "tag_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of tags objects associated with the workspace ."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "properties": {
+        "admin_ids": {
+          "type": "array",
+          "description": "The list of admin IDs that are a part of the team."
+        },
+        "admin_priority_level": {
+          "type": "object",
+          "description": "Admin priority levels for the team",
+          "nullable": true
+        },
+        "assignment_limit": {
+          "type": "integer",
+          "description": "The assignment limit for the team. This field is only present when the team's distribution type is load balanced.",
+          "nullable": true
+        },
+        "distribution_method": {
+          "type": "string",
+          "description": "Describes how assignments are distributed among the team members",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The id of the team"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the team"
+        },
+        "type": {
+          "type": "string",
+          "description": "Value is always \"team\""
+        }
+      }
+    },
+    "team_list": {
+      "type": "object",
+      "properties": {
+        "teams": {
+          "type": "array",
+          "description": "A list of team objects"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the object"
+        }
+      }
+    },
+    "ticket": {
+      "type": "object",
+      "properties": {
+        "admin_assignee_id": {
+          "type": "string",
+          "description": "The id representing the admin assigned to the ticket."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the Ticket."
+        },
+        "contacts": {
+          "type": "object",
+          "description": "The list of contacts affected by a ticket."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the ticket was created as a UTC Unix timestamp."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the ticket which is given by Intercom."
+        },
+        "is_shared": {
+          "type": "boolean",
+          "description": "Whether or not the ticket is shared with the customer."
+        },
+        "linked_objects": {
+          "type": "object",
+          "description": "An object containing metadata about linked conversations and linked tickets. Up to 1000 can be returned."
+        },
+        "open": {
+          "type": "boolean",
+          "description": "Whether or not the ticket is open. If false, the ticket is closed."
+        },
+        "snoozed_until": {
+          "type": "integer",
+          "description": "The time the ticket will be snoozed until as a UTC Unix timestamp. If null, the ticket is not currently snoozed."
+        },
+        "team_assignee_id": {
+          "type": "string",
+          "description": "The id representing the team assigned to the ticket."
+        },
+        "ticket_attributes": {
+          "type": "object",
+          "description": "An object containing the different attributes associated to the ticket as key-value pairs. For the default title and description attributes, the keys are `_default_title_` and `_default_description_`."
+        },
+        "ticket_id": {
+          "type": "string",
+          "description": "The ID of the Ticket used in the Intercom Inbox and Messenger. Do not use ticket_id for API queries."
+        },
+        "ticket_parts": {
+          "type": "object",
+          "description": "A list of Ticket Part objects for each note and event in the ticket. There is a limit of 500 parts."
+        },
+        "ticket_state": {
+          "type": "object",
+          "description": "A ticket state, used to define the state of a ticket.",
+          "nullable": true
+        },
+        "ticket_type": {
+          "type": "object",
+          "description": "A ticket type, used to define the data fields to be captured in a ticket.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "Always ticket"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The last time the ticket was updated as a UTC Unix timestamp."
+        }
+      }
+    },
+    "ticket_deleted": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "Whether the ticket is deleted or not."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the ticket."
+        },
+        "object": {
+          "type": "string",
+          "description": "always ticket"
+        }
+      }
+    },
+    "ticket_list": {
+      "type": "object",
+      "properties": {
+        "pages": {
+          "type": "object",
+          "description": "Cursor-based pagination is a technique used in the Intercom API to navigate through large amounts of data.\nA \"cursor\" or pointer is used to keep track of the current position in the result set, allowing the API to return the data in small chunks or \"pages\" as needed.\n",
+          "nullable": true
+        },
+        "tickets": {
+          "type": "array",
+          "description": "The list of ticket objects"
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "A count of the total number of objects."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always ticket.list"
+        }
+      }
+    },
+    "ticket_reply": {
+      "type": "object",
+      "properties": {
+        "attachments": {
+          "type": "array",
+          "description": "A list of attachments for the part."
+        },
+        "author": {
+          "type": "object",
+          "description": "The author that wrote or triggered the part. Can be a bot, admin, team or user."
+        },
+        "body": {
+          "type": "string",
+          "description": "The message body, which may contain HTML.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the note was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the part."
+        },
+        "part_type": {
+          "type": "string",
+          "description": "Type of the part"
+        },
+        "redacted": {
+          "type": "boolean",
+          "description": "Whether or not the ticket part has been redacted."
+        },
+        "type": {
+          "type": "string",
+          "description": "Always ticket_part"
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The last time the note was updated."
+        }
+      }
+    },
+    "ticket_state_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of ticket states associated with a given ticket type."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `list`."
+        }
+      }
+    },
+    "ticket_type": {
+      "type": "object",
+      "properties": {
+        "archived": {
+          "type": "boolean",
+          "description": "Whether the ticket type is archived or not."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the Ticket Type."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The date and time the ticket type was created."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the ticket type"
+        },
+        "icon": {
+          "type": "string",
+          "description": "The icon of the ticket type"
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the ticket type."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the ticket type"
+        },
+        "ticket_states": {
+          "type": "object",
+          "description": "A list of ticket states associated with a given ticket type."
+        },
+        "ticket_type_attributes": {
+          "type": "object",
+          "description": "A list of attributes associated with a given ticket type."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `ticket_type`."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The date and time the ticket type was last updated."
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace that the ticket type belongs to."
+        }
+      }
+    },
+    "ticket_type_attribute": {
+      "type": "object",
+      "properties": {
+        "archived": {
+          "type": "boolean",
+          "description": "Whether the ticket type attribute is archived or not."
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The date and time the ticket type attribute was created."
+        },
+        "data_type": {
+          "type": "string",
+          "description": "The type of the data attribute (allowed values: \"string list integer decimal boolean datetime files\")"
+        },
+        "default": {
+          "type": "boolean",
+          "description": "Whether the attribute is built in or not."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the ticket type attribute"
+        },
+        "id": {
+          "type": "string",
+          "description": "The id representing the ticket type attribute."
+        },
+        "input_options": {
+          "type": "object",
+          "description": "Input options for the attribute"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the ticket type attribute"
+        },
+        "order": {
+          "type": "integer",
+          "description": "The order of the attribute against other attributes"
+        },
+        "required_to_create": {
+          "type": "boolean",
+          "description": "Whether the attribute is required or not for teammates."
+        },
+        "required_to_create_for_contacts": {
+          "type": "boolean",
+          "description": "Whether the attribute is required or not for contacts."
+        },
+        "ticket_type_id": {
+          "type": "integer",
+          "description": "The id of the ticket type that the attribute belongs to."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `ticket_type_attribute`."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The date and time the ticket type attribute was last updated."
+        },
+        "visible_on_create": {
+          "type": "boolean",
+          "description": "Whether the attribute is visible or not to teammates."
+        },
+        "visible_to_contacts": {
+          "type": "boolean",
+          "description": "Whether the attribute is visible or not to contacts."
+        },
+        "workspace_id": {
+          "type": "string",
+          "description": "The id of the workspace that the ticket type attribute belongs to."
+        }
+      }
+    },
+    "ticket_type_list": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "description": "A list of ticket_types associated with a given workspace."
+        },
+        "type": {
+          "type": "string",
+          "description": "String representing the object's type. Always has the value `list`."
+        }
+      }
+    },
+    "update_contact_response": {
+      "type": "object",
+      "properties": {
+        "enabled_push_messaging": {
+          "type": "boolean",
+          "description": "If the user has enabled push messaging.",
+          "nullable": true
+        }
+      }
+    },
+    "visitor": {
+      "type": "object",
+      "properties": {
+        "anonymous": {
+          "type": "boolean",
+          "description": "Identifies if this visitor is anonymous."
+        },
+        "app_id": {
+          "type": "string",
+          "description": "The id of the app the visitor is associated with."
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "companies": {
+          "type": "object"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "The time the Visitor was added to Intercom."
+        },
+        "custom_attributes": {
+          "type": "object",
+          "description": "The custom attributes you have set on the Visitor."
+        },
+        "do_not_track": {
+          "type": "boolean",
+          "description": "Identifies if this visitor has do not track enabled.",
+          "nullable": true
+        },
+        "email": {
+          "type": "string",
+          "description": "The email of the visitor."
+        },
+        "has_hard_bounced": {
+          "type": "boolean",
+          "description": "Identifies if this visitor has had a hard bounce."
+        },
+        "id": {
+          "type": "string",
+          "description": "The Intercom defined id representing the Visitor."
+        },
+        "las_request_at": {
+          "type": "integer",
+          "description": "The time the Lead last recorded making a request."
+        },
+        "location_data": {
+          "type": "object"
+        },
+        "marked_email_as_spam": {
+          "type": "boolean",
+          "description": "Identifies if this visitor has marked an email as spam."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the visitor.",
+          "nullable": true
+        },
+        "owner_id": {
+          "type": "string",
+          "description": "The id of the admin that owns the Visitor.",
+          "nullable": true
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the visitor.",
+          "nullable": true
+        },
+        "pseudonym": {
+          "type": "string",
+          "description": "The pseudonym of the visitor.",
+          "nullable": true
+        },
+        "referrer": {
+          "type": "string",
+          "description": "The referer of the visitor.",
+          "nullable": true
+        },
+        "remote_created_at": {
+          "type": "integer",
+          "description": "The time the Visitor was added to Intercom."
+        },
+        "segments": {
+          "type": "object"
+        },
+        "session_count": {
+          "type": "integer",
+          "description": "The number of sessions the Visitor has had."
+        },
+        "signed_up_at": {
+          "type": "integer",
+          "description": "The time the Visitor signed up for your product."
+        },
+        "social_profiles": {
+          "type": "object"
+        },
+        "tags": {
+          "type": "object"
+        },
+        "type": {
+          "type": "string",
+          "description": "Value is 'visitor'"
+        },
+        "unsubscribed_from_emails": {
+          "type": "boolean",
+          "description": "Whether the Visitor is unsubscribed from emails."
+        },
+        "updated_at": {
+          "type": "integer",
+          "description": "The last time the Visitor was updated."
+        },
+        "user_id": {
+          "type": "string",
+          "description": "Automatically generated identifier for the Visitor."
+        },
+        "utm_campaign": {
+          "type": "string",
+          "description": "The utm_campaign of the visitor.",
+          "nullable": true
+        },
+        "utm_content": {
+          "type": "string",
+          "description": "The utm_content of the visitor.",
+          "nullable": true
+        },
+        "utm_medium": {
+          "type": "string",
+          "description": "The utm_medium of the visitor.",
+          "nullable": true
+        },
+        "utm_source": {
+          "type": "string",
+          "description": "The utm_source of the visitor.",
+          "nullable": true
+        },
+        "utm_term": {
+          "type": "string",
+          "description": "The utm_term of the visitor.",
+          "nullable": true
+        }
+      }
+    },
+    "workflow_export": {
+      "type": "object",
+      "properties": {
+        "app_id": {
+          "type": "integer",
+          "description": "The workspace identifier."
+        },
+        "export_version": {
+          "type": "string",
+          "description": "The version of the export format."
+        },
+        "exported_at": {
+          "type": "string",
+          "description": "The timestamp when the export was generated."
+        },
+        "workflow": {
+          "type": "object",
+          "description": "The workflow configuration."
         }
       }
     }

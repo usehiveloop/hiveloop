@@ -2726,6 +2726,19 @@ definitions:
       user_id:
         type: string
     type: object
+  internal_handler.triggerSummary:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      key:
+        type: string
+      payload_schema:
+        type: string
+      resource_type:
+        type: string
+    type: object
   internal_handler.updateAgentRequest:
     properties:
       agent_config:
@@ -6217,6 +6230,31 @@ paths:
           schema:
             $ref: '#/definitions/internal_handler.errorResponse'
       summary: List actions for an integration
+      tags:
+      - integrations
+  /v1/catalog/integrations/{id}/triggers:
+    get:
+      description: Returns all webhook event triggers for a single integration.
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.triggerSummary'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: List triggers for an integration
       tags:
       - integrations
   /v1/connect/sessions:

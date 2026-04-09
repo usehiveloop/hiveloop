@@ -1,0 +1,314 @@
+{
+  "display_name": "Jira",
+  "triggers": {
+    "jira:issue_created": {
+      "display_name": "Issue Created",
+      "description": "Triggered when a new issue is created in a Jira project",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "jira:issue_updated": {
+      "display_name": "Issue Updated",
+      "description": "Triggered when an issue is updated (status, assignee, priority, summary, description, custom fields, etc.)",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "jira:issue_deleted": {
+      "display_name": "Issue Deleted",
+      "description": "Triggered when an issue is deleted from a project",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "comment_created": {
+      "display_name": "Comment Created",
+      "description": "Triggered when a new comment is added to an issue",
+      "resource_type": "comment",
+      "payload_schema": "jira_comment_event"
+    },
+    "comment_updated": {
+      "display_name": "Comment Updated",
+      "description": "Triggered when a comment on an issue is edited",
+      "resource_type": "comment",
+      "payload_schema": "jira_comment_event"
+    },
+    "comment_deleted": {
+      "display_name": "Comment Deleted",
+      "description": "Triggered when a comment is deleted from an issue",
+      "resource_type": "comment",
+      "payload_schema": "jira_comment_event"
+    },
+    "sprint_created": {
+      "display_name": "Sprint Created",
+      "description": "Triggered when a new sprint is created in a board",
+      "resource_type": "sprint",
+      "payload_schema": "jira_sprint_event"
+    },
+    "sprint_updated": {
+      "display_name": "Sprint Updated",
+      "description": "Triggered when a sprint is updated (name, dates, goal, etc.)",
+      "resource_type": "sprint",
+      "payload_schema": "jira_sprint_event"
+    },
+    "sprint_started": {
+      "display_name": "Sprint Started",
+      "description": "Triggered when a sprint is started",
+      "resource_type": "sprint",
+      "payload_schema": "jira_sprint_event"
+    },
+    "sprint_closed": {
+      "display_name": "Sprint Closed",
+      "description": "Triggered when a sprint is completed and closed",
+      "resource_type": "sprint",
+      "payload_schema": "jira_sprint_event"
+    },
+    "sprint_deleted": {
+      "display_name": "Sprint Deleted",
+      "description": "Triggered when a sprint is deleted",
+      "resource_type": "sprint",
+      "payload_schema": "jira_sprint_event"
+    },
+    "board_created": {
+      "display_name": "Board Created",
+      "description": "Triggered when a new board is created",
+      "resource_type": "board",
+      "payload_schema": "jira_board_event"
+    },
+    "board_updated": {
+      "display_name": "Board Updated",
+      "description": "Triggered when a board configuration is updated",
+      "resource_type": "board",
+      "payload_schema": "jira_board_event"
+    },
+    "board_deleted": {
+      "display_name": "Board Deleted",
+      "description": "Triggered when a board is deleted",
+      "resource_type": "board",
+      "payload_schema": "jira_board_event"
+    },
+    "project_created": {
+      "display_name": "Project Created",
+      "description": "Triggered when a new project is created in Jira",
+      "resource_type": "project",
+      "payload_schema": "jira_project_event"
+    },
+    "project_updated": {
+      "display_name": "Project Updated",
+      "description": "Triggered when a project is updated (name, lead, description, etc.)",
+      "resource_type": "project",
+      "payload_schema": "jira_project_event"
+    },
+    "project_deleted": {
+      "display_name": "Project Deleted",
+      "description": "Triggered when a project is deleted from Jira",
+      "resource_type": "project",
+      "payload_schema": "jira_project_event"
+    },
+    "jira:version_created": {
+      "display_name": "Version Created",
+      "description": "Triggered when a new version (fix version) is created in a project",
+      "resource_type": "version",
+      "payload_schema": "jira_version_event"
+    },
+    "jira:version_updated": {
+      "display_name": "Version Updated",
+      "description": "Triggered when a version is updated (name, dates, description, etc.)",
+      "resource_type": "version",
+      "payload_schema": "jira_version_event"
+    },
+    "jira:version_released": {
+      "display_name": "Version Released",
+      "description": "Triggered when a version is marked as released",
+      "resource_type": "version",
+      "payload_schema": "jira_version_event"
+    },
+    "jira:version_deleted": {
+      "display_name": "Version Deleted",
+      "description": "Triggered when a version is deleted from a project",
+      "resource_type": "version",
+      "payload_schema": "jira_version_event"
+    },
+    "worklog_created": {
+      "display_name": "Worklog Created",
+      "description": "Triggered when a new worklog entry is added to an issue",
+      "resource_type": "issue",
+      "payload_schema": "jira_worklog_event"
+    },
+    "worklog_updated": {
+      "display_name": "Worklog Updated",
+      "description": "Triggered when a worklog entry on an issue is edited",
+      "resource_type": "issue",
+      "payload_schema": "jira_worklog_event"
+    },
+    "worklog_deleted": {
+      "display_name": "Worklog Deleted",
+      "description": "Triggered when a worklog entry is deleted from an issue",
+      "resource_type": "issue",
+      "payload_schema": "jira_worklog_event"
+    },
+    "attachment_created": {
+      "display_name": "Attachment Created",
+      "description": "Triggered when a file is attached to an issue",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "attachment_deleted": {
+      "display_name": "Attachment Deleted",
+      "description": "Triggered when an attachment is removed from an issue",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "issuelink_created": {
+      "display_name": "Issue Link Created",
+      "description": "Triggered when a link is created between two issues",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    },
+    "issuelink_deleted": {
+      "display_name": "Issue Link Deleted",
+      "description": "Triggered when a link between two issues is removed",
+      "resource_type": "issue",
+      "payload_schema": "jira_issue_event"
+    }
+  },
+  "schemas": {
+    "jira_issue_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. jira:issue_created, jira:issue_updated)"
+        },
+        "issue_event_type_name": {
+          "type": "string",
+          "description": "More specific event type name (e.g. issue_created, issue_generic, issue_assigned, issue_updated)"
+        },
+        "issue": {
+          "type": "object",
+          "description": "The full issue object including id, key, self (API URL), and fields (summary, description, status, priority, assignee, reporter, issuetype, project, created, updated, resolution, labels, components, fixVersions, attachment, comment)"
+        },
+        "user": {
+          "type": "object",
+          "description": "The user who performed the action. Contains accountId, displayName, emailAddress, avatarUrls, active, and timeZone"
+        },
+        "changelog": {
+          "type": "object",
+          "description": "The changelog for update events. Contains id and items array where each item has field, fieldtype, fieldId, from, fromString, to, and toString describing what changed"
+        }
+      }
+    },
+    "jira_comment_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. comment_created, comment_updated, comment_deleted)"
+        },
+        "comment": {
+          "type": "object",
+          "description": "The comment object including id, self (API URL), body (in Atlassian Document Format), author, updateAuthor, created, and updated"
+        },
+        "issue": {
+          "type": "object",
+          "description": "The issue the comment belongs to, including id, key, self, and fields"
+        }
+      }
+    },
+    "jira_sprint_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. sprint_created, sprint_started, sprint_closed)"
+        },
+        "sprint": {
+          "type": "object",
+          "description": "The sprint object including id, self (API URL), state (future, active, closed), name, startDate, endDate, completeDate, goal, and originBoardId"
+        }
+      }
+    },
+    "jira_board_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. board_created, board_updated, board_deleted)"
+        },
+        "board": {
+          "type": "object",
+          "description": "The board object including id, self (API URL), name, and type (scrum or kanban)"
+        }
+      }
+    },
+    "jira_project_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. project_created, project_updated, project_deleted)"
+        },
+        "project": {
+          "type": "object",
+          "description": "The project object including id, key, self (API URL), name, description, lead, projectTypeKey, and avatarUrls"
+        }
+      }
+    },
+    "jira_version_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. jira:version_created, jira:version_released)"
+        },
+        "version": {
+          "type": "object",
+          "description": "The version object including id, self (API URL), name, description, released (boolean), releaseDate, startDate, archived (boolean), and projectId"
+        }
+      }
+    },
+    "jira_worklog_event": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "webhookEvent": {
+          "type": "string",
+          "description": "The event type identifier (e.g. worklog_created, worklog_updated, worklog_deleted)"
+        },
+        "worklog": {
+          "type": "object",
+          "description": "The worklog object including id, self (API URL), author, updateAuthor, timeSpent, timeSpentSeconds, started, created, updated, and issueId"
+        },
+        "issue": {
+          "type": "object",
+          "description": "The issue the worklog belongs to, including id, key, self, and fields"
+        }
+      }
+    }
+  }
+}

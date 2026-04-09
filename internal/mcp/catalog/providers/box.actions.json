@@ -1103,7 +1103,8 @@
           "mode": "mode",
           "model": "model"
         }
-      }
+      },
+      "response_schema": "AiAgent"
     },
     "get_ai_agents": {
       "display_name": "List AI agents",
@@ -1150,7 +1151,8 @@
           "marker": "marker",
           "mode": "mode"
         }
-      }
+      },
+      "response_schema": "AiMultipleAgentResponse"
     },
     "get_ai_agents_id": {
       "display_name": "Get AI agent by agent ID",
@@ -1179,7 +1181,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "AiSingleAgentResponse--Full"
     },
     "get_authorize": {
       "display_name": "Authorize user",
@@ -1248,7 +1251,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "CollaborationAllowlistEntries"
     },
     "get_collaboration_whitelist_entries_id": {
       "display_name": "Get allowed collaboration domain",
@@ -1270,7 +1274,8 @@
       "execution": {
         "method": "GET",
         "path": "/collaboration_whitelist_entries/{collaboration_whitelist_entry_id}"
-      }
+      },
+      "response_schema": "CollaborationAllowlistEntry"
     },
     "get_collaboration_whitelist_exempt_targets": {
       "display_name": "List users exempt from collaboration domain restrictions",
@@ -1297,7 +1302,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "CollaborationAllowlistExemptTargets"
     },
     "get_collaboration_whitelist_exempt_targets_id": {
       "display_name": "Get user exempt from collaboration domain restrictions",
@@ -1319,7 +1325,8 @@
       "execution": {
         "method": "GET",
         "path": "/collaboration_whitelist_exempt_targets/{collaboration_whitelist_exempt_target_id}"
-      }
+      },
+      "response_schema": "CollaborationAllowlistExemptTarget"
     },
     "get_collaborations": {
       "display_name": "List pending collaborations",
@@ -1356,7 +1363,8 @@
           "offset": "offset",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "CollaborationsOffsetPaginated"
     },
     "get_collaborations_id": {
       "display_name": "Get collaboration",
@@ -1385,7 +1393,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Collaboration"
     },
     "get_collections": {
       "display_name": "List all collections",
@@ -1417,7 +1426,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "Collections"
     },
     "get_collections_id": {
       "display_name": "Get collection by ID",
@@ -1439,7 +1449,8 @@
       "execution": {
         "method": "GET",
         "path": "/collections/{collection_id}"
-      }
+      },
+      "response_schema": "Collection"
     },
     "get_collections_id_items": {
       "display_name": "List collection items",
@@ -1478,7 +1489,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "ItemsOffsetPaginated"
     },
     "get_comments_id": {
       "display_name": "Get comment",
@@ -1507,7 +1519,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Comment--Full"
     },
     "get_device_pinners_id": {
       "display_name": "Get device pin",
@@ -1529,7 +1542,8 @@
       "execution": {
         "method": "GET",
         "path": "/device_pinners/{device_pinner_id}"
-      }
+      },
+      "response_schema": "DevicePinner"
     },
     "get_enterprises_id_device_pinners": {
       "display_name": "List enterprise device pins",
@@ -1569,7 +1583,8 @@
           "marker": "marker"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "DevicePinners"
     },
     "get_events": {
       "display_name": "List user and enterprise events",
@@ -1617,7 +1632,8 @@
           "stream_type": "stream_type"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "Events"
     },
     "get_file_requests_id": {
       "display_name": "Get file request",
@@ -1639,7 +1655,8 @@
       "execution": {
         "method": "GET",
         "path": "/file_requests/{file_request_id}"
-      }
+      },
+      "response_schema": "FileRequest"
     },
     "get_file_version_legal_holds": {
       "display_name": "List file version legal holds",
@@ -1671,7 +1688,8 @@
           "marker": "marker",
           "policy_id": "policy_id"
         }
-      }
+      },
+      "response_schema": "FileVersionLegalHolds"
     },
     "get_file_version_legal_holds_id": {
       "display_name": "Get file version legal hold",
@@ -1693,7 +1711,8 @@
       "execution": {
         "method": "GET",
         "path": "/file_version_legal_holds/{file_version_legal_hold_id}"
-      }
+      },
+      "response_schema": "FileVersionLegalHold"
     },
     "get_file_version_retentions": {
       "display_name": "List file version retentions",
@@ -1750,7 +1769,8 @@
           "marker": "marker",
           "policy_id": "policy_id"
         }
-      }
+      },
+      "response_schema": "FileVersionRetentions"
     },
     "get_file_version_retentions_id": {
       "display_name": "Get retention on file",
@@ -1772,7 +1792,8 @@
       "execution": {
         "method": "GET",
         "path": "/file_version_retentions/{file_version_retention_id}"
-      }
+      },
+      "response_schema": "FileVersionRetention"
     },
     "get_files_id": {
       "display_name": "Get file information",
@@ -1813,7 +1834,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "get_files_id_app_item_associations": {
       "display_name": "List file app item associations",
@@ -1852,7 +1874,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "AppItemAssociations"
     },
     "get_files_id_collaborations": {
       "display_name": "List file collaborations",
@@ -1891,7 +1914,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "Collaborations"
     },
     "get_files_id_comments": {
       "display_name": "List file comments",
@@ -1930,7 +1954,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "Comments"
     },
     "get_files_id_content": {
       "display_name": "Download file",
@@ -2001,7 +2026,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "get_files_id_metadata": {
       "display_name": "List metadata instances on file",
@@ -2031,7 +2057,8 @@
           "view": "view"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "Metadatas"
     },
     "get_files_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Get classification on file",
@@ -2053,7 +2080,8 @@
       "execution": {
         "method": "GET",
         "path": "/files/{file_id}/metadata/enterprise/securityClassification-6VMVochwUWo"
-      }
+      },
+      "response_schema": "Classification"
     },
     "get_files_id_metadata_global_box_skills_cards": {
       "display_name": "List Box Skill cards on file",
@@ -2075,7 +2103,8 @@
       "execution": {
         "method": "GET",
         "path": "/files/{file_id}/metadata/global/boxSkillsCards"
-      }
+      },
+      "response_schema": "SkillCardsMetadata"
     },
     "get_files_id_metadata_id_id": {
       "display_name": "Get metadata instance on file",
@@ -2114,7 +2143,8 @@
         "query_mapping": {
           "view": "view"
         }
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "get_files_id_tasks": {
       "display_name": "List tasks on file",
@@ -2137,7 +2167,8 @@
         "method": "GET",
         "path": "/files/{file_id}/tasks",
         "response_path": "entries"
-      }
+      },
+      "response_schema": "Tasks"
     },
     "get_files_id_thumbnail_id": {
       "display_name": "Get file thumbnail",
@@ -2215,7 +2246,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashFile"
     },
     "get_files_id_versions": {
       "display_name": "List all file versions",
@@ -2254,7 +2286,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "FileVersions"
     },
     "get_files_id_versions_id": {
       "display_name": "Get file version",
@@ -2288,7 +2321,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "FileVersion--Full"
     },
     "get_files_id_watermark": {
       "display_name": "Get watermark on file",
@@ -2310,7 +2344,8 @@
       "execution": {
         "method": "GET",
         "path": "/files/{file_id}/watermark"
-      }
+      },
+      "response_schema": "Watermark"
     },
     "get_files_upload_sessions_id": {
       "display_name": "Get upload session",
@@ -2332,7 +2367,8 @@
       "execution": {
         "method": "GET",
         "path": "/files/upload_sessions/{upload_session_id}"
-      }
+      },
+      "response_schema": "UploadSession"
     },
     "get_files_upload_sessions_id_parts": {
       "display_name": "List parts",
@@ -2366,7 +2402,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "UploadParts"
     },
     "get_folder_locks": {
       "display_name": "List folder locks",
@@ -2389,7 +2426,8 @@
           "folder_id": "folder_id"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "FolderLocks"
     },
     "get_folders_id": {
       "display_name": "Get folder information",
@@ -2446,7 +2484,8 @@
           "offset": "offset",
           "sort": "sort"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "get_folders_id_app_item_associations": {
       "display_name": "List folder app item associations",
@@ -2485,7 +2524,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "AppItemAssociations"
     },
     "get_folders_id_collaborations": {
       "display_name": "List folder collaborations",
@@ -2524,7 +2564,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "Collaborations"
     },
     "get_folders_id_get_shared_link": {
       "display_name": "Get shared link for folder",
@@ -2553,7 +2594,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "get_folders_id_items": {
       "display_name": "List items in folder",
@@ -2616,7 +2658,8 @@
           "sort": "sort",
           "usemarker": "usemarker"
         }
-      }
+      },
+      "response_schema": "Items"
     },
     "get_folders_id_metadata": {
       "display_name": "List metadata instances on folder",
@@ -2646,7 +2689,8 @@
           "view": "view"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "Metadatas"
     },
     "get_folders_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Get classification on folder",
@@ -2668,7 +2712,8 @@
       "execution": {
         "method": "GET",
         "path": "/folders/{folder_id}/metadata/enterprise/securityClassification-6VMVochwUWo"
-      }
+      },
+      "response_schema": "Classification"
     },
     "get_folders_id_metadata_id_id": {
       "display_name": "Get metadata instance on folder",
@@ -2700,7 +2745,8 @@
       "execution": {
         "method": "GET",
         "path": "/folders/{folder_id}/metadata/{scope}/{template_key}"
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "get_folders_id_trash": {
       "display_name": "Get trashed folder",
@@ -2729,7 +2775,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashFolder"
     },
     "get_folders_id_watermark": {
       "display_name": "Get watermark for folder",
@@ -2751,7 +2798,8 @@
       "execution": {
         "method": "GET",
         "path": "/folders/{folder_id}/watermark"
-      }
+      },
+      "response_schema": "Watermark"
     },
     "get_folders_trash_items": {
       "display_name": "List trashed items",
@@ -2803,7 +2851,8 @@
           "sort": "sort",
           "usemarker": "usemarker"
         }
-      }
+      },
+      "response_schema": "Items"
     },
     "get_group_memberships_id": {
       "display_name": "Get group membership",
@@ -2832,7 +2881,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "GroupMembership"
     },
     "get_groups": {
       "display_name": "List groups for enterprise",
@@ -2869,7 +2919,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "Groups"
     },
     "get_groups_id": {
       "display_name": "Get group",
@@ -2898,7 +2949,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Group--Full"
     },
     "get_groups_id_collaborations": {
       "display_name": "List group collaborations",
@@ -2932,7 +2984,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "CollaborationsOffsetPaginated"
     },
     "get_groups_id_memberships": {
       "display_name": "List members of group",
@@ -2966,7 +3019,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "GroupMemberships"
     },
     "get_integration_mappings_slack": {
       "display_name": "List Slack integration mappings",
@@ -3018,7 +3072,8 @@
           "partner_item_id": "partner_item_id",
           "partner_item_type": "partner_item_type"
         }
-      }
+      },
+      "response_schema": "IntegrationMappings"
     },
     "get_integration_mappings_teams": {
       "display_name": "List Teams integration mappings",
@@ -3055,7 +3110,8 @@
           "partner_item_id": "partner_item_id",
           "partner_item_type": "partner_item_type"
         }
-      }
+      },
+      "response_schema": "IntegrationMappingsTeams"
     },
     "get_invites_id": {
       "display_name": "Get user invite status",
@@ -3084,7 +3140,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Invite"
     },
     "get_legal_hold_policies": {
       "display_name": "List all legal hold policies",
@@ -3121,7 +3178,8 @@
           "marker": "marker",
           "policy_name": "policy_name"
         }
-      }
+      },
+      "response_schema": "LegalHoldPolicies"
     },
     "get_legal_hold_policies_id": {
       "display_name": "Get legal hold policy",
@@ -3143,7 +3201,8 @@
       "execution": {
         "method": "GET",
         "path": "/legal_hold_policies/{legal_hold_policy_id}"
-      }
+      },
+      "response_schema": "LegalHoldPolicy"
     },
     "get_legal_hold_policy_assignments": {
       "display_name": "List legal hold policy assignments",
@@ -3190,7 +3249,8 @@
           "marker": "marker",
           "policy_id": "policy_id"
         }
-      }
+      },
+      "response_schema": "LegalHoldPolicyAssignments"
     },
     "get_legal_hold_policy_assignments_id": {
       "display_name": "Get legal hold policy assignment",
@@ -3212,7 +3272,8 @@
       "execution": {
         "method": "GET",
         "path": "/legal_hold_policy_assignments/{legal_hold_policy_assignment_id}"
-      }
+      },
+      "response_schema": "LegalHoldPolicyAssignment"
     },
     "get_legal_hold_policy_assignments_id_file_versions_on_hold": {
       "display_name": "List previous file versions for legal hold policy assignment",
@@ -3251,7 +3312,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "FileVersionsOnHold"
     },
     "get_legal_hold_policy_assignments_id_files_on_hold": {
       "display_name": "List files with current file versions for legal hold policy assignment",
@@ -3290,7 +3352,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "FilesOnHold"
     },
     "get_metadata_cascade_policies": {
       "display_name": "List metadata cascade policies",
@@ -3327,7 +3390,8 @@
           "offset": "offset",
           "owner_enterprise_id": "owner_enterprise_id"
         }
-      }
+      },
+      "response_schema": "MetadataCascadePolicies"
     },
     "get_metadata_cascade_policies_id": {
       "display_name": "Get metadata cascade policy",
@@ -3349,7 +3413,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_cascade_policies/{metadata_cascade_policy_id}"
-      }
+      },
+      "response_schema": "MetadataCascadePolicy"
     },
     "get_metadata_taxonomies_id": {
       "display_name": "Get metadata taxonomies for namespace",
@@ -3383,7 +3448,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomies"
     },
     "get_metadata_taxonomies_id_id": {
       "display_name": "Get metadata taxonomy by taxonomy key",
@@ -3410,7 +3476,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_taxonomies/{namespace}/{taxonomy_key}"
-      }
+      },
+      "response_schema": "MetadataTaxonomy"
     },
     "get_metadata_taxonomies_id_id_nodes": {
       "display_name": "List metadata taxonomy nodes",
@@ -3474,7 +3541,8 @@
           "parent": "parent",
           "query": "query"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyNodes"
     },
     "get_metadata_taxonomies_id_id_nodes_id": {
       "display_name": "Get metadata taxonomy node by ID",
@@ -3506,7 +3574,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_taxonomies/{namespace}/{taxonomy_key}/nodes/{node_id}"
-      }
+      },
+      "response_schema": "MetadataTaxonomyNode"
     },
     "get_metadata_templates": {
       "display_name": "Find metadata template by instance ID",
@@ -3538,7 +3607,8 @@
           "marker": "marker",
           "metadata_instance_id": "metadata_instance_id"
         }
-      }
+      },
+      "response_schema": "MetadataTemplates"
     },
     "get_metadata_templates_enterprise": {
       "display_name": "List all metadata templates for enterprise",
@@ -3565,7 +3635,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "MetadataTemplates"
     },
     "get_metadata_templates_enterprise_security_classification_6_vm_vochw_u_wo_schema": {
       "display_name": "List all classifications",
@@ -3579,7 +3650,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_templates/enterprise/securityClassification-6VMVochwUWo/schema"
-      }
+      },
+      "response_schema": "ClassificationTemplate"
     },
     "get_metadata_templates_global": {
       "display_name": "List all global metadata templates",
@@ -3606,7 +3678,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "MetadataTemplates"
     },
     "get_metadata_templates_id": {
       "display_name": "Get metadata template by ID",
@@ -3628,7 +3701,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_templates/{template_id}"
-      }
+      },
+      "response_schema": "MetadataTemplate"
     },
     "get_metadata_templates_id_id_fields_id_options": {
       "display_name": "List metadata template's options for taxonomy field",
@@ -3702,7 +3776,8 @@
           "parent": "parent",
           "query": "query"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyNodes"
     },
     "get_metadata_templates_id_id_schema": {
       "display_name": "Get metadata template by name",
@@ -3729,7 +3804,8 @@
       "execution": {
         "method": "GET",
         "path": "/metadata_templates/{scope}/{template_key}/schema"
-      }
+      },
+      "response_schema": "MetadataTemplate"
     },
     "get_recent_items": {
       "display_name": "List recently accessed items",
@@ -3761,7 +3837,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "RecentItems"
     },
     "get_retention_policies": {
       "display_name": "List retention policies",
@@ -3808,7 +3885,8 @@
           "policy_name": "policy_name",
           "policy_type": "policy_type"
         }
-      }
+      },
+      "response_schema": "RetentionPolicies"
     },
     "get_retention_policies_id": {
       "display_name": "Get retention policy",
@@ -3837,7 +3915,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "RetentionPolicy"
     },
     "get_retention_policies_id_assignments": {
       "display_name": "List retention policy assignments",
@@ -3881,7 +3960,8 @@
           "marker": "marker",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "RetentionPolicyAssignments"
     },
     "get_retention_policy_assignments_id": {
       "display_name": "Get retention policy assignment",
@@ -3910,7 +3990,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "RetentionPolicyAssignment"
     },
     "get_retention_policy_assignments_id_file_versions_under_retention": {
       "display_name": "Get file versions under retention",
@@ -3944,7 +4025,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "FilesUnderRetention"
     },
     "get_retention_policy_assignments_id_files_under_retention": {
       "display_name": "Get files under retention",
@@ -3978,7 +4060,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "FilesUnderRetention"
     },
     "get_search": {
       "display_name": "Search for content",
@@ -4100,7 +4183,8 @@
           "type": "type",
           "updated_at_range": "updated_at_range"
         }
-      }
+      },
+      "response_schema": "SearchResultsResponse"
     },
     "get_shared_items": {
       "display_name": "Find file for shared link",
@@ -4130,7 +4214,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "get_shared_items_app_items": {
       "display_name": "Find app item for shared link",
@@ -4149,7 +4234,8 @@
       "execution": {
         "method": "GET",
         "path": "/shared_items#app_items"
-      }
+      },
+      "response_schema": "AppItem"
     },
     "get_shared_items_folders": {
       "display_name": "Find folder for shared link",
@@ -4179,7 +4265,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "get_shared_items_web_links": {
       "display_name": "Find web link for shared link",
@@ -4209,7 +4296,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "get_shield_information_barrier_reports": {
       "display_name": "List shield information barrier reports",
@@ -4241,7 +4329,8 @@
           "marker": "marker",
           "shield_information_barrier_id": "shield_information_barrier_id"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierReports"
     },
     "get_shield_information_barrier_reports_id": {
       "display_name": "Get shield information barrier report by ID",
@@ -4263,7 +4352,8 @@
       "execution": {
         "method": "GET",
         "path": "/shield_information_barrier_reports/{shield_information_barrier_report_id}"
-      }
+      },
+      "response_schema": "ShieldInformationBarrierReport"
     },
     "get_shield_information_barrier_segment_members": {
       "display_name": "List shield information barrier segment members",
@@ -4295,7 +4385,8 @@
           "marker": "marker",
           "shield_information_barrier_segment_id": "shield_information_barrier_segment_id"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentMembers"
     },
     "get_shield_information_barrier_segment_members_id": {
       "display_name": "Get shield information barrier segment member by ID",
@@ -4317,7 +4408,8 @@
       "execution": {
         "method": "GET",
         "path": "/shield_information_barrier_segment_members/{shield_information_barrier_segment_member_id}"
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentMember"
     },
     "get_shield_information_barrier_segment_restrictions": {
       "display_name": "List shield information barrier segment restrictions",
@@ -4349,7 +4441,8 @@
           "marker": "marker",
           "shield_information_barrier_segment_id": "shield_information_barrier_segment_id"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentRestrictions"
     },
     "get_shield_information_barrier_segment_restrictions_id": {
       "display_name": "Get shield information barrier segment restriction by ID",
@@ -4371,7 +4464,8 @@
       "execution": {
         "method": "GET",
         "path": "/shield_information_barrier_segment_restrictions/{shield_information_barrier_segment_restriction_id}"
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentRestriction"
     },
     "get_shield_information_barrier_segments": {
       "display_name": "List shield information barrier segments",
@@ -4403,7 +4497,8 @@
           "marker": "marker",
           "shield_information_barrier_id": "shield_information_barrier_id"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegments"
     },
     "get_shield_information_barrier_segments_id": {
       "display_name": "Get shield information barrier segment with specified ID",
@@ -4425,7 +4520,8 @@
       "execution": {
         "method": "GET",
         "path": "/shield_information_barrier_segments/{shield_information_barrier_segment_id}"
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegment"
     },
     "get_shield_information_barriers": {
       "display_name": "List shield information barriers",
@@ -4452,7 +4548,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarriers"
     },
     "get_shield_information_barriers_id": {
       "display_name": "Get shield information barrier with specified ID",
@@ -4474,7 +4571,8 @@
       "execution": {
         "method": "GET",
         "path": "/shield_information_barriers/{shield_information_barrier_id}"
-      }
+      },
+      "response_schema": "ShieldInformationBarrier"
     },
     "get_sign_requests": {
       "display_name": "List Box Sign requests",
@@ -4511,7 +4609,8 @@
           "senders": "senders",
           "shared_requests": "shared_requests"
         }
-      }
+      },
+      "response_schema": "SignRequests"
     },
     "get_sign_requests_id": {
       "display_name": "Get Box Sign request by ID",
@@ -4533,7 +4632,8 @@
       "execution": {
         "method": "GET",
         "path": "/sign_requests/{sign_request_id}"
-      }
+      },
+      "response_schema": "SignRequest"
     },
     "get_sign_templates": {
       "display_name": "List Box Sign templates",
@@ -4560,7 +4660,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "SignTemplates"
     },
     "get_sign_templates_id": {
       "display_name": "Get Box Sign template by ID",
@@ -4582,7 +4683,8 @@
       "execution": {
         "method": "GET",
         "path": "/sign_templates/{template_id}"
-      }
+      },
+      "response_schema": "SignTemplate"
     },
     "get_storage_policies": {
       "display_name": "List storage policies",
@@ -4614,7 +4716,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "StoragePolicies"
     },
     "get_storage_policies_id": {
       "display_name": "Get storage policy",
@@ -4636,7 +4739,8 @@
       "execution": {
         "method": "GET",
         "path": "/storage_policies/{storage_policy_id}"
-      }
+      },
+      "response_schema": "StoragePolicy"
     },
     "get_storage_policy_assignments": {
       "display_name": "List storage policy assignments",
@@ -4668,7 +4772,8 @@
           "resolved_for_id": "resolved_for_id",
           "resolved_for_type": "resolved_for_type"
         }
-      }
+      },
+      "response_schema": "StoragePolicyAssignments"
     },
     "get_storage_policy_assignments_id": {
       "display_name": "Get storage policy assignment",
@@ -4690,7 +4795,8 @@
       "execution": {
         "method": "GET",
         "path": "/storage_policy_assignments/{storage_policy_assignment_id}"
-      }
+      },
+      "response_schema": "StoragePolicyAssignment"
     },
     "get_task_assignments_id": {
       "display_name": "Get task assignment",
@@ -4712,7 +4818,8 @@
       "execution": {
         "method": "GET",
         "path": "/task_assignments/{task_assignment_id}"
-      }
+      },
+      "response_schema": "TaskAssignment"
     },
     "get_tasks_id": {
       "display_name": "Get task",
@@ -4734,7 +4841,8 @@
       "execution": {
         "method": "GET",
         "path": "/tasks/{task_id}"
-      }
+      },
+      "response_schema": "Task"
     },
     "get_tasks_id_assignments": {
       "display_name": "List task assignments",
@@ -4757,7 +4865,8 @@
         "method": "GET",
         "path": "/tasks/{task_id}/assignments",
         "response_path": "entries"
-      }
+      },
+      "response_schema": "TaskAssignments"
     },
     "get_terms_of_service_user_statuses": {
       "display_name": "List terms of service user statuses",
@@ -4785,7 +4894,8 @@
           "user_id": "user_id"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "TermsOfServiceUserStatuses"
     },
     "get_terms_of_services": {
       "display_name": "List terms of services",
@@ -4808,7 +4918,8 @@
           "tos_type": "tos_type"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "TermsOfServices"
     },
     "get_terms_of_services_id": {
       "display_name": "Get terms of service",
@@ -4830,7 +4941,8 @@
       "execution": {
         "method": "GET",
         "path": "/terms_of_services/{terms_of_service_id}"
-      }
+      },
+      "response_schema": "TermsOfService"
     },
     "get_users": {
       "display_name": "List enterprise users",
@@ -4887,7 +4999,8 @@
           "usemarker": "usemarker",
           "user_type": "user_type"
         }
-      }
+      },
+      "response_schema": "Users"
     },
     "get_users_id": {
       "display_name": "Get user",
@@ -4916,7 +5029,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "User--Full"
     },
     "get_users_id_avatar": {
       "display_name": "Get user avatar",
@@ -4961,7 +5075,8 @@
         "method": "GET",
         "path": "/users/{user_id}/email_aliases",
         "response_path": "entries"
-      }
+      },
+      "response_schema": "EmailAliases"
     },
     "get_users_id_memberships": {
       "display_name": "List user's groups",
@@ -4995,7 +5110,8 @@
           "limit": "limit",
           "offset": "offset"
         }
-      }
+      },
+      "response_schema": "GroupMemberships"
     },
     "get_users_me": {
       "display_name": "Get current user",
@@ -5017,7 +5133,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "User--Full"
     },
     "get_web_links_id": {
       "display_name": "Get web link",
@@ -5043,7 +5160,8 @@
       "execution": {
         "method": "GET",
         "path": "/web_links/{web_link_id}"
-      }
+      },
+      "response_schema": "WebLink"
     },
     "get_web_links_id_get_shared_link": {
       "display_name": "Get shared link for web link",
@@ -5072,7 +5190,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "get_web_links_id_trash": {
       "display_name": "Get trashed web link",
@@ -5101,7 +5220,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashWebLink"
     },
     "get_webhooks": {
       "display_name": "List all webhooks",
@@ -5128,7 +5248,8 @@
           "limit": "limit",
           "marker": "marker"
         }
-      }
+      },
+      "response_schema": "Webhooks"
     },
     "get_webhooks_id": {
       "display_name": "Get webhook",
@@ -5150,7 +5271,8 @@
       "execution": {
         "method": "GET",
         "path": "/webhooks/{webhook_id}"
-      }
+      },
+      "response_schema": "Webhook"
     },
     "get_workflows": {
       "display_name": "List workflows",
@@ -5187,7 +5309,8 @@
           "marker": "marker",
           "trigger_type": "trigger_type"
         }
-      }
+      },
+      "response_schema": "Workflows"
     },
     "get_zip_downloads_id_content": {
       "display_name": "Download zip archive",
@@ -5231,7 +5354,8 @@
       "execution": {
         "method": "GET",
         "path": "/zip_downloads/{zip_download_id}/status"
-      }
+      },
+      "response_schema": "ZipDownloadStatus"
     },
     "patch_metadata_taxonomies_id_id": {
       "display_name": "Update metadata taxonomy",
@@ -5266,7 +5390,8 @@
         "body_mapping": {
           "displayName": "displayName"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomy"
     },
     "patch_metadata_taxonomies_id_id_levels_id": {
       "display_name": "Update metadata taxonomy level",
@@ -5311,7 +5436,8 @@
           "description": "description",
           "displayName": "displayName"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyLevel"
     },
     "patch_metadata_taxonomies_id_id_nodes_id": {
       "display_name": "Update metadata taxonomy node",
@@ -5350,7 +5476,8 @@
         "body_mapping": {
           "displayName": "displayName"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyNode"
     },
     "post_ai_agents": {
       "display_name": "Create AI agent",
@@ -5412,7 +5539,8 @@
           "text_gen": "text_gen",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "AiSingleAgentResponse--Full"
     },
     "post_ai_ask": {
       "display_name": "Ask question",
@@ -5463,7 +5591,8 @@
           "mode": "mode",
           "prompt": "prompt"
         }
-      }
+      },
+      "response_schema": "AiResponse--Full"
     },
     "post_ai_extract": {
       "display_name": "Extract metadata (freeform)",
@@ -5498,7 +5627,8 @@
           "items": "items",
           "prompt": "prompt"
         }
-      }
+      },
+      "response_schema": "AiResponse"
     },
     "post_ai_extract_structured": {
       "display_name": "Extract metadata (structured)",
@@ -5517,6 +5647,10 @@
           "include_confidence_score": {
             "type": "boolean",
             "description": "A flag to indicate whether confidence scores for every extracted field should be returned."
+          },
+          "include_reference": {
+            "type": "boolean",
+            "description": "A flag to indicate whether references for every extracted field should be returned."
           },
           "items": {
             "type": "array",
@@ -5539,10 +5673,12 @@
           "ai_agent": "ai_agent",
           "fields": "fields",
           "include_confidence_score": "include_confidence_score",
+          "include_reference": "include_reference",
           "items": "items",
           "metadata_template": "metadata_template"
         }
-      }
+      },
+      "response_schema": "AiExtractStructuredResponse"
     },
     "post_ai_text_gen": {
       "display_name": "Generate text",
@@ -5582,7 +5718,8 @@
           "items": "items",
           "prompt": "prompt"
         }
-      }
+      },
+      "response_schema": "AiResponse"
     },
     "post_collaboration_whitelist_entries": {
       "display_name": "Add domain to list of allowed collaboration domains",
@@ -5613,7 +5750,8 @@
           "direction": "direction",
           "domain": "domain"
         }
-      }
+      },
+      "response_schema": "CollaborationAllowlistEntry"
     },
     "post_collaboration_whitelist_exempt_targets": {
       "display_name": "Create user exemption from collaboration domain restrictions",
@@ -5638,7 +5776,8 @@
         "body_mapping": {
           "user": "user"
         }
-      }
+      },
+      "response_schema": "CollaborationAllowlistExemptTarget"
     },
     "post_collaborations": {
       "display_name": "Create collaboration",
@@ -5702,7 +5841,8 @@
           "fields": "fields",
           "notify": "notify"
         }
-      }
+      },
+      "response_schema": "Collaboration"
     },
     "post_comments": {
       "display_name": "Create comment",
@@ -5745,7 +5885,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Comment--Full"
     },
     "post_file_requests_id_copy": {
       "display_name": "Copy file request",
@@ -5767,7 +5908,8 @@
       "execution": {
         "method": "POST",
         "path": "/file_requests/{file_request_id}/copy"
-      }
+      },
+      "response_schema": "FileRequest"
     },
     "post_files_id": {
       "display_name": "Restore file",
@@ -5807,7 +5949,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashFileRestored"
     },
     "post_files_id_copy": {
       "display_name": "Copy file",
@@ -5854,7 +5997,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "post_files_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Add classification to file",
@@ -5883,7 +6027,8 @@
         "body_mapping": {
           "Box__Security__Classification__Key": "Box__Security__Classification__Key"
         }
-      }
+      },
+      "response_schema": "Classification"
     },
     "post_files_id_metadata_global_box_skills_cards": {
       "display_name": "Create Box Skill cards on file",
@@ -5913,7 +6058,8 @@
         "body_mapping": {
           "cards": "cards"
         }
-      }
+      },
+      "response_schema": "SkillCardsMetadata"
     },
     "post_files_id_metadata_id_id": {
       "display_name": "Create metadata instance on file",
@@ -5945,7 +6091,8 @@
       "execution": {
         "method": "POST",
         "path": "/files/{file_id}/metadata/{scope}/{template_key}"
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "post_files_id_upload_sessions": {
       "display_name": "Create upload session for existing file",
@@ -5980,7 +6127,8 @@
           "file_name": "file_name",
           "file_size": "file_size"
         }
-      }
+      },
+      "response_schema": "UploadSession"
     },
     "post_files_id_versions_current": {
       "display_name": "Promote file version",
@@ -6021,7 +6169,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "FileVersion--Full"
     },
     "post_files_upload_sessions": {
       "display_name": "Create upload session",
@@ -6058,7 +6207,8 @@
           "file_size": "file_size",
           "folder_id": "folder_id"
         }
-      }
+      },
+      "response_schema": "UploadSession"
     },
     "post_files_upload_sessions_id_commit": {
       "display_name": "Commit upload session",
@@ -6101,7 +6251,8 @@
           "parts": "parts"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "Files"
     },
     "post_folder_locks": {
       "display_name": "Create folder lock",
@@ -6131,7 +6282,8 @@
           "folder": "folder",
           "locked_operations": "locked_operations"
         }
-      }
+      },
+      "response_schema": "FolderLock"
     },
     "post_folders": {
       "display_name": "Create folder",
@@ -6178,7 +6330,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "post_folders_id": {
       "display_name": "Restore folder",
@@ -6218,7 +6371,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashFolderRestored"
     },
     "post_folders_id_copy": {
       "display_name": "Copy folder",
@@ -6260,7 +6414,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "post_folders_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Add classification to folder",
@@ -6289,7 +6444,8 @@
         "body_mapping": {
           "Box__Security__Classification__Key": "Box__Security__Classification__Key"
         }
-      }
+      },
+      "response_schema": "Classification"
     },
     "post_folders_id_metadata_id_id": {
       "display_name": "Create metadata instance on folder",
@@ -6321,7 +6477,8 @@
       "execution": {
         "method": "POST",
         "path": "/folders/{folder_id}/metadata/{scope}/{template_key}"
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "post_group_memberships": {
       "display_name": "Add user to group",
@@ -6369,7 +6526,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "GroupMembership"
     },
     "post_groups": {
       "display_name": "Create group",
@@ -6426,7 +6584,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Group--Full"
     },
     "post_groups_terminate_sessions": {
       "display_name": "Create jobs to terminate user group session",
@@ -6484,7 +6643,8 @@
           "options": "options",
           "partner_item": "partner_item"
         }
-      }
+      },
+      "response_schema": "IntegrationMapping"
     },
     "post_integration_mappings_teams": {
       "display_name": "Create Teams integration mapping",
@@ -6513,7 +6673,8 @@
           "box_item": "box_item",
           "partner_item": "partner_item"
         }
-      }
+      },
+      "response_schema": "IntegrationMappingTeams"
     },
     "post_invites": {
       "display_name": "Create user invite",
@@ -6551,7 +6712,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Invite"
     },
     "post_legal_hold_policies": {
       "display_name": "Create legal hold policy",
@@ -6596,7 +6758,8 @@
           "is_ongoing": "is_ongoing",
           "policy_name": "policy_name"
         }
-      }
+      },
+      "response_schema": "LegalHoldPolicy"
     },
     "post_legal_hold_policy_assignments": {
       "display_name": "Assign legal hold policy",
@@ -6627,7 +6790,8 @@
           "assign_to": "assign_to",
           "policy_id": "policy_id"
         }
-      }
+      },
+      "response_schema": "LegalHoldPolicyAssignment"
     },
     "post_metadata_cascade_policies": {
       "display_name": "Create metadata cascade policy",
@@ -6664,7 +6828,8 @@
           "scope": "scope",
           "templateKey": "templateKey"
         }
-      }
+      },
+      "response_schema": "MetadataCascadePolicy"
     },
     "post_metadata_cascade_policies_id_apply": {
       "display_name": "Force-apply metadata cascade policy to folder",
@@ -6756,7 +6921,8 @@
           "query_params": "query_params"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "MetadataQueryResults"
     },
     "post_metadata_taxonomies": {
       "display_name": "Create metadata taxonomy",
@@ -6792,7 +6958,8 @@
           "key": "key",
           "namespace": "namespace"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomy"
     },
     "post_metadata_taxonomies_id_id_levels": {
       "display_name": "Create metadata taxonomy levels",
@@ -6819,7 +6986,8 @@
       "execution": {
         "method": "POST",
         "path": "/metadata_taxonomies/{namespace}/{taxonomy_key}/levels"
-      }
+      },
+      "response_schema": "MetadataTaxonomyLevels"
     },
     "post_metadata_taxonomies_id_id_levels_append": {
       "display_name": "Add metadata taxonomy level",
@@ -6859,7 +7027,8 @@
           "description": "description",
           "displayName": "displayName"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyLevels"
     },
     "post_metadata_taxonomies_id_id_levels_trim": {
       "display_name": "Delete metadata taxonomy level",
@@ -6886,7 +7055,8 @@
       "execution": {
         "method": "POST",
         "path": "/metadata_taxonomies/{namespace}/{taxonomy_key}/levels:trim"
-      }
+      },
+      "response_schema": "MetadataTaxonomyLevels"
     },
     "post_metadata_taxonomies_id_id_nodes": {
       "display_name": "Create metadata taxonomy node",
@@ -6932,7 +7102,8 @@
           "level": "level",
           "parentId": "parentId"
         }
-      }
+      },
+      "response_schema": "MetadataTaxonomyNode"
     },
     "post_metadata_templates_schema": {
       "display_name": "Create metadata template",
@@ -6983,7 +7154,8 @@
           "scope": "scope",
           "templateKey": "templateKey"
         }
-      }
+      },
+      "response_schema": "MetadataTemplate"
     },
     "post_metadata_templates_schema_classifications": {
       "display_name": "Add initial classifications",
@@ -7036,7 +7208,8 @@
           "scope": "scope",
           "templateKey": "templateKey"
         }
-      }
+      },
+      "response_schema": "ClassificationTemplate"
     },
     "post_oauth2_revoke": {
       "display_name": "Revoke access token",
@@ -7064,7 +7237,8 @@
       "execution": {
         "method": "POST",
         "path": "/oauth2/token"
-      }
+      },
+      "response_schema": "AccessToken"
     },
     "post_oauth2_token_refresh": {
       "display_name": "Refresh access token",
@@ -7078,7 +7252,8 @@
       "execution": {
         "method": "POST",
         "path": "/oauth2/token#refresh"
-      }
+      },
+      "response_schema": "AccessToken"
     },
     "post_retention_policies": {
       "display_name": "Create retention policy",
@@ -7145,7 +7320,8 @@
           "retention_length": "retention_length",
           "retention_type": "retention_type"
         }
-      }
+      },
+      "response_schema": "RetentionPolicy"
     },
     "post_retention_policy_assignments": {
       "display_name": "Assign retention policy",
@@ -7186,7 +7362,8 @@
           "policy_id": "policy_id",
           "start_date_field": "start_date_field"
         }
-      }
+      },
+      "response_schema": "RetentionPolicyAssignment"
     },
     "post_shield_information_barrier_reports": {
       "display_name": "Create shield information barrier report",
@@ -7208,7 +7385,8 @@
         "body_mapping": {
           "shield_information_barrier": "shield_information_barrier"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierReport"
     },
     "post_shield_information_barrier_segment_members": {
       "display_name": "Create shield information barrier segment member",
@@ -7249,7 +7427,8 @@
           "type": "type",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentMember"
     },
     "post_shield_information_barrier_segment_restrictions": {
       "display_name": "Create shield information barrier segment restriction",
@@ -7291,7 +7470,8 @@
           "shield_information_barrier_segment": "shield_information_barrier_segment",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegmentRestriction"
     },
     "post_shield_information_barrier_segments": {
       "display_name": "Create shield information barrier segment",
@@ -7327,7 +7507,8 @@
           "name": "name",
           "shield_information_barrier": "shield_information_barrier"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegment"
     },
     "post_shield_information_barriers": {
       "display_name": "Create shield information barrier",
@@ -7352,7 +7533,8 @@
         "body_mapping": {
           "enterprise": "enterprise"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrier"
     },
     "post_shield_information_barriers_change_status": {
       "display_name": "Add changed status of shield information barrier with specified ID",
@@ -7383,7 +7565,8 @@
           "id": "id",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrier"
     },
     "post_sign_requests": {
       "display_name": "Create Box Sign request",
@@ -7397,7 +7580,8 @@
       "execution": {
         "method": "POST",
         "path": "/sign_requests"
-      }
+      },
+      "response_schema": "SignRequest"
     },
     "post_sign_requests_id_cancel": {
       "display_name": "Cancel Box Sign request",
@@ -7426,7 +7610,8 @@
         "body_mapping": {
           "reason": "reason"
         }
-      }
+      },
+      "response_schema": "SignRequest"
     },
     "post_sign_requests_id_resend": {
       "display_name": "Resend Box Sign request",
@@ -7479,7 +7664,8 @@
           "assigned_to": "assigned_to",
           "storage_policy": "storage_policy"
         }
-      }
+      },
+      "response_schema": "StoragePolicyAssignment"
     },
     "post_task_assignments": {
       "display_name": "Assign task",
@@ -7510,7 +7696,8 @@
           "assign_to": "assign_to",
           "task": "task"
         }
-      }
+      },
+      "response_schema": "TaskAssignment"
     },
     "post_tasks": {
       "display_name": "Create task",
@@ -7555,7 +7742,8 @@
           "item": "item",
           "message": "message"
         }
-      }
+      },
+      "response_schema": "Task"
     },
     "post_terms_of_service_user_statuses": {
       "display_name": "Create terms of service status for new user",
@@ -7592,7 +7780,8 @@
           "tos": "tos",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "TermsOfServiceUserStatus"
     },
     "post_terms_of_services": {
       "display_name": "Create terms of service",
@@ -7628,7 +7817,8 @@
           "text": "text",
           "tos_type": "tos_type"
         }
-      }
+      },
+      "response_schema": "TermsOfService"
     },
     "post_users": {
       "display_name": "Create user",
@@ -7745,7 +7935,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "User--Full"
     },
     "post_users_id_email_aliases": {
       "display_name": "Create email alias",
@@ -7775,7 +7966,8 @@
         "body_mapping": {
           "email": "email"
         }
-      }
+      },
+      "response_schema": "EmailAlias"
     },
     "post_users_terminate_sessions": {
       "display_name": "Create jobs to terminate users session",
@@ -7847,7 +8039,8 @@
           "parent": "parent",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "post_web_links_id": {
       "display_name": "Restore web link",
@@ -7887,7 +8080,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "TrashWebLinkRestored"
     },
     "post_webhooks": {
       "display_name": "Create webhook",
@@ -7924,7 +8118,8 @@
           "target": "target",
           "triggers": "triggers"
         }
-      }
+      },
+      "response_schema": "Webhook"
     },
     "post_workflows_id_start": {
       "display_name": "Starts workflow based on request body",
@@ -8073,7 +8268,8 @@
           "text_gen": "text_gen",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "AiSingleAgentResponse--Full"
     },
     "put_collaborations_id": {
       "display_name": "Update collaboration",
@@ -8117,7 +8313,8 @@
           "role": "role",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "Collaboration"
     },
     "put_comments_id": {
       "display_name": "Update comment",
@@ -8153,7 +8350,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Comment--Full"
     },
     "put_file_requests_id": {
       "display_name": "Update file request",
@@ -8211,7 +8409,8 @@
           "status": "status",
           "title": "title"
         }
-      }
+      },
+      "response_schema": "FileRequest"
     },
     "put_files_id": {
       "display_name": "Update file",
@@ -8289,7 +8488,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "put_files_id_add_shared_link": {
       "display_name": "Add shared link to file",
@@ -8325,7 +8525,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "put_files_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Update classification on file",
@@ -8347,7 +8548,8 @@
       "execution": {
         "method": "PUT",
         "path": "/files/{file_id}/metadata/enterprise/securityClassification-6VMVochwUWo"
-      }
+      },
+      "response_schema": "Classification"
     },
     "put_files_id_metadata_global_box_skills_cards": {
       "display_name": "Update Box Skill cards on file",
@@ -8369,7 +8571,8 @@
       "execution": {
         "method": "PUT",
         "path": "/files/{file_id}/metadata/global/boxSkillsCards"
-      }
+      },
+      "response_schema": "SkillCardsMetadata"
     },
     "put_files_id_metadata_id_id": {
       "display_name": "Update metadata instance on file",
@@ -8401,7 +8604,8 @@
       "execution": {
         "method": "PUT",
         "path": "/files/{file_id}/metadata/{scope}/{template_key}"
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "put_files_id_remove_shared_link": {
       "display_name": "Remove shared link from file",
@@ -8437,7 +8641,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "put_files_id_update_shared_link": {
       "display_name": "Update shared link on file",
@@ -8473,7 +8678,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "File--Full"
     },
     "put_files_id_versions_id": {
       "display_name": "Restore file version",
@@ -8507,7 +8713,8 @@
         "body_mapping": {
           "trashed_at": "trashed_at"
         }
-      }
+      },
+      "response_schema": "FileVersion--Full"
     },
     "put_files_id_watermark": {
       "display_name": "Apply watermark to file",
@@ -8537,7 +8744,8 @@
         "body_mapping": {
           "watermark": "watermark"
         }
-      }
+      },
+      "response_schema": "Watermark"
     },
     "put_folders_id": {
       "display_name": "Update folder",
@@ -8624,7 +8832,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "put_folders_id_add_shared_link": {
       "display_name": "Add shared link to folder",
@@ -8660,7 +8869,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "put_folders_id_metadata_enterprise_security_classification_6_vm_vochw_u_wo": {
       "display_name": "Update classification on folder",
@@ -8682,7 +8892,8 @@
       "execution": {
         "method": "PUT",
         "path": "/folders/{folder_id}/metadata/enterprise/securityClassification-6VMVochwUWo"
-      }
+      },
+      "response_schema": "Classification"
     },
     "put_folders_id_metadata_id_id": {
       "display_name": "Update metadata instance on folder",
@@ -8714,7 +8925,8 @@
       "execution": {
         "method": "PUT",
         "path": "/folders/{folder_id}/metadata/{scope}/{template_key}"
-      }
+      },
+      "response_schema": "Metadata--Full"
     },
     "put_folders_id_remove_shared_link": {
       "display_name": "Remove shared link from folder",
@@ -8750,7 +8962,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "put_folders_id_update_shared_link": {
       "display_name": "Update shared link on folder",
@@ -8786,7 +8999,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "put_folders_id_watermark": {
       "display_name": "Apply watermark to folder",
@@ -8816,7 +9030,8 @@
         "body_mapping": {
           "watermark": "watermark"
         }
-      }
+      },
+      "response_schema": "Watermark"
     },
     "put_group_memberships_id": {
       "display_name": "Update group membership",
@@ -8857,7 +9072,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "GroupMembership"
     },
     "put_groups_id": {
       "display_name": "Update group",
@@ -8918,7 +9134,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "Group--Full"
     },
     "put_integration_mappings_slack_id": {
       "display_name": "Update Slack integration mapping",
@@ -8950,7 +9167,8 @@
           "box_item": "box_item",
           "options": "options"
         }
-      }
+      },
+      "response_schema": "IntegrationMapping"
     },
     "put_integration_mappings_teams_id": {
       "display_name": "Update Teams integration mapping",
@@ -8978,7 +9196,8 @@
         "body_mapping": {
           "box_item": "box_item"
         }
-      }
+      },
+      "response_schema": "IntegrationMappingTeams"
     },
     "put_legal_hold_policies_id": {
       "display_name": "Update legal hold policy",
@@ -9017,7 +9236,8 @@
           "policy_name": "policy_name",
           "release_notes": "release_notes"
         }
-      }
+      },
+      "response_schema": "LegalHoldPolicy"
     },
     "put_metadata_templates_enterprise_security_classification_6_vm_vochw_u_wo_schema_add": {
       "display_name": "Add classification",
@@ -9031,7 +9251,8 @@
       "execution": {
         "method": "PUT",
         "path": "/metadata_templates/enterprise/securityClassification-6VMVochwUWo/schema#add"
-      }
+      },
+      "response_schema": "ClassificationTemplate"
     },
     "put_metadata_templates_enterprise_security_classification_6_vm_vochw_u_wo_schema_update": {
       "display_name": "Update classification",
@@ -9045,7 +9266,8 @@
       "execution": {
         "method": "PUT",
         "path": "/metadata_templates/enterprise/securityClassification-6VMVochwUWo/schema#update"
-      }
+      },
+      "response_schema": "ClassificationTemplate"
     },
     "put_metadata_templates_id_id_schema": {
       "display_name": "Update metadata template",
@@ -9072,7 +9294,8 @@
       "execution": {
         "method": "PUT",
         "path": "/metadata_templates/{scope}/{template_key}/schema"
-      }
+      },
+      "response_schema": "MetadataTemplate"
     },
     "put_retention_policies_id": {
       "display_name": "Update retention policy",
@@ -9141,7 +9364,8 @@
           "retention_type": "retention_type",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "RetentionPolicy"
     },
     "put_shield_information_barrier_segments_id": {
       "display_name": "Update shield information barrier segment with specified ID",
@@ -9175,7 +9399,8 @@
           "description": "description",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "ShieldInformationBarrierSegment"
     },
     "put_skill_invocations_id": {
       "display_name": "Update all Box Skill cards on file",
@@ -9257,7 +9482,8 @@
         "body_mapping": {
           "storage_policy": "storage_policy"
         }
-      }
+      },
+      "response_schema": "StoragePolicyAssignment"
     },
     "put_task_assignments_id": {
       "display_name": "Update task assignment",
@@ -9291,7 +9517,8 @@
           "message": "message",
           "resolution_state": "resolution_state"
         }
-      }
+      },
+      "response_schema": "TaskAssignment"
     },
     "put_tasks_id": {
       "display_name": "Update task",
@@ -9335,7 +9562,8 @@
           "due_at": "due_at",
           "message": "message"
         }
-      }
+      },
+      "response_schema": "Task"
     },
     "put_terms_of_service_user_statuses_id": {
       "display_name": "Update terms of service status for existing user",
@@ -9365,7 +9593,8 @@
         "body_mapping": {
           "is_accepted": "is_accepted"
         }
-      }
+      },
+      "response_schema": "TermsOfServiceUserStatus"
     },
     "put_terms_of_services_id": {
       "display_name": "Update terms of service",
@@ -9401,7 +9630,8 @@
           "status": "status",
           "text": "text"
         }
-      }
+      },
+      "response_schema": "TermsOfService"
     },
     "put_users_id": {
       "display_name": "Update user",
@@ -9537,7 +9767,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "User--Full"
     },
     "put_users_id_folders_0": {
       "display_name": "Transfer owned folders",
@@ -9579,7 +9810,8 @@
           "fields": "fields",
           "notify": "notify"
         }
-      }
+      },
+      "response_schema": "Folder--Full"
     },
     "put_web_links_id": {
       "display_name": "Update web link",
@@ -9627,7 +9859,8 @@
           "shared_link": "shared_link",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "put_web_links_id_add_shared_link": {
       "display_name": "Add shared link to web link",
@@ -9663,7 +9896,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "put_web_links_id_remove_shared_link": {
       "display_name": "Remove shared link from web link",
@@ -9699,7 +9933,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "put_web_links_id_update_shared_link": {
       "display_name": "Update shared link on web link",
@@ -9735,7 +9970,8 @@
         "query_mapping": {
           "fields": "fields"
         }
-      }
+      },
+      "response_schema": "WebLink"
     },
     "put_webhooks_id": {
       "display_name": "Update webhook",
@@ -9773,6 +10009,1963 @@
           "address": "address",
           "target": "target",
           "triggers": "triggers"
+        }
+      },
+      "response_schema": "Webhook"
+    }
+  },
+  "schemas": {
+    "AccessToken": {
+      "type": "object",
+      "properties": {
+        "access_token": {
+          "type": "string",
+          "description": "The requested access token."
+        },
+        "expires_in": {
+          "type": "integer",
+          "description": "The time in seconds by which this token will expire."
+        },
+        "issued_token_type": {
+          "type": "string",
+          "description": "The type of downscoped access token returned. This is only\nreturned if an access token has been downscoped."
+        },
+        "refresh_token": {
+          "type": "string",
+          "description": "The refresh token for this access token, which can be used\nto request a new access token when the current one expires."
+        },
+        "restricted_to": {
+          "type": "array",
+          "description": "The permissions that this access token permits,\nproviding a list of resources (files, folders, etc)\nand the scopes permitted for each of those resources."
+        },
+        "token_type": {
+          "type": "string",
+          "description": "The type of access token returned."
+        }
+      }
+    },
+    "AiAgent": {
+      "type": "object"
+    },
+    "AiExtractStructuredResponse": {
+      "type": "object",
+      "properties": {
+        "ai_agent_info": {
+          "type": "object",
+          "description": "The information on the models and processors used in the request."
+        },
+        "answer": {
+          "type": "object",
+          "description": "AI extract response.\nThe content of this response may vary depending on\nthe requested configuration."
+        },
+        "completion_reason": {
+          "type": "string",
+          "description": "The reason the response finishes."
+        },
+        "confidence_score": {
+          "type": "object",
+          "description": "The confidence score levels and numeric values for each extracted field as a JSON dictionary. This can be empty if no field could be extracted."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The ISO date formatted timestamp of when the answer to the prompt was created."
+        },
+        "reference": {
+          "type": "object",
+          "description": "The reference for each extracted field as a JSON dictionary. This can be empty if no field could be extracted."
+        }
+      }
+    },
+    "AiMultipleAgentResponse": {
+      "type": "object"
+    },
+    "AiResponse": {
+      "type": "object",
+      "properties": {
+        "ai_agent_info": {
+          "type": "object",
+          "description": "The information on the models and processors used in the request."
+        },
+        "answer": {
+          "type": "string",
+          "description": "The answer provided by the LLM."
+        },
+        "completion_reason": {
+          "type": "string",
+          "description": "The reason the response finishes."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The ISO date formatted timestamp of when the answer to the prompt was created."
+        }
+      }
+    },
+    "AiResponse--Full": {
+      "type": "object"
+    },
+    "AiSingleAgentResponse--Full": {
+      "type": "object"
+    },
+    "AppItem": {
+      "type": "object",
+      "properties": {
+        "application_type": {
+          "type": "string",
+          "description": "The type of the app that owns this app item."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this app item."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `app_item`."
+        }
+      }
+    },
+    "AppItemAssociations": {
+      "type": "object"
+    },
+    "Classification": {
+      "type": "object",
+      "properties": {
+        "$canEdit": {
+          "type": "boolean",
+          "description": "Whether an end user can change the classification."
+        },
+        "$parent": {
+          "type": "string",
+          "description": "The identifier of the item that this metadata instance\nhas been attached to. This combines the `type` and the `id`\nof the parent in the form `{type}_{id}`."
+        },
+        "$scope": {
+          "type": "string",
+          "description": "The scope of the enterprise that this classification has been\napplied for.\n\nThis will be in the format `enterprise_{enterprise_id}`."
+        },
+        "$template": {
+          "type": "string",
+          "description": "The value will always be `securityClassification-6VMVochwUWo`."
+        },
+        "$type": {
+          "type": "string",
+          "description": "The unique ID of this classification instance. This will be include\nthe name of the classification template and a unique ID."
+        },
+        "$typeVersion": {
+          "type": "number",
+          "description": "The version of the metadata template. This version starts at 0 and\nincreases every time the template is updated. This is mostly for internal\nuse."
+        },
+        "$version": {
+          "type": "integer",
+          "description": "The version of the metadata instance. This version starts at 0 and\nincreases every time a classification is updated."
+        },
+        "Box__Security__Classification__Key": {
+          "type": "string",
+          "description": "The name of the classification applied to the item."
+        }
+      }
+    },
+    "ClassificationTemplate": {
+      "type": "object",
+      "properties": {
+        "copyInstanceOnItemCopy": {
+          "type": "boolean",
+          "description": "Determines if \nclassifications are\ncopied along when the file or folder is\ncopied."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The name of this template as shown in web and mobile interfaces."
+        },
+        "fields": {
+          "type": "array",
+          "description": "A list of fields for this classification template. This includes\nonly one field, the `Box__Security__Classification__Key`, which defines\nthe different classifications available in this enterprise."
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Determines if the\ntemplate is always available in web and mobile interfaces."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the classification template."
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scope of the classification template. This is in the format\n`enterprise_{id}` where the `id` is the enterprise ID."
+        },
+        "templateKey": {
+          "type": "string",
+          "description": "The value will always be `securityClassification-6VMVochwUWo`."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `metadata_template`."
+        }
+      }
+    },
+    "Collaboration": {
+      "type": "object",
+      "properties": {
+        "acceptance_requirements_status": {
+          "type": "object"
+        },
+        "accessible_by": {
+          "type": "object",
+          "description": "The user or group that is granted access."
+        },
+        "acknowledged_at": {
+          "type": "string",
+          "description": "When the `status` of the collaboration object changed to\n`accepted` or `rejected`."
+        },
+        "app_item": {
+          "type": "string",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "description": "When the collaboration object was created."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "When the collaboration will expire, or `null` if no expiration\ndate is set.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this collaboration."
+        },
+        "invite_email": {
+          "type": "string",
+          "description": "The email address used to invite an unregistered collaborator, if\nthey are not a registered user.",
+          "nullable": true
+        },
+        "is_access_only": {
+          "type": "boolean",
+          "description": "If set to `true`, collaborators have access to\nshared items, but such items won't be visible in the\nAll Files list. Additionally, collaborators won't\nsee the path to the root folder for the\nshared item."
+        },
+        "item": {
+          "type": "string",
+          "nullable": true
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "When the collaboration object was last modified."
+        },
+        "role": {
+          "type": "string",
+          "description": "The level of access granted."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the collaboration invitation. If the status\nis `pending`, `login` and `name` return an empty string."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `collaboration`."
+        }
+      }
+    },
+    "CollaborationAllowlistEntries": {
+      "type": "object"
+    },
+    "CollaborationAllowlistEntry": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "The time the entry was created at."
+        },
+        "direction": {
+          "type": "string",
+          "description": "The direction of the collaborations to allow."
+        },
+        "domain": {
+          "type": "string",
+          "description": "The whitelisted domain."
+        },
+        "enterprise": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this entry."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `collaboration_whitelist_entry`."
+        }
+      }
+    },
+    "CollaborationAllowlistExemptTarget": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "The time the entry was created."
+        },
+        "enterprise": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this exemption."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The time the entry was modified."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `collaboration_whitelist_exempt_target`."
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "CollaborationAllowlistExemptTargets": {
+      "type": "object"
+    },
+    "Collaborations": {
+      "type": "object"
+    },
+    "CollaborationsOffsetPaginated": {
+      "type": "object"
+    },
+    "Collection": {
+      "type": "object",
+      "properties": {
+        "collection_type": {
+          "type": "string",
+          "description": "The type of the collection. This is used to\ndetermine the proper visual treatment for\ncollections."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this collection."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the collection."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `collection`."
+        }
+      }
+    },
+    "Collections": {
+      "type": "object"
+    },
+    "Comment--Full": {
+      "type": "object"
+    },
+    "Comments": {
+      "type": "object"
+    },
+    "DevicePinner": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this device pin."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "product_name": {
+          "type": "string",
+          "description": "The type of device being pinned."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `device_pinner`."
+        }
+      }
+    },
+    "DevicePinners": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of device pins."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "The limit that was used for these entries. This will be the same as the\n`limit` query parameter unless that value exceeded the maximum value\nallowed."
+        },
+        "next_marker": {
+          "type": "integer",
+          "description": "The marker for the start of the next page of results."
+        },
+        "order": {
+          "type": "array",
+          "description": "The order by which items are returned."
+        }
+      }
+    },
+    "EmailAlias": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email address."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this object."
+        },
+        "is_confirmed": {
+          "type": "boolean",
+          "description": "Whether the email address has been confirmed."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `email_alias`."
+        }
+      }
+    },
+    "EmailAliases": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of email aliases."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The number of email aliases."
+        }
+      }
+    },
+    "Events": {
+      "type": "object",
+      "properties": {
+        "chunk_size": {
+          "type": "integer",
+          "description": "The number of events returned in this response."
+        },
+        "entries": {
+          "type": "array",
+          "description": "A list of events."
+        },
+        "next_stream_position": {
+          "type": "string",
+          "description": "The stream position of the start of the next page (chunk)\nof events."
+        }
+      }
+    },
+    "File--Full": {
+      "type": "object"
+    },
+    "FileRequest": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "The date and time when the file request was created."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "The optional description of this file request. This is\nshown in the Box UI to users uploading files.\n\nThis defaults to description of the file request that was\ncopied to create this file request.",
+          "nullable": true
+        },
+        "etag": {
+          "type": "string",
+          "description": "The HTTP `etag` of this file. This can be used in combination with\nthe `If-Match` header when updating a file request. By providing that\nheader, a change will only be performed on the  file request if the `etag`\non the file request still matches the `etag` provided in the `If-Match`\nheader.",
+          "nullable": true
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "The date after which a file request will no longer accept new\nsubmissions.\n\nAfter this date, the `status` will automatically be set to\n`inactive`."
+        },
+        "folder": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this file request."
+        },
+        "is_description_required": {
+          "type": "boolean",
+          "description": "Whether a file request submitter is required to provide\na description of the files they are submitting.\n\nWhen this setting is set to true, the Box UI will show\na description field on the file request form.\n\nThis defaults to setting of file request that was\ncopied to create this file request."
+        },
+        "is_email_required": {
+          "type": "boolean",
+          "description": "Whether a file request submitter is required to provide\ntheir email address.\n\nWhen this setting is set to true, the Box UI will show\nan email field on the file request form.\n\nThis defaults to setting of file request that was\ncopied to create this file request."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the file request. This defaults\nto `active`.\n\nWhen the status is set to `inactive`, the file request\nwill no longer accept new submissions, and any visitor\nto the file request URL will receive a `HTTP 404` status\ncode.\n\nThis defaults to status of file request that was\ncopied to create this file request."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of file request. This is shown\nin the Box UI to users uploading files.\n\nThis defaults to title of the file request that was\ncopied to create this file request."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `file_request`."
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "The date and time when the file request was last updated."
+        },
+        "updated_by": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "description": "The generated URL for this file request. This URL can be shared\nwith users to let them upload files to the associated folder."
+        }
+      }
+    },
+    "FileVersion--Full": {
+      "type": "object"
+    },
+    "FileVersionLegalHold": {
+      "type": "object",
+      "properties": {
+        "deleted_at": {
+          "type": "string",
+          "description": "Time that this File-Version-Legal-Hold was\ndeleted."
+        },
+        "file": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this file version legal hold."
+        },
+        "legal_hold_policy_assignments": {
+          "type": "array",
+          "description": "List of assignments contributing to this Hold."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `file_version_legal_hold`."
+        }
+      }
+    },
+    "FileVersionLegalHolds": {
+      "type": "object"
+    },
+    "FileVersionRetention": {
+      "type": "object",
+      "properties": {
+        "applied_at": {
+          "type": "string",
+          "description": "When this file version retention object was\ncreated."
+        },
+        "disposition_at": {
+          "type": "string",
+          "description": "When the retention expires on this file\nversion retention."
+        },
+        "file": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this file version retention."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `file_version_retention`."
+        },
+        "winning_retention_policy": {
+          "type": "string"
+        }
+      }
+    },
+    "FileVersionRetentions": {
+      "type": "object"
+    },
+    "FileVersions": {
+      "type": "object"
+    },
+    "FileVersionsOnHold": {
+      "type": "object"
+    },
+    "Files": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of files."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The number of files."
+        }
+      }
+    },
+    "FilesOnHold": {
+      "type": "object"
+    },
+    "FilesUnderRetention": {
+      "type": "object"
+    },
+    "Folder--Full": {
+      "type": "object"
+    },
+    "FolderLock": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "When the folder lock object was created."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this folder lock."
+        },
+        "lock_type": {
+          "type": "string",
+          "description": "The lock type, always `freeze`."
+        },
+        "locked_operations": {
+          "type": "object",
+          "description": "The operations that have been locked. Currently the `move`\nand `delete` operations cannot be locked separately, and both need to be\nset to `true`."
+        },
+        "type": {
+          "type": "string",
+          "description": "The object type, always `folder_lock`."
+        }
+      }
+    },
+    "FolderLocks": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of folder locks."
+        },
+        "limit": {
+          "type": "string",
+          "description": "The limit that was used for these entries. This will be the same as the\n`limit` query parameter unless that value exceeded the maximum value\nallowed. The maximum value varies by API."
+        },
+        "next_marker": {
+          "type": "string",
+          "description": "The marker for the start of the next page of results.",
+          "nullable": true
+        }
+      }
+    },
+    "Group--Full": {
+      "type": "object"
+    },
+    "GroupMembership": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "The time this membership was created."
+        },
+        "group": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this group membership."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The time this membership was last modified."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user in the group."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `group_membership`."
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "GroupMemberships": {
+      "type": "object"
+    },
+    "Groups": {
+      "type": "object"
+    },
+    "IntegrationMapping": {
+      "type": "object"
+    },
+    "IntegrationMappingTeams": {
+      "type": "object"
+    },
+    "IntegrationMappings": {
+      "type": "object"
+    },
+    "IntegrationMappingsTeams": {
+      "type": "object"
+    },
+    "Invite": {
+      "type": "object",
+      "properties": {
+        "actionable_by": {
+          "type": "object",
+          "description": "A mini representation of a user, as can be returned when nested within other\nresources."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "When the invite was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this invite."
+        },
+        "invited_by": {
+          "type": "object",
+          "description": "A mini representation of a user, as can be returned when nested within other\nresources."
+        },
+        "invited_to": {
+          "type": "object",
+          "description": "A representation of a Box enterprise."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "When the invite was modified."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the invite."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `invite`."
+        }
+      }
+    },
+    "Items": {
+      "type": "object"
+    },
+    "ItemsOffsetPaginated": {
+      "type": "object"
+    },
+    "LegalHoldPolicies": {
+      "type": "object"
+    },
+    "LegalHoldPolicy": {
+      "type": "object"
+    },
+    "LegalHoldPolicyAssignment": {
+      "type": "object"
+    },
+    "LegalHoldPolicyAssignments": {
+      "type": "object"
+    },
+    "Metadata--Full": {
+      "type": "object"
+    },
+    "MetadataCascadePolicies": {
+      "type": "object"
+    },
+    "MetadataCascadePolicy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ID of the metadata cascade policy object."
+        },
+        "owner_enterprise": {
+          "type": "object",
+          "description": "The enterprise that owns this policy."
+        },
+        "parent": {
+          "type": "object",
+          "description": "Represent the folder the policy is applied to."
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scope of the metadata cascade policy can either be `global` or\n`enterprise_*`. The `global` scope is used for policies that are\navailable to any Box enterprise. The `enterprise_*` scope represents\npolicies that have been created within a specific enterprise, where `*`\nwill be the ID of that enterprise."
+        },
+        "templateKey": {
+          "type": "string",
+          "description": "The key of the template that is cascaded down to the folder's\nchildren.\n\nIn many cases the template key is automatically derived\nof its display name, for example `Contract Template` would\nbecome `contractTemplate`. In some cases the creator of the\ntemplate will have provided its own template key.\n\nPlease [list the templates for an enterprise][list], or\nget all instances on a [file][file] or [folder][folder]\nto inspect a template's key.\n\n[list]: https://developer.box.com/reference/get-metadata-templates-enterprise\n[file]: https://developer.box.com/reference/get-files-id-metadata\n[folder]: https://developer.box.com/reference/get-folders-id-metadata"
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `metadata_cascade_policy`."
+        }
+      }
+    },
+    "MetadataQueryResults": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "The mini representation of the files and folders that match the search\nterms.\n\nBy default, this endpoint returns only the most basic info about the\nitems. To get additional fields for each item, including any of the\nmetadata, use the `fields` attribute in the query."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "The limit that was used for this search. This will be the same as the\n`limit` query parameter unless that value exceeded the maximum value\nallowed."
+        },
+        "next_marker": {
+          "type": "string",
+          "description": "The marker for the start of the next page of results."
+        }
+      }
+    },
+    "MetadataTaxonomies": {
+      "type": "object"
+    },
+    "MetadataTaxonomy": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the metadata taxonomy. This can be seen in the Box web app."
+        },
+        "id": {
+          "type": "string",
+          "description": "A unique identifier of the metadata taxonomy."
+        },
+        "key": {
+          "type": "string",
+          "description": "A unique identifier of the metadata taxonomy. The identifier must be unique within \nthe namespace to which it belongs."
+        },
+        "levels": {
+          "type": "array",
+          "description": "Levels of the metadata taxonomy."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "A namespace that the metadata taxonomy is associated with."
+        }
+      }
+    },
+    "MetadataTaxonomyLevel": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "A description of the level."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the level as it is shown to the user."
+        },
+        "level": {
+          "type": "integer",
+          "description": "An index of the level within the taxonomy. Levels are indexed starting from 1."
+        }
+      }
+    },
+    "MetadataTaxonomyLevels": {
+      "type": "object"
+    },
+    "MetadataTaxonomyNode": {
+      "type": "object",
+      "properties": {
+        "ancestors": {
+          "type": "array",
+          "description": "An array of objects for all ancestor nodes.  \nNot returned for root-level nodes."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the metadata taxonomy node."
+        },
+        "id": {
+          "type": "string",
+          "description": "A unique identifier of the metadata taxonomy node."
+        },
+        "level": {
+          "type": "integer",
+          "description": "An index of the level to which the node belongs."
+        },
+        "nodePath": {
+          "type": "array",
+          "description": "An array of identifiers for all ancestor nodes.  \nNot returned for root-level nodes."
+        },
+        "parentId": {
+          "type": "string",
+          "description": "The identifier of the parent node."
+        }
+      }
+    },
+    "MetadataTaxonomyNodes": {
+      "type": "object"
+    },
+    "MetadataTemplate": {
+      "type": "object",
+      "properties": {
+        "copyInstanceOnItemCopy": {
+          "type": "boolean",
+          "description": "Whether or not to include the metadata when a file or folder is copied."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the template. This can be seen in the Box web app\nand mobile apps."
+        },
+        "fields": {
+          "type": "array",
+          "description": "An ordered list of template fields which are part of the template. Each\nfield can be a regular text field, date field, number field, as well as a\nsingle or multi-select list."
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Defines if this template is visible in the Box web app UI, or if\nit is purely intended for usage through the API."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the metadata template."
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scope of the metadata template can either be `global` or\n`enterprise_*`. The `global` scope is used for templates that are\navailable to any Box enterprise. The `enterprise_*` scope represents\ntemplates that have been created within a specific enterprise, where `*`\nwill be the ID of that enterprise."
+        },
+        "templateKey": {
+          "type": "string",
+          "description": "A unique identifier for the template. This identifier is unique across\nthe `scope` of the enterprise to which the metadata template is being\napplied, yet is not necessarily unique across different enterprises."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `metadata_template`."
+        }
+      }
+    },
+    "MetadataTemplates": {
+      "type": "object"
+    },
+    "Metadatas": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of metadata instances, as applied to this file or folder."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "The limit that was used for this page of results."
+        }
+      }
+    },
+    "RecentItems": {
+      "type": "object"
+    },
+    "RetentionPolicies": {
+      "type": "object"
+    },
+    "RetentionPolicy": {
+      "type": "object"
+    },
+    "RetentionPolicyAssignment": {
+      "type": "object",
+      "properties": {
+        "assigned_at": {
+          "type": "string",
+          "description": "When the retention policy assignment object was\ncreated."
+        },
+        "assigned_by": {
+          "type": "string"
+        },
+        "assigned_to": {
+          "type": "object",
+          "description": "The `type` and `id` of the content that is under\nretention. The `type` can either be `folder`\n`enterprise`, or `metadata_template`."
+        },
+        "filter_fields": {
+          "type": "array",
+          "description": "An array of field objects. Values are only returned if the `assigned_to`\ntype is `metadata_template`. Otherwise, the array is blank.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for a retention policy assignment."
+        },
+        "retention_policy": {
+          "type": "string"
+        },
+        "start_date_field": {
+          "type": "string",
+          "description": "The date the retention policy assignment begins.\nIf the `assigned_to` type is `metadata_template`,\nthis field can be a date field's metadata attribute key id."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `retention_policy_assignment`."
+        }
+      }
+    },
+    "RetentionPolicyAssignments": {
+      "type": "object"
+    },
+    "SearchResultsResponse": {
+      "type": "object"
+    },
+    "ShieldInformationBarrier": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "ISO date time string when this\nshield information barrier object was created."
+        },
+        "created_by": {
+          "type": "string",
+          "description": "The user who created this shield information barrier."
+        },
+        "enabled_at": {
+          "type": "string",
+          "description": "ISO date time string when this shield information barrier was enabled."
+        },
+        "enabled_by": {
+          "type": "string"
+        },
+        "enterprise": {
+          "type": "string",
+          "description": "The `type` and `id` of enterprise this barrier is under."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the shield information barrier."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the shield information barrier."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the shield information barrier."
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "ISO date time string when this shield information barrier was updated."
+        },
+        "updated_by": {
+          "type": "string",
+          "description": "The user that updated this shield information barrier."
+        }
+      }
+    },
+    "ShieldInformationBarrierReport": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierReports": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierSegment": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "ISO date time string when this shield information\nbarrier object was created."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the shield information barrier segment."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the shield information barrier segment."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the shield information barrier segment."
+        },
+        "shield_information_barrier": {
+          "type": "object",
+          "description": "A base representation of a\nshield information barrier object."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the shield information barrier segment."
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "ISO date time string when this\nshield information barrier segment was updated."
+        },
+        "updated_by": {
+          "type": "string"
+        }
+      }
+    },
+    "ShieldInformationBarrierSegmentMember": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierSegmentMembers": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierSegmentRestriction": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierSegmentRestrictions": {
+      "type": "object"
+    },
+    "ShieldInformationBarrierSegments": {
+      "type": "object"
+    },
+    "ShieldInformationBarriers": {
+      "type": "object"
+    },
+    "SignRequest": {
+      "type": "object"
+    },
+    "SignRequests": {
+      "type": "object"
+    },
+    "SignTemplate": {
+      "type": "object"
+    },
+    "SignTemplates": {
+      "type": "object"
+    },
+    "SkillCardsMetadata": {
+      "type": "object",
+      "properties": {
+        "$canEdit": {
+          "type": "boolean",
+          "description": "Whether the user can edit this metadata."
+        },
+        "$id": {
+          "type": "string",
+          "description": "A UUID to identify the metadata object."
+        },
+        "$parent": {
+          "type": "string",
+          "description": "An ID for the parent folder."
+        },
+        "$scope": {
+          "type": "string",
+          "description": "An ID for the scope in which this template\nhas been applied."
+        },
+        "$template": {
+          "type": "string",
+          "description": "The name of the template."
+        },
+        "$type": {
+          "type": "string",
+          "description": "A unique identifier for the \"type\" of this instance. This is an internal\nsystem property and should not be used by a client application."
+        },
+        "$typeVersion": {
+          "type": "integer",
+          "description": "The last-known version of the template of the object. This is an internal\nsystem property and should not be used by a client application."
+        },
+        "$version": {
+          "type": "integer",
+          "description": "The version of the metadata object. Starts at 0 and increases every time\na user-defined property is modified."
+        },
+        "cards": {
+          "type": "array",
+          "description": "A list of Box Skill cards that have been applied to this file."
+        }
+      }
+    },
+    "StoragePolicies": {
+      "type": "object"
+    },
+    "StoragePolicy": {
+      "type": "object"
+    },
+    "StoragePolicyAssignment": {
+      "type": "object",
+      "properties": {
+        "assigned_to": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for a storage policy assignment."
+        },
+        "storage_policy": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `storage_policy_assignment`."
+        }
+      }
+    },
+    "StoragePolicyAssignments": {
+      "type": "object"
+    },
+    "Task": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The type of task the task assignee will be prompted to\nperform."
+        },
+        "completion_rule": {
+          "type": "string",
+          "description": "Defines which assignees need to complete this task before the task\nis considered completed.\n\n* `all_assignees` requires all assignees to review or\napprove the task in order for it to be considered completed.\n* `any_assignee` accepts any one assignee to review or\napprove the task in order for it to be considered completed."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "When the task object was created."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "due_at": {
+          "type": "string",
+          "description": "When the task is due."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this task."
+        },
+        "is_completed": {
+          "type": "boolean",
+          "description": "Whether the task has been completed."
+        },
+        "item": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "description": "A message that will be included with the task."
+        },
+        "task_assignment_collection": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `task`."
+        }
+      }
+    },
+    "TaskAssignment": {
+      "type": "object",
+      "properties": {
+        "assigned_at": {
+          "type": "string",
+          "description": "The date at which this task was assigned to the user."
+        },
+        "assigned_by": {
+          "type": "string"
+        },
+        "assigned_to": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string",
+          "description": "The date at which this task assignment was\ncompleted. This will be `null` if the task is not completed yet."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this task assignment."
+        },
+        "item": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "description": "A message that will is included with the task\nassignment. This is visible to the assigned user in the web and mobile\nUI."
+        },
+        "reminded_at": {
+          "type": "string",
+          "description": "The date at which the assigned user was reminded of this task\nassignment."
+        },
+        "resolution_state": {
+          "type": "string",
+          "description": "The current state of the assignment. The available states depend on\nthe `action` value of the task object."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `task_assignment`."
+        }
+      }
+    },
+    "TaskAssignments": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of task assignments."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of items in this collection."
+        }
+      }
+    },
+    "Tasks": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of tasks."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "One greater than the offset of the last entry in the entire collection.\nThe total number of entries in the collection may be less than\n`total_count`."
+        }
+      }
+    },
+    "TermsOfService": {
+      "type": "object"
+    },
+    "TermsOfServiceUserStatus": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "When the legal item was created."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this terms of service user status."
+        },
+        "is_accepted": {
+          "type": "boolean",
+          "description": "If the user has accepted the terms of services."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "When the legal item was modified."
+        },
+        "tos": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `terms_of_service_user_status`."
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "TermsOfServiceUserStatuses": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of terms of service user statuses."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of objects."
+        }
+      }
+    },
+    "TermsOfServices": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "A list of terms of service objects."
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "The total number of objects."
+        }
+      }
+    },
+    "TrashFile": {
+      "type": "object",
+      "properties": {
+        "content_created_at": {
+          "type": "string",
+          "description": "The date and time at which this file was originally\ncreated, which might be before it was uploaded to Box.",
+          "nullable": true
+        },
+        "content_modified_at": {
+          "type": "string",
+          "description": "The date and time at which this file was last updated,\nwhich might be before it was uploaded to Box.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The date and time when the file was created on Box."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "The optional description of this file."
+        },
+        "etag": {
+          "type": "string",
+          "description": "The HTTP `etag` of this file. This can be used within some API\nendpoints in the `If-Match` and `If-None-Match` headers to only\nperform changes on the file if (no) changes have happened.",
+          "nullable": true
+        },
+        "file_version": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier that represent a file.\n\nThe ID for any file can be determined\nby visiting a file in the web application\nand copying the ID from the URL. For example,\nfor the URL `https://*.app.box.com/files/123`\nthe `file_id` is `123`."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Defines if this item has been deleted or not.\n\n* `active` when the item has is not in the trash\n* `trashed` when the item has been moved to the trash but not deleted\n* `deleted` when the item has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The date and time when the file was last updated on Box."
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "The time at which this file is expected to be purged\nfrom the trash.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string",
+          "description": "The SHA1 hash of the file. This can be used to compare the contents\nof a file on Box with a local file."
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this file. This will\nbe `null` if a file has been trashed, since the link will no longer\nbe active.",
+          "nullable": true
+        },
+        "size": {
+          "type": "integer",
+          "description": "The file size in bytes. Be careful parsing this integer as it can\nget very large and cause an integer overflow."
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "The time at which this file was put in the trash.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `file`."
+        }
+      }
+    },
+    "TrashFileRestored": {
+      "type": "object",
+      "properties": {
+        "content_created_at": {
+          "type": "string",
+          "description": "The date and time at which this file was originally\ncreated, which might be before it was uploaded to Box.",
+          "nullable": true
+        },
+        "content_modified_at": {
+          "type": "string",
+          "description": "The date and time at which this file was last updated,\nwhich might be before it was uploaded to Box.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The date and time when the file was created on Box."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "The optional description of this file."
+        },
+        "etag": {
+          "type": "string",
+          "description": "The HTTP `etag` of this file. This can be used within some API\nendpoints in the `If-Match` and `If-None-Match` headers to only\nperform changes on the file if (no) changes have happened.",
+          "nullable": true
+        },
+        "file_version": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier that represent a file.\n\nThe ID for any file can be determined\nby visiting a file in the web application\nand copying the ID from the URL. For example,\nfor the URL `https://*.app.box.com/files/123`\nthe `file_id` is `123`."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Defines if this item has been deleted or not.\n\n* `active` when the item has is not in the trash\n* `trashed` when the item has been moved to the trash but not deleted\n* `deleted` when the item has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The date and time when the file was last updated on Box."
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "The time at which this file is expected to be purged\nfrom the trash  - becomes `null` after restore.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string",
+          "description": "The SHA1 hash of the file. This can be used to compare the contents\nof a file on Box with a local file."
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this file. This will\nbe `null` if a file had been trashed, even though the original shared\nlink does become active again.",
+          "nullable": true
+        },
+        "size": {
+          "type": "integer",
+          "description": "The file size in bytes. Be careful parsing this integer as it can\nget very large and cause an integer overflow."
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "The time at which this file was put in the\ntrash - becomes `null` after restore.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `file`."
+        }
+      }
+    },
+    "TrashFolder": {
+      "type": "object",
+      "properties": {
+        "content_created_at": {
+          "type": "string",
+          "description": "The date and time at which this folder was originally\ncreated.",
+          "nullable": true
+        },
+        "content_modified_at": {
+          "type": "string",
+          "description": "The date and time at which this folder was last updated.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The date and time when the folder was created. This value may\nbe `null` for some folders such as the root folder or the trash\nfolder.",
+          "nullable": true
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string",
+          "description": "The HTTP `etag` of this folder. This can be used within some API\nendpoints in the `If-Match` and `If-None-Match` headers to only\nperform changes on the folder if (no) changes have happened.",
+          "nullable": true
+        },
+        "folder_upload_email": {
+          "type": "string",
+          "description": "The folder upload email for this folder. This will\nbe `null` if a folder has been trashed, since the upload will no longer\nwork.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier that represent a folder.\n\nThe ID for any folder can be determined\nby visiting a folder in the web application\nand copying the ID from the URL. For example,\nfor the URL `https://*.app.box.com/folders/123`\nthe `folder_id` is `123`."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Defines if this item has been deleted or not.\n\n* `active` when the item has is not in the trash\n* `trashed` when the item has been moved to the trash but not deleted\n* `deleted` when the item has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The date and time when the folder was last updated. This value may\nbe `null` for some folders such as the root folder or the trash\nfolder.",
+          "nullable": true
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the folder."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "The time at which this folder is expected to be purged\nfrom the trash.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this folder. This will\nbe `null` if a folder has been trashed, since the link will no longer\nbe active.",
+          "nullable": true
+        },
+        "size": {
+          "type": "integer",
+          "description": "The folder size in bytes.\n\nBe careful parsing this integer as its\nvalue can get very large."
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "The time at which this folder was put in the trash.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `folder`."
+        }
+      }
+    },
+    "TrashFolderRestored": {
+      "type": "object",
+      "properties": {
+        "content_created_at": {
+          "type": "string",
+          "description": "The date and time at which this folder was originally\ncreated.",
+          "nullable": true
+        },
+        "content_modified_at": {
+          "type": "string",
+          "description": "The date and time at which this folder was last updated.",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "description": "The date and time when the folder was created. This value may\nbe `null` for some folders such as the root folder or the trash\nfolder.",
+          "nullable": true
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string",
+          "description": "The HTTP `etag` of this folder. This can be used within some API\nendpoints in the `If-Match` and `If-None-Match` headers to only\nperform changes on the folder if (no) changes have happened.",
+          "nullable": true
+        },
+        "folder_upload_email": {
+          "type": "string",
+          "description": "The folder upload email for this folder. This will\nbe `null` if a folder has been trashed, even though the original upload\nemail does become active again.",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier that represent a folder.\n\nThe ID for any folder can be determined\nby visiting a folder in the web application\nand copying the ID from the URL. For example,\nfor the URL `https://*.app.box.com/folders/123`\nthe `folder_id` is `123`."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Defines if this item has been deleted or not.\n\n* `active` when the item has is not in the trash,\n* `trashed` when the item has been moved to the trash but not deleted,\n* `deleted` when the item has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "The date and time when the folder was last updated. This value may\nbe `null` for some folders such as the root folder or the trash\nfolder.",
+          "nullable": true
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the folder."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "The time at which this folder is expected to be purged\nfrom the trash  - becomes `null` after restore.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this file. This will\nbe `null` if a folder had been trashed, even though the original shared\nlink does become active again.",
+          "nullable": true
+        },
+        "size": {
+          "type": "integer",
+          "description": "The folder size in bytes.\n\nBe careful parsing this integer as its\nvalue can get very large."
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "The time at which this folder was put in the\ntrash - becomes `null` after restore.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `folder`."
+        }
+      }
+    },
+    "TrashWebLink": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "When this file was created on Box’s servers."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description accompanying the web link. This is\nvisible within the Box web application."
+        },
+        "etag": {
+          "type": "string",
+          "description": "The entity tag of this web link. Used with `If-Match`\nheaders."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this web link."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Whether this item is deleted or not. Values include `active`,\n`trashed` if the file has been moved to the trash, and `deleted` if\nthe file has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "When this file was last updated on the Box\nservers."
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the web link."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "When this file will be permanently deleted.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this bookmark. This will\nbe `null` if a bookmark has been trashed, since the link will no longer\nbe active.",
+          "nullable": true
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "When this file was last moved to the trash.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `web_link`."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL this web link points to."
+        }
+      }
+    },
+    "TrashWebLinkRestored": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "When this file was created on Box’s servers."
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description accompanying the web link. This is\nvisible within the Box web application."
+        },
+        "etag": {
+          "type": "string",
+          "description": "The entity tag of this web link. Used with `If-Match`\nheaders."
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this web link."
+        },
+        "item_status": {
+          "type": "string",
+          "description": "Whether this item is deleted or not. Values include `active`,\n`trashed` if the file has been moved to the trash, and `deleted` if\nthe file has been permanently deleted."
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "When this file was last updated on the Box\nservers."
+        },
+        "modified_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the web link."
+        },
+        "owned_by": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "path_collection": {
+          "type": "string"
+        },
+        "purged_at": {
+          "type": "string",
+          "description": "The time at which this bookmark will be permanently\ndeleted - becomes `null` after restore.",
+          "nullable": true
+        },
+        "sequence_id": {
+          "type": "string"
+        },
+        "shared_link": {
+          "type": "string",
+          "description": "The shared link for this bookmark. This will\nbe `null` if a bookmark had been trashed, even though the original shared\nlink does become active again.",
+          "nullable": true
+        },
+        "trashed_at": {
+          "type": "string",
+          "description": "The time at which this bookmark was put in the\ntrash - becomes `null` after restore.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `web_link`."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL this web link points to."
+        }
+      }
+    },
+    "UploadParts": {
+      "type": "object"
+    },
+    "UploadSession": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this session."
+        },
+        "num_parts_processed": {
+          "type": "integer",
+          "description": "The number of parts that have been uploaded and processed\nby the server. This starts at `0`.\n\nWhen committing a file files, inspecting this property can\nprovide insight if all parts have been uploaded correctly."
+        },
+        "part_size": {
+          "type": "integer",
+          "description": "The  size in bytes that must be used for all parts of of the\nupload.\n\nOnly the last part is allowed to be of a smaller size."
+        },
+        "session_endpoints": {
+          "type": "string"
+        },
+        "session_expires_at": {
+          "type": "string",
+          "description": "The date and time when this session expires."
+        },
+        "total_parts": {
+          "type": "integer",
+          "description": "The total number of parts expected in this upload session,\nas determined by the file size and part size."
+        },
+        "type": {
+          "type": "string",
+          "description": "The value will always be `upload_session`."
+        }
+      }
+    },
+    "User--Full": {
+      "type": "object"
+    },
+    "Users": {
+      "type": "object"
+    },
+    "Watermark": {
+      "type": "object",
+      "properties": {
+        "watermark": {
+          "type": "object"
+        }
+      }
+    },
+    "WebLink": {
+      "type": "object"
+    },
+    "Webhook": {
+      "type": "object"
+    },
+    "Webhooks": {
+      "type": "object"
+    },
+    "Workflows": {
+      "type": "object"
+    },
+    "ZipDownloadStatus": {
+      "type": "object",
+      "properties": {
+        "downloaded_file_count": {
+          "type": "integer",
+          "description": "The number of files that have already been downloaded."
+        },
+        "skipped_file_count": {
+          "type": "integer",
+          "description": "The number of files that have been skipped as they could not be\ndownloaded. In many cases this is due to permission issues that have\nsurfaced between the creation of the request for the archive and the\narchive being downloaded."
+        },
+        "skipped_folder_count": {
+          "type": "integer",
+          "description": "The number of folders that have been skipped as they could not be\ndownloaded. In many cases this is due to permission issues that have\nsurfaced between the creation of the request for the archive and the\narchive being downloaded."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state of the archive being downloaded."
+        },
+        "total_file_count": {
+          "type": "integer",
+          "description": "The total number of files in the archive."
         }
       }
     }

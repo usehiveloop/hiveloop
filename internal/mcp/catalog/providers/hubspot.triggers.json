@@ -1,0 +1,164 @@
+{
+  "display_name": "HubSpot",
+  "triggers": {
+    "contact.creation": {
+      "display_name": "Contact Created",
+      "description": "Triggered when a new contact is created in HubSpot",
+      "resource_type": "contact",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "contact.deletion": {
+      "display_name": "Contact Deleted",
+      "description": "Triggered when a contact is deleted",
+      "resource_type": "contact",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "contact.propertyChange": {
+      "display_name": "Contact Property Changed",
+      "description": "Triggered when a property value is changed on a contact record",
+      "resource_type": "contact",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "contact.merge": {
+      "display_name": "Contact Merged",
+      "description": "Triggered when two contact records are merged together",
+      "resource_type": "contact",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "company.creation": {
+      "display_name": "Company Created",
+      "description": "Triggered when a new company is created in HubSpot",
+      "resource_type": "company",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "company.deletion": {
+      "display_name": "Company Deleted",
+      "description": "Triggered when a company is deleted",
+      "resource_type": "company",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "company.propertyChange": {
+      "display_name": "Company Property Changed",
+      "description": "Triggered when a property value is changed on a company record",
+      "resource_type": "company",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "company.merge": {
+      "display_name": "Company Merged",
+      "description": "Triggered when two company records are merged together",
+      "resource_type": "company",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "deal.creation": {
+      "display_name": "Deal Created",
+      "description": "Triggered when a new deal is created in HubSpot",
+      "resource_type": "deal",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "deal.deletion": {
+      "display_name": "Deal Deleted",
+      "description": "Triggered when a deal is deleted",
+      "resource_type": "deal",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "deal.propertyChange": {
+      "display_name": "Deal Property Changed",
+      "description": "Triggered when a property value is changed on a deal record (e.g. deal stage change)",
+      "resource_type": "deal",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "deal.merge": {
+      "display_name": "Deal Merged",
+      "description": "Triggered when two deal records are merged together",
+      "resource_type": "deal",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "ticket.creation": {
+      "display_name": "Ticket Created",
+      "description": "Triggered when a new ticket is created in HubSpot",
+      "resource_type": "ticket",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "ticket.deletion": {
+      "display_name": "Ticket Deleted",
+      "description": "Triggered when a ticket is deleted",
+      "resource_type": "ticket",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "ticket.propertyChange": {
+      "display_name": "Ticket Property Changed",
+      "description": "Triggered when a property value is changed on a ticket record",
+      "resource_type": "ticket",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "ticket.merge": {
+      "display_name": "Ticket Merged",
+      "description": "Triggered when two ticket records are merged together",
+      "resource_type": "ticket",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "conversation.creation": {
+      "display_name": "Conversation Created",
+      "description": "Triggered when a new conversation thread is created in the inbox",
+      "resource_type": "conversation",
+      "payload_schema": "hubspot_webhook_event"
+    },
+    "conversation.newMessage": {
+      "display_name": "Conversation New Message",
+      "description": "Triggered when a new message is added to a conversation thread",
+      "resource_type": "conversation",
+      "payload_schema": "hubspot_webhook_event"
+    }
+  },
+  "schemas": {
+    "hubspot_webhook_event": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "integer",
+          "description": "Unique identifier for this specific event"
+        },
+        "subscriptionId": {
+          "type": "integer",
+          "description": "The ID of the webhook subscription that matched this event"
+        },
+        "portalId": {
+          "type": "integer",
+          "description": "The HubSpot account ID (portal ID) where the event occurred"
+        },
+        "appId": {
+          "type": "integer",
+          "description": "The ID of the HubSpot app that is receiving the webhook"
+        },
+        "occurredAt": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the event occurred"
+        },
+        "subscriptionType": {
+          "type": "string",
+          "description": "The subscription type that identifies the event (e.g. contact.creation, deal.propertyChange)"
+        },
+        "attemptNumber": {
+          "type": "integer",
+          "description": "The number of delivery attempts made for this event, starting from 0"
+        },
+        "objectId": {
+          "type": "integer",
+          "description": "The ID of the CRM object that was affected (contact, company, deal, or ticket ID)"
+        },
+        "propertyName": {
+          "type": "string",
+          "description": "The internal name of the property that was changed (present only for propertyChange events)"
+        },
+        "propertyValue": {
+          "type": "string",
+          "description": "The new value of the property after the change (present only for propertyChange events)"
+        },
+        "changeSource": {
+          "type": "string",
+          "description": "The source of the change (e.g. CRM_UI, API, IMPORT, INTEGRATION, WORKFLOW)"
+        }
+      }
+    }
+  }
+}

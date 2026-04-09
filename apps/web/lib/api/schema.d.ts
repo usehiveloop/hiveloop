@@ -5796,6 +5796,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/catalog/integrations/{id}/triggers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List triggers for an integration
+         * @description Returns all webhook event triggers for a single integration.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Provider ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["triggerSummary"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/connect/sessions": {
         parameters: {
             query?: never;
@@ -13485,6 +13536,13 @@ export interface components {
             request_count?: number;
             total_cost?: number;
             user_id?: string;
+        };
+        triggerSummary: {
+            description?: string;
+            display_name?: string;
+            key?: string;
+            payload_schema?: string;
+            resource_type?: string;
         };
         updateAgentRequest: {
             agent_config?: components["schemas"]["JSON"];

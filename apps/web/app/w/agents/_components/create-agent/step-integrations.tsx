@@ -178,7 +178,7 @@ export function StepIntegrations() {
             </div>
 
             <div className="pt-4 shrink-0">
-              <Button onClick={() => goTo("llm-key")} className="w-full">
+              <Button onClick={() => goTo("trigger")} className="w-full">
                 {selectedCount > 0 ? `Continue with ${selectedCount} integration${selectedCount > 1 ? "s" : ""}` : "Skip for now"}
               </Button>
             </div>
