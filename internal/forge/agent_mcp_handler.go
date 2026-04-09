@@ -12,6 +12,7 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
 )
 
@@ -177,6 +178,7 @@ func (h *ForgeArchitectMCPHandler) handle(runID string) func(context.Context, *m
 // Route: /forge-eval-designer/{forgeRunID}/*
 type ForgeEvalDesignerMCPHandler struct {
 	db       *gorm.DB
+	catalog  *catalog.Catalog
 	eventBus EventEmitter
 }
 
@@ -187,6 +189,12 @@ type EventEmitter interface {
 
 func NewForgeEvalDesignerMCPHandler(db *gorm.DB, eventBus EventEmitter) *ForgeEvalDesignerMCPHandler {
 	return &ForgeEvalDesignerMCPHandler{db: db, eventBus: eventBus}
+}
+
+// WithCatalog sets the integration catalog for tool name validation.
+func (h *ForgeEvalDesignerMCPHandler) WithCatalog(cat *catalog.Catalog) *ForgeEvalDesignerMCPHandler {
+	h.catalog = cat
+	return h
 }
 
 func (h *ForgeEvalDesignerMCPHandler) StreamableHTTPHandler() http.Handler {
@@ -305,7 +313,7 @@ func submitEvalCaseSchema() map[string]any {
 func (h *ForgeEvalDesignerMCPHandler) handleSubmitOne(runID string) func(context.Context, *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
 	return func(ctx context.Context, req *mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
 		var run model.ForgeRun
-		if err := h.db.Select("id, status").Where("id = ?", runID).First(&run).Error; err != nil {
+		if err := h.db.Select("id, status, agent_id").Where("id = ?", runID).First(&run).Error; err != nil {
 			return toolError("forge run not found: %s", err)
 		}
 		if run.Status != model.ForgeStatusDesigningEvals {
@@ -384,6 +392,57 @@ func (h *ForgeEvalDesignerMCPHandler) handleSubmitOne(runID string) func(context
 			for idx, mock := range mocks {
 				if len(mock.Response) == 0 {
 					errors = append(errors, fmt.Sprintf("tool_mocks[%s][%d]: 'response' must not be empty.", toolName, idx))
+				}
+			}
+		}
+
+		// ── Tool name validation ─────────────────────────────────────────
+		// Build set of valid tool names from integration actions + built-in mocks.
+		validToolNames := make(map[string]bool)
+		for _, builtin := range builtinToolMocks {
+			validToolNames[builtin.Name] = true
+		}
+		if h.catalog != nil {
+			var agent model.Agent
+			if err := h.db.Where("id = ?", run.AgentID).First(&agent).Error; err == nil {
+				actions, resolveErr := resolveAgentActions(h.db, h.catalog, &agent)
+				if resolveErr == nil {
+					for _, action := range actions {
+						validToolNames[action.ToolName] = true
+					}
+				}
+			}
+		}
+
+		// Validate tool_mocks reference valid tool names.
+		if len(validToolNames) > 0 {
+			for toolName := range evalCase.ToolMocks {
+				if !validToolNames[toolName] {
+					errors = append(errors, fmt.Sprintf("tool_mocks: unknown tool '%s'. Must be a valid integration action or built-in tool.", toolName))
+				}
+			}
+		}
+
+		// Validate deterministic_checks reference valid tool names.
+		if len(validToolNames) > 0 {
+			for idx, check := range evalCase.DeterministicChecks {
+				switch check.Type {
+				case "tool_called", "tool_not_called":
+					if toolNameVal, ok := check.Config["tool_name"]; ok {
+						if nameStr, ok := toolNameVal.(string); ok && !validToolNames[nameStr] {
+							errors = append(errors, fmt.Sprintf("deterministic_checks[%d]: unknown tool '%s' in %s check.", idx, nameStr, check.Type))
+						}
+					}
+				case "tool_order":
+					if toolsVal, ok := check.Config["tools"]; ok {
+						if toolsList, ok := toolsVal.([]any); ok {
+							for _, toolItem := range toolsList {
+								if nameStr, ok := toolItem.(string); ok && !validToolNames[nameStr] {
+									errors = append(errors, fmt.Sprintf("deterministic_checks[%d]: unknown tool '%s' in tool_order check.", idx, nameStr))
+								}
+							}
+						}
+					}
 				}
 			}
 		}

@@ -57,6 +57,13 @@ func ForgeAgentConfig(agentType string) ForgeConfig {
 		})
 	case "forge-judge":
 		// No special permissions.
+		// Judge runs many concurrent eval conversations — raise the limit.
+		maxConcurrentJudge := int32(10000)
+		baseConfig.AgentConfigJSON = mustJSON(map[string]any{
+			"tool_calls_only":              true,
+			"disabled_tools":               allBuiltInTools,
+			"max_concurrent_conversations": maxConcurrentJudge,
+		})
 	case "forge-planner":
 		// No special permissions.
 	default:

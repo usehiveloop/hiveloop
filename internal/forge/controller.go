@@ -879,6 +879,14 @@ func (fc *ForgeController) runIteration(
 
 	log.Info("forge: iteration — creating record")
 
+	// Delete previous iteration with same number (from retries/restarts)
+	var staleIterations []model.ForgeIteration
+	fc.db.Where("forge_run_id = ? AND iteration = ?", run.ID, iteration).Find(&staleIterations)
+	for _, stale := range staleIterations {
+		fc.db.Where("forge_iteration_id = ?", stale.ID).Delete(&model.ForgeEvalResult{})
+		fc.db.Delete(&stale)
+	}
+
 	// Create iteration record.
 	iter := model.ForgeIteration{
 		ForgeRunID: run.ID,
@@ -1263,6 +1271,7 @@ evalPhase:
 			}
 			judgeMsg := fc.buildJudgeMessage(&evalCase, result)
 			judgeResp, judgeReadErr := fc.reader.ReadFullResponse(ctx, judgeClient, judgeConvInline.ConversationId, judgeMsg)
+			_ = judgeClient.EndConversation(ctx, judgeConvInline.ConversationId)
 			if judgeReadErr != nil {
 				fc.db.Model(result).Update("status", model.ForgeEvalFailed)
 				continue
@@ -2066,6 +2075,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		// Wait for response via Redis.
 		responseText, waitErr := waitForResponseFromChannel(evalCh, 3*time.Minute)
 		evalCancel()
+		_ = evalTargetClient.EndConversation(ctx, evalConvResp.ConversationId)
 		if waitErr != nil {
 			log.Warn("eval_judge: wait for response failed", "sample", s, "error", waitErr)
 			sampleResults = append(sampleResults, SampleResult{SampleIndex: s, Passed: false, Score: 0})
@@ -2194,6 +2204,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 	}
 
 	judgeOutput, parseErr := ParseJudgeOutput(judgeResponse)
+	_ = judgeClient.EndConversation(ctx, judgeConv.ConversationId)
 	if parseErr != nil {
 		log.Warn("eval_judge: judge returned invalid JSON", "eval_name", evalCase.TestName, "error", parseErr)
 		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)
