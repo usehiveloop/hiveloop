@@ -4945,7 +4945,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns all forge runs for the specified agent, ordered by creation date.",
+        "description": "Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.",
         "tags": [
           "forge"
         ],
@@ -4967,10 +4967,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/forgeRunResponse"
-                  }
+                  "$ref": "#/components/schemas/forgeFullResponse"
                 }
               }
             }
@@ -7637,6 +7634,136 @@
         }
       }
     },
+    "/v1/forge-runs/{runID}/approve-context": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Approves the gathered context and transitions to eval design.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Approve context",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/approve-evals": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Approves eval cases and starts the optimization run.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Approve evals",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/forge-runs/{runID}/cancel": {
       "post": {
         "security": [
@@ -7680,6 +7807,380 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/eval-cases": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns all eval cases for the forge run.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "List eval cases",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForgeEvalCase"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a new eval case during the review phase.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Create eval case",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createEvalCaseRequest"
+              }
+            }
+          },
+          "description": "Eval case definition",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeEvalCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/forge-runs/{runID}/eval-cases/{caseID}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns a specific eval case.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Get eval case",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Eval Case ID",
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeEvalCase"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates a specific eval case during the review phase.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Update eval case",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Eval Case ID",
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateEvalCaseRequest"
+              }
+            }
+          },
+          "description": "Fields to update",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgeEvalCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Deletes an eval case during the review phase. At least one case must remain.",
+        "tags": [
+          "forge"
+        ],
+        "summary": "Delete eval case",
+        "parameters": [
+          {
+            "description": "Forge Run ID",
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Eval Case ID",
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -12303,6 +12804,76 @@
           }
         }
       },
+      "ForgeEvalCase": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "description": "happy_path, edge_case, adversarial, tool_error",
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "deterministic_checks": {
+            "description": "[]DeterministicCheck",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "expected_behavior": {
+            "type": "string"
+          },
+          "forge_run_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "order_index": {
+            "type": "integer"
+          },
+          "requirement_type": {
+            "description": "hard, soft",
+            "type": "string"
+          },
+          "rubric": {
+            "description": "[]RubricCriterion",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "sample_count": {
+            "description": "how many times to run (1-5)",
+            "type": "integer"
+          },
+          "test_name": {
+            "description": "Test definition.",
+            "type": "string"
+          },
+          "test_prompt": {
+            "type": "string"
+          },
+          "tier": {
+            "description": "basic, standard, adversarial",
+            "type": "string"
+          },
+          "tool_mocks": {
+            "description": "{tool_name: [{match, response}]}",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "ForgeEvalResult": {
         "type": "object",
         "properties": {
@@ -12387,88 +12958,6 @@
             "items": {
               "type": "integer"
             }
-          }
-        }
-      },
-      "ForgeIteration": {
-        "type": "object",
-        "properties": {
-          "agent_config": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "all_hard_passed": {
-            "description": "convenience flag",
-            "type": "boolean"
-          },
-          "architect_reasoning": {
-            "type": "string"
-          },
-          "cost": {
-            "type": "number"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "eval_score_history": {
-            "description": "Per-eval score tracking across iterations for regression detection.",
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "forge_run_id": {
-            "type": "string"
-          },
-          "hard_score": {
-            "description": "Hard vs soft requirement scoring.",
-            "type": "number"
-          },
-          "id": {
-            "type": "string"
-          },
-          "input_tokens": {
-            "description": "Cost for this iteration.",
-            "type": "integer"
-          },
-          "iteration": {
-            "type": "integer"
-          },
-          "output_tokens": {
-            "type": "integer"
-          },
-          "passed_evals": {
-            "type": "integer"
-          },
-          "phase": {
-            "description": "Phase within this iteration: designing \u2192 eval_designing \u2192 evaluating \u2192 judging \u2192 completed|failed.",
-            "type": "string"
-          },
-          "score": {
-            "type": "number"
-          },
-          "soft_score": {
-            "description": "average score of soft evals",
-            "type": "number"
-          },
-          "system_prompt": {
-            "description": "Architect output \u2014 persisted after designing phase.",
-            "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "total_evals": {
-            "description": "Results \u2014 persisted after judging phase.",
-            "type": "integer"
-          },
-          "updated_at": {
-            "type": "string"
           }
         }
       },
@@ -14226,6 +14715,50 @@
           }
         }
       },
+      "createEvalCaseRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "deterministic_checks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "expected_behavior": {
+            "type": "string"
+          },
+          "requirement_type": {
+            "type": "string"
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "sample_count": {
+            "type": "integer"
+          },
+          "test_name": {
+            "type": "string"
+          },
+          "test_prompt": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "tool_mocks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
       "createIdentityRequest": {
         "type": "object",
         "properties": {
@@ -14462,17 +14995,128 @@
           }
         }
       },
+      "forgeFullResponse": {
+        "type": "object",
+        "properties": {
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/forgeGetRunResponse"
+            }
+          }
+        }
+      },
       "forgeGetRunResponse": {
         "type": "object",
         "properties": {
+          "eval_cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForgeEvalCase"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForgeEvent"
+            }
+          },
           "iterations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ForgeIteration"
+              "$ref": "#/components/schemas/forgeIterationResponse"
             }
           },
           "run": {
             "$ref": "#/components/schemas/forgeRunResponse"
+          }
+        }
+      },
+      "forgeIterationResponse": {
+        "type": "object",
+        "properties": {
+          "agent_config": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "all_hard_passed": {
+            "description": "convenience flag",
+            "type": "boolean"
+          },
+          "architect_reasoning": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "eval_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForgeEvalResult"
+            }
+          },
+          "eval_score_history": {
+            "description": "Per-eval score tracking across iterations for regression detection.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "forge_run_id": {
+            "type": "string"
+          },
+          "hard_score": {
+            "description": "Hard vs soft requirement scoring.",
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input_tokens": {
+            "description": "Cost for this iteration.",
+            "type": "integer"
+          },
+          "iteration": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "passed_evals": {
+            "type": "integer"
+          },
+          "phase": {
+            "description": "Phase within this iteration: designing \u2192 eval_designing \u2192 evaluating \u2192 judging \u2192 completed|failed.",
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "soft_score": {
+            "description": "average score of soft evals",
+            "type": "number"
+          },
+          "system_prompt": {
+            "description": "Architect output \u2014 persisted after designing phase.",
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_evals": {
+            "description": "Results \u2014 persisted after judging phase.",
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string"
           }
         }
       },
@@ -16329,6 +16973,53 @@
           },
           "tools": {
             "$ref": "#/components/schemas/JSON"
+          }
+        }
+      },
+      "updateEvalCaseRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "deterministic_checks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "expected_behavior": {
+            "type": "string"
+          },
+          "order_index": {
+            "type": "integer"
+          },
+          "requirement_type": {
+            "type": "string"
+          },
+          "rubric": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "sample_count": {
+            "type": "integer"
+          },
+          "test_name": {
+            "type": "string"
+          },
+          "test_prompt": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "tool_mocks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
           }
         }
       },

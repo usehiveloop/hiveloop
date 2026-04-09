@@ -36,6 +36,55 @@ definitions:
       type:
         type: string
     type: object
+  github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase:
+    properties:
+      category:
+        description: happy_path, edge_case, adversarial, tool_error
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      deterministic_checks:
+        description: '[]DeterministicCheck'
+        items:
+          type: integer
+        type: array
+      expected_behavior:
+        type: string
+      forge_run_id:
+        type: string
+      id:
+        type: string
+      order_index:
+        type: integer
+      requirement_type:
+        description: hard, soft
+        type: string
+      rubric:
+        description: '[]RubricCriterion'
+        items:
+          type: integer
+        type: array
+      sample_count:
+        description: how many times to run (1-5)
+        type: integer
+      test_name:
+        description: Test definition.
+        type: string
+      test_prompt:
+        type: string
+      tier:
+        description: basic, standard, adversarial
+        type: string
+      tool_mocks:
+        description: '{tool_name: [{match, response}]}'
+        items:
+          type: integer
+        type: array
+      updated_at:
+        type: string
+    type: object
   github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult:
     properties:
       created_at:
@@ -96,64 +145,6 @@ definitions:
         items:
           type: integer
         type: array
-    type: object
-  github_com_ziraloop_ziraloop_internal_model.ForgeIteration:
-    properties:
-      agent_config:
-        items:
-          type: integer
-        type: array
-      all_hard_passed:
-        description: convenience flag
-        type: boolean
-      architect_reasoning:
-        type: string
-      cost:
-        type: number
-      created_at:
-        type: string
-      eval_score_history:
-        description: Per-eval score tracking across iterations for regression detection.
-        items:
-          type: integer
-        type: array
-      forge_run_id:
-        type: string
-      hard_score:
-        description: Hard vs soft requirement scoring.
-        type: number
-      id:
-        type: string
-      input_tokens:
-        description: Cost for this iteration.
-        type: integer
-      iteration:
-        type: integer
-      output_tokens:
-        type: integer
-      passed_evals:
-        type: integer
-      phase:
-        description: 'Phase within this iteration: designing → eval_designing → evaluating
-          → judging → completed|failed.'
-        type: string
-      score:
-        type: number
-      soft_score:
-        description: average score of soft evals
-        type: number
-      system_prompt:
-        description: Architect output — persisted after designing phase.
-        type: string
-      tools:
-        items:
-          type: integer
-        type: array
-      total_evals:
-        description: Results — persisted after judging phase.
-        type: integer
-      updated_at:
-        type: string
     type: object
   github_com_ziraloop_ziraloop_internal_model.JSON:
     additionalProperties: {}
@@ -1302,6 +1293,35 @@ definitions:
       verified_at:
         type: string
     type: object
+  internal_handler.createEvalCaseRequest:
+    properties:
+      category:
+        type: string
+      deterministic_checks:
+        items:
+          type: integer
+        type: array
+      expected_behavior:
+        type: string
+      requirement_type:
+        type: string
+      rubric:
+        items:
+          type: integer
+        type: array
+      sample_count:
+        type: integer
+      test_name:
+        type: string
+      test_prompt:
+        type: string
+      tier:
+        type: string
+      tool_mocks:
+        items:
+          type: integer
+        type: array
+    type: object
   internal_handler.createIdentityRequest:
     properties:
       external_id:
@@ -1454,14 +1474,91 @@ definitions:
       success:
         type: boolean
     type: object
+  internal_handler.forgeFullResponse:
+    properties:
+      runs:
+        items:
+          $ref: '#/definitions/internal_handler.forgeGetRunResponse'
+        type: array
+    type: object
   internal_handler.forgeGetRunResponse:
     properties:
+      eval_cases:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase'
+        type: array
+      events:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvent'
+        type: array
       iterations:
         items:
-          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeIteration'
+          $ref: '#/definitions/internal_handler.forgeIterationResponse'
         type: array
       run:
         $ref: '#/definitions/internal_handler.forgeRunResponse'
+    type: object
+  internal_handler.forgeIterationResponse:
+    properties:
+      agent_config:
+        items:
+          type: integer
+        type: array
+      all_hard_passed:
+        description: convenience flag
+        type: boolean
+      architect_reasoning:
+        type: string
+      cost:
+        type: number
+      created_at:
+        type: string
+      eval_results:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult'
+        type: array
+      eval_score_history:
+        description: Per-eval score tracking across iterations for regression detection.
+        items:
+          type: integer
+        type: array
+      forge_run_id:
+        type: string
+      hard_score:
+        description: Hard vs soft requirement scoring.
+        type: number
+      id:
+        type: string
+      input_tokens:
+        description: Cost for this iteration.
+        type: integer
+      iteration:
+        type: integer
+      output_tokens:
+        type: integer
+      passed_evals:
+        type: integer
+      phase:
+        description: 'Phase within this iteration: designing → eval_designing → evaluating
+          → judging → completed|failed.'
+        type: string
+      score:
+        type: number
+      soft_score:
+        description: average score of soft evals
+        type: number
+      system_prompt:
+        description: Architect output — persisted after designing phase.
+        type: string
+      tools:
+        items:
+          type: integer
+        type: array
+      total_evals:
+        description: Results — persisted after judging phase.
+        type: integer
+      updated_at:
+        type: string
     type: object
   internal_handler.forgeOptions:
     properties:
@@ -2672,6 +2769,37 @@ definitions:
         type: string
       tools:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+    type: object
+  internal_handler.updateEvalCaseRequest:
+    properties:
+      category:
+        type: string
+      deterministic_checks:
+        items:
+          type: integer
+        type: array
+      expected_behavior:
+        type: string
+      order_index:
+        type: integer
+      requirement_type:
+        type: string
+      rubric:
+        items:
+          type: integer
+        type: array
+      sample_count:
+        type: integer
+      test_name:
+        type: string
+      test_prompt:
+        type: string
+      tier:
+        type: string
+      tool_mocks:
+        items:
+          type: integer
+        type: array
     type: object
   internal_handler.updateIdentityRequest:
     properties:
@@ -5561,8 +5689,8 @@ paths:
       - conversations
   /v1/agents/{agentID}/forge:
     get:
-      description: Returns all forge runs for the specified agent, ordered by creation
-        date.
+      description: Returns all forge runs for the specified agent with iterations,
+        eval cases, eval results, and events.
       parameters:
       - description: Agent ID
         in: path
@@ -5575,9 +5703,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/internal_handler.forgeRunResponse'
-            type: array
+            $ref: '#/definitions/internal_handler.forgeFullResponse'
         "401":
           description: Unauthorized
           schema:
@@ -6967,6 +7093,72 @@ paths:
       summary: Apply forge result
       tags:
       - forge
+  /v1/forge-runs/{runID}/approve-context:
+    post:
+      description: Approves the gathered context and transitions to eval design.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve context
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/approve-evals:
+    post:
+      description: Approves eval cases and starts the optimization run.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve evals
+      tags:
+      - forge
   /v1/forge-runs/{runID}/cancel:
     post:
       description: Cancels an active (queued or running) forge run.
@@ -7004,6 +7196,200 @@ paths:
       security:
       - BearerAuth: []
       summary: Cancel forge run
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/eval-cases:
+    get:
+      description: Returns all eval cases for the forge run.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List eval cases
+      tags:
+      - forge
+    post:
+      consumes:
+      - application/json
+      description: Creates a new eval case during the review phase.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      - description: Eval case definition
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createEvalCaseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create eval case
+      tags:
+      - forge
+  /v1/forge-runs/{runID}/eval-cases/{caseID}:
+    delete:
+      description: Deletes an eval case during the review phase. At least one case
+        must remain.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      - description: Eval Case ID
+        in: path
+        name: caseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete eval case
+      tags:
+      - forge
+    get:
+      description: Returns a specific eval case.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      - description: Eval Case ID
+        in: path
+        name: caseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get eval case
+      tags:
+      - forge
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific eval case during the review phase.
+      parameters:
+      - description: Forge Run ID
+        in: path
+        name: runID
+        required: true
+        type: string
+      - description: Eval Case ID
+        in: path
+        name: caseID
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateEvalCaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update eval case
       tags:
       - forge
   /v1/forge-runs/{runID}/events:

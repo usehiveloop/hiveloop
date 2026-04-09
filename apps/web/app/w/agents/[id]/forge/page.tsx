@@ -103,10 +103,10 @@ interface Iteration {
 
 // ─── Data ───────────────────────────────────────────────────────────────────
 
-const AGENT = { name: "Customer Support Agent", model: "claude-sonnet-4" }
+// AGENT constant removed — agent name and model come from the API via $api.useQuery
 
 const MESSAGES = [
-  { id: "a1", role: "agent" as const, content: `I'll help you define what **${AGENT.name}** needs to do well before we optimize it. What's its primary job?` },
+  { id: "a1", role: "agent" as const, content: "I'll help you define what this agent needs to do well before we optimize it. What's its primary job?" },
   { id: "u1", role: "user" as const, content: "Handles support tickets. Should triage, respond to simple ones, and escalate complex issues to the right team." },
   { id: "a2", role: "agent" as const, content: "Clear — triage + first-response. **Which teams can it escalate to?** Are there situations where it should skip responding entirely?" },
   { id: "u2", role: "user" as const, content: "Billing, engineering, and account management. Skip responding for anything security-related — send straight to engineering. Tone should be friendly but professional." },
@@ -320,7 +320,7 @@ function scoreBgMuted(score: number) {
 
 type NavId = "context" | "evals" | "iteration-1" | "iteration-2" | "iteration-3" | "results"
 
-function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId) => void }) {
+function Sidebar({ activeId, onSelect, agentName, agentModel }: { activeId: NavId; onSelect: (id: NavId) => void; agentName: string; agentModel: string }) {
   const bestScore = Math.max(...ITERATIONS.filter((iter) => iter.score !== null).map((iter) => iter.score!))
 
   return (
@@ -329,9 +329,9 @@ function Sidebar({ activeId, onSelect }: { activeId: NavId; onSelect: (id: NavId
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-2 mb-0.5">
           <HugeiconsIcon icon={SparklesIcon} size={12} className="text-primary shrink-0" />
-          <span className="font-heading text-[13px] font-semibold text-foreground truncate">{AGENT.name}</span>
+          <span className="font-heading text-[13px] font-semibold text-foreground truncate">{agentName}</span>
         </div>
-        <span className="font-mono text-[10px] text-muted-foreground/40">{AGENT.model}</span>
+        <span className="font-mono text-[10px] text-muted-foreground/40">{agentModel}</span>
 
         {/* Best score */}
         <div className="mt-4">
@@ -1314,11 +1314,23 @@ export default function ForgePage() {
     { params: { path: { id: params.id } } },
   )
 
+  const { data: forge, isLoading: forgeLoading } = $api.useQuery(
+    "get",
+    "/v1/agents/{agentID}/forge",
+    { params: { path: { agentID: params.id } } },
+  )
+
   useEffect(() => {
     if (agent) {
       console.log("[forge] agent loaded", agent)
     }
   }, [agent])
+
+  useEffect(() => {
+    if (forge) {
+      console.log("[forge] forge data loaded", forge)
+    }
+  }, [forge])
 
   function renderContent() {
     if (activeNav === "context") return <ContextPanel />
@@ -1334,7 +1346,7 @@ export default function ForgePage() {
 
   return (
     <div className="flex h-[calc(100vh-54px)]">
-      <Sidebar activeId={activeNav} onSelect={setActiveNav} />
+      <Sidebar activeId={activeNav} onSelect={setActiveNav} agentName={agent?.name ?? "Loading..."} agentModel={agent?.model ?? ""} />
       <div className="flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div

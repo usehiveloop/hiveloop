@@ -71,9 +71,20 @@ type forgeRunResponse struct {
 	CreatedAt               string   `json:"created_at"`
 }
 
+type forgeIterationResponse struct {
+	model.ForgeIteration
+	EvalResults []model.ForgeEvalResult `json:"eval_results"`
+}
+
 type forgeGetRunResponse struct {
 	Run        forgeRunResponse         `json:"run"`
-	Iterations []model.ForgeIteration   `json:"iterations"`
+	Iterations []forgeIterationResponse `json:"iterations"`
+	EvalCases  []model.ForgeEvalCase    `json:"eval_cases"`
+	Events     []model.ForgeEvent       `json:"events"`
+}
+
+type forgeFullResponse struct {
+	Runs []forgeGetRunResponse `json:"runs"`
 }
 
 func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
@@ -109,6 +120,55 @@ func toForgeRunResponse(run model.ForgeRun) forgeRunResponse {
 		resp.CompletedAt = &s
 	}
 	return resp
+}
+
+// buildFullRunResponse loads all related data for a forge run and returns a complete response.
+func (h *ForgeHandler) buildFullRunResponse(run model.ForgeRun) forgeGetRunResponse {
+	var iterations []model.ForgeIteration
+	h.db.Where("forge_run_id = ?", run.ID).Order("iteration ASC").Find(&iterations)
+
+	var evalCases []model.ForgeEvalCase
+	h.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
+
+	var events []model.ForgeEvent
+	h.db.Where("forge_run_id = ?", run.ID).Order("created_at ASC").Limit(500).Find(&events)
+
+	iterationIDs := make([]uuid.UUID, len(iterations))
+	for index, iter := range iterations {
+		iterationIDs[index] = iter.ID
+	}
+
+	var evalResults []model.ForgeEvalResult
+	if len(iterationIDs) > 0 {
+		h.db.Preload("ForgeEvalCase").
+			Where("forge_iteration_id IN ?", iterationIDs).
+			Order("created_at ASC").
+			Find(&evalResults)
+	}
+
+	resultsByIteration := map[string][]model.ForgeEvalResult{}
+	for _, result := range evalResults {
+		key := result.ForgeIterationID.String()
+		resultsByIteration[key] = append(resultsByIteration[key], result)
+	}
+
+	iterResponses := make([]forgeIterationResponse, len(iterations))
+	for index, iter := range iterations {
+		iterResponses[index] = forgeIterationResponse{
+			ForgeIteration: iter,
+			EvalResults:    resultsByIteration[iter.ID.String()],
+		}
+		if iterResponses[index].EvalResults == nil {
+			iterResponses[index].EvalResults = []model.ForgeEvalResult{}
+		}
+	}
+
+	return forgeGetRunResponse{
+		Run:        toForgeRunResponse(run),
+		Iterations: iterResponses,
+		EvalCases:  evalCases,
+		Events:     events,
+	}
 }
 
 // Start creates and starts a new forge run.
@@ -273,13 +333,13 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toForgeRunResponse(run))
 }
 
-// ListRuns lists forge runs for an agent.
+// ListRuns lists forge runs for an agent with full details.
 // @Summary List forge runs
-// @Description Returns all forge runs for the specified agent, ordered by creation date.
+// @Description Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.
 // @Tags forge
 // @Produce json
 // @Param agentID path string true "Agent ID"
-// @Success 200 {array} forgeRunResponse
+// @Success 200 {object} forgeFullResponse
 // @Failure 401 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/agents/{agentID}/forge [get]
@@ -297,9 +357,11 @@ func (h *ForgeHandler) ListRuns(w http.ResponseWriter, r *http.Request) {
 		Order("created_at DESC").
 		Find(&runs)
 
-	resp := make([]forgeRunResponse, len(runs))
-	for i, run := range runs {
-		resp[i] = toForgeRunResponse(run)
+	resp := forgeFullResponse{
+		Runs: make([]forgeGetRunResponse, len(runs)),
+	}
+	for index, run := range runs {
+		resp.Runs[index] = h.buildFullRunResponse(run)
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -334,57 +396,7 @@ func (h *ForgeHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load all iterations for this run.
-	var iterations []model.ForgeIteration
-	h.db.Where("forge_run_id = ?", run.ID).Order("iteration ASC").Find(&iterations)
-
-	// Load all eval cases for this run.
-	var evalCases []model.ForgeEvalCase
-	h.db.Where("forge_run_id = ?", run.ID).Order("order_index ASC").Find(&evalCases)
-
-	// Load all eval results across all iterations, with eval case preloaded.
-	iterationIDs := make([]uuid.UUID, len(iterations))
-	for index, iter := range iterations {
-		iterationIDs[index] = iter.ID
-	}
-
-	var evalResults []model.ForgeEvalResult
-	if len(iterationIDs) > 0 {
-		h.db.Preload("ForgeEvalCase").
-			Where("forge_iteration_id IN ?", iterationIDs).
-			Order("created_at ASC").
-			Find(&evalResults)
-	}
-
-	// Group eval results by iteration ID for the response.
-	resultsByIteration := map[string][]model.ForgeEvalResult{}
-	for _, result := range evalResults {
-		key := result.ForgeIterationID.String()
-		resultsByIteration[key] = append(resultsByIteration[key], result)
-	}
-
-	// Build iteration responses with their eval results.
-	type iterationWithResults struct {
-		model.ForgeIteration
-		EvalResults []model.ForgeEvalResult `json:"eval_results"`
-	}
-
-	iterResponses := make([]iterationWithResults, len(iterations))
-	for index, iter := range iterations {
-		iterResponses[index] = iterationWithResults{
-			ForgeIteration: iter,
-			EvalResults:    resultsByIteration[iter.ID.String()],
-		}
-		if iterResponses[index].EvalResults == nil {
-			iterResponses[index].EvalResults = []model.ForgeEvalResult{}
-		}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"run":        toForgeRunResponse(run),
-		"iterations": iterResponses,
-		"eval_cases": evalCases,
-	})
+	writeJSON(w, http.StatusOK, h.buildFullRunResponse(run))
 }
 
 // Stream provides an SSE stream of forge events.
@@ -688,6 +700,16 @@ func (h *ForgeHandler) loadForgeRunForOrg(w http.ResponseWriter, r *http.Request
 }
 
 // ListEvalCases handles GET /v1/forge-runs/{runID}/eval-cases.
+// @Summary List eval cases
+// @Description Returns all eval cases for the forge run.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {array} model.ForgeEvalCase
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/eval-cases [get]
 func (h *ForgeHandler) ListEvalCases(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -699,6 +721,17 @@ func (h *ForgeHandler) ListEvalCases(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetEvalCase handles GET /v1/forge-runs/{runID}/eval-cases/{caseID}.
+// @Summary Get eval case
+// @Description Returns a specific eval case.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Param caseID path string true "Eval Case ID"
+// @Success 200 {object} model.ForgeEvalCase
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/eval-cases/{caseID} [get]
 func (h *ForgeHandler) GetEvalCase(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -731,6 +764,21 @@ var validTiers = map[string]bool{"basic": true, "standard": true, "adversarial":
 var validRequirementTypes = map[string]bool{"hard": true, "soft": true}
 
 // UpdateEvalCase handles PUT /v1/forge-runs/{runID}/eval-cases/{caseID}.
+// @Summary Update eval case
+// @Description Updates a specific eval case during the review phase.
+// @Tags forge
+// @Accept json
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Param caseID path string true "Eval Case ID"
+// @Param body body updateEvalCaseRequest true "Fields to update"
+// @Success 200 {object} model.ForgeEvalCase
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/eval-cases/{caseID} [put]
 func (h *ForgeHandler) UpdateEvalCase(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -833,6 +881,19 @@ type createEvalCaseRequest struct {
 }
 
 // CreateEvalCase handles POST /v1/forge-runs/{runID}/eval-cases.
+// @Summary Create eval case
+// @Description Creates a new eval case during the review phase.
+// @Tags forge
+// @Accept json
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Param body body createEvalCaseRequest true "Eval case definition"
+// @Success 201 {object} model.ForgeEvalCase
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/eval-cases [post]
 func (h *ForgeHandler) CreateEvalCase(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -889,6 +950,18 @@ func (h *ForgeHandler) CreateEvalCase(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteEvalCase handles DELETE /v1/forge-runs/{runID}/eval-cases/{caseID}.
+// @Summary Delete eval case
+// @Description Deletes an eval case during the review phase. At least one case must remain.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Param caseID path string true "Eval Case ID"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/eval-cases/{caseID} [delete]
 func (h *ForgeHandler) DeleteEvalCase(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -919,6 +992,17 @@ func (h *ForgeHandler) DeleteEvalCase(w http.ResponseWriter, r *http.Request) {
 
 // ApproveContext handles POST /v1/forge-runs/{runID}/approve-context.
 // Transitions from gathering_context → designing_evals once context is captured.
+// @Summary Approve context
+// @Description Approves the gathered context and transitions to eval design.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/approve-context [post]
 func (h *ForgeHandler) ApproveContext(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {
@@ -946,6 +1030,16 @@ func (h *ForgeHandler) ApproveContext(w http.ResponseWriter, r *http.Request) {
 }
 
 // ApproveEvals handles POST /v1/forge-runs/{runID}/approve-evals.
+// @Summary Approve evals
+// @Description Approves eval cases and starts the optimization run.
+// @Tags forge
+// @Produce json
+// @Param runID path string true "Forge Run ID"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/forge-runs/{runID}/approve-evals [post]
 func (h *ForgeHandler) ApproveEvals(w http.ResponseWriter, r *http.Request) {
 	run, ok := h.loadForgeRunForOrg(w, r)
 	if !ok {

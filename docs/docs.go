@@ -4250,7 +4250,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all forge runs for the specified agent, ordered by creation date.",
+                "description": "Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.",
                 "produces": [
                     "application/json"
                 ],
@@ -4271,10 +4271,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_handler.forgeRunResponse"
-                            }
+                            "$ref": "#/definitions/internal_handler.forgeFullResponse"
                         }
                     },
                     "401": {
@@ -6421,6 +6418,110 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/forge-runs/{runID}/approve-context": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approves the gathered context and transitions to eval design.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Approve context",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/forge-runs/{runID}/approve-evals": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approves eval cases and starts the optimization run.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Approve evals",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/forge-runs/{runID}/cancel": {
             "post": {
                 "security": [
@@ -6459,6 +6560,305 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/forge-runs/{runID}/eval-cases": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all eval cases for the forge run.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "List eval cases",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new eval case during the review phase.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Create eval case",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Eval case definition",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.createEvalCaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/forge-runs/{runID}/eval-cases/{caseID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a specific eval case.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Get eval case",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Eval Case ID",
+                        "name": "caseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates a specific eval case during the review phase.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Update eval case",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Eval Case ID",
+                        "name": "caseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateEvalCaseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an eval case during the review phase. At least one case must remain.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "forge"
+                ],
+                "summary": "Delete eval case",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Forge Run ID",
+                        "name": "runID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Eval Case ID",
+                        "name": "caseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
@@ -10151,6 +10551,76 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "happy_path, edge_case, adversarial, tool_error",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "deterministic_checks": {
+                    "description": "[]DeterministicCheck",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "expected_behavior": {
+                    "type": "string"
+                },
+                "forge_run_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order_index": {
+                    "type": "integer"
+                },
+                "requirement_type": {
+                    "description": "hard, soft",
+                    "type": "string"
+                },
+                "rubric": {
+                    "description": "[]RubricCriterion",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sample_count": {
+                    "description": "how many times to run (1-5)",
+                    "type": "integer"
+                },
+                "test_name": {
+                    "description": "Test definition.",
+                    "type": "string"
+                },
+                "test_prompt": {
+                    "type": "string"
+                },
+                "tier": {
+                    "description": "basic, standard, adversarial",
+                    "type": "string"
+                },
+                "tool_mocks": {
+                    "description": "{tool_name: [{match, response}]}",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult": {
             "type": "object",
             "properties": {
@@ -10235,88 +10705,6 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
-                }
-            }
-        },
-        "github_com_ziraloop_ziraloop_internal_model.ForgeIteration": {
-            "type": "object",
-            "properties": {
-                "agent_config": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "all_hard_passed": {
-                    "description": "convenience flag",
-                    "type": "boolean"
-                },
-                "architect_reasoning": {
-                    "type": "string"
-                },
-                "cost": {
-                    "type": "number"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "eval_score_history": {
-                    "description": "Per-eval score tracking across iterations for regression detection.",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "forge_run_id": {
-                    "type": "string"
-                },
-                "hard_score": {
-                    "description": "Hard vs soft requirement scoring.",
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "input_tokens": {
-                    "description": "Cost for this iteration.",
-                    "type": "integer"
-                },
-                "iteration": {
-                    "type": "integer"
-                },
-                "output_tokens": {
-                    "type": "integer"
-                },
-                "passed_evals": {
-                    "type": "integer"
-                },
-                "phase": {
-                    "description": "Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed.",
-                    "type": "string"
-                },
-                "score": {
-                    "type": "number"
-                },
-                "soft_score": {
-                    "description": "average score of soft evals",
-                    "type": "number"
-                },
-                "system_prompt": {
-                    "description": "Architect output — persisted after designing phase.",
-                    "type": "string"
-                },
-                "tools": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "total_evals": {
-                    "description": "Results — persisted after judging phase.",
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },
@@ -12074,6 +12462,50 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.createEvalCaseRequest": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "deterministic_checks": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "expected_behavior": {
+                    "type": "string"
+                },
+                "requirement_type": {
+                    "type": "string"
+                },
+                "rubric": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sample_count": {
+                    "type": "integer"
+                },
+                "test_name": {
+                    "type": "string"
+                },
+                "test_prompt": {
+                    "type": "string"
+                },
+                "tier": {
+                    "type": "string"
+                },
+                "tool_mocks": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "internal_handler.createIdentityRequest": {
             "type": "object",
             "properties": {
@@ -12310,17 +12742,128 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.forgeFullResponse": {
+            "type": "object",
+            "properties": {
+                "runs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.forgeGetRunResponse"
+                    }
+                }
+            }
+        },
         "internal_handler.forgeGetRunResponse": {
             "type": "object",
             "properties": {
+                "eval_cases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalCase"
+                    }
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvent"
+                    }
+                },
                 "iterations": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeIteration"
+                        "$ref": "#/definitions/internal_handler.forgeIterationResponse"
                     }
                 },
                 "run": {
                     "$ref": "#/definitions/internal_handler.forgeRunResponse"
+                }
+            }
+        },
+        "internal_handler.forgeIterationResponse": {
+            "type": "object",
+            "properties": {
+                "agent_config": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "all_hard_passed": {
+                    "description": "convenience flag",
+                    "type": "boolean"
+                },
+                "architect_reasoning": {
+                    "type": "string"
+                },
+                "cost": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "eval_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ForgeEvalResult"
+                    }
+                },
+                "eval_score_history": {
+                    "description": "Per-eval score tracking across iterations for regression detection.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "forge_run_id": {
+                    "type": "string"
+                },
+                "hard_score": {
+                    "description": "Hard vs soft requirement scoring.",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "input_tokens": {
+                    "description": "Cost for this iteration.",
+                    "type": "integer"
+                },
+                "iteration": {
+                    "type": "integer"
+                },
+                "output_tokens": {
+                    "type": "integer"
+                },
+                "passed_evals": {
+                    "type": "integer"
+                },
+                "phase": {
+                    "description": "Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed.",
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number"
+                },
+                "soft_score": {
+                    "description": "average score of soft evals",
+                    "type": "number"
+                },
+                "system_prompt": {
+                    "description": "Architect output — persisted after designing phase.",
+                    "type": "string"
+                },
+                "tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "total_evals": {
+                    "description": "Results — persisted after judging phase.",
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -14177,6 +14720,53 @@ const docTemplate = `{
                 },
                 "tools": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                }
+            }
+        },
+        "internal_handler.updateEvalCaseRequest": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "deterministic_checks": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "expected_behavior": {
+                    "type": "string"
+                },
+                "order_index": {
+                    "type": "integer"
+                },
+                "requirement_type": {
+                    "type": "string"
+                },
+                "rubric": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sample_count": {
+                    "type": "integer"
+                },
+                "test_name": {
+                    "type": "string"
+                },
+                "test_prompt": {
+                    "type": "string"
+                },
+                "tier": {
+                    "type": "string"
+                },
+                "tool_mocks": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },

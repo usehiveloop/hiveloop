@@ -4815,7 +4815,7 @@ export interface paths {
         };
         /**
          * List forge runs
-         * @description Returns all forge runs for the specified agent, ordered by creation date.
+         * @description Returns all forge runs for the specified agent with iterations, eval cases, eval results, and events.
          */
         get: {
             parameters: {
@@ -4835,7 +4835,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["forgeRunResponse"][];
+                        "application/json": components["schemas"]["forgeFullResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -7363,6 +7363,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/forge-runs/{runID}/approve-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve context
+         * @description Approves the gathered context and transitions to eval design.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/approve-evals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve evals
+         * @description Approves eval cases and starts the optimization run.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/forge-runs/{runID}/cancel": {
         parameters: {
             query?: never;
@@ -7438,6 +7571,312 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/eval-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List eval cases
+         * @description Returns all eval cases for the forge run.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalCase"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create eval case
+         * @description Creates a new eval case during the review phase.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Eval case definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createEvalCaseRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalCase"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/forge-runs/{runID}/eval-cases/{caseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get eval case
+         * @description Returns a specific eval case.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                    /** @description Eval Case ID */
+                    caseID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalCase"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update eval case
+         * @description Updates a specific eval case during the review phase.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                    /** @description Eval Case ID */
+                    caseID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateEvalCaseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForgeEvalCase"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete eval case
+         * @description Deletes an eval case during the review phase. At least one case must remain.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Forge Run ID */
+                    runID: string;
+                    /** @description Eval Case ID */
+                    caseID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -11677,6 +12116,32 @@ export interface components {
             title?: string;
             type?: string;
         };
+        ForgeEvalCase: {
+            /** @description happy_path, edge_case, adversarial, tool_error */
+            category?: string;
+            created_at?: string;
+            description?: string;
+            /** @description []DeterministicCheck */
+            deterministic_checks?: number[];
+            expected_behavior?: string;
+            forge_run_id?: string;
+            id?: string;
+            order_index?: number;
+            /** @description hard, soft */
+            requirement_type?: string;
+            /** @description []RubricCriterion */
+            rubric?: number[];
+            /** @description how many times to run (1-5) */
+            sample_count?: number;
+            /** @description Test definition. */
+            test_name?: string;
+            test_prompt?: string;
+            /** @description basic, standard, adversarial */
+            tier?: string;
+            /** @description {tool_name: [{match, response}]} */
+            tool_mocks?: number[];
+            updated_at?: string;
+        };
         ForgeEvalResult: {
             created_at?: string;
             /** @description actionable, specific failure explanation */
@@ -11707,36 +12172,6 @@ export interface components {
             forge_run_id?: string;
             id?: string;
             payload?: number[];
-        };
-        ForgeIteration: {
-            agent_config?: number[];
-            /** @description convenience flag */
-            all_hard_passed?: boolean;
-            architect_reasoning?: string;
-            cost?: number;
-            created_at?: string;
-            /** @description Per-eval score tracking across iterations for regression detection. */
-            eval_score_history?: number[];
-            forge_run_id?: string;
-            /** @description Hard vs soft requirement scoring. */
-            hard_score?: number;
-            id?: string;
-            /** @description Cost for this iteration. */
-            input_tokens?: number;
-            iteration?: number;
-            output_tokens?: number;
-            passed_evals?: number;
-            /** @description Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed. */
-            phase?: string;
-            score?: number;
-            /** @description average score of soft evals */
-            soft_score?: number;
-            /** @description Architect output — persisted after designing phase. */
-            system_prompt?: string;
-            tools?: number[];
-            /** @description Results — persisted after judging phase. */
-            total_evals?: number;
-            updated_at?: string;
         };
         JSON: {
             [key: string]: unknown;
@@ -12323,6 +12758,18 @@ export interface components {
             verified?: boolean;
             verified_at?: string;
         };
+        createEvalCaseRequest: {
+            category?: string;
+            deterministic_checks?: number[];
+            expected_behavior?: string;
+            requirement_type?: string;
+            rubric?: number[];
+            sample_count?: number;
+            test_name?: string;
+            test_prompt?: string;
+            tier?: string;
+            tool_mocks?: number[];
+        };
         createIdentityRequest: {
             external_id?: string;
             memory_config?: components["schemas"]["JSON"];
@@ -12404,9 +12851,45 @@ export interface components {
             results?: components["schemas"]["commandResult"][];
             success?: boolean;
         };
+        forgeFullResponse: {
+            runs?: components["schemas"]["forgeGetRunResponse"][];
+        };
         forgeGetRunResponse: {
-            iterations?: components["schemas"]["ForgeIteration"][];
+            eval_cases?: components["schemas"]["ForgeEvalCase"][];
+            events?: components["schemas"]["ForgeEvent"][];
+            iterations?: components["schemas"]["forgeIterationResponse"][];
             run?: components["schemas"]["forgeRunResponse"];
+        };
+        forgeIterationResponse: {
+            agent_config?: number[];
+            /** @description convenience flag */
+            all_hard_passed?: boolean;
+            architect_reasoning?: string;
+            cost?: number;
+            created_at?: string;
+            eval_results?: components["schemas"]["ForgeEvalResult"][];
+            /** @description Per-eval score tracking across iterations for regression detection. */
+            eval_score_history?: number[];
+            forge_run_id?: string;
+            /** @description Hard vs soft requirement scoring. */
+            hard_score?: number;
+            id?: string;
+            /** @description Cost for this iteration. */
+            input_tokens?: number;
+            iteration?: number;
+            output_tokens?: number;
+            passed_evals?: number;
+            /** @description Phase within this iteration: designing → eval_designing → evaluating → judging → completed|failed. */
+            phase?: string;
+            score?: number;
+            /** @description average score of soft evals */
+            soft_score?: number;
+            /** @description Architect output — persisted after designing phase. */
+            system_prompt?: string;
+            tools?: number[];
+            /** @description Results — persisted after judging phase. */
+            total_evals?: number;
+            updated_at?: string;
         };
         forgeOptions: {
             judge_credential_id?: string;
@@ -13015,6 +13498,19 @@ export interface components {
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
+        };
+        updateEvalCaseRequest: {
+            category?: string;
+            deterministic_checks?: number[];
+            expected_behavior?: string;
+            order_index?: number;
+            requirement_type?: string;
+            rubric?: number[];
+            sample_count?: number;
+            test_name?: string;
+            test_prompt?: string;
+            tier?: string;
+            tool_mocks?: number[];
         };
         updateIdentityRequest: {
             external_id?: string;
