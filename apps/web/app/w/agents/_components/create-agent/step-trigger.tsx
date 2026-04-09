@@ -659,11 +659,11 @@ function ContextConfigView({
     { enabled: !!provider },
   )
 
-  // Fetch all actions for this provider (for action key autocomplete).
-  const { data: allActionsData } = $api.useQuery(
+  // Fetch read actions for this provider (for action key autocomplete).
+  const { data: readActionsData } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/actions",
-    { params: { path: { id: provider } } },
+    { params: { path: { id: provider }, query: { access: "read" } } },
     { enabled: !!provider },
   )
 
@@ -680,8 +680,8 @@ function ContextConfigView({
   }, [schemaPathsData])
 
   const actionKeysForEditor = useMemo(() => {
-    if (!allActionsData || !Array.isArray(allActionsData)) return []
-    return allActionsData.map((action) => ({
+    if (!readActionsData || !Array.isArray(readActionsData)) return []
+    return readActionsData.map((action) => ({
       key: action.key ?? "",
       displayName: action.display_name ?? "",
       access: action.access ?? "",
