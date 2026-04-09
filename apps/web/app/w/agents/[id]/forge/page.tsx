@@ -1285,7 +1285,43 @@ function EvalsPanel() {
 }
 
 function ResultsPanel() {
-  const scores = [62, 78, 92]
+  const { forge } = useForge()
+
+  const run = forge?.run
+  const iterations = forge?.iterations ?? []
+  const status = run?.status ?? ""
+  const finalScore = run?.final_score ?? 0
+  const stopReason = run?.stop_reason ?? ""
+  const totalIterations = iterations.length
+
+  // Score trajectory — one score per iteration, ordered by iteration number.
+  const scores = iterations
+    .filter((iter) => iter.phase === "completed")
+    .sort((first, second) => (first.iteration ?? 0) - (second.iteration ?? 0))
+    .map((iter) => Math.round((iter.score ?? 0) * 100))
+
+  // Best iteration — highest score, prefer completed.
+  const bestIteration = iterations
+    .filter((iter) => iter.phase === "completed")
+    .sort((first, second) => (second.score ?? 0) - (first.score ?? 0))[0]
+
+  const bestPrompt = bestIteration?.system_prompt ?? ""
+  const bestHardScore = bestIteration?.hard_score ?? 0
+  const bestSoftScore = bestIteration?.soft_score ?? 0
+  const bestAllHardPassed = bestIteration?.all_hard_passed ?? false
+  const bestPassedEvals = bestIteration?.passed_evals ?? 0
+  const bestTotalEvals = bestIteration?.total_evals ?? 0
+
+  const stopReasonLabel = stopReason === "converged" ? "Converged" : stopReason === "threshold_met" ? "Threshold met" : stopReason === "max_iterations" ? "Max iterations" : stopReason || "In progress"
+
+  if (status !== "completed" && status !== "failed") {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <HugeiconsIcon icon={Loading03Icon} size={20} className="text-muted-foreground/30 animate-spin" />
+        <p className="text-sm text-muted-foreground/40 mt-3">Forge is still running</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -1294,12 +1330,12 @@ function ResultsPanel() {
           {/* Hero */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, ease }} className="mb-16 text-center">
             <motion.p
-              className="font-mono text-7xl font-black tabular-nums tracking-tighter text-emerald-500 leading-none"
+              className={cn("font-mono text-7xl font-black tabular-nums tracking-tighter leading-none", scoreColor(finalScore))}
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.5, ease }}
             >
-              92
+              {Math.round(finalScore * 100)}
             </motion.p>
 
             <motion.p
@@ -1308,22 +1344,24 @@ function ResultsPanel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4, ease }}
             >
-              Optimized in 3 iterations
+              {stopReasonLabel} after {totalIterations} iteration{totalIterations !== 1 ? "s" : ""}
             </motion.p>
 
-            <motion.div
-              className="flex items-center justify-center gap-2 mt-5"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.45 }}
-            >
-              {scores.map((score, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  {index > 0 && <span className="text-muted-foreground/15">→</span>}
-                  <span className={cn("font-mono text-xs font-semibold tabular-nums", scoreColor(score / 100))}>{score}</span>
-                </div>
-              ))}
-            </motion.div>
+            {scores.length > 1 && (
+              <motion.div
+                className="flex items-center justify-center gap-2 mt-5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.45 }}
+              >
+                {scores.map((score, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    {index > 0 && <span className="text-muted-foreground/15">&rarr;</span>}
+                    <span className={cn("font-mono text-xs font-semibold tabular-nums", scoreColor(score / 100))}>{score}</span>
+                  </div>
+                ))}
+              </motion.div>
+            )}
 
             <motion.div
               className="flex items-center justify-center gap-8 mt-8"
@@ -1332,9 +1370,9 @@ function ResultsPanel() {
               transition={{ delay: 0.5, duration: 0.4, ease }}
             >
               {[
-                { label: "Hard evals", value: "5/5", color: "text-emerald-500" },
-                { label: "Soft score", value: "87%", color: "text-foreground" },
-                { label: "Iterations", value: "3", color: "text-foreground" },
+                { label: "Hard evals", value: bestAllHardPassed ? `${bestPassedEvals}/${bestTotalEvals}` : `${bestPassedEvals}/${bestTotalEvals}`, color: bestAllHardPassed ? "text-emerald-500" : "text-rose-500" },
+                { label: "Soft score", value: `${Math.round(bestSoftScore * 100)}%`, color: scoreColor(bestSoftScore) },
+                { label: "Iterations", value: String(totalIterations), color: "text-foreground" },
               ].map((stat) => (
                 <div key={stat.label}>
                   <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40">{stat.label}</p>
@@ -1345,19 +1383,21 @@ function ResultsPanel() {
           </motion.div>
 
           {/* Prompt */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5, ease }}
-            className="mb-10"
-          >
-            <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-4">Generated system prompt</p>
-            <div className="rounded-2xl border border-border p-6">
-              <div className="text-[13px] text-foreground leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-2 prose-headings:mt-5 prose-headings:mb-2 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-strong:text-foreground">
-                <Streamdown>{RESULT_PROMPT}</Streamdown>
+          {bestPrompt && (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5, ease }}
+              className="mb-10"
+            >
+              <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-4">Generated system prompt</p>
+              <div className="rounded-2xl border border-border p-6">
+                <div className="text-[13px] text-foreground leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-2 prose-headings:mt-5 prose-headings:mb-2 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-strong:text-foreground">
+                  <Streamdown>{bestPrompt}</Streamdown>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Actions */}
           <motion.div
@@ -1366,7 +1406,7 @@ function ResultsPanel() {
             transition={{ delay: 0.6 }}
             className="flex items-center gap-3 pt-8 border-t border-border"
           >
-            <Button >
+            <Button>
               <HugeiconsIcon icon={Tick02Icon} size={14} data-icon="inline-start" />
               Apply to agent
             </Button>
