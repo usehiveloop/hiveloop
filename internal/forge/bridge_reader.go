@@ -371,7 +371,10 @@ func WaitForResponseFromRedis(ctx context.Context, eventBus *streaming.EventBus,
 // waitForResponseFromChannel reads events from a Redis stream subscription
 // channel and returns when a response_completed event is found.
 func waitForResponseFromChannel(ch <-chan streaming.StreamEvent, timeout time.Duration) (string, error) {
+	eventCount := 0
 	for event := range ch {
+		eventCount++
+		slog.Debug("waitForResponseFromChannel: event received", "event_type", event.EventType, "event_count", eventCount)
 		switch event.EventType {
 		case "response_completed":
 			var eventData struct {

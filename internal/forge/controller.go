@@ -890,7 +890,11 @@ func (fc *ForgeController) runIteration(
 	}
 
 	// PHASE: DESIGNING
-	log.Info("forge: phase=designing — sending to architect")
+	log.Info("forge: phase=designing — sending to architect",
+		"architect_conv_id", run.ArchitectConversationID,
+		"architect_agent_conv_id", archAgentConvID,
+		"message_len", len(fc.buildArchitectMessage(run, iteration)),
+	)
 	fc.events.emit(ctx, run.ID, EventArchitectStarted, map[string]any{"iteration": iteration})
 
 	archMessage := fc.buildArchitectMessage(run, iteration)
@@ -899,12 +903,14 @@ func (fc *ForgeController) runIteration(
 	archTimeoutCtx, archCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer archCancel()
 	archCh := fc.eventBus.Subscribe(archTimeoutCtx, archAgentConvID.String(), "$")
+	log.Info("forge: architect — subscribed to Redis stream", "conv_id", archAgentConvID)
 
 	// Send message to architect (async — returns 202).
 	if err := archClient.SendMessage(ctx, run.ArchitectConversationID, archMessage); err != nil {
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("sending architect message: %w", err)
 	}
+	log.Info("forge: architect — message sent, waiting for response via Redis")
 
 	// Wait for response from Redis stream.
 	archResponse, err := waitForResponseFromChannel(archCh, 5*time.Minute)
@@ -912,6 +918,7 @@ func (fc *ForgeController) runIteration(
 		fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 		return nil, fmt.Errorf("architect response: %w", err)
 	}
+	log.Info("forge: architect — response received", "response_len", len(archResponse))
 
 	systemPrompt := extractTag(archResponse, "system_prompt_output")
 	reasoning := extractTag(archResponse, "reasoning")
@@ -1141,7 +1148,12 @@ evalPhase:
 
 	if fc.enqueuer != nil {
 		// Production: enqueue eval_judge tasks via asynq (parallel, self-replenishing).
-		log.Info("forge: phase=evaluating — enqueuing eval_judge tasks", "eval_count", len(evalResults))
+		log.Info("forge: phase=evaluating — enqueuing eval_judge tasks",
+			"eval_count", len(evalResults),
+			"max_concurrency", 3,
+			"eval_target_agent_id", evalTargetAgentID,
+			"eval_target_sandbox_id", evalTargetSb.ID,
+		)
 		maxConcurrency := 3
 		enqueued := 0
 		for idx := range evalResults {
@@ -1161,14 +1173,15 @@ evalPhase:
 				continue
 			}
 			if _, enqErr := fc.enqueuer.Enqueue(task); enqErr != nil {
-				log.Error("forge: failed to enqueue eval_judge task", "error", enqErr)
+				log.Error("forge: failed to enqueue eval_judge task", "eval_result_id", evalResults[idx].ID, "error", enqErr)
 			} else {
+				log.Info("forge: enqueued eval_judge task", "eval_result_id", evalResults[idx].ID, "index", idx)
 				enqueued++
 			}
 		}
 
 		// Wait for all eval results to complete (poll DB every 3 seconds).
-		log.Info("forge: waiting for eval_judge tasks to complete", "total", len(evalResults))
+		log.Info("forge: waiting for eval_judge tasks", "total", len(evalResults), "initial_enqueued", enqueued)
 		waitDeadline := time.Now().Add(30 * time.Minute)
 		for time.Now().Before(waitDeadline) {
 			if ctx.Err() != nil {
@@ -1988,7 +2001,15 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		return
 	}
 
-	log.Info("eval_judge: starting", "eval_name", evalCase.TestName)
+	log.Info("eval_judge: starting",
+		"eval_name", evalCase.TestName,
+		"tier", evalCase.Tier,
+		"category", evalCase.Category,
+		"requirement_type", evalCase.RequirementType,
+		"sample_count", evalCase.SampleCount,
+		"eval_target_agent_id", iter.EvalTargetAgentID,
+		"sandbox_id", iter.EvalTargetSandboxID,
+	)
 	fc.db.Model(&evalResult).Update("status", model.ForgeEvalRunning)
 
 	// ── EVAL PHASE: run samples ──
@@ -2055,6 +2076,13 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		lastResponse = responseText
 	}
 
+	log.Info("eval_judge: samples complete",
+		"eval_name", evalCase.TestName,
+		"samples_collected", len(sampleResults),
+		"last_response_len", len(lastResponse),
+		"tool_calls", len(allToolCalls),
+	)
+
 	// Run deterministic checks.
 	var deterministicChecks []DeterministicCheck
 	if len(evalCase.DeterministicChecks) > 0 {
@@ -2075,6 +2103,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 	})
 
 	// ── JUDGE PHASE ──
+	log.Info("eval_judge: starting judge phase", "eval_name", evalCase.TestName)
 	// Load judge system agent.
 	providerGroup := systemagents.MapProviderToGroup(run.JudgeCredentialID.String())
 	// Actually we need the provider ID, not the credential ID. Load the credential.
@@ -2208,7 +2237,8 @@ func (fc *ForgeController) selfReplenish(ctx context.Context, payload tasks.Forg
 	err := fc.db.Where("forge_iteration_id = ? AND status = ?", payload.IterationID, model.ForgeEvalPending).
 		Order("id ASC").First(&nextResult).Error
 	if err != nil {
-		return // no more pending — all done
+		slog.Info("selfReplenish: no more pending evals", "iteration_id", payload.IterationID)
+		return
 	}
 
 	nextPayload := tasks.ForgeEvalJudgePayload{
@@ -2225,6 +2255,8 @@ func (fc *ForgeController) selfReplenish(ctx context.Context, payload tasks.Forg
 	}
 	if _, enqErr := fc.enqueuer.Enqueue(task); enqErr != nil {
 		slog.Error("selfReplenish: failed to enqueue", "error", enqErr)
+	} else {
+		slog.Info("selfReplenish: enqueued next eval", "eval_result_id", nextResult.ID)
 	}
 }
 
