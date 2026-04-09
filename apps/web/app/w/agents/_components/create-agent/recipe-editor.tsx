@@ -124,9 +124,56 @@ export function RecipeEditor({ value, onChange, refNames, actionPaths, actionKey
           return { suggestions }
         }
 
+        // Operator completions — triggered after "operator:" on the same line.
+        if (textBeforeCursor.match(/operator:\s*$/)) {
+          const operators = [
+            { label: "equals", detail: "Exact match" },
+            { label: "not_equals", detail: "Not equal" },
+            { label: "one_of", detail: "Matches any in list" },
+            { label: "not_one_of", detail: "Matches none in list" },
+            { label: "contains", detail: "String contains substring" },
+            { label: "not_contains", detail: "String does not contain" },
+            { label: "matches", detail: "Regex match" },
+            { label: "exists", detail: "Field exists (no value needed)" },
+            { label: "not_exists", detail: "Field does not exist" },
+          ]
+          for (const operator of operators) {
+            suggestions.push({
+              label: operator.label,
+              kind: monaco.languages.CompletionItemKind.EnumMember,
+              insertText: operator.label,
+              detail: operator.detail,
+              range,
+              sortText: `0_${operator.label}`,
+            })
+          }
+          return { suggestions }
+        }
+
+        // Match mode completions — triggered after "match:" on the same line.
+        if (textBeforeCursor.match(/match:\s*$/)) {
+          for (const mode of ["all", "any"]) {
+            suggestions.push({
+              label: mode,
+              kind: monaco.languages.CompletionItemKind.EnumMember,
+              insertText: mode,
+              detail: mode === "all" ? "All conditions must match (AND)" : "Any condition can match (OR)",
+              range,
+              sortText: `0_${mode}`,
+            })
+          }
+          return { suggestions }
+        }
+
         const yamlKeywords = [
+          { label: "conditions:", detail: "Filter conditions section" },
           { label: "context:", detail: "Context actions section" },
           { label: "prompt: |", detail: "Prompt template section" },
+          { label: "match:", detail: "Condition match mode (all/any)" },
+          { label: "rules:", detail: "Condition rules list" },
+          { label: "- path:", detail: "Condition payload path" },
+          { label: "operator:", detail: "Condition operator" },
+          { label: "value:", detail: "Condition value" },
           { label: "- as:", detail: "Context action name" },
           { label: "action:", detail: "Catalog action key" },
           { label: "ref:", detail: "Resource ref for auto-params" },
