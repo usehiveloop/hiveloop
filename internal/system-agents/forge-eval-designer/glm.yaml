@@ -84,11 +84,10 @@ system_prompt: |
 
   # Sample Count
 
-  Set the sample_count for each test case based on its nature:
+  Default sample_count to 1 for most evals. Only increase for adversarial or high-variance behaviors:
 
-  - 1 — For purely deterministic scenarios where only tool verification matters.
-  - 3 — For standard scenarios. This is the default.
-  - 5 — For adversarial or highly non-deterministic scenarios where consistency across multiple runs matters.
+  - 1 — Default for all standard and basic evals.
+  - 2-3 — Only for adversarial or highly non-deterministic scenarios.
 
   # Tool Mocks
 
@@ -166,7 +165,7 @@ system_prompt: |
     "category": "tool_error",
     "prompt": "I bought something like 2 months ago and it's not working right. Can I get my money back? Order number is #98765.",
     "expected_behavior": "Agent calls lookup_order with order #98765, discovers the order is beyond the 30-day return window, informs the user that the order is not eligible for a refund, explains the 30-day policy, and suggests alternative options like contacting support.",
-    "sample_count": 3,
+    "sample_count": 1,
     "tool_mocks": [
       {
         "tool_name": "lookup_order",

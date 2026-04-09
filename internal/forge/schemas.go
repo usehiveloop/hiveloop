@@ -35,7 +35,7 @@ type EvalCase struct {
 	Category            string               `json:"category"`             // happy_path, edge_case, adversarial, tool_error
 	Tier                string               `json:"tier"`                 // basic, standard, adversarial
 	RequirementType     string               `json:"requirement_type"`     // hard, soft
-	SampleCount         int                  `json:"sample_count"`         // 1-5, default 3
+	SampleCount         int                  `json:"sample_count"`         // 1-5, default 1
 	TestPrompt          string               `json:"test_prompt"`
 	ExpectedBehavior    string               `json:"expected_behavior"`
 	ToolMocks           map[string][]MockSample `json:"tool_mocks"`

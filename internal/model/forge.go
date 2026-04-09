@@ -81,7 +81,7 @@ type ForgeRun struct {
 	JudgeModel               string     `gorm:"not null" json:"judge_model"`
 
 	// Control parameters.
-	MaxIterations    int     `gorm:"not null;default:5" json:"max_iterations"`
+	MaxIterations    int     `gorm:"not null;default:3" json:"max_iterations"`
 	PassThreshold    float64 `gorm:"type:numeric(5,2);not null;default:0.80" json:"pass_threshold"`
 	ConvergenceLimit int     `gorm:"not null;default:3" json:"convergence_limit"` // stop after N stagnant iterations
 

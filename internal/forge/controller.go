@@ -114,7 +114,7 @@ func evalTargetConfig() *bridgepkg.AgentConfig {
 }
 
 func defaultAgentConfig() *bridgepkg.AgentConfig {
-	maxTokens := int32(8192)
+	maxTokens := int32(4096)
 	maxTurns := int32(250)
 	temperature := 0.7
 	maxTasks := int32(50)
@@ -553,7 +553,7 @@ func (fc *ForgeController) buildEvalDesignerMessageFromContext(run *model.ForgeR
 		"Hard requirement evals are pass/fail with no partial credit. " +
 		"Soft requirement evals allow partial scores. " +
 		"Include deterministic_checks where applicable (tool_called, tool_not_called, tool_order, response_contains, etc.). " +
-		"Set sample_count (1-5) for each eval — higher for non-deterministic behaviors."
+		"Default sample_count to 1 for most evals. Only use 2-3 for adversarial or high-variance behaviors."
 
 	return msg
 }
@@ -1025,7 +1025,7 @@ func (fc *ForgeController) runIteration(
 
 			sampleCount := ec.SampleCount
 			if sampleCount < 1 {
-				sampleCount = 3
+				sampleCount = 1
 			}
 			if sampleCount > 5 {
 				sampleCount = 5
@@ -1684,7 +1684,7 @@ System Prompt:
 		"Hard requirement evals are pass/fail with no partial credit. " +
 		"Soft requirement evals allow partial scores. " +
 		"Include deterministic_checks where applicable (tool_called, tool_not_called, tool_order, response_contains, etc.). " +
-		"Set sample_count (1-5) for each eval — higher for non-deterministic behaviors."
+		"Default sample_count to 1 for most evals. Only use 2-3 for adversarial or high-variance behaviors."
 	return msg
 }
 

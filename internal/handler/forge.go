@@ -256,7 +256,7 @@ func (h *ForgeHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set defaults.
-	maxIter := 5
+	maxIter := 3
 	if req.MaxIterations != nil && *req.MaxIterations > 0 {
 		maxIter = *req.MaxIterations
 	}
@@ -920,7 +920,7 @@ func (h *ForgeHandler) CreateEvalCase(w http.ResponseWriter, r *http.Request) {
 		req.RequirementType = "soft"
 	}
 	if req.SampleCount < 1 || req.SampleCount > 5 {
-		req.SampleCount = 3
+		req.SampleCount = 1
 	}
 
 	// Set order_index to max existing + 1.
