@@ -16,6 +16,7 @@ import { StepSystemPrompt } from "./step-system-prompt"
 import { StepInstructions } from "./step-instructions"
 import { StepForgeJudge } from "./step-forge-judge"
 import { StepSummary } from "./step-summary"
+import { StepTrigger } from "./step-trigger"
 import { StepMarketplaceBrowse, StepMarketplaceDetail } from "./step-marketplace"
 import type { CreationMode } from "./types"
 
@@ -46,6 +47,7 @@ function StepRouter() {
           {step === "marketplace-detail" && <StepMarketplaceDetail />}
           {step === "sandbox" && <StepSandboxType />}
           {step === "integrations" && <StepIntegrations />}
+          {step === "trigger" && <StepTrigger />}
           {step === "llm-key" && <StepLlmKey />}
           {step === "basics" && <StepBasics />}
           {step === "system-prompt" && <StepSystemPrompt />}

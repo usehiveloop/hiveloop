@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pb33f/libopenapi"
+	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -14,12 +15,13 @@ var pathParamRe = regexp.MustCompile(`\{([^}]+)\}`)
 
 // ActionDef mirrors the catalog ActionDef for JSON output.
 type ActionDef struct {
-	DisplayName  string           `json:"display_name"`
-	Description  string           `json:"description"`
-	Access       string           `json:"access"`
-	ResourceType string           `json:"resource_type"`
-	Parameters   json.RawMessage  `json:"parameters"`
-	Execution    *ExecutionConfig `json:"execution,omitempty"`
+	DisplayName    string           `json:"display_name"`
+	Description    string           `json:"description"`
+	Access         string           `json:"access"`
+	ResourceType   string           `json:"resource_type"`
+	Parameters     json.RawMessage  `json:"parameters"`
+	Execution      *ExecutionConfig `json:"execution,omitempty"`
+	ResponseSchema string           `json:"response_schema,omitempty"` // ref into top-level schemas map
 }
 
 // ExecutionConfig mirrors the catalog ExecutionConfig.
@@ -32,8 +34,40 @@ type ExecutionConfig struct {
 	ResponsePath string            `json:"response_path,omitempty"` // dot-path to extract response data
 }
 
-// parseSpec parses an OpenAPI spec and returns a map of action key → ActionDef.
-func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error) {
+// jsonSchemaProperty represents a single property in the JSON Schema.
+type jsonSchemaProperty struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+}
+
+// SchemaProperty describes a single property in a flattened response schema.
+type SchemaProperty struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+	Nullable    bool   `json:"nullable,omitempty"`
+	SchemaRef   string `json:"schema_ref,omitempty"` // references another schema for nested object resolution
+}
+
+// FlatSchema is a flattened top-level-only representation of a response schema.
+type FlatSchema struct {
+	Type       string                    `json:"type"`
+	Properties map[string]SchemaProperty `json:"properties,omitempty"`
+	Items      *FlatSchemaRef            `json:"items,omitempty"` // for array types
+}
+
+// FlatSchemaRef references another schema by name (for array item types).
+type FlatSchemaRef struct {
+	Ref string `json:"$ref,omitempty"`
+}
+
+// ParseResult holds parsed actions and the referenced response schemas.
+type ParseResult struct {
+	Actions map[string]ActionDef
+	Schemas map[string]FlatSchema
+}
+
+// parseSpec parses an OpenAPI spec and returns actions + referenced response schemas.
+func parseSpec(specData []byte, cfg ServiceConfig) (*ParseResult, error) {
 	doc, err := libopenapi.NewDocument(specData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing OpenAPI document: %w", err)
@@ -45,17 +79,35 @@ func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error)
 	}
 
 	actions := make(map[string]ActionDef)
+	schemas := make(map[string]FlatSchema)
 
 	if model.Model.Paths == nil || model.Model.Paths.PathItems == nil {
-		return actions, nil
+		return &ParseResult{Actions: actions, Schemas: schemas}, nil
 	}
+
+	// Build components/schemas lookup for resolving $ref in response schemas.
+	componentsMap := make(map[string]*highbase.SchemaProxy)
+	if model.Model.Components != nil && model.Model.Components.Schemas != nil {
+		for pair := model.Model.Components.Schemas.First(); pair != nil; pair = pair.Next() {
+			componentsMap[pair.Key()] = pair.Value()
+		}
+	}
+
+	useResources := len(cfg.Resources) > 0
 
 	for pair := model.Model.Paths.PathItems.First(); pair != nil; pair = pair.Next() {
 		path := pair.Key()
 		pathItem := pair.Value()
 
-		if !matchesFilters(path, cfg.PathFilters, cfg.PathExcludes) {
-			continue
+		if useResources {
+			// When resources are defined, skip paths that don't match any resource.
+			if matchResourceByPath(path, cfg.Resources) == "" {
+				continue
+			}
+		} else {
+			if !matchesFilters(path, cfg.PathFilters, cfg.PathExcludes) {
+				continue
+			}
 		}
 
 		if cfg.BasePathStrip != "" {
@@ -68,7 +120,8 @@ func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error)
 				continue
 			}
 
-			if !matchesTags(op, cfg.TagFilters) {
+			// Tag filtering only applies when not using resource-based filtering.
+			if !useResources && !matchesTags(op, cfg.TagFilters) {
 				continue
 			}
 
@@ -94,24 +147,32 @@ func parseSpec(specData []byte, cfg ServiceConfig) (map[string]ActionDef, error)
 				desc = truncateDescription(op.Summary, 200)
 			}
 
-			resourceType := inferResourceType(op, path, cfg.TagResourceMap)
+			var resourceType string
+			if useResources {
+				resourceType = matchResourceByPath(path, cfg.Resources)
+			} else {
+				resourceType = inferResourceType(op, path, cfg.TagResourceMap)
+			}
 
 			params, exec := buildParamsAndExecution(op, pathItem.Parameters, method, path, cfg.ExtraHeaders)
 
 			access := inferAccess(method, actionKey, path)
 
+			responseSchemaRef := extractV3ResponseSchema(op, componentsMap, schemas)
+
 			actions[actionKey] = ActionDef{
-				DisplayName:  displayName,
-				Description:  desc,
-				Access:       access,
-				ResourceType: resourceType,
-				Parameters:   params,
-				Execution:    exec,
+				DisplayName:    displayName,
+				Description:    desc,
+				Access:         access,
+				ResourceType:   resourceType,
+				Parameters:     params,
+				Execution:      exec,
+				ResponseSchema: responseSchemaRef,
 			}
 		}
 	}
 
-	return actions, nil
+	return &ParseResult{Actions: actions, Schemas: schemas}, nil
 }
 
 // getOperations returns a map of HTTP method → operation for a path item.
@@ -229,12 +290,6 @@ func inferResourceType(op *v3high.Operation, path string, tagMap map[string]stri
 	}
 	// No resource type inference from path alone — return empty.
 	return ""
-}
-
-// jsonSchemaProperty represents a single property in the JSON Schema.
-type jsonSchemaProperty struct {
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
 }
 
 // buildParamsAndExecution extracts parameters and builds execution config.
@@ -484,4 +539,215 @@ func dedupStrings(ss []string) []string {
 		}
 	}
 	return result
+}
+
+// extractV3ResponseSchema looks at the 200/201 response of an OpenAPI 3.x operation,
+// resolves the schema ref, flattens it into the schemas map, and returns the ref name.
+// Returns "" if no usable response schema is found.
+func extractV3ResponseSchema(op *v3high.Operation, components map[string]*highbase.SchemaProxy, schemas map[string]FlatSchema) string {
+	if op.Responses == nil || op.Responses.Codes == nil {
+		return ""
+	}
+
+	for _, code := range []string{"200", "201"} {
+		resp := op.Responses.Codes.GetOrZero(code)
+		if resp == nil || resp.Content == nil {
+			continue
+		}
+		jsonContent := resp.Content.GetOrZero("application/json")
+		if jsonContent == nil || jsonContent.Schema == nil {
+			continue
+		}
+
+		proxy := jsonContent.Schema
+		schema := proxy.Schema()
+		if schema == nil {
+			continue
+		}
+
+		// Case 1: Direct $ref to a component schema.
+		refName := extractV3RefName(proxy)
+		if refName != "" {
+			flattenV3Component(refName, components, schemas)
+			return refName
+		}
+
+		// Case 2: Array with $ref items.
+		if len(schema.Type) > 0 && schema.Type[0] == "array" && schema.Items != nil && schema.Items.A != nil {
+			itemRef := extractV3RefName(schema.Items.A)
+			if itemRef != "" {
+				arraySchemaName := itemRef + "_list"
+				if _, exists := schemas[arraySchemaName]; !exists {
+					flattenV3Component(itemRef, components, schemas)
+					schemas[arraySchemaName] = FlatSchema{
+						Type:  "array",
+						Items: &FlatSchemaRef{Ref: itemRef},
+					}
+				}
+				return arraySchemaName
+			}
+		}
+
+		// Case 3: Inline object — flatten it directly.
+		if schema.Properties != nil {
+			inlineName := ""
+			if op.OperationId != "" {
+				inlineName = toSnakeCase(op.OperationId) + "_response"
+			} else {
+				continue
+			}
+			if _, exists := schemas[inlineName]; !exists {
+				flat := FlatSchema{
+					Type:       "object",
+					Properties: make(map[string]SchemaProperty),
+				}
+				for prop := schema.Properties.First(); prop != nil; prop = prop.Next() {
+					flat.Properties[prop.Key()] = flattenV3Property(prop.Value())
+				}
+				schemas[inlineName] = flat
+			}
+			return inlineName
+		}
+	}
+
+	return ""
+}
+
+// extractV3RefName pulls the component schema name from a SchemaProxy's $ref.
+func extractV3RefName(proxy *highbase.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
+	ref := proxy.GetReference()
+	if ref == "" {
+		return ""
+	}
+	const prefix = "#/components/schemas/"
+	if after, ok := strings.CutPrefix(ref, prefix); ok {
+		return after
+	}
+	parts := strings.Split(ref, "/")
+	return parts[len(parts)-1]
+}
+
+// flattenV3Component resolves an OpenAPI 3.x component schema by name and stores
+// its flattened top-level properties in the schemas map.
+func flattenV3Component(name string, components map[string]*highbase.SchemaProxy, schemas map[string]FlatSchema) {
+	if _, exists := schemas[name]; exists {
+		return
+	}
+
+	proxy, ok := components[name]
+	if !ok {
+		return
+	}
+	schema := proxy.Schema()
+	if schema == nil {
+		return
+	}
+
+	flat := FlatSchema{
+		Type:       "object",
+		Properties: make(map[string]SchemaProperty),
+	}
+
+	if len(schema.Type) > 0 {
+		flat.Type = schema.Type[0]
+	}
+
+	// For array types, try to resolve item ref.
+	if flat.Type == "array" && schema.Items != nil && schema.Items.A != nil {
+		itemRef := extractV3RefName(schema.Items.A)
+		if itemRef != "" {
+			flattenV3Component(itemRef, components, schemas)
+			flat.Items = &FlatSchemaRef{Ref: itemRef}
+		}
+		schemas[name] = flat
+		return
+	}
+
+	if schema.Properties != nil {
+		for prop := schema.Properties.First(); prop != nil; prop = prop.Next() {
+			flat.Properties[prop.Key()] = flattenV3Property(prop.Value())
+		}
+	}
+
+	schemas[name] = flat
+
+	// Transitively flatten any schemas referenced by properties via schema_ref.
+	for _, propDef := range flat.Properties {
+		if propDef.SchemaRef != "" {
+			flattenV3Component(propDef.SchemaRef, components, schemas)
+		}
+	}
+}
+
+// flattenV3Property extracts type + description from a schema proxy without recursing.
+// When the property is a $ref to a named component schema, the ref name is preserved
+// as SchemaRef so the frontend can resolve nested object types.
+func flattenV3Property(proxy *highbase.SchemaProxy) SchemaProperty {
+	prop := SchemaProperty{Type: "string"}
+	if proxy == nil {
+		return prop
+	}
+
+	// Capture the $ref name before resolving the schema.
+	refName := extractV3RefName(proxy)
+
+	schema := proxy.Schema()
+	if schema == nil {
+		if refName != "" {
+			prop.Type = "object"
+			prop.SchemaRef = refName
+		}
+		return prop
+	}
+
+	if len(schema.Type) > 0 {
+		prop.Type = schema.Type[0]
+	} else if refName != "" {
+		prop.Type = "object"
+	}
+
+	// Preserve the ref name for object types so the frontend can drill into nested schemas.
+	if refName != "" && prop.Type == "object" {
+		prop.SchemaRef = refName
+	}
+
+	if schema.Description != "" {
+		prop.Description = schema.Description
+	}
+
+	if schema.Nullable != nil && *schema.Nullable {
+		prop.Nullable = true
+	}
+
+	return prop
+}
+
+// matchResourceByPath finds which resource a path belongs to.
+// Returns the resource name, or "" if no match.
+// Exact paths are checked first, then longest prefix match wins.
+func matchResourceByPath(path string, resources map[string]ResourceFilterConfig) string {
+	// Check exact paths first (highest priority).
+	for name, rc := range resources {
+		for _, exactPath := range rc.ExactPaths {
+			if path == exactPath {
+				return name
+			}
+		}
+	}
+
+	// Find longest matching prefix.
+	bestName := ""
+	bestLen := 0
+	for name, rc := range resources {
+		for _, prefix := range rc.PathPrefixes {
+			if strings.HasPrefix(path, prefix) && len(prefix) > bestLen {
+				bestName = name
+				bestLen = len(prefix)
+			}
+		}
+	}
+	return bestName
 }

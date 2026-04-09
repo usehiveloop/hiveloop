@@ -36,7 +36,8 @@
         "body_mapping": {
           "service": "service"
         }
-      }
+      },
+      "response_schema": "associate_service_to_incident_workflow_trigger_response"
     },
     "cancel_incident_responder_request": {
       "display_name": "Cancel responder requests for an incident",
@@ -79,7 +80,8 @@
           "requester_id": "requester_id",
           "responder_request_targets": "responder_request_targets"
         }
-      }
+      },
+      "response_schema": "cancel_incident_responder_request_response"
     },
     "convert_service_event_rules_to_event_orchestration": {
       "display_name": "Convert a Service's Event Rules into Event Orchestration Rules",
@@ -108,7 +110,8 @@
       "execution": {
         "method": "POST",
         "path": "/services/{id}/rules/convert"
-      }
+      },
+      "response_schema": "convert_service_event_rules_to_event_orchestration_response"
     },
     "create_addon": {
       "display_name": "Install an Add-on",
@@ -139,7 +142,8 @@
         "body_mapping": {
           "addon": "addon"
         }
-      }
+      },
+      "response_schema": "create_addon_response"
     },
     "create_automation_action": {
       "display_name": "Create an Automation Action",
@@ -170,7 +174,8 @@
         "body_mapping": {
           "action": "action"
         }
-      }
+      },
+      "response_schema": "create_automation_action_response"
     },
     "create_automation_action_invocation": {
       "display_name": "Create an Invocation",
@@ -206,7 +211,8 @@
         "body_mapping": {
           "invocation": "invocation"
         }
-      }
+      },
+      "response_schema": "create_automation_action_invocation_response"
     },
     "create_automation_action_service_assocation": {
       "display_name": "Associate an Automation Action with a service",
@@ -242,7 +248,8 @@
         "body_mapping": {
           "service": "service"
         }
-      }
+      },
+      "response_schema": "create_automation_action_service_assocation_response"
     },
     "create_automation_action_team_association": {
       "display_name": "Associate an Automation Action with a team",
@@ -278,7 +285,8 @@
         "body_mapping": {
           "team": "team"
         }
-      }
+      },
+      "response_schema": "create_automation_action_team_association_response"
     },
     "create_automation_actions_runner": {
       "display_name": "Create an Automation Action runner.",
@@ -309,7 +317,8 @@
         "body_mapping": {
           "runner": "runner"
         }
-      }
+      },
+      "response_schema": "create_automation_actions_runner_response"
     },
     "create_automation_actions_runner_team_association": {
       "display_name": "Associate a runner with a team",
@@ -345,7 +354,8 @@
         "body_mapping": {
           "team": "team"
         }
-      }
+      },
+      "response_schema": "create_automation_actions_runner_team_association_response"
     },
     "create_business_service": {
       "display_name": "Create a Business Service",
@@ -374,7 +384,8 @@
         "body_mapping": {
           "business_service": "business_service"
         }
-      }
+      },
+      "response_schema": "create_business_service_response"
     },
     "create_business_service_account_subscription": {
       "display_name": "Create Business Service Account Subscription",
@@ -400,7 +411,8 @@
       "execution": {
         "method": "POST",
         "path": "/business_services/{id}/account_subscription"
-      }
+      },
+      "response_schema": "create_business_service_account_subscription_response"
     },
     "create_business_service_notification_subscribers": {
       "display_name": "Create Business Service Subscribers",
@@ -433,7 +445,8 @@
         "body_mapping": {
           "subscribers": "subscribers"
         }
-      }
+      },
+      "response_schema": "create_business_service_notification_subscribers_response"
     },
     "create_cache_var_on_global_orch": {
       "display_name": "Create a Cache Variable for a Global Event Orchestration",
@@ -469,7 +482,8 @@
         "body_mapping": {
           "cache_variable": "cache_variable"
         }
-      }
+      },
+      "response_schema": "create_cache_var_on_global_orch_response"
     },
     "create_cache_var_on_service_orch": {
       "display_name": "Create a Cache Variable for a Service Event Orchestration",
@@ -505,7 +519,8 @@
         "body_mapping": {
           "cache_variable": "cache_variable"
         }
-      }
+      },
+      "response_schema": "create_cache_var_on_service_orch_response"
     },
     "create_change_event": {
       "display_name": "Create a Change Event",
@@ -528,6 +543,40 @@
         "method": "POST",
         "path": "/change_events"
       }
+    },
+    "create_custom_shifts": {
+      "display_name": "Create custom shifts",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Cre...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "custom_shifts": {
+            "type": "array"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id",
+          "custom_shifts"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v3/schedules/{id}/custom_shifts",
+        "body_mapping": {
+          "custom_shifts": "custom_shifts"
+        }
+      },
+      "response_schema": "create_custom_shifts_response"
     },
     "create_entity_type_by_id_change_tags": {
       "display_name": "Assign tags",
@@ -608,7 +657,47 @@
         "body_mapping": {
           "escalation_policy": "escalation_policy"
         }
-      }
+      },
+      "response_schema": "create_escalation_policy_response"
+    },
+    "create_event": {
+      "display_name": "Create an event",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Cre...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "event": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id",
+          "event"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}/events",
+        "body_mapping": {
+          "event": "event"
+        }
+      },
+      "response_schema": "EventResponse"
     },
     "create_extension": {
       "display_name": "Create an extension",
@@ -639,7 +728,8 @@
         "body_mapping": {
           "extension": "extension"
         }
-      }
+      },
+      "response_schema": "create_extension_response"
     },
     "create_incident": {
       "display_name": "Create an Incident",
@@ -675,7 +765,8 @@
         "body_mapping": {
           "incident": "incident"
         }
-      }
+      },
+      "response_schema": "create_incident_response"
     },
     "create_incident_note": {
       "display_name": "Create a note on an incident",
@@ -715,7 +806,8 @@
         "body_mapping": {
           "note": "note"
         }
-      }
+      },
+      "response_schema": "create_incident_note_response"
     },
     "create_incident_notification_subscribers": {
       "display_name": "Add Notification Subscribers",
@@ -748,7 +840,8 @@
         "body_mapping": {
           "subscribers": "subscribers"
         }
-      }
+      },
+      "response_schema": "create_incident_notification_subscribers_response"
     },
     "create_incident_responder_request": {
       "display_name": "Create a responder request for an incident",
@@ -797,7 +890,8 @@
           "requester_id": "requester_id",
           "responder_request_targets": "responder_request_targets"
         }
-      }
+      },
+      "response_schema": "create_incident_responder_request_response"
     },
     "create_incident_snooze": {
       "display_name": "Snooze an incident",
@@ -838,7 +932,8 @@
         "body_mapping": {
           "duration": "duration"
         }
-      }
+      },
+      "response_schema": "create_incident_snooze_response"
     },
     "create_incident_status_update": {
       "display_name": "Create a status update on an incident",
@@ -889,7 +984,8 @@
           "message": "message",
           "subject": "subject"
         }
-      }
+      },
+      "response_schema": "create_incident_status_update_response"
     },
     "create_incident_type": {
       "display_name": "Create an Incident Type",
@@ -921,7 +1017,8 @@
         "body_mapping": {
           "incident_type": "incident_type"
         }
-      }
+      },
+      "response_schema": "create_incident_type_response"
     },
     "create_incident_type_custom_field": {
       "display_name": "Create a Custom Field for an Incident Type",
@@ -958,7 +1055,8 @@
         "body_mapping": {
           "field": "field"
         }
-      }
+      },
+      "response_schema": "create_incident_type_custom_field_response"
     },
     "create_incident_type_custom_field_field_options": {
       "display_name": "Create a Field Option for a Custom Field",
@@ -1000,7 +1098,8 @@
         "body_mapping": {
           "field_option": "field_option"
         }
-      }
+      },
+      "response_schema": "create_incident_type_custom_field_field_options_response"
     },
     "create_incident_workflow_instance": {
       "display_name": "Start an Incident Workflow Instance",
@@ -1036,7 +1135,8 @@
         "body_mapping": {
           "incident_workflow_instance": "incident_workflow_instance"
         }
-      }
+      },
+      "response_schema": "create_incident_workflow_instance_response"
     },
     "create_incident_workflow_trigger": {
       "display_name": "Create a Trigger",
@@ -1067,7 +1167,8 @@
         "body_mapping": {
           "trigger": "trigger"
         }
-      }
+      },
+      "response_schema": "create_incident_workflow_trigger_response"
     },
     "create_maintenance_window": {
       "display_name": "Create a maintenance window",
@@ -1102,7 +1203,8 @@
         "body_mapping": {
           "maintenance_window": "maintenance_window"
         }
-      }
+      },
+      "response_schema": "create_maintenance_window_response"
     },
     "create_oauth_client": {
       "display_name": "Create an OAuth client",
@@ -1133,7 +1235,109 @@
         "body_mapping": {
           "oauth_client": "oauth_client"
         }
-      }
+      },
+      "response_schema": "create_oauth_client_response"
+    },
+    "create_or_update_status_page_postmortem": {
+      "display_name": "Create or Update a Post Postmortem",
+      "description": "Create or Update a Postmortem for a Post by Post ID. Scoped OAuth requires: `status_pages.write`",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "Accept": {
+            "type": "string",
+            "description": "The `Accept` header is used as a versioning header."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the resource."
+          },
+          "post_id": {
+            "type": "string",
+            "description": "The ID of the Status Page Post."
+          },
+          "postmortem": {
+            "type": "object",
+            "description": "Request to create/update a given Postmortem resource."
+          }
+        },
+        "required": [
+          "id",
+          "post_id",
+          "postmortem"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/status_pages/{id}/posts/{post_id}/postmortem",
+        "body_mapping": {
+          "postmortem": "postmortem"
+        }
+      },
+      "response_schema": "create_or_update_status_page_postmortem_response"
+    },
+    "create_overrides": {
+      "display_name": "Create overrides",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Cre...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "overrides": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "overrides"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v3/schedules/{id}/overrides",
+        "body_mapping": {
+          "overrides": "overrides"
+        }
+      },
+      "response_schema": "create_overrides_response"
+    },
+    "create_rotation": {
+      "display_name": "Create a rotation",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Cre...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v3/schedules/{id}/rotations"
+      },
+      "response_schema": "RotationResponse"
     },
     "create_ruleset": {
       "display_name": "Create a Ruleset",
@@ -1164,7 +1368,8 @@
         "body_mapping": {
           "ruleset": "ruleset"
         }
-      }
+      },
+      "response_schema": "create_ruleset_response"
     },
     "create_ruleset_event_rule": {
       "display_name": "Create an Event Rule",
@@ -1200,7 +1405,8 @@
         "body_mapping": {
           "rule": "rule"
         }
-      }
+      },
+      "response_schema": "create_ruleset_event_rule_response"
     },
     "create_schedule": {
       "display_name": "Create a schedule",
@@ -1238,7 +1444,8 @@
         "query_mapping": {
           "overflow": "overflow"
         }
-      }
+      },
+      "response_schema": "create_schedule_response"
     },
     "create_schedule_override": {
       "display_name": "Create one or more overrides",
@@ -1321,7 +1528,37 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "create_schedule_preview_response"
+    },
+    "create_schedule_v3": {
+      "display_name": "Create a schedule",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Cre...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "schedule": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schedule"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/v3/schedules",
+        "body_mapping": {
+          "schedule": "schedule"
+        }
+      },
+      "response_schema": "ScheduleResponse"
     },
     "create_service": {
       "display_name": "Create a service",
@@ -1352,7 +1589,8 @@
         "body_mapping": {
           "service": "service"
         }
-      }
+      },
+      "response_schema": "create_service_response"
     },
     "create_service_custom_field": {
       "display_name": "Create a Field",
@@ -1384,7 +1622,8 @@
         "body_mapping": {
           "field": "field"
         }
-      }
+      },
+      "response_schema": "create_service_custom_field_response"
     },
     "create_service_custom_field_option": {
       "display_name": "Create a Field Option",
@@ -1421,7 +1660,8 @@
         "body_mapping": {
           "field_option": "field_option"
         }
-      }
+      },
+      "response_schema": "create_service_custom_field_option_response"
     },
     "create_service_dependency": {
       "display_name": "Associate service dependencies",
@@ -1450,7 +1690,8 @@
         "body_mapping": {
           "relationships": "relationships"
         }
-      }
+      },
+      "response_schema": "create_service_dependency_response"
     },
     "create_service_event_rule": {
       "display_name": "Create an Event Rule on a Service",
@@ -1486,7 +1727,8 @@
         "body_mapping": {
           "rule": "rule"
         }
-      }
+      },
+      "response_schema": "create_service_event_rule_response"
     },
     "create_service_integration": {
       "display_name": "Create a new integration",
@@ -1522,7 +1764,8 @@
         "body_mapping": {
           "integration": "integration"
         }
-      }
+      },
+      "response_schema": "create_service_integration_response"
     },
     "create_status_page_post": {
       "display_name": "Create a Status Page Post",
@@ -1556,7 +1799,8 @@
         "body_mapping": {
           "post": "post"
         }
-      }
+      },
+      "response_schema": "create_status_page_post_response"
     },
     "create_status_page_post_update": {
       "display_name": "Create a Status Page Post Update",
@@ -1595,45 +1839,8 @@
         "body_mapping": {
           "post_update": "post_update"
         }
-      }
-    },
-    "create_status_page_postmortem": {
-      "display_name": "Create a Post Postmortem",
-      "description": "Create a Postmortem for a Post by Post ID. Scoped OAuth requires: `status_pages.write`",
-      "access": "write",
-      "resource_type": "",
-      "parameters": {
-        "properties": {
-          "Accept": {
-            "type": "string",
-            "description": "The `Accept` header is used as a versioning header."
-          },
-          "id": {
-            "type": "string",
-            "description": "The ID of the resource."
-          },
-          "post_id": {
-            "type": "string",
-            "description": "The ID of the Status Page Post."
-          },
-          "postmortem": {
-            "type": "object",
-            "description": "Request to create/update a given Postmortem resource."
-          }
-        },
-        "required": [
-          "id",
-          "post_id"
-        ],
-        "type": "object"
       },
-      "execution": {
-        "method": "POST",
-        "path": "/status_pages/{id}/posts/{post_id}/postmortem",
-        "body_mapping": {
-          "postmortem": "postmortem"
-        }
-      }
+      "response_schema": "create_status_page_post_update_response"
     },
     "create_status_page_subscription": {
       "display_name": "Create a Status Page Subscription",
@@ -1667,7 +1874,8 @@
         "body_mapping": {
           "subscription": "subscription"
         }
-      }
+      },
+      "response_schema": "create_status_page_subscription_response"
     },
     "create_tags": {
       "display_name": "Create a tag",
@@ -1698,7 +1906,8 @@
         "body_mapping": {
           "tag": "tag"
         }
-      }
+      },
+      "response_schema": "create_tags_response"
     },
     "create_team": {
       "display_name": "Create a team",
@@ -1729,7 +1938,8 @@
         "body_mapping": {
           "team": "team"
         }
-      }
+      },
+      "response_schema": "create_team_response"
     },
     "create_team_notification_subscriptions": {
       "display_name": "Create Team Notification Subscriptions",
@@ -1762,7 +1972,8 @@
         "body_mapping": {
           "subscribables": "subscribables"
         }
-      }
+      },
+      "response_schema": "create_team_notification_subscriptions_response"
     },
     "create_template": {
       "display_name": "Create a template",
@@ -1786,7 +1997,8 @@
         "body_mapping": {
           "template": "template"
         }
-      }
+      },
+      "response_schema": "create_template_response"
     },
     "create_user": {
       "display_name": "Create a user",
@@ -1821,7 +2033,8 @@
         "body_mapping": {
           "user": "user"
         }
-      }
+      },
+      "response_schema": "create_user_response"
     },
     "create_user_contact_method": {
       "display_name": "Create a user contact method",
@@ -1857,7 +2070,8 @@
         "body_mapping": {
           "contact_method": "contact_method"
         }
-      }
+      },
+      "response_schema": "create_user_contact_method_response"
     },
     "create_user_handoff_notification_rule": {
       "display_name": "Create a User Handoff Notification Rule",
@@ -1894,7 +2108,8 @@
         "body_mapping": {
           "oncall_handoff_notification_rule": "oncall_handoff_notification_rule"
         }
-      }
+      },
+      "response_schema": "create_user_handoff_notification_rule_response"
     },
     "create_user_notification_rule": {
       "display_name": "Create a user notification rule",
@@ -1930,7 +2145,8 @@
         "body_mapping": {
           "notification_rule": "notification_rule"
         }
-      }
+      },
+      "response_schema": "create_user_notification_rule_response"
     },
     "create_user_notification_subscriptions": {
       "display_name": "Create Notification Subcriptions",
@@ -1963,7 +2179,8 @@
         "body_mapping": {
           "subscribables": "subscribables"
         }
-      }
+      },
+      "response_schema": "create_user_notification_subscriptions_response"
     },
     "create_user_status_update_notification_rule": {
       "display_name": "Create a user status update notification rule",
@@ -2000,7 +2217,8 @@
         "body_mapping": {
           "status_update_notification_rule": "status_update_notification_rule"
         }
-      }
+      },
+      "response_schema": "create_user_status_update_notification_rule_response"
     },
     "create_webhook_subscription": {
       "display_name": "Create a webhook subscription",
@@ -2031,7 +2249,8 @@
         "body_mapping": {
           "webhook_subscription": "webhook_subscription"
         }
-      }
+      },
+      "response_schema": "create_webhook_subscription_response"
     },
     "create_workflow_integration_connection": {
       "display_name": "Create Workflow Integration Connection",
@@ -2127,7 +2346,8 @@
           "teams": "teams",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "WorkflowIntegrationConnection"
     },
     "delete_addon": {
       "display_name": "Delete an Add-on",
@@ -2463,6 +2683,37 @@
         "path": "/event_orchestrations/services/{service_id}/cache_variables/{cache_variable_id}"
       }
     },
+    "delete_custom_shift": {
+      "display_name": "Delete a custom shift",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Del...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "custom_shift_id": {
+            "type": "string",
+            "description": "The ID of the custom shift."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id",
+          "custom_shift_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v3/schedules/{id}/custom_shifts/{custom_shift_id}"
+      }
+    },
     "delete_escalation_policy": {
       "display_name": "Delete an escalation policy",
       "description": "Deletes an existing escalation policy and rules. The escalation policy must not be in use by any services. Escalation policies define which user should be alerted at which time. For more informatio...",
@@ -2490,6 +2741,42 @@
       "execution": {
         "method": "DELETE",
         "path": "/escalation_policies/{id}"
+      }
+    },
+    "delete_event": {
+      "display_name": "Delete an event",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Del...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "event_id": {
+            "type": "string",
+            "description": "The ID of the event."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id",
+          "event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}/events/{event_id}"
       }
     },
     "delete_extension": {
@@ -2844,7 +3131,8 @@
           "type": "type",
           "user_id": "user_id"
         }
-      }
+      },
+      "response_schema": "delete_oauth_delegations_response"
     },
     "delete_orchestration": {
       "display_name": "Delete an Orchestration",
@@ -2907,6 +3195,68 @@
       "execution": {
         "method": "DELETE",
         "path": "/event_orchestrations/{id}/integrations/{integration_id}"
+      }
+    },
+    "delete_override": {
+      "display_name": "Delete an override",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Del...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "override_id": {
+            "type": "string",
+            "description": "The ID of the override."
+          }
+        },
+        "required": [
+          "id",
+          "override_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v3/schedules/{id}/overrides/{override_id}"
+      }
+    },
+    "delete_rotation": {
+      "display_name": "Delete a rotation",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Del...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}"
       }
     },
     "delete_ruleset": {
@@ -3035,6 +3385,32 @@
         "path": "/schedules/{id}/overrides/{override_id}"
       }
     },
+    "delete_schedule_v3": {
+      "display_name": "Delete a schedule",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Del...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/v3/schedules/{id}"
+      }
+    },
     "delete_service": {
       "display_name": "Delete a service",
       "description": "Delete an existing service. Once the service is deleted, it will not be accessible from the web UI and new incidents won't be able to be created for this service. A service may represent an applica...",
@@ -3154,7 +3530,8 @@
         "body_mapping": {
           "relationships": "relationships"
         }
-      }
+      },
+      "response_schema": "delete_service_dependency_response"
     },
     "delete_service_event_rule": {
       "display_name": "Delete an Event Rule from a Service",
@@ -3222,7 +3599,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/incident_workflows/triggers/{trigger_id}/services/{service_id}"
-      }
+      },
+      "response_schema": "delete_service_from_incident_workflow_trigger_response"
     },
     "delete_session_configurations": {
       "display_name": "Delete an account's session configurations.",
@@ -3815,7 +4193,8 @@
       "execution": {
         "method": "POST",
         "path": "/extensions/{id}/enable"
-      }
+      },
+      "response_schema": "enable_extension_response"
     },
     "enable_webhook_subscription": {
       "display_name": "Enable a webhook subscription",
@@ -3841,7 +4220,8 @@
       "execution": {
         "method": "POST",
         "path": "/webhook_subscriptions/{id}/enable"
-      }
+      },
+      "response_schema": "enable_webhook_subscription_response"
     },
     "get_ability": {
       "display_name": "Test an ability",
@@ -3899,7 +4279,8 @@
       "execution": {
         "method": "GET",
         "path": "/addons/{id}"
-      }
+      },
+      "response_schema": "get_addon_response"
     },
     "get_alert_grouping_setting": {
       "display_name": "Get an Alert Grouping Setting",
@@ -3928,7 +4309,8 @@
       "execution": {
         "method": "GET",
         "path": "/alert_grouping_settings/{id}"
-      }
+      },
+      "response_schema": "get_alert_grouping_setting_response"
     },
     "get_all_automation_actions": {
       "display_name": "List Automation Actions",
@@ -4043,7 +4425,8 @@
           "order_by": "order_by",
           "time_zone": "time_zone"
         }
-      }
+      },
+      "response_schema": "get_analytics_incident_responses_by_id_response"
     },
     "get_analytics_incidents": {
       "display_name": "Get raw data - multiple incidents",
@@ -4103,7 +4486,8 @@
           "time_zone": "time_zone"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_analytics_incidents_response"
     },
     "get_analytics_incidents_by_id": {
       "display_name": "Get raw data - single incident",
@@ -4132,7 +4516,8 @@
       "execution": {
         "method": "GET",
         "path": "/analytics/raw/incidents/{id}"
-      }
+      },
+      "response_schema": "AnalyticsRawIncident"
     },
     "get_analytics_metrics_incidents_all": {
       "display_name": "Get aggregated incident data",
@@ -4661,7 +5046,8 @@
           "time_zone": "time_zone"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_analytics_metrics_users_all_response"
     },
     "get_analytics_responder_incidents": {
       "display_name": "Get raw incidents for a single responder_id",
@@ -4728,7 +5114,8 @@
           "time_zone": "time_zone"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_analytics_responder_incidents_response"
     },
     "get_analytics_users": {
       "display_name": "Get raw user analytics data",
@@ -4792,7 +5179,8 @@
           "time_zone": "time_zone"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_analytics_users_response"
     },
     "get_automation_action": {
       "display_name": "Get an Automation Action",
@@ -4821,7 +5209,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/actions/{id}"
-      }
+      },
+      "response_schema": "get_automation_action_response"
     },
     "get_automation_actions_action_service_association": {
       "display_name": "Get the details of an Automation Action / service relation",
@@ -4855,7 +5244,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/actions/{id}/services/{service_id}"
-      }
+      },
+      "response_schema": "get_automation_actions_action_service_association_response"
     },
     "get_automation_actions_action_service_associations": {
       "display_name": "Get all service references associated with an Automation Action",
@@ -4884,7 +5274,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/actions/{id}/services"
-      }
+      },
+      "response_schema": "get_automation_actions_action_service_associations_response"
     },
     "get_automation_actions_action_team_association": {
       "display_name": "Get the details of an Automation Action / team relation",
@@ -4918,7 +5309,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/actions/{id}/teams/{team_id}"
-      }
+      },
+      "response_schema": "get_automation_actions_action_team_association_response"
     },
     "get_automation_actions_action_team_associations": {
       "display_name": "Get all team references associated with an Automation Action",
@@ -4947,7 +5339,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/actions/{id}/teams"
-      }
+      },
+      "response_schema": "get_automation_actions_action_team_associations_response"
     },
     "get_automation_actions_invocation": {
       "display_name": "Get an Invocation",
@@ -4976,7 +5369,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/invocations/{id}"
-      }
+      },
+      "response_schema": "get_automation_actions_invocation_response"
     },
     "get_automation_actions_runner": {
       "display_name": "Get an Automation Action runner",
@@ -5005,7 +5399,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/runners/{id}"
-      }
+      },
+      "response_schema": "get_automation_actions_runner_response"
     },
     "get_automation_actions_runner_team_association": {
       "display_name": "Get the details of a runner / team relation",
@@ -5039,7 +5434,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/runners/{id}/teams/{team_id}"
-      }
+      },
+      "response_schema": "get_automation_actions_runner_team_association_response"
     },
     "get_automation_actions_runner_team_associations": {
       "display_name": "Get all team references associated with a runner",
@@ -5068,7 +5464,8 @@
       "execution": {
         "method": "GET",
         "path": "/automation_actions/runners/{id}/teams"
-      }
+      },
+      "response_schema": "get_automation_actions_runner_team_associations_response"
     },
     "get_automation_actions_runners": {
       "display_name": "List Automation Action runners",
@@ -5141,7 +5538,8 @@
       "execution": {
         "method": "GET",
         "path": "/business_services/{id}"
-      }
+      },
+      "response_schema": "get_business_service_response"
     },
     "get_business_service_impacts": {
       "display_name": "List Business Services sorted by impacted status",
@@ -5191,7 +5589,8 @@
       "execution": {
         "method": "GET",
         "path": "/business_services/priority_thresholds"
-      }
+      },
+      "response_schema": "get_business_service_priority_thresholds_response"
     },
     "get_business_service_service_dependencies": {
       "display_name": "Get Business Service dependencies",
@@ -5220,7 +5619,8 @@
       "execution": {
         "method": "GET",
         "path": "/service_dependencies/business_services/{id}"
-      }
+      },
+      "response_schema": "get_business_service_service_dependencies_response"
     },
     "get_business_service_subscribers": {
       "display_name": "List Business Service Subscribers",
@@ -5344,7 +5744,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/cache_variables/{cache_variable_id}"
-      }
+      },
+      "response_schema": "get_cache_var_on_global_orch_response"
     },
     "get_cache_var_on_service_orch": {
       "display_name": "Get a Cache Variable for a Service Event Orchestration",
@@ -5378,7 +5779,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/services/{service_id}/cache_variables/{cache_variable_id}"
-      }
+      },
+      "response_schema": "get_cache_var_on_service_orch_response"
     },
     "get_change_event": {
       "display_name": "Get a Change Event",
@@ -5407,7 +5809,8 @@
       "execution": {
         "method": "GET",
         "path": "/change_events/{id}"
-      }
+      },
+      "response_schema": "get_change_event_response"
     },
     "get_current_user": {
       "display_name": "Get the current user",
@@ -5436,7 +5839,40 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_current_user_response"
+    },
+    "get_custom_shift": {
+      "display_name": "Get a custom shift",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "custom_shift_id": {
+            "type": "string",
+            "description": "The ID of the custom shift."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id",
+          "custom_shift_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/custom_shifts/{custom_shift_id}"
+      },
+      "response_schema": "get_custom_shift_response"
     },
     "get_entity_type_by_id_tags": {
       "display_name": "Get tags for entities",
@@ -5523,7 +5959,57 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_escalation_policy_response"
+    },
+    "get_event": {
+      "display_name": "Get an event",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "event_id": {
+            "type": "string",
+            "description": "The ID of the event."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          },
+          "since": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "until": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id",
+          "event_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}/events/{event_id}",
+        "query_mapping": {
+          "since": "since",
+          "until": "until"
+        }
+      },
+      "response_schema": "EventResponse"
     },
     "get_extension": {
       "display_name": "Get an extension",
@@ -5559,7 +6045,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_extension_response"
     },
     "get_extension_schema": {
       "display_name": "Get an extension vendor",
@@ -5588,7 +6075,8 @@
       "execution": {
         "method": "GET",
         "path": "/extension_schemas/{id}"
-      }
+      },
+      "response_schema": "get_extension_schema_response"
     },
     "get_external_data_cache_var_data_on_global_orch": {
       "display_name": "Get Data for an External Data Cache Variable on a Global Event Orchestration",
@@ -5692,7 +6180,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_incident_response"
     },
     "get_incident_alert": {
       "display_name": "Get an alert",
@@ -5726,7 +6215,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/{id}/alerts/{alert_id}"
-      }
+      },
+      "response_schema": "get_incident_alert_response"
     },
     "get_incident_field_values": {
       "display_name": "Get Custom Field Values",
@@ -5748,7 +6238,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/{id}/custom_fields/values"
-      }
+      },
+      "response_schema": "get_incident_field_values_response"
     },
     "get_incident_impacted_business_services": {
       "display_name": "List Business Services impacted by the given Incident",
@@ -5829,7 +6320,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/types/{type_id_or_name}"
-      }
+      },
+      "response_schema": "get_incident_type_response"
     },
     "get_incident_type_custom_field": {
       "display_name": "Get an Incident Type Custom Field",
@@ -5870,7 +6362,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_incident_type_custom_field_response"
     },
     "get_incident_type_custom_field_field_options": {
       "display_name": "Get a Field Option on a Custom Field",
@@ -5909,7 +6402,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/types/{type_id_or_name}/custom_fields/{field_id}/field_options/{field_option_id}"
-      }
+      },
+      "response_schema": "get_incident_type_custom_field_field_options_response"
     },
     "get_incident_workflow": {
       "display_name": "Get an Incident Workflow",
@@ -5938,7 +6432,8 @@
       "execution": {
         "method": "GET",
         "path": "/incident_workflows/{id}"
-      }
+      },
+      "response_schema": "get_incident_workflow_response"
     },
     "get_incident_workflow_action": {
       "display_name": "Get an Action",
@@ -5967,7 +6462,8 @@
       "execution": {
         "method": "GET",
         "path": "/incident_workflows/actions/{id}"
-      }
+      },
+      "response_schema": "get_incident_workflow_action_response"
     },
     "get_incident_workflow_trigger": {
       "display_name": "Get a Trigger",
@@ -5996,7 +6492,8 @@
       "execution": {
         "method": "GET",
         "path": "/incident_workflows/triggers/{id}"
-      }
+      },
+      "response_schema": "get_incident_workflow_trigger_response"
     },
     "get_log_entry": {
       "display_name": "Get a log entry",
@@ -6037,7 +6534,8 @@
           "include[]": "include[]",
           "time_zone": "time_zone"
         }
-      }
+      },
+      "response_schema": "get_log_entry_response"
     },
     "get_maintenance_window": {
       "display_name": "Get a maintenance window",
@@ -6073,7 +6571,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_maintenance_window_response"
     },
     "get_oauth_client": {
       "display_name": "Get an OAuth client",
@@ -6102,7 +6601,8 @@
       "execution": {
         "method": "GET",
         "path": "/webhook_subscriptions/oauth_clients/{id}"
-      }
+      },
+      "response_schema": "get_oauth_client_response"
     },
     "get_orch_active_status": {
       "display_name": "Get the Service Orchestration active status for a Service",
@@ -6131,7 +6631,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/services/{service_id}/active"
-      }
+      },
+      "response_schema": "get_orch_active_status_response"
     },
     "get_orch_path_global": {
       "display_name": "Get the Global Orchestration for an Event Orchestration",
@@ -6160,7 +6661,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/global"
-      }
+      },
+      "response_schema": "OrchestrationGlobal"
     },
     "get_orch_path_router": {
       "display_name": "Get the Router for an Event Orchestration",
@@ -6189,7 +6691,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/router"
-      }
+      },
+      "response_schema": "OrchestrationRouter"
     },
     "get_orch_path_service": {
       "display_name": "Get the Service Orchestration for a Service",
@@ -6225,7 +6728,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "ServiceOrchestration"
     },
     "get_orch_path_unrouted": {
       "display_name": "Get the Unrouted Orchestration for an Event Orchestration",
@@ -6254,7 +6758,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/unrouted"
-      }
+      },
+      "response_schema": "OrchestrationUnrouted"
     },
     "get_orchestration": {
       "display_name": "Get an Orchestration",
@@ -6283,7 +6788,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}"
-      }
+      },
+      "response_schema": "get_orchestration_response"
     },
     "get_orchestration_integration": {
       "display_name": "Get an Integration for an Event Orchestration",
@@ -6317,7 +6823,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/integrations/{integration_id}"
-      }
+      },
+      "response_schema": "get_orchestration_integration_response"
     },
     "get_outlier_incident": {
       "display_name": "Get Outlier Incident",
@@ -6358,7 +6865,40 @@
           "additional_details[]": "additional_details[]",
           "since": "since"
         }
-      }
+      },
+      "response_schema": "get_outlier_incident_response"
+    },
+    "get_override": {
+      "display_name": "Get an override",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "override_id": {
+            "type": "string",
+            "description": "The ID of the override."
+          }
+        },
+        "required": [
+          "id",
+          "override_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/overrides/{override_id}"
+      },
+      "response_schema": "get_override_response"
     },
     "get_past_incidents": {
       "display_name": "Get Past Incidents",
@@ -6399,7 +6939,8 @@
           "limit": "limit",
           "total": "total"
         }
-      }
+      },
+      "response_schema": "get_past_incidents_response"
     },
     "get_paused_incident_report_alerts": {
       "display_name": "Get Paused Incident Reporting on Alerts",
@@ -6443,7 +6984,8 @@
           "suspended_by": "suspended_by",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "get_paused_incident_report_alerts_response"
     },
     "get_paused_incident_report_counts": {
       "display_name": "Get Paused Incident Reporting counts",
@@ -6487,7 +7029,8 @@
           "suspended_by": "suspended_by",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "get_paused_incident_report_counts_response"
     },
     "get_post_update": {
       "display_name": "Get a Status Page Post Update",
@@ -6523,7 +7066,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/posts/{post_id}/post_updates/{post_update_id}"
-      }
+      },
+      "response_schema": "get_post_update_response"
     },
     "get_postmortem": {
       "display_name": "Get a Post Postmortem",
@@ -6554,7 +7098,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/posts/{post_id}/postmortem"
-      }
+      },
+      "response_schema": "get_postmortem_response"
     },
     "get_related_incidents": {
       "display_name": "Get Related Incidents",
@@ -6590,7 +7135,52 @@
         "query_mapping": {
           "additional_details[]": "additional_details[]"
         }
-      }
+      },
+      "response_schema": "get_related_incidents_response"
+    },
+    "get_rotation": {
+      "display_name": "Get a rotation",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          },
+          "since": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "until": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}",
+        "query_mapping": {
+          "since": "since",
+          "until": "until"
+        }
+      },
+      "response_schema": "RotationResponse"
     },
     "get_ruleset": {
       "display_name": "Get a Ruleset",
@@ -6619,7 +7209,8 @@
       "execution": {
         "method": "GET",
         "path": "/rulesets/{id}"
-      }
+      },
+      "response_schema": "get_ruleset_response"
     },
     "get_ruleset_event_rule": {
       "display_name": "Get an Event Rule",
@@ -6653,7 +7244,8 @@
       "execution": {
         "method": "GET",
         "path": "/rulesets/{id}/rules/{rule_id}"
-      }
+      },
+      "response_schema": "get_ruleset_event_rule_response"
     },
     "get_schedule": {
       "display_name": "Get a schedule",
@@ -6709,7 +7301,62 @@
           "time_zone": "time_zone",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "get_schedule_response"
+    },
+    "get_schedule_v3": {
+      "display_name": "Get a schedule",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "include[]": {
+            "type": "array",
+            "description": "Additional data to include in the schedule response:\n- `final_schedule`: computed on-call assignments for the time range\n"
+          },
+          "overflow": {
+            "type": "boolean",
+            "description": "Include shifts that extend beyond the requested time range boundaries"
+          },
+          "since": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "time_zone": {
+            "type": "string",
+            "description": "IANA timezone identifier for rendering shift times. Defaults to the\nschedule's configured time zone.\n"
+          },
+          "until": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}",
+        "query_mapping": {
+          "include[]": "include[]",
+          "overflow": "overflow",
+          "since": "since",
+          "time_zone": "time_zone",
+          "until": "until"
+        }
+      },
+      "response_schema": "ScheduleResponse"
     },
     "get_service": {
       "display_name": "Get a service",
@@ -6745,7 +7392,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_service_response"
     },
     "get_service_custom_field": {
       "display_name": "Get a Field",
@@ -6781,7 +7429,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_service_custom_field_response"
     },
     "get_service_custom_field_option": {
       "display_name": "Get a Field Option",
@@ -6815,7 +7464,8 @@
       "execution": {
         "method": "GET",
         "path": "/services/custom_fields/{field_id}/field_options/{field_option_id}"
-      }
+      },
+      "response_schema": "get_service_custom_field_option_response"
     },
     "get_service_custom_field_values": {
       "display_name": "Get Custom Field Values",
@@ -6844,7 +7494,8 @@
       "execution": {
         "method": "GET",
         "path": "/services/{id}/custom_fields/values"
-      }
+      },
+      "response_schema": "get_service_custom_field_values_response"
     },
     "get_service_event_rule": {
       "display_name": "Get an Event Rule from a Service",
@@ -6878,7 +7529,8 @@
       "execution": {
         "method": "GET",
         "path": "/services/{id}/rules/{rule_id}"
-      }
+      },
+      "response_schema": "get_service_event_rule_response"
     },
     "get_service_integration": {
       "display_name": "View an integration",
@@ -6919,7 +7571,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_service_integration_response"
     },
     "get_session_configurations": {
       "display_name": "Get an account's session configurations",
@@ -6948,7 +7601,8 @@
         "query_mapping": {
           "type": "type"
         }
-      }
+      },
+      "response_schema": "get_session_configurations_response"
     },
     "get_status_dashboard_by_id": {
       "display_name": "Get a single Status Dashboard by `id`",
@@ -6974,7 +7628,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_dashboards/{id}"
-      }
+      },
+      "response_schema": "get_status_dashboard_by_id_response"
     },
     "get_status_dashboard_by_url_slug": {
       "display_name": "Get a single Status Dashboard by `url_slug`",
@@ -7000,7 +7655,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_dashboards/url_slugs/{url_slug}"
-      }
+      },
+      "response_schema": "get_status_dashboard_by_url_slug_response"
     },
     "get_status_dashboard_service_impacts_by_id": {
       "display_name": "Get impacted Business Services for a Status Dashboard by `id`.",
@@ -7097,7 +7753,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/impacts/{impact_id}"
-      }
+      },
+      "response_schema": "get_status_page_impact_response"
     },
     "get_status_page_post": {
       "display_name": "Get a Status Page Post",
@@ -7135,7 +7792,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_status_page_post_response"
     },
     "get_status_page_service": {
       "display_name": "Get a Status Page Service",
@@ -7166,7 +7824,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/services/{service_id}"
-      }
+      },
+      "response_schema": "get_status_page_service_response"
     },
     "get_status_page_severity": {
       "display_name": "Get a Status Page Severity",
@@ -7197,7 +7856,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/severities/{severity_id}"
-      }
+      },
+      "response_schema": "get_status_page_severity_response"
     },
     "get_status_page_status": {
       "display_name": "Get a Status Page Status",
@@ -7228,7 +7888,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/statuses/{status_id}"
-      }
+      },
+      "response_schema": "get_status_page_status_response"
     },
     "get_status_page_subscription": {
       "display_name": "Get a Status Page Subscription",
@@ -7259,7 +7920,8 @@
       "execution": {
         "method": "GET",
         "path": "/status_pages/{id}/subscriptions/{subscription_id}"
-      }
+      },
+      "response_schema": "get_status_page_subscription_response"
     },
     "get_tag": {
       "display_name": "Get a tag",
@@ -7288,7 +7950,8 @@
       "execution": {
         "method": "GET",
         "path": "/tags/{id}"
-      }
+      },
+      "response_schema": "get_tag_response"
     },
     "get_tags_by_entity_type": {
       "display_name": "Get connected entities",
@@ -7375,7 +8038,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_team_response"
     },
     "get_team_notification_subscriptions": {
       "display_name": "List Team Notification Subscriptions",
@@ -7430,7 +8094,8 @@
       "execution": {
         "method": "GET",
         "path": "/service_dependencies/technical_services/{id}"
-      }
+      },
+      "response_schema": "get_technical_service_service_dependencies_response"
     },
     "get_template": {
       "display_name": "Get a template",
@@ -7452,7 +8117,8 @@
       "execution": {
         "method": "GET",
         "path": "/templates/{id}"
-      }
+      },
+      "response_schema": "get_template_response"
     },
     "get_template_fields": {
       "display_name": "List template fields",
@@ -7474,7 +8140,8 @@
       "execution": {
         "method": "GET",
         "path": "/templates/fields"
-      }
+      },
+      "response_schema": "get_template_fields_response"
     },
     "get_templates": {
       "display_name": "List templates",
@@ -7557,7 +8224,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_user_response"
     },
     "get_user_contact_method": {
       "display_name": "Get a user's contact method",
@@ -7591,7 +8259,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/contact_methods/{contact_method_id}"
-      }
+      },
+      "response_schema": "get_user_contact_method_response"
     },
     "get_user_contact_methods": {
       "display_name": "List a user's contact methods",
@@ -7620,7 +8289,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/contact_methods"
-      }
+      },
+      "response_schema": "get_user_contact_methods_response"
     },
     "get_user_delegation": {
       "display_name": "Get a user's delegation",
@@ -7654,7 +8324,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/oauth_delegations/{delegation_id}"
-      }
+      },
+      "response_schema": "OAuthDelegation"
     },
     "get_user_handoff_notifiaction_rule": {
       "display_name": "Get a user's handoff notification rule",
@@ -7688,7 +8359,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/oncall_handoff_notification_rules/{oncall_handoff_notification_rule_id}"
-      }
+      },
+      "response_schema": "get_user_handoff_notifiaction_rule_response"
     },
     "get_user_handoff_notification_rules": {
       "display_name": "List a User's Handoff Notification Rules",
@@ -7717,7 +8389,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/oncall_handoff_notification_rules"
-      }
+      },
+      "response_schema": "get_user_handoff_notification_rules_response"
     },
     "get_user_license": {
       "display_name": "Get the License allocated to a User",
@@ -7746,7 +8419,8 @@
       "execution": {
         "method": "GET",
         "path": "/users/{id}/license"
-      }
+      },
+      "response_schema": "get_user_license_response"
     },
     "get_user_notification_rule": {
       "display_name": "Get a user's notification rule",
@@ -7787,7 +8461,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_user_notification_rule_response"
     },
     "get_user_notification_rules": {
       "display_name": "List a user's notification rules",
@@ -7828,7 +8503,8 @@
           "include[]": "include[]",
           "urgency": "urgency"
         }
-      }
+      },
+      "response_schema": "get_user_notification_rules_response"
     },
     "get_user_notification_subscriptions": {
       "display_name": "List Notification Subscriptions",
@@ -7895,7 +8571,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_user_status_update_notification_rule_response"
     },
     "get_user_status_update_notification_rules": {
       "display_name": "List a user's status update notification rules",
@@ -7931,7 +8608,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "get_user_status_update_notification_rules_response"
     },
     "get_vendor": {
       "display_name": "Get a vendor",
@@ -7960,7 +8638,8 @@
       "execution": {
         "method": "GET",
         "path": "/vendors/{id}"
-      }
+      },
+      "response_schema": "get_vendor_response"
     },
     "get_webhook_subscription": {
       "display_name": "Get a webhook subscription",
@@ -7986,7 +8665,8 @@
       "execution": {
         "method": "GET",
         "path": "/webhook_subscriptions/{id}"
-      }
+      },
+      "response_schema": "get_webhook_subscription_response"
     },
     "get_workflow_integration": {
       "display_name": "Get Workflow Integration",
@@ -8012,7 +8692,8 @@
       "execution": {
         "method": "GET",
         "path": "/workflows/integrations/{id}"
-      }
+      },
+      "response_schema": "WorkflowIntegration"
     },
     "get_workflow_integration_connection": {
       "display_name": "Get Workflow Integration Connection",
@@ -8043,7 +8724,8 @@
       "execution": {
         "method": "GET",
         "path": "/workflows/integrations/{integration_id}/connections/{id}"
-      }
+      },
+      "response_schema": "WorkflowIntegrationConnection"
     },
     "list_abilities": {
       "display_name": "List abilities",
@@ -8242,7 +8924,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
     },
     "list_automation_action_invocations": {
       "display_name": "List Invocations",
@@ -8354,7 +9037,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/cache_variables"
-      }
+      },
+      "response_schema": "list_cache_var_on_global_orch_response"
     },
     "list_cache_var_on_service_orch": {
       "display_name": "List Cache Variables for a Service Event Orchestration",
@@ -8383,7 +9067,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/services/{service_id}/cache_variables"
-      }
+      },
+      "response_schema": "list_cache_var_on_service_orch_response"
     },
     "list_change_events": {
       "display_name": "List Change Events",
@@ -8442,7 +9127,65 @@
           "total": "total",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "list_change_events_response"
+    },
+    "list_custom_shifts": {
+      "display_name": "List custom shifts",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "overflow": {
+            "type": "boolean",
+            "description": "Include shifts that extend beyond the requested time range boundaries"
+          },
+          "since": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "time_zone": {
+            "type": "string",
+            "description": "IANA timezone identifier for rendering shift times. Defaults to the\nschedule's configured time zone.\n"
+          },
+          "until": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/custom_shifts",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset",
+          "overflow": "overflow",
+          "since": "since",
+          "time_zone": "time_zone",
+          "until": "until"
+        }
+      },
+      "response_schema": "list_custom_shifts_response"
     },
     "list_escalation_policies": {
       "display_name": "List escalation policies",
@@ -8557,11 +9300,12 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
     },
     "list_event_orchestration_feature_enablements": {
       "display_name": "List Enablements for an Event Orchestration",
-      "description": "\u003c!-- theme: warning --\u003e \u003e ### Limited GA \u003e This feature is in Limited General Availability for some customers with the PagerDuty AIOps add-on. Please contact your account team or Support to request...",
+      "description": "List all feature enablement settings for an Event Orchestration. Currently, only the `aiops` enablement is supported. For any account with the AIOps product addon, every Event Orchestration will ha...",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -8586,7 +9330,8 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/enablements"
-      }
+      },
+      "response_schema": "list_event_orchestration_feature_enablements_response"
     },
     "list_event_orchestrations": {
       "display_name": "List Event Orchestrations",
@@ -8626,6 +9371,48 @@
           "sort_by": "sort_by"
         }
       }
+    },
+    "list_events": {
+      "display_name": "List events",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}/events",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset"
+        }
+      },
+      "response_schema": "list_events_response"
     },
     "list_extension_schemas": {
       "display_name": "List extension schemas",
@@ -8889,7 +9676,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/{id}/notes"
-      }
+      },
+      "response_schema": "list_incident_notes_response"
     },
     "list_incident_related_change_events": {
       "display_name": "List related Change Events for an Incident",
@@ -8925,7 +9713,8 @@
         "query_mapping": {
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "list_incident_related_change_events_response"
     },
     "list_incident_type_custom_field": {
       "display_name": "List Field Options on a Custom Field",
@@ -8959,7 +9748,8 @@
       "execution": {
         "method": "GET",
         "path": "/incidents/types/{type_id_or_name}/custom_fields/{field_id}/field_options"
-      }
+      },
+      "response_schema": "list_incident_type_custom_field_response"
     },
     "list_incident_type_custom_fields": {
       "display_name": "List Incident Type Custom Fields",
@@ -8995,7 +9785,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "list_incident_type_custom_fields_response"
     },
     "list_incident_types": {
       "display_name": "List incident types",
@@ -9336,7 +10127,8 @@
       "execution": {
         "method": "GET",
         "path": "/licenses"
-      }
+      },
+      "response_schema": "list_licenses_response"
     },
     "list_log_entries": {
       "display_name": "List log entries",
@@ -9555,7 +10347,8 @@
       "execution": {
         "method": "GET",
         "path": "/webhook_subscriptions/oauth_clients"
-      }
+      },
+      "response_schema": "list_oauth_clients_response"
     },
     "list_on_calls": {
       "display_name": "List all of the on-calls",
@@ -9663,7 +10456,65 @@
       "execution": {
         "method": "GET",
         "path": "/event_orchestrations/{id}/integrations"
-      }
+      },
+      "response_schema": "list_orchestration_integrations_response"
+    },
+    "list_overrides": {
+      "display_name": "List overrides",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "overflow": {
+            "type": "boolean",
+            "description": "Include shifts that extend beyond the requested time range boundaries"
+          },
+          "since": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "time_zone": {
+            "type": "string",
+            "description": "IANA timezone identifier for rendering shift times. Defaults to the\nschedule's configured time zone.\n"
+          },
+          "until": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/overrides",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset",
+          "overflow": "overflow",
+          "since": "since",
+          "time_zone": "time_zone",
+          "until": "until"
+        }
+      },
+      "response_schema": "list_overrides_response"
     },
     "list_priorities": {
       "display_name": "List priorities",
@@ -9732,7 +10583,8 @@
       "execution": {
         "method": "GET",
         "path": "/standards/scores/{resource_type}/{id}"
-      }
+      },
+      "response_schema": "StandardApplied"
     },
     "list_resource_standards_many_services": {
       "display_name": "List resources' standards scores",
@@ -9765,6 +10617,43 @@
           "ids": "ids"
         }
       }
+    },
+    "list_rotations": {
+      "display_name": "List rotations",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules/{id}/rotations",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset"
+        }
+      },
+      "response_schema": "list_rotations_response"
     },
     "list_ruleset_event_rules": {
       "display_name": "List Event Rules",
@@ -9900,7 +10789,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "list_schedule_overrides_response"
     },
     "list_schedule_users": {
       "display_name": "List users on call.",
@@ -9941,7 +10831,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "list_schedule_users_response"
     },
     "list_schedules": {
       "display_name": "List schedules",
@@ -10061,7 +10952,39 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
+    },
+    "list_schedules_v3": {
+      "display_name": "List schedules",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Ret...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of schedules to return"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/v3/schedules",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset"
+        }
+      },
+      "response_schema": "list_schedules_v3_response"
     },
     "list_service_audit_records": {
       "display_name": "List audit records for a service",
@@ -10112,7 +11035,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
     },
     "list_service_change_events": {
       "display_name": "List Change Events for a service",
@@ -10178,7 +11102,8 @@
           "total": "total",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "list_service_change_events_response"
     },
     "list_service_custom_field_options": {
       "display_name": "List Field Options",
@@ -10207,7 +11132,8 @@
       "execution": {
         "method": "GET",
         "path": "/services/custom_fields/{field_id}/field_options"
-      }
+      },
+      "response_schema": "list_service_custom_field_options_response"
     },
     "list_service_custom_fields": {
       "display_name": "List Fields",
@@ -10236,7 +11162,8 @@
         "query_mapping": {
           "include[]": "include[]"
         }
-      }
+      },
+      "response_schema": "list_service_custom_fields_response"
     },
     "list_service_event_rules": {
       "display_name": "List Service's Event Rules",
@@ -10291,7 +11218,7 @@
     },
     "list_service_feature_enablements": {
       "display_name": "Get Enablements for a Service",
-      "description": "\u003c!-- theme: warning --\u003e \u003e ### Limited GA \u003e This feature is in Limited General Availability for some customers with the PagerDuty AIOps add-on. Please contact your account team or Support to request...",
+      "description": "List all feature enablement settings for a service. Currently, only the `aiops` enablement is supported. For any account with the AIOps product addon, every service will have AIOps features enabled...",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -10316,7 +11243,8 @@
       "execution": {
         "method": "GET",
         "path": "/services/{id}/enablements"
-      }
+      },
+      "response_schema": "list_service_feature_enablements_response"
     },
     "list_services": {
       "display_name": "List services",
@@ -10937,7 +11865,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
     },
     "list_user_delegations": {
       "display_name": "List a user's delegations",
@@ -10988,7 +11917,8 @@
           "limit": "limit",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "UserOAuthDelegations"
     },
     "list_users": {
       "display_name": "List users",
@@ -11093,7 +12023,8 @@
           "since": "since",
           "until": "until"
         }
-      }
+      },
+      "response_schema": "AuditRecordResponseSchema"
     },
     "list_vendors": {
       "display_name": "List vendors",
@@ -11334,7 +12265,8 @@
         "body_mapping": {
           "source_incidents": "source_incidents"
         }
-      }
+      },
+      "response_schema": "merge_incidents_response"
     },
     "migrate_orchestration_integration": {
       "display_name": "Migrate an Integration from one Event Orchestration to another",
@@ -11383,7 +12315,8 @@
           "source_id": "source_id",
           "source_type": "source_type"
         }
-      }
+      },
+      "response_schema": "migrate_orchestration_integration_response"
     },
     "post_alert_grouping_settings": {
       "display_name": "Create an Alert Grouping Setting",
@@ -11415,7 +12348,8 @@
         "body_mapping": {
           "alert_grouping_setting": "alert_grouping_setting"
         }
-      }
+      },
+      "response_schema": "post_alert_grouping_settings_response"
     },
     "post_incident_workflow": {
       "display_name": "Create an Incident Workflow",
@@ -11446,7 +12380,8 @@
         "body_mapping": {
           "incident_workflow": "incident_workflow"
         }
-      }
+      },
+      "response_schema": "post_incident_workflow_response"
     },
     "post_orchestration": {
       "display_name": "Create an Orchestration",
@@ -11477,7 +12412,8 @@
         "body_mapping": {
           "orchestration": "orchestration"
         }
-      }
+      },
+      "response_schema": "post_orchestration_response"
     },
     "post_orchestration_integration": {
       "display_name": "Create an Integration for an Event Orchestration",
@@ -11513,7 +12449,8 @@
         "body_mapping": {
           "integration": "integration"
         }
-      }
+      },
+      "response_schema": "post_orchestration_integration_response"
     },
     "put_alert_grouping_setting": {
       "display_name": "Update an Alert Grouping Setting",
@@ -11550,7 +12487,8 @@
         "body_mapping": {
           "alert_grouping_setting": "alert_grouping_setting"
         }
-      }
+      },
+      "response_schema": "put_alert_grouping_setting_response"
     },
     "put_business_service_priority_thresholds": {
       "display_name": "Set the Account-level priority threshold for Business Service impact.",
@@ -11578,7 +12516,8 @@
         "body_mapping": {
           "global_threshold": "global_threshold"
         }
-      }
+      },
+      "response_schema": "put_business_service_priority_thresholds_response"
     },
     "put_incident_manual_business_service_association": {
       "display_name": "Manually change an Incident's Impact on a Business Service.",
@@ -11616,7 +12555,8 @@
         "body_mapping": {
           "relation": "relation"
         }
-      }
+      },
+      "response_schema": "put_incident_manual_business_service_association_response"
     },
     "put_incident_workflow": {
       "display_name": "Update an Incident Workflow",
@@ -11652,7 +12592,8 @@
         "body_mapping": {
           "incident_workflow": "incident_workflow"
         }
-      }
+      },
+      "response_schema": "put_incident_workflow_response"
     },
     "remove_business_service_account_subscription": {
       "display_name": "Delete Business Service Account Subscription",
@@ -11711,7 +12652,8 @@
         "body_mapping": {
           "subscribers": "subscribers"
         }
-      }
+      },
+      "response_schema": "remove_business_service_notification_subscriber_response"
     },
     "remove_incident_notification_subscribers": {
       "display_name": "Remove Notification Subscriber",
@@ -11744,7 +12686,8 @@
         "body_mapping": {
           "subscribers": "subscribers"
         }
-      }
+      },
+      "response_schema": "remove_incident_notification_subscribers_response"
     },
     "remove_team_notification_subscriptions": {
       "display_name": "Remove Team Notification Subscriptions",
@@ -11777,7 +12720,8 @@
         "body_mapping": {
           "subscribables": "subscribables"
         }
-      }
+      },
+      "response_schema": "remove_team_notification_subscriptions_response"
     },
     "render_template": {
       "display_name": "Render a template",
@@ -11799,7 +12743,8 @@
       "execution": {
         "method": "POST",
         "path": "/templates/{id}/render"
-      }
+      },
+      "response_schema": "RenderedTemplate"
     },
     "set_incident_field_values": {
       "display_name": "Update Custom Field Values",
@@ -11828,7 +12773,8 @@
         "body_mapping": {
           "custom_fields": "custom_fields"
         }
-      }
+      },
+      "response_schema": "set_incident_field_values_response"
     },
     "test_webhook_subscription": {
       "display_name": "Test a webhook subscription",
@@ -11887,7 +12833,8 @@
         "body_mapping": {
           "subscribables": "subscribables"
         }
-      }
+      },
+      "response_schema": "unsubscribe_user_notification_subscriptions_response"
     },
     "update_addon": {
       "display_name": "Update an Add-on",
@@ -11923,7 +12870,8 @@
         "body_mapping": {
           "addon": "addon"
         }
-      }
+      },
+      "response_schema": "update_addon_response"
     },
     "update_automation_action": {
       "display_name": "Update an Automation Action",
@@ -11959,7 +12907,8 @@
         "body_mapping": {
           "action": "action"
         }
-      }
+      },
+      "response_schema": "update_automation_action_response"
     },
     "update_automation_actions_runner": {
       "display_name": "Update an Automation Action runner",
@@ -11995,7 +12944,8 @@
         "body_mapping": {
           "runner": "runner"
         }
-      }
+      },
+      "response_schema": "update_automation_actions_runner_response"
     },
     "update_business_service": {
       "display_name": "Update a Business Service",
@@ -12031,7 +12981,8 @@
         "body_mapping": {
           "business_service": "business_service"
         }
-      }
+      },
+      "response_schema": "update_business_service_response"
     },
     "update_cache_var_on_global_orch": {
       "display_name": "Update a Cache Variable for a Global Event Orchestration",
@@ -12072,7 +13023,8 @@
         "body_mapping": {
           "cache_variable": "cache_variable"
         }
-      }
+      },
+      "response_schema": "update_cache_var_on_global_orch_response"
     },
     "update_cache_var_on_service_orch": {
       "display_name": "Update a Cache Variable for a Service Event Orchestration",
@@ -12113,7 +13065,8 @@
         "body_mapping": {
           "cache_variable": "cache_variable"
         }
-      }
+      },
+      "response_schema": "update_cache_var_on_service_orch_response"
     },
     "update_change_event": {
       "display_name": "Update a Change Event",
@@ -12149,7 +13102,48 @@
         "body_mapping": {
           "change_event": "change_event"
         }
-      }
+      },
+      "response_schema": "update_change_event_response"
+    },
+    "update_custom_shift": {
+      "display_name": "Update a custom shift",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Upd...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "custom_shift": {
+            "type": "object",
+            "description": "If the shift has already started,\nonly `end_time` can be modified.\n"
+          },
+          "custom_shift_id": {
+            "type": "string",
+            "description": "The ID of the custom shift."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          }
+        },
+        "required": [
+          "id",
+          "custom_shift_id",
+          "custom_shift"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v3/schedules/{id}/custom_shifts/{custom_shift_id}",
+        "body_mapping": {
+          "custom_shift": "custom_shift"
+        }
+      },
+      "response_schema": "update_custom_shift_response"
     },
     "update_escalation_policy": {
       "display_name": "Update an escalation policy",
@@ -12185,11 +13179,56 @@
         "body_mapping": {
           "escalation_policy": "escalation_policy"
         }
-      }
+      },
+      "response_schema": "update_escalation_policy_response"
+    },
+    "update_event": {
+      "display_name": "Update an event",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Upd...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "event": {
+            "type": "object"
+          },
+          "event_id": {
+            "type": "string",
+            "description": "The ID of the event."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "rotation_id": {
+            "type": "string",
+            "description": "The ID of the rotation."
+          }
+        },
+        "required": [
+          "id",
+          "rotation_id",
+          "event_id",
+          "event"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v3/schedules/{id}/rotations/{rotation_id}/events/{event_id}",
+        "body_mapping": {
+          "event": "event"
+        }
+      },
+      "response_schema": "EventResponse"
     },
     "update_event_orchestration_feature_enablements": {
       "display_name": "Update an Enablement for an Event Orchestration",
-      "description": "\u003c!-- theme: warning --\u003e \u003e ### Limited GA \u003e This feature is in Limited General Availability for some customers with the PagerDuty AIOps add-on. Please contact your account team or Support to request...",
+      "description": "Update the feature enablement setting for a specific product addon on an Event Orchestration. This setting controls enabling or disabling the set of features contained within the addon. Currently, ...",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -12226,7 +13265,8 @@
         "body_mapping": {
           "enablement": "enablement"
         }
-      }
+      },
+      "response_schema": "update_event_orchestration_feature_enablements_response"
     },
     "update_extension": {
       "display_name": "Update an extension",
@@ -12262,7 +13302,8 @@
         "body_mapping": {
           "extension": "extension"
         }
-      }
+      },
+      "response_schema": "update_extension_response"
     },
     "update_external_data_cache_var_data_on_global_orch": {
       "display_name": "Update Data for an External Data Cache Variable on a Global Event Orchestration",
@@ -12416,7 +13457,8 @@
         "body_mapping": {
           "alert": "alert"
         }
-      }
+      },
+      "response_schema": "update_incident_alert_response"
     },
     "update_incident_alerts": {
       "display_name": "Manage alerts",
@@ -12519,7 +13561,8 @@
         "body_mapping": {
           "note": "note"
         }
-      }
+      },
+      "response_schema": "update_incident_note_response"
     },
     "update_incident_type": {
       "display_name": "Update an Incident Type",
@@ -12556,7 +13599,8 @@
         "body_mapping": {
           "incident_type": "incident_type"
         }
-      }
+      },
+      "response_schema": "update_incident_type_response"
     },
     "update_incident_type_custom_field": {
       "display_name": "Update a Custom Field for an Incident Type",
@@ -12598,7 +13642,8 @@
         "body_mapping": {
           "field": "field"
         }
-      }
+      },
+      "response_schema": "update_incident_type_custom_field_response"
     },
     "update_incident_type_custom_field_field_option": {
       "display_name": "Update a Field Option for a Custom Field",
@@ -12645,7 +13690,8 @@
         "body_mapping": {
           "field_option": "field_option"
         }
-      }
+      },
+      "response_schema": "update_incident_type_custom_field_field_option_response"
     },
     "update_incident_workflow_trigger": {
       "display_name": "Update a Trigger",
@@ -12681,7 +13727,8 @@
         "body_mapping": {
           "trigger": "trigger"
         }
-      }
+      },
+      "response_schema": "update_incident_workflow_trigger_response"
     },
     "update_incidents": {
       "display_name": "Manage incidents",
@@ -12811,7 +13858,8 @@
         "body_mapping": {
           "maintenance_window": "maintenance_window"
         }
-      }
+      },
+      "response_schema": "update_maintenance_window_response"
     },
     "update_oauth_client": {
       "display_name": "Update an OAuth client",
@@ -12847,7 +13895,8 @@
         "body_mapping": {
           "oauth_client": "oauth_client"
         }
-      }
+      },
+      "response_schema": "update_oauth_client_response"
     },
     "update_orch_active_status": {
       "display_name": "Update the Service Orchestration active status for a Service",
@@ -12883,7 +13932,8 @@
         "body_mapping": {
           "active": "active"
         }
-      }
+      },
+      "response_schema": "update_orch_active_status_response"
     },
     "update_orch_path_global": {
       "display_name": "Update the Global Orchestration for an Event Orchestration",
@@ -13035,7 +14085,8 @@
         "body_mapping": {
           "orchestration": "orchestration"
         }
-      }
+      },
+      "response_schema": "update_orchestration_response"
     },
     "update_orchestration_integration": {
       "display_name": "Update an Integration for an Event Orchestration",
@@ -13076,7 +14127,47 @@
         "body_mapping": {
           "integration": "integration"
         }
-      }
+      },
+      "response_schema": "update_orchestration_integration_response"
+    },
+    "update_override": {
+      "display_name": "Update an override",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Upd...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "override": {
+            "type": "object"
+          },
+          "override_id": {
+            "type": "string",
+            "description": "The ID of the override."
+          }
+        },
+        "required": [
+          "id",
+          "override_id",
+          "override"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v3/schedules/{id}/overrides/{override_id}",
+        "body_mapping": {
+          "override": "override"
+        }
+      },
+      "response_schema": "update_override_response"
     },
     "update_ruleset": {
       "display_name": "Update a Ruleset",
@@ -13112,7 +14203,8 @@
         "body_mapping": {
           "ruleset": "ruleset"
         }
-      }
+      },
+      "response_schema": "update_ruleset_response"
     },
     "update_ruleset_event_rule": {
       "display_name": "Update an Event Rule",
@@ -13152,7 +14244,8 @@
         "body_mapping": {
           "rule": "rule"
         }
-      }
+      },
+      "response_schema": "update_ruleset_event_rule_response"
     },
     "update_schedule": {
       "display_name": "Update a schedule",
@@ -13195,7 +14288,42 @@
         "query_mapping": {
           "overflow": "overflow"
         }
-      }
+      },
+      "response_schema": "update_schedule_response"
+    },
+    "update_schedule_v3": {
+      "display_name": "Update a schedule",
+      "description": "\u003c!-- theme: warning --\u003e \u003e ### Early Access \u003e This API is in Early Access and may change at any time. You must pass the `X-EARLY-ACCESS: flexible-schedules-early-access` header on every request. Upd...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "X-EARLY-ACCESS": {
+            "type": "string",
+            "description": "This header indicates that this API endpoint is __UNDER CONSTRUCTION__ and may change at any time. You __MUST__ pass in this header with the value `flexible-schedules-early-access`. Do not use this..."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the schedule."
+          },
+          "schedule": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "schedule"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/v3/schedules/{id}",
+        "body_mapping": {
+          "schedule": "schedule"
+        }
+      },
+      "response_schema": "ScheduleResponse"
     },
     "update_service": {
       "display_name": "Update a service",
@@ -13231,7 +14359,8 @@
         "body_mapping": {
           "service": "service"
         }
-      }
+      },
+      "response_schema": "update_service_response"
     },
     "update_service_custom_field": {
       "display_name": "Update a Field",
@@ -13268,7 +14397,8 @@
         "body_mapping": {
           "field": "field"
         }
-      }
+      },
+      "response_schema": "update_service_custom_field_response"
     },
     "update_service_custom_field_option": {
       "display_name": "Update a Field Option",
@@ -13310,7 +14440,8 @@
         "body_mapping": {
           "field_option": "field_option"
         }
-      }
+      },
+      "response_schema": "update_service_custom_field_option_response"
     },
     "update_service_custom_field_values": {
       "display_name": "Update Custom Field Values",
@@ -13346,7 +14477,8 @@
         "body_mapping": {
           "custom_fields": "custom_fields"
         }
-      }
+      },
+      "response_schema": "update_service_custom_field_values_response"
     },
     "update_service_event_rule": {
       "display_name": "Update an Event Rule on a Service",
@@ -13386,11 +14518,12 @@
         "body_mapping": {
           "rule": "rule"
         }
-      }
+      },
+      "response_schema": "update_service_event_rule_response"
     },
     "update_service_feature_enablement": {
       "display_name": "Update an Enablement for a Service",
-      "description": "\u003c!-- theme: warning --\u003e \u003e ### Limited GA \u003e This feature is in Limited General Availability for some customers with the PagerDuty AIOps add-on. Please contact your account team or Support to request...",
+      "description": "Update the feature enablement setting for a specific product addon on a service. This setting controls enabling or disabling the set of features contained within the addon. Currently, only `aiops` ...",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -13427,7 +14560,8 @@
         "body_mapping": {
           "enablement": "enablement"
         }
-      }
+      },
+      "response_schema": "update_service_feature_enablement_response"
     },
     "update_service_integration": {
       "display_name": "Update an existing integration",
@@ -13468,7 +14602,8 @@
         "body_mapping": {
           "integration": "integration"
         }
-      }
+      },
+      "response_schema": "update_service_integration_response"
     },
     "update_session_configurations": {
       "display_name": "Configure an account's session configurations",
@@ -13506,7 +14641,8 @@
         "query_mapping": {
           "type": "type"
         }
-      }
+      },
+      "response_schema": "update_session_configurations_response"
     },
     "update_sre_memory": {
       "display_name": "Update an SRE Agent memory",
@@ -13542,7 +14678,8 @@
         "body_mapping": {
           "memory": "memory"
         }
-      }
+      },
+      "response_schema": "update_sre_memory_response"
     },
     "update_standard": {
       "display_name": "Update a standard",
@@ -13571,7 +14708,8 @@
       "execution": {
         "method": "PUT",
         "path": "/standards/{id}"
-      }
+      },
+      "response_schema": "Standard"
     },
     "update_status_page_post": {
       "display_name": "Update a Status Page Post",
@@ -13610,7 +14748,8 @@
         "body_mapping": {
           "post": "post"
         }
-      }
+      },
+      "response_schema": "update_status_page_post_response"
     },
     "update_status_page_post_update": {
       "display_name": "Update a Status Page Post Update",
@@ -13654,46 +14793,8 @@
         "body_mapping": {
           "post_update": "post_update"
         }
-      }
-    },
-    "update_status_page_postmortem": {
-      "display_name": "Update a Post Postmortem",
-      "description": "Update a Postmortem for a Post by Post ID. Scoped OAuth requires: `status_pages.write`",
-      "access": "write",
-      "resource_type": "",
-      "parameters": {
-        "properties": {
-          "Accept": {
-            "type": "string",
-            "description": "The `Accept` header is used as a versioning header."
-          },
-          "id": {
-            "type": "string",
-            "description": "The ID of the resource."
-          },
-          "post_id": {
-            "type": "string",
-            "description": "The ID of the Status Page Post."
-          },
-          "postmortem": {
-            "type": "object",
-            "description": "Request to create/update a given Postmortem resource."
-          }
-        },
-        "required": [
-          "id",
-          "post_id",
-          "postmortem"
-        ],
-        "type": "object"
       },
-      "execution": {
-        "method": "PUT",
-        "path": "/status_pages/{id}/posts/{post_id}/postmortem",
-        "body_mapping": {
-          "postmortem": "postmortem"
-        }
-      }
+      "response_schema": "update_status_page_post_update_response"
     },
     "update_team": {
       "display_name": "Update a team",
@@ -13729,7 +14830,8 @@
         "body_mapping": {
           "team": "team"
         }
-      }
+      },
+      "response_schema": "update_team_response"
     },
     "update_team_escalation_policy": {
       "display_name": "Add an escalation policy to a team",
@@ -13833,7 +14935,8 @@
         "body_mapping": {
           "template": "template"
         }
-      }
+      },
+      "response_schema": "update_template_response"
     },
     "update_user": {
       "display_name": "Update a user",
@@ -13869,7 +14972,8 @@
         "body_mapping": {
           "user": "user"
         }
-      }
+      },
+      "response_schema": "update_user_response"
     },
     "update_user_contact_method": {
       "display_name": "Update a user's contact method",
@@ -13910,7 +15014,8 @@
         "body_mapping": {
           "contact_method": "contact_method"
         }
-      }
+      },
+      "response_schema": "update_user_contact_method_response"
     },
     "update_user_handoff_notification": {
       "display_name": "Update a User's Handoff Notification Rule",
@@ -13952,7 +15057,8 @@
         "body_mapping": {
           "oncall_handoff_notification_rule": "oncall_handoff_notification_rule"
         }
-      }
+      },
+      "response_schema": "update_user_handoff_notification_response"
     },
     "update_user_notification_rule": {
       "display_name": "Update a user's notification rule",
@@ -13993,7 +15099,8 @@
         "body_mapping": {
           "notification_rule": "notification_rule"
         }
-      }
+      },
+      "response_schema": "update_user_notification_rule_response"
     },
     "update_user_status_update_notification_rule": {
       "display_name": "Update a user's status update notification rule",
@@ -14035,7 +15142,8 @@
         "body_mapping": {
           "status_update_notification_rule": "status_update_notification_rule"
         }
-      }
+      },
+      "response_schema": "update_user_status_update_notification_rule_response"
     },
     "update_webhook_subscription": {
       "display_name": "Update a webhook subscription",
@@ -14070,7 +15178,8 @@
         "body_mapping": {
           "webhook_subscription": "webhook_subscription"
         }
-      }
+      },
+      "response_schema": "update_webhook_subscription_response"
     },
     "update_workflow_integration_connection": {
       "display_name": "Update Workflow Integration Connection",
@@ -14165,6 +15274,2476 @@
           "service_url": "service_url",
           "teams": "teams",
           "type": "type"
+        }
+      },
+      "response_schema": "WorkflowIntegrationConnection"
+    }
+  },
+  "schemas": {
+    "AnalyticsRawIncident": {
+      "type": "object",
+      "properties": {
+        "acknowledged_user_ids": {
+          "type": "array",
+          "description": "The IDs of the users who acknowledged the incident."
+        },
+        "acknowledged_user_names": {
+          "type": "array",
+          "description": "The names of the users who acknowledged the incident."
+        },
+        "acknowledgement_count": {
+          "type": "integer",
+          "description": "Total count of acknowledgements in the incident."
+        },
+        "active_user_count": {
+          "type": "integer",
+          "description": "Total number of responders who either acknowledged the incident or accepted a responder request."
+        },
+        "assigned_user_ids": {
+          "type": "array",
+          "description": "The IDs of the users who were assigned the incident."
+        },
+        "assigned_user_names": {
+          "type": "array",
+          "description": "The names of the users who were assigned the incident."
+        },
+        "assignment_count": {
+          "type": "integer",
+          "description": "Total count of instances where responders were assigned an incident (including through reassignment or escalation)."
+        },
+        "auto_resolved": {
+          "type": "boolean",
+          "description": "Whether or not the incident resolved automatically, either via an integration \nor [auto-resolved in PagerDuty](https://support.pagerduty.com/docs/configurable-service-settings#auto-resolution)."
+        },
+        "business_hour_interruptions": {
+          "type": "integer",
+          "description": "Total number of unique interruptions during business hours; 8am-6pm Mon-Fri, based on the user’s time zone."
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Timestamp of when the incident was created."
+        },
+        "description": {
+          "type": "string",
+          "description": "The incident description"
+        },
+        "engaged_seconds": {
+          "type": "integer",
+          "description": "Total engaged time across all responders for this incident.  Engaged time is measured from the time a user engages with an incident (by acknowledging or accepting a responder request) until the incident is resolved.  This may include periods in which the incidents were snoozed."
+        },
+        "engaged_user_count": {
+          "type": "integer",
+          "description": "Total number of users who engaged (acknowledged, accepted responder request) in the incident."
+        },
+        "escalation_count": {
+          "type": "integer",
+          "description": "Total count of instances where an incident is escalated between responders assigned to an escalation policy."
+        },
+        "escalation_policy_id": {
+          "type": "string",
+          "description": "ID of the escalation policy the incident was assigned to."
+        },
+        "escalation_policy_name": {
+          "type": "string",
+          "description": "Name of the escalation policy the incident was assigned to."
+        },
+        "id": {
+          "type": "string",
+          "description": "Incident ID"
+        },
+        "incident_number": {
+          "type": "integer",
+          "description": "The PagerDuty incident number."
+        },
+        "incident_type_id": {
+          "type": "string",
+          "description": "ID of the Incident Type."
+        },
+        "incident_type_name": {
+          "type": "string",
+          "description": "The name of the Incident Type."
+        },
+        "joined_user_ids": {
+          "type": "array",
+          "description": "The IDs of the users who either acknowledged the incident or accepted a responder request."
+        },
+        "joined_user_names": {
+          "type": "array",
+          "description": "The names of the users who either acknowledged the incident or accepted a responder request."
+        },
+        "major": {
+          "type": "boolean",
+          "description": "An incident is classified as a [major incident](https://support.pagerduty.com/docs/operational-reviews#major-incidents) if it has one of the two highest priorities, or if multiple responders are added and acknowledge the incident."
+        },
+        "manual_escalation_count": {
+          "type": "integer",
+          "description": "Total count of manual escalations in the incident."
+        },
+        "off_hour_interruptions": {
+          "type": "integer",
+          "description": "Total number of unique interruptions during off hours; 6pm-10pm Mon-Fri and all day Sat-Sun, based on the user’s time zone."
+        },
+        "priority_id": {
+          "type": "string",
+          "description": "ID of the incident's priority level.",
+          "nullable": true
+        },
+        "priority_name": {
+          "type": "string",
+          "description": "The user-provided short name of the priority.",
+          "nullable": true
+        },
+        "priority_order": {
+          "type": "integer",
+          "description": "The numerical value used to sort priorities. Higher values are higher priority.",
+          "nullable": true
+        },
+        "reassignment_count": {
+          "type": "integer",
+          "description": "Total count of reassignments in the incident."
+        },
+        "resolved_at": {
+          "type": "string",
+          "description": "Timestamp of when the incident was resolved."
+        },
+        "resolved_by_user_id": {
+          "type": "string",
+          "description": "ID of the user who resolved the incident."
+        },
+        "resolved_by_user_name": {
+          "type": "string",
+          "description": "Name of the user who resolved the incident."
+        },
+        "seconds_to_engage": {
+          "type": "integer",
+          "description": "A measure of *people response time*. This metric measures the time from\nthe first user engagement (acknowledge or responder accept) to the last.\nThis metric is only used for incidents with **multiple responders**;\nfor incidents with one or no engaged users, this value is null."
+        },
+        "seconds_to_first_ack": {
+          "type": "integer",
+          "description": "Time between the start of an incident, and the first responder to acknowledge."
+        },
+        "seconds_to_mobilize": {
+          "type": "integer",
+          "description": "Time between the start of an incident, and the last additional responder to acknowledge. If an incident has one or no responders, the value will be null."
+        },
+        "seconds_to_resolve": {
+          "type": "integer",
+          "description": "Time from when an incident was triggered until it was resolved."
+        },
+        "service_id": {
+          "type": "string",
+          "description": "ID of the service that the incident triggered on."
+        },
+        "service_name": {
+          "type": "string",
+          "description": "Name of the service that the incident triggered on."
+        },
+        "sleep_hour_interruptions": {
+          "type": "integer",
+          "description": "Total number of unique interruptions during sleep hours; 10pm-8am every day, based on the user’s time zone."
+        },
+        "snoozed_seconds": {
+          "type": "integer",
+          "description": "Total seconds the incident has been snoozed for."
+        },
+        "status": {
+          "type": "string",
+          "description": "The incident status. Can be one of `triggered`, `acknowledged`, or `resolved`."
+        },
+        "team_id": {
+          "type": "string",
+          "description": "ID of the team the incident was assigned to.",
+          "nullable": true
+        },
+        "team_name": {
+          "type": "string",
+          "description": "Name of the team the incident was assigned to.",
+          "nullable": true
+        },
+        "timeout_escalation_count": {
+          "type": "integer",
+          "description": "Total count of timeout escalations in the incident."
+        },
+        "total_interruptions": {
+          "type": "integer",
+          "description": "Total number of unique interruptions in the incident."
+        },
+        "total_notifications": {
+          "type": "integer",
+          "description": "Total number of notifications sent for the incident."
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Timestamp of when the incident was last updated by the analytics process.  Does not match the updated_at for an incident returned by the standard REST api incidents endpoint."
+        },
+        "urgency": {
+          "type": "string",
+          "description": "Notification level"
+        },
+        "user_defined_effort_seconds": {
+          "type": "integer",
+          "description": "The total response effort in seconds,\n[as defined by the user](https://support.pagerduty.com/docs/editing-incidents#edit-incident-duration).",
+          "nullable": true
+        }
+      }
+    },
+    "AuditRecordResponseSchema": {
+      "type": "object"
+    },
+    "EventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "object",
+          "description": "An event defines when and how users are on-call within a rotation.\nIt combines a recurring time window (`start_time`, `end_time`,\n`recurrence`) with an assignment strategy and an effective date range\n(`effective_since`, `effective_until`).\n"
+        }
+      }
+    },
+    "OAuthDelegation": {
+      "type": "object",
+      "properties": {
+        "client_id": {
+          "type": "string",
+          "description": "The OAuth client ID"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "When the delegation was created (ISO 8601 format)"
+        },
+        "delegation_type": {
+          "type": "string",
+          "description": "The type of delegation"
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "When the delegation expires (ISO 8601 format)"
+        },
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the delegation"
+        },
+        "scope": {
+          "type": "string",
+          "description": "The OAuth scopes granted"
+        },
+        "self": {
+          "type": "string",
+          "description": "URL to retrieve this delegation in detail"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the delegation"
+        }
+      }
+    },
+    "OrchestrationGlobal": {
+      "type": "object"
+    },
+    "OrchestrationRouter": {
+      "type": "object"
+    },
+    "OrchestrationUnrouted": {
+      "type": "object"
+    },
+    "RenderedTemplate": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array",
+          "description": "List of errors"
+        },
+        "templated_fields": {
+          "type": "object"
+        },
+        "warnings": {
+          "type": "object",
+          "description": "List of render warnings messages for each rendered field.\n(Ex:  [\"{{incident.invalid_field}} does not exist.\"])"
+        }
+      }
+    },
+    "RotationResponse": {
+      "type": "object",
+      "properties": {
+        "rotation": {
+          "type": "object",
+          "description": "A rotation within a schedule. All scheduling logic (recurrence,\nassignment strategy, members) is defined on the rotation's events.\n"
+        }
+      }
+    },
+    "ScheduleResponse": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "object"
+        }
+      }
+    },
+    "ServiceOrchestration": {
+      "type": "object"
+    },
+    "Standard": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "exclusions": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inclusions": {
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "StandardApplied": {
+      "type": "object",
+      "properties": {
+        "resource_id": {
+          "type": "string"
+        },
+        "resource_type": {
+          "type": "string"
+        },
+        "score": {
+          "type": "object"
+        },
+        "standards": {
+          "type": "array"
+        }
+      }
+    },
+    "UserOAuthDelegations": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "description": "Number of results per page"
+        },
+        "more": {
+          "type": "boolean",
+          "description": "Whether there are more results available"
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Cursor for retrieving the next page (only present when more is true)"
+        },
+        "oauth_delegations": {
+          "type": "array",
+          "description": "Array of OAuth delegation objects"
+        }
+      }
+    },
+    "WorkflowIntegration": {
+      "type": "object"
+    },
+    "WorkflowIntegrationConnection": {
+      "type": "object"
+    },
+    "associate_service_to_incident_workflow_trigger_response": {
+      "type": "object",
+      "properties": {
+        "trigger": {
+          "type": "object"
+        }
+      }
+    },
+    "cancel_incident_responder_request_response": {
+      "type": "object",
+      "properties": {
+        "responder_request_targets": {
+          "type": "array",
+          "description": "The array of targets with their cancellation results."
+        }
+      }
+    },
+    "convert_service_event_rules_to_event_orchestration_response": {
+      "type": "object",
+      "properties": {
+        "convert_status": {
+          "type": "string",
+          "description": "Did PagerDuty successfully create equivalent Event Orchestration rules"
+        },
+        "converted_to": {
+          "type": "string",
+          "description": "the API URL at which the newly created Event Orchestration rules are accessible"
+        }
+      }
+    },
+    "create_addon_response": {
+      "type": "object",
+      "properties": {
+        "addon": {
+          "type": "object"
+        }
+      }
+    },
+    "create_automation_action_invocation_response": {
+      "type": "object",
+      "properties": {
+        "invocation": {
+          "type": "string"
+        }
+      }
+    },
+    "create_automation_action_response": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        }
+      }
+    },
+    "create_automation_action_service_assocation_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object"
+        }
+      }
+    },
+    "create_automation_action_team_association_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "create_automation_actions_runner_response": {
+      "type": "object",
+      "properties": {
+        "runner": {
+          "type": "string"
+        }
+      }
+    },
+    "create_automation_actions_runner_team_association_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "create_business_service_account_subscription_response": {
+      "type": "object",
+      "properties": {
+        "account_is_subscribed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "create_business_service_notification_subscribers_response": {
+      "type": "object",
+      "properties": {
+        "subscriptions": {
+          "type": "array"
+        }
+      }
+    },
+    "create_business_service_response": {
+      "type": "object",
+      "properties": {
+        "business_service": {
+          "type": "object"
+        }
+      }
+    },
+    "create_cache_var_on_global_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "create_cache_var_on_service_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "create_custom_shifts_response": {
+      "type": "object",
+      "properties": {
+        "custom_shifts": {
+          "type": "array"
+        }
+      }
+    },
+    "create_escalation_policy_response": {
+      "type": "object",
+      "properties": {
+        "escalation_policy": {
+          "type": "object"
+        }
+      }
+    },
+    "create_extension_response": {
+      "type": "object",
+      "properties": {
+        "extension": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_note_response": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_notification_subscribers_response": {
+      "type": "object",
+      "properties": {
+        "subscriptions": {
+          "type": "array"
+        }
+      }
+    },
+    "create_incident_responder_request_response": {
+      "type": "object",
+      "properties": {
+        "responder_request": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_response": {
+      "type": "object",
+      "properties": {
+        "incident": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_snooze_response": {
+      "type": "object",
+      "properties": {
+        "incident": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_status_update_response": {
+      "type": "object",
+      "properties": {
+        "status_update": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_type_custom_field_field_options_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_type_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_type_response": {
+      "type": "object",
+      "properties": {
+        "incident_type": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_workflow_instance_response": {
+      "type": "object",
+      "properties": {
+        "incident_workflow_instance": {
+          "type": "object"
+        }
+      }
+    },
+    "create_incident_workflow_trigger_response": {
+      "type": "object",
+      "properties": {
+        "trigger": {
+          "type": "object"
+        }
+      }
+    },
+    "create_maintenance_window_response": {
+      "type": "object",
+      "properties": {
+        "maintenance_window": {
+          "type": "object"
+        }
+      }
+    },
+    "create_oauth_client_response": {
+      "type": "object",
+      "properties": {
+        "oauth_client": {
+          "type": "object"
+        }
+      }
+    },
+    "create_or_update_status_page_postmortem_response": {
+      "type": "object",
+      "properties": {
+        "postmortem": {
+          "type": "object",
+          "description": "A Postmortem represents a communication resource presented in the Status Page about follow-up made to a certain Post."
+        }
+      }
+    },
+    "create_overrides_response": {
+      "type": "object",
+      "properties": {
+        "overrides": {
+          "type": "array"
+        }
+      }
+    },
+    "create_ruleset_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "create_ruleset_response": {
+      "type": "object",
+      "properties": {
+        "ruleset": {
+          "type": "object"
+        }
+      }
+    },
+    "create_schedule_preview_response": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "object"
+        }
+      }
+    },
+    "create_schedule_response": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "object"
+        }
+      }
+    },
+    "create_service_custom_field_option_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "create_service_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object",
+          "description": "Details of the custom field."
+        }
+      }
+    },
+    "create_service_dependency_response": {
+      "type": "object",
+      "properties": {
+        "relationships": {
+          "type": "array",
+          "description": "List of all the technical service's dependencies"
+        }
+      }
+    },
+    "create_service_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "create_service_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "create_service_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object"
+        }
+      }
+    },
+    "create_status_page_post_response": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "type": "object",
+          "description": "A Post represents a communication resource presented in the Status Page about certain aspects of one or more services associated."
+        }
+      }
+    },
+    "create_status_page_post_update_response": {
+      "type": "object",
+      "properties": {
+        "post_update": {
+          "type": "object",
+          "description": "An update for a Post."
+        }
+      }
+    },
+    "create_status_page_subscription_response": {
+      "type": "object",
+      "properties": {
+        "subscription": {
+          "type": "object",
+          "description": "A StatusPageSubscription resource represents a subscription to a specific status page entity."
+        }
+      }
+    },
+    "create_tags_response": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "object"
+        }
+      }
+    },
+    "create_team_notification_subscriptions_response": {
+      "type": "object",
+      "properties": {
+        "subscriptions": {
+          "type": "array"
+        }
+      }
+    },
+    "create_team_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "create_template_response": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "object"
+        }
+      }
+    },
+    "create_user_contact_method_response": {
+      "type": "object",
+      "properties": {
+        "contact_method": {
+          "type": "string"
+        }
+      }
+    },
+    "create_user_handoff_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "oncall_handoff_notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Handoff Notifications."
+        }
+      }
+    },
+    "create_user_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "notification_rule": {
+          "type": "object"
+        }
+      }
+    },
+    "create_user_notification_subscriptions_response": {
+      "type": "object",
+      "properties": {
+        "subscriptions": {
+          "type": "array"
+        }
+      }
+    },
+    "create_user_response": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "create_user_status_update_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "status_update_notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Incident Status Updates."
+        }
+      }
+    },
+    "create_webhook_subscription_response": {
+      "type": "object",
+      "properties": {
+        "webhook_subscription": {
+          "type": "object"
+        }
+      }
+    },
+    "delete_oauth_delegations_response": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "delete_service_dependency_response": {
+      "type": "object",
+      "properties": {
+        "relationships": {
+          "type": "array",
+          "description": "List of all the technical service's dependencies"
+        }
+      }
+    },
+    "delete_service_from_incident_workflow_trigger_response": {
+      "type": "object",
+      "properties": {
+        "trigger": {
+          "type": "object"
+        }
+      }
+    },
+    "enable_extension_response": {
+      "type": "object",
+      "properties": {
+        "extension": {
+          "type": "object"
+        }
+      }
+    },
+    "enable_webhook_subscription_response": {
+      "type": "object",
+      "properties": {
+        "webhook_subscription": {
+          "type": "object"
+        }
+      }
+    },
+    "get_addon_response": {
+      "type": "object",
+      "properties": {
+        "addon": {
+          "type": "object"
+        }
+      }
+    },
+    "get_alert_grouping_setting_response": {
+      "type": "object",
+      "properties": {
+        "alert_grouping_setting": {
+          "type": "object",
+          "description": "Defines how alerts will be automatically grouped into incidents based on the configurations defined. Note that the Alert Grouping Setting features are available only on certain plans.\n"
+        }
+      }
+    },
+    "get_analytics_incident_responses_by_id_response": {
+      "type": "object",
+      "properties": {
+        "incident_id": {
+          "type": "string",
+          "description": "The Incident ID passed into the request."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results to include in the batch."
+        },
+        "order": {
+          "type": "string",
+          "description": "The order in which the results were sorted; asc for ascending, desc for descending."
+        },
+        "order_by": {
+          "type": "string",
+          "description": "The column that was used for ordering the results."
+        },
+        "responses": {
+          "type": "array"
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "The time zone that the results are in."
+        }
+      }
+    },
+    "get_analytics_incidents_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "filters": {
+          "type": "object",
+          "description": "A collection of filters that were applied to the results."
+        },
+        "first": {
+          "type": "string",
+          "description": "Cursor to identify the first object in the response."
+        },
+        "last": {
+          "type": "string",
+          "description": "Cursor to identify the last object in the response."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results to include in the batch."
+        },
+        "more": {
+          "type": "boolean",
+          "description": "Indicates if there are more resources available than were returned."
+        },
+        "order": {
+          "type": "string",
+          "description": "The order in which the results were sorted;  asc for ascending, desc for descending."
+        },
+        "order_by": {
+          "type": "string",
+          "description": "The column that was used for ordering the results."
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "The time zone that the results are in."
+        }
+      }
+    },
+    "get_analytics_metrics_users_all_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "filters": {
+          "type": "object"
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "The time zone used for the results"
+        }
+      }
+    },
+    "get_analytics_responder_incidents_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "filters": {
+          "type": "object",
+          "description": "A collection of filters that were applied to the results."
+        },
+        "first": {
+          "type": "string",
+          "description": "Cursor to identify the first object in the response."
+        },
+        "last": {
+          "type": "string",
+          "description": "Cursor to identify the last object in the response."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results to include in the batch."
+        },
+        "order": {
+          "type": "string",
+          "description": "The order in which the results were sorted; asc for ascending, desc for descending."
+        },
+        "order_by": {
+          "type": "string",
+          "description": "The column that was used for ordering the results."
+        },
+        "responder_id": {
+          "type": "string",
+          "description": "The Responder ID passed into the request."
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "The time zone that the results are in."
+        }
+      }
+    },
+    "get_analytics_users_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "filters": {
+          "type": "object",
+          "description": "A collection of filters that were applied to the results."
+        },
+        "first": {
+          "type": "string",
+          "description": "Cursor to identify the first object in the response."
+        },
+        "last": {
+          "type": "string",
+          "description": "Cursor to identify the last object in the response."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results to include in the batch."
+        },
+        "more": {
+          "type": "boolean",
+          "description": "Indicates if there are more resources available than were returned."
+        },
+        "order": {
+          "type": "string",
+          "description": "The order in which the results were sorted; asc for ascending, desc for descending."
+        },
+        "order_by": {
+          "type": "string",
+          "description": "The column that was used for ordering the results."
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "The time zone that the results are in."
+        }
+      }
+    },
+    "get_automation_action_response": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        }
+      }
+    },
+    "get_automation_actions_action_service_association_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object"
+        }
+      }
+    },
+    "get_automation_actions_action_service_associations_response": {
+      "type": "object",
+      "properties": {
+        "services": {
+          "type": "array"
+        }
+      }
+    },
+    "get_automation_actions_action_team_association_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "get_automation_actions_action_team_associations_response": {
+      "type": "object",
+      "properties": {
+        "teams": {
+          "type": "array"
+        }
+      }
+    },
+    "get_automation_actions_invocation_response": {
+      "type": "object",
+      "properties": {
+        "invocation": {
+          "type": "object"
+        }
+      }
+    },
+    "get_automation_actions_runner_response": {
+      "type": "object",
+      "properties": {
+        "runner": {
+          "type": "object"
+        }
+      }
+    },
+    "get_automation_actions_runner_team_association_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "get_automation_actions_runner_team_associations_response": {
+      "type": "object",
+      "properties": {
+        "teams": {
+          "type": "array"
+        }
+      }
+    },
+    "get_business_service_priority_thresholds_response": {
+      "type": "object",
+      "properties": {
+        "global_threshold": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "get_business_service_response": {
+      "type": "object",
+      "properties": {
+        "business_service": {
+          "type": "object"
+        }
+      }
+    },
+    "get_business_service_service_dependencies_response": {
+      "type": "object",
+      "properties": {
+        "relationships": {
+          "type": "array",
+          "description": "List of all the Business Service's dependencies."
+        }
+      }
+    },
+    "get_cache_var_on_global_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "get_cache_var_on_service_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "get_change_event_response": {
+      "type": "object",
+      "properties": {
+        "change_event": {
+          "type": "object"
+        }
+      }
+    },
+    "get_current_user_response": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "get_custom_shift_response": {
+      "type": "object",
+      "properties": {
+        "custom_shift": {
+          "type": "object",
+          "description": "An ad-hoc one-off shift outside of rotation events"
+        }
+      }
+    },
+    "get_escalation_policy_response": {
+      "type": "object",
+      "properties": {
+        "escalation_policy": {
+          "type": "object"
+        }
+      }
+    },
+    "get_extension_response": {
+      "type": "object",
+      "properties": {
+        "extension": {
+          "type": "object"
+        }
+      }
+    },
+    "get_extension_schema_response": {
+      "type": "object",
+      "properties": {
+        "extension_schema": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_alert_response": {
+      "type": "object",
+      "properties": {
+        "alert": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_field_values_response": {
+      "type": "object",
+      "properties": {
+        "custom_fields": {
+          "type": "array"
+        }
+      }
+    },
+    "get_incident_response": {
+      "type": "object",
+      "properties": {
+        "incident": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_type_custom_field_field_options_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_type_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_type_response": {
+      "type": "object",
+      "properties": {
+        "incident_type": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_workflow_action_response": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_workflow_response": {
+      "type": "object",
+      "properties": {
+        "incident_workflow": {
+          "type": "object"
+        }
+      }
+    },
+    "get_incident_workflow_trigger_response": {
+      "type": "object",
+      "properties": {
+        "trigger": {
+          "type": "object"
+        }
+      }
+    },
+    "get_log_entry_response": {
+      "type": "object",
+      "properties": {
+        "log_entry": {
+          "type": "string"
+        }
+      }
+    },
+    "get_maintenance_window_response": {
+      "type": "object",
+      "properties": {
+        "maintenance_window": {
+          "type": "object"
+        }
+      }
+    },
+    "get_oauth_client_response": {
+      "type": "object",
+      "properties": {
+        "oauth_client": {
+          "type": "object"
+        }
+      }
+    },
+    "get_orch_active_status_response": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "description": "The status of the service orchestration."
+        }
+      }
+    },
+    "get_orchestration_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "get_orchestration_response": {
+      "type": "object",
+      "properties": {
+        "orchestration": {
+          "type": "object"
+        }
+      }
+    },
+    "get_outlier_incident_response": {
+      "type": "object",
+      "properties": {
+        "outlier_incident": {
+          "type": "object",
+          "description": "Outlier Incident information calculated over the same Service as the given Incident."
+        }
+      }
+    },
+    "get_override_response": {
+      "type": "object",
+      "properties": {
+        "override": {
+          "type": "object",
+          "description": "Temporarily replaces a scheduled on-call member for a specific\ntime period. References either a `rotation_id` or a `custom_shift_id`\nto identify the source shift being overridden (not both).\n"
+        }
+      }
+    },
+    "get_past_incidents_response": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "number",
+          "description": "The maximum number of Incidents requested"
+        },
+        "past_incidents": {
+          "type": "array",
+          "description": "Aggregate of past incidents"
+        },
+        "total": {
+          "type": "number",
+          "description": "The total number of Past Incidents if the total parameter was set in the request"
+        }
+      }
+    },
+    "get_paused_incident_report_alerts_response": {
+      "type": "object",
+      "properties": {
+        "paused_incident_reporting_alerts": {
+          "type": "object",
+          "description": "A list of the 5 most recent paused Alerts that weere triggered and 5 most recent Alerts that were reesolved before being triggerd."
+        }
+      }
+    },
+    "get_paused_incident_report_counts_response": {
+      "type": "object",
+      "properties": {
+        "paused_incident_reporting_counts": {
+          "type": "object",
+          "description": "A representation of Alerts that were paused, triggered after pause, and resolved after pause."
+        }
+      }
+    },
+    "get_post_update_response": {
+      "type": "object",
+      "properties": {
+        "post_update": {
+          "type": "object",
+          "description": "An update for a Post."
+        }
+      }
+    },
+    "get_postmortem_response": {
+      "type": "object",
+      "properties": {
+        "postmortem": {
+          "type": "object",
+          "description": "A Postmortem represents a communication resource presented in the Status Page about follow-up made to a certain Post."
+        }
+      }
+    },
+    "get_related_incidents_response": {
+      "type": "object",
+      "properties": {
+        "related_incidents": {
+          "type": "array",
+          "description": "A list of Related Incidents and their relationships."
+        }
+      }
+    },
+    "get_ruleset_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "get_ruleset_response": {
+      "type": "object",
+      "properties": {
+        "ruleset": {
+          "type": "object"
+        }
+      }
+    },
+    "get_schedule_response": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "object"
+        }
+      }
+    },
+    "get_service_custom_field_option_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "get_service_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object",
+          "description": "Details of the custom field."
+        }
+      }
+    },
+    "get_service_custom_field_values_response": {
+      "type": "object",
+      "properties": {
+        "custom_fields": {
+          "type": "array"
+        }
+      }
+    },
+    "get_service_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "get_service_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "get_service_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object"
+        }
+      }
+    },
+    "get_session_configurations_response": {
+      "type": "object",
+      "properties": {
+        "session_configurations": {
+          "type": "array"
+        }
+      }
+    },
+    "get_status_dashboard_by_id_response": {
+      "type": "object",
+      "properties": {
+        "status_dashboard": {
+          "type": "object"
+        }
+      }
+    },
+    "get_status_dashboard_by_url_slug_response": {
+      "type": "object",
+      "properties": {
+        "status_dashboard": {
+          "type": "object"
+        }
+      }
+    },
+    "get_status_page_impact_response": {
+      "type": "object",
+      "properties": {
+        "impact": {
+          "type": "object",
+          "description": "A StatusPageImpact resource represents a level of impact for a given Status Page Post."
+        }
+      }
+    },
+    "get_status_page_post_response": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "type": "object",
+          "description": "A Post represents a communication resource presented in the Status Page about certain aspects of one or more services associated."
+        }
+      }
+    },
+    "get_status_page_service_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object",
+          "description": "A Service represents a PagerDuty service that is linked to a Status Page."
+        }
+      }
+    },
+    "get_status_page_severity_response": {
+      "type": "object",
+      "properties": {
+        "severity": {
+          "type": "object",
+          "description": "A Severity represents a level of impact for a given Status Page post."
+        }
+      }
+    },
+    "get_status_page_status_response": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "object",
+          "description": "A Status represents a level of undergoing work and/or assessment for a given Status Page post."
+        }
+      }
+    },
+    "get_status_page_subscription_response": {
+      "type": "object",
+      "properties": {
+        "subscription": {
+          "type": "object",
+          "description": "A StatusPageSubscription resource represents a subscription to a specific status page entity."
+        }
+      }
+    },
+    "get_tag_response": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "object"
+        }
+      }
+    },
+    "get_team_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "get_technical_service_service_dependencies_response": {
+      "type": "object",
+      "properties": {
+        "relationships": {
+          "type": "array",
+          "description": "List of all the technical service's dependencies"
+        }
+      }
+    },
+    "get_template_fields_response": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        }
+      }
+    },
+    "get_template_response": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_contact_method_response": {
+      "type": "object",
+      "properties": {
+        "contact_method": {
+          "type": "string"
+        }
+      }
+    },
+    "get_user_contact_methods_response": {
+      "type": "object",
+      "properties": {
+        "contact_methods": {
+          "type": "array"
+        }
+      }
+    },
+    "get_user_handoff_notifiaction_rule_response": {
+      "type": "object",
+      "properties": {
+        "oncall_handoff_notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Handoff Notifications."
+        }
+      }
+    },
+    "get_user_handoff_notification_rules_response": {
+      "type": "object",
+      "properties": {
+        "oncall_handoff_notification_rules": {
+          "type": "array"
+        }
+      }
+    },
+    "get_user_license_response": {
+      "type": "object",
+      "properties": {
+        "license": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "notification_rule": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_notification_rules_response": {
+      "type": "object",
+      "properties": {
+        "notification_rules": {
+          "type": "array"
+        }
+      }
+    },
+    "get_user_response": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_status_update_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Incident Status Updates."
+        }
+      }
+    },
+    "get_user_status_update_notification_rules_response": {
+      "type": "object",
+      "properties": {
+        "status_update_notification_rules": {
+          "type": "array"
+        }
+      }
+    },
+    "get_vendor_response": {
+      "type": "object",
+      "properties": {
+        "vendor": {
+          "type": "array"
+        }
+      }
+    },
+    "get_webhook_subscription_response": {
+      "type": "object",
+      "properties": {
+        "webhook_subscription": {
+          "type": "object"
+        }
+      }
+    },
+    "list_cache_var_on_global_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variables": {
+          "type": "array"
+        }
+      }
+    },
+    "list_cache_var_on_service_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variables": {
+          "type": "array"
+        }
+      }
+    },
+    "list_change_events_response": {
+      "type": "object",
+      "properties": {
+        "change_events": {
+          "type": "array"
+        }
+      }
+    },
+    "list_custom_shifts_response": {
+      "type": "object",
+      "properties": {
+        "custom_shifts": {
+          "type": "array"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      }
+    },
+    "list_event_orchestration_feature_enablements_response": {
+      "type": "object",
+      "properties": {
+        "enablements": {
+          "type": "array",
+          "description": "Array of feature enablement settings."
+        }
+      }
+    },
+    "list_events_response": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      }
+    },
+    "list_incident_notes_response": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "array"
+        }
+      }
+    },
+    "list_incident_related_change_events_response": {
+      "type": "object",
+      "properties": {
+        "change_events": {
+          "type": "array"
+        }
+      }
+    },
+    "list_incident_type_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field_options": {
+          "type": "array"
+        }
+      }
+    },
+    "list_incident_type_custom_fields_response": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        }
+      }
+    },
+    "list_licenses_response": {
+      "type": "object",
+      "properties": {
+        "licenses": {
+          "type": "array"
+        }
+      }
+    },
+    "list_oauth_clients_response": {
+      "type": "object",
+      "properties": {
+        "oauth_clients": {
+          "type": "array"
+        }
+      }
+    },
+    "list_orchestration_integrations_response": {
+      "type": "object",
+      "properties": {
+        "integrations": {
+          "type": "array"
+        },
+        "total": {
+          "type": "integer",
+          "description": "The total number of records matching the given query.",
+          "nullable": true
+        }
+      }
+    },
+    "list_overrides_response": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "overrides": {
+          "type": "array"
+        }
+      }
+    },
+    "list_rotations_response": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "rotations": {
+          "type": "array"
+        }
+      }
+    },
+    "list_schedule_overrides_response": {
+      "type": "object",
+      "properties": {
+        "overrides": {
+          "type": "array"
+        }
+      }
+    },
+    "list_schedule_users_response": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array"
+        }
+      }
+    },
+    "list_schedules_v3_response": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "more": {
+          "type": "boolean",
+          "description": "Whether additional results exist beyond this page"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "schedules": {
+          "type": "array"
+        }
+      }
+    },
+    "list_service_change_events_response": {
+      "type": "object",
+      "properties": {
+        "change_events": {
+          "type": "array"
+        }
+      }
+    },
+    "list_service_custom_field_options_response": {
+      "type": "object",
+      "properties": {
+        "field_options": {
+          "type": "array"
+        }
+      }
+    },
+    "list_service_custom_fields_response": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        }
+      }
+    },
+    "list_service_feature_enablements_response": {
+      "type": "object",
+      "properties": {
+        "enablements": {
+          "type": "array",
+          "description": "Array of feature enablement settings."
+        }
+      }
+    },
+    "merge_incidents_response": {
+      "type": "object",
+      "properties": {
+        "incident": {
+          "type": "object"
+        }
+      }
+    },
+    "migrate_orchestration_integration_response": {
+      "type": "object",
+      "properties": {
+        "integrations": {
+          "type": "array"
+        },
+        "total": {
+          "type": "integer",
+          "description": "The total number of records matching the given query.",
+          "nullable": true
+        }
+      }
+    },
+    "post_alert_grouping_settings_response": {
+      "type": "object",
+      "properties": {
+        "alert_grouping_setting": {
+          "type": "object",
+          "description": "Defines how alerts will be automatically grouped into incidents based on the configurations defined. Note that the Alert Grouping Setting features are available only on certain plans.\n"
+        }
+      }
+    },
+    "post_incident_workflow_response": {
+      "type": "object",
+      "properties": {
+        "incident_workflow": {
+          "type": "object"
+        }
+      }
+    },
+    "post_orchestration_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "post_orchestration_response": {
+      "type": "object",
+      "properties": {
+        "orchestration": {
+          "type": "object"
+        }
+      }
+    },
+    "put_alert_grouping_setting_response": {
+      "type": "object",
+      "properties": {
+        "alert_grouping_setting": {
+          "type": "object",
+          "description": "Defines how alerts will be automatically grouped into incidents based on the configurations defined. Note that the Alert Grouping Setting features are available only on certain plans.\n"
+        }
+      }
+    },
+    "put_business_service_priority_thresholds_response": {
+      "type": "object",
+      "properties": {
+        "global_threshold": {
+          "type": "object"
+        }
+      }
+    },
+    "put_incident_manual_business_service_association_response": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        }
+      }
+    },
+    "put_incident_workflow_response": {
+      "type": "object",
+      "properties": {
+        "incident_workflow": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_business_service_notification_subscriber_response": {
+      "type": "object",
+      "properties": {
+        "deleted_count": {
+          "type": "number"
+        },
+        "non_existent_count": {
+          "type": "number"
+        },
+        "unauthorized_count": {
+          "type": "number"
+        }
+      }
+    },
+    "remove_incident_notification_subscribers_response": {
+      "type": "object",
+      "properties": {
+        "deleted_count": {
+          "type": "number"
+        },
+        "non_existent_count": {
+          "type": "number"
+        },
+        "unauthorized_count": {
+          "type": "number"
+        }
+      }
+    },
+    "remove_team_notification_subscriptions_response": {
+      "type": "object",
+      "properties": {
+        "deleted_count": {
+          "type": "number"
+        },
+        "non_existent_count": {
+          "type": "number"
+        },
+        "unauthorized_count": {
+          "type": "number"
+        }
+      }
+    },
+    "set_incident_field_values_response": {
+      "type": "object",
+      "properties": {
+        "custom_fields": {
+          "type": "array"
+        }
+      }
+    },
+    "unsubscribe_user_notification_subscriptions_response": {
+      "type": "object",
+      "properties": {
+        "deleted_count": {
+          "type": "number"
+        },
+        "non_existent_count": {
+          "type": "number"
+        },
+        "unauthorized_count": {
+          "type": "number"
+        }
+      }
+    },
+    "update_addon_response": {
+      "type": "object",
+      "properties": {
+        "addon": {
+          "type": "object"
+        }
+      }
+    },
+    "update_automation_action_response": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        }
+      }
+    },
+    "update_automation_actions_runner_response": {
+      "type": "object",
+      "properties": {
+        "runner": {
+          "type": "object"
+        }
+      }
+    },
+    "update_business_service_response": {
+      "type": "object",
+      "properties": {
+        "business_service": {
+          "type": "object"
+        }
+      }
+    },
+    "update_cache_var_on_global_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "update_cache_var_on_service_orch_response": {
+      "type": "object",
+      "properties": {
+        "cache_variable": {
+          "type": "string"
+        }
+      }
+    },
+    "update_change_event_response": {
+      "type": "object",
+      "properties": {
+        "change_event": {
+          "type": "object"
+        }
+      }
+    },
+    "update_custom_shift_response": {
+      "type": "object",
+      "properties": {
+        "custom_shift": {
+          "type": "object",
+          "description": "An ad-hoc one-off shift outside of rotation events"
+        }
+      }
+    },
+    "update_escalation_policy_response": {
+      "type": "object",
+      "properties": {
+        "escalation_policy": {
+          "type": "object"
+        }
+      }
+    },
+    "update_event_orchestration_feature_enablements_response": {
+      "type": "object",
+      "properties": {
+        "enablement": {
+          "type": "object"
+        }
+      }
+    },
+    "update_extension_response": {
+      "type": "object",
+      "properties": {
+        "extension": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_alert_response": {
+      "type": "object",
+      "properties": {
+        "alert": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_note_response": {
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_type_custom_field_field_option_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_type_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_type_response": {
+      "type": "object",
+      "properties": {
+        "incident_type": {
+          "type": "object"
+        }
+      }
+    },
+    "update_incident_workflow_trigger_response": {
+      "type": "object",
+      "properties": {
+        "trigger": {
+          "type": "object"
+        }
+      }
+    },
+    "update_maintenance_window_response": {
+      "type": "object",
+      "properties": {
+        "maintenance_window": {
+          "type": "object"
+        }
+      }
+    },
+    "update_oauth_client_response": {
+      "type": "object",
+      "properties": {
+        "oauth_client": {
+          "type": "object"
+        }
+      }
+    },
+    "update_orch_active_status_response": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "description": "The status of the service orchestration."
+        }
+      }
+    },
+    "update_orchestration_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "update_orchestration_response": {
+      "type": "object",
+      "properties": {
+        "orchestration": {
+          "type": "object"
+        }
+      }
+    },
+    "update_override_response": {
+      "type": "object",
+      "properties": {
+        "override": {
+          "type": "object",
+          "description": "Temporarily replaces a scheduled on-call member for a specific\ntime period. References either a `rotation_id` or a `custom_shift_id`\nto identify the source shift being overridden (not both).\n"
+        }
+      }
+    },
+    "update_ruleset_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "update_ruleset_response": {
+      "type": "object",
+      "properties": {
+        "ruleset": {
+          "type": "object"
+        }
+      }
+    },
+    "update_schedule_response": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "object"
+        }
+      }
+    },
+    "update_service_custom_field_option_response": {
+      "type": "object",
+      "properties": {
+        "field_option": {
+          "type": "object"
+        }
+      }
+    },
+    "update_service_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "object",
+          "description": "Details of the custom field."
+        }
+      }
+    },
+    "update_service_custom_field_values_response": {
+      "type": "object",
+      "properties": {
+        "custom_fields": {
+          "type": "array"
+        }
+      }
+    },
+    "update_service_event_rule_response": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "object"
+        }
+      }
+    },
+    "update_service_feature_enablement_response": {
+      "type": "object",
+      "properties": {
+        "enablement": {
+          "type": "object"
+        }
+      }
+    },
+    "update_service_integration_response": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "type": "object"
+        }
+      }
+    },
+    "update_service_response": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object"
+        }
+      }
+    },
+    "update_session_configurations_response": {
+      "type": "object",
+      "properties": {
+        "session_configurations": {
+          "type": "array"
+        }
+      }
+    },
+    "update_sre_memory_response": {
+      "type": "object",
+      "properties": {
+        "memory": {
+          "type": "object"
+        }
+      }
+    },
+    "update_status_page_post_response": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "type": "object",
+          "description": "A Post represents a communication resource presented in the Status Page about certain aspects of one or more services associated."
+        }
+      }
+    },
+    "update_status_page_post_update_response": {
+      "type": "object",
+      "properties": {
+        "post_update": {
+          "type": "object",
+          "description": "An update for a Post."
+        }
+      }
+    },
+    "update_team_response": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "type": "object"
+        }
+      }
+    },
+    "update_template_response": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "object"
+        }
+      }
+    },
+    "update_user_contact_method_response": {
+      "type": "object",
+      "properties": {
+        "contact_method": {
+          "type": "string"
+        }
+      }
+    },
+    "update_user_handoff_notification_response": {
+      "type": "object",
+      "properties": {
+        "oncall_handoff_notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Handoff Notifications."
+        }
+      }
+    },
+    "update_user_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "notification_rule": {
+          "type": "object"
+        }
+      }
+    },
+    "update_user_response": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "update_user_status_update_notification_rule_response": {
+      "type": "object",
+      "properties": {
+        "notification_rule": {
+          "type": "object",
+          "description": "A rule for contacting the user for Incident Status Updates."
+        }
+      }
+    },
+    "update_webhook_subscription_response": {
+      "type": "object",
+      "properties": {
+        "webhook_subscription": {
+          "type": "object"
         }
       }
     }

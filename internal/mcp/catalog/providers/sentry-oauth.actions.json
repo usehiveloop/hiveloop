@@ -50,7 +50,8 @@
           "sendInvite": "sendInvite",
           "teamRoles": "teamRoles"
         }
-      }
+      },
+      "response_schema": "add_a_member_to_an_organization_response"
     },
     "add_a_symbol_source_to_a_project": {
       "display_name": "Add A Symbol Source To A Project",
@@ -188,7 +189,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/teams/{team_id_or_slug}/"
-      }
+      },
+      "response_schema": "add_a_team_to_a_project_response"
     },
     "add_an_organization_member_to_a_team": {
       "display_name": "Add An Organization Member To A Team",
@@ -220,7 +222,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/"
-      }
+      },
+      "response_schema": "add_an_organization_member_to_a_team_response"
     },
     "bulk_delete_alerts": {
       "display_name": "Bulk Delete Alerts",
@@ -282,7 +285,7 @@
           },
           "query": {
             "type": "string",
-            "description": "An optional search query for filtering monitors."
+            "description": "An optional search query for filtering monitors.\n\nAvailable fields are:\n- `name`\n- `type`: e.g. `error`, `metric_issue`, `issue_stream`\n- `assignee`: email, username, #team, me, none\n        "
           },
           "sortBy": {
             "type": "string",
@@ -379,7 +382,8 @@
           "id": "id",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "bulk_mutate_a_list_of_issues_response"
     },
     "bulk_mutate_an_organization_s_issues": {
       "display_name": "Bulk Mutate An Organization S Issues",
@@ -512,7 +516,8 @@
           "sort": "sort",
           "viewId": "viewId"
         }
-      }
+      },
+      "response_schema": "bulk_mutate_an_organization_s_issues_response"
     },
     "bulk_remove_a_list_of_issues": {
       "display_name": "Bulk Remove A List Of Issues",
@@ -661,7 +666,8 @@
           "project_ids": "project_ids",
           "provider": "provider"
         }
-      }
+      },
+      "response_schema": "create_a_data_forwarder_for_an_organization_response"
     },
     "create_a_deploy": {
       "display_name": "Create A Deploy",
@@ -721,7 +727,8 @@
           "projects": "projects",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "create_a_deploy_response"
     },
     "create_a_monitor": {
       "display_name": "Create A Monitor",
@@ -783,7 +790,8 @@
           "slug": "slug",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "create_a_monitor_response"
     },
     "create_a_monitor_for_a_project": {
       "display_name": "Create A Monitor For A Project",
@@ -802,7 +810,7 @@
           },
           "data_sources": {
             "type": "array",
-            "description": "\n            The data sources for the monitor to use based on what you want to measure.\n\n            **Number of Errors Metric Monitor**\n            ```json\n                [\n                    {\n..."
+            "description": "\n            The data sources for the monitor to use based on what you want to measure.\n\n            **Number of Errors Metric Monitor**\n            - `eventTypes`: Any of `error` or `default`.\n   ..."
           },
           "description": {
             "type": "string",
@@ -822,15 +830,24 @@
           },
           "owner": {
             "type": "string",
-            "description": "\n            The user or team who owns the monitor.\n\n            **User**\n            ```json\n                \"type\": \"user\",\n                \"id\": \"12345\",\n                \"name\": \"Jane Doe\",\n    ..."
+            "description": "\n            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.\n\n            **User**\n            ```json\n                \"user:123456\"\n            ```\n\n    ..."
+          },
+          "project_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the project the resource belongs to."
           },
           "type": {
             "type": "string",
             "description": "The type of monitor - `metric_issue`."
+          },
+          "workflow_ids": {
+            "type": "array",
+            "description": "The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs."
           }
         },
         "required": [
           "organization_id_or_slug",
+          "project_id_or_slug",
           "name",
           "type"
         ],
@@ -838,7 +855,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/api/0/organizations/{organization_id_or_slug}/detectors/",
+        "path": "/api/0/organizations/{organization_id_or_slug}/projects/{project_id_or_slug}/detectors/",
         "body_mapping": {
           "condition_group": "condition_group",
           "config": "config",
@@ -847,9 +864,11 @@
           "enabled": "enabled",
           "name": "name",
           "owner": "owner",
-          "type": "type"
+          "type": "type",
+          "workflow_ids": "workflow_ids"
         }
-      }
+      },
+      "response_schema": "create_a_monitor_for_a_project_response"
     },
     "create_a_new_client_key": {
       "display_name": "Create A New Client Key",
@@ -893,7 +912,8 @@
           "rateLimit": "rateLimit",
           "useCase": "useCase"
         }
-      }
+      },
+      "response_schema": "create_a_new_client_key_response"
     },
     "create_a_new_dashboard_for_an_organization": {
       "display_name": "Create A New Dashboard For An Organization",
@@ -978,7 +998,8 @@
           "utc": "utc",
           "widgets": "widgets"
         }
-      }
+      },
+      "response_schema": "create_a_new_dashboard_for_an_organization_response"
     },
     "create_a_new_project": {
       "display_name": "Create A New Project",
@@ -1028,7 +1049,8 @@
           "platform": "platform",
           "slug": "slug"
         }
-      }
+      },
+      "response_schema": "create_a_new_project_response"
     },
     "create_a_new_release_for_an_organization": {
       "display_name": "Create A New Release For An Organization",
@@ -1089,7 +1111,8 @@
           "url": "url",
           "version": "version"
         }
-      }
+      },
+      "response_schema": "create_a_new_release_for_an_organization_response"
     },
     "create_a_new_saved_query": {
       "display_name": "Create A New Saved Query",
@@ -1184,7 +1207,8 @@
           "topEvents": "topEvents",
           "yAxis": "yAxis"
         }
-      }
+      },
+      "response_schema": "create_a_new_saved_query_response"
     },
     "create_a_new_team": {
       "display_name": "Create A New Team",
@@ -1218,7 +1242,8 @@
           "name": "name",
           "slug": "slug"
         }
-      }
+      },
+      "response_schema": "create_a_new_team_response"
     },
     "create_a_spike_protection_notification_action": {
       "display_name": "Create A Spike Protection Notification Action",
@@ -1291,6 +1316,10 @@
             "type": "object",
             "description": "\n        Typically the frequency at which the alert will fire, in minutes.\n\n        - `0`: 0 minutes\n        - `5`: 5 minutes\n        - `10`: 10 minutes\n        - `30`: 30 minutes\n        - `60`: 1..."
           },
+          "detector_ids": {
+            "type": "array",
+            "description": "The IDs of the monitors to connect this alert to. Use 'Fetch an Organization's Monitors' to find the IDs."
+          },
           "enabled": {
             "type": "boolean",
             "description": "Whether the alert is enabled or disabled"
@@ -1311,6 +1340,10 @@
             "type": "string",
             "description": "The ID or slug of the organization the resource belongs to."
           },
+          "owner": {
+            "type": "string",
+            "description": "\n            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.\n\n            **User**\n            ```json\n                \"user:123456\"\n            ```\n\n    ..."
+          },
           "triggers": {
             "type": "string",
             "description": "The conditions on which the alert will trigger. See available options below.\n        ```json\n            \"triggers\": {\n                \"organizationId\": \"1\",\n                \"logicType\": \"any-short..."
@@ -1328,13 +1361,16 @@
         "body_mapping": {
           "action_filters": "action_filters",
           "config": "config",
+          "detector_ids": "detector_ids",
           "enabled": "enabled",
           "environment": "environment",
           "id": "id",
           "name": "name",
+          "owner": "owner",
           "triggers": "triggers"
         }
-      }
+      },
+      "response_schema": "create_an_alert_for_an_organization_response"
     },
     "create_an_external_team": {
       "display_name": "Create An External Team",
@@ -1361,7 +1397,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
+            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `slack_staging`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
           },
           "team_id_or_slug": {
             "type": "string",
@@ -1386,7 +1422,8 @@
           "integration_id": "integration_id",
           "provider": "provider"
         }
-      }
+      },
+      "response_schema": "create_an_external_team_response"
     },
     "create_an_external_user": {
       "display_name": "Create An External User",
@@ -1417,7 +1454,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
+            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `slack_staging`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
           },
           "user_id": {
             "type": "integer",
@@ -1445,7 +1482,8 @@
           "provider": "provider",
           "user_id": "user_id"
         }
-      }
+      },
+      "response_schema": "create_an_external_user_response"
     },
     "create_or_update_an_external_issue": {
       "display_name": "Create Or Update An External Issue",
@@ -1493,7 +1531,43 @@
           "project": "project",
           "webUrl": "webUrl"
         }
-      }
+      },
+      "response_schema": "create_or_update_an_external_issue_response"
+    },
+    "create_replay_batch_deletion_job": {
+      "display_name": "Create Replay Batch Deletion Job",
+      "description": "Create a new replay deletion job.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "organization_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the organization the resource belongs to."
+          },
+          "project_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the project the resource belongs to."
+          }
+        },
+        "required": [
+          "organization_id_or_slug",
+          "project_id_or_slug",
+          "data"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/replays/jobs/delete/",
+        "body_mapping": {
+          "data": "data"
+        }
+      },
+      "response_schema": "create_replay_batch_deletion_job_response"
     },
     "debug_issues_related_to_source_maps_for_a_given_event": {
       "display_name": "Debug Issues Related To Source Maps For A Given Event",
@@ -1537,7 +1611,8 @@
           "exception_idx": "exception_idx",
           "frame_idx": "frame_idx"
         }
-      }
+      },
+      "response_schema": "debug_issues_related_to_source_maps_for_a_given_event_response"
     },
     "delete_a_client_key": {
       "display_name": "Delete A Client Key",
@@ -1968,7 +2043,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/teams/{team_id_or_slug}/"
-      }
+      },
+      "response_schema": "delete_a_team_from_a_project_response"
     },
     "delete_an_alert": {
       "display_name": "Delete An Alert",
@@ -2194,7 +2270,8 @@
       "execution": {
         "method": "DELETE",
         "path": "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/"
-      }
+      },
+      "response_schema": "delete_an_organization_member_from_a_team_response"
     },
     "delete_an_organization_member_via_scim": {
       "display_name": "Delete An Organization Member Via Scim",
@@ -2435,7 +2512,8 @@
           "timeWindow": "timeWindow",
           "triggers": "triggers"
         }
-      }
+      },
+      "response_schema": "deprecated_create_a_metric_alert_rule_for_an_organization_response"
     },
     "deprecated_create_an_issue_alert_rule_for_a_project": {
       "display_name": "Deprecated Create An Issue Alert Rule For A Project",
@@ -2514,7 +2592,8 @@
           "name": "name",
           "owner": "owner"
         }
-      }
+      },
+      "response_schema": "deprecated_create_an_issue_alert_rule_for_a_project_response"
     },
     "deprecated_delete_a_metric_alert_rule": {
       "display_name": "Deprecated Delete A Metric Alert Rule",
@@ -2656,7 +2735,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/alert-rules/{alert_rule_id}/"
-      }
+      },
+      "response_schema": "deprecated_retrieve_a_metric_alert_rule_for_an_organization_response"
     },
     "deprecated_retrieve_an_issue_alert_rule_for_a_project": {
       "display_name": "Deprecated Retrieve An Issue Alert Rule For A Project",
@@ -2688,7 +2768,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/rules/{rule_id}/"
-      }
+      },
+      "response_schema": "deprecated_retrieve_an_issue_alert_rule_for_a_project_response"
     },
     "deprecated_update_a_metric_alert_rule": {
       "display_name": "Deprecated Update A Metric Alert Rule",
@@ -2794,7 +2875,8 @@
           "timeWindow": "timeWindow",
           "triggers": "triggers"
         }
-      }
+      },
+      "response_schema": "deprecated_update_a_metric_alert_rule_response"
     },
     "deprecated_update_an_issue_alert_rule": {
       "display_name": "Deprecated Update An Issue Alert Rule",
@@ -2878,7 +2960,8 @@
           "name": "name",
           "owner": "owner"
         }
-      }
+      },
+      "response_schema": "deprecated_update_an_issue_alert_rule_response"
     },
     "disable_spike_protection": {
       "display_name": "Disable Spike Protection",
@@ -2992,7 +3075,8 @@
           "utc": "utc",
           "widgets": "widgets"
         }
-      }
+      },
+      "response_schema": "edit_an_organization_s_custom_dashboard_response"
     },
     "edit_an_organization_s_discover_saved_query": {
       "display_name": "Edit An Organization S Discover Saved Query",
@@ -3092,7 +3176,8 @@
           "topEvents": "topEvents",
           "yAxis": "yAxis"
         }
-      }
+      },
+      "response_schema": "edit_an_organization_s_discover_saved_query_response"
     },
     "enable_spike_protection": {
       "display_name": "Enable Spike Protection",
@@ -3149,7 +3234,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/detectors/{detector_id}/"
-      }
+      },
+      "response_schema": "fetch_a_monitor_response"
     },
     "fetch_alerts": {
       "display_name": "Fetch Alerts",
@@ -3220,7 +3306,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/workflows/{workflow_id}/"
-      }
+      },
+      "response_schema": "fetch_an_alert_response"
     },
     "fetch_an_organization_s_monitors": {
       "display_name": "Fetch An Organization S Monitors",
@@ -3243,7 +3330,7 @@
           },
           "query": {
             "type": "string",
-            "description": "An optional search query for filtering monitors."
+            "description": "An optional search query for filtering monitors.\n\nAvailable fields are:\n- `name`\n- `type`: e.g. `error`, `metric_issue`, `issue_stream`\n- `assignee`: email, username, #team, me, none\n        "
           },
           "sortBy": {
             "type": "string",
@@ -3293,7 +3380,8 @@
         "query_mapping": {
           "providerKey": "providerKey"
         }
-      }
+      },
+      "response_schema": "get_integration_provider_information_response"
     },
     "get_the_latest_installable_build_for_a_project": {
       "display_name": "Get The Latest Installable Build For A Project",
@@ -3362,7 +3450,8 @@
           "mainBinaryIdentifier": "mainBinaryIdentifier",
           "platform": "platform"
         }
-      }
+      },
+      "response_schema": "get_the_latest_installable_build_for_a_project_response"
     },
     "gets_syncing_status_for_repositories_for_an_integrated_org": {
       "display_name": "Gets Syncing Status For Repositories For An Integrated Org",
@@ -3389,7 +3478,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/prevent/owner/{owner}/repositories/sync/"
-      }
+      },
+      "response_schema": "gets_syncing_status_for_repositories_for_an_integrated_org_response"
     },
     "list_a_project_release_s_commits": {
       "display_name": "List A Project Release S Commits",
@@ -4644,7 +4734,8 @@
           "filter": "filter",
           "startIndex": "startIndex"
         }
-      }
+      },
+      "response_schema": "list_an_organization_s_paginated_teams_response"
     },
     "list_an_organization_s_projects": {
       "display_name": "List An Organization S Projects",
@@ -4903,7 +4994,8 @@
           "filter": "filter",
           "startIndex": "startIndex"
         }
-      }
+      },
+      "response_schema": "list_an_organization_s_scim_members_response"
     },
     "list_an_organization_s_selectors": {
       "display_name": "List An Organization S Selectors",
@@ -4988,7 +5080,8 @@
           "statsPeriod": "statsPeriod"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "list_an_organization_s_selectors_response"
     },
     "list_an_organization_s_teams": {
       "display_name": "List An Organization S Teams",
@@ -5099,7 +5192,8 @@
           "query": "query"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "list_clicked_nodes_response"
     },
     "list_recording_segments": {
       "display_name": "List Recording Segments",
@@ -5145,6 +5239,35 @@
         }
       }
     },
+    "list_replay_batch_deletion_jobs": {
+      "display_name": "List Replay Batch Deletion Jobs",
+      "description": "Retrieve a collection of replay delete jobs.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "organization_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the organization the resource belongs to."
+          },
+          "project_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the project the resource belongs to."
+          }
+        },
+        "required": [
+          "organization_id_or_slug",
+          "project_id_or_slug"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/replays/jobs/delete/",
+        "response_path": "data"
+      },
+      "response_schema": "list_replay_batch_deletion_jobs_response"
+    },
     "list_seer_ai_models": {
       "display_name": "List Seer Ai Models",
       "description": "Get list of actively used LLM model names from Seer. Returns the list of AI models that are currently used in production in Seer. This endpoint does not require authentication and can be used to di...",
@@ -5157,7 +5280,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/seer/models/"
-      }
+      },
+      "response_schema": "list_seer_ai_models_response"
     },
     "list_spike_protection_notifications": {
       "display_name": "List Spike Protection Notifications",
@@ -5228,7 +5352,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/replays/{replay_id}/viewed-by/"
-      }
+      },
+      "response_schema": "list_users_who_have_viewed_a_replay_response"
     },
     "list_your_organizations": {
       "display_name": "List Your Organizations",
@@ -5339,7 +5464,7 @@
           },
           "query": {
             "type": "string",
-            "description": "An optional search query for filtering monitors."
+            "description": "An optional search query for filtering monitors.\n\nAvailable fields are:\n- `name`\n- `type`: e.g. `error`, `metric_issue`, `issue_stream`\n- `assignee`: email, username, #team, me, none\n        "
           }
         },
         "required": [
@@ -5394,7 +5519,8 @@
           "sentryOrgRole": "sentryOrgRole",
           "userName": "userName"
         }
-      }
+      },
+      "response_schema": "provision_a_new_organization_member_response"
     },
     "provision_a_new_team": {
       "display_name": "Provision A New Team",
@@ -5424,7 +5550,8 @@
         "body_mapping": {
           "displayName": "displayName"
         }
-      }
+      },
+      "response_schema": "provision_a_new_team_response"
     },
     "query_an_individual_organization_member": {
       "display_name": "Query An Individual Organization Member",
@@ -5451,7 +5578,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/scim/v2/Users/{member_id}"
-      }
+      },
+      "response_schema": "query_an_individual_organization_member_response"
     },
     "query_an_individual_team": {
       "display_name": "Query An Individual Team",
@@ -5478,7 +5606,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/scim/v2/Groups/{team_id_or_slug}"
-      }
+      },
+      "response_schema": "query_an_individual_team_response"
     },
     "query_explore_events_in_table_format": {
       "display_name": "Query Explore Events In Table Format",
@@ -5553,7 +5682,8 @@
           "statsPeriod": "statsPeriod"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "query_explore_events_in_table_format_response"
     },
     "query_explore_events_in_timeseries_format": {
       "display_name": "Query Explore Events In Timeseries Format",
@@ -5657,7 +5787,8 @@
           "topEvents": "topEvents",
           "yAxis": "yAxis"
         }
-      }
+      },
+      "response_schema": "query_explore_events_in_timeseries_format_response"
     },
     "regenerates_a_repository_upload_token_and_returns_the_new_token": {
       "display_name": "Regenerates A Repository Upload Token And Returns The New Token",
@@ -5689,7 +5820,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/0/organizations/{organization_id_or_slug}/prevent/owner/{owner}/repository/{repository}/token/regenerate/"
-      }
+      },
+      "response_schema": "regenerates_a_repository_upload_token_and_returns_the_new_token_response"
     },
     "register_a_new_service_hook": {
       "display_name": "Register A New Service Hook",
@@ -5730,7 +5862,8 @@
           "events": "events",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "register_a_new_service_hook_response"
     },
     "remove_a_service_hook": {
       "display_name": "Remove A Service Hook",
@@ -5816,7 +5949,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/"
-      }
+      },
+      "response_schema": "resolve_a_short_id_response"
     },
     "resolve_an_event_id": {
       "display_name": "Resolve An Event Id",
@@ -5843,7 +5977,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/"
-      }
+      },
+      "response_schema": "resolve_an_event_id_response"
     },
     "retrieve_a_client_key": {
       "display_name": "Retrieve A Client Key",
@@ -5875,7 +6010,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/keys/{key_id}/"
-      }
+      },
+      "response_schema": "retrieve_a_client_key_response"
     },
     "retrieve_a_count_of_replays_for_a_given_issue_or_transaction": {
       "display_name": "Retrieve A Count Of Replays For A Given Issue Or Transaction",
@@ -5951,7 +6087,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/sentry-apps/{sentry_app_id_or_slug}/"
-      }
+      },
+      "response_schema": "retrieve_a_custom_integration_by_id_or_slug_response"
     },
     "retrieve_a_monitor": {
       "display_name": "Retrieve A Monitor",
@@ -5985,7 +6122,8 @@
         "query_mapping": {
           "environment": "environment"
         }
-      }
+      },
+      "response_schema": "retrieve_a_monitor_response"
     },
     "retrieve_a_monitor_for_a_project": {
       "display_name": "Retrieve A Monitor For A Project",
@@ -6017,7 +6155,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/monitors/{monitor_id_or_slug}/"
-      }
+      },
+      "response_schema": "retrieve_a_monitor_for_a_project_response"
     },
     "retrieve_a_project": {
       "display_name": "Retrieve A Project",
@@ -6044,7 +6183,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/"
-      }
+      },
+      "response_schema": "retrieve_a_project_response"
     },
     "retrieve_a_project_environment": {
       "display_name": "Retrieve A Project Environment",
@@ -6076,7 +6216,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/environments/{environment}/"
-      }
+      },
+      "response_schema": "retrieve_a_project_environment_response"
     },
     "retrieve_a_project_release_s_file": {
       "display_name": "Retrieve A Project Release S File",
@@ -6120,7 +6261,8 @@
         "query_mapping": {
           "download": "download"
         }
-      }
+      },
+      "response_schema": "retrieve_a_project_release_s_file_response"
     },
     "retrieve_a_project_s_symbol_sources": {
       "display_name": "Retrieve A Project S Symbol Sources",
@@ -6192,6 +6334,39 @@
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/replays/{replay_id}/recording-segments/{segment_id}/"
       }
+    },
+    "retrieve_a_replay_batch_deletion_job": {
+      "display_name": "Retrieve A Replay Batch Deletion Job",
+      "description": "Fetch a replay delete job instance.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "job_id": {
+            "type": "integer",
+            "description": "The ID of the replay deletion job you'd like to retrieve."
+          },
+          "organization_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the organization the resource belongs to."
+          },
+          "project_id_or_slug": {
+            "type": "string",
+            "description": "The ID or slug of the project the resource belongs to."
+          }
+        },
+        "required": [
+          "organization_id_or_slug",
+          "project_id_or_slug",
+          "job_id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/replays/jobs/delete/{job_id}/"
+      },
+      "response_schema": "retrieve_a_replay_batch_deletion_job_response"
     },
     "retrieve_a_replay_instance": {
       "display_name": "Retrieve A Replay Instance",
@@ -6285,7 +6460,8 @@
           "start": "start",
           "statsPeriod": "statsPeriod"
         }
-      }
+      },
+      "response_schema": "retrieve_a_replay_instance_response"
     },
     "retrieve_a_service_hook": {
       "display_name": "Retrieve A Service Hook",
@@ -6317,7 +6493,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/"
-      }
+      },
+      "response_schema": "retrieve_a_service_hook_response"
     },
     "retrieve_a_spike_protection_notification_action": {
       "display_name": "Retrieve A Spike Protection Notification Action",
@@ -6383,7 +6560,8 @@
           "collapse": "collapse",
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "retrieve_a_team_response"
     },
     "retrieve_aggregated_test_result_metrics_for_repository_owner_and_organization": {
       "display_name": "Retrieve Aggregated Test Result Metrics For Repository Owner And Organization",
@@ -6427,7 +6605,8 @@
           "branch": "branch",
           "interval": "interval"
         }
-      }
+      },
+      "response_schema": "retrieve_aggregated_test_result_metrics_for_repository_owner_and_organization_response"
     },
     "retrieve_an_event_for_a_project": {
       "display_name": "Retrieve An Event For A Project",
@@ -6460,7 +6639,8 @@
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/",
         "response_path": "entries"
-      }
+      },
+      "response_schema": "retrieve_an_event_for_a_project_response"
     },
     "retrieve_an_integration_for_an_organization": {
       "display_name": "Retrieve An Integration For An Organization",
@@ -6487,7 +6667,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/integrations/{integration_id}/"
-      }
+      },
+      "response_schema": "retrieve_an_integration_for_an_organization_response"
     },
     "retrieve_an_issue": {
       "display_name": "Retrieve An Issue",
@@ -6514,7 +6695,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
-      }
+      },
+      "response_schema": "retrieve_an_issue_response"
     },
     "retrieve_an_issue_event": {
       "display_name": "Retrieve An Issue Event",
@@ -6554,7 +6736,8 @@
           "environment": "environment"
         },
         "response_path": "entries"
-      }
+      },
+      "response_schema": "retrieve_an_issue_event_response"
     },
     "retrieve_an_organization": {
       "display_name": "Retrieve An Organization",
@@ -6583,7 +6766,8 @@
         "query_mapping": {
           "detailed": "detailed"
         }
-      }
+      },
+      "response_schema": "retrieve_an_organization_response"
     },
     "retrieve_an_organization_member": {
       "display_name": "Retrieve An Organization Member",
@@ -6610,7 +6794,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/"
-      }
+      },
+      "response_schema": "retrieve_an_organization_member_response"
     },
     "retrieve_an_organization_release_s_file": {
       "display_name": "Retrieve An Organization Release S File",
@@ -6649,7 +6834,8 @@
         "query_mapping": {
           "download": "download"
         }
-      }
+      },
+      "response_schema": "retrieve_an_organization_release_s_file_response"
     },
     "retrieve_an_organization_s_custom_dashboard": {
       "display_name": "Retrieve An Organization S Custom Dashboard",
@@ -6676,7 +6862,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/dashboards/{dashboard_id}/"
-      }
+      },
+      "response_schema": "retrieve_an_organization_s_custom_dashboard_response"
     },
     "retrieve_an_organization_s_discover_saved_query": {
       "display_name": "Retrieve An Organization S Discover Saved Query",
@@ -6703,7 +6890,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/discover/saved/{query_id}/"
-      }
+      },
+      "response_schema": "retrieve_an_organization_s_discover_saved_query_response"
     },
     "retrieve_an_organization_s_events_count_by_project": {
       "display_name": "Retrieve An Organization S Events Count By Project",
@@ -6777,7 +6965,8 @@
           "start": "start",
           "statsPeriod": "statsPeriod"
         }
-      }
+      },
+      "response_schema": "retrieve_an_organization_s_events_count_by_project_response"
     },
     "retrieve_an_organization_s_release": {
       "display_name": "Retrieve An Organization S Release",
@@ -6846,7 +7035,8 @@
           "status": "status",
           "summaryStatsPeriod": "summaryStatsPeriod"
         }
-      }
+      },
+      "response_schema": "retrieve_an_organization_s_release_response"
     },
     "retrieve_check_ins_for_a_monitor": {
       "display_name": "Retrieve Check Ins For A Monitor",
@@ -7084,7 +7274,8 @@
           "start": "start",
           "statsPeriod": "statsPeriod"
         }
-      }
+      },
+      "response_schema": "retrieve_event_counts_for_an_organization_v2_response"
     },
     "retrieve_files_changed_in_a_release_s_commits": {
       "display_name": "Retrieve Files Changed In A Release S Commits",
@@ -7138,7 +7329,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/preprodartifacts/{artifact_id}/install-details/"
-      }
+      },
+      "response_schema": "retrieve_install_info_for_a_given_artifact_response"
     },
     "retrieve_monitors_for_an_organization": {
       "display_name": "Retrieve Monitors For An Organization",
@@ -7209,7 +7401,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/ownership/"
-      }
+      },
+      "response_schema": "retrieve_ownership_configuration_for_a_project_response"
     },
     "retrieve_paginated_list_of_test_results_for_repository_owner_and_organization": {
       "display_name": "Retrieve Paginated List Of Test Results For Repository Owner And Organization",
@@ -7284,7 +7477,8 @@
           "term": "term"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "retrieve_paginated_list_of_test_results_for_repository_owner_and_organization_response"
     },
     "retrieve_release_health_session_statistics": {
       "display_name": "Retrieve Release Health Session Statistics",
@@ -7373,7 +7567,8 @@
           "start": "start",
           "statsPeriod": "statsPeriod"
         }
-      }
+      },
+      "response_schema": "retrieve_release_health_session_statistics_response"
     },
     "retrieve_seer_issue_fix_state": {
       "display_name": "Retrieve Seer Issue Fix State",
@@ -7400,7 +7595,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/autofix/"
-      }
+      },
+      "response_schema": "retrieve_seer_issue_fix_state_response"
     },
     "retrieve_size_analysis_results_for_a_given_artifact": {
       "display_name": "Retrieve Size Analysis Results For A Given Artifact",
@@ -7434,7 +7630,8 @@
         "query_mapping": {
           "baseArtifactId": "baseArtifactId"
         }
-      }
+      },
+      "response_schema": "retrieve_size_analysis_results_for_a_given_artifact_response"
     },
     "retrieve_statuses_of_release_thresholds_alpha": {
       "display_name": "Retrieve Statuses Of Release Thresholds Alpha",
@@ -7522,7 +7719,8 @@
         "query_mapping": {
           "environment": "environment"
         }
-      }
+      },
+      "response_schema": "retrieve_tag_details_response"
     },
     "retrieve_test_suites_belonging_to_a_repository_s_test_results": {
       "display_name": "Retrieve Test Suites Belonging To A Repository S Test Results",
@@ -7561,7 +7759,8 @@
         "query_mapping": {
           "term": "term"
         }
-      }
+      },
+      "response_schema": "retrieve_test_suites_belonging_to_a_repository_s_test_results_response"
     },
     "retrieve_the_custom_integrations_created_by_an_organization": {
       "display_name": "Retrieve The Custom Integrations Created By An Organization",
@@ -7633,7 +7832,8 @@
           "sortBy": "sortBy"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "retrieves_a_paginated_list_of_repository_tokens_for_a_given_owner_response"
     },
     "retrieves_a_single_repository_for_a_given_owner": {
       "display_name": "Retrieves A Single Repository For A Given Owner",
@@ -7665,7 +7865,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/0/organizations/{organization_id_or_slug}/prevent/owner/{owner}/repository/{repository}/"
-      }
+      },
+      "response_schema": "retrieves_a_single_repository_for_a_given_owner_response"
     },
     "retrieves_list_of_branches_for_a_given_owner_and_repository": {
       "display_name": "Retrieves List Of Branches For A Given Owner And Repository",
@@ -7720,7 +7921,8 @@
           "term": "term"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "retrieves_list_of_branches_for_a_given_owner_and_repository_response"
     },
     "retrieves_list_of_repositories_for_a_given_owner": {
       "display_name": "Retrieves List Of Repositories For A Given Owner",
@@ -7770,7 +7972,8 @@
           "term": "term"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "retrieves_list_of_repositories_for_a_given_owner_response"
     },
     "start_seer_issue_fix": {
       "display_name": "Start Seer Issue Fix",
@@ -7872,7 +8075,8 @@
           "event_id": "event_id",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "submit_user_feedback_response"
     },
     "syncs_repositories_from_an_integrated_org_with_git_hub": {
       "display_name": "Syncs Repositories From An Integrated Org With Git Hub",
@@ -7899,7 +8103,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/0/organizations/{organization_id_or_slug}/prevent/owner/{owner}/repositories/sync/"
-      }
+      },
+      "response_schema": "syncs_repositories_from_an_integrated_org_with_git_hub_response"
     },
     "update_a_client_key": {
       "display_name": "Update A Client Key",
@@ -7958,7 +8163,8 @@
           "name": "name",
           "rateLimit": "rateLimit"
         }
-      }
+      },
+      "response_schema": "update_a_client_key_response"
     },
     "update_a_data_forwarder_for_an_organization": {
       "display_name": "Update A Data Forwarder For An Organization",
@@ -8019,7 +8225,8 @@
           "project_ids": "project_ids",
           "provider": "provider"
         }
-      }
+      },
+      "response_schema": "update_a_data_forwarder_for_an_organization_response"
     },
     "update_a_monitor": {
       "display_name": "Update A Monitor",
@@ -8086,7 +8293,8 @@
           "slug": "slug",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "update_a_monitor_response"
     },
     "update_a_monitor_by_id": {
       "display_name": "Update A Monitor By Id",
@@ -8105,7 +8313,7 @@
           },
           "data_sources": {
             "type": "array",
-            "description": "\n            The data sources for the monitor to use based on what you want to measure.\n\n            **Number of Errors Metric Monitor**\n            ```json\n                [\n                    {\n..."
+            "description": "\n            The data sources for the monitor to use based on what you want to measure.\n\n            **Number of Errors Metric Monitor**\n            - `eventTypes`: Any of `error` or `default`.\n   ..."
           },
           "description": {
             "type": "string",
@@ -8129,11 +8337,15 @@
           },
           "owner": {
             "type": "string",
-            "description": "\n            The user or team who owns the monitor.\n\n            **User**\n            ```json\n                \"type\": \"user\",\n                \"id\": \"12345\",\n                \"name\": \"Jane Doe\",\n    ..."
+            "description": "\n            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.\n\n            **User**\n            ```json\n                \"user:123456\"\n            ```\n\n    ..."
           },
           "type": {
             "type": "string",
             "description": "The type of monitor - `metric_issue`."
+          },
+          "workflow_ids": {
+            "type": "array",
+            "description": "The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs."
           }
         },
         "required": [
@@ -8155,9 +8367,11 @@
           "enabled": "enabled",
           "name": "name",
           "owner": "owner",
-          "type": "type"
+          "type": "type",
+          "workflow_ids": "workflow_ids"
         }
-      }
+      },
+      "response_schema": "update_a_monitor_by_id_response"
     },
     "update_a_monitor_for_a_project": {
       "display_name": "Update A Monitor For A Project",
@@ -8229,7 +8443,8 @@
           "slug": "slug",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "update_a_monitor_for_a_project_response"
     },
     "update_a_project": {
       "display_name": "Update A Project",
@@ -8270,6 +8485,10 @@
             "type": "integer",
             "description": "Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve."
           },
+          "scmSourceContextEnabled": {
+            "type": "boolean",
+            "description": "Enable on-demand source context fetching from SCM integrations for stack traces."
+          },
           "slug": {
             "type": "string",
             "description": "Uniquely identifies a project and is used for the interface."
@@ -8299,11 +8518,13 @@
           "name": "name",
           "platform": "platform",
           "resolveAge": "resolveAge",
+          "scmSourceContextEnabled": "scmSourceContextEnabled",
           "slug": "slug",
           "subjectPrefix": "subjectPrefix",
           "subjectTemplate": "subjectTemplate"
         }
-      }
+      },
+      "response_schema": "update_a_project_response"
     },
     "update_a_project_environment": {
       "display_name": "Update A Project Environment",
@@ -8343,7 +8564,8 @@
         "body_mapping": {
           "isHidden": "isHidden"
         }
-      }
+      },
+      "response_schema": "update_a_project_environment_response"
     },
     "update_a_project_release_file": {
       "display_name": "Update A Project Release File",
@@ -8392,7 +8614,8 @@
           "dist": "dist",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "update_a_project_release_file_response"
     },
     "update_a_project_s_symbol_source": {
       "display_name": "Update A Project S Symbol Source",
@@ -8546,7 +8769,8 @@
           "events": "events",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "update_a_service_hook_response"
     },
     "update_a_spike_protection_notification_action": {
       "display_name": "Update A Spike Protection Notification Action",
@@ -8642,7 +8866,8 @@
         "body_mapping": {
           "slug": "slug"
         }
-      }
+      },
+      "response_schema": "update_a_team_response"
     },
     "update_a_team_s_attributes": {
       "display_name": "Update A Team S Attributes",
@@ -8694,6 +8919,10 @@
             "type": "object",
             "description": "\n        Typically the frequency at which the alert will fire, in minutes.\n\n        - `0`: 0 minutes\n        - `5`: 5 minutes\n        - `10`: 10 minutes\n        - `30`: 30 minutes\n        - `60`: 1..."
           },
+          "detector_ids": {
+            "type": "array",
+            "description": "The IDs of the monitors to connect this alert to. Use 'Fetch an Organization's Monitors' to find the IDs."
+          },
           "enabled": {
             "type": "boolean",
             "description": "Whether the alert is enabled or disabled"
@@ -8713,6 +8942,10 @@
           "organization_id_or_slug": {
             "type": "string",
             "description": "The ID or slug of the organization the resource belongs to."
+          },
+          "owner": {
+            "type": "string",
+            "description": "\n            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.\n\n            **User**\n            ```json\n                \"user:123456\"\n            ```\n\n    ..."
           },
           "triggers": {
             "type": "string",
@@ -8736,13 +8969,16 @@
         "body_mapping": {
           "action_filters": "action_filters",
           "config": "config",
+          "detector_ids": "detector_ids",
           "enabled": "enabled",
           "environment": "environment",
           "id": "id",
           "name": "name",
+          "owner": "owner",
           "triggers": "triggers"
         }
-      }
+      },
+      "response_schema": "update_an_alert_by_id_response"
     },
     "update_an_existing_custom_integration": {
       "display_name": "Update An Existing Custom Integration",
@@ -8828,7 +9064,8 @@
           "verifyInstall": "verifyInstall",
           "webhookUrl": "webhookUrl"
         }
-      }
+      },
+      "response_schema": "update_an_existing_custom_integration_response"
     },
     "update_an_external_team": {
       "display_name": "Update An External Team",
@@ -8859,7 +9096,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
+            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `slack_staging`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
           },
           "team_id_or_slug": {
             "type": "string",
@@ -8885,7 +9122,8 @@
           "integration_id": "integration_id",
           "provider": "provider"
         }
-      }
+      },
+      "response_schema": "update_an_external_team_response"
     },
     "update_an_external_user": {
       "display_name": "Update An External User",
@@ -8920,7 +9158,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
+            "description": "The provider of the external actor.\n\n* `github`\n* `github_enterprise`\n* `jira_server`\n* `slack`\n* `slack_staging`\n* `perforce`\n* `gitlab`\n* `msteams`\n* `custom_scm`"
           },
           "user_id": {
             "type": "integer",
@@ -8949,7 +9187,8 @@
           "provider": "provider",
           "user_id": "user_id"
         }
-      }
+      },
+      "response_schema": "update_an_external_user_response"
     },
     "update_an_inbound_data_filter": {
       "display_name": "Update An Inbound Data Filter",
@@ -9057,7 +9296,8 @@
           "status": "status",
           "statusDetails": "statusDetails"
         }
-      }
+      },
+      "response_schema": "update_an_issue_response"
     },
     "update_an_organization": {
       "display_name": "Update An Organization",
@@ -9251,7 +9491,8 @@
           "storeCrashReports": "storeCrashReports",
           "trustedRelays": "trustedRelays"
         }
-      }
+      },
+      "response_schema": "update_an_organization_response"
     },
     "update_an_organization_member_s_attributes": {
       "display_name": "Update An Organization Member S Attributes",
@@ -9325,7 +9566,8 @@
           "orgRole": "orgRole",
           "teamRoles": "teamRoles"
         }
-      }
+      },
+      "response_schema": "update_an_organization_member_s_roles_response"
     },
     "update_an_organization_member_s_team_role": {
       "display_name": "Update An Organization Member S Team Role",
@@ -9364,7 +9606,8 @@
         "body_mapping": {
           "teamRole": "teamRole"
         }
-      }
+      },
+      "response_schema": "update_an_organization_member_s_team_role_response"
     },
     "update_an_organization_release_file": {
       "display_name": "Update An Organization Release File",
@@ -9408,7 +9651,8 @@
           "dist": "dist",
           "name": "name"
         }
-      }
+      },
+      "response_schema": "update_an_organization_release_file_response"
     },
     "update_an_organization_s_release": {
       "display_name": "Update An Organization S Release",
@@ -9462,7 +9706,8 @@
           "refs": "refs",
           "url": "url"
         }
-      }
+      },
+      "response_schema": "update_an_organization_s_release_response"
     },
     "update_ownership_configuration_for_a_project": {
       "display_name": "Update Ownership Configuration For A Project",
@@ -9510,6 +9755,5444 @@
           "codeownersAutoSync": "codeownersAutoSync",
           "fallthrough": "fallthrough",
           "raw": "raw"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "add_a_member_to_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "externalUsers": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inviteStatus": {
+          "type": "string"
+        },
+        "inviterName": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "orgRole": {
+          "type": "string"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "add_a_team_to_a_project_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "color": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "firstTransactionEvent": {
+          "type": "boolean"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "hasFeedbacks": {
+          "type": "boolean"
+        },
+        "hasFlags": {
+          "type": "boolean"
+        },
+        "hasInsightsAgentMonitoring": {
+          "type": "boolean"
+        },
+        "hasInsightsAppStart": {
+          "type": "boolean"
+        },
+        "hasInsightsAssets": {
+          "type": "boolean"
+        },
+        "hasInsightsCaches": {
+          "type": "boolean"
+        },
+        "hasInsightsDb": {
+          "type": "boolean"
+        },
+        "hasInsightsHttp": {
+          "type": "boolean"
+        },
+        "hasInsightsMCP": {
+          "type": "boolean"
+        },
+        "hasInsightsQueues": {
+          "type": "boolean"
+        },
+        "hasInsightsScreenLoad": {
+          "type": "boolean"
+        },
+        "hasInsightsVitals": {
+          "type": "boolean"
+        },
+        "hasLogs": {
+          "type": "boolean"
+        },
+        "hasMinifiedStackTrace": {
+          "type": "boolean"
+        },
+        "hasMonitors": {
+          "type": "boolean"
+        },
+        "hasNewFeedbacks": {
+          "type": "boolean"
+        },
+        "hasProfiles": {
+          "type": "boolean"
+        },
+        "hasReplays": {
+          "type": "boolean"
+        },
+        "hasSessions": {
+          "type": "boolean"
+        },
+        "hasTraceMetrics": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isInternal": {
+          "type": "boolean"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "sessionStats": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "transactionStats": {
+          "type": "string"
+        }
+      }
+    },
+    "add_an_organization_member_to_a_team_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "flags": {
+          "type": "object"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPending": {
+          "type": "boolean"
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "teamRole": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "bulk_mutate_a_list_of_issues_response": {
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusDetails": {
+          "type": "object"
+        }
+      }
+    },
+    "bulk_mutate_an_organization_s_issues_response": {
+      "type": "object",
+      "properties": {
+        "assignedTo": {
+          "type": "object"
+        },
+        "discard": {
+          "type": "boolean"
+        },
+        "hasSeen": {
+          "type": "boolean"
+        },
+        "inbox": {
+          "type": "boolean"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "isSubscribed": {
+          "type": "boolean"
+        },
+        "merge": {
+          "type": "object"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "shareId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusDetails": {
+          "type": "object"
+        },
+        "subscriptionDetails": {
+          "type": "object"
+        },
+        "substatus": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_data_forwarder_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object"
+        },
+        "dateAdded": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "enrollNewProjects": {
+          "type": "boolean"
+        },
+        "enrolledProjects": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isEnabled": {
+          "type": "boolean"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "projectConfigs": {
+          "type": "array"
+        },
+        "provider": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_deploy_response": {
+      "type": "object",
+      "properties": {
+        "dateFinished": {
+          "type": "string",
+          "description": "An optional date that indicates when the deploy ended"
+        },
+        "dateStarted": {
+          "type": "string",
+          "description": "An optional date that indicates when the deploy started",
+          "nullable": true
+        },
+        "environment": {
+          "type": "string",
+          "description": "The environment name"
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the deploy"
+        },
+        "name": {
+          "type": "string",
+          "description": "The optional name of the deploy",
+          "nullable": true
+        },
+        "url": {
+          "type": "string",
+          "description": "The optional URL that points to the deploy",
+          "nullable": true
+        }
+      }
+    },
+    "create_a_monitor_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "conditionGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dataSources": {
+          "type": "array",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "latestGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "openIssues": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "workflowIds": {
+          "type": "array",
+          "nullable": true
+        }
+      }
+    },
+    "create_a_monitor_response": {
+      "type": "object",
+      "properties": {
+        "alertRule": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isUpserting": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "project": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_new_client_key_response": {
+      "type": "object",
+      "properties": {
+        "browserSdk": {
+          "type": "object"
+        },
+        "browserSdkVersion": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "dsn": {
+          "type": "object"
+        },
+        "dynamicSdkLoaderOptions": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "integer"
+        },
+        "public": {
+          "type": "string",
+          "nullable": true
+        },
+        "rateLimit": {
+          "type": "object",
+          "nullable": true
+        },
+        "secret": {
+          "type": "string",
+          "nullable": true
+        },
+        "useCase": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_new_dashboard_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "filters": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isFavorited": {
+          "type": "boolean"
+        },
+        "period": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "object",
+          "nullable": true
+        },
+        "prebuiltId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "start": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "utc": {
+          "type": "string"
+        },
+        "widgets": {
+          "type": "array"
+        }
+      }
+    },
+    "create_a_new_project_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "array"
+        },
+        "features": {
+          "type": "array"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "firstTransactionEvent": {
+          "type": "boolean"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "hasFeedbacks": {
+          "type": "boolean"
+        },
+        "hasFlags": {
+          "type": "boolean"
+        },
+        "hasInsightsAgentMonitoring": {
+          "type": "boolean"
+        },
+        "hasInsightsAppStart": {
+          "type": "boolean"
+        },
+        "hasInsightsAssets": {
+          "type": "boolean"
+        },
+        "hasInsightsCaches": {
+          "type": "boolean"
+        },
+        "hasInsightsDb": {
+          "type": "boolean"
+        },
+        "hasInsightsHttp": {
+          "type": "boolean"
+        },
+        "hasInsightsMCP": {
+          "type": "boolean"
+        },
+        "hasInsightsQueues": {
+          "type": "boolean"
+        },
+        "hasInsightsScreenLoad": {
+          "type": "boolean"
+        },
+        "hasInsightsVitals": {
+          "type": "boolean"
+        },
+        "hasLogs": {
+          "type": "boolean"
+        },
+        "hasMinifiedStackTrace": {
+          "type": "boolean"
+        },
+        "hasMonitors": {
+          "type": "boolean"
+        },
+        "hasNewFeedbacks": {
+          "type": "boolean"
+        },
+        "hasProfiles": {
+          "type": "boolean"
+        },
+        "hasReplays": {
+          "type": "boolean"
+        },
+        "hasSessions": {
+          "type": "boolean"
+        },
+        "hasTraceMetrics": {
+          "type": "boolean"
+        },
+        "hasUserReports": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "latestDeploys": {
+          "type": "object",
+          "nullable": true
+        },
+        "latestRelease": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "platforms": {
+          "type": "array"
+        },
+        "sessionStats": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object",
+          "nullable": true
+        },
+        "teams": {
+          "type": "array"
+        },
+        "transactionStats": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_new_release_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "authors": {
+          "type": "array"
+        },
+        "commitCount": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateReleased": {
+          "type": "string",
+          "nullable": true
+        },
+        "deployCount": {
+          "type": "integer"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "integer"
+        },
+        "lastCommit": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastDeploy": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "newGroups": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "ref": {
+          "type": "string",
+          "nullable": true
+        },
+        "shortVersion": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "nullable": true
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "create_a_new_saved_query_response": {
+      "type": "object",
+      "properties": {
+        "aggregations": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "datasetSource": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "exploreQuery": {
+          "type": "object"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "orderby": {
+          "type": "string"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryDataset": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "topEvents": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "widths": {
+          "type": "array"
+        },
+        "yAxis": {
+          "type": "array"
+        }
+      }
+    },
+    "create_a_new_team_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "externalTeams": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPending": {
+          "type": "boolean"
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "object"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "teamRole": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "create_an_alert_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "actionFilters": {
+          "type": "array",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "detectorIds": {
+          "type": "array",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "triggers": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "create_an_external_team_response": {
+      "type": "object",
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "externalName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integrationId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "teamId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      }
+    },
+    "create_an_external_user_response": {
+      "type": "object",
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "externalName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integrationId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "teamId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      }
+    },
+    "create_or_update_an_external_issue_response": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "issueId": {
+          "type": "string"
+        },
+        "serviceType": {
+          "type": "string"
+        },
+        "webUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "create_replay_batch_deletion_job_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "debug_issues_related_to_source_maps_for_a_given_event_response": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array"
+        }
+      }
+    },
+    "delete_a_team_from_a_project_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "color": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "firstTransactionEvent": {
+          "type": "boolean"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "hasFeedbacks": {
+          "type": "boolean"
+        },
+        "hasFlags": {
+          "type": "boolean"
+        },
+        "hasInsightsAgentMonitoring": {
+          "type": "boolean"
+        },
+        "hasInsightsAppStart": {
+          "type": "boolean"
+        },
+        "hasInsightsAssets": {
+          "type": "boolean"
+        },
+        "hasInsightsCaches": {
+          "type": "boolean"
+        },
+        "hasInsightsDb": {
+          "type": "boolean"
+        },
+        "hasInsightsHttp": {
+          "type": "boolean"
+        },
+        "hasInsightsMCP": {
+          "type": "boolean"
+        },
+        "hasInsightsQueues": {
+          "type": "boolean"
+        },
+        "hasInsightsScreenLoad": {
+          "type": "boolean"
+        },
+        "hasInsightsVitals": {
+          "type": "boolean"
+        },
+        "hasLogs": {
+          "type": "boolean"
+        },
+        "hasMinifiedStackTrace": {
+          "type": "boolean"
+        },
+        "hasMonitors": {
+          "type": "boolean"
+        },
+        "hasNewFeedbacks": {
+          "type": "boolean"
+        },
+        "hasProfiles": {
+          "type": "boolean"
+        },
+        "hasReplays": {
+          "type": "boolean"
+        },
+        "hasSessions": {
+          "type": "boolean"
+        },
+        "hasTraceMetrics": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isInternal": {
+          "type": "boolean"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "sessionStats": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "transactionStats": {
+          "type": "string"
+        }
+      }
+    },
+    "delete_an_organization_member_from_a_team_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "flags": {
+          "type": "object"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPending": {
+          "type": "boolean"
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "teamRole": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "deprecated_create_a_metric_alert_rule_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "aggregate": {
+          "type": "string"
+        },
+        "comparisonDelta": {
+          "type": "number",
+          "nullable": true
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "dataset": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateModified": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array",
+          "nullable": true
+        },
+        "eventTypes": {
+          "type": "array",
+          "nullable": true
+        },
+        "extrapolationMode": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "originalAlertRuleId": {
+          "type": "string",
+          "nullable": true
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array",
+          "nullable": true
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "resolveThreshold": {
+          "type": "number",
+          "nullable": true
+        },
+        "snooze": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "thresholdType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "timeWindow": {
+          "type": "number"
+        },
+        "triggers": {
+          "type": "array"
+        }
+      }
+    },
+    "deprecated_create_an_issue_alert_rule_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "actionMatch": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "disableDate": {
+          "type": "string"
+        },
+        "disableReason": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array"
+        },
+        "filterMatch": {
+          "type": "string"
+        },
+        "filters": {
+          "type": "array"
+        },
+        "frequency": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string",
+          "nullable": true
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "snooze": {
+          "type": "boolean"
+        },
+        "snoozeCreatedBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "snoozeForEveryone": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "deprecated_retrieve_a_metric_alert_rule_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "aggregate": {
+          "type": "string"
+        },
+        "comparisonDelta": {
+          "type": "number",
+          "nullable": true
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "dataset": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateModified": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array",
+          "nullable": true
+        },
+        "eventTypes": {
+          "type": "array",
+          "nullable": true
+        },
+        "extrapolationMode": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "originalAlertRuleId": {
+          "type": "string",
+          "nullable": true
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array",
+          "nullable": true
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "resolveThreshold": {
+          "type": "number",
+          "nullable": true
+        },
+        "snooze": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "thresholdType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "timeWindow": {
+          "type": "number"
+        },
+        "triggers": {
+          "type": "array"
+        }
+      }
+    },
+    "deprecated_retrieve_an_issue_alert_rule_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "actionMatch": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "disableDate": {
+          "type": "string"
+        },
+        "disableReason": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array"
+        },
+        "filterMatch": {
+          "type": "string"
+        },
+        "filters": {
+          "type": "array"
+        },
+        "frequency": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string",
+          "nullable": true
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "snooze": {
+          "type": "boolean"
+        },
+        "snoozeCreatedBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "snoozeForEveryone": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "deprecated_update_a_metric_alert_rule_response": {
+      "type": "object",
+      "properties": {
+        "aggregate": {
+          "type": "string"
+        },
+        "comparisonDelta": {
+          "type": "number",
+          "nullable": true
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "dataset": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateModified": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array",
+          "nullable": true
+        },
+        "eventTypes": {
+          "type": "array",
+          "nullable": true
+        },
+        "extrapolationMode": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "originalAlertRuleId": {
+          "type": "string",
+          "nullable": true
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array",
+          "nullable": true
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "resolveThreshold": {
+          "type": "number",
+          "nullable": true
+        },
+        "snooze": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "thresholdType": {
+          "type": "integer",
+          "nullable": true
+        },
+        "timeWindow": {
+          "type": "number"
+        },
+        "triggers": {
+          "type": "array"
+        }
+      }
+    },
+    "deprecated_update_an_issue_alert_rule_response": {
+      "type": "object",
+      "properties": {
+        "actionMatch": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "disableDate": {
+          "type": "string"
+        },
+        "disableReason": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "errors": {
+          "type": "array"
+        },
+        "filterMatch": {
+          "type": "string"
+        },
+        "filters": {
+          "type": "array"
+        },
+        "frequency": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string",
+          "nullable": true
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "snooze": {
+          "type": "boolean"
+        },
+        "snoozeCreatedBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "snoozeForEveryone": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "edit_an_organization_s_custom_dashboard_response": {
+      "type": "object",
+      "properties": {
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "filters": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isFavorited": {
+          "type": "boolean"
+        },
+        "period": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "object",
+          "nullable": true
+        },
+        "prebuiltId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "start": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "utc": {
+          "type": "string"
+        },
+        "widgets": {
+          "type": "array"
+        }
+      }
+    },
+    "edit_an_organization_s_discover_saved_query_response": {
+      "type": "object",
+      "properties": {
+        "aggregations": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "datasetSource": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "exploreQuery": {
+          "type": "object"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "orderby": {
+          "type": "string"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryDataset": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "topEvents": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "widths": {
+          "type": "array"
+        },
+        "yAxis": {
+          "type": "array"
+        }
+      }
+    },
+    "fetch_a_monitor_response": {
+      "type": "object",
+      "properties": {
+        "conditionGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dataSources": {
+          "type": "array",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "latestGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "openIssues": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "workflowIds": {
+          "type": "array",
+          "nullable": true
+        }
+      }
+    },
+    "fetch_an_alert_response": {
+      "type": "object",
+      "properties": {
+        "actionFilters": {
+          "type": "array",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "detectorIds": {
+          "type": "array",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "triggers": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "get_integration_provider_information_response": {
+      "type": "object",
+      "properties": {
+        "providers": {
+          "type": "array"
+        }
+      }
+    },
+    "get_the_latest_installable_build_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "currentArtifact": {
+          "type": "object",
+          "nullable": true
+        },
+        "latestArtifact": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "gets_syncing_status_for_repositories_for_an_integrated_org_response": {
+      "type": "object",
+      "properties": {
+        "isSyncing": {
+          "type": "boolean"
+        }
+      }
+    },
+    "list_an_organization_s_paginated_teams_response": {
+      "type": "object",
+      "properties": {
+        "Resources": {
+          "type": "array"
+        },
+        "itemsPerPage": {
+          "type": "integer"
+        },
+        "schemas": {
+          "type": "array"
+        },
+        "startIndex": {
+          "type": "integer"
+        },
+        "totalResults": {
+          "type": "integer"
+        }
+      }
+    },
+    "list_an_organization_s_scim_members_response": {
+      "type": "object",
+      "properties": {
+        "Resources": {
+          "type": "array"
+        },
+        "itemsPerPage": {
+          "type": "integer"
+        },
+        "schemas": {
+          "type": "array"
+        },
+        "startIndex": {
+          "type": "integer"
+        },
+        "totalResults": {
+          "type": "integer"
+        }
+      }
+    },
+    "list_an_organization_s_selectors_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "list_clicked_nodes_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "list_replay_batch_deletion_jobs_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "list_seer_ai_models_response": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array"
+        }
+      }
+    },
+    "list_users_who_have_viewed_a_replay_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "provision_a_new_organization_member_response": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "emails": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        },
+        "name": {
+          "type": "object"
+        },
+        "schemas": {
+          "type": "array"
+        },
+        "sentryOrgRole": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        }
+      }
+    },
+    "provision_a_new_team_response": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array"
+        },
+        "meta": {
+          "type": "object"
+        },
+        "schemas": {
+          "type": "array"
+        }
+      }
+    },
+    "query_an_individual_organization_member_response": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "emails": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        },
+        "name": {
+          "type": "object"
+        },
+        "schemas": {
+          "type": "array"
+        },
+        "sentryOrgRole": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        }
+      }
+    },
+    "query_an_individual_team_response": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array"
+        },
+        "meta": {
+          "type": "object"
+        },
+        "schemas": {
+          "type": "array"
+        }
+      }
+    },
+    "query_explore_events_in_table_format_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "meta": {
+          "type": "object"
+        }
+      }
+    },
+    "query_explore_events_in_timeseries_format_response": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "type": "object"
+        },
+        "timeSeries": {
+          "type": "array"
+        }
+      }
+    },
+    "regenerates_a_repository_upload_token_and_returns_the_new_token_response": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "register_a_new_service_hook_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "resolve_a_short_id_response": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "object"
+        },
+        "groupId": {
+          "type": "string"
+        },
+        "organizationSlug": {
+          "type": "string"
+        },
+        "projectSlug": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string"
+        }
+      }
+    },
+    "resolve_an_event_id_response": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "object"
+        },
+        "eventId": {
+          "type": "string"
+        },
+        "groupId": {
+          "type": "string"
+        },
+        "organizationSlug": {
+          "type": "string"
+        },
+        "projectSlug": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_client_key_response": {
+      "type": "object",
+      "properties": {
+        "browserSdk": {
+          "type": "object"
+        },
+        "browserSdkVersion": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "dsn": {
+          "type": "object"
+        },
+        "dynamicSdkLoaderOptions": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "integer"
+        },
+        "public": {
+          "type": "string",
+          "nullable": true
+        },
+        "rateLimit": {
+          "type": "object",
+          "nullable": true
+        },
+        "secret": {
+          "type": "string",
+          "nullable": true
+        },
+        "useCase": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_custom_integration_by_id_or_slug_response": {
+      "type": "object",
+      "properties": {
+        "allowedOrigins": {
+          "type": "array"
+        },
+        "author": {
+          "type": "string",
+          "nullable": true
+        },
+        "avatars": {
+          "type": "array"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "clientSecret": {
+          "type": "string",
+          "nullable": true
+        },
+        "datePublished": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array"
+        },
+        "featureData": {
+          "type": "array"
+        },
+        "isAlertable": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "overview": {
+          "type": "string",
+          "nullable": true
+        },
+        "owner": {
+          "type": "object"
+        },
+        "popularity": {
+          "type": "integer",
+          "nullable": true
+        },
+        "redirectUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "schema": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "verifyInstall": {
+          "type": "boolean"
+        },
+        "webhookUrl": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_a_monitor_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "alertRule": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isUpserting": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "project": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_monitor_response": {
+      "type": "object",
+      "properties": {
+        "alertRule": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isUpserting": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "project": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_project_environment_response": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "isHidden": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_project_release_s_file_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "headers": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieve_a_project_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "allowedDomains": {
+          "type": "array"
+        },
+        "autofixAutomationTuning": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "builtinSymbolSources": {
+          "type": "array"
+        },
+        "color": {
+          "type": "string"
+        },
+        "dataScrubber": {
+          "type": "boolean"
+        },
+        "dataScrubberDefaults": {
+          "type": "boolean"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "debugFilesRole": {
+          "type": "string",
+          "nullable": true
+        },
+        "defaultEnvironment": {
+          "type": "string",
+          "nullable": true
+        },
+        "derivedGroupingEnhancements": {
+          "type": "string"
+        },
+        "digestsMaxDelay": {
+          "type": "integer"
+        },
+        "digestsMinDelay": {
+          "type": "integer"
+        },
+        "dynamicSamplingBiases": {
+          "type": "array"
+        },
+        "features": {
+          "type": "array"
+        },
+        "fingerprintingRules": {
+          "type": "string"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "firstTransactionEvent": {
+          "type": "boolean"
+        },
+        "groupingConfig": {
+          "type": "string"
+        },
+        "groupingEnhancements": {
+          "type": "string"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "hasFeedbacks": {
+          "type": "boolean"
+        },
+        "hasFlags": {
+          "type": "boolean"
+        },
+        "hasInsightsAgentMonitoring": {
+          "type": "boolean"
+        },
+        "hasInsightsAppStart": {
+          "type": "boolean"
+        },
+        "hasInsightsAssets": {
+          "type": "boolean"
+        },
+        "hasInsightsCaches": {
+          "type": "boolean"
+        },
+        "hasInsightsDb": {
+          "type": "boolean"
+        },
+        "hasInsightsHttp": {
+          "type": "boolean"
+        },
+        "hasInsightsMCP": {
+          "type": "boolean"
+        },
+        "hasInsightsQueues": {
+          "type": "boolean"
+        },
+        "hasInsightsScreenLoad": {
+          "type": "boolean"
+        },
+        "hasInsightsVitals": {
+          "type": "boolean"
+        },
+        "hasLogs": {
+          "type": "boolean"
+        },
+        "hasMinifiedStackTrace": {
+          "type": "boolean"
+        },
+        "hasMonitors": {
+          "type": "boolean"
+        },
+        "hasNewFeedbacks": {
+          "type": "boolean"
+        },
+        "hasProfiles": {
+          "type": "boolean"
+        },
+        "hasReplays": {
+          "type": "boolean"
+        },
+        "hasSessions": {
+          "type": "boolean"
+        },
+        "hasTraceMetrics": {
+          "type": "boolean"
+        },
+        "highlightContext": {
+          "type": "object"
+        },
+        "highlightPreset": {
+          "type": "object"
+        },
+        "highlightTags": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isDynamicallySampled": {
+          "type": "boolean"
+        },
+        "isInternal": {
+          "type": "boolean"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "latestRelease": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object"
+        },
+        "organization": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "platforms": {
+          "type": "array"
+        },
+        "plugins": {
+          "type": "array"
+        },
+        "processingIssues": {
+          "type": "integer"
+        },
+        "relayPiiConfig": {
+          "type": "string",
+          "nullable": true
+        },
+        "resolveAge": {
+          "type": "integer"
+        },
+        "safeFields": {
+          "type": "array"
+        },
+        "scmSourceContextEnabled": {
+          "type": "boolean"
+        },
+        "scrapeJavaScript": {
+          "type": "boolean"
+        },
+        "scrubIPAddresses": {
+          "type": "boolean"
+        },
+        "secondaryGroupingConfig": {
+          "type": "string",
+          "nullable": true
+        },
+        "secondaryGroupingExpiry": {
+          "type": "integer"
+        },
+        "securityToken": {
+          "type": "string"
+        },
+        "securityTokenHeader": {
+          "type": "string",
+          "nullable": true
+        },
+        "seerScannerAutomation": {
+          "type": "boolean"
+        },
+        "sensitiveFields": {
+          "type": "array"
+        },
+        "sessionStats": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "storeCrashReports": {
+          "type": "integer",
+          "nullable": true
+        },
+        "subjectPrefix": {
+          "type": "string"
+        },
+        "subjectTemplate": {
+          "type": "string"
+        },
+        "symbolSources": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "tempestFetchScreenshots": {
+          "type": "boolean"
+        },
+        "transactionStats": {
+          "type": "string"
+        },
+        "verifySSL": {
+          "type": "boolean"
+        }
+      }
+    },
+    "retrieve_a_replay_batch_deletion_job_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "retrieve_a_replay_instance_response": {
+      "type": "object",
+      "properties": {
+        "activity": {
+          "type": "integer",
+          "nullable": true
+        },
+        "browser": {
+          "type": "object"
+        },
+        "clicks": {
+          "type": "array"
+        },
+        "count_dead_clicks": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_errors": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_infos": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_rage_clicks": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_segments": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_urls": {
+          "type": "integer",
+          "nullable": true
+        },
+        "count_warnings": {
+          "type": "integer",
+          "nullable": true
+        },
+        "device": {
+          "type": "object"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "duration": {
+          "type": "integer",
+          "nullable": true
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "error_ids": {
+          "type": "array"
+        },
+        "finished_at": {
+          "type": "string",
+          "nullable": true
+        },
+        "has_viewed": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_archived": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "os": {
+          "type": "object"
+        },
+        "ota_updates": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "releases": {
+          "type": "array"
+        },
+        "replay_type": {
+          "type": "string"
+        },
+        "sdk": {
+          "type": "object"
+        },
+        "started_at": {
+          "type": "string",
+          "nullable": true
+        },
+        "tags": {
+          "type": "string"
+        },
+        "trace_ids": {
+          "type": "array"
+        },
+        "urls": {
+          "type": "array",
+          "nullable": true
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "retrieve_a_service_hook_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_a_team_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "externalTeams": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPending": {
+          "type": "boolean"
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "object"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "teamRole": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_aggregated_test_result_metrics_for_repository_owner_and_organization_response": {
+      "type": "object",
+      "properties": {
+        "flakeCount": {
+          "type": "integer"
+        },
+        "flakeCountPercentChange": {
+          "type": "number"
+        },
+        "flakeRate": {
+          "type": "number"
+        },
+        "flakeRatePercentChange": {
+          "type": "number"
+        },
+        "slowestTestsDuration": {
+          "type": "number"
+        },
+        "slowestTestsDurationPercentChange": {
+          "type": "number"
+        },
+        "totalDuration": {
+          "type": "number"
+        },
+        "totalDurationPercentChange": {
+          "type": "number"
+        },
+        "totalFails": {
+          "type": "integer"
+        },
+        "totalFailsPercentChange": {
+          "type": "number"
+        },
+        "totalSkips": {
+          "type": "integer"
+        },
+        "totalSkipsPercentChange": {
+          "type": "number"
+        },
+        "totalSlowTests": {
+          "type": "integer"
+        },
+        "totalSlowTestsPercentChange": {
+          "type": "number"
+        }
+      }
+    },
+    "retrieve_an_event_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "_meta": {
+          "type": "object"
+        },
+        "context": {
+          "type": "object"
+        },
+        "contexts": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateReceived": {
+          "type": "string"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "entries": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "eventID": {
+          "type": "string"
+        },
+        "fingerprints": {
+          "type": "array"
+        },
+        "groupID": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "nextEventID": {
+          "type": "string",
+          "nullable": true
+        },
+        "packages": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "previousEventID": {
+          "type": "string",
+          "nullable": true
+        },
+        "release": {
+          "type": "object",
+          "nullable": true
+        },
+        "sdk": {
+          "type": "object"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object",
+          "nullable": true
+        },
+        "userReport": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_an_integration_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "accountType": {
+          "type": "string",
+          "nullable": true
+        },
+        "configData": {
+          "type": "string"
+        },
+        "configOrganization": {
+          "type": "string"
+        },
+        "domainName": {
+          "type": "string",
+          "nullable": true
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "gracePeriodEnd": {
+          "type": "string",
+          "nullable": true
+        },
+        "icon": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "integer"
+        },
+        "organizationIntegrationStatus": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_an_issue_event_response": {
+      "type": "object",
+      "properties": {
+        "_meta": {
+          "type": "object"
+        },
+        "breakdowns": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "nullable": true
+        },
+        "contexts": {
+          "type": "object",
+          "nullable": true
+        },
+        "crashFile": {
+          "type": "string",
+          "nullable": true
+        },
+        "culprit": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateReceived": {
+          "type": "string",
+          "nullable": true
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "endTimestamp": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "eventID": {
+          "type": "string"
+        },
+        "fingerprints": {
+          "type": "array"
+        },
+        "groupID": {
+          "type": "string",
+          "nullable": true
+        },
+        "groupingConfig": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string",
+          "nullable": true
+        },
+        "measurements": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "nullable": true
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "nextEventID": {
+          "type": "string",
+          "nullable": true
+        },
+        "occurrence": {
+          "type": "string"
+        },
+        "packages": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "previousEventID": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectID": {
+          "type": "string"
+        },
+        "release": {
+          "type": "object",
+          "nullable": true
+        },
+        "resolvedWith": {
+          "type": "array"
+        },
+        "sdk": {
+          "type": "object"
+        },
+        "sdkUpdates": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer",
+          "nullable": true
+        },
+        "startTimestamp": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object",
+          "nullable": true
+        },
+        "userReport": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_an_issue_response": {
+      "type": "object",
+      "properties": {
+        "activity": {
+          "type": "array"
+        },
+        "annotations": {
+          "type": "array"
+        },
+        "assignedTo": {
+          "type": "object",
+          "nullable": true
+        },
+        "count": {
+          "type": "string"
+        },
+        "culprit": {
+          "type": "string"
+        },
+        "firstRelease": {
+          "type": "object",
+          "nullable": true
+        },
+        "firstSeen": {
+          "type": "string"
+        },
+        "hasSeen": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "isSubscribed": {
+          "type": "boolean"
+        },
+        "lastRelease": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastSeen": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string"
+        },
+        "logger": {
+          "type": "string",
+          "nullable": true
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "numComments": {
+          "type": "integer"
+        },
+        "participants": {
+          "type": "array"
+        },
+        "permalink": {
+          "type": "string"
+        },
+        "pluginActions": {
+          "type": "array"
+        },
+        "pluginContexts": {
+          "type": "array"
+        },
+        "pluginIssues": {
+          "type": "array"
+        },
+        "project": {
+          "type": "object"
+        },
+        "seenBy": {
+          "type": "array"
+        },
+        "shareId": {
+          "type": "string",
+          "nullable": true
+        },
+        "shortId": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusDetails": {
+          "type": "object"
+        },
+        "subscriptionDetails": {
+          "type": "object",
+          "nullable": true
+        },
+        "tags": {
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "userCount": {
+          "type": "integer"
+        },
+        "userReportCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieve_an_organization_member_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "externalUsers": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inviteStatus": {
+          "type": "string"
+        },
+        "invite_link": {
+          "type": "string",
+          "nullable": true
+        },
+        "inviterName": {
+          "type": "string",
+          "nullable": true
+        },
+        "isOnlyOwner": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "orgRole": {
+          "type": "string"
+        },
+        "orgRoleList": {
+          "type": "array"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string"
+        },
+        "roleName": {
+          "type": "string"
+        },
+        "teamRoleList": {
+          "type": "array"
+        },
+        "teamRoles": {
+          "type": "array"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "retrieve_an_organization_release_s_file_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "headers": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieve_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "allowMemberInvite": {
+          "type": "boolean"
+        },
+        "allowMemberProjectCreation": {
+          "type": "boolean"
+        },
+        "allowSuperuserAccess": {
+          "type": "boolean"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "extraOptions": {
+          "type": "object"
+        },
+        "features": {
+          "type": "array"
+        },
+        "hasAuthProvider": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isEarlyAdopter": {
+          "type": "boolean"
+        },
+        "links": {
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onboardingTasks": {
+          "type": "array"
+        },
+        "require2FA": {
+          "type": "boolean"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "object"
+        }
+      }
+    },
+    "retrieve_an_organization_s_custom_dashboard_response": {
+      "type": "object",
+      "properties": {
+        "createdBy": {
+          "type": "object",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "filters": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isFavorited": {
+          "type": "boolean"
+        },
+        "period": {
+          "type": "string"
+        },
+        "permissions": {
+          "type": "object",
+          "nullable": true
+        },
+        "prebuiltId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "start": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "utc": {
+          "type": "string"
+        },
+        "widgets": {
+          "type": "array"
+        }
+      }
+    },
+    "retrieve_an_organization_s_discover_saved_query_response": {
+      "type": "object",
+      "properties": {
+        "aggregations": {
+          "type": "array"
+        },
+        "conditions": {
+          "type": "array"
+        },
+        "createdBy": {
+          "type": "object"
+        },
+        "datasetSource": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "array"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "exploreQuery": {
+          "type": "object"
+        },
+        "fields": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "orderby": {
+          "type": "string"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "query": {
+          "type": "string"
+        },
+        "queryDataset": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "topEvents": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "widths": {
+          "type": "array"
+        },
+        "yAxis": {
+          "type": "array"
+        }
+      }
+    },
+    "retrieve_an_organization_s_events_count_by_project_response": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "string"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "start": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_an_organization_s_release_response": {
+      "type": "object",
+      "properties": {
+        "adoptionStages": {
+          "type": "object",
+          "nullable": true
+        },
+        "authors": {
+          "type": "array"
+        },
+        "commitCount": {
+          "type": "integer"
+        },
+        "currentProjectMeta": {
+          "type": "object",
+          "nullable": true
+        },
+        "data": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateReleased": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateStarted": {
+          "type": "string",
+          "nullable": true
+        },
+        "deployCount": {
+          "type": "integer"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "integer"
+        },
+        "lastCommit": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastDeploy": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "newGroups": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "ref": {
+          "type": "string",
+          "nullable": true
+        },
+        "shortVersion": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "nullable": true
+        },
+        "userAgent": {
+          "type": "string",
+          "nullable": true
+        },
+        "version": {
+          "type": "string"
+        },
+        "versionInfo": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_event_counts_for_an_organization_v2_response": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array"
+        },
+        "intervals": {
+          "type": "array"
+        },
+        "start": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_install_info_for_a_given_artifact_response": {
+      "type": "object",
+      "properties": {
+        "appInfo": {
+          "type": "object"
+        },
+        "buildConfiguration": {
+          "type": "string",
+          "nullable": true
+        },
+        "buildId": {
+          "type": "string"
+        },
+        "codesigningType": {
+          "type": "string",
+          "nullable": true
+        },
+        "downloadCount": {
+          "type": "integer"
+        },
+        "gitInfo": {
+          "type": "object",
+          "nullable": true
+        },
+        "installGroups": {
+          "type": "array",
+          "nullable": true
+        },
+        "installUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "isCodeSignatureValid": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "isInstallable": {
+          "type": "boolean"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "profileName": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "projectSlug": {
+          "type": "string"
+        },
+        "releaseNotes": {
+          "type": "string",
+          "nullable": true
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_ownership_configuration_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "autoAssignment": {
+          "type": "string"
+        },
+        "codeownersAutoSync": {
+          "type": "boolean"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "fallthrough": {
+          "type": "boolean"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "lastUpdated": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_paginated_list_of_test_results_for_repository_owner_and_organization_response": {
+      "type": "object",
+      "properties": {
+        "defaultBranch": {
+          "type": "string"
+        },
+        "pageInfo": {
+          "type": "object",
+          "description": "Serializer for pagination information"
+        },
+        "results": {
+          "type": "array"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieve_release_health_session_statistics_response": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array"
+        },
+        "intervals": {
+          "type": "array"
+        },
+        "query": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_seer_issue_fix_state_response": {
+      "type": "object",
+      "properties": {
+        "autofix": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_size_analysis_results_for_a_given_artifact_response": {
+      "type": "object",
+      "properties": {
+        "analysisDuration": {
+          "type": "number",
+          "nullable": true
+        },
+        "analysisVersion": {
+          "type": "string",
+          "nullable": true
+        },
+        "appComponents": {
+          "type": "array",
+          "nullable": true
+        },
+        "appInfo": {
+          "type": "object"
+        },
+        "baseAppInfo": {
+          "type": "object",
+          "nullable": true
+        },
+        "baseBuildId": {
+          "type": "string",
+          "nullable": true
+        },
+        "buildId": {
+          "type": "string"
+        },
+        "comparisons": {
+          "type": "array",
+          "nullable": true
+        },
+        "downloadSize": {
+          "type": "integer",
+          "nullable": true
+        },
+        "errorCode": {
+          "type": "string",
+          "nullable": true
+        },
+        "errorMessage": {
+          "type": "string",
+          "nullable": true
+        },
+        "gitInfo": {
+          "type": "object",
+          "nullable": true
+        },
+        "insights": {
+          "type": "object",
+          "nullable": true
+        },
+        "installSize": {
+          "type": "integer",
+          "nullable": true
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "retrieve_tag_details_response": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "topValues": {
+          "type": "array",
+          "nullable": true
+        },
+        "totalValues": {
+          "type": "integer",
+          "nullable": true
+        },
+        "uniqueValues": {
+          "type": "integer",
+          "nullable": true
+        }
+      }
+    },
+    "retrieve_test_suites_belonging_to_a_repository_s_test_results_response": {
+      "type": "object",
+      "properties": {
+        "testSuites": {
+          "type": "array"
+        }
+      }
+    },
+    "retrieves_a_paginated_list_of_repository_tokens_for_a_given_owner_response": {
+      "type": "object",
+      "properties": {
+        "pageInfo": {
+          "type": "object",
+          "description": "Serializer for pagination information"
+        },
+        "results": {
+          "type": "array"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieves_a_single_repository_for_a_given_owner_response": {
+      "type": "object",
+      "properties": {
+        "testAnalyticsEnabled": {
+          "type": "boolean"
+        },
+        "uploadToken": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "retrieves_list_of_branches_for_a_given_owner_and_repository_response": {
+      "type": "object",
+      "properties": {
+        "defaultBranch": {
+          "type": "string"
+        },
+        "pageInfo": {
+          "type": "object",
+          "description": "Serializer for pagination information"
+        },
+        "results": {
+          "type": "array"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "retrieves_list_of_repositories_for_a_given_owner_response": {
+      "type": "object",
+      "properties": {
+        "pageInfo": {
+          "type": "object",
+          "description": "Serializer for pagination information"
+        },
+        "results": {
+          "type": "array"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "submit_user_feedback_response": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "event": {
+          "type": "object"
+        },
+        "eventID": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "user": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "syncs_repositories_from_an_integrated_org_with_git_hub_response": {
+      "type": "object",
+      "properties": {
+        "isSyncing": {
+          "type": "boolean"
+        }
+      }
+    },
+    "update_a_client_key_response": {
+      "type": "object",
+      "properties": {
+        "browserSdk": {
+          "type": "object"
+        },
+        "browserSdkVersion": {
+          "type": "string"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "dsn": {
+          "type": "object"
+        },
+        "dynamicSdkLoaderOptions": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "integer"
+        },
+        "public": {
+          "type": "string",
+          "nullable": true
+        },
+        "rateLimit": {
+          "type": "object",
+          "nullable": true
+        },
+        "secret": {
+          "type": "string",
+          "nullable": true
+        },
+        "useCase": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_data_forwarder_for_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object"
+        },
+        "dateAdded": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "enrollNewProjects": {
+          "type": "boolean"
+        },
+        "enrolledProjects": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isEnabled": {
+          "type": "boolean"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "projectConfigs": {
+          "type": "array"
+        },
+        "provider": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_monitor_by_id_response": {
+      "type": "object",
+      "properties": {
+        "conditionGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dataSources": {
+          "type": "array",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "latestGroup": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "openIssues": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "workflowIds": {
+          "type": "array",
+          "nullable": true
+        }
+      }
+    },
+    "update_a_monitor_for_a_project_response": {
+      "type": "object",
+      "properties": {
+        "alertRule": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isUpserting": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "project": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_monitor_response": {
+      "type": "object",
+      "properties": {
+        "alertRule": {
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "environments": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isUpserting": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "object"
+        },
+        "project": {
+          "type": "object"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_project_environment_response": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "isHidden": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_project_release_file_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "headers": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "update_a_project_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "allowedDomains": {
+          "type": "array"
+        },
+        "autofixAutomationTuning": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "builtinSymbolSources": {
+          "type": "array"
+        },
+        "color": {
+          "type": "string"
+        },
+        "dataScrubber": {
+          "type": "boolean"
+        },
+        "dataScrubberDefaults": {
+          "type": "boolean"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "debugFilesRole": {
+          "type": "string",
+          "nullable": true
+        },
+        "defaultEnvironment": {
+          "type": "string",
+          "nullable": true
+        },
+        "derivedGroupingEnhancements": {
+          "type": "string"
+        },
+        "digestsMaxDelay": {
+          "type": "integer"
+        },
+        "digestsMinDelay": {
+          "type": "integer"
+        },
+        "dynamicSamplingBiases": {
+          "type": "array"
+        },
+        "features": {
+          "type": "array"
+        },
+        "fingerprintingRules": {
+          "type": "string"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "firstTransactionEvent": {
+          "type": "boolean"
+        },
+        "groupingConfig": {
+          "type": "string"
+        },
+        "groupingEnhancements": {
+          "type": "string"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "hasFeedbacks": {
+          "type": "boolean"
+        },
+        "hasFlags": {
+          "type": "boolean"
+        },
+        "hasInsightsAgentMonitoring": {
+          "type": "boolean"
+        },
+        "hasInsightsAppStart": {
+          "type": "boolean"
+        },
+        "hasInsightsAssets": {
+          "type": "boolean"
+        },
+        "hasInsightsCaches": {
+          "type": "boolean"
+        },
+        "hasInsightsDb": {
+          "type": "boolean"
+        },
+        "hasInsightsHttp": {
+          "type": "boolean"
+        },
+        "hasInsightsMCP": {
+          "type": "boolean"
+        },
+        "hasInsightsQueues": {
+          "type": "boolean"
+        },
+        "hasInsightsScreenLoad": {
+          "type": "boolean"
+        },
+        "hasInsightsVitals": {
+          "type": "boolean"
+        },
+        "hasLogs": {
+          "type": "boolean"
+        },
+        "hasMinifiedStackTrace": {
+          "type": "boolean"
+        },
+        "hasMonitors": {
+          "type": "boolean"
+        },
+        "hasNewFeedbacks": {
+          "type": "boolean"
+        },
+        "hasProfiles": {
+          "type": "boolean"
+        },
+        "hasReplays": {
+          "type": "boolean"
+        },
+        "hasSessions": {
+          "type": "boolean"
+        },
+        "hasTraceMetrics": {
+          "type": "boolean"
+        },
+        "highlightContext": {
+          "type": "object"
+        },
+        "highlightPreset": {
+          "type": "object"
+        },
+        "highlightTags": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isDynamicallySampled": {
+          "type": "boolean"
+        },
+        "isInternal": {
+          "type": "boolean"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "latestRelease": {
+          "type": "object",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object"
+        },
+        "organization": {
+          "type": "object"
+        },
+        "platform": {
+          "type": "string",
+          "nullable": true
+        },
+        "platforms": {
+          "type": "array"
+        },
+        "plugins": {
+          "type": "array"
+        },
+        "processingIssues": {
+          "type": "integer"
+        },
+        "relayPiiConfig": {
+          "type": "string",
+          "nullable": true
+        },
+        "resolveAge": {
+          "type": "integer"
+        },
+        "safeFields": {
+          "type": "array"
+        },
+        "scmSourceContextEnabled": {
+          "type": "boolean"
+        },
+        "scrapeJavaScript": {
+          "type": "boolean"
+        },
+        "scrubIPAddresses": {
+          "type": "boolean"
+        },
+        "secondaryGroupingConfig": {
+          "type": "string",
+          "nullable": true
+        },
+        "secondaryGroupingExpiry": {
+          "type": "integer"
+        },
+        "securityToken": {
+          "type": "string"
+        },
+        "securityTokenHeader": {
+          "type": "string",
+          "nullable": true
+        },
+        "seerScannerAutomation": {
+          "type": "boolean"
+        },
+        "sensitiveFields": {
+          "type": "array"
+        },
+        "sessionStats": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "stats": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "storeCrashReports": {
+          "type": "integer",
+          "nullable": true
+        },
+        "subjectPrefix": {
+          "type": "string"
+        },
+        "subjectTemplate": {
+          "type": "string"
+        },
+        "symbolSources": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "tempestFetchScreenshots": {
+          "type": "boolean"
+        },
+        "transactionStats": {
+          "type": "string"
+        },
+        "verifySSL": {
+          "type": "boolean"
+        }
+      }
+    },
+    "update_a_service_hook_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "update_a_team_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "externalTeams": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "hasAccess": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isMember": {
+          "type": "boolean"
+        },
+        "isPending": {
+          "type": "boolean"
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "object"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "teamRole": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "update_an_alert_by_id_response": {
+      "type": "object",
+      "properties": {
+        "actionFilters": {
+          "type": "array",
+          "nullable": true
+        },
+        "config": {
+          "type": "object"
+        },
+        "createdBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "dateUpdated": {
+          "type": "string"
+        },
+        "detectorIds": {
+          "type": "array",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "lastTriggered": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "organizationId": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "nullable": true
+        },
+        "triggers": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "update_an_existing_custom_integration_response": {
+      "type": "object",
+      "properties": {
+        "allowedOrigins": {
+          "type": "array"
+        },
+        "author": {
+          "type": "string",
+          "nullable": true
+        },
+        "avatars": {
+          "type": "array"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "clientSecret": {
+          "type": "string",
+          "nullable": true
+        },
+        "datePublished": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array"
+        },
+        "featureData": {
+          "type": "array"
+        },
+        "isAlertable": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "overview": {
+          "type": "string",
+          "nullable": true
+        },
+        "owner": {
+          "type": "object"
+        },
+        "popularity": {
+          "type": "integer",
+          "nullable": true
+        },
+        "redirectUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "schema": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "verifyInstall": {
+          "type": "boolean"
+        },
+        "webhookUrl": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "update_an_external_team_response": {
+      "type": "object",
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "externalName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integrationId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "teamId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      }
+    },
+    "update_an_external_user_response": {
+      "type": "object",
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "externalName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "integrationId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "teamId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      }
+    },
+    "update_an_issue_response": {
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "type": "array"
+        },
+        "assignedTo": {
+          "type": "object",
+          "nullable": true
+        },
+        "count": {
+          "type": "string"
+        },
+        "culprit": {
+          "type": "string"
+        },
+        "firstSeen": {
+          "type": "string"
+        },
+        "hasSeen": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isBookmarked": {
+          "type": "boolean"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "isSubscribed": {
+          "type": "boolean"
+        },
+        "lastSeen": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string"
+        },
+        "logger": {
+          "type": "string",
+          "nullable": true
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "numComments": {
+          "type": "integer"
+        },
+        "permalink": {
+          "type": "string"
+        },
+        "project": {
+          "type": "object"
+        },
+        "shareId": {
+          "type": "string",
+          "nullable": true
+        },
+        "shortId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusDetails": {
+          "type": "object"
+        },
+        "subscriptionDetails": {
+          "type": "object",
+          "nullable": true
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "userCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "update_an_organization_member_s_roles_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "externalUsers": {
+          "type": "array"
+        },
+        "flags": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inviteStatus": {
+          "type": "string"
+        },
+        "invite_link": {
+          "type": "string",
+          "nullable": true
+        },
+        "inviterName": {
+          "type": "string",
+          "nullable": true
+        },
+        "isOnlyOwner": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "orgRole": {
+          "type": "string"
+        },
+        "orgRoleList": {
+          "type": "array"
+        },
+        "pending": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string"
+        },
+        "roleName": {
+          "type": "string"
+        },
+        "teamRoleList": {
+          "type": "array"
+        },
+        "teamRoles": {
+          "type": "array"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "user": {
+          "type": "object"
+        }
+      }
+    },
+    "update_an_organization_member_s_team_role_response": {
+      "type": "object",
+      "properties": {
+        "isActive": {
+          "type": "boolean"
+        },
+        "teamRole": {
+          "type": "string"
+        }
+      }
+    },
+    "update_an_organization_release_file_response": {
+      "type": "object",
+      "properties": {
+        "dateCreated": {
+          "type": "string"
+        },
+        "dist": {
+          "type": "string",
+          "nullable": true
+        },
+        "headers": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha1": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "update_an_organization_response": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array"
+        },
+        "aggregatedDataConsent": {
+          "type": "boolean"
+        },
+        "alertsMemberWrite": {
+          "type": "boolean"
+        },
+        "allowJoinRequests": {
+          "type": "boolean"
+        },
+        "allowMemberInvite": {
+          "type": "boolean"
+        },
+        "allowMemberProjectCreation": {
+          "type": "boolean"
+        },
+        "allowSharedIssues": {
+          "type": "boolean"
+        },
+        "allowSuperuserAccess": {
+          "type": "boolean"
+        },
+        "attachmentsRole": {
+          "type": "string"
+        },
+        "autoEnableCodeReview": {
+          "type": "boolean"
+        },
+        "autoOpenPrs": {
+          "type": "boolean"
+        },
+        "avatar": {
+          "type": "object"
+        },
+        "codecovAccess": {
+          "type": "boolean"
+        },
+        "dataScrubber": {
+          "type": "boolean"
+        },
+        "dataScrubberDefaults": {
+          "type": "boolean"
+        },
+        "dateCreated": {
+          "type": "string"
+        },
+        "debugFilesRole": {
+          "type": "string"
+        },
+        "defaultAutofixAutomationTuning": {
+          "type": "string"
+        },
+        "defaultAutomatedRunStoppingPoint": {
+          "type": "string"
+        },
+        "defaultCodeReviewTriggers": {
+          "type": "array"
+        },
+        "defaultCodingAgent": {
+          "type": "string"
+        },
+        "defaultCodingAgentIntegrationId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "defaultRole": {
+          "type": "string"
+        },
+        "defaultSeerScannerAutomation": {
+          "type": "boolean"
+        },
+        "desiredSampleRate": {
+          "type": "number"
+        },
+        "enableSeerCoding": {
+          "type": "boolean"
+        },
+        "enableSeerEnhancedAlerts": {
+          "type": "boolean"
+        },
+        "enhancedPrivacy": {
+          "type": "boolean"
+        },
+        "eventsMemberAdmin": {
+          "type": "boolean"
+        },
+        "experiments": {
+          "type": "object"
+        },
+        "extraOptions": {
+          "type": "object"
+        },
+        "features": {
+          "type": "array"
+        },
+        "githubNudgeInvite": {
+          "type": "boolean"
+        },
+        "githubPRBot": {
+          "type": "boolean"
+        },
+        "gitlabPRBot": {
+          "type": "boolean"
+        },
+        "hasAuthProvider": {
+          "type": "boolean"
+        },
+        "hideAiFeatures": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isDynamicallySampled": {
+          "type": "boolean"
+        },
+        "isEarlyAdopter": {
+          "type": "boolean"
+        },
+        "issueAlertsThreadFlag": {
+          "type": "boolean"
+        },
+        "links": {
+          "type": "object"
+        },
+        "metricAlertsThreadFlag": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onboardingTasks": {
+          "type": "array"
+        },
+        "openMembership": {
+          "type": "boolean"
+        },
+        "orgRole": {
+          "type": "string"
+        },
+        "orgRoleList": {
+          "type": "array"
+        },
+        "pendingAccessRequests": {
+          "type": "integer"
+        },
+        "planSampleRate": {
+          "type": "number"
+        },
+        "projects": {
+          "type": "array"
+        },
+        "relayPiiConfig": {
+          "type": "string",
+          "nullable": true
+        },
+        "require2FA": {
+          "type": "boolean"
+        },
+        "requiresSso": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string"
+        },
+        "safeFields": {
+          "type": "array"
+        },
+        "samplingMode": {
+          "type": "string"
+        },
+        "scrapeJavaScript": {
+          "type": "boolean"
+        },
+        "scrubIPAddresses": {
+          "type": "boolean"
+        },
+        "sensitiveFields": {
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "object"
+        },
+        "storeCrashReports": {
+          "type": "integer"
+        },
+        "targetSampleRate": {
+          "type": "number"
+        },
+        "teamRoleList": {
+          "type": "array"
+        },
+        "teams": {
+          "type": "array"
+        },
+        "trustedRelays": {
+          "type": "array"
+        }
+      }
+    },
+    "update_an_organization_s_release_response": {
+      "type": "object",
+      "properties": {
+        "adoptionStages": {
+          "type": "object",
+          "nullable": true
+        },
+        "authors": {
+          "type": "array"
+        },
+        "commitCount": {
+          "type": "integer"
+        },
+        "currentProjectMeta": {
+          "type": "object",
+          "nullable": true
+        },
+        "data": {
+          "type": "object"
+        },
+        "dateCreated": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateReleased": {
+          "type": "string",
+          "nullable": true
+        },
+        "dateStarted": {
+          "type": "string",
+          "nullable": true
+        },
+        "deployCount": {
+          "type": "integer"
+        },
+        "firstEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "integer"
+        },
+        "lastCommit": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastDeploy": {
+          "type": "object",
+          "nullable": true
+        },
+        "lastEvent": {
+          "type": "string",
+          "nullable": true
+        },
+        "newGroups": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "object",
+          "nullable": true
+        },
+        "projects": {
+          "type": "array"
+        },
+        "ref": {
+          "type": "string",
+          "nullable": true
+        },
+        "shortVersion": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "nullable": true
+        },
+        "userAgent": {
+          "type": "string",
+          "nullable": true
+        },
+        "version": {
+          "type": "string"
+        },
+        "versionInfo": {
+          "type": "object",
+          "nullable": true
         }
       }
     }

@@ -32,7 +32,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.apps.approve"
-      }
+      },
+      "response_schema": "admin_apps_approve_response"
     },
     "admin_apps_approved_list": {
       "display_name": "Admin Apps Approved List",
@@ -72,7 +73,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_apps_approved_list_response"
     },
     "admin_apps_requests_list": {
       "display_name": "Admin Apps Requests List",
@@ -108,7 +110,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_apps_requests_list_response"
     },
     "admin_apps_restrict": {
       "display_name": "Admin Apps Restrict",
@@ -122,7 +125,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.apps.restrict"
-      }
+      },
+      "response_schema": "admin_apps_restrict_response"
     },
     "admin_apps_restricted_list": {
       "display_name": "Admin Apps Restricted List",
@@ -162,7 +166,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_apps_restricted_list_response"
     },
     "admin_conversations_archive": {
       "display_name": "Admin Conversations Archive",
@@ -176,7 +181,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.archive"
-      }
+      },
+      "response_schema": "admin_conversations_archive_response"
     },
     "admin_conversations_convert_to_private": {
       "display_name": "Admin Conversations Convert To Private",
@@ -190,7 +196,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.convertToPrivate"
-      }
+      },
+      "response_schema": "admin_conversations_convert_to_private_response"
     },
     "admin_conversations_create": {
       "display_name": "Admin Conversations Create",
@@ -204,7 +211,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.create"
-      }
+      },
+      "response_schema": "admin_conversations_create_response"
     },
     "admin_conversations_delete": {
       "display_name": "Admin Conversations Delete",
@@ -218,7 +226,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.delete"
-      }
+      },
+      "response_schema": "admin_conversations_delete_response"
     },
     "admin_conversations_disconnect_shared": {
       "display_name": "Admin Conversations Disconnect Shared",
@@ -232,7 +241,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.disconnectShared"
-      }
+      },
+      "response_schema": "admin_conversations_disconnect_shared_response"
     },
     "admin_conversations_ekm_list_original_connected_channel_info": {
       "display_name": "Admin Conversations Ekm List Original Connected Channel Info",
@@ -274,7 +284,8 @@
           "team_ids": "team_ids",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_conversations_ekm_list_original_connected_channel_info_response"
     },
     "admin_conversations_get_conversation_prefs": {
       "display_name": "Admin Conversations Get Conversation Prefs",
@@ -296,7 +307,8 @@
         "query_mapping": {
           "channel_id": "channel_id"
         }
-      }
+      },
+      "response_schema": "admin_conversations_get_conversation_prefs_response"
     },
     "admin_conversations_get_teams": {
       "display_name": "Admin Conversations Get Teams",
@@ -328,7 +340,8 @@
           "cursor": "cursor",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "admin_conversations_get_teams_response"
     },
     "admin_conversations_invite": {
       "display_name": "Admin Conversations Invite",
@@ -342,7 +355,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.invite"
-      }
+      },
+      "response_schema": "admin_conversations_invite_response"
     },
     "admin_conversations_rename": {
       "display_name": "Admin Conversations Rename",
@@ -356,7 +370,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.rename"
-      }
+      },
+      "response_schema": "admin_conversations_rename_response"
     },
     "admin_conversations_restrict_access_add_group": {
       "display_name": "Admin Conversations Restrict Access Add Group",
@@ -370,7 +385,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.restrictAccess.addGroup"
-      }
+      },
+      "response_schema": "admin_conversations_restrict_access_add_group_response"
     },
     "admin_conversations_restrict_access_list_groups": {
       "display_name": "Admin Conversations Restrict Access List Groups",
@@ -401,7 +417,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_conversations_restrict_access_list_groups_response"
     },
     "admin_conversations_restrict_access_remove_group": {
       "display_name": "Admin Conversations Restrict Access Remove Group",
@@ -415,7 +432,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.restrictAccess.removeGroup"
-      }
+      },
+      "response_schema": "admin_conversations_restrict_access_remove_group_response"
     },
     "admin_conversations_search": {
       "display_name": "Admin Conversations Search",
@@ -467,7 +485,8 @@
           "sort_dir": "sort_dir",
           "team_ids": "team_ids"
         }
-      }
+      },
+      "response_schema": "admin_conversations_search_response"
     },
     "admin_conversations_set_conversation_prefs": {
       "display_name": "Admin Conversations Set Conversation Prefs",
@@ -481,7 +500,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.setConversationPrefs"
-      }
+      },
+      "response_schema": "admin_conversations_set_conversation_prefs_response"
     },
     "admin_conversations_set_teams": {
       "display_name": "Admin Conversations Set Teams",
@@ -495,7 +515,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.setTeams"
-      }
+      },
+      "response_schema": "admin_conversations_set_teams_response"
     },
     "admin_conversations_unarchive": {
       "display_name": "Admin Conversations Unarchive",
@@ -509,7 +530,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.conversations.unarchive"
-      }
+      },
+      "response_schema": "admin_conversations_unarchive_response"
     },
     "admin_emoji_add": {
       "display_name": "Admin Emoji Add",
@@ -523,7 +545,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.emoji.add"
-      }
+      },
+      "response_schema": "admin_emoji_add_response"
     },
     "admin_emoji_add_alias": {
       "display_name": "Admin Emoji Add Alias",
@@ -537,7 +560,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.emoji.addAlias"
-      }
+      },
+      "response_schema": "admin_emoji_add_alias_response"
     },
     "admin_emoji_list": {
       "display_name": "Admin Emoji List",
@@ -569,7 +593,8 @@
           "limit": "limit",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_emoji_list_response"
     },
     "admin_emoji_remove": {
       "display_name": "Admin Emoji Remove",
@@ -583,7 +608,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.emoji.remove"
-      }
+      },
+      "response_schema": "admin_emoji_remove_response"
     },
     "admin_emoji_rename": {
       "display_name": "Admin Emoji Rename",
@@ -597,7 +623,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.emoji.rename"
-      }
+      },
+      "response_schema": "admin_emoji_rename_response"
     },
     "admin_invite_requests_approve": {
       "display_name": "Admin Invite Requests Approve",
@@ -611,7 +638,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.inviteRequests.approve"
-      }
+      },
+      "response_schema": "admin_invite_requests_approve_response"
     },
     "admin_invite_requests_approved_list": {
       "display_name": "Admin Invite Requests Approved List",
@@ -643,7 +671,8 @@
           "limit": "limit",
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "admin_invite_requests_approved_list_response"
     },
     "admin_invite_requests_denied_list": {
       "display_name": "Admin Invite Requests Denied List",
@@ -675,7 +704,8 @@
           "limit": "limit",
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "admin_invite_requests_denied_list_response"
     },
     "admin_invite_requests_deny": {
       "display_name": "Admin Invite Requests Deny",
@@ -689,7 +719,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.inviteRequests.deny"
-      }
+      },
+      "response_schema": "admin_invite_requests_deny_response"
     },
     "admin_invite_requests_list": {
       "display_name": "Admin Invite Requests List",
@@ -721,7 +752,8 @@
           "limit": "limit",
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "admin_invite_requests_list_response"
     },
     "admin_teams_admins_list": {
       "display_name": "Admin Teams Admins List",
@@ -757,7 +789,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_teams_admins_list_response"
     },
     "admin_teams_create": {
       "display_name": "Admin Teams Create",
@@ -771,7 +804,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.create"
-      }
+      },
+      "response_schema": "admin_teams_create_response"
     },
     "admin_teams_list": {
       "display_name": "Admin Teams List",
@@ -798,7 +832,8 @@
           "cursor": "cursor",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "admin_teams_list_response"
     },
     "admin_teams_owners_list": {
       "display_name": "Admin Teams Owners List",
@@ -834,7 +869,8 @@
           "team_id": "team_id",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "admin_teams_owners_list_response"
     },
     "admin_teams_settings_info": {
       "display_name": "Admin Teams Settings Info",
@@ -855,7 +891,8 @@
         "query_mapping": {
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "admin_teams_settings_info_response"
     },
     "admin_teams_settings_set_default_channels": {
       "display_name": "Admin Teams Settings Set Default Channels",
@@ -869,7 +906,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.settings.setDefaultChannels"
-      }
+      },
+      "response_schema": "admin_teams_settings_set_default_channels_response"
     },
     "admin_teams_settings_set_description": {
       "display_name": "Admin Teams Settings Set Description",
@@ -883,7 +921,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.settings.setDescription"
-      }
+      },
+      "response_schema": "admin_teams_settings_set_description_response"
     },
     "admin_teams_settings_set_discoverability": {
       "display_name": "Admin Teams Settings Set Discoverability",
@@ -897,7 +936,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.settings.setDiscoverability"
-      }
+      },
+      "response_schema": "admin_teams_settings_set_discoverability_response"
     },
     "admin_teams_settings_set_icon": {
       "display_name": "Admin Teams Settings Set Icon",
@@ -911,7 +951,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.settings.setIcon"
-      }
+      },
+      "response_schema": "admin_teams_settings_set_icon_response"
     },
     "admin_teams_settings_set_name": {
       "display_name": "Admin Teams Settings Set Name",
@@ -925,7 +966,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.teams.settings.setName"
-      }
+      },
+      "response_schema": "admin_teams_settings_set_name_response"
     },
     "admin_usergroups_add_channels": {
       "display_name": "Admin Usergroups Add Channels",
@@ -939,7 +981,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.usergroups.addChannels"
-      }
+      },
+      "response_schema": "admin_usergroups_add_channels_response"
     },
     "admin_usergroups_add_teams": {
       "display_name": "Admin Usergroups Add Teams",
@@ -953,7 +996,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.usergroups.addTeams"
-      }
+      },
+      "response_schema": "admin_usergroups_add_teams_response"
     },
     "admin_usergroups_list_channels": {
       "display_name": "Admin Usergroups List Channels",
@@ -985,7 +1029,8 @@
           "team_id": "team_id",
           "usergroup_id": "usergroup_id"
         }
-      }
+      },
+      "response_schema": "admin_usergroups_list_channels_response"
     },
     "admin_usergroups_remove_channels": {
       "display_name": "Admin Usergroups Remove Channels",
@@ -999,7 +1044,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.usergroups.removeChannels"
-      }
+      },
+      "response_schema": "admin_usergroups_remove_channels_response"
     },
     "admin_users_assign": {
       "display_name": "Admin Users Assign",
@@ -1013,7 +1059,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.assign"
-      }
+      },
+      "response_schema": "admin_users_assign_response"
     },
     "admin_users_invite": {
       "display_name": "Admin Users Invite",
@@ -1027,7 +1074,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.invite"
-      }
+      },
+      "response_schema": "admin_users_invite_response"
     },
     "admin_users_list": {
       "display_name": "Admin Users List",
@@ -1059,7 +1107,8 @@
           "limit": "limit",
           "team_id": "team_id"
         }
-      }
+      },
+      "response_schema": "admin_users_list_response"
     },
     "admin_users_remove": {
       "display_name": "Admin Users Remove",
@@ -1073,7 +1122,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.remove"
-      }
+      },
+      "response_schema": "admin_users_remove_response"
     },
     "admin_users_session_invalidate": {
       "display_name": "Admin Users Session Invalidate",
@@ -1087,7 +1137,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.session.invalidate"
-      }
+      },
+      "response_schema": "admin_users_session_invalidate_response"
     },
     "admin_users_session_reset": {
       "display_name": "Admin Users Session Reset",
@@ -1101,7 +1152,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.session.reset"
-      }
+      },
+      "response_schema": "admin_users_session_reset_response"
     },
     "admin_users_set_admin": {
       "display_name": "Admin Users Set Admin",
@@ -1115,7 +1167,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.setAdmin"
-      }
+      },
+      "response_schema": "admin_users_set_admin_response"
     },
     "admin_users_set_expiration": {
       "display_name": "Admin Users Set Expiration",
@@ -1129,7 +1182,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.setExpiration"
-      }
+      },
+      "response_schema": "admin_users_set_expiration_response"
     },
     "admin_users_set_owner": {
       "display_name": "Admin Users Set Owner",
@@ -1143,7 +1197,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.setOwner"
-      }
+      },
+      "response_schema": "admin_users_set_owner_response"
     },
     "admin_users_set_regular": {
       "display_name": "Admin Users Set Regular",
@@ -1157,7 +1212,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/admin.users.setRegular"
-      }
+      },
+      "response_schema": "admin_users_set_regular_response"
     },
     "api_test": {
       "display_name": "Api Test",
@@ -1184,7 +1240,8 @@
           "error": "error",
           "foo": "foo"
         }
-      }
+      },
+      "response_schema": "api_test_response"
     },
     "apps_event_authorizations_list": {
       "display_name": "Apps Event Authorizations List",
@@ -1213,7 +1270,8 @@
           "event_context": "event_context",
           "limit": "limit"
         }
-      }
+      },
+      "response_schema": "apps_event_authorizations_list_response"
     },
     "apps_permissions_info": {
       "display_name": "Apps Permissions Info",
@@ -1235,7 +1293,8 @@
         "query_mapping": {
           "token": "token"
         }
-      }
+      },
+      "response_schema": "apps_permissions_info_response"
     },
     "apps_permissions_request": {
       "display_name": "Apps Permissions Request",
@@ -1267,7 +1326,8 @@
           "token": "token",
           "trigger_id": "trigger_id"
         }
-      }
+      },
+      "response_schema": "apps_permissions_request_response"
     },
     "apps_permissions_resources_list": {
       "display_name": "Apps Permissions Resources List",
@@ -1299,7 +1359,8 @@
           "limit": "limit",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "apps_permissions_resources_list_response"
     },
     "apps_permissions_scopes_list": {
       "display_name": "Apps Permissions Scopes List",
@@ -1321,7 +1382,8 @@
         "query_mapping": {
           "token": "token"
         }
-      }
+      },
+      "response_schema": "apps_permissions_scopes_list_response"
     },
     "apps_permissions_users_list": {
       "display_name": "Apps Permissions Users List",
@@ -1353,7 +1415,8 @@
           "limit": "limit",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "apps_permissions_users_list_response"
     },
     "apps_permissions_users_request": {
       "display_name": "Apps Permissions Users Request",
@@ -1390,7 +1453,8 @@
           "trigger_id": "trigger_id",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "apps_permissions_users_request_response"
     },
     "apps_uninstall": {
       "display_name": "Apps Uninstall",
@@ -1422,7 +1486,8 @@
           "client_secret": "client_secret",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "apps_uninstall_response"
     },
     "auth_revoke": {
       "display_name": "Auth Revoke",
@@ -1449,7 +1514,8 @@
           "test": "test",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "auth_revoke_response"
     },
     "auth_test": {
       "display_name": "Auth Test",
@@ -1463,7 +1529,8 @@
       "execution": {
         "method": "GET",
         "path": "/api/auth.test"
-      }
+      },
+      "response_schema": "auth_test_response"
     },
     "bots_info": {
       "display_name": "Bots Info",
@@ -1490,7 +1557,8 @@
           "bot": "bot",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "bots_info_response"
     },
     "calls_add": {
       "display_name": "Calls Add",
@@ -1504,7 +1572,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/calls.add"
-      }
+      },
+      "response_schema": "calls_add_response"
     },
     "calls_end": {
       "display_name": "Calls End",
@@ -1518,7 +1587,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/calls.end"
-      }
+      },
+      "response_schema": "calls_end_response"
     },
     "calls_info": {
       "display_name": "Calls Info",
@@ -1540,7 +1610,8 @@
         "query_mapping": {
           "id": "id"
         }
-      }
+      },
+      "response_schema": "calls_info_response"
     },
     "calls_participants_add": {
       "display_name": "Calls Participants Add",
@@ -1554,7 +1625,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/calls.participants.add"
-      }
+      },
+      "response_schema": "calls_participants_add_response"
     },
     "calls_participants_remove": {
       "display_name": "Calls Participants Remove",
@@ -1568,7 +1640,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/calls.participants.remove"
-      }
+      },
+      "response_schema": "calls_participants_remove_response"
     },
     "calls_update": {
       "display_name": "Calls Update",
@@ -1582,7 +1655,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/calls.update"
-      }
+      },
+      "response_schema": "calls_update_response"
     },
     "chat_delete": {
       "display_name": "Chat Delete",
@@ -1596,7 +1670,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.delete"
-      }
+      },
+      "response_schema": "chat_delete_response"
     },
     "chat_delete_scheduled_message": {
       "display_name": "Chat Delete Scheduled Message",
@@ -1610,7 +1685,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.deleteScheduledMessage"
-      }
+      },
+      "response_schema": "chat_delete_scheduled_message_response"
     },
     "chat_get_permalink": {
       "display_name": "Chat Get Permalink",
@@ -1642,7 +1718,8 @@
           "message_ts": "message_ts",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "chat_get_permalink_response"
     },
     "chat_me_message": {
       "display_name": "Chat Me Message",
@@ -1656,7 +1733,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.meMessage"
-      }
+      },
+      "response_schema": "chat_me_message_response"
     },
     "chat_post_ephemeral": {
       "display_name": "Chat Post Ephemeral",
@@ -1670,7 +1748,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.postEphemeral"
-      }
+      },
+      "response_schema": "chat_post_ephemeral_response"
     },
     "chat_post_message": {
       "display_name": "Chat Post Message",
@@ -1684,7 +1763,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.postMessage"
-      }
+      },
+      "response_schema": "chat_post_message_response"
     },
     "chat_schedule_message": {
       "display_name": "Chat Schedule Message",
@@ -1698,7 +1778,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.scheduleMessage"
-      }
+      },
+      "response_schema": "chat_schedule_message_response"
     },
     "chat_scheduled_messages_list": {
       "display_name": "Chat Scheduled Messages List",
@@ -1740,7 +1821,8 @@
           "limit": "limit",
           "oldest": "oldest"
         }
-      }
+      },
+      "response_schema": "chat_scheduled_messages_list_response"
     },
     "chat_unfurl": {
       "display_name": "Chat Unfurl",
@@ -1754,7 +1836,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.unfurl"
-      }
+      },
+      "response_schema": "chat_unfurl_response"
     },
     "chat_update": {
       "display_name": "Chat Update",
@@ -1768,7 +1851,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/chat.update"
-      }
+      },
+      "response_schema": "chat_update_response"
     },
     "conversations_archive": {
       "display_name": "Conversations Archive",
@@ -1782,7 +1866,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.archive"
-      }
+      },
+      "response_schema": "conversations_archive_response"
     },
     "conversations_close": {
       "display_name": "Conversations Close",
@@ -1796,7 +1881,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.close"
-      }
+      },
+      "response_schema": "conversations_close_response"
     },
     "conversations_create": {
       "display_name": "Conversations Create",
@@ -1810,7 +1896,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.create"
-      }
+      },
+      "response_schema": "conversations_create_response"
     },
     "conversations_history": {
       "display_name": "Conversations History",
@@ -1862,7 +1949,8 @@
           "oldest": "oldest",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "conversations_history_response"
     },
     "conversations_info": {
       "display_name": "Conversations Info",
@@ -1899,7 +1987,8 @@
           "include_num_members": "include_num_members",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "conversations_info_response"
     },
     "conversations_invite": {
       "display_name": "Conversations Invite",
@@ -1913,7 +2002,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.invite"
-      }
+      },
+      "response_schema": "conversations_invite_response"
     },
     "conversations_join": {
       "display_name": "Conversations Join",
@@ -1927,7 +2017,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.join"
-      }
+      },
+      "response_schema": "conversations_join_response"
     },
     "conversations_kick": {
       "display_name": "Conversations Kick",
@@ -1941,7 +2032,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.kick"
-      }
+      },
+      "response_schema": "conversations_kick_response"
     },
     "conversations_leave": {
       "display_name": "Conversations Leave",
@@ -1955,7 +2047,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.leave"
-      }
+      },
+      "response_schema": "conversations_leave_response"
     },
     "conversations_list": {
       "display_name": "Conversations List",
@@ -1997,7 +2090,8 @@
           "token": "token",
           "types": "types"
         }
-      }
+      },
+      "response_schema": "conversations_list_response"
     },
     "conversations_mark": {
       "display_name": "Conversations Mark",
@@ -2011,7 +2105,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.mark"
-      }
+      },
+      "response_schema": "conversations_mark_response"
     },
     "conversations_members": {
       "display_name": "Conversations Members",
@@ -2048,7 +2143,8 @@
           "limit": "limit",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "conversations_members_response"
     },
     "conversations_open": {
       "display_name": "Conversations Open",
@@ -2062,7 +2158,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.open"
-      }
+      },
+      "response_schema": "conversations_open_response"
     },
     "conversations_rename": {
       "display_name": "Conversations Rename",
@@ -2076,7 +2173,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.rename"
-      }
+      },
+      "response_schema": "conversations_rename_response"
     },
     "conversations_replies": {
       "display_name": "Conversations Replies",
@@ -2133,7 +2231,8 @@
           "token": "token",
           "ts": "ts"
         }
-      }
+      },
+      "response_schema": "conversations_replies_response"
     },
     "conversations_set_purpose": {
       "display_name": "Conversations Set Purpose",
@@ -2147,7 +2246,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.setPurpose"
-      }
+      },
+      "response_schema": "conversations_set_purpose_response"
     },
     "conversations_set_topic": {
       "display_name": "Conversations Set Topic",
@@ -2161,7 +2261,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.setTopic"
-      }
+      },
+      "response_schema": "conversations_set_topic_response"
     },
     "conversations_unarchive": {
       "display_name": "Conversations Unarchive",
@@ -2175,7 +2276,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/conversations.unarchive"
-      }
+      },
+      "response_schema": "conversations_unarchive_response"
     },
     "dialog_open": {
       "display_name": "Dialog Open",
@@ -2202,7 +2304,8 @@
           "dialog": "dialog",
           "trigger_id": "trigger_id"
         }
-      }
+      },
+      "response_schema": "dialog_open_response"
     },
     "dnd_end_dnd": {
       "display_name": "Dnd End Dnd",
@@ -2216,7 +2319,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/dnd.endDnd"
-      }
+      },
+      "response_schema": "dnd_end_dnd_response"
     },
     "dnd_end_snooze": {
       "display_name": "Dnd End Snooze",
@@ -2230,7 +2334,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/dnd.endSnooze"
-      }
+      },
+      "response_schema": "dnd_end_snooze_response"
     },
     "dnd_info": {
       "display_name": "Dnd Info",
@@ -2257,7 +2362,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "dnd_info_response"
     },
     "dnd_set_snooze": {
       "display_name": "Dnd Set Snooze",
@@ -2271,7 +2377,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/dnd.setSnooze"
-      }
+      },
+      "response_schema": "dnd_set_snooze_response"
     },
     "dnd_team_info": {
       "display_name": "Dnd Team Info",
@@ -2298,7 +2405,8 @@
           "token": "token",
           "users": "users"
         }
-      }
+      },
+      "response_schema": "dnd_team_info_response"
     },
     "emoji_list": {
       "display_name": "Emoji List",
@@ -2320,7 +2428,8 @@
         "query_mapping": {
           "token": "token"
         }
-      }
+      },
+      "response_schema": "emoji_list_response"
     },
     "files_comments_delete": {
       "display_name": "Files Comments Delete",
@@ -2334,7 +2443,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.comments.delete"
-      }
+      },
+      "response_schema": "files_comments_delete_response"
     },
     "files_delete": {
       "display_name": "Files Delete",
@@ -2348,7 +2458,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.delete"
-      }
+      },
+      "response_schema": "files_delete_response"
     },
     "files_info": {
       "display_name": "Files Info",
@@ -2393,7 +2504,8 @@
           "page": "page",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "files_info_response"
     },
     "files_list": {
       "display_name": "Files List",
@@ -2453,7 +2565,8 @@
           "types": "types",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "files_list_response"
     },
     "files_remote_add": {
       "display_name": "Files Remote Add",
@@ -2467,7 +2580,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.remote.add"
-      }
+      },
+      "response_schema": "files_remote_add_response"
     },
     "files_remote_info": {
       "display_name": "Files Remote Info",
@@ -2499,7 +2613,8 @@
           "file": "file",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "files_remote_info_response"
     },
     "files_remote_list": {
       "display_name": "Files Remote List",
@@ -2546,7 +2661,8 @@
           "ts_from": "ts_from",
           "ts_to": "ts_to"
         }
-      }
+      },
+      "response_schema": "files_remote_list_response"
     },
     "files_remote_remove": {
       "display_name": "Files Remote Remove",
@@ -2560,7 +2676,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.remote.remove"
-      }
+      },
+      "response_schema": "files_remote_remove_response"
     },
     "files_remote_share": {
       "display_name": "Files Remote Share",
@@ -2597,7 +2714,8 @@
           "file": "file",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "files_remote_share_response"
     },
     "files_remote_update": {
       "display_name": "Files Remote Update",
@@ -2611,7 +2729,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.remote.update"
-      }
+      },
+      "response_schema": "files_remote_update_response"
     },
     "files_revoke_public_url": {
       "display_name": "Files Revoke Public Url",
@@ -2625,7 +2744,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.revokePublicURL"
-      }
+      },
+      "response_schema": "files_revoke_public_url_response"
     },
     "files_shared_public_url": {
       "display_name": "Files Shared Public Url",
@@ -2639,7 +2759,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.sharedPublicURL"
-      }
+      },
+      "response_schema": "files_shared_public_url_response"
     },
     "files_upload": {
       "display_name": "Files Upload",
@@ -2653,7 +2774,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/files.upload"
-      }
+      },
+      "response_schema": "files_upload_response"
     },
     "migration_exchange": {
       "display_name": "Migration Exchange",
@@ -2690,7 +2812,8 @@
           "token": "token",
           "users": "users"
         }
-      }
+      },
+      "response_schema": "migration_exchange_response"
     },
     "oauth_access": {
       "display_name": "Oauth Access",
@@ -2732,7 +2855,8 @@
           "redirect_uri": "redirect_uri",
           "single_channel": "single_channel"
         }
-      }
+      },
+      "response_schema": "oauth_access_response"
     },
     "oauth_token": {
       "display_name": "Oauth Token",
@@ -2774,7 +2898,8 @@
           "redirect_uri": "redirect_uri",
           "single_channel": "single_channel"
         }
-      }
+      },
+      "response_schema": "oauth_token_response"
     },
     "oauth_v2_access": {
       "display_name": "Oauth V2 Access",
@@ -2811,7 +2936,8 @@
           "code": "code",
           "redirect_uri": "redirect_uri"
         }
-      }
+      },
+      "response_schema": "oauth_v2_access_response"
     },
     "pins_add": {
       "display_name": "Pins Add",
@@ -2825,7 +2951,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/pins.add"
-      }
+      },
+      "response_schema": "pins_add_response"
     },
     "pins_list": {
       "display_name": "Pins List",
@@ -2866,7 +2993,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/pins.remove"
-      }
+      },
+      "response_schema": "pins_remove_response"
     },
     "reactions_add": {
       "display_name": "Reactions Add",
@@ -2880,7 +3008,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/reactions.add"
-      }
+      },
+      "response_schema": "reactions_add_response"
     },
     "reactions_get": {
       "display_name": "Reactions Get",
@@ -2977,7 +3106,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "reactions_list_response"
     },
     "reactions_remove": {
       "display_name": "Reactions Remove",
@@ -2991,7 +3121,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/reactions.remove"
-      }
+      },
+      "response_schema": "reactions_remove_response"
     },
     "reminders_add": {
       "display_name": "Reminders Add",
@@ -3005,7 +3136,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/reminders.add"
-      }
+      },
+      "response_schema": "reminders_add_response"
     },
     "reminders_complete": {
       "display_name": "Reminders Complete",
@@ -3019,7 +3151,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/reminders.complete"
-      }
+      },
+      "response_schema": "reminders_complete_response"
     },
     "reminders_delete": {
       "display_name": "Reminders Delete",
@@ -3033,7 +3166,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/reminders.delete"
-      }
+      },
+      "response_schema": "reminders_delete_response"
     },
     "reminders_info": {
       "display_name": "Reminders Info",
@@ -3060,7 +3194,8 @@
           "reminder": "reminder",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "reminders_info_response"
     },
     "reminders_list": {
       "display_name": "Reminders List",
@@ -3082,7 +3217,8 @@
         "query_mapping": {
           "token": "token"
         }
-      }
+      },
+      "response_schema": "reminders_list_response"
     },
     "rtm_connect": {
       "display_name": "Rtm Connect",
@@ -3114,7 +3250,8 @@
           "presence_sub": "presence_sub",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "rtm_connect_response"
     },
     "search_messages": {
       "display_name": "Search Messages",
@@ -3165,7 +3302,8 @@
           "sort_dir": "sort_dir",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "search_messages_response"
     },
     "stars_add": {
       "display_name": "Stars Add",
@@ -3179,7 +3317,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/stars.add"
-      }
+      },
+      "response_schema": "stars_add_response"
     },
     "stars_list": {
       "display_name": "Stars List",
@@ -3219,7 +3358,8 @@
           "page": "page",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "stars_list_response"
     },
     "stars_remove": {
       "display_name": "Stars Remove",
@@ -3233,7 +3373,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/stars.remove"
-      }
+      },
+      "response_schema": "stars_remove_response"
     },
     "team_access_logs": {
       "display_name": "Team Access Logs",
@@ -3268,7 +3409,8 @@
           "page": "page",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "team_access_logs_response"
     },
     "team_billable_info": {
       "display_name": "Team Billable Info",
@@ -3295,7 +3437,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "team_billable_info_response"
     },
     "team_info": {
       "display_name": "Team Info",
@@ -3322,7 +3465,8 @@
           "team": "team",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "team_info_response"
     },
     "team_integration_logs": {
       "display_name": "Team Integration Logs",
@@ -3372,7 +3516,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "team_integration_logs_response"
     },
     "team_profile_get": {
       "display_name": "Team Profile Get",
@@ -3399,7 +3544,8 @@
           "token": "token",
           "visibility": "visibility"
         }
-      }
+      },
+      "response_schema": "team_profile_get_response"
     },
     "usergroups_create": {
       "display_name": "Usergroups Create",
@@ -3413,7 +3559,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/usergroups.create"
-      }
+      },
+      "response_schema": "usergroups_create_response"
     },
     "usergroups_disable": {
       "display_name": "Usergroups Disable",
@@ -3427,7 +3574,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/usergroups.disable"
-      }
+      },
+      "response_schema": "usergroups_disable_response"
     },
     "usergroups_enable": {
       "display_name": "Usergroups Enable",
@@ -3441,7 +3589,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/usergroups.enable"
-      }
+      },
+      "response_schema": "usergroups_enable_response"
     },
     "usergroups_list": {
       "display_name": "Usergroups List",
@@ -3478,7 +3627,8 @@
           "include_users": "include_users",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "usergroups_list_response"
     },
     "usergroups_update": {
       "display_name": "Usergroups Update",
@@ -3492,7 +3642,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/usergroups.update"
-      }
+      },
+      "response_schema": "usergroups_update_response"
     },
     "usergroups_users_list": {
       "display_name": "Usergroups Users List",
@@ -3524,7 +3675,8 @@
           "token": "token",
           "usergroup": "usergroup"
         }
-      }
+      },
+      "response_schema": "usergroups_users_list_response"
     },
     "usergroups_users_update": {
       "display_name": "Usergroups Users Update",
@@ -3538,7 +3690,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/usergroups.users.update"
-      }
+      },
+      "response_schema": "usergroups_users_update_response"
     },
     "users_conversations": {
       "display_name": "Users Conversations",
@@ -3585,7 +3738,8 @@
           "types": "types",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "users_conversations_response"
     },
     "users_delete_photo": {
       "display_name": "Users Delete Photo",
@@ -3599,7 +3753,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/users.deletePhoto"
-      }
+      },
+      "response_schema": "users_delete_photo_response"
     },
     "users_get_presence": {
       "display_name": "Users Get Presence",
@@ -3626,7 +3781,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "users_get_presence_response"
     },
     "users_identity": {
       "display_name": "Users Identity",
@@ -3680,7 +3836,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "users_info_response"
     },
     "users_list": {
       "display_name": "Users List",
@@ -3717,7 +3874,8 @@
           "limit": "limit",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "users_list_response"
     },
     "users_lookup_by_email": {
       "display_name": "Users Lookup By Email",
@@ -3744,7 +3902,8 @@
           "email": "email",
           "token": "token"
         }
-      }
+      },
+      "response_schema": "users_lookup_by_email_response"
     },
     "users_profile_get": {
       "display_name": "Users Profile Get",
@@ -3776,7 +3935,8 @@
           "token": "token",
           "user": "user"
         }
-      }
+      },
+      "response_schema": "users_profile_get_response"
     },
     "users_profile_set": {
       "display_name": "Users Profile Set",
@@ -3790,7 +3950,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/users.profile.set"
-      }
+      },
+      "response_schema": "users_profile_set_response"
     },
     "users_set_active": {
       "display_name": "Users Set Active",
@@ -3804,7 +3965,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/users.setActive"
-      }
+      },
+      "response_schema": "users_set_active_response"
     },
     "users_set_photo": {
       "display_name": "Users Set Photo",
@@ -3818,7 +3980,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/users.setPhoto"
-      }
+      },
+      "response_schema": "users_set_photo_response"
     },
     "users_set_presence": {
       "display_name": "Users Set Presence",
@@ -3832,7 +3995,8 @@
       "execution": {
         "method": "POST",
         "path": "/api/users.setPresence"
-      }
+      },
+      "response_schema": "users_set_presence_response"
     },
     "views_open": {
       "display_name": "Views Open",
@@ -3859,7 +4023,8 @@
           "trigger_id": "trigger_id",
           "view": "view"
         }
-      }
+      },
+      "response_schema": "views_open_response"
     },
     "views_publish": {
       "display_name": "Views Publish",
@@ -3891,7 +4056,8 @@
           "user_id": "user_id",
           "view": "view"
         }
-      }
+      },
+      "response_schema": "views_publish_response"
     },
     "views_push": {
       "display_name": "Views Push",
@@ -3918,7 +4084,8 @@
           "trigger_id": "trigger_id",
           "view": "view"
         }
-      }
+      },
+      "response_schema": "views_push_response"
     },
     "views_update": {
       "display_name": "Views Update",
@@ -3955,7 +4122,8 @@
           "view": "view",
           "view_id": "view_id"
         }
-      }
+      },
+      "response_schema": "views_update_response"
     },
     "workflows_step_completed": {
       "display_name": "Workflows Step Completed",
@@ -3982,7 +4150,8 @@
           "outputs": "outputs",
           "workflow_step_execute_id": "workflow_step_execute_id"
         }
-      }
+      },
+      "response_schema": "workflows_step_completed_response"
     },
     "workflows_step_failed": {
       "display_name": "Workflows Step Failed",
@@ -4009,7 +4178,8 @@
           "error": "error",
           "workflow_step_execute_id": "workflow_step_execute_id"
         }
-      }
+      },
+      "response_schema": "workflows_step_failed_response"
     },
     "workflows_update_step": {
       "display_name": "Workflows Update Step",
@@ -4050,6 +4220,1812 @@
           "step_image_url": "step_image_url",
           "step_name": "step_name",
           "workflow_step_edit_id": "workflow_step_edit_id"
+        }
+      },
+      "response_schema": "workflows_update_step_response"
+    }
+  },
+  "schemas": {
+    "admin_apps_approve_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_apps_approved_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_apps_requests_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_apps_restrict_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_apps_restricted_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_archive_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_convert_to_private_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_create_response": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_delete_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_disconnect_shared_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_ekm_list_original_connected_channel_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_get_conversation_prefs_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "prefs": {
+          "type": "object"
+        }
+      }
+    },
+    "admin_conversations_get_teams_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        },
+        "team_ids": {
+          "type": "array"
+        }
+      }
+    },
+    "admin_conversations_invite_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_rename_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_restrict_access_add_group_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_restrict_access_list_groups_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_restrict_access_remove_group_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_search_response": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array"
+        },
+        "next_cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "admin_conversations_set_conversation_prefs_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_set_teams_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_conversations_unarchive_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_emoji_add_alias_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_emoji_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_emoji_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_emoji_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_emoji_rename_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_invite_requests_approve_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_invite_requests_approved_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_invite_requests_denied_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_invite_requests_deny_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_invite_requests_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_admins_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_create_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_owners_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_set_default_channels_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_set_description_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_set_discoverability_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_set_icon_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_teams_settings_set_name_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_usergroups_add_channels_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_usergroups_add_teams_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_usergroups_list_channels_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_usergroups_remove_channels_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_assign_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_invite_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_session_invalidate_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_session_reset_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_set_admin_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_set_expiration_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_set_owner_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "admin_users_set_regular_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "api_test_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_event_authorizations_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_permissions_info_response": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_permissions_request_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_permissions_resources_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "resources": {
+          "type": "array"
+        },
+        "response_metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "apps_permissions_scopes_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "scopes": {
+          "type": "object"
+        }
+      }
+    },
+    "apps_permissions_users_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_permissions_users_request_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apps_uninstall_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "auth_revoke_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "revoked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "auth_test_response": {
+      "type": "object",
+      "properties": {
+        "bot_id": {
+          "type": "string"
+        },
+        "is_enterprise_install": {
+          "type": "boolean"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "team": {
+          "type": "string"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "bots_info_response": {
+      "type": "object",
+      "properties": {
+        "bot": {
+          "type": "object"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_end_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_participants_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_participants_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calls_update_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "chat_delete_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    "chat_delete_scheduled_message_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "chat_get_permalink_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "permalink": {
+          "type": "string"
+        }
+      }
+    },
+    "chat_me_message_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    "chat_post_ephemeral_response": {
+      "type": "object",
+      "properties": {
+        "message_ts": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "chat_post_message_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "message": {
+          "type": "object",
+          "schema_ref": "objs_message"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    "chat_schedule_message_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "message": {
+          "type": "object"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "post_at": {
+          "type": "integer"
+        },
+        "scheduled_message_id": {
+          "type": "string"
+        }
+      }
+    },
+    "chat_scheduled_messages_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        },
+        "scheduled_messages": {
+          "type": "array"
+        }
+      }
+    },
+    "chat_unfurl_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "chat_update_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "message": {
+          "type": "object"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    "conversations_archive_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_close_response": {
+      "type": "object",
+      "properties": {
+        "already_closed": {
+          "type": "boolean"
+        },
+        "no_op": {
+          "type": "boolean"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_create_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_history_response": {
+      "type": "object",
+      "properties": {
+        "channel_actions_count": {
+          "type": "integer"
+        },
+        "channel_actions_ts": {
+          "type": "string"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "pin_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "conversations_info_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_invite_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_join_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        },
+        "warning": {
+          "type": "string"
+        }
+      }
+    },
+    "conversations_kick_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_leave_response": {
+      "type": "object",
+      "properties": {
+        "not_in_channel": {
+          "type": "boolean"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_list_response": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "conversations_mark_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_members_response": {
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "conversations_open_response": {
+      "type": "object",
+      "properties": {
+        "already_open": {
+          "type": "boolean"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "no_op": {
+          "type": "boolean"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_rename_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_replies_response": {
+      "type": "object",
+      "properties": {
+        "has_more": {
+          "type": "boolean"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_set_purpose_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_set_topic_response": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "object",
+          "schema_ref": "objs_conversation"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "conversations_unarchive_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dialog_open_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dnd_end_dnd_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dnd_end_snooze_response": {
+      "type": "object",
+      "properties": {
+        "dnd_enabled": {
+          "type": "boolean"
+        },
+        "next_dnd_end_ts": {
+          "type": "integer"
+        },
+        "next_dnd_start_ts": {
+          "type": "integer"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "snooze_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dnd_info_response": {
+      "type": "object",
+      "properties": {
+        "dnd_enabled": {
+          "type": "boolean"
+        },
+        "next_dnd_end_ts": {
+          "type": "integer"
+        },
+        "next_dnd_start_ts": {
+          "type": "integer"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "snooze_enabled": {
+          "type": "boolean"
+        },
+        "snooze_endtime": {
+          "type": "integer"
+        },
+        "snooze_remaining": {
+          "type": "integer"
+        }
+      }
+    },
+    "dnd_set_snooze_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "snooze_enabled": {
+          "type": "boolean"
+        },
+        "snooze_endtime": {
+          "type": "integer"
+        },
+        "snooze_remaining": {
+          "type": "integer"
+        }
+      }
+    },
+    "dnd_team_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "emoji_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_comments_delete_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_delete_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_info_response": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "array"
+        },
+        "content_html": {
+          "type": "null"
+        },
+        "editor": {
+          "type": "string"
+        },
+        "file": {
+          "type": "object",
+          "schema_ref": "objs_file"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        },
+        "response_metadata": {
+          "type": "object",
+          "schema_ref": "objs_response_metadata"
+        }
+      }
+    },
+    "files_list_response": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        }
+      }
+    },
+    "files_remote_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_remote_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_remote_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_remote_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_remote_share_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_remote_update_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_revoke_public_url_response": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "object",
+          "schema_ref": "objs_file"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_shared_public_url_response": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "object",
+          "schema_ref": "objs_file"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files_upload_response": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "object",
+          "schema_ref": "objs_file"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "migration_exchange_response": {
+      "type": "object",
+      "properties": {
+        "enterprise_id": {
+          "type": "string"
+        },
+        "invalid_user_ids": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "user_id_map": {
+          "type": "object"
+        }
+      }
+    },
+    "oauth_access_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "oauth_token_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "oauth_v2_access_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pins_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pins_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reactions_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reactions_list_response": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        },
+        "response_metadata": {
+          "type": "object",
+          "schema_ref": "objs_response_metadata"
+        }
+      }
+    },
+    "reactions_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reminders_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "reminder": {
+          "type": "object",
+          "schema_ref": "objs_reminder"
+        }
+      }
+    },
+    "reminders_complete_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reminders_delete_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reminders_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "reminder": {
+          "type": "object",
+          "schema_ref": "objs_reminder"
+        }
+      }
+    },
+    "reminders_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "reminders": {
+          "type": "array"
+        }
+      }
+    },
+    "rtm_connect_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "self": {
+          "type": "object"
+        },
+        "team": {
+          "type": "object"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "search_messages_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "stars_add_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "stars_list_response": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        }
+      }
+    },
+    "stars_remove_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "team_access_logs_response": {
+      "type": "object",
+      "properties": {
+        "logins": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        }
+      }
+    },
+    "team_billable_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "team_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "team": {
+          "type": "object",
+          "schema_ref": "objs_team"
+        }
+      }
+    },
+    "team_integration_logs_response": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "paging": {
+          "type": "object",
+          "schema_ref": "objs_paging"
+        }
+      }
+    },
+    "team_profile_get_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "object"
+        }
+      }
+    },
+    "usergroups_create_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroup": {
+          "type": "object",
+          "schema_ref": "objs_subteam"
+        }
+      }
+    },
+    "usergroups_disable_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroup": {
+          "type": "object",
+          "schema_ref": "objs_subteam"
+        }
+      }
+    },
+    "usergroups_enable_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroup": {
+          "type": "object",
+          "schema_ref": "objs_subteam"
+        }
+      }
+    },
+    "usergroups_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroups": {
+          "type": "array"
+        }
+      }
+    },
+    "usergroups_update_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroup": {
+          "type": "object",
+          "schema_ref": "objs_subteam"
+        }
+      }
+    },
+    "usergroups_users_list_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "users": {
+          "type": "array"
+        }
+      }
+    },
+    "usergroups_users_update_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "usergroup": {
+          "type": "object",
+          "schema_ref": "objs_subteam"
+        }
+      }
+    },
+    "users_conversations_response": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "users_delete_photo_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "users_get_presence_response": {
+      "type": "object",
+      "properties": {
+        "auto_away": {
+          "type": "boolean"
+        },
+        "connection_count": {
+          "type": "integer"
+        },
+        "last_activity": {
+          "type": "integer"
+        },
+        "manual_away": {
+          "type": "boolean"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "presence": {
+          "type": "string"
+        }
+      }
+    },
+    "users_info_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "user": {
+          "type": "object",
+          "schema_ref": "objs_user"
+        }
+      }
+    },
+    "users_list_response": {
+      "type": "object",
+      "properties": {
+        "cache_ts": {
+          "type": "integer"
+        },
+        "members": {
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "response_metadata": {
+          "type": "object",
+          "schema_ref": "objs_response_metadata"
+        }
+      }
+    },
+    "users_lookup_by_email_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "user": {
+          "type": "object",
+          "schema_ref": "objs_user"
+        }
+      }
+    },
+    "users_profile_get_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "object",
+          "schema_ref": "objs_user_profile"
+        }
+      }
+    },
+    "users_profile_set_response": {
+      "type": "object",
+      "properties": {
+        "email_pending": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "object",
+          "schema_ref": "objs_user_profile"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "users_set_active_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "users_set_photo_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "object"
+        }
+      }
+    },
+    "users_set_presence_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "views_open_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "views_publish_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "views_push_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "views_update_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "workflows_step_completed_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "workflows_step_failed_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "workflows_update_step_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
         }
       }
     }

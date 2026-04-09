@@ -1,0 +1,176 @@
+{
+  "display_name": "PagerDuty",
+  "triggers": {
+    "incident.triggered": {
+      "display_name": "Incident Triggered",
+      "description": "Triggered when a new incident is created and enters a triggered state",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.acknowledged": {
+      "display_name": "Incident Acknowledged",
+      "description": "Triggered when an incident is acknowledged by a responder",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.unacknowledged": {
+      "display_name": "Incident Unacknowledged",
+      "description": "Triggered when an incident acknowledgement times out or is manually removed",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.resolved": {
+      "display_name": "Incident Resolved",
+      "description": "Triggered when an incident is resolved",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.escalated": {
+      "display_name": "Incident Escalated",
+      "description": "Triggered when an incident is escalated to the next level in the escalation policy",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.delegated": {
+      "display_name": "Incident Delegated",
+      "description": "Triggered when an incident is delegated to another escalation policy",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.annotated": {
+      "display_name": "Incident Annotated",
+      "description": "Triggered when a note is added to an incident",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.priority_updated": {
+      "display_name": "Incident Priority Updated",
+      "description": "Triggered when the priority of an incident is changed",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.reassigned": {
+      "display_name": "Incident Reassigned",
+      "description": "Triggered when an incident is reassigned to a different user or escalation policy",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.reopened": {
+      "display_name": "Incident Reopened",
+      "description": "Triggered when a resolved incident is reopened",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.responder.added": {
+      "display_name": "Incident Responder Added",
+      "description": "Triggered when a responder is added to an incident",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.responder.replied": {
+      "display_name": "Incident Responder Replied",
+      "description": "Triggered when a responder replies to an incident responder request",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.status_update_published": {
+      "display_name": "Incident Status Update Published",
+      "description": "Triggered when a status update is published on an incident",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.conference_bridge.updated": {
+      "display_name": "Incident Conference Bridge Updated",
+      "description": "Triggered when the conference bridge on an incident is updated",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.custom_field_values.updated": {
+      "display_name": "Incident Custom Fields Updated",
+      "description": "Triggered when custom field values on an incident are updated",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.workflow.completed": {
+      "display_name": "Incident Workflow Completed",
+      "description": "Triggered when an incident workflow run completes",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.workflow.started": {
+      "display_name": "Incident Workflow Started",
+      "description": "Triggered when an incident workflow run starts",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "incident.incident_type.changed": {
+      "display_name": "Incident Type Changed",
+      "description": "Triggered when the type of an incident is changed",
+      "resource_type": "incident",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "service.created": {
+      "display_name": "Service Created",
+      "description": "Triggered when a new service is created",
+      "resource_type": "service",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "service.updated": {
+      "display_name": "Service Updated",
+      "description": "Triggered when a service is updated",
+      "resource_type": "service",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "service.deleted": {
+      "display_name": "Service Deleted",
+      "description": "Triggered when a service is deleted",
+      "resource_type": "service",
+      "payload_schema": "pagerduty_v3_event"
+    },
+    "service.custom_field_values.updated": {
+      "display_name": "Service Custom Fields Updated",
+      "description": "Triggered when custom field values on a service are updated",
+      "resource_type": "service",
+      "payload_schema": "pagerduty_v3_event"
+    }
+  },
+  "schemas": {
+    "pagerduty_v3_event": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "object",
+          "description": "The event wrapper object containing id, event_type, resource_type, occurred_at, agent (who performed the action), client (API client info), and data (the full resource payload with type-specific fields)"
+        },
+        "event.id": {
+          "type": "string",
+          "description": "Unique identifier for this webhook delivery"
+        },
+        "event.event_type": {
+          "type": "string",
+          "description": "The type of event that occurred (e.g. incident.triggered, service.created)"
+        },
+        "event.resource_type": {
+          "type": "string",
+          "description": "The type of resource affected (e.g. incident, service)"
+        },
+        "event.occurred_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the event occurred"
+        },
+        "event.agent": {
+          "type": "object",
+          "description": "The agent (user or service) that performed the action. Contains type, id, self (API URL), html_url, and summary"
+        },
+        "event.client": {
+          "type": "object",
+          "description": "Information about the API client that triggered the event, if applicable. Contains name and url"
+        },
+        "event.data": {
+          "type": "object",
+          "description": "The full resource data payload. For incidents: includes id, type, self, html_url, number, status, title, service, assignees, escalation_policy, teams, priority, urgency, created_at, updated_at. For services: includes id, type, self, html_url, name, description, status"
+        }
+      }
+    }
+  }
+}

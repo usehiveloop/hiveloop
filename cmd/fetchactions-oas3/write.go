@@ -43,6 +43,7 @@ type ProviderFile struct {
 	DisplayName string                 `json:"display_name"`
 	Resources   map[string]ResourceDef `json:"resources"`
 	Actions     map[string]ActionDef   `json:"actions"`
+	Schemas     map[string]FlatSchema  `json:"schemas,omitempty"`
 }
 
 // loadMetadata reads the hand-maintained metadata.json.
@@ -59,24 +60,47 @@ func loadMetadata() (map[string]ServiceMetadata, error) {
 }
 
 // writeProviderFiles writes one .actions.json file per Nango provider ID.
-func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, metadata map[string]ServiceMetadata) error {
+func writeProviderFiles(cfg ServiceConfig, result *ParseResult, metadata map[string]ServiceMetadata) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output dir: %w", err)
 	}
 
-	// Look up metadata for this service.
-	meta, ok := metadata[cfg.Name]
-	if !ok {
-		meta = ServiceMetadata{
-			DisplayName: cfg.Name,
-			Resources:   map[string]ResourceDef{},
+	// Build resources: from config if defined, otherwise from metadata.json.
+	resources := map[string]ResourceDef{}
+	displayName := cfg.Name
+
+	if len(cfg.Resources) > 0 {
+		for name, rc := range cfg.Resources {
+			rd := ResourceDef{
+				DisplayName: rc.DisplayName,
+				Description: rc.Description,
+				IDField:     rc.IDField,
+				NameField:   rc.NameField,
+				Icon:        rc.Icon,
+				ListAction:  rc.ListAction,
+			}
+			if rc.ListRequestConfig != nil {
+				rd.RequestConfig = rc.ListRequestConfig
+			}
+			resources[name] = rd
+		}
+		// Use display name from metadata if available.
+		if meta, ok := metadata[cfg.Name]; ok {
+			displayName = meta.DisplayName
+		}
+	} else {
+		meta, ok := metadata[cfg.Name]
+		if ok {
+			displayName = meta.DisplayName
+			resources = meta.Resources
 		}
 	}
 
 	pf := ProviderFile{
-		DisplayName: meta.DisplayName,
-		Resources:   meta.Resources,
-		Actions:     actions,
+		DisplayName: displayName,
+		Resources:   resources,
+		Actions:     result.Actions,
+		Schemas:     result.Schemas,
 	}
 
 	out, err := json.MarshalIndent(pf, "", "  ")

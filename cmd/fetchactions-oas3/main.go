@@ -57,42 +57,42 @@ func run(providerFilter string, force bool) error {
 		fmt.Printf("[%s] Spec downloaded (%d KB)\n", svc.Name, len(specData)/1024)
 
 		fmt.Printf("[%s] Parsing operations...\n", svc.Name)
-		actions, err := parseSpec(specData, svc)
+		result, err := parseSpec(specData, svc)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[%s] ERROR parsing: %v (skipping)\n", svc.Name, err)
 			continue
 		}
 
-		if len(actions) == 0 {
+		if len(result.Actions) == 0 {
 			fmt.Fprintf(os.Stderr, "[%s] WARNING: no actions generated (skipping)\n", svc.Name)
 			continue
 		}
 
 		// Validate actions.
-		errs := validateActions(actions)
+		errs := validateActions(result.Actions)
 		if len(errs) > 0 {
 			for _, e := range errs {
 				fmt.Fprintf(os.Stderr, "[%s] VALIDATION: %s\n", svc.Name, e)
 			}
 		}
 
-		if err := writeProviderFiles(svc, actions, metadata); err != nil {
+		if err := writeProviderFiles(svc, result, metadata); err != nil {
 			fmt.Fprintf(os.Stderr, "[%s] ERROR writing: %v\n", svc.Name, err)
 			continue
 		}
 
 		resourceScoped := 0
-		for _, a := range actions {
-			if a.ResourceType != "" {
+		for _, action := range result.Actions {
+			if action.ResourceType != "" {
 				resourceScoped++
 			}
 		}
 
 		for _, id := range svc.NangoProviders {
-			fmt.Printf("  %s.actions.json: %d actions (%d resource-scoped)\n", id, len(actions), resourceScoped)
+			fmt.Printf("  %s.actions.json: %d actions, %d schemas (%d resource-scoped)\n", id, len(result.Actions), len(result.Schemas), resourceScoped)
 		}
 		totalFiles += len(svc.NangoProviders)
-		totalActions += len(actions)
+		totalActions += len(result.Actions)
 	}
 
 	fmt.Printf("\nTotal: %d files, %d unique actions\n", totalFiles, totalActions)

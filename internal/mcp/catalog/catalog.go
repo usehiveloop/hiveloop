@@ -16,6 +16,9 @@ import (
 //go:embed providers/*.actions.json
 var providersFS embed.FS
 
+//go:embed providers/*.triggers.json
+var triggersFS embed.FS
+
 // RequestConfig defines custom request configuration for resource discovery.
 type RequestConfig struct {
 	Method       string            `json:"method,omitempty"`        // HTTP method (GET, POST, etc.)
@@ -38,9 +41,10 @@ type ResourceDef struct {
 
 // ProviderActions describes a provider and its available actions.
 type ProviderActions struct {
-	DisplayName string                 `json:"display_name"`
-	Resources   map[string]ResourceDef `json:"resources"`
-	Actions     map[string]ActionDef   `json:"actions"`
+	DisplayName string                      `json:"display_name"`
+	Resources   map[string]ResourceDef      `json:"resources"`
+	Actions     map[string]ActionDef        `json:"actions"`
+	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.
@@ -61,17 +65,54 @@ const (
 
 // ActionDef describes a single action a provider supports.
 type ActionDef struct {
-	DisplayName  string           `json:"display_name"`
-	Description  string           `json:"description"`
-	Access       string           `json:"access"`              // "read" or "write"
-	ResourceType string           `json:"resource_type"`       // e.g. "channel", "repo", "" if none
-	Parameters   json.RawMessage  `json:"parameters"`          // JSON Schema
-	Execution    *ExecutionConfig `json:"execution,omitempty"` // How to execute this action via Nango proxy
+	DisplayName    string           `json:"display_name"`
+	Description    string           `json:"description"`
+	Access         string           `json:"access"`                        // "read" or "write"
+	ResourceType   string           `json:"resource_type"`                 // e.g. "channel", "repo", "" if none
+	Parameters     json.RawMessage  `json:"parameters"`                    // JSON Schema
+	Execution      *ExecutionConfig `json:"execution,omitempty"`           // How to execute this action via Nango proxy
+	ResponseSchema string           `json:"response_schema,omitempty"`     // Ref into Schemas map
 }
 
-// Catalog holds all providers and their actions, indexed for fast lookup.
+// SchemaDefinition is a flattened response/payload schema with top-level properties only.
+type SchemaDefinition struct {
+	Type       string                          `json:"type"`
+	Properties map[string]SchemaPropertyDef    `json:"properties,omitempty"`
+	Items      *SchemaRef                      `json:"items,omitempty"` // for array types
+}
+
+// SchemaPropertyDef describes a single property in a schema.
+type SchemaPropertyDef struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+	Nullable    bool   `json:"nullable,omitempty"`
+	SchemaRef   string `json:"schema_ref,omitempty"` // references another schema by name for nested object resolution
+}
+
+// SchemaRef references another schema by name.
+type SchemaRef struct {
+	Ref string `json:"$ref,omitempty"`
+}
+
+// TriggerDef describes a single webhook event trigger a provider supports.
+type TriggerDef struct {
+	DisplayName   string `json:"display_name"`
+	Description   string `json:"description"`
+	ResourceType  string `json:"resource_type"`            // which resource this trigger relates to
+	PayloadSchema string `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
+}
+
+// ProviderTriggers describes a provider's webhook event triggers.
+type ProviderTriggers struct {
+	DisplayName string                      `json:"display_name"`
+	Triggers    map[string]TriggerDef       `json:"triggers"`
+	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
+}
+
+// Catalog holds all providers and their actions/triggers, indexed for fast lookup.
 type Catalog struct {
 	providers map[string]*ProviderActions
+	triggers  map[string]*ProviderTriggers
 }
 
 var (
@@ -90,8 +131,10 @@ func Global() *Catalog {
 func mustParse() *Catalog {
 	c := &Catalog{
 		providers: make(map[string]*ProviderActions),
+		triggers:  make(map[string]*ProviderTriggers),
 	}
 
+	// Parse *.actions.json files.
 	entries, err := fs.ReadDir(providersFS, "providers")
 	if err != nil {
 		panic("catalog: failed to read embedded providers directory: " + err.Error())
@@ -119,6 +162,36 @@ func mustParse() *Catalog {
 		}
 
 		c.providers[providerKey] = &pa
+	}
+
+	// Parse *.triggers.json files.
+	triggerEntries, err := fs.ReadDir(triggersFS, "providers")
+	if err != nil {
+		panic("catalog: failed to read embedded triggers directory: " + err.Error())
+	}
+
+	for _, entry := range triggerEntries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".triggers.json") {
+			continue
+		}
+
+		providerKey := strings.TrimSuffix(name, ".triggers.json")
+
+		data, err := fs.ReadFile(triggersFS, "providers/"+name)
+		if err != nil {
+			panic("catalog: failed to read " + name + ": " + err.Error())
+		}
+
+		var pt ProviderTriggers
+		if err := json.Unmarshal(data, &pt); err != nil {
+			panic("catalog: failed to parse " + name + ": " + err.Error())
+		}
+
+		c.triggers[providerKey] = &pt
 	}
 
 	return c
@@ -270,4 +343,126 @@ func (c *Catalog) ValidateResources(provider string, actions []string, requested
 	}
 
 	return nil
+}
+
+// --- Trigger lookup methods ---
+
+// GetProviderTriggers returns all trigger definitions for a provider.
+func (c *Catalog) GetProviderTriggers(provider string) (*ProviderTriggers, bool) {
+	pt, ok := c.triggers[provider]
+	return pt, ok
+}
+
+// GetProviderTriggersForVariant looks up triggers by stripping common suffixes
+// from variant provider names (e.g., "github-app" → "github", "jira-basic" → "jira").
+func (c *Catalog) GetProviderTriggersForVariant(variant string) (*ProviderTriggers, bool) {
+	// Try progressively shorter prefixes by stripping dash-separated suffixes.
+	name := variant
+	for {
+		idx := strings.LastIndex(name, "-")
+		if idx <= 0 {
+			return nil, false
+		}
+		name = name[:idx]
+		if pt, ok := c.triggers[name]; ok {
+			return pt, ok
+		}
+	}
+}
+
+// GetTrigger returns a specific trigger definition for a provider.
+func (c *Catalog) GetTrigger(provider, triggerKey string) (*TriggerDef, bool) {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return nil, false
+	}
+	t, ok := pt.Triggers[triggerKey]
+	if !ok {
+		return nil, false
+	}
+	return &t, true
+}
+
+// ListTriggers returns all trigger keys for a provider sorted alphabetically.
+func (c *Catalog) ListTriggers(provider string) []string {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return nil
+	}
+	names := make([]string, 0, len(pt.Triggers))
+	for name := range pt.Triggers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// ListTriggersForResource returns all trigger keys that match a given resource type.
+func (c *Catalog) ListTriggersForResource(provider, resourceType string) []string {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return nil
+	}
+	var names []string
+	for name, trigger := range pt.Triggers {
+		if trigger.ResourceType == resourceType {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// ValidateTriggers checks that every trigger key exists in the catalog for the provider.
+func (c *Catalog) ValidateTriggers(provider string, triggerKeys []string) error {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return fmt.Errorf("provider %q has no triggers defined in the catalog", provider)
+	}
+
+	for _, key := range triggerKeys {
+		if _, ok := pt.Triggers[key]; !ok {
+			return fmt.Errorf("unknown trigger %q for provider %q", key, provider)
+		}
+	}
+
+	return nil
+}
+
+// HasTriggers returns true if the provider has trigger definitions.
+func (c *Catalog) HasTriggers(provider string) bool {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return false
+	}
+	return len(pt.Triggers) > 0
+}
+
+// ListProvidersWithTriggers returns provider names that have triggers, sorted alphabetically.
+func (c *Catalog) ListProvidersWithTriggers() []string {
+	var names []string
+	for name, pt := range c.triggers {
+		if len(pt.Triggers) > 0 {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// GetTriggerPayloadSchema returns the schema definition for a trigger's payload.
+func (c *Catalog) GetTriggerPayloadSchema(provider, triggerKey string) (*SchemaDefinition, bool) {
+	pt, ok := c.triggers[provider]
+	if !ok {
+		return nil, false
+	}
+	trigger, ok := pt.Triggers[triggerKey]
+	if !ok || trigger.PayloadSchema == "" {
+		return nil, false
+	}
+	schema, ok := pt.Schemas[trigger.PayloadSchema]
+	if !ok {
+		return nil, false
+	}
+	return &schema, true
 }

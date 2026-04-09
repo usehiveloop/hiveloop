@@ -4,6 +4,7 @@ export type Step =
   | "mode"
   | "sandbox"
   | "integrations"
+  | "trigger"
   | "llm-key"
   | "basics"
   | "system-prompt"
@@ -17,6 +18,7 @@ export const scratchSteps: Step[] = [
   "mode",
   "sandbox",
   "integrations",
+  "trigger",
   "llm-key",
   "basics",
   "system-prompt",
@@ -28,6 +30,7 @@ export const forgeSteps: Step[] = [
   "mode",
   "sandbox",
   "integrations",
+  "trigger",
   "llm-key",
   "basics",
   "forge-judge",

@@ -166,6 +166,53 @@ func (h *ActionsHandler) ListActions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, actions)
 }
 
+type triggerSummary struct {
+	Key           string `json:"key"`
+	DisplayName   string `json:"display_name"`
+	Description   string `json:"description"`
+	ResourceType  string `json:"resource_type"`
+	PayloadSchema string `json:"payload_schema,omitempty"`
+}
+
+// ListTriggers handles GET /v1/catalog/integrations/{id}/triggers — returns webhook triggers for a provider.
+// @Summary List triggers for an integration
+// @Description Returns all webhook event triggers for a single integration.
+// @Tags integrations
+// @Produce json
+// @Param id path string true "Provider ID"
+// @Success 200 {array} triggerSummary
+// @Failure 404 {object} errorResponse
+// @Router /v1/catalog/integrations/{id}/triggers [get]
+func (h *ActionsHandler) ListTriggers(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	pt, ok := h.catalog.GetProviderTriggers(id)
+	if !ok {
+		// Try base provider name (e.g., "github" for "github-app").
+		pt, ok = h.catalog.GetProviderTriggersForVariant(id)
+	}
+	if !ok {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "no triggers found for this integration"})
+		return
+	}
+
+	triggers := make([]triggerSummary, 0, len(pt.Triggers))
+	for key, trigger := range pt.Triggers {
+		triggers = append(triggers, triggerSummary{
+			Key:           key,
+			DisplayName:   trigger.DisplayName,
+			Description:   trigger.Description,
+			ResourceType:  trigger.ResourceType,
+			PayloadSchema: trigger.PayloadSchema,
+		})
+	}
+	sort.Slice(triggers, func(i, j int) bool {
+		return triggers[i].Key < triggers[j].Key
+	})
+
+	writeJSON(w, http.StatusOK, triggers)
+}
+
 func actionsFromMap(m map[string]catalog.ActionDef) []actionSummary {
 	actions := make([]actionSummary, 0, len(m))
 	for key, a := range m {

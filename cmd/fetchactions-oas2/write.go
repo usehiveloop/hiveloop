@@ -38,14 +38,15 @@ type ServiceMetadata struct {
 	Resources   map[string]ResourceDef `json:"resources"`
 }
 
-// ProviderFile is the output format for each <provider>.actions.json.
+// ProviderFile is the output format for each <provider>.actions.json file.
 type ProviderFile struct {
 	DisplayName string                 `json:"display_name"`
 	Resources   map[string]ResourceDef `json:"resources"`
 	Actions     map[string]ActionDef   `json:"actions"`
+	Schemas     map[string]FlatSchema  `json:"schemas,omitempty"`
 }
 
-// loadMetadata reads metadata.json.
+// loadMetadata reads the hand-maintained metadata.json.
 func loadMetadata() (map[string]ServiceMetadata, error) {
 	data, err := os.ReadFile(metadataPath)
 	if err != nil {
@@ -59,11 +60,12 @@ func loadMetadata() (map[string]ServiceMetadata, error) {
 }
 
 // writeProviderFiles writes one .actions.json file per Nango provider ID.
-func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, metadata map[string]ServiceMetadata) error {
+func writeProviderFiles(cfg ServiceConfig, result *ParseResult, metadata map[string]ServiceMetadata) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output dir: %w", err)
 	}
 
+	// Look up metadata for this service.
 	meta, ok := metadata[cfg.Name]
 	if !ok {
 		meta = ServiceMetadata{
@@ -75,7 +77,8 @@ func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, metadat
 	pf := ProviderFile{
 		DisplayName: meta.DisplayName,
 		Resources:   meta.Resources,
-		Actions:     actions,
+		Actions:     result.Actions,
+		Schemas:     result.Schemas,
 	}
 
 	out, err := json.MarshalIndent(pf, "", "  ")

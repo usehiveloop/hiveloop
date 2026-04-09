@@ -1,0 +1,200 @@
+{
+  "display_name": "Box",
+  "triggers": {
+    "FILE.UPLOADED": {
+      "display_name": "File Uploaded",
+      "description": "Triggered when a file is uploaded to a folder",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.DOWNLOADED": {
+      "display_name": "File Downloaded",
+      "description": "Triggered when a file is downloaded",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.TRASHED": {
+      "display_name": "File Trashed",
+      "description": "Triggered when a file is moved to the trash",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.DELETED": {
+      "display_name": "File Deleted",
+      "description": "Triggered when a file is permanently deleted from the trash",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.RESTORED": {
+      "display_name": "File Restored",
+      "description": "Triggered when a file is restored from the trash",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.COPIED": {
+      "display_name": "File Copied",
+      "description": "Triggered when a file is copied to another location",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.MOVED": {
+      "display_name": "File Moved",
+      "description": "Triggered when a file is moved to a different folder",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.LOCKED": {
+      "display_name": "File Locked",
+      "description": "Triggered when a file is locked to prevent editing by others",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.UNLOCKED": {
+      "display_name": "File Unlocked",
+      "description": "Triggered when a locked file is unlocked",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FILE.RENAMED": {
+      "display_name": "File Renamed",
+      "description": "Triggered when a file is renamed",
+      "resource_type": "file",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.CREATED": {
+      "display_name": "Folder Created",
+      "description": "Triggered when a new folder is created",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.RENAMED": {
+      "display_name": "Folder Renamed",
+      "description": "Triggered when a folder is renamed",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.DELETED": {
+      "display_name": "Folder Deleted",
+      "description": "Triggered when a folder is permanently deleted",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.COPIED": {
+      "display_name": "Folder Copied",
+      "description": "Triggered when a folder is copied to another location",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.MOVED": {
+      "display_name": "Folder Moved",
+      "description": "Triggered when a folder is moved to a different parent folder",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "FOLDER.TRASHED": {
+      "display_name": "Folder Trashed",
+      "description": "Triggered when a folder is moved to the trash",
+      "resource_type": "folder",
+      "payload_schema": "box_webhook_event"
+    },
+    "COMMENT.CREATED": {
+      "display_name": "Comment Created",
+      "description": "Triggered when a new comment is added to a file",
+      "resource_type": "comment",
+      "payload_schema": "box_webhook_event"
+    },
+    "COMMENT.UPDATED": {
+      "display_name": "Comment Updated",
+      "description": "Triggered when a comment on a file is edited",
+      "resource_type": "comment",
+      "payload_schema": "box_webhook_event"
+    },
+    "COMMENT.DELETED": {
+      "display_name": "Comment Deleted",
+      "description": "Triggered when a comment is removed from a file",
+      "resource_type": "comment",
+      "payload_schema": "box_webhook_event"
+    },
+    "COLLABORATION.CREATED": {
+      "display_name": "Collaboration Created",
+      "description": "Triggered when a new collaboration invitation is created for a file or folder",
+      "resource_type": "collaboration",
+      "payload_schema": "box_webhook_event"
+    },
+    "COLLABORATION.ACCEPTED": {
+      "display_name": "Collaboration Accepted",
+      "description": "Triggered when a collaboration invitation is accepted",
+      "resource_type": "collaboration",
+      "payload_schema": "box_webhook_event"
+    },
+    "COLLABORATION.REJECTED": {
+      "display_name": "Collaboration Rejected",
+      "description": "Triggered when a collaboration invitation is rejected",
+      "resource_type": "collaboration",
+      "payload_schema": "box_webhook_event"
+    },
+    "COLLABORATION.REMOVED": {
+      "display_name": "Collaboration Removed",
+      "description": "Triggered when a collaboration is removed from a file or folder",
+      "resource_type": "collaboration",
+      "payload_schema": "box_webhook_event"
+    },
+    "COLLABORATION.UPDATED": {
+      "display_name": "Collaboration Updated",
+      "description": "Triggered when a collaboration's role or permissions are changed",
+      "resource_type": "collaboration",
+      "payload_schema": "box_webhook_event"
+    },
+    "TASK_ASSIGNMENT.CREATED": {
+      "display_name": "Task Assignment Created",
+      "description": "Triggered when a new task assignment is created on a file",
+      "resource_type": "task_assignment",
+      "payload_schema": "box_webhook_event"
+    },
+    "TASK_ASSIGNMENT.UPDATED": {
+      "display_name": "Task Assignment Updated",
+      "description": "Triggered when a task assignment is updated (e.g. status changed to complete)",
+      "resource_type": "task_assignment",
+      "payload_schema": "box_webhook_event"
+    }
+  },
+  "schemas": {
+    "box_webhook_event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this webhook event delivery"
+        },
+        "type": {
+          "type": "string",
+          "description": "The object type, always 'webhook_event'"
+        },
+        "trigger": {
+          "type": "string",
+          "description": "The trigger type that fired this webhook (e.g. FILE.UPLOADED, FOLDER.CREATED)"
+        },
+        "webhook": {
+          "type": "object",
+          "description": "The webhook configuration that matched this event. Contains id and type"
+        },
+        "created_by": {
+          "type": "object",
+          "description": "The user who performed the action that triggered the event. Contains type, id, name, and login (email)"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the event occurred"
+        },
+        "source": {
+          "type": "object",
+          "description": "The resource that triggered the event. Contains type (file, folder, comment, collaboration, task_assignment), id, name, and additional type-specific fields such as parent, path_collection, sequence_id"
+        },
+        "additional_info": {
+          "type": "object",
+          "description": "Additional context about the event, varies by trigger type. May include before and after values for renames, or collaboration details"
+        }
+      }
+    }
+  }
+}

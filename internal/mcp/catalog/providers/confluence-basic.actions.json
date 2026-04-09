@@ -172,7 +172,8 @@
         "method": "POST",
         "path": "/wiki/rest/api/content/{id}/label",
         "response_path": "results"
-      }
+      },
+      "response_schema": "LabelArray"
     },
     "add_labels_to_space": {
       "display_name": "Add labels to a space",
@@ -195,7 +196,8 @@
         "method": "POST",
         "path": "/wiki/rest/api/space/{spaceKey}/label",
         "response_path": "results"
-      }
+      },
+      "response_schema": "LabelArray"
     },
     "add_permission_to_space": {
       "display_name": "Add new permission to space",
@@ -234,7 +236,8 @@
           "operation": "operation",
           "subject": "subject"
         }
-      }
+      },
+      "response_schema": "SpacePermissionV2"
     },
     "add_restrictions": {
       "display_name": "Add restrictions",
@@ -264,7 +267,8 @@
           "expand": "expand"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentRestrictionArray"
     },
     "add_space_watcher": {
       "display_name": "Add space watcher",
@@ -466,7 +470,8 @@
           "expand": "expand",
           "spaceKeyContext": "spaceKeyContext"
         }
-      }
+      },
+      "response_schema": "AsyncId"
     },
     "async_convert_content_body_response": {
       "display_name": "Get asynchronously converted content body from the id or the current status o...",
@@ -488,7 +493,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/contentbody/convert/async/{id}"
-      }
+      },
+      "response_schema": "AsyncContentBody"
     },
     "bulk_async_convert_content_body_request": {
       "display_name": "Create asynchronous content body conversion tasks in bulk",
@@ -509,7 +515,8 @@
         "body_mapping": {
           "conversionInputs": "conversionInputs"
         }
-      }
+      },
+      "response_schema": "AsyncIdArray"
     },
     "bulk_async_convert_content_body_response": {
       "display_name": "Get asynchronous content body conversion task result in bulk",
@@ -531,7 +538,8 @@
         "query_mapping": {
           "ids": "ids"
         }
-      }
+      },
+      "response_schema": "AsyncContentBodyArray"
     },
     "check_content_permission": {
       "display_name": "Check content permissions",
@@ -567,7 +575,8 @@
           "operation": "operation",
           "subject": "subject"
         }
-      }
+      },
+      "response_schema": "PermissionCheckResponse"
     },
     "copy_page": {
       "display_name": "Copy single page",
@@ -770,7 +779,8 @@
           "summary": "summary",
           "sysAdmin": "sysAdmin"
         }
-      }
+      },
+      "response_schema": "AuditRecord"
     },
     "create_content_template": {
       "display_name": "Create content template",
@@ -822,7 +832,8 @@
           "space": "space",
           "templateType": "templateType"
         }
-      }
+      },
+      "response_schema": "ContentTemplate"
     },
     "create_group": {
       "display_name": "Create new user group",
@@ -846,7 +857,8 @@
         "body_mapping": {
           "name": "name"
         }
-      }
+      },
+      "response_schema": "Group"
     },
     "create_private_space": {
       "display_name": "Create private space",
@@ -891,7 +903,8 @@
           "name": "name",
           "permissions": "permissions"
         }
-      }
+      },
+      "response_schema": "Space"
     },
     "create_relationship": {
       "display_name": "Create relationship",
@@ -955,7 +968,8 @@
           "targetStatus": "targetStatus",
           "targetVersion": "targetVersion"
         }
-      }
+      },
+      "response_schema": "Relation"
     },
     "create_space": {
       "display_name": "Create space",
@@ -1000,7 +1014,8 @@
           "name": "name",
           "permissions": "permissions"
         }
-      }
+      },
+      "response_schema": "Space"
     },
     "create_user_property": {
       "display_name": "Create user property by key",
@@ -1212,7 +1227,8 @@
           "expand": "expand"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentRestrictionArray"
     },
     "delete_space": {
       "display_name": "Delete space",
@@ -1412,7 +1428,8 @@
           "targetVersion": "targetVersion"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "RelationArray"
     },
     "find_target_from_source": {
       "display_name": "Find target entities related to a source entity",
@@ -1487,7 +1504,8 @@
           "targetVersion": "targetVersion"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "RelationArray"
     },
     "get_all_label_content": {
       "display_name": "Get label information",
@@ -1524,7 +1542,8 @@
           "start": "start",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "LabelDetails"
     },
     "get_and_async_convert_macro_body_by_macro_id": {
       "display_name": "Get macro body by macro ID and convert representation Asynchronously",
@@ -1583,7 +1602,8 @@
           "expand": "expand",
           "spaceKeyContext": "spaceKeyContext"
         }
-      }
+      },
+      "response_schema": "AsyncId"
     },
     "get_and_convert_macro_body_by_macro_id": {
       "display_name": "Get macro body by macro ID and convert the representation synchronously",
@@ -1637,7 +1657,8 @@
           "expand": "expand",
           "spaceKeyContext": "spaceKeyContext"
         }
-      }
+      },
+      "response_schema": "ContentBody"
     },
     "get_anonymous_user": {
       "display_name": "Get anonymous user",
@@ -1659,7 +1680,8 @@
         "query_mapping": {
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "UserAnonymous"
     },
     "get_audit_records": {
       "display_name": "Get audit records",
@@ -1702,7 +1724,8 @@
           "startDate": "startDate"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "AuditRecordArray"
     },
     "get_audit_records_for_time_period": {
       "display_name": "Get audit records for time period",
@@ -1745,7 +1768,8 @@
           "units": "units"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "AuditRecordArray"
     },
     "get_available_content_states": {
       "display_name": "Gets available content states for content.",
@@ -1767,7 +1791,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/content/{id}/state/available"
-      }
+      },
+      "response_schema": "AvailableContentStates"
     },
     "get_blueprint_templates": {
       "display_name": "Get blueprint templates",
@@ -1805,7 +1830,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "BlueprintTemplateArray"
     },
     "get_bulk_user_lookup": {
       "display_name": "Get multiple users using ids",
@@ -1833,7 +1859,8 @@
           "expand": "expand"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "BulkUserLookupArray"
     },
     "get_content_restriction_status_for_user": {
       "display_name": "Get content restriction status for user",
@@ -1906,7 +1933,8 @@
         "query_mapping": {
           "status": "status"
         }
-      }
+      },
+      "response_schema": "ContentStateResponse"
     },
     "get_content_state_settings": {
       "display_name": "Get content state settings for space",
@@ -1928,7 +1956,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/space/{spaceKey}/state/settings"
-      }
+      },
+      "response_schema": "ContentStateSettings"
     },
     "get_content_template": {
       "display_name": "Get content template",
@@ -1957,7 +1986,8 @@
         "query_mapping": {
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "ContentTemplate"
     },
     "get_content_templates": {
       "display_name": "Get content templates",
@@ -1995,7 +2025,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentTemplateArray"
     },
     "get_content_watch_status": {
       "display_name": "Get content watch status",
@@ -2034,7 +2065,8 @@
           "key": "key",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "UserWatch"
     },
     "get_contents_with_state": {
       "display_name": "Get content in space with given content state",
@@ -2079,7 +2111,8 @@
           "state-id": "state-id"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentArray"
     },
     "get_current_user": {
       "display_name": "Get current user",
@@ -2101,7 +2134,8 @@
         "query_mapping": {
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "User"
     },
     "get_custom_content_states": {
       "display_name": "Get Custom Content States",
@@ -2115,7 +2149,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/content-states"
-      }
+      },
+      "response_schema": "ContentState_list"
     },
     "get_global_theme": {
       "display_name": "Get global theme",
@@ -2129,7 +2164,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/settings/theme/selected"
-      }
+      },
+      "response_schema": "Theme"
     },
     "get_group_by_group_id": {
       "display_name": "Get group",
@@ -2151,7 +2187,8 @@
         "query_mapping": {
           "id": "id"
         }
-      }
+      },
+      "response_schema": "Group"
     },
     "get_group_members_by_group_id": {
       "display_name": "Get group members",
@@ -2196,7 +2233,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "UserArray"
     },
     "get_group_memberships_for_user": {
       "display_name": "Get group memberships for user",
@@ -2229,7 +2267,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "GroupArrayWithLinks"
     },
     "get_groups": {
       "display_name": "Get groups",
@@ -2262,7 +2301,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "GroupArrayWithLinks"
     },
     "get_individual_group_restriction_status_by_group_id": {
       "display_name": "Get content restriction status for group",
@@ -2334,7 +2374,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "LabelArray"
     },
     "get_look_and_feel_settings": {
       "display_name": "Get look and feel settings",
@@ -2356,7 +2397,8 @@
         "query_mapping": {
           "spaceKey": "spaceKey"
         }
-      }
+      },
+      "response_schema": "LookAndFeelSettings"
     },
     "get_macro_body_by_macro_id": {
       "display_name": "Get macro body by macro ID",
@@ -2388,7 +2430,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/content/{id}/history/{version}/macro/id/{macroId}"
-      }
+      },
+      "response_schema": "MacroInstance"
     },
     "get_modules": {
       "display_name": "Get modules",
@@ -2424,7 +2467,8 @@
         "query_mapping": {
           "accountId": "accountId"
         }
-      }
+      },
+      "response_schema": "AccountIdEmailRecord"
     },
     "get_privacy_unsafe_user_email_bulk": {
       "display_name": "Get user email addresses in batch",
@@ -2446,7 +2490,8 @@
         "query_mapping": {
           "accountId": "accountId"
         }
-      }
+      },
+      "response_schema": "AccountIdEmailRecordArray"
     },
     "get_relationship": {
       "display_name": "Find relationship from source to target",
@@ -2515,7 +2560,8 @@
           "targetStatus": "targetStatus",
           "targetVersion": "targetVersion"
         }
-      }
+      },
+      "response_schema": "Relation"
     },
     "get_restrictions": {
       "display_name": "Get restrictions",
@@ -2555,7 +2601,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentRestrictionArray"
     },
     "get_restrictions_by_operation": {
       "display_name": "Get restrictions by operation",
@@ -2628,7 +2675,8 @@
           "limit": "limit",
           "start": "start"
         }
-      }
+      },
+      "response_schema": "ContentRestriction"
     },
     "get_retention_period": {
       "display_name": "Get retention period",
@@ -2642,7 +2690,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/audit/retention"
-      }
+      },
+      "response_schema": "RetentionPeriod"
     },
     "get_space_content_states": {
       "display_name": "Get space suggested content states",
@@ -2664,7 +2713,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/space/{spaceKey}/state"
-      }
+      },
+      "response_schema": "ContentState_list"
     },
     "get_space_settings": {
       "display_name": "Get space settings",
@@ -2686,7 +2736,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/space/{spaceKey}/settings"
-      }
+      },
+      "response_schema": "SpaceSettings"
     },
     "get_space_theme": {
       "display_name": "Get space theme",
@@ -2708,7 +2759,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/space/{spaceKey}/theme"
-      }
+      },
+      "response_schema": "Theme"
     },
     "get_system_info": {
       "display_name": "Get system info",
@@ -2722,7 +2774,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/settings/systemInfo"
-      }
+      },
+      "response_schema": "SystemInfoEntity"
     },
     "get_task": {
       "display_name": "Get long-running task",
@@ -2744,7 +2797,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/longtask/{id}"
-      }
+      },
+      "response_schema": "LongTaskStatusWithLinks"
     },
     "get_tasks": {
       "display_name": "Get long-running tasks",
@@ -2777,7 +2831,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "LongTaskStatusArray"
     },
     "get_theme": {
       "display_name": "Get theme",
@@ -2799,7 +2854,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/settings/theme/{themeKey}"
-      }
+      },
+      "response_schema": "Theme"
     },
     "get_themes": {
       "display_name": "Get themes",
@@ -2827,7 +2883,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ThemeArray"
     },
     "get_user": {
       "display_name": "Get user",
@@ -2854,7 +2911,8 @@
           "accountId": "accountId",
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "User"
     },
     "get_user_properties": {
       "display_name": "Get user properties",
@@ -2889,7 +2947,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "UserPropertyKeyArray"
     },
     "get_user_property": {
       "display_name": "Get user property",
@@ -2916,7 +2975,8 @@
       "execution": {
         "method": "GET",
         "path": "/wiki/rest/api/user/{userId}/property/{key}"
-      }
+      },
+      "response_schema": "UserProperty"
     },
     "get_viewers": {
       "display_name": "Get viewers",
@@ -2945,7 +3005,8 @@
         "query_mapping": {
           "fromDate": "fromDate"
         }
-      }
+      },
+      "response_schema": "get_viewers_response"
     },
     "get_views": {
       "display_name": "Get views",
@@ -2974,7 +3035,8 @@
         "query_mapping": {
           "fromDate": "fromDate"
         }
-      }
+      },
+      "response_schema": "get_views_response"
     },
     "get_watchers_for_space": {
       "display_name": "Get space watchers",
@@ -3009,7 +3071,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "SpaceWatchArray"
     },
     "get_watches_for_page": {
       "display_name": "Get watches for page",
@@ -3044,7 +3107,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "WatchArray"
     },
     "get_watches_for_space": {
       "display_name": "Get watches for space",
@@ -3079,7 +3143,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "SpaceWatchArray"
     },
     "is_watching_label": {
       "display_name": "Get label watch status",
@@ -3118,7 +3183,8 @@
           "key": "key",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "UserWatch"
     },
     "is_watching_space": {
       "display_name": "Get space watch status",
@@ -3157,7 +3223,8 @@
           "key": "key",
           "username": "username"
         }
-      }
+      },
+      "response_schema": "UserWatch"
     },
     "move_page": {
       "display_name": "Move a page to a new location relative to a target page",
@@ -3189,7 +3256,8 @@
       "execution": {
         "method": "PUT",
         "path": "/wiki/rest/api/content/{pageId}/move/{position}/{targetId}"
-      }
+      },
+      "response_schema": "move_page_response"
     },
     "publish_legacy_draft": {
       "display_name": "Publish legacy draft",
@@ -3253,7 +3321,8 @@
           "expand": "expand",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "Content"
     },
     "publish_shared_draft": {
       "display_name": "Publish shared draft",
@@ -3317,7 +3386,8 @@
           "expand": "expand",
           "status": "status"
         }
-      }
+      },
+      "response_schema": "Content"
     },
     "register_modules": {
       "display_name": "Register modules",
@@ -3360,7 +3430,8 @@
         "query_mapping": {
           "status": "status"
         }
-      }
+      },
+      "response_schema": "ContentStateResponse"
     },
     "remove_content_watcher": {
       "display_name": "Remove content watcher",
@@ -3829,7 +3900,8 @@
         "query_mapping": {
           "expand": "expand"
         }
-      }
+      },
+      "response_schema": "Version"
     },
     "search_by_cql": {
       "display_name": "Search content",
@@ -3908,7 +3980,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "SearchPageResponseSearchResult"
     },
     "search_content_by_cql": {
       "display_name": "Search content by CQL",
@@ -3951,7 +4024,8 @@
           "limit": "limit"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentArray"
     },
     "search_groups": {
       "display_name": "Search groups by partial query",
@@ -3989,7 +4063,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "GroupArrayWithLinks"
     },
     "search_user": {
       "display_name": "Search users",
@@ -4032,7 +4107,8 @@
           "start": "start"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "SearchPageResponseSearchResult"
     },
     "set_content_state": {
       "display_name": "Set the content state of a content and publishes a new version of the content.",
@@ -4073,7 +4149,8 @@
         "query_mapping": {
           "status": "status"
         }
-      }
+      },
+      "response_schema": "ContentStateResponse"
     },
     "set_retention_period": {
       "display_name": "Set retention period",
@@ -4104,7 +4181,8 @@
           "number": "number",
           "units": "units"
         }
-      }
+      },
+      "response_schema": "RetentionPeriod"
     },
     "set_space_theme": {
       "display_name": "Set space theme",
@@ -4134,7 +4212,8 @@
         "body_mapping": {
           "themeKey": "themeKey"
         }
-      }
+      },
+      "response_schema": "Theme"
     },
     "update_attachment_properties": {
       "display_name": "Update attachment properties",
@@ -4195,7 +4274,8 @@
           "type": "type",
           "version": "version"
         }
-      }
+      },
+      "response_schema": "Content"
     },
     "update_content_template": {
       "display_name": "Update content template",
@@ -4253,7 +4333,8 @@
           "templateId": "templateId",
           "templateType": "templateType"
         }
-      }
+      },
+      "response_schema": "ContentTemplate"
     },
     "update_look_and_feel": {
       "display_name": "Select look and feel settings",
@@ -4283,7 +4364,8 @@
           "lookAndFeelType": "lookAndFeelType",
           "spaceKey": "spaceKey"
         }
-      }
+      },
+      "response_schema": "LookAndFeelSelection"
     },
     "update_look_and_feel_settings": {
       "display_name": "Update look and feel settings",
@@ -4347,7 +4429,8 @@
         "query_mapping": {
           "spaceKey": "spaceKey"
         }
-      }
+      },
+      "response_schema": "LookAndFeelWithLinks"
     },
     "update_restrictions": {
       "display_name": "Update restrictions",
@@ -4377,7 +4460,8 @@
           "expand": "expand"
         },
         "response_path": "results"
-      }
+      },
+      "response_schema": "ContentRestrictionArray"
     },
     "update_space": {
       "display_name": "Update space",
@@ -4426,7 +4510,8 @@
           "status": "status",
           "type": "type"
         }
-      }
+      },
+      "response_schema": "Space"
     },
     "update_space_settings": {
       "display_name": "Update space settings",
@@ -4455,7 +4540,8 @@
         "body_mapping": {
           "routeOverrideEnabled": "routeOverrideEnabled"
         }
-      }
+      },
+      "response_schema": "SpaceSettings"
     },
     "update_user_property": {
       "display_name": "Update user property",
@@ -4489,6 +4575,1265 @@
         "path": "/wiki/rest/api/user/{userId}/property/{key}",
         "body_mapping": {
           "value": "value"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "AccountIdEmailRecord": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "AccountIdEmailRecordArray": {
+      "type": "array",
+      "items": {
+        "$ref": "AccountIdEmailRecord"
+      }
+    },
+    "AsyncContentBody": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "embeddedContent": {
+          "type": "array"
+        },
+        "error": {
+          "type": "string"
+        },
+        "mediaToken": {
+          "type": "object"
+        },
+        "renderTaskId": {
+          "type": "string"
+        },
+        "representation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "description": "Rerunning is reserved for when the job is working, but there is a previous run's value in the cache. You may choose to continue polling, or use the cached value."
+        },
+        "value": {
+          "type": "string"
+        },
+        "webresource": {
+          "type": "object"
+        }
+      }
+    },
+    "AsyncContentBodyArray": {
+      "type": "array",
+      "items": {
+        "$ref": "AsyncContentBody"
+      }
+    },
+    "AsyncId": {
+      "type": "object",
+      "properties": {
+        "asyncId": {
+          "type": "string"
+        }
+      }
+    },
+    "AsyncIdArray": {
+      "type": "array",
+      "items": {
+        "$ref": "AsyncId"
+      }
+    },
+    "AuditRecord": {
+      "type": "object",
+      "properties": {
+        "affectedObject": {
+          "type": "object"
+        },
+        "associatedObjects": {
+          "type": "array"
+        },
+        "author": {
+          "type": "object"
+        },
+        "category": {
+          "type": "string"
+        },
+        "changedValues": {
+          "type": "array"
+        },
+        "creationDate": {
+          "type": "integer",
+          "description": "The creation date-time of the audit record, as a timestamp."
+        },
+        "description": {
+          "type": "string"
+        },
+        "remoteAddress": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "superAdmin": {
+          "type": "boolean"
+        },
+        "sysAdmin": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AuditRecordArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "AvailableContentStates": {
+      "type": "object",
+      "properties": {
+        "customContentStates": {
+          "type": "array",
+          "description": "Custom content states that can be used by the user on the content of this call.\nThis list can be empty if there are no custom content states defined by the user or if custom content states are disabled in the space of the content.\nThis will at most have 3 of the most recently published content states. \nOnly the calling user has access to place these states on content, but all users can see these states once they are placed."
+        },
+        "spaceContentStates": {
+          "type": "array",
+          "description": "Space suggested content states that can be used in the space.\nThis list can be empty if there are no space content states defined in the space or if space content states are disabled in the space.\nAll spaces start with 4 default space content states, and this can be modified in the UI under space settings."
+        }
+      }
+    },
+    "BlueprintTemplateArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "BulkUserLookupArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "Content": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "ancestors": {
+          "type": "array",
+          "nullable": true
+        },
+        "body": {
+          "type": "object"
+        },
+        "childTypes": {
+          "type": "object",
+          "description": "Shows whether a piece of content has attachments, comments, or child pages/whiteboards.\nNote, this doesn't actually contain the child objects."
+        },
+        "children": {
+          "type": "object"
+        },
+        "container": {
+          "type": "object",
+          "description": "Container for content. This can be either a space (containing a page or blogpost)\nor a page/blog post (containing an attachment or comment)",
+          "nullable": true
+        },
+        "descendants": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        },
+        "history": {
+          "type": "object",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "macroRenderedOutput": {
+          "type": "object"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Metadata object for page, blogpost, comment content"
+        },
+        "operations": {
+          "type": "array"
+        },
+        "restrictions": {
+          "type": "object"
+        },
+        "space": {
+          "type": "object",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "Can be \"page\", \"blogpost\", \"attachment\" or \"content\""
+        },
+        "version": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    },
+    "ContentArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "ContentBody": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "embeddedContent": {
+          "type": "array"
+        },
+        "mediaToken": {
+          "type": "object"
+        },
+        "representation": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "webresource": {
+          "type": "object"
+        }
+      }
+    },
+    "ContentRestriction": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "content": {
+          "type": "object",
+          "description": "Base object for all content types.",
+          "nullable": true
+        },
+        "operation": {
+          "type": "string"
+        },
+        "restrictions": {
+          "type": "object"
+        }
+      }
+    },
+    "ContentRestrictionArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "restrictionsHash": {
+          "type": "string",
+          "description": "This property is used by the UI to figure out whether a set of restrictions\nhas changed."
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "ContentState": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "description": "hex string representing color of state"
+        },
+        "id": {
+          "type": "integer",
+          "description": "identifier of content state. If 0, 1, or 2, this is a default space state"
+        },
+        "name": {
+          "type": "string",
+          "description": "name of content state."
+        }
+      }
+    },
+    "ContentStateResponse": {
+      "type": "object",
+      "properties": {
+        "contentState": {
+          "type": "object"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp of last publish event where content state changed"
+        }
+      }
+    },
+    "ContentStateSettings": {
+      "type": "object",
+      "properties": {
+        "contentStatesAllowed": {
+          "type": "boolean",
+          "description": "Whether users can place any content states on content"
+        },
+        "customContentStatesAllowed": {
+          "type": "boolean",
+          "description": "Whether users can place their custom states on content"
+        },
+        "spaceContentStates": {
+          "type": "array",
+          "description": "space suggested content states that users can choose from"
+        },
+        "spaceContentStatesAllowed": {
+          "type": "boolean",
+          "description": "Whether users can place space suggested states on content"
+        }
+      }
+    },
+    "ContentState_list": {
+      "type": "array",
+      "items": {
+        "$ref": "ContentState"
+      }
+    },
+    "ContentTemplate": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "body": {
+          "type": "object",
+          "description": "The body of the new content. Does not apply to attachments.\nOnly one body format should be specified as the property for\nthis object, e.g. `storage`.\n\nNote, `editor2` format is used by Atlassian only. `anonymous_export_view` is\nthe same as `export_view` format but only content viewable by an anonymous\nuser is included."
+        },
+        "description": {
+          "type": "string"
+        },
+        "editorVersion": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "originalTemplate": {
+          "type": "object"
+        },
+        "referencingBlueprint": {
+          "type": "string"
+        },
+        "space": {
+          "type": "object"
+        },
+        "templateId": {
+          "type": "string"
+        },
+        "templateType": {
+          "type": "string"
+        }
+      }
+    },
+    "ContentTemplateArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "managedBy": {
+          "type": "string",
+          "description": "This property represents how this collection of users is managed:\n  - `ADMINS`: This value indicates that the collection of users is managed by org, site or product admins.\n  - `EXTERNAL`: This value indicates that the collection of users is managed externally (through SCIM, HRIS, etc.).\n  - `TEAM_MEMBERS`: This value indicates that the collection of users is managed by its members.\n  - `OPEN`: This value indicates that the collection of users is not actively managed by any users."
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "usageType": {
+          "type": "string",
+          "description": "This property represents how this collection of users is used:\n  - `USERBASE_GROUP`: This value indicates that the collection of users is used as a group.\n  - `TEAM_COLLABORATION`: This value indicates that the collection of users is used as a team."
+        }
+      }
+    },
+    "GroupArrayWithLinks": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "totalSize": {
+          "type": "integer",
+          "description": "This property will return total count of the objects before pagination is applied.\nThis value is returned if `shouldReturnTotalSize` is set to `true`."
+        }
+      }
+    },
+    "LabelArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "LabelDetails": {
+      "type": "object",
+      "properties": {
+        "associatedContents": {
+          "type": "object"
+        },
+        "label": {
+          "type": "object"
+        }
+      }
+    },
+    "LongTaskStatusArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "LongTaskStatusWithLinks": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "additionalDetails": {
+          "type": "object"
+        },
+        "ari": {
+          "type": "string",
+          "description": "the ARI for the long task, based on its ID"
+        },
+        "elapsedTime": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "finished": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "array"
+        },
+        "name": {
+          "type": "object"
+        },
+        "percentageComplete": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "LookAndFeelSelection": {
+      "type": "object",
+      "properties": {
+        "lookAndFeelType": {
+          "type": "string"
+        },
+        "spaceKey": {
+          "type": "string",
+          "description": "The key of the space for which the look and feel settings will be\nset."
+        }
+      }
+    },
+    "LookAndFeelSettings": {
+      "type": "object",
+      "properties": {
+        "custom": {
+          "type": "object"
+        },
+        "global": {
+          "type": "object"
+        },
+        "selected": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "object"
+        }
+      }
+    },
+    "LookAndFeelWithLinks": {
+      "type": "object"
+    },
+    "MacroInstance": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "body": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        }
+      }
+    },
+    "PermissionCheckResponse": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "hasPermission": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Relation": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        },
+        "relationData": {
+          "type": "object"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "RelationArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "RetentionPeriod": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "description": "The number of units for the retention period."
+        },
+        "units": {
+          "type": "string",
+          "description": "The unit of time that the retention period is measured in."
+        }
+      }
+    },
+    "SearchPageResponseSearchResult": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "archivedResultCount": {
+          "type": "integer"
+        },
+        "cqlQuery": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "searchDuration": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "totalSize": {
+          "type": "integer"
+        }
+      }
+    },
+    "Space": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "description": {
+          "type": "object"
+        },
+        "history": {
+          "type": "object"
+        },
+        "homepage": {
+          "type": "object",
+          "description": "Base object for all content types.",
+          "nullable": true
+        },
+        "icon": {
+          "type": "object",
+          "description": "This object represents an icon. If used as a profilePicture, this may be returned as null, depending on the user's privacy setting.",
+          "nullable": true
+        },
+        "id": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        },
+        "lookAndFeel": {
+          "type": "object"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array"
+        },
+        "permissions": {
+          "type": "array"
+        },
+        "settings": {
+          "type": "object",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "object"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "SpacePermissionV2": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "operation": {
+          "type": "object"
+        },
+        "subject": {
+          "type": "object",
+          "description": "The user or group that the permission applies to."
+        }
+      }
+    },
+    "SpaceSettings": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "editor": {
+          "type": "object"
+        },
+        "routeOverrideEnabled": {
+          "type": "boolean",
+          "description": "Defines whether an override for the space home should be used. This is\nused in conjunction with a space theme provided by an app. For\nexample, if this property is set to true, a theme can display a page\nother than the space homepage when users visit the root URL for a\nspace. This property allows apps to provide content-only theming\nwithout overriding the space home."
+        },
+        "spaceKey": {
+          "type": "string"
+        }
+      }
+    },
+    "SpaceWatchArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "SystemInfoEntity": {
+      "type": "object",
+      "properties": {
+        "baseUrl": {
+          "type": "string"
+        },
+        "cloudId": {
+          "type": "string"
+        },
+        "commitHash": {
+          "type": "string"
+        },
+        "defaultLocale": {
+          "type": "string"
+        },
+        "defaultTimeZone": {
+          "type": "string"
+        },
+        "edition": {
+          "type": "string"
+        },
+        "fallbackBaseUrl": {
+          "type": "string"
+        },
+        "microsPerimeter": {
+          "type": "string"
+        },
+        "siteTitle": {
+          "type": "string"
+        }
+      }
+    },
+    "Theme": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "object",
+          "description": "This object represents an icon. If used as a profilePicture, this may be returned as null, depending on the user's privacy setting.",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "themeKey": {
+          "type": "string"
+        }
+      }
+    },
+    "ThemeArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "accountId": {
+          "type": "string",
+          "description": "The account ID of the user, which uniquely identifies the user across all Atlassian products.\nFor example, `384093:32b4d9w0-f6a5-3535-11a3-9c8c88d10192`.",
+          "nullable": true
+        },
+        "accountType": {
+          "type": "string",
+          "description": "The account type of the user, may return empty string if unavailable. App is if the user is a bot user created on behalf of an Atlassian app."
+        },
+        "details": {
+          "type": "object"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The displays name of the user. Depending on the user's privacy setting, this may be the same as publicName.",
+          "nullable": true
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user. Depending on the user's privacy setting, this may return an empty string.",
+          "nullable": true
+        },
+        "externalCollaborator": {
+          "type": "boolean",
+          "description": "This is deprecated. Use `isGuest` instead to find out whether the user is a guest user."
+        },
+        "isExternalCollaborator": {
+          "type": "boolean",
+          "description": "This is deprecated. Use `isGuest` instead to find out whether the user is a guest user."
+        },
+        "isGuest": {
+          "type": "boolean",
+          "description": "Whether the user is a guest user"
+        },
+        "operations": {
+          "type": "array",
+          "nullable": true
+        },
+        "personalSpace": {
+          "type": "object",
+          "nullable": true
+        },
+        "profilePicture": {
+          "type": "object",
+          "description": "This object represents an icon. If used as a profilePicture, this may be returned as null, depending on the user's privacy setting.",
+          "nullable": true
+        },
+        "publicName": {
+          "type": "string",
+          "description": "The public name or nickname of the user. Will always contain a value."
+        },
+        "timeZone": {
+          "type": "string",
+          "description": "This displays user time zone. Depending on the user's privacy setting, this may return null.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string"
+        },
+        "userKey": {
+          "type": "string",
+          "description": "This property is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-migration-guide/) for details.",
+          "nullable": true
+        },
+        "username": {
+          "type": "string",
+          "description": "This property is no longer available and will be removed from the documentation soon.\nUse `accountId` instead.\nSee the [deprecation notice](/cloud/confluence/deprecation-notice-user-privacy-api-migration-guide/) for details.",
+          "nullable": true
+        }
+      }
+    },
+    "UserAnonymous": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array"
+        },
+        "profilePicture": {
+          "type": "object",
+          "description": "This object represents an icon. If used as a profilePicture, this may be returned as null, depending on the user's privacy setting.",
+          "nullable": true
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "UserArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "totalSize": {
+          "type": "integer",
+          "description": "This property will return total count of the objects before pagination is applied.\nThis value is returned if `shouldReturnTotalSize` is set to `true`."
+        }
+      }
+    },
+    "UserProperty": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "datetime when the property was created such as `2022-01-01T12:00:00.111Z`"
+        },
+        "id": {
+          "type": "string",
+          "description": "a unique identifier for the user property"
+        },
+        "key": {
+          "type": "string"
+        },
+        "lastModifiedDate": {
+          "type": "string",
+          "description": "datetime when the property was last modified such as `2022-02-01T12:00:00.111Z`"
+        },
+        "value": {
+          "type": "object",
+          "description": "The value of the content property."
+        }
+      }
+    },
+    "UserPropertyKeyArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "UserWatch": {
+      "type": "object",
+      "properties": {
+        "watching": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Version": {
+      "type": "object",
+      "properties": {
+        "_expandable": {
+          "type": "object"
+        },
+        "_links": {
+          "type": "object"
+        },
+        "by": {
+          "type": "object",
+          "nullable": true
+        },
+        "collaborators": {
+          "type": "object",
+          "nullable": true
+        },
+        "confRev": {
+          "type": "string",
+          "description": "The revision id provided by confluence to be used as a revision in Synchrony",
+          "nullable": true
+        },
+        "content": {
+          "type": "object",
+          "description": "Base object for all content types.",
+          "nullable": true
+        },
+        "contentTypeModified": {
+          "type": "boolean",
+          "description": "True if content type is modifed in this version (e.g. page to blog)"
+        },
+        "friendlyWhen": {
+          "type": "string",
+          "nullable": true
+        },
+        "message": {
+          "type": "string",
+          "nullable": true
+        },
+        "minorEdit": {
+          "type": "boolean",
+          "description": "If `minorEdit` is set to 'true', no notification email or activity\nstream will be generated for the change."
+        },
+        "number": {
+          "type": "integer",
+          "description": "Set this to the current version number incremented by one"
+        },
+        "syncRev": {
+          "type": "string",
+          "description": "The revision id provided by Synchrony",
+          "nullable": true
+        },
+        "syncRevSource": {
+          "type": "string",
+          "description": "Source of the synchrony revision",
+          "nullable": true
+        },
+        "when": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "WatchArray": {
+      "type": "object",
+      "properties": {
+        "_links": {
+          "type": "object"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "results": {
+          "type": "array"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "start": {
+          "type": "integer"
+        }
+      }
+    },
+    "get_viewers_response": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "The total number of distinct viewers for the content."
+        },
+        "id": {
+          "type": "integer",
+          "description": "The content ID."
+        }
+      }
+    },
+    "get_views_response": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "The total number of views for the content."
+        },
+        "id": {
+          "type": "integer",
+          "description": "The content ID."
+        }
+      }
+    },
+    "move_page_response": {
+      "type": "object",
+      "properties": {
+        "pageId": {
+          "type": "string"
         }
       }
     }

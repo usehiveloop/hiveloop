@@ -1,0 +1,228 @@
+{
+  "display_name": "Stripe",
+  "triggers": {
+    "customer.created": {
+      "display_name": "Customer Created",
+      "description": "Triggered when a new customer is created in Stripe",
+      "resource_type": "customer",
+      "payload_schema": "stripe_event"
+    },
+    "customer.updated": {
+      "display_name": "Customer Updated",
+      "description": "Triggered when a customer object is updated",
+      "resource_type": "customer",
+      "payload_schema": "stripe_event"
+    },
+    "customer.deleted": {
+      "display_name": "Customer Deleted",
+      "description": "Triggered when a customer is deleted from Stripe",
+      "resource_type": "customer",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.created": {
+      "display_name": "Subscription Created",
+      "description": "Triggered when a new subscription is created for a customer",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.updated": {
+      "display_name": "Subscription Updated",
+      "description": "Triggered when a subscription is updated (plan change, quantity change, etc.)",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.deleted": {
+      "display_name": "Subscription Deleted",
+      "description": "Triggered when a subscription is canceled and reaches the end of its billing period",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.paused": {
+      "display_name": "Subscription Paused",
+      "description": "Triggered when a subscription is paused",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.resumed": {
+      "display_name": "Subscription Resumed",
+      "description": "Triggered when a paused subscription is resumed",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "customer.subscription.trial_will_end": {
+      "display_name": "Subscription Trial Will End",
+      "description": "Triggered three days before a subscription trial period ends",
+      "resource_type": "subscription",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.created": {
+      "display_name": "Invoice Created",
+      "description": "Triggered when a new invoice is created",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.finalized": {
+      "display_name": "Invoice Finalized",
+      "description": "Triggered when a draft invoice is finalized and ready for payment",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.paid": {
+      "display_name": "Invoice Paid",
+      "description": "Triggered when an invoice is successfully paid",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.payment_succeeded": {
+      "display_name": "Invoice Payment Succeeded",
+      "description": "Triggered when payment for an invoice succeeds",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.payment_failed": {
+      "display_name": "Invoice Payment Failed",
+      "description": "Triggered when payment for an invoice fails",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "invoice.upcoming": {
+      "display_name": "Invoice Upcoming",
+      "description": "Triggered a few days before a subscription invoice is due to be created",
+      "resource_type": "invoice",
+      "payload_schema": "stripe_event"
+    },
+    "payment_intent.created": {
+      "display_name": "Payment Intent Created",
+      "description": "Triggered when a new payment intent is created",
+      "resource_type": "payment_intent",
+      "payload_schema": "stripe_event"
+    },
+    "payment_intent.succeeded": {
+      "display_name": "Payment Intent Succeeded",
+      "description": "Triggered when a payment intent successfully completes a payment",
+      "resource_type": "payment_intent",
+      "payload_schema": "stripe_event"
+    },
+    "payment_intent.payment_failed": {
+      "display_name": "Payment Intent Failed",
+      "description": "Triggered when a payment intent fails to complete a payment",
+      "resource_type": "payment_intent",
+      "payload_schema": "stripe_event"
+    },
+    "payment_intent.canceled": {
+      "display_name": "Payment Intent Canceled",
+      "description": "Triggered when a payment intent is canceled",
+      "resource_type": "payment_intent",
+      "payload_schema": "stripe_event"
+    },
+    "charge.succeeded": {
+      "display_name": "Charge Succeeded",
+      "description": "Triggered when a charge is successfully completed",
+      "resource_type": "charge",
+      "payload_schema": "stripe_event"
+    },
+    "charge.failed": {
+      "display_name": "Charge Failed",
+      "description": "Triggered when a charge attempt fails",
+      "resource_type": "charge",
+      "payload_schema": "stripe_event"
+    },
+    "charge.refunded": {
+      "display_name": "Charge Refunded",
+      "description": "Triggered when a charge is refunded (fully or partially)",
+      "resource_type": "charge",
+      "payload_schema": "stripe_event"
+    },
+    "checkout.session.completed": {
+      "display_name": "Checkout Session Completed",
+      "description": "Triggered when a Checkout Session is successfully completed by a customer",
+      "resource_type": "checkout_session",
+      "payload_schema": "stripe_event"
+    },
+    "checkout.session.expired": {
+      "display_name": "Checkout Session Expired",
+      "description": "Triggered when a Checkout Session expires before completion",
+      "resource_type": "checkout_session",
+      "payload_schema": "stripe_event"
+    },
+    "product.created": {
+      "display_name": "Product Created",
+      "description": "Triggered when a new product is created in the catalog",
+      "resource_type": "product",
+      "payload_schema": "stripe_event"
+    },
+    "product.updated": {
+      "display_name": "Product Updated",
+      "description": "Triggered when a product is updated",
+      "resource_type": "product",
+      "payload_schema": "stripe_event"
+    },
+    "product.deleted": {
+      "display_name": "Product Deleted",
+      "description": "Triggered when a product is deleted from the catalog",
+      "resource_type": "product",
+      "payload_schema": "stripe_event"
+    },
+    "price.created": {
+      "display_name": "Price Created",
+      "description": "Triggered when a new price is created for a product",
+      "resource_type": "price",
+      "payload_schema": "stripe_event"
+    },
+    "price.updated": {
+      "display_name": "Price Updated",
+      "description": "Triggered when a price is updated",
+      "resource_type": "price",
+      "payload_schema": "stripe_event"
+    },
+    "price.deleted": {
+      "display_name": "Price Deleted",
+      "description": "Triggered when a price is deleted",
+      "resource_type": "price",
+      "payload_schema": "stripe_event"
+    }
+  },
+  "schemas": {
+    "stripe_event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the event (e.g. evt_1234)"
+        },
+        "object": {
+          "type": "string",
+          "description": "String representing the object type, always 'event'"
+        },
+        "api_version": {
+          "type": "string",
+          "description": "The Stripe API version used to render data in this event (e.g. 2023-10-16)"
+        },
+        "created": {
+          "type": "integer",
+          "description": "Time at which the event was created, measured in seconds since the Unix epoch"
+        },
+        "data": {
+          "type": "object",
+          "description": "Object containing the resource affected by the event. Includes 'object' (the full API resource, e.g. Customer, Subscription, Invoice) and optionally 'previous_attributes' with changed field values before the update"
+        },
+        "livemode": {
+          "type": "boolean",
+          "description": "Whether the event was generated in live mode (true) or test mode (false)"
+        },
+        "pending_webhooks": {
+          "type": "integer",
+          "description": "Number of webhooks that have yet to be successfully delivered for this event"
+        },
+        "request": {
+          "type": "object",
+          "description": "Information on the API request that triggered the event. Contains 'id' (request identifier) and 'idempotency_key' if one was used"
+        },
+        "type": {
+          "type": "string",
+          "description": "Description of the event type (e.g. customer.created, invoice.payment_succeeded)"
+        }
+      }
+    }
+  }
+}

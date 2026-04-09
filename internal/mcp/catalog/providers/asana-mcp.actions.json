@@ -35,7 +35,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_custom_field_setting_for_goal_response"
     },
     "add_custom_field_setting_for_portfolio": {
       "display_name": "Add a custom field to a portfolio",
@@ -70,7 +71,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_custom_field_setting_for_portfolio_response"
     },
     "add_custom_field_setting_for_project": {
       "display_name": "Add a custom field to a project",
@@ -110,7 +112,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_custom_field_setting_for_project_response"
     },
     "add_dependencies_for_task": {
       "display_name": "Set dependencies for a task",
@@ -145,7 +148,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_dependencies_for_task_response"
     },
     "add_dependents_for_task": {
       "display_name": "Set dependents for a task",
@@ -181,7 +185,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_dependents_for_task_response"
     },
     "add_followers": {
       "display_name": "Add a collaborator to a goal",
@@ -221,7 +226,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_followers_response"
     },
     "add_followers_for_project": {
       "display_name": "Add followers to a project",
@@ -261,7 +267,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_followers_for_project_response"
     },
     "add_followers_for_task": {
       "display_name": "Add followers to a task",
@@ -301,7 +308,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_followers_for_task_response"
     },
     "add_item_for_portfolio": {
       "display_name": "Add a portfolio item",
@@ -336,7 +344,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_item_for_portfolio_response"
     },
     "add_members_for_portfolio": {
       "display_name": "Add users to a portfolio",
@@ -376,7 +385,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_members_for_portfolio_response"
     },
     "add_members_for_project": {
       "display_name": "Add users to a project",
@@ -416,7 +426,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_members_for_project_response"
     },
     "add_project_for_task": {
       "display_name": "Add a project to a task",
@@ -451,7 +462,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_project_for_task_response"
     },
     "add_supporting_relationship": {
       "display_name": "Add a supporting goal relationship",
@@ -491,7 +503,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_supporting_relationship_response"
     },
     "add_tag_for_task": {
       "display_name": "Add a tag to a task",
@@ -526,7 +539,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_tag_for_task_response"
     },
     "add_task_for_section": {
       "display_name": "Add task to section",
@@ -561,7 +575,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_task_for_section_response"
     },
     "add_user_for_team": {
       "display_name": "Add a user to a team",
@@ -602,7 +617,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_user_for_team_response"
     },
     "add_user_for_workspace": {
       "display_name": "Add a user to a workspace or organization",
@@ -643,7 +659,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "add_user_for_workspace_response"
     },
     "approve_access_request": {
       "display_name": "Approve an access request",
@@ -665,7 +682,8 @@
       "execution": {
         "method": "POST",
         "path": "/access_requests/{access_request_gid}/approve"
-      }
+      },
+      "response_schema": "approve_access_request_response"
     },
     "create_access_request": {
       "display_name": "Create an access request",
@@ -687,7 +705,8 @@
         "body_mapping": {
           "data": "data"
         }
-      }
+      },
+      "response_schema": "create_access_request_response"
     },
     "create_allocation": {
       "display_name": "Create an allocation",
@@ -720,7 +739,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_allocation_response"
     },
     "create_batch_request": {
       "display_name": "Submit parallel requests",
@@ -755,7 +775,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "create_batch_request_response"
     },
     "create_budget": {
       "display_name": "Create a budget",
@@ -783,7 +804,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_budget_response"
     },
     "create_custom_field": {
       "display_name": "Create a custom field",
@@ -816,7 +838,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_custom_field_response"
     },
     "create_enum_option_for_custom_field": {
       "display_name": "Create an enum option",
@@ -856,7 +879,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_enum_option_for_custom_field_response"
     },
     "create_goal": {
       "display_name": "Create a goal",
@@ -889,7 +913,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_goal_response"
     },
     "create_goal_metric": {
       "display_name": "Create a goal metric",
@@ -930,7 +955,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_goal_metric_response"
     },
     "create_graph_export": {
       "display_name": "Initiate a graph export",
@@ -952,7 +978,8 @@
         "body_mapping": {
           "data": "data"
         }
-      }
+      },
+      "response_schema": "create_graph_export_response"
     },
     "create_membership": {
       "display_name": "Create a membership",
@@ -980,7 +1007,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_membership_response"
     },
     "create_organization_export": {
       "display_name": "Create an organization export request",
@@ -1014,7 +1042,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_organization_export_response"
     },
     "create_portfolio": {
       "display_name": "Create a portfolio",
@@ -1047,7 +1076,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_portfolio_response"
     },
     "create_project": {
       "display_name": "Create a project",
@@ -1080,7 +1110,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_project_response"
     },
     "create_project_brief": {
       "display_name": "Create a project brief",
@@ -1120,7 +1151,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_project_brief_response"
     },
     "create_project_for_team": {
       "display_name": "Create a project in a team",
@@ -1160,7 +1192,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_project_for_team_response"
     },
     "create_project_for_workspace": {
       "display_name": "Create a project in a workspace",
@@ -1200,7 +1233,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_project_for_workspace_response"
     },
     "create_project_status_for_project": {
       "display_name": "Create a project status",
@@ -1240,7 +1274,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_project_status_for_project_response"
     },
     "create_rate": {
       "display_name": "Create a rate",
@@ -1274,7 +1309,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_rate_response"
     },
     "create_resource_export": {
       "display_name": "Initiate a resource export",
@@ -1296,7 +1332,8 @@
         "body_mapping": {
           "data": "data"
         }
-      }
+      },
+      "response_schema": "create_resource_export_response"
     },
     "create_role": {
       "display_name": "Create a role",
@@ -1329,7 +1366,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_role_response"
     },
     "create_section_for_project": {
       "display_name": "Create a section in a project",
@@ -1369,7 +1407,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_section_for_project_response"
     },
     "create_status_for_object": {
       "display_name": "Create a status update",
@@ -1412,7 +1451,50 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_status_for_object_response"
+    },
+    "create_story_for_goal": {
+      "display_name": "Create a story on a goal",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003estories:write\u003c/code\u003e Adds a story to a goal. This endpoint currently only allows for comment stories to be created. The comment will be authored by the currently authen...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "A story represents an activity associated with an object in the Asana system."
+          },
+          "goal_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the goal."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          }
+        },
+        "required": [
+          "goal_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/goals/{goal_gid}/stories",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "create_story_for_goal_response"
     },
     "create_story_for_task": {
       "display_name": "Create a story on a task",
@@ -1453,7 +1535,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_story_for_task_response"
     },
     "create_subtask_for_task": {
       "display_name": "Create a subtask",
@@ -1493,7 +1576,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_subtask_for_task_response"
     },
     "create_tag": {
       "display_name": "Create a tag",
@@ -1526,7 +1610,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_tag_response"
     },
     "create_tag_for_workspace": {
       "display_name": "Create a tag in a workspace",
@@ -1566,7 +1651,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_tag_for_workspace_response"
     },
     "create_task": {
       "display_name": "Create a task",
@@ -1599,7 +1685,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_task_response"
     },
     "create_team": {
       "display_name": "Create a team",
@@ -1632,7 +1719,42 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_team_response"
+    },
+    "create_time_tracking_category": {
+      "display_name": "Create a time tracking category",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:write\u003c/code\u003e Creates a new time tracking category in a given workspace. Returns the record of the newly created time tracking category.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/time_tracking_categories",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "create_time_tracking_category_response"
     },
     "create_time_tracking_entry": {
       "display_name": "Create a time tracking entry",
@@ -1672,7 +1794,43 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_time_tracking_entry_response"
+    },
+    "create_timesheet_approval_status": {
+      "display_name": "Create a timesheet approval status",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etimesheet_approval_statuses:write\u003c/code\u003e Creates a new timesheet approval status for a user's timesheet week. The start_date must be a Monday and end_date must be the f...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "A request to create a timesheet approval status."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/timesheet_approval_statuses",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "create_timesheet_approval_status_response"
     },
     "create_webhook": {
       "display_name": "Establish a webhook",
@@ -1705,7 +1863,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "create_webhook_response"
     },
     "delete_allocation": {
       "display_name": "Delete an allocation",
@@ -1734,7 +1893,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_allocation_response"
     },
     "delete_attachment": {
       "display_name": "Delete an attachment",
@@ -1763,7 +1923,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_attachment_response"
     },
     "delete_budget": {
       "display_name": "Delete a budget",
@@ -1792,7 +1953,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_budget_response"
     },
     "delete_custom_field": {
       "display_name": "Delete a custom field",
@@ -1821,7 +1983,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_custom_field_response"
     },
     "delete_goal": {
       "display_name": "Delete a goal",
@@ -1850,7 +2013,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_goal_response"
     },
     "delete_membership": {
       "display_name": "Delete a membership",
@@ -1879,7 +2043,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_membership_response"
     },
     "delete_portfolio": {
       "display_name": "Delete a portfolio",
@@ -1908,7 +2073,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_portfolio_response"
     },
     "delete_project": {
       "display_name": "Delete a project",
@@ -1937,7 +2103,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_project_response"
     },
     "delete_project_brief": {
       "display_name": "Delete a project brief",
@@ -1966,7 +2133,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_project_brief_response"
     },
     "delete_project_status": {
       "display_name": "Delete a project status",
@@ -1995,7 +2163,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_project_status_response"
     },
     "delete_project_template": {
       "display_name": "Delete a project template",
@@ -2024,7 +2193,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_project_template_response"
     },
     "delete_rate": {
       "display_name": "Delete a rate",
@@ -2053,7 +2223,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_rate_response"
     },
     "delete_role": {
       "display_name": "Delete a role",
@@ -2082,7 +2253,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_role_response"
     },
     "delete_section": {
       "display_name": "Delete a section",
@@ -2111,7 +2283,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_section_response"
     },
     "delete_status": {
       "display_name": "Delete a status update",
@@ -2140,11 +2313,12 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_status_response"
     },
     "delete_story": {
       "display_name": "Delete a story",
-      "description": "Deletes a story. A user can only delete stories they have created. Returns an empty data record.",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003estories:delete\u003c/code\u003e Deletes a story. A user can only delete stories they have created. Returns an empty data record.",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -2169,7 +2343,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_story_response"
     },
     "delete_tag": {
       "display_name": "Delete a tag",
@@ -2198,7 +2373,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_tag_response"
     },
     "delete_task": {
       "display_name": "Delete a task",
@@ -2227,7 +2403,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_task_response"
     },
     "delete_task_template": {
       "display_name": "Delete a task template",
@@ -2256,7 +2433,38 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_task_template_response"
+    },
+    "delete_time_tracking_category": {
+      "display_name": "Delete a time tracking category",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:delete\u003c/code\u003e Deletes a specific, existing time tracking category. Returns an empty data record.",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "time_tracking_category_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the time tracking category."
+          }
+        },
+        "required": [
+          "time_tracking_category_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "DELETE",
+        "path": "/time_tracking_categories/{time_tracking_category_gid}",
+        "query_mapping": {
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "delete_time_tracking_category_response"
     },
     "delete_time_tracking_entry": {
       "display_name": "Delete a time tracking entry",
@@ -2285,7 +2493,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_time_tracking_entry_response"
     },
     "delete_webhook": {
       "display_name": "Delete a webhook",
@@ -2314,7 +2523,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "delete_webhook_response"
     },
     "duplicate_portfolio": {
       "display_name": "Duplicate a portfolio",
@@ -2354,7 +2564,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "duplicate_portfolio_response"
     },
     "duplicate_project": {
       "display_name": "Duplicate a project",
@@ -2394,7 +2605,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "duplicate_project_response"
     },
     "duplicate_task": {
       "display_name": "Duplicate a task",
@@ -2434,7 +2646,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "duplicate_task_response"
     },
     "get_access_requests": {
       "display_name": "Get access requests",
@@ -2472,7 +2685,8 @@
           "user": "user"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_access_requests_response"
     },
     "get_allocation": {
       "display_name": "Get an allocation",
@@ -2506,7 +2720,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_allocation_response"
     },
     "get_allocations": {
       "display_name": "Get multiple allocations",
@@ -2559,7 +2774,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_allocations_response"
     },
     "get_attachment": {
       "display_name": "Get an attachment",
@@ -2593,7 +2809,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_attachment_response"
     },
     "get_attachments_for_object": {
       "display_name": "Get attachments from an object",
@@ -2636,7 +2853,8 @@
           "parent": "parent"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_attachments_for_object_response"
     },
     "get_audit_log_events": {
       "display_name": "Get audit log events",
@@ -2701,7 +2919,8 @@
           "start_at": "start_at"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_audit_log_events_response"
     },
     "get_budget": {
       "display_name": "Get a budget",
@@ -2735,7 +2954,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_budget_response"
     },
     "get_budgets": {
       "display_name": "Get all budgets",
@@ -2763,7 +2983,8 @@
           "parent": "parent"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_budgets_response"
     },
     "get_custom_field": {
       "display_name": "Get a custom field",
@@ -2797,7 +3018,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_custom_field_response"
     },
     "get_custom_field_settings_for_goal": {
       "display_name": "Get a goal's custom fields",
@@ -2842,7 +3064,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_field_settings_for_goal_response"
     },
     "get_custom_field_settings_for_portfolio": {
       "display_name": "Get a portfolio's custom fields",
@@ -2887,7 +3110,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_field_settings_for_portfolio_response"
     },
     "get_custom_field_settings_for_project": {
       "display_name": "Get a project's custom fields",
@@ -2932,7 +3156,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_field_settings_for_project_response"
     },
     "get_custom_field_settings_for_team": {
       "display_name": "Get a team's custom fields",
@@ -2967,7 +3192,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_field_settings_for_team_response"
     },
     "get_custom_fields_for_workspace": {
       "display_name": "Get a workspace's custom fields",
@@ -3012,7 +3238,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_fields_for_workspace_response"
     },
     "get_custom_type": {
       "display_name": "Get a custom type",
@@ -3046,7 +3273,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_custom_type_response"
     },
     "get_custom_types": {
       "display_name": "Get all custom types associated with an object",
@@ -3089,7 +3317,8 @@
           "project": "project"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_custom_types_response"
     },
     "get_dependencies_for_task": {
       "display_name": "Get dependencies from a task",
@@ -3134,7 +3363,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_dependencies_for_task_response"
     },
     "get_dependents_for_task": {
       "display_name": "Get dependents from a task",
@@ -3179,7 +3409,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_dependents_for_task_response"
     },
     "get_events": {
       "display_name": "Get events on a resource",
@@ -3217,7 +3448,8 @@
           "sync": "sync"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_events_response"
     },
     "get_favorites_for_user": {
       "display_name": "Get a user's favorites",
@@ -3272,7 +3504,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_favorites_for_user_response"
     },
     "get_goal": {
       "display_name": "Get a goal",
@@ -3306,7 +3539,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_goal_response"
     },
     "get_goal_relationship": {
       "display_name": "Get a goal relationship",
@@ -3340,7 +3574,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_goal_relationship_response"
     },
     "get_goal_relationships": {
       "display_name": "Get goal relationships",
@@ -3388,7 +3623,8 @@
           "supported_goal": "supported_goal"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_goal_relationships_response"
     },
     "get_goals": {
       "display_name": "Get goals",
@@ -3461,7 +3697,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_goals_response"
     },
     "get_items_for_portfolio": {
       "display_name": "Get portfolio items",
@@ -3506,7 +3743,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_items_for_portfolio_response"
     },
     "get_job": {
       "display_name": "Get a job by id",
@@ -3540,7 +3778,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_job_response"
     },
     "get_membership": {
       "display_name": "Get a membership",
@@ -3569,7 +3808,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_membership_response"
     },
     "get_memberships": {
       "display_name": "Get multiple memberships",
@@ -3622,7 +3862,8 @@
           "resource_subtype": "resource_subtype"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_memberships_response"
     },
     "get_organization_export": {
       "display_name": "Get details on an org export request",
@@ -3656,7 +3897,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_organization_export_response"
     },
     "get_parent_goals_for_goal": {
       "display_name": "Get parent goals from a goal",
@@ -3691,7 +3933,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_parent_goals_for_goal_response"
     },
     "get_portfolio": {
       "display_name": "Get a portfolio",
@@ -3725,7 +3968,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_portfolio_response"
     },
     "get_portfolio_membership": {
       "display_name": "Get a portfolio membership",
@@ -3758,7 +4002,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_portfolio_membership_response"
     },
     "get_portfolio_memberships": {
       "display_name": "Get multiple portfolio memberships",
@@ -3811,7 +4056,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_portfolio_memberships_response"
     },
     "get_portfolio_memberships_for_portfolio": {
       "display_name": "Get memberships from a portfolio",
@@ -3861,7 +4107,8 @@
           "user": "user"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_portfolio_memberships_for_portfolio_response"
     },
     "get_portfolios": {
       "display_name": "Get multiple portfolios",
@@ -3909,7 +4156,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_portfolios_response"
     },
     "get_project": {
       "display_name": "Get a project",
@@ -3943,7 +4191,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_project_response"
     },
     "get_project_brief": {
       "display_name": "Get a project brief",
@@ -3977,7 +4226,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_project_brief_response"
     },
     "get_project_membership": {
       "display_name": "Get a project membership",
@@ -4010,7 +4260,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_project_membership_response"
     },
     "get_project_memberships_for_project": {
       "display_name": "Get memberships from a project",
@@ -4060,7 +4311,135 @@
           "user": "user"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_project_memberships_for_project_response"
+    },
+    "get_project_portfolio_setting": {
+      "display_name": "Get a project portfolio setting",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eproject_portfolio_settings:read\u003c/code\u003e Returns the complete project portfolio setting record for a single project portfolio setting.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "project_portfolio_setting_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the project portfolio setting."
+          }
+        },
+        "required": [
+          "project_portfolio_setting_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/project_portfolio_settings/{project_portfolio_setting_gid}",
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "get_project_portfolio_setting_response"
+    },
+    "get_project_portfolio_settings_for_portfolio": {
+      "display_name": "Get project portfolio settings for a portfolio",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eproject_portfolio_settings:read\u003c/code\u003e Returns a compact representation of all of the project portfolio settings for the given portfolio.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "portfolio_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the portfolio."
+          }
+        },
+        "required": [
+          "portfolio_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/portfolios/{portfolio_gid}/project_portfolio_settings",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_project_portfolio_settings_for_portfolio_response"
+    },
+    "get_project_portfolio_settings_for_project": {
+      "display_name": "Get project portfolio settings for a project",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eproject_portfolio_settings:read\u003c/code\u003e Returns a compact representation of all of the project portfolio settings for the given project.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "project_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the project."
+          }
+        },
+        "required": [
+          "project_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/projects/{project_gid}/project_portfolio_settings",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_project_portfolio_settings_for_project_response"
     },
     "get_project_status": {
       "display_name": "Get a project status",
@@ -4094,7 +4473,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_project_status_response"
     },
     "get_project_statuses_for_project": {
       "display_name": "Get statuses from a project",
@@ -4139,7 +4519,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_project_statuses_for_project_response"
     },
     "get_project_template": {
       "display_name": "Get a project template",
@@ -4173,7 +4554,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_project_template_response"
     },
     "get_project_templates": {
       "display_name": "Get multiple project templates",
@@ -4221,7 +4603,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_project_templates_response"
     },
     "get_project_templates_for_team": {
       "display_name": "Get a team's project templates",
@@ -4266,7 +4649,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_project_templates_for_team_response"
     },
     "get_projects": {
       "display_name": "Get multiple projects",
@@ -4319,7 +4703,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_projects_response"
     },
     "get_projects_for_task": {
       "display_name": "Get projects a task is in",
@@ -4364,7 +4749,59 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_projects_for_task_response"
+    },
+    "get_projects_for_team": {
+      "display_name": "Get a team's projects",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eprojects:read\u003c/code\u003e Returns the compact project records for all projects in the team.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "archived": {
+            "type": "boolean",
+            "description": "Only return projects whose `archived` field takes on the value of this parameter."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "team_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the team."
+          }
+        },
+        "required": [
+          "team_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/teams/{team_gid}/projects",
+        "query_mapping": {
+          "archived": "archived",
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_projects_for_team_response"
     },
     "get_projects_for_workspace": {
       "display_name": "Get all projects in a workspace",
@@ -4414,7 +4851,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_projects_for_workspace_response"
     },
     "get_rate": {
       "display_name": "Get a rate",
@@ -4448,7 +4886,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_rate_response"
     },
     "get_rates": {
       "display_name": "Get multiple rates",
@@ -4496,7 +4935,8 @@
           "resource": "resource"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_rates_response"
     },
     "get_reactions_on_object": {
       "display_name": "Get reactions with an emoji base on an object.",
@@ -4539,7 +4979,8 @@
           "target": "target"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_reactions_on_object_response"
     },
     "get_role": {
       "display_name": "Get a role",
@@ -4573,7 +5014,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_role_response"
     },
     "get_roles": {
       "display_name": "Get multiple roles",
@@ -4621,7 +5063,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_roles_response"
     },
     "get_section": {
       "display_name": "Get a section",
@@ -4655,7 +5098,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_section_response"
     },
     "get_sections_for_project": {
       "display_name": "Get sections in a project",
@@ -4700,7 +5144,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_sections_for_project_response"
     },
     "get_status": {
       "display_name": "Get a status update",
@@ -4734,7 +5179,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_status_response"
     },
     "get_statuses_for_object": {
       "display_name": "Get status updates from an object",
@@ -4782,7 +5228,54 @@
           "parent": "parent"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_statuses_for_object_response"
+    },
+    "get_stories_for_goal": {
+      "display_name": "Get stories from a goal",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003estories:read\u003c/code\u003e Returns the compact records for all stories on the goal.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "goal_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the goal."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          }
+        },
+        "required": [
+          "goal_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/goals/{goal_gid}/stories",
+        "query_mapping": {
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_stories_for_goal_response"
     },
     "get_stories_for_task": {
       "display_name": "Get stories from a task",
@@ -4827,7 +5320,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_stories_for_task_response"
     },
     "get_story": {
       "display_name": "Get a story",
@@ -4861,7 +5355,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_story_response"
     },
     "get_subtasks_for_task": {
       "display_name": "Get subtasks from a task",
@@ -4906,7 +5401,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_subtasks_for_task_response"
     },
     "get_tag": {
       "display_name": "Get a tag",
@@ -4940,7 +5436,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_tag_response"
     },
     "get_tags": {
       "display_name": "Get multiple tags",
@@ -4983,7 +5480,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tags_response"
     },
     "get_tags_for_task": {
       "display_name": "Get a task's tags",
@@ -5028,7 +5526,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tags_for_task_response"
     },
     "get_tags_for_workspace": {
       "display_name": "Get tags in a workspace",
@@ -5073,7 +5572,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tags_for_workspace_response"
     },
     "get_task": {
       "display_name": "Get a task",
@@ -5107,7 +5607,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_task_response"
     },
     "get_task_counts_for_project": {
       "display_name": "Get task count of a project",
@@ -5141,7 +5642,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_task_counts_for_project_response"
     },
     "get_task_for_custom_id": {
       "display_name": "Get a task for a given custom ID",
@@ -5168,7 +5670,8 @@
       "execution": {
         "method": "GET",
         "path": "/workspaces/{workspace_gid}/tasks/custom_id/{custom_id}"
-      }
+      },
+      "response_schema": "get_task_for_custom_id_response"
     },
     "get_task_template": {
       "display_name": "Get a task template",
@@ -5202,7 +5705,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_task_template_response"
     },
     "get_task_templates": {
       "display_name": "Get multiple task templates",
@@ -5245,7 +5749,8 @@
           "project": "project"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_task_templates_response"
     },
     "get_tasks": {
       "display_name": "Get multiple tasks",
@@ -5313,7 +5818,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tasks_response"
     },
     "get_tasks_for_project": {
       "display_name": "Get tasks from a project",
@@ -5363,7 +5869,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tasks_for_project_response"
     },
     "get_tasks_for_section": {
       "display_name": "Get tasks from a section",
@@ -5413,7 +5920,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tasks_for_section_response"
     },
     "get_tasks_for_tag": {
       "display_name": "Get tasks from a tag",
@@ -5458,7 +5966,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tasks_for_tag_response"
     },
     "get_tasks_for_user_task_list": {
       "display_name": "Get tasks from a user task list",
@@ -5508,7 +6017,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_tasks_for_user_task_list_response"
     },
     "get_team": {
       "display_name": "Get a team",
@@ -5542,7 +6052,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_team_response"
     },
     "get_team_membership": {
       "display_name": "Get a team membership",
@@ -5575,7 +6086,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_team_membership_response"
     },
     "get_team_memberships": {
       "display_name": "Get team memberships",
@@ -5628,7 +6140,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_team_memberships_response"
     },
     "get_team_memberships_for_team": {
       "display_name": "Get memberships from a team",
@@ -5673,7 +6186,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_team_memberships_for_team_response"
     },
     "get_team_memberships_for_user": {
       "display_name": "Get memberships from a user",
@@ -5723,7 +6237,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_team_memberships_for_user_response"
     },
     "get_teams_for_user": {
       "display_name": "Get teams for a user",
@@ -5773,7 +6288,8 @@
           "organization": "organization"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_teams_for_user_response"
     },
     "get_teams_for_workspace": {
       "display_name": "Get teams in a workspace",
@@ -5818,7 +6334,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_teams_for_workspace_response"
     },
     "get_time_period": {
       "display_name": "Get a time period",
@@ -5852,7 +6369,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_time_period_response"
     },
     "get_time_periods": {
       "display_name": "Get time periods",
@@ -5905,7 +6423,92 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_time_periods_response"
+    },
+    "get_time_tracking_categories": {
+      "display_name": "Get time tracking categories for a workspace",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:read\u003c/code\u003e Returns a paginated list of time tracking categories for a given workspace.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "is_archived": {
+            "type": "boolean",
+            "description": "Filter by archived status. If not provided, defaults to returning non-archived categories."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "workspace": {
+            "type": "string",
+            "description": "Globally unique identifier for the workspace."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/time_tracking_categories",
+        "query_mapping": {
+          "is_archived": "is_archived",
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty",
+          "workspace": "workspace"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_time_tracking_categories_response"
+    },
+    "get_time_tracking_category": {
+      "display_name": "Get a time tracking category",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:read\u003c/code\u003e Returns the complete time tracking category record for a single time tracking category.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "time_tracking_category_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the time tracking category."
+          }
+        },
+        "required": [
+          "time_tracking_category_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/time_tracking_categories/{time_tracking_category_gid}",
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "get_time_tracking_category_response"
     },
     "get_time_tracking_entries": {
       "display_name": "Get multiple time tracking entries",
@@ -5983,7 +6586,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_time_tracking_entries_response"
     },
     "get_time_tracking_entries_for_task": {
       "display_name": "Get time tracking entries for a task",
@@ -6028,7 +6632,64 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_time_tracking_entries_for_task_response"
+    },
+    "get_time_tracking_entries_for_time_tracking_category": {
+      "display_name": "Get time tracking entries for a time tracking category",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:read\u003c/code\u003e Returns a paginated list of time tracking entries filtered by a given time tracking category.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "end_date": {
+            "type": "string",
+            "description": "The end date for filtering time tracking entries by their entry date."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "The start date for filtering time tracking entries by their entry date."
+          },
+          "time_tracking_category_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the time tracking category."
+          }
+        },
+        "required": [
+          "time_tracking_category_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/time_tracking_categories/{time_tracking_category_gid}/time_tracking_entries",
+        "query_mapping": {
+          "end_date": "end_date",
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty",
+          "start_date": "start_date"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_time_tracking_entries_for_time_tracking_category_response"
     },
     "get_time_tracking_entry": {
       "display_name": "Get a time tracking entry",
@@ -6062,7 +6723,107 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_time_tracking_entry_response"
+    },
+    "get_timesheet_approval_status": {
+      "display_name": "Get a timesheet approval status",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etimesheet_approval_statuses:read\u003c/code\u003e Returns the complete timesheet approval status record for a single timesheet approval status.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "timesheet_approval_status_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the timesheet approval status."
+          }
+        },
+        "required": [
+          "timesheet_approval_status_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/timesheet_approval_statuses/{timesheet_approval_status_gid}",
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "get_timesheet_approval_status_response"
+    },
+    "get_timesheet_approval_statuses": {
+      "display_name": "Get multiple timesheet approval statuses",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etimesheet_approval_statuses:read\u003c/code\u003e Returns a list of timesheet approval statuses filtered by workspace and optionally by user, date range, or approval status.",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "approval_statuses": {
+            "type": "string",
+            "description": "Filter by approval status. Can be one or more of draft, submitted, approved, or rejected."
+          },
+          "from_date": {
+            "type": "string",
+            "description": "The start date for filtering timesheet approval statuses."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page.\nThe number of objects to return per page. The value must be between 1 and 100."
+          },
+          "offset": {
+            "type": "string",
+            "description": "Offset token.\nAn offset to the next page returned by the API. A pagination request will return an offset token, which can be used as an input parameter to the next request. If an offset is not pass..."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "to_date": {
+            "type": "string",
+            "description": "The end date for filtering timesheet approval statuses."
+          },
+          "user": {
+            "type": "string",
+            "description": "Globally unique identifier for the user to filter timesheet approval statuses by."
+          },
+          "workspace": {
+            "type": "string",
+            "description": "Globally unique identifier for the workspace."
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/timesheet_approval_statuses",
+        "query_mapping": {
+          "approval_statuses": "approval_statuses",
+          "from_date": "from_date",
+          "limit": "limit",
+          "offset": "offset",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty",
+          "to_date": "to_date",
+          "user": "user",
+          "workspace": "workspace"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "get_timesheet_approval_statuses_response"
     },
     "get_user": {
       "display_name": "Get a user",
@@ -6101,7 +6862,8 @@
           "opt_pretty": "opt_pretty",
           "workspace": "workspace"
         }
-      }
+      },
+      "response_schema": "get_user_response"
     },
     "get_user_for_workspace": {
       "display_name": "Get a user in a workspace or organization",
@@ -6140,7 +6902,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_user_for_workspace_response"
     },
     "get_user_task_list": {
       "display_name": "Get a user task list",
@@ -6174,7 +6937,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_user_task_list_response"
     },
     "get_user_task_list_for_user": {
       "display_name": "Get a user's task list",
@@ -6213,7 +6977,8 @@
           "opt_pretty": "opt_pretty",
           "workspace": "workspace"
         }
-      }
+      },
+      "response_schema": "get_user_task_list_for_user_response"
     },
     "get_users": {
       "display_name": "Get multiple users",
@@ -6261,7 +7026,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_users_response"
     },
     "get_users_for_team": {
       "display_name": "Get users in a team",
@@ -6301,7 +7067,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_users_for_team_response"
     },
     "get_users_for_workspace": {
       "display_name": "Get users in a workspace or organization",
@@ -6341,7 +7108,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_users_for_workspace_response"
     },
     "get_webhook": {
       "display_name": "Get a webhook",
@@ -6375,7 +7143,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_webhook_response"
     },
     "get_webhooks": {
       "display_name": "Get multiple webhooks",
@@ -6423,7 +7192,8 @@
           "workspace": "workspace"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_webhooks_response"
     },
     "get_workspace": {
       "display_name": "Get a workspace",
@@ -6457,7 +7227,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_workspace_response"
     },
     "get_workspace_events": {
       "display_name": "Get workspace events",
@@ -6492,7 +7263,8 @@
           "sync": "sync"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_workspace_events_response"
     },
     "get_workspace_membership": {
       "display_name": "Get a workspace membership",
@@ -6525,7 +7297,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "get_workspace_membership_response"
     },
     "get_workspace_memberships_for_user": {
       "display_name": "Get workspace memberships for a user",
@@ -6570,7 +7343,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_workspace_memberships_for_user_response"
     },
     "get_workspace_memberships_for_workspace": {
       "display_name": "Get the workspace memberships for a workspace",
@@ -6620,7 +7394,8 @@
           "user": "user"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_workspace_memberships_for_workspace_response"
     },
     "get_workspaces": {
       "display_name": "Get multiple workspaces",
@@ -6658,7 +7433,8 @@
           "opt_pretty": "opt_pretty"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "get_workspaces_response"
     },
     "insert_enum_option_for_custom_field": {
       "display_name": "Reorder a custom field's enum",
@@ -6698,7 +7474,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "insert_enum_option_for_custom_field_response"
     },
     "insert_section_for_project": {
       "display_name": "Move or Insert sections",
@@ -6733,7 +7510,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "insert_section_for_project_response"
     },
     "instantiate_project": {
       "display_name": "Instantiate a project from a project template",
@@ -6773,7 +7551,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "instantiate_project_response"
     },
     "instantiate_task": {
       "display_name": "Instantiate a task from a task template",
@@ -6813,7 +7592,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "instantiate_task_response"
     },
     "project_save_as_template": {
       "display_name": "Create a project template from a project",
@@ -6853,7 +7633,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "project_save_as_template_response"
     },
     "reject_access_request": {
       "display_name": "Reject an access request",
@@ -6875,7 +7656,8 @@
       "execution": {
         "method": "POST",
         "path": "/access_requests/{access_request_gid}/reject"
-      }
+      },
+      "response_schema": "reject_access_request_response"
     },
     "remove_custom_field_setting_for_goal": {
       "display_name": "Remove a custom field from a goal",
@@ -6910,7 +7692,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_custom_field_setting_for_goal_response"
     },
     "remove_custom_field_setting_for_portfolio": {
       "display_name": "Remove a custom field from a portfolio",
@@ -6945,7 +7728,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_custom_field_setting_for_portfolio_response"
     },
     "remove_custom_field_setting_for_project": {
       "display_name": "Remove a custom field from a project",
@@ -6980,7 +7764,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_custom_field_setting_for_project_response"
     },
     "remove_dependencies_for_task": {
       "display_name": "Unlink dependencies from a task",
@@ -7015,7 +7800,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_dependencies_for_task_response"
     },
     "remove_dependents_for_task": {
       "display_name": "Unlink dependents from a task",
@@ -7051,7 +7837,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_dependents_for_task_response"
     },
     "remove_follower_for_task": {
       "display_name": "Remove followers from a task",
@@ -7091,7 +7878,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_follower_for_task_response"
     },
     "remove_followers": {
       "display_name": "Remove a collaborator from a goal",
@@ -7131,7 +7919,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_followers_response"
     },
     "remove_followers_for_project": {
       "display_name": "Remove followers from a project",
@@ -7171,7 +7960,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_followers_for_project_response"
     },
     "remove_item_for_portfolio": {
       "display_name": "Remove a portfolio item",
@@ -7206,7 +7996,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_item_for_portfolio_response"
     },
     "remove_members_for_portfolio": {
       "display_name": "Remove users from a portfolio",
@@ -7246,7 +8037,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_members_for_portfolio_response"
     },
     "remove_members_for_project": {
       "display_name": "Remove users from a project",
@@ -7286,7 +8078,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_members_for_project_response"
     },
     "remove_project_for_task": {
       "display_name": "Remove a project from a task",
@@ -7321,7 +8114,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_project_for_task_response"
     },
     "remove_supporting_relationship": {
       "display_name": "Removes a supporting goal relationship",
@@ -7356,7 +8150,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_supporting_relationship_response"
     },
     "remove_tag_for_task": {
       "display_name": "Remove a tag from a task",
@@ -7391,7 +8186,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_tag_for_task_response"
     },
     "remove_user_for_team": {
       "display_name": "Remove a user from a team",
@@ -7427,7 +8223,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_user_for_team_response"
     },
     "remove_user_for_workspace": {
       "display_name": "Remove a user from a workspace or organization",
@@ -7463,7 +8260,179 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "remove_user_for_workspace_response"
+    },
+    "search_projects_for_workspace": {
+      "display_name": "Search projects in a workspace",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eprojects:read\u003c/code\u003e To mirror the functionality of the Asana web app's advanced search feature, the Asana API has a project search endpoint that allows you to build co...",
+      "access": "read",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "description": "Filter on project completion status."
+          },
+          "completed_at.after": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "completed_at.before": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "completed_on": {
+            "type": "string",
+            "description": "ISO 8601 date string or `null`."
+          },
+          "completed_on.after": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "completed_on.before": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "created_at.after": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "created_at.before": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "created_on": {
+            "type": "string",
+            "description": "ISO 8601 date string or `null`."
+          },
+          "created_on.after": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "created_on.before": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "due_at.after": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "due_at.before": {
+            "type": "string",
+            "description": "ISO 8601 datetime string."
+          },
+          "due_on": {
+            "type": "string",
+            "description": "ISO 8601 date string or `null`."
+          },
+          "due_on.after": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "due_on.before": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "members.any": {
+            "type": "string",
+            "description": "Comma-separated list of user identifiers to filter on as members. This can either be the string \"me\", an email, or the gid of a user."
+          },
+          "members.not": {
+            "type": "string",
+            "description": "Comma-separated list of user identifiers to exclude as members. This can either be the string \"me\", an email, or the gid of a user."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "owner.any": {
+            "type": "string",
+            "description": "Comma-separated list of user identifiers to filter on as project owners. This can either be the string \"me\", an email, or the gid of a user."
+          },
+          "portfolios.any": {
+            "type": "string",
+            "description": "Comma-separated list of portfolio IDs to filter on."
+          },
+          "sort_ascending": {
+            "type": "boolean",
+            "description": "Default `false`."
+          },
+          "sort_by": {
+            "type": "string",
+            "description": "One of `due_date`, `created_at`, `completed_at`, or `modified_at`, defaults to `modified_at`."
+          },
+          "start_on": {
+            "type": "string",
+            "description": "ISO 8601 date string or `null`."
+          },
+          "start_on.after": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "start_on.before": {
+            "type": "string",
+            "description": "ISO 8601 date string."
+          },
+          "teams.any": {
+            "type": "string",
+            "description": "Comma-separated list of team IDs."
+          },
+          "text": {
+            "type": "string",
+            "description": "Performs full-text search on the project name."
+          },
+          "workspace_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the workspace or organization."
+          }
+        },
+        "required": [
+          "workspace_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/workspaces/{workspace_gid}/projects/search",
+        "query_mapping": {
+          "completed": "completed",
+          "completed_at.after": "completed_at.after",
+          "completed_at.before": "completed_at.before",
+          "completed_on": "completed_on",
+          "completed_on.after": "completed_on.after",
+          "completed_on.before": "completed_on.before",
+          "created_at.after": "created_at.after",
+          "created_at.before": "created_at.before",
+          "created_on": "created_on",
+          "created_on.after": "created_on.after",
+          "created_on.before": "created_on.before",
+          "due_at.after": "due_at.after",
+          "due_at.before": "due_at.before",
+          "due_on": "due_on",
+          "due_on.after": "due_on.after",
+          "due_on.before": "due_on.before",
+          "members.any": "members.any",
+          "members.not": "members.not",
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty",
+          "owner.any": "owner.any",
+          "portfolios.any": "portfolios.any",
+          "sort_ascending": "sort_ascending",
+          "sort_by": "sort_by",
+          "start_on": "start_on",
+          "start_on.after": "start_on.after",
+          "start_on.before": "start_on.before",
+          "teams.any": "teams.any",
+          "text": "text"
+        },
+        "response_path": "data"
+      },
+      "response_schema": "search_projects_for_workspace_response"
     },
     "search_tasks_for_workspace": {
       "display_name": "Search tasks in a workspace",
@@ -7474,23 +8443,23 @@
         "properties": {
           "assigned_by.any": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "assigned_by.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "assignee.any": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "assignee.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "commented_on_by.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "completed": {
             "type": "boolean",
@@ -7526,11 +8495,11 @@
           },
           "created_by.any": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "created_by.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "created_on": {
             "type": "string",
@@ -7566,11 +8535,11 @@
           },
           "followers.any": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "followers.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "has_attachment": {
             "type": "boolean",
@@ -7590,7 +8559,7 @@
           },
           "liked_by.not": {
             "type": "string",
-            "description": "Comma-separated list of user identifiers"
+            "description": "Comma-separated list of user identifiers. This can either be the string \"me\", an email, or the gid of a user."
           },
           "modified_at.after": {
             "type": "string",
@@ -7763,7 +8732,8 @@
           "text": "text"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "search_tasks_for_workspace_response"
     },
     "set_parent_for_task": {
       "display_name": "Set the parent of a task",
@@ -7803,7 +8773,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "set_parent_for_task_response"
     },
     "trigger_rule": {
       "display_name": "Trigger a rule",
@@ -7831,7 +8802,8 @@
         "body_mapping": {
           "data": "data"
         }
-      }
+      },
+      "response_schema": "trigger_rule_response"
     },
     "typeahead_for_workspace": {
       "display_name": "Get objects via typeahead",
@@ -7886,7 +8858,8 @@
           "type": "type"
         },
         "response_path": "data"
-      }
+      },
+      "response_schema": "typeahead_for_workspace_response"
     },
     "update_allocation": {
       "display_name": "Update an allocation",
@@ -7926,7 +8899,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_allocation_response"
     },
     "update_budget": {
       "display_name": "Update a budget",
@@ -7966,7 +8940,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_budget_response"
     },
     "update_custom_field": {
       "display_name": "Update a custom field",
@@ -8006,7 +8981,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_custom_field_response"
     },
     "update_enum_option": {
       "display_name": "Update an enum option",
@@ -8047,7 +9023,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_enum_option_response"
     },
     "update_goal": {
       "display_name": "Update a goal",
@@ -8087,7 +9064,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_goal_response"
     },
     "update_goal_metric": {
       "display_name": "Update a goal metric",
@@ -8128,7 +9106,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_goal_metric_response"
     },
     "update_goal_relationship": {
       "display_name": "Update a goal relationship",
@@ -8168,7 +9147,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_goal_relationship_response"
     },
     "update_membership": {
       "display_name": "Update a membership",
@@ -8203,7 +9183,8 @@
         "query_mapping": {
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_membership_response"
     },
     "update_portfolio": {
       "display_name": "Update a portfolio",
@@ -8243,7 +9224,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_portfolio_response"
     },
     "update_project": {
       "display_name": "Update a project",
@@ -8283,7 +9265,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_project_response"
     },
     "update_project_brief": {
       "display_name": "Update a project brief",
@@ -8323,7 +9306,49 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_project_brief_response"
+    },
+    "update_project_portfolio_setting": {
+      "display_name": "Update a project portfolio setting",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003eproject_portfolio_settings:write\u003c/code\u003e An existing project portfolio setting can be updated by making a PUT request on the URL for that setting. Only the fields provid...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "project_portfolio_setting_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the project portfolio setting."
+          }
+        },
+        "required": [
+          "project_portfolio_setting_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/project_portfolio_settings/{project_portfolio_setting_gid}",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "update_project_portfolio_setting_response"
     },
     "update_rate": {
       "display_name": "Update a rate",
@@ -8364,7 +9389,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_rate_response"
     },
     "update_role": {
       "display_name": "Update a role",
@@ -8404,7 +9430,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_role_response"
     },
     "update_section": {
       "display_name": "Update a section",
@@ -8444,7 +9471,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_section_response"
     },
     "update_story": {
       "display_name": "Update a story",
@@ -8485,7 +9513,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_story_response"
     },
     "update_tag": {
       "display_name": "Update a tag",
@@ -8525,7 +9554,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_tag_response"
     },
     "update_task": {
       "display_name": "Update a task",
@@ -8565,7 +9595,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_task_response"
     },
     "update_team": {
       "display_name": "Update a team",
@@ -8605,7 +9636,49 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_team_response"
+    },
+    "update_time_tracking_category": {
+      "display_name": "Update a time tracking category",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etime_tracking_categories:write\u003c/code\u003e Updates the properties of a time tracking category. Only the fields provided in the `data` block will be updated; any unspecified ...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "time_tracking_category_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the time tracking category."
+          }
+        },
+        "required": [
+          "time_tracking_category_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/time_tracking_categories/{time_tracking_category_gid}",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "update_time_tracking_category_response"
     },
     "update_time_tracking_entry": {
       "display_name": "Update a time tracking entry",
@@ -8645,7 +9718,50 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_time_tracking_entry_response"
+    },
+    "update_timesheet_approval_status": {
+      "display_name": "Update a timesheet approval status",
+      "description": "\u003cb\u003eRequired scope: \u003c/b\u003e\u003ccode\u003etimesheet_approval_statuses:write\u003c/code\u003e Updates the approval status of a timesheet approval status. The update supports state transitions such as submitting, recalling...",
+      "access": "write",
+      "resource_type": "",
+      "parameters": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "A request to update a timesheet approval status."
+          },
+          "opt_fields": {
+            "type": "array",
+            "description": "This endpoint returns a resource which excludes some properties by default. To include those optional properties, set this query parameter to a comma-separated list of the properties you wish to in..."
+          },
+          "opt_pretty": {
+            "type": "boolean",
+            "description": "Provides “pretty” output.\nProvides the response in a “pretty” format. In the case of JSON this means doing proper line breaking and indentation to make it readable. This will take extra tim..."
+          },
+          "timesheet_approval_status_gid": {
+            "type": "string",
+            "description": "Globally unique identifier for the timesheet approval status."
+          }
+        },
+        "required": [
+          "timesheet_approval_status_gid"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "PUT",
+        "path": "/timesheet_approval_statuses/{timesheet_approval_status_gid}",
+        "body_mapping": {
+          "data": "data"
+        },
+        "query_mapping": {
+          "opt_fields": "opt_fields",
+          "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "update_timesheet_approval_status_response"
     },
     "update_user": {
       "display_name": "Update a user",
@@ -8690,7 +9806,8 @@
           "opt_pretty": "opt_pretty",
           "workspace": "workspace"
         }
-      }
+      },
+      "response_schema": "update_user_response"
     },
     "update_user_for_workspace": {
       "display_name": "Update a user in a workspace or organization",
@@ -8735,7 +9852,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_user_for_workspace_response"
     },
     "update_webhook": {
       "display_name": "Update a webhook",
@@ -8775,7 +9893,8 @@
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
         }
-      }
+      },
+      "response_schema": "update_webhook_response"
     },
     "update_workspace": {
       "display_name": "Update a workspace",
@@ -8815,6 +9934,2304 @@
         "query_mapping": {
           "opt_fields": "opt_fields",
           "opt_pretty": "opt_pretty"
+        }
+      },
+      "response_schema": "update_workspace_response"
+    }
+  },
+  "schemas": {
+    "add_custom_field_setting_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_custom_field_setting_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_custom_field_setting_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_dependencies_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_dependents_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_followers_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_followers_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_followers_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_item_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_members_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_members_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_project_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_supporting_relationship_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "add_tag_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_task_for_section_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "add_user_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "This object represents a user's connection to a team."
+        }
+      }
+    },
+    "add_user_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "approve_access_request_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "create_access_request_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *access request* object represents a request to access a shareable resource within Asana. It includes the requester's information, approval status, and target resource details."
+        }
+      }
+    },
+    "create_allocation_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_batch_request_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "create_budget_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_enum_option_for_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "Enum options are the possible values which an enum custom field can adopt. An enum custom field must contain at least 1 enum option but no more than 500.\n\nYou can add enum options to a custom field by using the `POST /custom_fields/custom_field_gid/enum_options` endpoint.\n\n**It is not possible to remove or delete an enum option**. Instead, enum options can be disabled by updating the `enabled` field to false with the `PUT /enum_options/enum_option_gid` endpoint. Other attributes can be updated similarly.\n\nOn creation of an enum option, `enabled` is always set to `true`, meaning the enum option is a selectable value for the custom field. Setting `enabled=false` is equivalent to “trashing” the enum option in the Asana web app within the “Edit Fields” dialog. The enum option will no longer be selectable but, if the enum option value was previously set within a task, the task will retain the value.\n\nEnum options are an ordered list and by default new enum options are inserted at the end. Ordering in relation to existing enum options can be specified on creation by using `insert_before` or `insert_after` to reference an existing enum option. Only one of `insert_before` and `insert_after` can be provided when creating a new enum option.\n\nAn enum options list can be reordered with the `POST /custom_fields/custom_field_gid/enum_options/insert` endpoint."
+        }
+      }
+    },
+    "create_goal_metric_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_graph_export_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A generic Asana Resource, containing a globally unique identifier."
+        }
+      }
+    },
+    "create_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_organization_export_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An *organization_export* object represents a request to export the complete data of an Organization in JSON format."
+        }
+      }
+    },
+    "create_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_project_brief_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_project_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_project_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_project_status_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_rate_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_resource_export_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A generic Asana Resource, containing a globally unique identifier."
+        }
+      }
+    },
+    "create_role_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_section_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_status_for_object_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_story_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_story_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_subtask_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_tag_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_tag_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_time_tracking_category_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_time_tracking_entry_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_timesheet_approval_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "create_webhook_response": {
+      "type": "object",
+      "properties": {
+        "X-Hook-Secret": {
+          "type": "string",
+          "description": "The secret to be used to verify future webhook event signatures."
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "delete_allocation_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_attachment_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_budget_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_project_brief_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_project_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_project_template_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_rate_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_role_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_section_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_story_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_tag_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_task_template_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_time_tracking_category_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_time_tracking_entry_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "delete_webhook_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "duplicate_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "duplicate_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "duplicate_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "get_access_requests_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_allocation_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_allocations_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_attachment_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_attachments_for_object_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_audit_log_events_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_budget_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_budgets_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_custom_field_settings_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_custom_field_settings_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_custom_field_settings_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_custom_field_settings_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_custom_fields_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_custom_type_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_custom_types_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_dependencies_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_dependents_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_events_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "Indicates whether there are more events to pull."
+        },
+        "sync": {
+          "type": "string",
+          "description": "A sync token to be used with the next call to the /events endpoint."
+        }
+      }
+    },
+    "get_favorites_for_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_goal_relationship_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_goal_relationships_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_goals_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_items_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_job_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "get_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_memberships_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_organization_export_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An *organization_export* object represents a request to export the complete data of an Organization in JSON format."
+        }
+      }
+    },
+    "get_parent_goals_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_portfolio_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "This object determines if a user is a member of a portfolio."
+        }
+      }
+    },
+    "get_portfolio_memberships_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_portfolio_memberships_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_portfolios_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_brief_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_memberships_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_portfolio_setting_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_portfolio_settings_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_portfolio_settings_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_statuses_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_template_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_project_templates_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_project_templates_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_projects_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_projects_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_projects_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_projects_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_rate_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_rates_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_reactions_on_object_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_role_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_roles_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_section_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_sections_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_statuses_for_object_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_stories_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_stories_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_story_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_subtasks_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tag_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_tags_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tags_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tags_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_task_counts_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A response object returned from the task count endpoint."
+        }
+      }
+    },
+    "get_task_for_custom_id_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_task_template_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_task_templates_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_tasks_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tasks_for_section_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tasks_for_tag_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tasks_for_user_task_list_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_tasks_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_team_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "This object represents a user's connection to a team."
+        }
+      }
+    },
+    "get_team_memberships_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_team_memberships_for_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_team_memberships_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_teams_for_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_teams_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_period_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_time_periods_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_tracking_categories_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_tracking_category_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_time_tracking_entries_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_tracking_entries_for_time_tracking_category_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_tracking_entries_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_time_tracking_entry_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_timesheet_approval_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_timesheet_approval_statuses_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_user_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_user_task_list_for_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A user task list represents the tasks assigned to a particular user. It provides API access to a user’s [My tasks](https://asana.com/guide/help/fundamentals/my-tasks) view in Asana."
+        }
+      }
+    },
+    "get_user_task_list_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A user task list represents the tasks assigned to a particular user. It provides API access to a user’s [My tasks](https://asana.com/guide/help/fundamentals/my-tasks) view in Asana."
+        }
+      }
+    },
+    "get_users_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_users_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "get_users_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_webhook_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_webhooks_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_workspace_events_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "Indicates whether there are more events to pull."
+        },
+        "sync": {
+          "type": "string",
+          "description": "A sync token to be used with the next call to the /events endpoint."
+        }
+      }
+    },
+    "get_workspace_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_workspace_memberships_for_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_workspace_memberships_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "get_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "get_workspaces_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        },
+        "next_page": {
+          "type": "object",
+          "description": "*Conditional*. This property is only present when a limit query parameter is provided in the request. When making a paginated request, the API will return a number of results as specified by the limit parameter. If more results exist, then the response will contain a next_page attribute, which will include an offset, a relative path attribute, and a full uri attribute. If there are no more pages available, next_page will be null and no offset will be provided. Note that an offset token will expire after some time, as data may have changed.",
+          "nullable": true
+        }
+      }
+    },
+    "insert_enum_option_for_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "Enum options are the possible values which an enum custom field can adopt. An enum custom field must contain at least 1 enum option but no more than 500.\n\nYou can add enum options to a custom field by using the `POST /custom_fields/custom_field_gid/enum_options` endpoint.\n\n**It is not possible to remove or delete an enum option**. Instead, enum options can be disabled by updating the `enabled` field to false with the `PUT /enum_options/enum_option_gid` endpoint. Other attributes can be updated similarly.\n\nOn creation of an enum option, `enabled` is always set to `true`, meaning the enum option is a selectable value for the custom field. Setting `enabled=false` is equivalent to “trashing” the enum option in the Asana web app within the “Edit Fields” dialog. The enum option will no longer be selectable but, if the enum option value was previously set within a task, the task will retain the value.\n\nEnum options are an ordered list and by default new enum options are inserted at the end. Ordering in relation to existing enum options can be specified on creation by using `insert_before` or `insert_after` to reference an existing enum option. Only one of `insert_before` and `insert_after` can be provided when creating a new enum option.\n\nAn enum options list can be reordered with the `POST /custom_fields/custom_field_gid/enum_options/insert` endpoint."
+        }
+      }
+    },
+    "insert_section_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "instantiate_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "instantiate_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "project_save_as_template_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "A *job* is an object representing a process that handles asynchronous work."
+        }
+      }
+    },
+    "reject_access_request_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_custom_field_setting_for_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_custom_field_setting_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_custom_field_setting_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_dependencies_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_dependents_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_follower_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_followers_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_followers_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_item_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_members_for_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_members_for_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "remove_project_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_supporting_relationship_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_tag_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_user_for_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "remove_user_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "An empty object. Some endpoints do not return an object on success. The success is conveyed through a 2-- status code and returning an empty object."
+        }
+      }
+    },
+    "search_projects_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "search_tasks_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "set_parent_for_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "trigger_rule_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "typeahead_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array"
+        }
+      }
+    },
+    "update_allocation_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_budget_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_custom_field_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_enum_option_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "Enum options are the possible values which an enum custom field can adopt. An enum custom field must contain at least 1 enum option but no more than 500.\n\nYou can add enum options to a custom field by using the `POST /custom_fields/custom_field_gid/enum_options` endpoint.\n\n**It is not possible to remove or delete an enum option**. Instead, enum options can be disabled by updating the `enabled` field to false with the `PUT /enum_options/enum_option_gid` endpoint. Other attributes can be updated similarly.\n\nOn creation of an enum option, `enabled` is always set to `true`, meaning the enum option is a selectable value for the custom field. Setting `enabled=false` is equivalent to “trashing” the enum option in the Asana web app within the “Edit Fields” dialog. The enum option will no longer be selectable but, if the enum option value was previously set within a task, the task will retain the value.\n\nEnum options are an ordered list and by default new enum options are inserted at the end. Ordering in relation to existing enum options can be specified on creation by using `insert_before` or `insert_after` to reference an existing enum option. Only one of `insert_before` and `insert_after` can be provided when creating a new enum option.\n\nAn enum options list can be reordered with the `POST /custom_fields/custom_field_gid/enum_options/insert` endpoint."
+        }
+      }
+    },
+    "update_goal_metric_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_goal_relationship_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_goal_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_membership_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_portfolio_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_project_brief_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_project_portfolio_setting_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_project_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_rate_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_role_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_section_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_story_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_tag_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_task_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_team_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_time_tracking_category_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_time_tracking_entry_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_timesheet_approval_status_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_user_for_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_user_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_webhook_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "update_workspace_response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
         }
       }
     }

@@ -17,6 +17,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/forge"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/registry"
@@ -38,6 +39,7 @@ type AgentHandler struct {
 	encKey          *crypto.SymmetricKey     // for encrypting env vars
 	enqueuer        enqueue.TaskEnqueuer     // nil if worker not configured
 	forgeController *forge.ForgeController   // nil if forge not configured
+	actionsCatalog  *catalog.Catalog         // nil if not configured
 }
 
 func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *AgentHandler {
@@ -51,6 +53,11 @@ func NewAgentHandler(db *gorm.DB, reg *registry.Registry, pusher AgentPusher, en
 // SetForgeController sets the forge controller for agent creation with forge=true.
 func (h *AgentHandler) SetForgeController(fc *forge.ForgeController) {
 	h.forgeController = fc
+}
+
+// SetCatalog sets the actions catalog for trigger validation during agent creation.
+func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
+	h.actionsCatalog = c
 }
 
 // ensure sandbox.Pusher satisfies AgentPusher
@@ -75,7 +82,8 @@ type createAgentRequest struct {
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              string            `json:"team,omitempty"`
 	SharedMemory      bool              `json:"shared_memory,omitempty"`
-	Forge             *forgeOptions     `json:"forge,omitempty"` // triggers forge context gathering on create
+	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
+	Trigger           *createAgentTriggerRequest `json:"trigger,omitempty"` // optional webhook trigger to create with the agent
 }
 
 type forgeOptions struct {
@@ -288,6 +296,17 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate trigger before creating the agent (fail fast).
+	triggerProvider := ""
+	if req.Trigger != nil && h.actionsCatalog != nil {
+		var errMsg string
+		triggerProvider, errMsg = validateTriggerRequest(h.db, h.actionsCatalog, req.Trigger, org.ID, defaultJSON(req.Integrations))
+		if errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
+	}
+
 	// Validate sandbox template if provided
 	var sandboxTemplateID *interface{ String() string }
 	_ = sandboxTemplateID // unused, we parse directly
@@ -333,7 +352,51 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
-	if err := h.db.Create(&agent).Error; err != nil {
+	// Use a transaction so agent + trigger are created atomically.
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&agent).Error; err != nil {
+			return err
+		}
+
+		if req.Trigger != nil && triggerProvider != "" {
+			connectionID, _ := uuid.Parse(req.Trigger.ConnectionID)
+
+			var conditionsJSON model.RawJSON
+			if req.Trigger.Conditions != nil {
+				conditionsBytes, _ := json.Marshal(req.Trigger.Conditions)
+				conditionsJSON = model.RawJSON(conditionsBytes)
+			}
+			var contextActionsJSON model.RawJSON
+			if len(req.Trigger.ContextActions) > 0 {
+				contextActionsBytes, _ := json.Marshal(req.Trigger.ContextActions)
+				contextActionsJSON = model.RawJSON(contextActionsBytes)
+			}
+
+			enabled := true
+			if req.Trigger.Enabled != nil {
+				enabled = *req.Trigger.Enabled
+			}
+
+			trigger := model.AgentTrigger{
+				OrgID:          org.ID,
+				AgentID:        agent.ID,
+				ConnectionID:   connectionID,
+				TriggerKey:     req.Trigger.TriggerKey,
+				Enabled:        enabled,
+				Conditions:     conditionsJSON,
+				ContextActions: contextActionsJSON,
+			}
+			if err := tx.Create(&trigger).Error; err != nil {
+				return fmt.Errorf("trigger: %w", err)
+			}
+			if !enabled {
+				tx.Model(&trigger).Update("enabled", false)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
 		if isDuplicateKeyError(err) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("agent with name %q already exists in this workspace", req.Name)})
 			return

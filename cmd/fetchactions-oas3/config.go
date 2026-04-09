@@ -12,7 +12,31 @@ type ServiceConfig struct {
 	ExtraHeaders   map[string]string // added to every action's execution.headers
 	// TagResourceMap maps OpenAPI tags to resource_type values.
 	// e.g. {"Issues": "repo", "Pull Requests": "repo"}
+	// Ignored when Resources is set.
 	TagResourceMap map[string]string
+
+	// Resources defines the resources for this provider and how to filter actions.
+	// When set, replaces PathFilters, PathExcludes, and TagResourceMap entirely.
+	// Only actions matching a resource's path patterns are included.
+	Resources map[string]ResourceFilterConfig
+}
+
+// ResourceFilterConfig defines a resource and the path patterns used to filter actions for it.
+type ResourceFilterConfig struct {
+	// Display metadata (output to JSON)
+	DisplayName string
+	Description string
+	IDField     string
+	NameField   string
+	Icon        string
+
+	// List endpoint configuration for resource discovery
+	ListAction        string
+	ListRequestConfig *RequestConfig
+
+	// Action filtering — actions matching these paths belong to this resource
+	PathPrefixes []string // any action path starting with these prefixes
+	ExactPaths   []string // any action path exactly equal to these
 }
 
 // AllServices returns the full registry of OpenAPI 3.x providers.
@@ -96,18 +120,7 @@ func AllServices() []ServiceConfig {
 			Name:           "github",
 			SpecSource:     "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/api.github.com.json",
 			NangoProviders: []string{"github", "github-app", "github-app-oauth", "github-pat"},
-			PathFilters:    []string{"/repos", "/issues", "/pulls", "/orgs", "/users", "/gists", "/search", "/installation"},
-			PathExcludes:   []string{"/repos/{owner}/{repo}/import", "/repos/{owner}/{repo}/traffic"},
-			TagResourceMap: map[string]string{
-				"repos":    "repo",
-				"issues":   "repo",
-				"pulls":    "repo",
-				"actions":  "repo",
-				"branches": "repo",
-				"commits":  "repo",
-				"releases": "repo",
-				"git":      "repo",
-			},
+			Resources:      githubResources(),
 		},
 		{
 			Name:           "figma",
@@ -118,6 +131,198 @@ func AllServices() []ServiceConfig {
 			Name:           "discord",
 			SpecSource:     "https://raw.githubusercontent.com/discord/discord-api-spec/refs/heads/main/specs/openapi.json",
 			NangoProviders: []string{"discord"},
+		},
+	}
+}
+
+// githubResources returns the 10 GitHub resource definitions with action filtering.
+func githubResources() map[string]ResourceFilterConfig {
+	return map[string]ResourceFilterConfig{
+		"repository": {
+			DisplayName: "Repositories",
+			Description: "GitHub repositories the AI can access",
+			IDField:     "full_name",
+			NameField:   "name",
+			Icon:         "repo",
+			ListAction:  "/installation/repositories",
+			ListRequestConfig: &RequestConfig{
+				Method:       "GET",
+				QueryParams:  map[string]string{"per_page": "100"},
+				ResponsePath: "repositories",
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/collaborators",
+				"/repos/{owner}/{repo}/topics",
+				"/repos/{owner}/{repo}/forks",
+				"/repos/{owner}/{repo}/contributors",
+				"/repos/{owner}/{repo}/languages",
+				"/repos/{owner}/{repo}/readme",
+				"/repos/{owner}/{repo}/contents",
+				"/repos/{owner}/{repo}/git",
+				"/repos/{owner}/{repo}/commits",
+				"/repos/{owner}/{repo}/comments",
+				"/repos/{owner}/{repo}/stargazers",
+				"/installation/repositories",
+				"/user/repos",
+				"/search/repositories",
+				"/search/code",
+				"/search/commits",
+			},
+			ExactPaths: []string{
+				"/repos/{owner}/{repo}",
+			},
+		},
+		"issue": {
+			DisplayName: "Issues",
+			Description: "GitHub issues within repositories",
+			IDField:     "number",
+			NameField:   "title",
+			Icon:         "issue-opened",
+			ListAction:  "/repos/{owner}/{repo}/issues",
+			ListRequestConfig: &RequestConfig{
+				Method: "GET",
+				QueryParams: map[string]string{
+					"per_page": "100",
+					"state":    "all",
+				},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/issues",
+				"/search/issues",
+			},
+		},
+		"pull_request": {
+			DisplayName: "Pull Requests",
+			Description: "GitHub pull requests for code review and merging",
+			IDField:     "number",
+			NameField:   "title",
+			Icon:         "git-pull-request",
+			ListAction:  "/repos/{owner}/{repo}/pulls",
+			ListRequestConfig: &RequestConfig{
+				Method: "GET",
+				QueryParams: map[string]string{
+					"per_page": "100",
+					"state":    "all",
+				},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/pulls",
+			},
+		},
+		"release": {
+			DisplayName: "Releases",
+			Description: "GitHub releases for versioning and distribution",
+			IDField:     "id",
+			NameField:   "tag_name",
+			Icon:         "tag",
+			ListAction:  "/repos/{owner}/{repo}/releases",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/releases",
+			},
+		},
+		"workflow": {
+			DisplayName: "Workflows",
+			Description: "GitHub Actions CI/CD workflows and runs",
+			IDField:     "id",
+			NameField:   "name",
+			Icon:         "play",
+			ListAction:  "/repos/{owner}/{repo}/actions/workflows",
+			ListRequestConfig: &RequestConfig{
+				Method:       "GET",
+				QueryParams:  map[string]string{"per_page": "100"},
+				ResponsePath: "workflows",
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/actions/workflows",
+				"/repos/{owner}/{repo}/actions/runs",
+				"/repos/{owner}/{repo}/actions/jobs",
+				"/repos/{owner}/{repo}/actions/artifacts",
+			},
+		},
+		"label": {
+			DisplayName: "Labels",
+			Description: "GitHub labels for categorizing issues and pull requests",
+			IDField:     "id",
+			NameField:   "name",
+			Icon:         "tag",
+			ListAction:  "/repos/{owner}/{repo}/labels",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/labels",
+			},
+		},
+		"milestone": {
+			DisplayName: "Milestones",
+			Description: "GitHub milestones for tracking progress",
+			IDField:     "number",
+			NameField:   "title",
+			Icon:         "milestone",
+			ListAction:  "/repos/{owner}/{repo}/milestones",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/milestones",
+			},
+		},
+		"branch": {
+			DisplayName: "Branches",
+			Description: "GitHub repository branches",
+			IDField:     "name",
+			NameField:   "name",
+			Icon:         "git-branch",
+			ListAction:  "/repos/{owner}/{repo}/branches",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/repos/{owner}/{repo}/branches",
+			},
+		},
+		"organization": {
+			DisplayName: "Organizations",
+			Description: "GitHub organizations",
+			IDField:     "login",
+			NameField:   "login",
+			Icon:         "organization",
+			ListAction:  "/user/orgs",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/orgs/{org}/members",
+				"/orgs/{org}/invitations",
+				"/orgs/{org}/hooks",
+				"/user/orgs",
+			},
+			ExactPaths: []string{
+				"/orgs/{org}",
+			},
+		},
+		"team": {
+			DisplayName: "Teams",
+			Description: "GitHub organization teams",
+			IDField:     "slug",
+			NameField:   "name",
+			Icon:         "people",
+			ListAction:  "/orgs/{org}/teams",
+			ListRequestConfig: &RequestConfig{
+				Method:      "GET",
+				QueryParams: map[string]string{"per_page": "100"},
+			},
+			PathPrefixes: []string{
+				"/orgs/{org}/teams",
+			},
 		},
 	}
 }

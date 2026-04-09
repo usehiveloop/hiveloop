@@ -1,0 +1,318 @@
+{
+  "display_name": "Twilio",
+  "triggers": {
+    "message.queued": {
+      "display_name": "Message Queued",
+      "description": "Triggered when an outbound SMS/MMS message is queued for delivery",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_status"
+    },
+    "message.sent": {
+      "display_name": "Message Sent",
+      "description": "Triggered when an outbound SMS/MMS message is sent to the carrier",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_status"
+    },
+    "message.delivered": {
+      "display_name": "Message Delivered",
+      "description": "Triggered when an outbound SMS/MMS message is confirmed delivered to the recipient",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_status"
+    },
+    "message.undelivered": {
+      "display_name": "Message Undelivered",
+      "description": "Triggered when an outbound SMS/MMS message could not be delivered to the recipient",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_status"
+    },
+    "message.failed": {
+      "display_name": "Message Failed",
+      "description": "Triggered when an outbound SMS/MMS message fails to send",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_status"
+    },
+    "message.received": {
+      "display_name": "Message Received",
+      "description": "Triggered when an inbound SMS/MMS message is received on a Twilio number",
+      "resource_type": "message",
+      "payload_schema": "twilio_message_inbound"
+    },
+    "call.initiated": {
+      "display_name": "Call Initiated",
+      "description": "Triggered when an outbound call is initiated",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "call.ringing": {
+      "display_name": "Call Ringing",
+      "description": "Triggered when an outbound call starts ringing at the destination",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "call.answered": {
+      "display_name": "Call Answered",
+      "description": "Triggered when a call is answered by the recipient",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "call.completed": {
+      "display_name": "Call Completed",
+      "description": "Triggered when a call ends normally after being answered",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "call.busy": {
+      "display_name": "Call Busy",
+      "description": "Triggered when a call receives a busy signal from the recipient",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "call.failed": {
+      "display_name": "Call Failed",
+      "description": "Triggered when a call fails to connect",
+      "resource_type": "call",
+      "payload_schema": "twilio_call_status"
+    },
+    "recording.completed": {
+      "display_name": "Recording Completed",
+      "description": "Triggered when a call recording is completed and available",
+      "resource_type": "recording",
+      "payload_schema": "twilio_recording_status"
+    },
+    "conference.start": {
+      "display_name": "Conference Started",
+      "description": "Triggered when a conference call begins (first participant joins)",
+      "resource_type": "conference",
+      "payload_schema": "twilio_conference_status"
+    },
+    "conference.end": {
+      "display_name": "Conference Ended",
+      "description": "Triggered when a conference call ends (last participant leaves)",
+      "resource_type": "conference",
+      "payload_schema": "twilio_conference_status"
+    }
+  },
+  "schemas": {
+    "twilio_message_status": {
+      "type": "object",
+      "properties": {
+        "MessageSid": {
+          "type": "string",
+          "description": "Unique identifier for the message"
+        },
+        "AccountSid": {
+          "type": "string",
+          "description": "The Twilio Account SID that sent the message"
+        },
+        "From": {
+          "type": "string",
+          "description": "The phone number or sender ID that sent the message (E.164 format)"
+        },
+        "To": {
+          "type": "string",
+          "description": "The recipient phone number (E.164 format)"
+        },
+        "Body": {
+          "type": "string",
+          "description": "The text body of the message"
+        },
+        "MessageStatus": {
+          "type": "string",
+          "description": "The current status of the message: queued, sent, delivered, undelivered, or failed"
+        },
+        "SmsSid": {
+          "type": "string",
+          "description": "Same as MessageSid, included for backward compatibility"
+        },
+        "SmsStatus": {
+          "type": "string",
+          "description": "Same as MessageStatus, included for backward compatibility"
+        },
+        "ErrorCode": {
+          "type": "string",
+          "description": "The error code if the message failed or was undelivered (e.g. 30001)"
+        },
+        "ErrorMessage": {
+          "type": "string",
+          "description": "Human-readable description of the error, if applicable"
+        },
+        "ApiVersion": {
+          "type": "string",
+          "description": "The Twilio API version used (e.g. 2010-04-01)"
+        }
+      }
+    },
+    "twilio_message_inbound": {
+      "type": "object",
+      "properties": {
+        "MessageSid": {
+          "type": "string",
+          "description": "Unique identifier for the inbound message"
+        },
+        "AccountSid": {
+          "type": "string",
+          "description": "The Twilio Account SID that received the message"
+        },
+        "From": {
+          "type": "string",
+          "description": "The phone number that sent the message (E.164 format)"
+        },
+        "To": {
+          "type": "string",
+          "description": "The Twilio phone number that received the message (E.164 format)"
+        },
+        "Body": {
+          "type": "string",
+          "description": "The text body of the received message"
+        },
+        "NumMedia": {
+          "type": "string",
+          "description": "The number of media items (images, etc.) included in the message"
+        },
+        "MediaUrl0": {
+          "type": "string",
+          "description": "The URL of the first media attachment, if any (additional media uses MediaUrl1, MediaUrl2, etc.)"
+        },
+        "MediaContentType0": {
+          "type": "string",
+          "description": "The MIME type of the first media attachment (e.g. image/jpeg)"
+        },
+        "FromCity": {
+          "type": "string",
+          "description": "The city of the sender, if available from carrier lookup"
+        },
+        "FromState": {
+          "type": "string",
+          "description": "The state or province of the sender, if available"
+        },
+        "FromCountry": {
+          "type": "string",
+          "description": "The country of the sender (ISO country code)"
+        },
+        "ApiVersion": {
+          "type": "string",
+          "description": "The Twilio API version used (e.g. 2010-04-01)"
+        }
+      }
+    },
+    "twilio_call_status": {
+      "type": "object",
+      "properties": {
+        "CallSid": {
+          "type": "string",
+          "description": "Unique identifier for the call"
+        },
+        "AccountSid": {
+          "type": "string",
+          "description": "The Twilio Account SID associated with the call"
+        },
+        "From": {
+          "type": "string",
+          "description": "The phone number or client identifier of the caller (E.164 format)"
+        },
+        "To": {
+          "type": "string",
+          "description": "The phone number or client identifier being called (E.164 format)"
+        },
+        "CallStatus": {
+          "type": "string",
+          "description": "The current status of the call: initiated, ringing, in-progress, completed, busy, failed, or no-answer"
+        },
+        "Direction": {
+          "type": "string",
+          "description": "The direction of the call: inbound, outbound-api, or outbound-dial"
+        },
+        "CallDuration": {
+          "type": "string",
+          "description": "The duration of the call in seconds (present only when call is completed)"
+        },
+        "Timestamp": {
+          "type": "string",
+          "description": "The timestamp of the event in RFC 2822 format"
+        },
+        "SequenceNumber": {
+          "type": "string",
+          "description": "The order of this status callback relative to other callbacks for this call"
+        },
+        "ApiVersion": {
+          "type": "string",
+          "description": "The Twilio API version used (e.g. 2010-04-01)"
+        }
+      }
+    },
+    "twilio_recording_status": {
+      "type": "object",
+      "properties": {
+        "RecordingSid": {
+          "type": "string",
+          "description": "Unique identifier for the recording"
+        },
+        "AccountSid": {
+          "type": "string",
+          "description": "The Twilio Account SID that owns the recording"
+        },
+        "CallSid": {
+          "type": "string",
+          "description": "The SID of the call that was recorded"
+        },
+        "RecordingUrl": {
+          "type": "string",
+          "description": "The URL where the recording audio file can be accessed"
+        },
+        "RecordingDuration": {
+          "type": "string",
+          "description": "The duration of the recording in seconds"
+        },
+        "RecordingStatus": {
+          "type": "string",
+          "description": "The status of the recording: completed, absent, or failed"
+        },
+        "RecordingChannels": {
+          "type": "string",
+          "description": "The number of audio channels in the recording (1 for mono, 2 for dual)"
+        },
+        "RecordingSource": {
+          "type": "string",
+          "description": "The source of the recording: DialVerb, Conference, OutboundAPI, Trunking, RecordVerb, or StartCallRecordingAPI"
+        }
+      }
+    },
+    "twilio_conference_status": {
+      "type": "object",
+      "properties": {
+        "ConferenceSid": {
+          "type": "string",
+          "description": "Unique identifier for the conference"
+        },
+        "AccountSid": {
+          "type": "string",
+          "description": "The Twilio Account SID that owns the conference"
+        },
+        "FriendlyName": {
+          "type": "string",
+          "description": "The friendly name of the conference"
+        },
+        "StatusCallbackEvent": {
+          "type": "string",
+          "description": "The event that triggered this callback: conference-start, conference-end, participant-join, participant-leave, etc."
+        },
+        "CallSid": {
+          "type": "string",
+          "description": "The SID of the participant's call leg, if this event is participant-specific"
+        },
+        "Muted": {
+          "type": "string",
+          "description": "Whether the participant is muted (true or false), if applicable"
+        },
+        "Hold": {
+          "type": "string",
+          "description": "Whether the participant is on hold (true or false), if applicable"
+        },
+        "SequenceNumber": {
+          "type": "string",
+          "description": "The order of this callback relative to other callbacks for this conference"
+        }
+      }
+    }
+  }
+}

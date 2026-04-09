@@ -73,6 +73,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
+	agentTriggerHandler := handler.NewAgentTriggerHandler(database, actionsCatalog)
 	var emailSender email.Sender = &email.LogSender{}
 	if enqueuer != nil {
 		emailSender = email.NewAsynqSender(enqueuer)
@@ -131,6 +132,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		pusherForHandler = agentPusher
 	}
 	agentHandler := handler.NewAgentHandler(database, reg, pusherForHandler, sandboxEncKey, enqueuer)
+	agentHandler.SetCatalog(actionsCatalog)
 	if forgeCtrl != nil {
 		agentHandler.SetForgeController(forgeCtrl)
 	}
@@ -176,6 +178,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	r.Get("/v1/catalog/integrations", actionsHandler.ListIntegrations)
 	r.Get("/v1/catalog/integrations/{id}", actionsHandler.GetIntegration)
 	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
+	r.Get("/v1/catalog/integrations/{id}/triggers", actionsHandler.ListTriggers)
 
 	// Marketplace discovery (no auth, Redis cached)
 	r.Get("/v1/marketplace/agents", marketplaceHandler.List)
@@ -330,6 +333,13 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/{agentID}/forge", forgeHandler.Start)
 						r.Get("/{agentID}/forge", forgeHandler.GetLatestRun)
 					}
+					r.Route("/{agentID}/triggers", func(r chi.Router) {
+						r.Post("/", agentTriggerHandler.Create)
+						r.Get("/", agentTriggerHandler.List)
+						r.Get("/{id}", agentTriggerHandler.Get)
+						r.Put("/{id}", agentTriggerHandler.Update)
+						r.Delete("/{id}", agentTriggerHandler.Delete)
+					})
 					})
 				r.Route("/marketplace/agents", func(r chi.Router) {
 					r.Use(middleware.ResolveUser(database))

@@ -1,0 +1,142 @@
+{
+  "display_name": "Linear",
+  "triggers": {
+    "Issue.create": {
+      "display_name": "Issue Created",
+      "description": "Triggered when a new issue is created in Linear",
+      "resource_type": "issue",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Issue.update": {
+      "display_name": "Issue Updated",
+      "description": "Triggered when an issue is updated (title, description, status, assignee, priority, labels, etc.)",
+      "resource_type": "issue",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Issue.remove": {
+      "display_name": "Issue Removed",
+      "description": "Triggered when an issue is deleted or archived",
+      "resource_type": "issue",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Comment.create": {
+      "display_name": "Comment Created",
+      "description": "Triggered when a new comment is added to an issue",
+      "resource_type": "comment",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Comment.update": {
+      "display_name": "Comment Updated",
+      "description": "Triggered when a comment on an issue is edited",
+      "resource_type": "comment",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Comment.remove": {
+      "display_name": "Comment Removed",
+      "description": "Triggered when a comment is deleted from an issue",
+      "resource_type": "comment",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Project.create": {
+      "display_name": "Project Created",
+      "description": "Triggered when a new project is created",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Project.update": {
+      "display_name": "Project Updated",
+      "description": "Triggered when a project is updated (name, description, status, lead, target date, etc.)",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Project.remove": {
+      "display_name": "Project Removed",
+      "description": "Triggered when a project is deleted or archived",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event"
+    },
+    "ProjectUpdate.create": {
+      "display_name": "Project Update Posted",
+      "description": "Triggered when a new status update is posted on a project",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Cycle.create": {
+      "display_name": "Cycle Created",
+      "description": "Triggered when a new cycle (sprint) is created",
+      "resource_type": "cycle",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Cycle.update": {
+      "display_name": "Cycle Updated",
+      "description": "Triggered when a cycle is updated (name, dates, progress, etc.)",
+      "resource_type": "cycle",
+      "payload_schema": "linear_webhook_event"
+    },
+    "Cycle.remove": {
+      "display_name": "Cycle Removed",
+      "description": "Triggered when a cycle is deleted",
+      "resource_type": "cycle",
+      "payload_schema": "linear_webhook_event"
+    },
+    "IssueLabel.create": {
+      "display_name": "Label Created",
+      "description": "Triggered when a new issue label is created",
+      "resource_type": "label",
+      "payload_schema": "linear_webhook_event"
+    },
+    "IssueLabel.update": {
+      "display_name": "Label Updated",
+      "description": "Triggered when an issue label is updated (name, color, etc.)",
+      "resource_type": "label",
+      "payload_schema": "linear_webhook_event"
+    }
+  },
+  "schemas": {
+    "linear_webhook_event": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The action that was performed: create, update, or remove"
+        },
+        "type": {
+          "type": "string",
+          "description": "The resource type that was affected (e.g. Issue, Comment, Project, Cycle, IssueLabel, ProjectUpdate)"
+        },
+        "actor": {
+          "type": "object",
+          "description": "The user who performed the action. Contains id, name, email, and avatarUrl"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the event was created"
+        },
+        "data": {
+          "type": "object",
+          "description": "The full entity object after the action. For Issues: id, title, description, priority, status, assignee, team, labels, project, cycle, url, createdAt, updatedAt. For Comments: id, body, issue, user, createdAt. For Projects: id, name, description, state, lead, targetDate. For Cycles: id, name, number, startsAt, endsAt, team"
+        },
+        "updatedFrom": {
+          "type": "object",
+          "description": "For update actions, contains the previous values of the fields that were changed (e.g. previous title, status, assignee)"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL to the resource in the Linear web application"
+        },
+        "organizationId": {
+          "type": "string",
+          "description": "The unique identifier of the Linear organization (workspace)"
+        },
+        "webhookId": {
+          "type": "string",
+          "description": "The unique identifier of the webhook subscription that matched this event"
+        },
+        "webhookTimestamp": {
+          "type": "integer",
+          "description": "Unix timestamp in milliseconds of when the webhook was dispatched"
+        }
+      }
+    }
+  }
+}
