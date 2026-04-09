@@ -380,14 +380,15 @@ func waitForResponseFromChannel(ch <-chan streaming.StreamEvent, timeout time.Du
 			var eventData struct {
 				FullResponse string `json:"full_response"`
 			}
-			if err := json.Unmarshal(event.Data, &eventData); err != nil {
-				// Try nested: the webhook stores the full event payload, where data is nested
+			json.Unmarshal(event.Data, &eventData)
+			// If not at top level, try nested (webhook wraps data in envelope).
+			if eventData.FullResponse == "" {
 				var nested struct {
 					Data struct {
 						FullResponse string `json:"full_response"`
 					} `json:"data"`
 				}
-				if err2 := json.Unmarshal(event.Data, &nested); err2 == nil && nested.Data.FullResponse != "" {
+				if err2 := json.Unmarshal(event.Data, &nested); err2 == nil {
 					eventData.FullResponse = nested.Data.FullResponse
 				}
 			}
@@ -409,8 +410,9 @@ func waitForResponseFromChannel(ch <-chan streaming.StreamEvent, timeout time.Du
 						Message string `json:"message"`
 					} `json:"data"`
 				}
-				json.Unmarshal(event.Data, &nested)
-				errData.Message = nested.Data.Message
+				if err2 := json.Unmarshal(event.Data, &nested); err2 == nil {
+					errData.Message = nested.Data.Message
+				}
 			}
 			return "", fmt.Errorf("agent error: %s", errData.Message)
 		}
