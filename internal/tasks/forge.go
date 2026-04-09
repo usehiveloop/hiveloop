@@ -57,3 +57,27 @@ func (h *ForgeDesignEvalsHandler) Handle(ctx context.Context, t *asynq.Task) err
 	h.execute(ctx, p.RunID)
 	return nil
 }
+
+// ForgeEvalJudgeFunc runs one eval case end-to-end (eval target → judge → save).
+type ForgeEvalJudgeFunc func(ctx context.Context, payload ForgeEvalJudgePayload)
+
+// ForgeEvalJudgeHandler processes forge:eval_judge tasks.
+type ForgeEvalJudgeHandler struct {
+	execute ForgeEvalJudgeFunc
+}
+
+// NewForgeEvalJudgeHandler creates a forge eval judge handler.
+func NewForgeEvalJudgeHandler(execute ForgeEvalJudgeFunc) *ForgeEvalJudgeHandler {
+	return &ForgeEvalJudgeHandler{execute: execute}
+}
+
+// Handle runs one eval case and judges it.
+func (h *ForgeEvalJudgeHandler) Handle(ctx context.Context, t *asynq.Task) error {
+	var p ForgeEvalJudgePayload
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return fmt.Errorf("unmarshal forge eval judge payload: %w", err)
+	}
+
+	h.execute(ctx, p)
+	return nil
+}

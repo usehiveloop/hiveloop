@@ -91,6 +91,31 @@ func NewForgeDesignEvalsTask(runID uuid.UUID) (*asynq.Task, error) {
 	), nil
 }
 
+// ForgeEvalJudgePayload is the payload for TypeForgeEvalJudge tasks.
+// Each task runs ONE eval case end-to-end: eval target → judge → save score.
+type ForgeEvalJudgePayload struct {
+	RunID          uuid.UUID `json:"run_id"`
+	IterationID    uuid.UUID `json:"iteration_id"`
+	EvalResultID   uuid.UUID `json:"eval_result_id"`
+	EvalCaseID     uuid.UUID `json:"eval_case_id"`
+	MaxConcurrency int       `json:"max_concurrency"`
+}
+
+// NewForgeEvalJudgeTask creates a task that runs one eval case and judges it.
+func NewForgeEvalJudgeTask(payload ForgeEvalJudgePayload) (*asynq.Task, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal forge eval judge payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeForgeEvalJudge,
+		data,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(2),
+		asynq.Timeout(5*time.Minute),
+	), nil
+}
+
 // ---------------------------------------------------------------------------
 // email:send
 // ---------------------------------------------------------------------------

@@ -20,6 +20,7 @@ type WorkerDeps struct {
 	EncKey       *crypto.SymmetricKey  // nil if not configured
 	ForgeExecute     ForgeExecuteFunc      // nil if forge not configured
 	ForgeDesignEvals ForgeDesignEvalsFunc   // nil if forge not configured
+	ForgeEvalJudge   ForgeEvalJudgeFunc     // nil if forge not configured
 	EmailSend        EmailSenderFunc       // nil if email not configured
 	PolarClient      *polargo.Polar        // nil if billing not configured
 }
@@ -43,6 +44,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	}
 	if deps.ForgeDesignEvals != nil {
 		mux.HandleFunc(TypeForgeDesignEvals, NewForgeDesignEvalsHandler(deps.ForgeDesignEvals).Handle)
+	}
+	if deps.ForgeEvalJudge != nil {
+		mux.HandleFunc(TypeForgeEvalJudge, NewForgeEvalJudgeHandler(deps.ForgeEvalJudge).Handle)
 	}
 
 	// Email sending

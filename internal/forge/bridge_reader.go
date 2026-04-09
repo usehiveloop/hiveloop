@@ -14,6 +14,7 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/bridge"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/streaming"
 )
 
 // BridgeReader reads forge agent responses via direct SSE connection to Bridge.
@@ -352,4 +353,60 @@ func GetMaxSequenceNumber(db *gorm.DB, conversationID uuid.UUID) int64 {
 		Where("conversation_id = ?", conversationID).
 		Select("COALESCE(MAX(sequence_number), 0)").Scan(&maxSeq)
 	return maxSeq
+}
+
+// WaitForResponseFromRedis subscribes to a conversation's Redis stream and
+// waits for a response_completed event. Returns the full_response text.
+// This is the primary method for capturing forge agent responses — no SSE,
+// no DB polling. Events arrive via Bridge webhook → EventBus → Redis stream.
+func WaitForResponseFromRedis(ctx context.Context, eventBus *streaming.EventBus, conversationID string, timeout time.Duration) (string, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ch := eventBus.Subscribe(timeoutCtx, conversationID, "$")
+
+	for event := range ch {
+		switch event.EventType {
+		case "response_completed":
+			var eventData struct {
+				FullResponse string `json:"full_response"`
+			}
+			if err := json.Unmarshal(event.Data, &eventData); err != nil {
+				// Try nested: the webhook stores the full event payload, where data is nested
+				var nested struct {
+					Data struct {
+						FullResponse string `json:"full_response"`
+					} `json:"data"`
+				}
+				if err2 := json.Unmarshal(event.Data, &nested); err2 == nil && nested.Data.FullResponse != "" {
+					eventData.FullResponse = nested.Data.FullResponse
+				}
+			}
+			if eventData.FullResponse != "" {
+				slog.Info("WaitForResponseFromRedis: response captured",
+					"conversation_id", conversationID,
+					"response_len", len(eventData.FullResponse),
+				)
+				return eventData.FullResponse, nil
+			}
+
+		case "agent_error":
+			var errData struct {
+				Message string `json:"message"`
+			}
+			json.Unmarshal(event.Data, &errData)
+			if errData.Message == "" {
+				var nested struct {
+					Data struct {
+						Message string `json:"message"`
+					} `json:"data"`
+				}
+				json.Unmarshal(event.Data, &nested)
+				errData.Message = nested.Data.Message
+			}
+			return "", fmt.Errorf("agent error: %s", errData.Message)
+		}
+	}
+
+	return "", fmt.Errorf("timed out waiting for response after %s", timeout)
 }
