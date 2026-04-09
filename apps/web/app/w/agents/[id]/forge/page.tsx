@@ -889,7 +889,9 @@ function IterationPanel({ iterationId }: { iterationId: string }) {
               className="mb-10"
             >
               <p className="font-mono text-[9px] font-medium uppercase tracking-[2px] text-muted-foreground/40 mb-2">What changed</p>
-              <p className="text-[13px] text-foreground/80 leading-relaxed">{architectReasoning}</p>
+              <div className="text-[13px] text-foreground/80 leading-relaxed prose prose-sm prose-neutral dark:prose-invert max-w-none">
+                <Streamdown>{architectReasoning}</Streamdown>
+              </div>
             </motion.div>
           )}
 
