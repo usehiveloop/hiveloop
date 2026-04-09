@@ -759,6 +759,7 @@ function ContextConfigView({
   triggerKeys,
   refs,
   contextActions,
+  conditions,
   prompt,
   onConfirm,
   onBack,
