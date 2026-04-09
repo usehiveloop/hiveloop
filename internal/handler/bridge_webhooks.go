@@ -133,13 +133,20 @@ func (h *BridgeWebhookHandler) processEvent(sb *model.Sandbox, event *webhookEve
 	var conv model.AgentConversation
 	if err := h.db.Where("bridge_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
-		slog.Debug("webhook: conversation not found",
+		slog.Warn("webhook: conversation not found",
 			"bridge_conversation_id", event.ConversationID,
 			"sandbox_id", sb.ID,
 			"event_type", event.EventType,
 		)
 		return
 	}
+
+	slog.Info("webhook: event matched",
+		"bridge_conversation_id", event.ConversationID,
+		"agent_conversation_id", conv.ID,
+		"event_type", event.EventType,
+		"sandbox_id", sb.ID,
+	)
 
 	// Build the full event JSON for Redis (SSE clients receive this as-is).
 	redisPayload, _ := json.Marshal(map[string]any{
