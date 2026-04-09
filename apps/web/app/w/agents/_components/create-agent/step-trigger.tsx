@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, lazy, Suspense } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
 import { useCreateAgent } from "./context"
+import { RecipeEditor } from "./recipe-editor"
 
 type TriggerView = "choice" | "connections" | "triggers" | "context"
 
@@ -650,6 +651,26 @@ function ContextConfigView({
   const [yamlText, setYamlText] = useState(() => recipeToYaml(contextActions, prompt, triggerKeys, refs))
   const [parseError, setParseError] = useState<string | null>(null)
 
+  // Fetch schema paths for autocomplete.
+  const { data: schemaPathsData } = $api.useQuery(
+    "get",
+    "/v1/catalog/integrations/{id}/schema-paths",
+    { params: { path: { id: provider } } },
+    { enabled: !!provider },
+  )
+
+  const refNames = useMemo(() => Object.keys(refs), [refs])
+
+  const actionPaths = useMemo(() => {
+    const rawActions = (schemaPathsData as any)?.actions ?? {}
+    const result: Record<string, Array<{ path: string; type: string }>> = {}
+    for (const [actionKey, actionData] of Object.entries(rawActions)) {
+      const paths = (actionData as any)?.paths as Array<{ path: string; type: string }> | undefined
+      if (paths) result[actionKey] = paths
+    }
+    return result
+  }, [schemaPathsData])
+
   function handleConfirm() {
     const parsed = parseRecipeYaml(yamlText)
     if (!parsed) {
@@ -660,7 +681,7 @@ function ContextConfigView({
     onConfirm(parsed.context, parsed.prompt)
   }
 
-  const refsList = Object.keys(refs).map((refName) => `$refs.${refName}`).join(", ")
+  const refsList = refNames.map((refName) => `$refs.${refName}`).join(", ")
 
   return (
     <>
@@ -677,18 +698,18 @@ function ContextConfigView({
       </DialogHeader>
 
       <div className="flex flex-col gap-3 mt-4 flex-1 min-h-0">
-        <textarea
+        <RecipeEditor
           value={yamlText}
-          onChange={(event) => { setYamlText(event.target.value); setParseError(null) }}
-          spellCheck={false}
-          className="flex-1 min-h-0 w-full rounded-xl border border-input bg-muted/30 px-4 py-3 font-mono text-[12px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring resize-none"
+          onChange={(newValue) => { setYamlText(newValue); setParseError(null) }}
+          refNames={refNames}
+          actionPaths={actionPaths}
         />
 
         {parseError && (
           <p className="text-xs text-destructive px-1">{parseError}</p>
         )}
 
-        <div className="rounded-lg bg-muted/50 px-3 py-2">
+        <div className="rounded-lg bg-muted/50 px-3 py-2 shrink-0">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Available refs</p>
           <p className="text-[11px] font-mono text-muted-foreground leading-relaxed break-all">{refsList}</p>
         </div>
