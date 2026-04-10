@@ -125,7 +125,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if orchestrator != nil {
 		templateBuilder = orchestrator
 	}
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder)
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer, eventBus)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -317,6 +317,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Get("/{id}", sandboxTemplateHandler.Get)
 					r.Put("/{id}", sandboxTemplateHandler.Update)
 					r.Delete("/{id}", sandboxTemplateHandler.Delete)
+					r.Post("/{id}/build", sandboxTemplateHandler.TriggerBuild)
+					r.Get("/{id}/build-stream", sandboxTemplateHandler.StreamBuildLogs)
 				})
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
@@ -341,7 +343,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Put("/{id}", agentTriggerHandler.Update)
 						r.Delete("/{id}", agentTriggerHandler.Delete)
 					})
-					})
+				})
 				r.Route("/marketplace/agents", func(r chi.Router) {
 					r.Use(middleware.ResolveUser(database))
 					r.Post("/", marketplaceHandler.Create)
@@ -739,4 +741,3 @@ func readyz(database *gorm.DB, rc *redis.Client) http.HandlerFunc {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}
 }
-

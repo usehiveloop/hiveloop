@@ -293,3 +293,27 @@ func NewAgentCleanupTask(agentID uuid.UUID) (*asynq.Task, error) {
 		asynq.Timeout(2*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// sandbox_template:build
+// ---------------------------------------------------------------------------
+
+// SandboxTemplateBuildPayload is the payload for TypeSandboxTemplateBuild tasks.
+type SandboxTemplateBuildPayload struct {
+	TemplateID uuid.UUID `json:"template_id"`
+}
+
+// NewSandboxTemplateBuildTask creates a task that builds a sandbox template snapshot.
+func NewSandboxTemplateBuildTask(templateID uuid.UUID) (*asynq.Task, error) {
+	payload, err := json.Marshal(SandboxTemplateBuildPayload{TemplateID: templateID})
+	if err != nil {
+		return nil, fmt.Errorf("marshal sandbox template build payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeSandboxTemplateBuild,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(2),
+		asynq.Timeout(30*time.Minute),
+	), nil
+}

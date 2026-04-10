@@ -178,12 +178,12 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 
 	envVars := map[string]string{
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_WEBHOOK_URL":          fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
-		"BRIDGE_LOG_FORMAT":           "json",
-		"BRIDGE_CODEDB_ENABLED":       "true",
-		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
+		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
+		"BRIDGE_LOG_FORMAT":            "json",
+		"BRIDGE_CODEDB_ENABLED":        "true",
+		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 	}
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
@@ -327,11 +327,11 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 	// Forge sandboxes do NOT set BRIDGE_WEBHOOK_URL — controller reads via direct SSE.
 	envVars := map[string]string{
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_LOG_FORMAT":           "json",
-		"BRIDGE_CODEDB_ENABLED":       "true",
-		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
+		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_LOG_FORMAT":            "json",
+		"BRIDGE_CODEDB_ENABLED":        "true",
+		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
@@ -437,7 +437,7 @@ func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error
 		return fmt.Errorf("stopping sandbox %s: %w", sb.ID, err)
 	}
 	return o.db.Model(sb).Updates(map[string]any{
-		"status":    "stopped",
+		"status":                "stopped",
 		"bridge_url_expires_at": nil,
 	}).Error
 }
@@ -515,12 +515,12 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	// Build env vars for Bridge
 	envVars := map[string]string{
 		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":          fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_WEBHOOK_URL":          fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
-		"BRIDGE_LOG_FORMAT":           "json",
-		"BRIDGE_CODEDB_ENABLED":       "true",
-		"BRIDGE_CODEDB_BINARY":        "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":         "/home/daytona/.bridge/storage",
+		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
+		"BRIDGE_LOG_FORMAT":            "json",
+		"BRIDGE_CODEDB_ENABLED":        "true",
+		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
@@ -640,9 +640,9 @@ func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*mod
 
 	now := time.Now()
 	o.db.Model(sb).Updates(map[string]any{
-		"status":        "running",
+		"status":         "running",
 		"last_active_at": now,
-		"error_message": nil,
+		"error_message":  nil,
 	})
 	sb.Status = "running"
 	sb.LastActiveAt = &now
@@ -867,6 +867,16 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 		"build_error":  nil,
 	})
 	slog.Info("template built", "template_id", tmpl.ID, "external_id", externalID)
+}
+
+// BuildTemplateWithLogs builds a sandbox template and streams logs via onLog callback.
+// Returns the external snapshot ID once the build completes.
+func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
+	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
+	return o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
+		Name:          snapshotName,
+		BuildCommands: tmpl.BuildCommands,
+	}, onLog)
 }
 
 // DeleteTemplate deletes a sandbox template (snapshot) from the provider.

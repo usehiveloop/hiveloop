@@ -103,6 +103,10 @@ func (m *mockProvider) BuildSnapshot(_ context.Context, _ BuildSnapshotOpts) (st
 	return "mock-snapshot-id", nil
 }
 
+func (m *mockProvider) BuildSnapshotWithLogs(_ context.Context, _ BuildSnapshotOpts, _ func(string)) (string, error) {
+	return "mock-snapshot-id", nil
+}
+
 func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
 	return nil
 }

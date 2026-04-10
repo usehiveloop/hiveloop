@@ -57,6 +57,7 @@ type Provider interface {
 
 	// Snapshots (templates)
 	BuildSnapshot(ctx context.Context, opts BuildSnapshotOpts) (externalID string, err error)
+	BuildSnapshotWithLogs(ctx context.Context, opts BuildSnapshotOpts, onLog func(string)) (externalID string, err error)
 	DeleteSnapshot(ctx context.Context, externalID string) error
 
 	// Auto-management

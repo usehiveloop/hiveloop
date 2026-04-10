@@ -3,15 +3,19 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/streaming"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // TemplateBuildable is the interface for building sandbox templates.
@@ -24,12 +28,14 @@ type TemplateBuildable interface {
 var _ TemplateBuildable = (*sandbox.Orchestrator)(nil)
 
 type SandboxTemplateHandler struct {
-	db      *gorm.DB
-	builder TemplateBuildable // nil if sandbox orchestrator not configured
+	db       *gorm.DB
+	builder  TemplateBuildable // nil if sandbox orchestrator not configured
+	enqueuer enqueue.TaskEnqueuer
+	eventBus *streaming.EventBus
 }
 
-func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable) *SandboxTemplateHandler {
-	return &SandboxTemplateHandler{db: db, builder: builder}
+func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer enqueue.TaskEnqueuer, eventBus *streaming.EventBus) *SandboxTemplateHandler {
+	return &SandboxTemplateHandler{db: db, builder: builder, enqueuer: enqueuer, eventBus: eventBus}
 }
 
 type createSandboxTemplateRequest struct {
@@ -279,7 +285,134 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, toSandboxTemplateResponse(tmpl))
 }
 
-// Delete handles DELETE /v1/sandbox-templates/{id}.
+// TriggerBuild handles POST /v1/sandbox-templates/{id}/build.
+// @Summary Trigger a sandbox template build
+// @Description Enqueues an async build job for the template and streams logs via SSE.
+// @Tags sandbox-templates
+// @Accept json
+// @Produce json
+// @Param id path string true "Template ID"
+// @Success 202 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/{id}/build [post]
+func (h *SandboxTemplateHandler) TriggerBuild(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	var tmpl model.SandboxTemplate
+	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&tmpl).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox template not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox template"})
+		return
+	}
+
+	if tmpl.BuildStatus == "building" {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "build already in progress"})
+		return
+	}
+
+	if h.enqueuer == nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "build worker not configured"})
+		return
+	}
+
+	task, err := tasks.NewSandboxTemplateBuildTask(tmpl.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue build task"})
+		return
+	}
+	if _, err := h.enqueuer.Enqueue(task); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue build task"})
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "build enqueued"})
+}
+
+// StreamBuildLogs handles GET /v1/sandbox-templates/{id}/build-stream.
+// @Summary Stream template build logs
+// @Description Streams build logs and status updates as SSE events.
+// @Tags sandbox-templates
+// @Produce text/event-stream
+// @Param id path string true "Template ID"
+// @Param Last-Event-ID header string false "Resume cursor"
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/{id}/build-stream [get]
+func (h *SandboxTemplateHandler) StreamBuildLogs(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		http.Error(w, "missing org context", http.StatusUnauthorized)
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	var tmpl model.SandboxTemplate
+	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&tmpl).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "sandbox template not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to get sandbox template", http.StatusInternalServerError)
+		return
+	}
+
+	if h.eventBus == nil {
+		http.Error(w, "streaming not configured", http.StatusInternalServerError)
+		return
+	}
+
+	streamKey := fmt.Sprintf("template:%s", tmpl.ID.String())
+	cursor := r.Header.Get("Last-Event-ID")
+	if cursor == "" {
+		cursor = "0"
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	events := h.eventBus.Subscribe(r.Context(), streamKey, cursor)
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case event, ok := <-events:
+			if !ok {
+				return
+			}
+			eventID := event.ID
+			_, _ = fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", eventID, event.EventType, string(event.Data))
+			flusher.Flush()
+		case <-ticker.C:
+			_, _ = fmt.Fprint(w, ": ping\n\n")
+			flusher.Flush()
+		}
+	}
+}
+
 // @Summary Delete a sandbox template
 // @Description Deletes a template. Fails if agents still reference it.
 // @Tags sandbox-templates
@@ -327,4 +460,3 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
-

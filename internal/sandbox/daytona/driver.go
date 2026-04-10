@@ -241,6 +241,16 @@ func (d *Driver) GetEndpoint(ctx context.Context, externalID string, port int) (
 // Builds a full Docker image: Ubuntu base → system packages → Bridge binary → customer commands → Bridge entrypoint.
 // Returns the snapshot name. The build runs asynchronously — caller should poll until ready.
 func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
+	externalID, err := d.buildImage(ctx, opts, nil)
+	return externalID, err
+}
+
+// BuildSnapshotWithLogs creates a snapshot and streams build logs via onLog callback.
+func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
+	return d.buildImage(ctx, opts, onLog)
+}
+
+func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
 	baseImage := opts.BaseImage
 	if baseImage == "" {
 		baseImage = "ubuntu:24.04"
@@ -287,12 +297,17 @@ func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOp
 		return "", fmt.Errorf("creating snapshot: %w", err)
 	}
 
-	// Drain build logs (non-blocking — just consume them)
+	// Drain build logs, calling onLog for each line if provided
 	if logChan != nil {
 		go func() {
-			for range logChan {
+			for line := range logChan {
+				if onLog != nil {
+					onLog(line)
+				}
 			}
 		}()
+	} else if onLog != nil {
+		onLog("no log channel available from provider")
 	}
 
 	return snapshot.Name, nil
