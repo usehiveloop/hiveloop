@@ -324,7 +324,7 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
 
 // GetSnapshotStatus returns the current status of a Daytona snapshot build.
 func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*sandbox.SnapshotStatusResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshot/"+externalID, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshots/"+externalID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
@@ -356,7 +356,7 @@ func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*san
 
 // GetSnapshotLogs returns the build logs for a Daytona snapshot.
 func (d *Driver) GetSnapshotLogs(ctx context.Context, externalID string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshot/"+externalID+"/logs", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshots/"+externalID+"/logs", nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
