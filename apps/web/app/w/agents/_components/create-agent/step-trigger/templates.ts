@@ -42,12 +42,6 @@ instructions: |
 
   ## Similar Open Issues
   {{$similar}}
-
-  Please triage this issue:
-  1. Add the most appropriate labels from the available list
-  2. If this is a duplicate of a similar issue, comment explaining which issue it duplicates and close it
-  3. If the issue lacks steps to reproduce or clear description, comment asking for more details
-  4. If the issue is clear and actionable, add a comment acknowledging it
 `,
     },
     {
@@ -95,13 +89,6 @@ instructions: |
 
   ## Existing Comments
   {{$comments}}
-
-  Please review the code changes:
-  1. Check for bugs, security issues, and performance problems
-  2. Verify the code follows the contributing guidelines
-  3. Look for missing error handling or edge cases
-  4. Post specific, actionable feedback as review comments
-  5. If everything looks good, approve the pull request
 `,
     },
     {
@@ -145,9 +132,6 @@ instructions: |
 
   ## Conversation
   {{$comments}}
-
-  Respond to the mention. If asked a question, answer it based on the PR context and code changes.
-  If asked to do something (fix, update, review), take the appropriate action.
 `,
     },
     {
@@ -191,9 +175,6 @@ instructions: |
 
   ## Available Labels
   {{$labels}}
-
-  Respond to the mention. If asked a question, answer it based on the issue context.
-  If asked to do something (label, close, investigate), take the appropriate action.
 `,
     },
   ],
