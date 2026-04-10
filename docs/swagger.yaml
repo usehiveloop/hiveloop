@@ -1056,6 +1056,11 @@ definitions:
       name:
         type: string
     type: object
+  internal_handler.buildTriggerResponse:
+    properties:
+      stream_url:
+        type: string
+    type: object
   internal_handler.changePasswordRequest:
     properties:
       current_password:
@@ -8958,6 +8963,76 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a sandbox template
+      tags:
+      - sandbox-templates
+  /v1/sandbox-templates/{id}/build:
+    post:
+      consumes:
+      - application/json
+      description: Enqueues an async build job for the template and streams logs via
+        SSE.
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/internal_handler.buildTriggerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Trigger a sandbox template build
+      tags:
+      - sandbox-templates
+  /v1/sandbox-templates/{id}/build-stream:
+    get:
+      description: Real-time SSE stream of template build logs and status updates.
+        Supports resume via Last-Event-ID.
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Stream template build logs
       tags:
       - sandbox-templates
   /v1/sandboxes:

@@ -35,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProviderLogo } from "@/components/provider-logo"
 import { AddLlmKeyDialog } from "@/app/w/agents/_components/create-agent/add-llm-key-dialog"
+import { SandboxTemplatesList } from "@/app/w/settings/_components/sandbox-templates"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { useQueryClient } from "@tanstack/react-query"
@@ -59,6 +60,7 @@ import {
   Copy01Icon,
   ArrowRight01Icon,
   Tick02Icon,
+  ContainerIcon,
 } from "@hugeicons/core-free-icons"
 
 interface SettingsItem {
@@ -94,6 +96,7 @@ const settingsGroups: SettingsGroup[] = [
     items: [
       { id: "llm-keys", label: "LLM Keys", icon: ArtificialIntelligence01Icon },
       { id: "api-keys", label: "API Keys", icon: Key01Icon },
+      { id: "sandboxes", label: "Sandboxes", icon: ContainerIcon },
     ],
   },
 ]
@@ -923,6 +926,7 @@ const sectionComponents: Record<string, React.ComponentType> = {
   "llm-keys": LlmKeysSettings,
   "api-keys": ApiKeysSettings,
   security: SecuritySettings,
+  sandboxes: SandboxTemplatesList,
 }
 
 interface SettingsDialogProps {

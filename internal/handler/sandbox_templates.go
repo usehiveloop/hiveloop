@@ -62,6 +62,10 @@ type sandboxTemplateResponse struct {
 	UpdatedAt     string     `json:"updated_at"`
 }
 
+type buildTriggerResponse struct {
+	StreamURL string `json:"stream_url"`
+}
+
 func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse {
 	return sandboxTemplateResponse{
 		ID:            t.ID.String(),
@@ -292,7 +296,7 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 // @Accept json
 // @Produce json
 // @Param id path string true "Template ID"
-// @Success 202 {object} map[string]string
+// @Success 202 {object} buildTriggerResponse
 // @Failure 400 {object} errorResponse
 // @Failure 404 {object} errorResponse
 // @Failure 409 {object} errorResponse
@@ -337,16 +341,21 @@ func (h *SandboxTemplateHandler) TriggerBuild(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeJSON(w, http.StatusAccepted, map[string]string{"status": "build enqueued"})
+	writeJSON(w, http.StatusAccepted, buildTriggerResponse{
+		StreamURL: fmt.Sprintf("/v1/sandbox-templates/%s/build-stream", tmpl.ID),
+	})
 }
 
 // StreamBuildLogs handles GET /v1/sandbox-templates/{id}/build-stream.
 // @Summary Stream template build logs
-// @Description Streams build logs and status updates as SSE events.
+// @Description Real-time SSE stream of template build logs and status updates. Supports resume via Last-Event-ID.
 // @Tags sandbox-templates
 // @Produce text/event-stream
 // @Param id path string true "Template ID"
-// @Param Last-Event-ID header string false "Resume cursor"
+// @Header 200 {string} Last-Event-ID "ID of the last received event"
+// @Success 200 {string} string "SSE stream"
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/sandbox-templates/{id}/build-stream [get]
 func (h *SandboxTemplateHandler) StreamBuildLogs(w http.ResponseWriter, r *http.Request) {

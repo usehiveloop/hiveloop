@@ -19,8 +19,8 @@ const footerLinks = {
   ],
   company: [
     { label: "About", href: "/about" },
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/legal/privacy" },
+    { label: "Terms of Service", href: "/legal/terms" },
     { label: "Contact", href: "mailto:hello@ziraloop.com", external: true },
   ],
 }
@@ -152,13 +152,13 @@ export function MarketingFooter() {
           </div>
           <div className="flex items-center gap-5">
             <Link
-              href="/privacy"
+              href="/legal/privacy"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Privacy
             </Link>
             <Link
-              href="/terms"
+              href="/legal/terms"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Terms

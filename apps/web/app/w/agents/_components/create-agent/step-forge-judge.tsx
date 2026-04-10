@@ -62,7 +62,7 @@ export function StepForgeJudge() {
           <div className="flex flex-col gap-2">
             {credentialsLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+                <Skeleton key={index} className="h-13 w-full rounded-xl" />
               ))
             ) : credentials.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No LLM keys available. Add one first.</p>
@@ -71,7 +71,7 @@ export function StepForgeJudge() {
                 <button
                   key={credential.id}
                   type="button"
-                  onClick={() => handleSelectCredential(credential.id!)}
+                  onClick={() => credential.id ? handleSelectCredential(credential.id): null}
                   className={`group flex items-center gap-3 w-full rounded-xl p-3 text-left transition-colors cursor-pointer ${
                     judgeKeyId === credential.id
                       ? "bg-primary/5 border border-primary/20"

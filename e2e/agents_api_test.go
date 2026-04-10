@@ -69,7 +69,7 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 
 	// Build router with agent routes (no auth middleware — we inject org context directly)
 	reg := registry.Global()
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil)
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil, nil, nil)
 	agentHandler := handler.NewAgentHandler(h.db, reg, nil, nil)
 
 	r := chi.NewRouter()
@@ -134,10 +134,10 @@ func TestSandboxTemplateAPI_CRUD(t *testing.T) {
 	}
 
 	var created struct {
-		ID            string `json:"id"`
-		Name          string `json:"name"`
-		BuildCommands string `json:"build_commands"`
-		BuildStatus   string `json:"build_status"`
+		ID            string         `json:"id"`
+		Name          string         `json:"name"`
+		BuildCommands string         `json:"build_commands"`
+		BuildStatus   string         `json:"build_status"`
 		Config        map[string]any `json:"config"`
 	}
 	json.NewDecoder(rr.Body).Decode(&created)
