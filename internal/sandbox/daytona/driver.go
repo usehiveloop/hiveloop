@@ -315,9 +315,23 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 // DeleteSnapshot removes a Daytona snapshot.
 func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
+	// First check if snapshot exists and get its status
+	status, err := d.GetSnapshotStatus(ctx, externalID)
+	if err != nil {
+		// If 404, snapshot doesn't exist, nothing to delete
+		return nil
+	}
+
+	// If snapshot is still building, we can't delete it directly
+	// Need to use the SDK which handles this properly
+	if status.State == "building" || status.State == "pending" {
+		return fmt.Errorf("cannot delete snapshot while in state: %s", status.State)
+	}
+
 	snapshot, err := d.client.Snapshot.Get(ctx, externalID)
 	if err != nil {
-		return fmt.Errorf("getting snapshot %s: %w", externalID, err)
+		// If not found via SDK, it might already be deleted
+		return nil
 	}
 	return d.client.Snapshot.Delete(ctx, snapshot)
 }
@@ -341,16 +355,18 @@ func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*san
 	}
 
 	var result struct {
-		State    string `json:"state"`
-		ErrorMsg string `json:"error,omitempty"`
+		State       string `json:"state"`
+		ErrorMsg    string `json:"error,omitempty"`
+		ErrorReason string `json:"errorReason,omitempty"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decoding snapshot status response: %w", err)
 	}
 
 	return &sandbox.SnapshotStatusResult{
-		State:    result.State,
-		ErrorMsg: result.ErrorMsg,
+		State:       result.State,
+		ErrorMsg:    result.ErrorMsg,
+		ErrorReason: result.ErrorReason,
 	}, nil
 }
 

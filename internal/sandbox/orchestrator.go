@@ -924,6 +924,20 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 			if errMsg == "" {
 				errMsg = "snapshot build failed with unknown error"
 			}
+			// Try to get logs from Daytona and append error reason
+			if logs, logErr := o.provider.GetSnapshotLogs(ctx, externalID); logErr == nil && logs != "" {
+				if onLog != nil {
+					onLog(logs)
+				}
+			}
+			// Append error reason to logs if available
+			if status.ErrorReason != "" {
+				errorLog := fmt.Sprintf("\n[ERROR REASON]: %s", status.ErrorReason)
+				if onLog != nil {
+					onLog(errorLog)
+				}
+				errMsg = fmt.Sprintf("%s\n%s", errMsg, status.ErrorReason)
+			}
 			slog.Error("snapshot build failed", "external_id", externalID, "error", errMsg)
 			if onStatus != nil {
 				onStatus("failed", errMsg)
@@ -943,6 +957,32 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 // DeleteTemplate deletes a sandbox template (snapshot) from the provider.
 func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) error {
 	return o.provider.DeleteSnapshot(ctx, externalID)
+}
+
+// RetryTemplateBuild deletes an existing snapshot and starts a new build.
+// If newCommands is provided, updates the template with those commands first.
+func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.SandboxTemplate, newCommands string, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
+	// Delete existing snapshot if present
+	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
+		slog.Info("deleting existing snapshot before retry", "external_id", *tmpl.ExternalID)
+		if err := o.provider.DeleteSnapshot(ctx, *tmpl.ExternalID); err != nil {
+			slog.Warn("failed to delete existing snapshot", "external_id", *tmpl.ExternalID, "error", err)
+		}
+	}
+
+	// Update commands if provided
+	if newCommands != "" {
+		tmpl.BuildCommands = newCommands
+	}
+
+	// Reset template status
+	tmpl.ExternalID = nil
+	tmpl.BuildStatus = "building"
+	tmpl.BuildError = nil
+	tmpl.BuildLogs = ""
+
+	// Build with polling
+	return o.BuildTemplateWithPolling(ctx, tmpl, onLog, onStatus)
 }
 
 // mergeUserEnvVars decrypts and merges user-defined env vars into the system env vars map.

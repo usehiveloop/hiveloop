@@ -111,6 +111,10 @@ func (m *mockProvider) GetSnapshotStatus(_ context.Context, _ string) (*Snapshot
 	return &SnapshotStatusResult{State: "ready"}, nil
 }
 
+func (m *mockProvider) GetSnapshotLogs(_ context.Context, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
 	return nil
 }

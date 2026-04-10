@@ -46,6 +46,54 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 	// Update status to building
 	h.db.Model(&tmpl).Update("build_status", "building")
 
+	return h.buildTemplate(ctx, &tmpl)
+}
+
+func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.Task) error {
+	var payload SandboxTemplateRetryBuildPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("unmarshal retry payload: %w", err)
+	}
+
+	var tmpl model.SandboxTemplate
+	if err := h.db.First(&tmpl, "id = ?", payload.TemplateID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			slog.Warn("sandbox template retry: template not found", "template_id", payload.TemplateID)
+			return nil
+		}
+		return fmt.Errorf("loading template: %w", err)
+	}
+
+	// Delete existing snapshot if present
+	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
+		slog.Info("retry: deleting existing snapshot", "external_id", *tmpl.ExternalID)
+		if err := h.orchestrator.DeleteTemplate(ctx, *tmpl.ExternalID); err != nil {
+			slog.Warn("retry: failed to delete existing snapshot", "external_id", *tmpl.ExternalID, "error", err)
+		}
+	}
+
+	// Update commands if provided
+	if payload.BuildCommands != "" {
+		h.db.Model(&tmpl).Update("build_commands", payload.BuildCommands)
+		tmpl.BuildCommands = payload.BuildCommands
+	}
+
+	// Reset template status
+	h.db.Model(&tmpl).Updates(map[string]any{
+		"build_status": "building",
+		"external_id":  nil,
+		"build_error":  nil,
+		"build_logs":   "",
+	})
+	tmpl.BuildStatus = "building"
+	tmpl.ExternalID = nil
+	tmpl.BuildError = nil
+	tmpl.BuildLogs = ""
+
+	return h.buildTemplate(ctx, &tmpl)
+}
+
+func (h *SandboxTemplateBuildHandler) buildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) error {
 	// Buffered log channel
 	logChan := make(chan string, 100)
 	var logMu sync.Mutex
@@ -64,7 +112,7 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 				logMu.Lock()
 				if len(bufferedLogs) > 0 {
 					newLogs := strings.Join(bufferedLogs, "\n")
-					h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
+					h.db.Model(tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
 					bufferedLogs = nil
 				}
 				logMu.Unlock()
@@ -94,37 +142,37 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 		if status == "failed" {
 			updates["build_error"] = message
 		}
-		h.db.Model(&tmpl).Updates(updates)
+		h.db.Model(tmpl).Updates(updates)
 	}
 
 	// Build the template with polling
-	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, &tmpl, onLog, onStatus)
+	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, tmpl, onLog, onStatus)
 
 	// Signal flusher to stop and do final flush
 	close(done)
 	logMu.Lock()
 	if len(bufferedLogs) > 0 {
 		newLogs := strings.Join(bufferedLogs, "\n")
-		h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
+		h.db.Model(tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
 	}
 	logMu.Unlock()
 
 	if err != nil {
 		errMsg := err.Error()
-		h.db.Model(&tmpl).Updates(map[string]any{
+		h.db.Model(tmpl).Updates(map[string]any{
 			"build_status": "failed",
 			"build_error":  errMsg,
 		})
-		slog.Error("sandbox template build failed", "template_id", payload.TemplateID, "error", err)
+		slog.Error("sandbox template build failed", "template_id", tmpl.ID, "error", err)
 		return nil
 	}
 
-	h.db.Model(&tmpl).Updates(map[string]any{
+	h.db.Model(tmpl).Updates(map[string]any{
 		"build_status": "ready",
 		"external_id":  externalID,
 		"build_error":  nil,
 	})
-	slog.Info("sandbox template built", "template_id", payload.TemplateID, "external_id", externalID)
+	slog.Info("sandbox template built", "template_id", tmpl.ID, "external_id", externalID)
 
 	return nil
 }
