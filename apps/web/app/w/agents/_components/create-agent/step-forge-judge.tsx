@@ -116,8 +116,8 @@ export function StepForgeJudge() {
       </div>
 
       <div className="flex flex-col gap-2 pt-4 shrink-0">
-        <Button onClick={() => goTo("summary")} disabled={!judgeKeyId || !judgeModel} className="w-full">Continue</Button>
-        <Button variant="ghost" onClick={() => goTo("summary")} className="w-full text-muted-foreground">
+        <Button onClick={() => goTo("skills")} disabled={!judgeKeyId || !judgeModel} className="w-full">Continue</Button>
+        <Button variant="ghost" onClick={() => goTo("skills")} className="w-full text-muted-foreground">
           Skip — use default judge
         </Button>
       </div>

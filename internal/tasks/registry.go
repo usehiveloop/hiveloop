@@ -7,6 +7,7 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/skills"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 )
 
@@ -23,6 +24,7 @@ type WorkerDeps struct {
 	EmailSend        EmailSenderFunc       // nil if email not configured
 	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
+	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
 }
 
 // NewServeMux creates an Asynq ServeMux with all task handlers registered.
@@ -77,6 +79,16 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	if deps.PolarClient != nil {
 		mux.HandleFunc(TypeBillingUsageEvent, NewBillingUsageEventHandler(deps.DB, deps.PolarClient).Handle)
 	}
+
+	// Skill hydration from git repos
+	if deps.SkillFetcher != nil {
+		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
+	}
+
+	// Trigger dispatch — runs the dispatcher for an incoming webhook,
+	// produces PreparedRun blueprints, and (in the next PR) enqueues
+	// per-agent run tasks.
+	mux.HandleFunc(TypeTriggerDispatch, NewTriggerDispatchHandler(deps.DB).Handle)
 
 	return mux
 }

@@ -1,0 +1,36 @@
+{
+  "token": "verification-token",
+  "team_id": "T111",
+  "api_app_id": "A111",
+  "event": {
+    "type": "message",
+    "text": "Here is your file!",
+    "files": [
+      {
+        "id": "F111",
+        "name": "test.png",
+        "mimetype": "image/png",
+        "user": "U111",
+        "size": 42706,
+        "url_private": "https://files.slack.com/files-pri/T111-F111/test.png"
+      }
+    ],
+    "user": "U111",
+    "ts": "1610493715.001000",
+    "channel": "G111",
+    "subtype": "file_share",
+    "event_ts": "1610493715.001000",
+    "channel_type": "group"
+  },
+  "type": "event_callback",
+  "event_id": "Ev111",
+  "event_time": 1610493715,
+  "authorizations": [
+    {
+      "team_id": "T111",
+      "user_id": "U111",
+      "is_bot": true,
+      "is_enterprise_install": false
+    }
+  ]
+}

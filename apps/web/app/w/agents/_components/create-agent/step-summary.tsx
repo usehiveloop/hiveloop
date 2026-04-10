@@ -1,13 +1,14 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon, SparklesIcon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, SparklesIcon, GithubIcon, FileEditIcon } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { ProviderLogo } from "@/components/provider-logo"
 import { $api } from "@/lib/api/hooks"
 import { useCreateAgent } from "./context"
+import { MOCK_SKILLS } from "./mock-skills"
 
 interface SummaryRowProps {
   label: string
@@ -24,8 +25,10 @@ function SummaryRow({ label, children }: SummaryRowProps) {
 }
 
 export function StepSummary() {
-  const { form, mode, selectedIntegrations, selectedActions, isSubmitting, goTo, handleCreate } = useCreateAgent()
+  const { form, mode, selectedIntegrations, selectedActions, selectedSkillIds, isSubmitting, goTo, handleCreate } = useCreateAgent()
   const credentialId = form.watch("credentialId")
+
+  const selectedSkills = MOCK_SKILLS.filter((skill) => selectedSkillIds.has(skill.id))
 
   const { data: credentialsData } = $api.useQuery("get", "/v1/credentials")
   const credentials = credentialsData?.data ?? []
@@ -51,7 +54,7 @@ export function StepSummary() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => goTo(mode === "scratch" ? "instructions" : "forge-judge")}
+            onClick={() => goTo("skills")}
             className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
@@ -101,6 +104,36 @@ export function StepSummary() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        <SummaryRow label="Skills">
+          <span className="text-sm font-medium text-foreground">
+            {selectedSkills.length > 0 ? `${selectedSkills.length} attached` : "None"}
+          </span>
+        </SummaryRow>
+
+        {selectedSkills.length > 0 && (
+          <div className="rounded-xl bg-muted/50 px-4 py-3">
+            <div className="flex flex-col gap-2">
+              {selectedSkills.map((skill) => (
+                <div key={skill.id} className="flex items-center gap-3 py-1">
+                  <div className={`flex items-center justify-center size-6 rounded-md shrink-0 ${
+                    skill.sourceType === "git" ? "bg-foreground/5" : "bg-blue-500/10"
+                  }`}>
+                    <HugeiconsIcon
+                      icon={skill.sourceType === "git" ? GithubIcon : FileEditIcon}
+                      size={12}
+                      className={skill.sourceType === "git" ? "text-foreground" : "text-blue-500"}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-foreground truncate">{skill.name}</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground ml-auto">
+                    {skill.scope === "public" ? "Public" : "Your org"}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}

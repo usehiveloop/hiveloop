@@ -15,6 +15,7 @@ import { StepBasics } from "./step-basics"
 import { StepSystemPrompt } from "./step-system-prompt"
 import { StepInstructions } from "./step-instructions"
 import { StepForgeJudge } from "./step-forge-judge"
+import { StepSkills } from "./step-skills"
 import { StepSummary } from "./step-summary"
 import { StepTrigger } from "./step-trigger"
 import { StepMarketplaceBrowse, StepMarketplaceDetail } from "./step-marketplace"
@@ -53,6 +54,7 @@ function StepRouter() {
           {step === "system-prompt" && <StepSystemPrompt />}
           {step === "instructions" && <StepInstructions />}
           {step === "forge-judge" && <StepForgeJudge />}
+          {step === "skills" && <StepSkills />}
           {step === "summary" && <StepSummary />}
         </motion.div>
       </AnimatePresence>

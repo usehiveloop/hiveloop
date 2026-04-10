@@ -37,7 +37,22 @@ type ResourceDef struct {
 	Icon          string            `json:"icon,omitempty"`
 	ListAction    string            `json:"list_action"`
 	RequestConfig *RequestConfig    `json:"request_config,omitempty"` // Optional request customization
-	RefBindings   map[string]string `json:"ref_bindings,omitempty"`  // action_param_name → "$refs.ref_name" mapping for auto-filling context action params
+	RefBindings   map[string]string `json:"ref_bindings,omitempty"`   // action_param_name → "$refs.ref_name" mapping for auto-filling context action params
+	// ResourceKeyTemplate is a $refs.x template that produces a stable identifier
+	// for a specific resource instance. Used by the trigger dispatcher to decide
+	// whether a new event should continue an existing agent conversation or start
+	// a new one. Empty means "always start a new conversation" (appropriate for
+	// event families with no natural continuation, like push or release).
+	//
+	// Examples:
+	//   issue:        "$refs.owner/$refs.repo#issue-$refs.issue_number"
+	//   pull_request: "$refs.owner/$refs.repo#pr-$refs.pull_number"
+	//   (intercom)    "$refs.conversation_id"
+	//
+	// The template MUST reference only ref names that every trigger feeding this
+	// resource exposes — if any $refs.x fails to resolve, the dispatcher treats
+	// the key as empty to avoid silently merging unrelated resources.
+	ResourceKeyTemplate string `json:"resource_key_template,omitempty"`
 }
 
 // ProviderActions describes a provider and its available actions.

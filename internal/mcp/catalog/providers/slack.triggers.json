@@ -1,193 +1,279 @@
 {
   "display_name": "Slack",
   "triggers": {
-    "message": {
-      "display_name": "Message Posted",
-      "description": "Triggered when a message is posted in a channel the app is subscribed to",
-      "resource_type": "message",
-      "payload_schema": "slack_event"
-    },
     "app_mention": {
       "display_name": "App Mentioned",
-      "description": "Triggered when the app is directly mentioned in a message using @app",
-      "resource_type": "message",
-      "payload_schema": "slack_event"
+      "description": "Fires when the bot is @-mentioned in a channel message. The primary entry-point trigger for most Slack agents. Works for both top-level mentions and mentions inside existing threads — the thread_id ref coalesces event.thread_ts and event.ts so continuation works across both cases.",
+      "resource_type": "slack_thread",
+      "payload_schema": "app_mention_event",
+      "refs": {
+        "team_id": "team_id",
+        "channel_id": "event.channel",
+        "user": "event.user",
+        "message_ts": "event.ts",
+        "thread_id": "event.thread_ts || event.ts",
+        "text": "event.text",
+        "event_ts": "event.event_ts"
+      }
     },
-    "channel_created": {
-      "display_name": "Channel Created",
-      "description": "Triggered when a new channel is created in the workspace",
-      "resource_type": "channel",
-      "payload_schema": "slack_event"
+
+    "message.channels": {
+      "display_name": "Channel Message",
+      "description": "Fires on every new message in a public channel the bot is in. Usually used with conditions that filter to specific patterns (mentions, thread replies to existing agent conversations) — without conditions this is noisy. Thread replies expose event.thread_ts; top-level messages have only event.ts.",
+      "resource_type": "slack_thread",
+      "payload_schema": "message_channel_event",
+      "refs": {
+        "team_id": "team_id",
+        "channel_id": "event.channel",
+        "user": "event.user",
+        "message_ts": "event.ts",
+        "thread_id": "event.thread_ts || event.ts",
+        "text": "event.text",
+        "channel_type": "event.channel_type",
+        "subtype": "event.subtype"
+      }
     },
-    "channel_archive": {
-      "display_name": "Channel Archived",
-      "description": "Triggered when a channel is archived",
-      "resource_type": "channel",
-      "payload_schema": "slack_event"
+
+    "message.groups": {
+      "display_name": "Private Channel Message",
+      "description": "Fires on every new message in a private channel (group) the bot is in. Shape is identical to message.channels with channel_type = 'group'. Same noisy-without-conditions caveat.",
+      "resource_type": "slack_thread",
+      "payload_schema": "message_channel_event",
+      "refs": {
+        "team_id": "team_id",
+        "channel_id": "event.channel",
+        "user": "event.user",
+        "message_ts": "event.ts",
+        "thread_id": "event.thread_ts || event.ts",
+        "text": "event.text",
+        "channel_type": "event.channel_type",
+        "subtype": "event.subtype"
+      }
     },
-    "channel_unarchive": {
-      "display_name": "Channel Unarchived",
-      "description": "Triggered when a previously archived channel is unarchived",
-      "resource_type": "channel",
-      "payload_schema": "slack_event"
+
+    "message.im": {
+      "display_name": "Direct Message",
+      "description": "Fires on a message sent to the bot in a direct message conversation (channel_type = 'im'). Each IM conversation is its own thread. Safe to listen without conditions — only messages addressed to the bot arrive here.",
+      "resource_type": "slack_thread",
+      "payload_schema": "message_channel_event",
+      "refs": {
+        "team_id": "team_id",
+        "channel_id": "event.channel",
+        "user": "event.user",
+        "message_ts": "event.ts",
+        "thread_id": "event.thread_ts || event.ts",
+        "text": "event.text",
+        "channel_type": "event.channel_type"
+      }
     },
-    "channel_rename": {
-      "display_name": "Channel Renamed",
-      "description": "Triggered when a channel is renamed",
-      "resource_type": "channel",
-      "payload_schema": "slack_event"
-    },
-    "channel_deleted": {
-      "display_name": "Channel Deleted",
-      "description": "Triggered when a channel is deleted from the workspace",
-      "resource_type": "channel",
-      "payload_schema": "slack_event"
-    },
+
     "reaction_added": {
       "display_name": "Reaction Added",
-      "description": "Triggered when a reaction emoji is added to a message",
-      "resource_type": "reaction",
-      "payload_schema": "slack_event"
+      "description": "Fires when a user adds an emoji reaction to a message. The item object names the message that was reacted to; event.reaction is the emoji name. Useful for agents that respond to approval/disapproval reactions on their own output.",
+      "resource_type": "slack_thread",
+      "payload_schema": "reaction_event",
+      "refs": {
+        "team_id": "team_id",
+        "user": "event.user",
+        "reaction": "event.reaction",
+        "item_channel": "event.item.channel",
+        "item_ts": "event.item.ts",
+        "item_user": "event.item_user",
+        "item_type": "event.item.type",
+        "channel_id": "event.item.channel",
+        "thread_id": "event.item.ts"
+      }
     },
+
     "reaction_removed": {
       "display_name": "Reaction Removed",
-      "description": "Triggered when a reaction emoji is removed from a message",
-      "resource_type": "reaction",
-      "payload_schema": "slack_event"
+      "description": "Fires when a user removes an emoji reaction from a message. Same shape as reaction_added. Typically listened for alongside reaction_added to track reaction state on agent messages.",
+      "resource_type": "slack_thread",
+      "payload_schema": "reaction_event",
+      "refs": {
+        "team_id": "team_id",
+        "user": "event.user",
+        "reaction": "event.reaction",
+        "item_channel": "event.item.channel",
+        "item_ts": "event.item.ts",
+        "item_user": "event.item_user",
+        "channel_id": "event.item.channel",
+        "thread_id": "event.item.ts"
+      }
     },
+
     "member_joined_channel": {
       "display_name": "Member Joined Channel",
-      "description": "Triggered when a user joins a channel",
-      "resource_type": "user",
-      "payload_schema": "slack_event"
+      "description": "Fires when a user joins a channel the bot is in. Useful for welcome-flow agents. The inviter field is present when the user was added by another member; it's absent when the user self-joined a public channel.",
+      "resource_type": "slack_channel",
+      "payload_schema": "member_channel_event",
+      "refs": {
+        "team_id": "team_id",
+        "user": "event.user",
+        "channel_id": "event.channel",
+        "channel_type": "event.channel_type",
+        "inviter": "event.inviter"
+      }
     },
+
     "member_left_channel": {
       "display_name": "Member Left Channel",
-      "description": "Triggered when a user leaves a channel",
-      "resource_type": "user",
-      "payload_schema": "slack_event"
+      "description": "Fires when a user leaves a channel the bot is in. Same shape as member_joined_channel without the inviter field.",
+      "resource_type": "slack_channel",
+      "payload_schema": "member_channel_event",
+      "refs": {
+        "team_id": "team_id",
+        "user": "event.user",
+        "channel_id": "event.channel",
+        "channel_type": "event.channel_type"
+      }
     },
-    "pin_added": {
-      "display_name": "Pin Added",
-      "description": "Triggered when a message is pinned in a channel",
-      "resource_type": "message",
-      "payload_schema": "slack_event"
+
+    "channel_created": {
+      "display_name": "Channel Created",
+      "description": "Fires when a new channel is created in the workspace. The event.channel object contains the new channel's metadata (id, name, creator). Useful for governance agents that enforce naming conventions or auto-archive policies.",
+      "resource_type": "slack_channel",
+      "payload_schema": "channel_lifecycle_event",
+      "refs": {
+        "team_id": "team_id",
+        "channel_id": "event.channel.id",
+        "channel_name": "event.channel.name",
+        "creator": "event.channel.creator",
+        "created_at": "event.channel.created"
+      }
     },
-    "pin_removed": {
-      "display_name": "Pin Removed",
-      "description": "Triggered when a pinned message is unpinned from a channel",
-      "resource_type": "message",
-      "payload_schema": "slack_event"
-    },
-    "file_created": {
-      "display_name": "File Created",
-      "description": "Triggered when a new file is uploaded to the workspace",
-      "resource_type": "file",
-      "payload_schema": "slack_event"
-    },
-    "file_shared": {
-      "display_name": "File Shared",
-      "description": "Triggered when a file is shared in a channel or conversation",
-      "resource_type": "file",
-      "payload_schema": "slack_event"
-    },
-    "file_deleted": {
-      "display_name": "File Deleted",
-      "description": "Triggered when a file is deleted from the workspace",
-      "resource_type": "file",
-      "payload_schema": "slack_event"
-    },
-    "file_change": {
-      "display_name": "File Changed",
-      "description": "Triggered when a file is updated or modified",
-      "resource_type": "file",
-      "payload_schema": "slack_event"
-    },
+
     "team_join": {
       "display_name": "Team Join",
-      "description": "Triggered when a new user joins the workspace",
-      "resource_type": "team",
-      "payload_schema": "slack_event"
-    },
-    "team_rename": {
-      "display_name": "Team Renamed",
-      "description": "Triggered when the workspace name is changed",
-      "resource_type": "team",
-      "payload_schema": "slack_event"
-    },
-    "user_change": {
-      "display_name": "User Changed",
-      "description": "Triggered when a user's profile information is updated",
-      "resource_type": "user",
-      "payload_schema": "slack_event"
-    },
-    "emoji_changed": {
-      "display_name": "Emoji Changed",
-      "description": "Triggered when a custom emoji is added, removed, or renamed in the workspace",
-      "resource_type": "team",
-      "payload_schema": "slack_event"
-    },
-    "link_shared": {
-      "display_name": "Link Shared",
-      "description": "Triggered when a URL domain registered by the app is shared in a message",
-      "resource_type": "message",
-      "payload_schema": "slack_event"
-    },
-    "app_home_opened": {
-      "display_name": "App Home Opened",
-      "description": "Triggered when a user opens the app's Home tab",
-      "resource_type": "user",
-      "payload_schema": "slack_event"
-    },
-    "subteam_created": {
-      "display_name": "User Group Created",
-      "description": "Triggered when a new user group (subteam) is created",
-      "resource_type": "usergroup",
-      "payload_schema": "slack_event"
-    },
-    "subteam_updated": {
-      "display_name": "User Group Updated",
-      "description": "Triggered when a user group (subteam) is updated",
-      "resource_type": "usergroup",
-      "payload_schema": "slack_event"
+      "description": "Fires when a new user joins the workspace. The event.user object contains the new member's profile information. Useful for onboarding agents that DM new members with welcome content.",
+      "resource_type": "slack_user",
+      "payload_schema": "team_join_event",
+      "refs": {
+        "team_id": "team_id",
+        "user_id": "event.user.id",
+        "user_name": "event.user.name",
+        "real_name": "event.user.real_name",
+        "email": "event.user.profile.email"
+      }
     }
   },
+
   "schemas": {
-    "slack_event": {
+    "app_mention_event": {
       "type": "object",
       "properties": {
         "token": {
           "type": "string",
-          "description": "Deprecated verification token for the app"
+          "description": "Verification token — deprecated for most uses; signature verification is the correct approach"
         },
         "team_id": {
           "type": "string",
-          "description": "The unique identifier of the workspace where the event occurred"
+          "description": "Slack workspace identifier (T...)"
         },
         "api_app_id": {
           "type": "string",
-          "description": "The unique identifier of the Slack app that received the event"
+          "description": "The app that is receiving this event (A...)"
         },
         "event": {
           "type": "object",
-          "description": "The inner event payload containing type-specific fields. Includes 'type' (event type string), 'user' (user ID), 'channel' (channel ID), 'ts' (event timestamp), 'text' (message text for message events), and additional fields depending on the event type"
+          "description": "The event payload. Fields include type (always 'app_mention'), user (who mentioned), text, ts, channel, event_ts, and optionally thread_ts if the mention is inside an existing thread"
         },
         "type": {
           "type": "string",
-          "description": "The outer event type, always 'event_callback' for event subscriptions"
+          "description": "Always 'event_callback' for Events API webhooks"
         },
         "event_id": {
           "type": "string",
-          "description": "A unique identifier for this specific event, globally unique across all workspaces"
+          "description": "Unique event identifier (Ev...)"
         },
         "event_time": {
           "type": "integer",
-          "description": "The epoch timestamp in seconds when the event was dispatched"
+          "description": "Unix timestamp of when the event fired"
         },
         "authorizations": {
           "type": "array",
-          "description": "An array of authorization objects describing the installations that this event is visible to. Each contains enterprise_id, team_id, user_id, and is_bot"
+          "description": "List of installations this event is authorized for"
         }
+      }
+    },
+    "message_channel_event": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "team_id": {"type": "string"},
+        "api_app_id": {"type": "string"},
+        "event": {
+          "type": "object",
+          "description": "The message event. Includes type ('message'), channel, user, text, ts, event_ts, channel_type (channel|group|im|mpim), and optionally thread_ts (if in a thread) and subtype (file_share, message_changed, message_deleted, etc.)"
+        },
+        "type": {"type": "string"},
+        "event_id": {"type": "string"},
+        "event_time": {"type": "integer"},
+        "authorizations": {"type": "array"}
+      }
+    },
+    "reaction_event": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "team_id": {"type": "string"},
+        "api_app_id": {"type": "string"},
+        "event": {
+          "type": "object",
+          "description": "The reaction event. Includes type (reaction_added|reaction_removed), user (who reacted), reaction (emoji name), item (object with type, channel, ts identifying the reacted-to message), item_user (the message author), and event_ts"
+        },
+        "type": {"type": "string"},
+        "event_id": {"type": "string"},
+        "event_time": {"type": "integer"},
+        "authorizations": {"type": "array"}
+      }
+    },
+    "member_channel_event": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "team_id": {"type": "string"},
+        "api_app_id": {"type": "string"},
+        "event": {
+          "type": "object",
+          "description": "The membership event. Includes type (member_joined_channel|member_left_channel), user, channel, channel_type (C|G|im|mpim), team, and optionally inviter (for joins added by another member)"
+        },
+        "type": {"type": "string"},
+        "event_id": {"type": "string"},
+        "event_time": {"type": "integer"},
+        "authorizations": {"type": "array"}
+      }
+    },
+    "channel_lifecycle_event": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "team_id": {"type": "string"},
+        "api_app_id": {"type": "string"},
+        "event": {
+          "type": "object",
+          "description": "The channel lifecycle event. Includes type (channel_created|channel_archive|channel_unarchive|channel_rename|channel_deleted) and a nested channel object with id, name, creator, created (unix timestamp), is_private, and other channel metadata"
+        },
+        "type": {"type": "string"},
+        "event_id": {"type": "string"},
+        "event_time": {"type": "integer"},
+        "authorizations": {"type": "array"}
+      }
+    },
+    "team_join_event": {
+      "type": "object",
+      "properties": {
+        "token": {"type": "string"},
+        "team_id": {"type": "string"},
+        "api_app_id": {"type": "string"},
+        "event": {
+          "type": "object",
+          "description": "The team join event. Includes type ('team_join') and a nested user object with id, name, real_name, profile (email, display_name, title, image_*), team_id, and other user metadata"
+        },
+        "type": {"type": "string"},
+        "event_id": {"type": "string"},
+        "event_time": {"type": "integer"},
+        "authorizations": {"type": "array"}
       }
     }
   }

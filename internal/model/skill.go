@@ -1,0 +1,53 @@
+package model
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+)
+
+// Skill is a reusable prompt + references bundle that agents can invoke.
+// A skill with OrgID=nil is public; otherwise it is visible only to that org.
+type Skill struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID       *uuid.UUID `gorm:"type:uuid;index"`
+	Org         *Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	PublisherID *uuid.UUID `gorm:"type:uuid;index"`
+	Publisher   *User      `gorm:"foreignKey:PublisherID;constraint:OnDelete:SET NULL"`
+
+	Slug        string  `gorm:"not null;uniqueIndex"`
+	Name        string  `gorm:"not null"`
+	Description *string `gorm:"type:text"`
+
+	// SourceType is "inline" (content authored in the UI) or "git" (hydrated from a repo).
+	SourceType  string  `gorm:"not null"`
+	RepoURL     *string `gorm:"type:text"`
+	RepoSubpath *string `gorm:"type:text"`
+	RepoRef     string  `gorm:"not null;default:'main'"`
+
+	LatestVersionID *uuid.UUID    `gorm:"type:uuid"`
+	LatestVersion   *SkillVersion `gorm:"foreignKey:LatestVersionID;constraint:OnDelete:SET NULL"`
+
+	Tags         pq.StringArray `gorm:"type:text[];default:'{}'"`
+	InstallCount int            `gorm:"not null;default:0"`
+	Featured     bool           `gorm:"not null;default:false;index"`
+	VerifiedAt   *time.Time
+
+	// Status is draft, published, or archived.
+	Status string `gorm:"not null;default:'draft';index"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (Skill) TableName() string { return "skills" }
+
+const (
+	SkillSourceInline = "inline"
+	SkillSourceGit    = "git"
+
+	SkillStatusDraft     = "draft"
+	SkillStatusPublished = "published"
+	SkillStatusArchived  = "archived"
+)

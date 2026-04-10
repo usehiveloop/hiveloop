@@ -1,0 +1,26 @@
+{
+  "token": "one-long-verification-token",
+  "team_id": "T111",
+  "api_app_id": "A111",
+  "event": {
+    "type": "message",
+    "channel": "C111",
+    "user": "W444",
+    "text": "nice work on the PR",
+    "ts": "1595926780.018000",
+    "thread_ts": "1595926230.009600",
+    "event_ts": "1595926780.018000",
+    "channel_type": "channel"
+  },
+  "type": "event_callback",
+  "authorizations": [
+    {
+      "team_id": "T111",
+      "user_id": "W111",
+      "is_bot": true,
+      "is_enterprise_install": false
+    }
+  ],
+  "event_id": "Ev113",
+  "event_time": 1595926780
+}

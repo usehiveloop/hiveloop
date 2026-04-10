@@ -38,6 +38,11 @@ type ResourceFilterConfig struct {
 	// When a context action says ref: "issue", the system finds this resource and uses these bindings.
 	RefBindings map[string]string
 
+	// ResourceKeyTemplate — $refs.x template producing a stable identifier
+	// used by the trigger dispatcher to decide continue-vs-new-conversation.
+	// Empty means "no continuation" (always new conversation per event).
+	ResourceKeyTemplate string
+
 	// Action filtering — actions matching these paths belong to this resource
 	PathPrefixes []string // any action path starting with these prefixes
 	ExactPaths   []string // any action path exactly equal to these
@@ -170,6 +175,8 @@ func githubResources() map[string]ResourceFilterConfig {
 				"/repos/{owner}/{repo}/commits",
 				"/repos/{owner}/{repo}/comments",
 				"/repos/{owner}/{repo}/stargazers",
+				"/repos/{owner}/{repo}/compare",
+				"/repos/{owner}/{repo}/merges",
 				"/installation/repositories",
 				"/user/repos",
 				"/search/repositories",
@@ -178,6 +185,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			},
 			ExactPaths: []string{
 				"/repos/{owner}/{repo}",
+				"/repos/{owner}/{repo}/merge-upstream",
 			},
 		},
 		"issue": {
@@ -185,13 +193,14 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub issues within repositories",
 			IDField:     "number",
 			NameField:   "title",
-			Icon:         "issue-opened",
+			Icon:        "issue-opened",
 			RefBindings: map[string]string{
 				"owner":        "$refs.owner",
 				"repo":         "$refs.repo",
 				"issue_number": "$refs.issue_number",
 			},
-			ListAction:  "/repos/{owner}/{repo}/issues",
+			ResourceKeyTemplate: "$refs.owner/$refs.repo#issue-$refs.issue_number",
+			ListAction:          "/repos/{owner}/{repo}/issues",
 			ListRequestConfig: &RequestConfig{
 				Method: "GET",
 				QueryParams: map[string]string{
@@ -201,6 +210,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			},
 			PathPrefixes: []string{
 				"/repos/{owner}/{repo}/issues",
+				"/repos/{owner}/{repo}/assignees",
 				"/search/issues",
 			},
 		},
@@ -209,13 +219,14 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub pull requests for code review and merging",
 			IDField:     "number",
 			NameField:   "title",
-			Icon:         "git-pull-request",
+			Icon:        "git-pull-request",
 			RefBindings: map[string]string{
 				"owner":       "$refs.owner",
 				"repo":        "$refs.repo",
 				"pull_number": "$refs.pull_number",
 			},
-			ListAction:  "/repos/{owner}/{repo}/pulls",
+			ResourceKeyTemplate: "$refs.owner/$refs.repo#pr-$refs.pull_number",
+			ListAction:          "/repos/{owner}/{repo}/pulls",
 			ListRequestConfig: &RequestConfig{
 				Method: "GET",
 				QueryParams: map[string]string{
@@ -232,13 +243,14 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub releases for versioning and distribution",
 			IDField:     "id",
 			NameField:   "tag_name",
-			Icon:         "tag",
+			Icon:        "tag",
 			RefBindings: map[string]string{
 				"owner":      "$refs.owner",
 				"repo":       "$refs.repo",
 				"release_id": "$refs.release_id",
 			},
-			ListAction:  "/repos/{owner}/{repo}/releases",
+			ResourceKeyTemplate: "$refs.owner/$refs.repo#release-$refs.release_id",
+			ListAction:          "/repos/{owner}/{repo}/releases",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
 				QueryParams: map[string]string{"per_page": "100"},
@@ -252,13 +264,18 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub Actions CI/CD workflows and runs",
 			IDField:     "id",
 			NameField:   "name",
-			Icon:         "play",
+			Icon:        "play",
 			RefBindings: map[string]string{
 				"owner":  "$refs.owner",
 				"repo":   "$refs.repo",
 				"run_id": "$refs.run_id",
 			},
-			ListAction:  "/repos/{owner}/{repo}/actions/workflows",
+			// check_run.completed won't resolve this (it exposes check_run_id, not
+			// run_id) — that's intentional. Check runs are one-shot status updates
+			// and don't need cross-event continuation. Only workflow_run/workflow_job
+			// events produce a stable key.
+			ResourceKeyTemplate: "$refs.owner/$refs.repo#run-$refs.run_id",
+			ListAction:          "/repos/{owner}/{repo}/actions/workflows",
 			ListRequestConfig: &RequestConfig{
 				Method:       "GET",
 				QueryParams:  map[string]string{"per_page": "100"},
@@ -297,11 +314,10 @@ func githubResources() map[string]ResourceFilterConfig {
 			NameField:   "title",
 			Icon:         "milestone",
 			RefBindings: map[string]string{
-				"owner":            "$refs.owner",
-				"repo":             "$refs.repo",
-				"milestone_number": "$refs.milestone_number",
+				"owner": "$refs.owner",
+				"repo":  "$refs.repo",
 			},
-			ListAction:  "/repos/{owner}/{repo}/milestones",
+			ListAction: "/repos/{owner}/{repo}/milestones",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
 				QueryParams: map[string]string{"per_page": "100"},
@@ -335,10 +351,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub organizations",
 			IDField:     "login",
 			NameField:   "login",
-			Icon:         "organization",
-			RefBindings: map[string]string{
-				"org": "$refs.org",
-			},
+			Icon:        "organization",
 			ListAction:  "/user/orgs",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",
@@ -359,11 +372,7 @@ func githubResources() map[string]ResourceFilterConfig {
 			Description: "GitHub organization teams",
 			IDField:     "slug",
 			NameField:   "name",
-			Icon:         "people",
-			RefBindings: map[string]string{
-				"org":       "$refs.org",
-				"team_slug": "$refs.team_slug",
-			},
+			Icon:        "people",
 			ListAction:  "/orgs/{org}/teams",
 			ListRequestConfig: &RequestConfig{
 				Method:      "GET",

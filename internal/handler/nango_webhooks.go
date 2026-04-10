@@ -133,6 +133,13 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Dispatch agent triggers in parallel with the existing org-webhook forward.
+	// The two paths are independent: org-webhook forwards the enriched payload
+	// to a customer-supplied URL, while trigger dispatch evaluates AgentTriggers
+	// against the payload and queues per-agent runs. Failures in one don't
+	// affect the other.
+	dispatchTrigger(h.enqueuer, &wh, wctx)
+
 	if h.enqueuer != nil {
 		h.enqueueForward(&wh, wctx, w)
 	} else {

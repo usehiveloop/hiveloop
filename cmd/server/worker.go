@@ -14,6 +14,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/goroutine"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/registry"
+	"github.com/ziraloop/ziraloop/internal/skills"
 	"github.com/ziraloop/ziraloop/internal/tasks"
 	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
@@ -55,7 +56,8 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		EmailSend: func(ctx context.Context, to, subject, body string) error {
 			return logSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})
 		},
-		PolarClient: deps.PolarClient,
+		PolarClient:  deps.PolarClient,
+		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
 	}
 
 	// Create forge controller for the worker (if sandbox is configured)

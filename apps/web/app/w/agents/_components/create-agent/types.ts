@@ -10,6 +10,7 @@ export type Step =
   | "system-prompt"
   | "instructions"
   | "forge-judge"
+  | "skills"
   | "summary"
   | "marketplace-browse"
   | "marketplace-detail"
@@ -23,6 +24,7 @@ export const scratchSteps: Step[] = [
   "basics",
   "system-prompt",
   "instructions",
+  "skills",
   "summary",
 ]
 
@@ -34,6 +36,7 @@ export const forgeSteps: Step[] = [
   "llm-key",
   "basics",
   "forge-judge",
+  "skills",
   "summary",
 ]
 
@@ -74,4 +77,16 @@ export interface LlmKey {
   provider: string
   logo: string
   models: string[]
+}
+
+export interface SkillPreview {
+  id: string
+  slug: string
+  name: string
+  description: string
+  sourceType: "inline" | "git"
+  scope: "public" | "org"
+  tags: string[]
+  installCount: number
+  featured: boolean
 }

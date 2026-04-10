@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
@@ -34,25 +35,31 @@ type createAgentTriggerRequest struct {
 	Enabled        *bool                 `json:"enabled,omitempty"`
 	Conditions     *model.TriggerMatch   `json:"conditions,omitempty"`
 	ContextActions []model.ContextAction `json:"context_actions,omitempty"`
+	Instructions   string                `json:"instructions,omitempty"`
+	TerminateOn    []model.TerminateRule `json:"terminate_on,omitempty"`
 }
 
 type updateAgentTriggerRequest struct {
 	Enabled        *bool                 `json:"enabled,omitempty"`
 	Conditions     *model.TriggerMatch   `json:"conditions,omitempty"`
 	ContextActions []model.ContextAction `json:"context_actions,omitempty"`
+	Instructions   *string               `json:"instructions,omitempty"`
+	TerminateOn    []model.TerminateRule `json:"terminate_on,omitempty"`
 }
 
 type agentTriggerResponse struct {
-	ID             string               `json:"id"`
-	AgentID        string               `json:"agent_id"`
-	ConnectionID   string               `json:"connection_id"`
-	Provider       string               `json:"provider"`
-	TriggerKeys    []string             `json:"trigger_keys"`
-	Enabled        bool                 `json:"enabled"`
-	Conditions     *model.TriggerMatch  `json:"conditions"`
+	ID             string                `json:"id"`
+	AgentID        string                `json:"agent_id"`
+	ConnectionID   string                `json:"connection_id"`
+	Provider       string                `json:"provider"`
+	TriggerKeys    []string              `json:"trigger_keys"`
+	Enabled        bool                  `json:"enabled"`
+	Conditions     *model.TriggerMatch   `json:"conditions"`
 	ContextActions []model.ContextAction `json:"context_actions"`
-	CreatedAt      string               `json:"created_at"`
-	UpdatedAt      string               `json:"updated_at"`
+	Instructions   string                `json:"instructions"`
+	TerminateOn    []model.TerminateRule `json:"terminate_on"`
+	CreatedAt      string                `json:"created_at"`
+	UpdatedAt      string                `json:"updated_at"`
 }
 
 func toAgentTriggerResponse(trigger model.AgentTrigger, provider string) agentTriggerResponse {
@@ -63,6 +70,7 @@ func toAgentTriggerResponse(trigger model.AgentTrigger, provider string) agentTr
 		Provider:     provider,
 		TriggerKeys:  trigger.TriggerKeys,
 		Enabled:      trigger.Enabled,
+		Instructions: trigger.Instructions,
 		CreatedAt:    trigger.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    trigger.UpdatedAt.Format(time.RFC3339),
 	}
@@ -82,6 +90,16 @@ func toAgentTriggerResponse(trigger model.AgentTrigger, provider string) agentTr
 	}
 	if resp.ContextActions == nil {
 		resp.ContextActions = []model.ContextAction{}
+	}
+
+	if len(trigger.TerminateOn) > 0 {
+		var rules []model.TerminateRule
+		if err := json.Unmarshal(trigger.TerminateOn, &rules); err == nil {
+			resp.TerminateOn = rules
+		}
+	}
+	if resp.TerminateOn == nil {
+		resp.TerminateOn = []model.TerminateRule{}
 	}
 
 	return resp
@@ -119,6 +137,63 @@ func validateConditions(conditions *model.TriggerMatch) string {
 		// exists/not_exists don't need a value.
 		if cond.Operator != "exists" && cond.Operator != "not_exists" && cond.Value == nil {
 			return fmt.Sprintf("conditions.conditions[%d].value is required for operator %q", idx, cond.Operator)
+		}
+	}
+	return ""
+}
+
+// validateTerminateRules validates []TerminateRule and returns an error
+// message on the first problem. Rules are rejected at save time if:
+//
+//   - any rule's trigger_keys is empty
+//   - any trigger_key in a rule is also in the parent's TriggerKeys list (the
+//     same event can't be both a normal trigger and a terminator — ambiguous)
+//   - any trigger_key is not a known catalog trigger for the provider
+//   - the rule's own conditions are malformed
+//   - the rule's context_actions fail validation (same rules as parent context)
+func validateTerminateRules(
+	actionsCatalog *catalog.Catalog,
+	rules []model.TerminateRule,
+	parentTriggerKeys []string,
+	provider string,
+) string {
+	if len(rules) == 0 {
+		return ""
+	}
+
+	parentKeys := make(map[string]bool, len(parentTriggerKeys))
+	for _, key := range parentTriggerKeys {
+		parentKeys[key] = true
+	}
+
+	for idx, rule := range rules {
+		if len(rule.TriggerKeys) == 0 {
+			return fmt.Sprintf("terminate_on[%d].trigger_keys is required", idx)
+		}
+		for _, key := range rule.TriggerKeys {
+			if key == "" {
+				return fmt.Sprintf("terminate_on[%d].trigger_keys contains an empty string", idx)
+			}
+			if parentKeys[key] {
+				return fmt.Sprintf("terminate_on[%d]: trigger key %q is also in the parent trigger_keys (ambiguous — an event can be either a normal trigger or a terminator, not both)", idx, key)
+			}
+		}
+		// All keys must exist in the catalog for this provider.
+		if err := actionsCatalog.ValidateTriggers(provider, rule.TriggerKeys); err != nil {
+			// Try variant lookup before giving up.
+			if _, ok := actionsCatalog.GetProviderTriggersForVariant(provider); !ok {
+				return fmt.Sprintf("terminate_on[%d]: %s", idx, err.Error())
+			}
+		}
+		// Rule conditions follow the same rules as normal trigger conditions.
+		if rule.Conditions != nil {
+			if errMsg := validateConditions(rule.Conditions); errMsg != "" {
+				return fmt.Sprintf("terminate_on[%d].%s", idx, errMsg)
+			}
+		}
+		// Rule context_actions follow the same rules as normal context_actions.
+		if errMsg := validateContextActions(actionsCatalog, rule.ContextActions, provider); errMsg != "" {
+			return fmt.Sprintf("terminate_on[%d].%s", idx, errMsg)
 		}
 	}
 	return ""
@@ -215,6 +290,11 @@ func validateTriggerRequest(db *gorm.DB, actionsCatalog *catalog.Catalog, req *c
 		return "", "trigger." + errMsg
 	}
 
+	// Validate terminate rules (including ambiguous-key detection against parent trigger keys).
+	if errMsg := validateTerminateRules(actionsCatalog, req.TerminateOn, req.TriggerKeys, provider); errMsg != "" {
+		return "", "trigger." + errMsg
+	}
+
 	return provider, ""
 }
 
@@ -269,19 +349,29 @@ func (h *AgentTriggerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		contextActionsJSON = model.RawJSON(contextActionsBytes)
 	}
 
+	var terminateOnJSON model.RawJSON
+	if len(req.TerminateOn) > 0 {
+		terminateOnBytes, _ := json.Marshal(req.TerminateOn)
+		terminateOnJSON = model.RawJSON(terminateOnBytes)
+	}
+	terminateEventKeys := pq.StringArray(model.CollectTerminateEventKeys(req.TerminateOn))
+
 	enabled := true
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
 
 	trigger := model.AgentTrigger{
-		OrgID:          org.ID,
-		AgentID:        agent.ID,
-		ConnectionID:   connectionID,
-		TriggerKeys:    req.TriggerKeys,
-		Enabled:        enabled,
-		Conditions:     conditionsJSON,
-		ContextActions: contextActionsJSON,
+		OrgID:              org.ID,
+		AgentID:            agent.ID,
+		ConnectionID:       connectionID,
+		TriggerKeys:        req.TriggerKeys,
+		Enabled:            enabled,
+		Conditions:         conditionsJSON,
+		ContextActions:     contextActionsJSON,
+		Instructions:       req.Instructions,
+		TerminateOn:        terminateOnJSON,
+		TerminateEventKeys: terminateEventKeys,
 	}
 
 	if err := h.db.Create(&trigger).Error; err != nil {
@@ -411,6 +501,22 @@ func (h *AgentTriggerHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		contextActionsBytes, _ := json.Marshal(req.ContextActions)
 		updates["context_actions"] = model.RawJSON(contextActionsBytes)
+	}
+
+	if req.Instructions != nil {
+		updates["instructions"] = *req.Instructions
+	}
+
+	if req.TerminateOn != nil {
+		// Load the current trigger_keys to cross-check for ambiguity.
+		currentTriggerKeys := []string(trigger.TriggerKeys)
+		if errMsg := validateTerminateRules(h.catalog, req.TerminateOn, currentTriggerKeys, provider); errMsg != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
+			return
+		}
+		terminateBytes, _ := json.Marshal(req.TerminateOn)
+		updates["terminate_on"] = model.RawJSON(terminateBytes)
+		updates["terminate_event_keys"] = pq.StringArray(model.CollectTerminateEventKeys(req.TerminateOn))
 	}
 
 	if len(updates) > 0 {

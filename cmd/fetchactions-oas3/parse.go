@@ -370,43 +370,58 @@ func buildParamsAndExecution(op *v3high.Operation, pathItemParams []*v3high.Para
 				continue
 			}
 			s := mt.Schema.Schema()
-			if s == nil || s.Properties == nil {
+			if s == nil {
 				continue
 			}
 
-			for prop := s.Properties.First(); prop != nil; prop = prop.Next() {
-				propName := prop.Key()
-				propSchema := prop.Value()
-
-				if _, exists := properties[propName]; exists {
-					continue
+			// Some endpoints (e.g. issues/add-labels) wrap the body in oneOf/anyOf
+			// with one object option and one array option. Walk both the top-level
+			// schema and any object alternatives so we don't miss properties.
+			scanSchemas := []*highbase.Schema{s}
+			for _, alt := range s.OneOf {
+				if altSchema := alt.Schema(); altSchema != nil && altSchema.Properties != nil {
+					scanSchemas = append(scanSchemas, altSchema)
 				}
-
-				propType := "string"
-				propDesc := ""
-				if propSchema != nil {
-					ps := propSchema.Schema()
-					if ps != nil {
-						if len(ps.Type) > 0 {
-							propType = ps.Type[0]
-						}
-						propDesc = ps.Description
-						if len(propDesc) > 200 {
-							propDesc = propDesc[:197] + "..."
-						}
-					}
+			}
+			for _, alt := range s.AnyOf {
+				if altSchema := alt.Schema(); altSchema != nil && altSchema.Properties != nil {
+					scanSchemas = append(scanSchemas, altSchema)
 				}
-
-				properties[propName] = jsonSchemaProperty{
-					Type:        propType,
-					Description: propDesc,
-				}
-				bodyMapping[propName] = propName
 			}
 
-			// Check required fields from body schema.
-			if len(s.Required) > 0 {
-				for _, r := range s.Required {
+			for _, scan := range scanSchemas {
+				if scan.Properties != nil {
+					for prop := scan.Properties.First(); prop != nil; prop = prop.Next() {
+						propName := prop.Key()
+						propSchema := prop.Value()
+
+						if _, exists := properties[propName]; exists {
+							continue
+						}
+
+						propType := "string"
+						propDesc := ""
+						if propSchema != nil {
+							ps := propSchema.Schema()
+							if ps != nil {
+								if len(ps.Type) > 0 {
+									propType = ps.Type[0]
+								}
+								propDesc = ps.Description
+								if len(propDesc) > 200 {
+									propDesc = propDesc[:197] + "..."
+								}
+							}
+						}
+
+						properties[propName] = jsonSchemaProperty{
+							Type:        propType,
+							Description: propDesc,
+						}
+						bodyMapping[propName] = propName
+					}
+				}
+				for _, r := range scan.Required {
 					if _, exists := properties[r]; exists {
 						required = append(required, r)
 					}
@@ -489,11 +504,14 @@ func inferResponsePath(op *v3high.Operation) string {
 	return ""
 }
 
-// readHintPrefixes are operationId/action-key substrings that indicate a read operation
-// even when the HTTP method is POST.
-var readHintPrefixes = []string{
-	"list", "get", "search", "find", "query", "read", "fetch", "check",
-	"show", "describe", "lookup", "retrieve", "export", "download", "view",
+// readHintVerbs are action-key tokens (verbs) that indicate a read operation
+// even when the HTTP method is POST. Matched against snake_case tokens of the
+// action key — substring matching incorrectly flags writes like
+// "submit_review" as reads (because "review" contains "view").
+var readHintVerbs = map[string]bool{
+	"list": true, "get": true, "search": true, "find": true, "query": true,
+	"read": true, "fetch": true, "check": true, "show": true, "describe": true,
+	"lookup": true, "retrieve": true, "export": true, "download": true, "view": true,
 }
 
 // readHintPathSuffixes are path segments that indicate a read operation via POST.
@@ -503,16 +521,19 @@ var readHintPathSuffixes = []string{
 
 // inferAccess determines whether an action is "read" or "write" based on
 // HTTP method, action key, and path. GET is always read. POST is read if
-// the action key or path contains read-like terms (search, query, list, etc.).
+// the action key's verb (typically the first or second snake_case token)
+// is a read verb, or if the path ends in a search-like suffix.
 // PUT, PATCH, DELETE are always write.
 func inferAccess(method, actionKey, path string) string {
 	switch method {
 	case "GET":
 		return "read"
 	case "POST":
-		keyLower := strings.ToLower(actionKey)
-		for _, prefix := range readHintPrefixes {
-			if strings.Contains(keyLower, prefix) {
+		tokens := strings.Split(strings.ToLower(actionKey), "_")
+		// In GitHub-style operationIds the verb is tokens[1] (e.g. issues_list_comments).
+		// For verb-first keys like search_repos, the verb is tokens[0]. Check both.
+		for index := 0; index < len(tokens) && index < 2; index++ {
+			if readHintVerbs[tokens[index]] {
 				return "read"
 			}
 		}
