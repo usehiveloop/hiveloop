@@ -9086,7 +9086,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Enqueues an async build job for the template and streams logs via SSE.",
+                "description": "Enqueues an async build job for the template. Poll GET endpoint for status and logs.",
                 "consumes": [
                     "application/json"
                 ],
@@ -9110,7 +9110,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/internal_handler.buildTriggerResponse"
+                            "$ref": "#/definitions/internal_handler.sandboxTemplateResponse"
                         }
                     },
                     "400": {
@@ -9133,52 +9133,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sandbox-templates/{id}/build-stream": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Real-time SSE stream of template build logs and status updates. Supports resume via Last-Event-ID.",
-                "produces": [
-                    "text/event-stream"
-                ],
-                "tags": [
-                    "sandbox-templates"
-                ],
-                "summary": "Stream template build logs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "SSE stream",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -12276,14 +12230,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handler.buildTriggerResponse": {
-            "type": "object",
-            "properties": {
-                "stream_url": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_handler.changePasswordRequest": {
             "type": "object",
             "properties": {
@@ -14745,6 +14691,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "build_error": {
+                    "type": "string"
+                },
+                "build_logs": {
                     "type": "string"
                 },
                 "build_status": {

@@ -1056,11 +1056,6 @@ definitions:
       name:
         type: string
     type: object
-  internal_handler.buildTriggerResponse:
-    properties:
-      stream_url:
-        type: string
-    type: object
   internal_handler.changePasswordRequest:
     properties:
       current_password:
@@ -2667,6 +2662,8 @@ definitions:
       build_commands:
         type: string
       build_error:
+        type: string
+      build_logs:
         type: string
       build_status:
         type: string
@@ -8969,8 +8966,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Enqueues an async build job for the template and streams logs via
-        SSE.
+      description: Enqueues an async build job for the template. Poll GET endpoint
+        for status and logs.
       parameters:
       - description: Template ID
         in: path
@@ -8983,7 +8980,7 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/internal_handler.buildTriggerResponse'
+            $ref: '#/definitions/internal_handler.sandboxTemplateResponse'
         "400":
           description: Bad Request
           schema:
@@ -9003,36 +9000,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Trigger a sandbox template build
-      tags:
-      - sandbox-templates
-  /v1/sandbox-templates/{id}/build-stream:
-    get:
-      description: Real-time SSE stream of template build logs and status updates.
-        Supports resume via Last-Event-ID.
-      parameters:
-      - description: Template ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - text/event-stream
-      responses:
-        "200":
-          description: SSE stream
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Stream template build logs
       tags:
       - sandbox-templates
   /v1/sandboxes:

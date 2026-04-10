@@ -10952,7 +10952,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Enqueues an async build job for the template and streams logs via SSE.",
+        "description": "Enqueues an async build job for the template. Poll GET endpoint for status and logs.",
         "tags": [
           "sandbox-templates"
         ],
@@ -10974,7 +10974,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/buildTriggerResponse"
+                  "$ref": "#/components/schemas/sandboxTemplateResponse"
                 }
               }
             }
@@ -11013,63 +11013,6 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/sandbox-templates/{id}/build-stream": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Real-time SSE stream of template build logs and status updates. Supports resume via Last-Event-ID.",
-        "tags": [
-          "sandbox-templates"
-        ],
-        "summary": "Stream template build logs",
-        "parameters": [
-          {
-            "description": "Template ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "SSE stream",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/event-stream": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
                 }
@@ -14574,14 +14517,6 @@
           }
         }
       },
-      "buildTriggerResponse": {
-        "type": "object",
-        "properties": {
-          "stream_url": {
-            "type": "string"
-          }
-        }
-      },
       "changePasswordRequest": {
         "type": "object",
         "properties": {
@@ -17043,6 +16978,9 @@
             "type": "string"
           },
           "build_error": {
+            "type": "string"
+          },
+          "build_logs": {
             "type": "string"
           },
           "build_status": {

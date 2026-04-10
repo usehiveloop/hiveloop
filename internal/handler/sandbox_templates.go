@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
-	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
@@ -31,11 +29,10 @@ type SandboxTemplateHandler struct {
 	db       *gorm.DB
 	builder  TemplateBuildable // nil if sandbox orchestrator not configured
 	enqueuer enqueue.TaskEnqueuer
-	eventBus *streaming.EventBus
 }
 
-func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer enqueue.TaskEnqueuer, eventBus *streaming.EventBus) *SandboxTemplateHandler {
-	return &SandboxTemplateHandler{db: db, builder: builder, enqueuer: enqueuer, eventBus: eventBus}
+func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer enqueue.TaskEnqueuer) *SandboxTemplateHandler {
+	return &SandboxTemplateHandler{db: db, builder: builder, enqueuer: enqueuer}
 }
 
 type createSandboxTemplateRequest struct {
@@ -57,13 +54,10 @@ type sandboxTemplateResponse struct {
 	ExternalID    *string    `json:"external_id,omitempty"`
 	BuildStatus   string     `json:"build_status"`
 	BuildError    *string    `json:"build_error,omitempty"`
+	BuildLogs     string     `json:"build_logs,omitempty"`
 	Config        model.JSON `json:"config"`
 	CreatedAt     string     `json:"created_at"`
 	UpdatedAt     string     `json:"updated_at"`
-}
-
-type buildTriggerResponse struct {
-	StreamURL string `json:"stream_url"`
 }
 
 func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse {
@@ -74,6 +68,7 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 		ExternalID:    t.ExternalID,
 		BuildStatus:   t.BuildStatus,
 		BuildError:    t.BuildError,
+		BuildLogs:     t.BuildLogs,
 		Config:        t.Config,
 		CreatedAt:     t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
@@ -291,12 +286,12 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 
 // TriggerBuild handles POST /v1/sandbox-templates/{id}/build.
 // @Summary Trigger a sandbox template build
-// @Description Enqueues an async build job for the template and streams logs via SSE.
+// @Description Enqueues an async build job for the template. Poll GET endpoint for status and logs.
 // @Tags sandbox-templates
 // @Accept json
 // @Produce json
 // @Param id path string true "Template ID"
-// @Success 202 {object} buildTriggerResponse
+// @Success 202 {object} sandboxTemplateResponse
 // @Failure 400 {object} errorResponse
 // @Failure 404 {object} errorResponse
 // @Failure 409 {object} errorResponse
@@ -341,85 +336,11 @@ func (h *SandboxTemplateHandler) TriggerBuild(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeJSON(w, http.StatusAccepted, buildTriggerResponse{
-		StreamURL: fmt.Sprintf("/v1/sandbox-templates/%s/build-stream", tmpl.ID),
-	})
-}
+	// Update status to building
+	h.db.Model(&tmpl).Update("build_status", "building")
+	tmpl.BuildStatus = "building"
 
-// StreamBuildLogs handles GET /v1/sandbox-templates/{id}/build-stream.
-// @Summary Stream template build logs
-// @Description Real-time SSE stream of template build logs and status updates. Supports resume via Last-Event-ID.
-// @Tags sandbox-templates
-// @Produce text/event-stream
-// @Param id path string true "Template ID"
-// @Header 200 {string} Last-Event-ID "ID of the last received event"
-// @Success 200 {string} string "SSE stream"
-// @Failure 401 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/sandbox-templates/{id}/build-stream [get]
-func (h *SandboxTemplateHandler) StreamBuildLogs(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		http.Error(w, "missing org context", http.StatusUnauthorized)
-		return
-	}
-
-	id := chi.URLParam(r, "id")
-
-	var tmpl model.SandboxTemplate
-	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&tmpl).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "sandbox template not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "failed to get sandbox template", http.StatusInternalServerError)
-		return
-	}
-
-	if h.eventBus == nil {
-		http.Error(w, "streaming not configured", http.StatusInternalServerError)
-		return
-	}
-
-	streamKey := fmt.Sprintf("template:%s", tmpl.ID.String())
-	cursor := r.Header.Get("Last-Event-ID")
-	if cursor == "" {
-		cursor = "0"
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
-		return
-	}
-
-	events := h.eventBus.Subscribe(r.Context(), streamKey, cursor)
-
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case event, ok := <-events:
-			if !ok {
-				return
-			}
-			eventID := event.ID
-			_, _ = fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", eventID, event.EventType, string(event.Data))
-			flusher.Flush()
-		case <-ticker.C:
-			_, _ = fmt.Fprint(w, ": ping\n\n")
-			flusher.Flush()
-		}
-	}
+	writeJSON(w, http.StatusAccepted, toSandboxTemplateResponse(tmpl))
 }
 
 // @Summary Delete a sandbox template

@@ -13,11 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { toast } from "sonner"
 import { CreateSandboxTemplateModal } from "./create-modal"
-import type { components } from "@/lib/api/schema"
+import {
+  useSandboxTemplates,
+  useTriggerBuild,
+  useDeleteSandboxTemplate,
+  type SandboxTemplate,
+} from "@/hooks/use-sandbox-template"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
@@ -26,21 +30,14 @@ import {
   PlayCircleIcon,
 } from "@hugeicons/core-free-icons"
 
-type SandboxTemplate = components["schemas"]["sandboxTemplateResponse"]
-
 export function SandboxTemplatesList() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [buildingTemplateId, setBuildingTemplateId] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<SandboxTemplate | null>(null)
 
-  const { data, isLoading, refetch } = $api.useQuery("get", "/v1/sandbox-templates", {}, {
-    refetchOnWindowFocus: true,
-  })
+  const { data: templates = [], isLoading, refetch } = useSandboxTemplates()
 
-  const deleteMutation = $api.useMutation("delete", "/v1/sandbox-templates/{id}")
-  const buildMutation = $api.useMutation("post", "/v1/sandbox-templates/{id}/build")
-
-  const templates = (data as { data?: SandboxTemplate[] })?.data ?? []
+  const deleteTemplate = useDeleteSandboxTemplate()
+  const buildMutation = useTriggerBuild()
 
   function getStatusBadge(status?: string) {
     switch (status) {
@@ -55,46 +52,39 @@ export function SandboxTemplatesList() {
     }
   }
 
-  async function handleBuild(template: SandboxTemplate) {
-    if (!template.id) {
-      return
-    }
-    try {
-      const result = await buildMutation.mutateAsync({
-        params: { path: { id: template.id } },
-      })
-      const response = result as { stream_url?: string }
-      if (response.stream_url) {
-        setBuildingTemplateId(template.id)
-        refetch()
+  function handleBuild(template: SandboxTemplate) {
+    if (!template.id) return
+
+    buildMutation.mutate(
+      { params: { path: { id: template.id } } },
+      {
+        onError: (err: unknown) => {
+          toast.error(extractErrorMessage(err, "Failed to trigger build"))
+        },
       }
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to trigger build"))
-    }
+    )
   }
 
-  async function handleDelete() {
-    if (!deletingTemplate?.id) {
-      return
-    }
-    try {
-      await deleteMutation.mutateAsync({
-        params: { path: { id: deletingTemplate.id } },
-      })
-      toast.success(`Deleted "${deletingTemplate.name}"`)
-      refetch()
-      setDeletingTemplate(null)
-    } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to delete template"))
-      setDeletingTemplate(null)
-    }
+  function handleDelete() {
+    if (!deletingTemplate?.id) return
+
+    deleteTemplate.mutate(
+      { params: { path: { id: deletingTemplate.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`Deleted "${deletingTemplate.name}"`)
+          setDeletingTemplate(null)
+        },
+        onError: (err: unknown) => {
+          toast.error(extractErrorMessage(err, "Failed to delete template"))
+          setDeletingTemplate(null)
+        },
+      }
+    )
   }
 
   function handleCreateSuccess(template: SandboxTemplate) {
     refetch()
-    if (template.id) {
-      setBuildingTemplateId(template.id)
-    }
   }
 
   if (isLoading) {
@@ -157,11 +147,6 @@ export function SandboxTemplatesList() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{template.name}</span>
                     {getStatusBadge(template.build_status)}
-                    {buildingTemplateId === template.id && template.build_status === "building" && (
-                      <span className="text-xs text-muted-foreground animate-pulse">
-                        Building...
-                      </span>
-                    )}
                   </div>
                   {template.build_commands && (
                     <p className="text-xs text-muted-foreground mt-1 truncate font-mono">
@@ -177,7 +162,7 @@ export function SandboxTemplatesList() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleBuild(template)}
-                    loading={buildMutation.isPending && buildingTemplateId === template.id}
+                    loading={buildMutation.isPending}
                     disabled={template.build_status === "building"}
                   >
                     <HugeiconsIcon icon={PlayCircleIcon} size={14} className="mr-1" />
@@ -218,7 +203,7 @@ export function SandboxTemplatesList() {
         confirmText={deletingTemplate?.name ?? ""}
         confirmLabel="Delete"
         destructive
-        loading={deleteMutation.isPending}
+        loading={deleteTemplate.isPending}
         onConfirm={handleDelete}
       />
     </div>

@@ -10383,7 +10383,7 @@ export interface paths {
         put?: never;
         /**
          * Trigger a sandbox template build
-         * @description Enqueues an async build job for the template and streams logs via SSE.
+         * @description Enqueues an async build job for the template. Poll GET endpoint for status and logs.
          */
         post: {
             parameters: {
@@ -10403,7 +10403,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["buildTriggerResponse"];
+                        "application/json": components["schemas"]["sandboxTemplateResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -10444,66 +10444,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sandbox-templates/{id}/build-stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream template build logs
-         * @description Real-time SSE stream of template build logs and status updates. Supports resume via Last-Event-ID.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Template ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description SSE stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/event-stream": string;
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/event-stream": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/event-stream": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12899,9 +12839,6 @@ export interface components {
             id?: string;
             name?: string;
         };
-        buildTriggerResponse: {
-            stream_url?: string;
-        };
         changePasswordRequest: {
             current_password?: string;
             new_password?: string;
@@ -13702,6 +13639,7 @@ export interface components {
         sandboxTemplateResponse: {
             build_commands?: string;
             build_error?: string;
+            build_logs?: string;
             build_status?: string;
             config?: components["schemas"]["JSON"];
             created_at?: string;

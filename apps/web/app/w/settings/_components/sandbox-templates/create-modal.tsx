@@ -15,13 +15,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { $api } from "@/lib/api/hooks"
-import { extractErrorMessage } from "@/lib/api/error"
 import { toast } from "sonner"
-import { useBuildStream } from "@/hooks/use-build-stream"
-import type { components } from "@/lib/api/schema"
-
-type SandboxTemplate = components["schemas"]["sandboxTemplateResponse"]
+import {
+  useSandboxTemplate,
+  useTriggerBuild,
+  createSandboxTemplate,
+  type SandboxTemplate,
+} from "@/hooks/use-sandbox-template"
 
 interface CreateSandboxTemplateModalProps {
   open: boolean
@@ -34,9 +34,11 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   const [buildCommands, setBuildCommands] = useState("")
   const [isBuilding, setIsBuilding] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const onSuccessRef = useRef(onSuccess)
   const onOpenChangeRef = useRef(onOpenChange)
+  const hasShownSuccessRef = useRef(false)
 
   useEffect(() => {
     onSuccessRef.current = onSuccess
@@ -51,42 +53,39 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     setBuildCommands("")
     setIsBuilding(false)
     setBuildTemplateId(null)
+    setError(null)
+    hasShownSuccessRef.current = false
   }, [])
 
-  const { connected, connecting, error, logs, status } = useBuildStream(
+  const { data: template, isLoading } = useSandboxTemplate(
     isBuilding ? buildTemplateId : null
   )
 
-  const createMutation = $api.useMutation("post", "/v1/sandbox-templates")
-  const buildMutation = $api.useMutation("post", "/v1/sandbox-templates/{id}/build")
+  const triggerBuild = useTriggerBuild()
 
   useEffect(() => {
-    if (status?.status === "ready") {
+    if (!template || !isBuilding || hasShownSuccessRef.current) return
+
+    if (template.build_status === "ready") {
+      hasShownSuccessRef.current = true
       toast.success("Sandbox template built successfully!")
-      onSuccessRef.current?.({
-        id: buildTemplateId!,
-        name,
-        build_commands: buildCommands,
-        build_status: "ready",
-        config: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      onSuccessRef.current?.(template)
       setTimeout(() => {
         onOpenChangeRef.current(false)
         resetForm()
       }, 1500)
-    } else if (status?.status === "failed") {
-      toast.error(`Build failed: ${status.message}`)
-      setTimeout(() => setIsBuilding(false), 0)
+    } else if (template.build_status === "failed") {
+      hasShownSuccessRef.current = true
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(template.build_error ?? "Build failed with unknown error")
     }
-  }, [status, buildTemplateId, name, buildCommands, resetForm])
+  }, [template, isBuilding, resetForm])
 
   useEffect(() => {
-    if (logs.length > 0 && scrollRef.current) {
+    if (template?.build_logs && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [logs])
+  }, [template?.build_logs])
 
   function handleClose() {
     onOpenChange(false)
@@ -104,33 +103,29 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     }
 
     try {
-      const result = await createMutation.mutateAsync({
-        body: {
-          name: name.trim(),
-          build_commands: buildCommands.trim(),
-        },
+      const createdTemplate = await createSandboxTemplate({
+        name: name.trim(),
+        build_commands: buildCommands.trim(),
       })
 
-      const template = result as SandboxTemplate
-      if (!template.id) {
+      if (!createdTemplate.id) {
         toast.error("Failed to get template ID")
         return
       }
-      setBuildTemplateId(template.id)
 
-      const buildResult = await buildMutation.mutateAsync({
-        params: { path: { id: template.id } },
-      })
+      triggerBuild.mutate(
+        { params: { path: { id: createdTemplate.id } } },
+        {
+          onError: (err: unknown) => {
+            toast.error(`Failed to trigger build: ${err}`)
+          },
+        }
+      )
 
-      const buildResponse = buildResult as { stream_url?: string }
-      if (!buildResponse.stream_url) {
-        toast.error("Failed to get stream URL")
-        return
-      }
-
+      setBuildTemplateId(createdTemplate.id)
       setIsBuilding(true)
     } catch (err) {
-      toast.error(extractErrorMessage(err, "Failed to create template"))
+      toast.error("Failed to create template")
     }
   }
 
@@ -146,6 +141,8 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
         return <Badge variant="secondary">Pending</Badge>
     }
   }
+
+  const logs = template?.build_logs?.split("\n").filter(Boolean) ?? []
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -171,7 +168,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   placeholder="my-custom-template"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={createMutation.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
                   A descriptive name for your template.
@@ -186,7 +182,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   value={buildCommands}
                   onChange={(e) => setBuildCommands(e.target.value)}
                   className="font-mono text-sm min-h-[200px]"
-                  disabled={createMutation.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
                   One command per line. Each line runs in a separate shell layer.
@@ -198,13 +193,10 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{name}</span>
-                  {getStatusBadge(status?.status)}
+                  {getStatusBadge(template?.build_status)}
                 </div>
-                {connecting && (
-                  <span className="text-xs text-muted-foreground">Connecting...</span>
-                )}
-                {connected && (
-                  <span className="text-xs text-green-600">Streaming</span>
+                {isLoading && (
+                  <span className="text-xs text-muted-foreground">Loading...</span>
                 )}
               </div>
 
@@ -217,8 +209,8 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
               <ScrollArea className="h-[300px] rounded-md bg-muted/50 p-4">
                 <div className="space-y-1 font-mono text-xs">
                   {logs.map((log) => (
-                    <div key={log.line} className="text-foreground/80">
-                      {log.line}
+                    <div key={log} className="text-foreground/80">
+                      {log}
                     </div>
                   ))}
                   {logs.length === 0 && !error && (
@@ -227,10 +219,10 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                 </div>
               </ScrollArea>
 
-              {status?.status === "failed" && status.message && (
+              {template?.build_status === "failed" && template.build_error && (
                 <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3">
                   <p className="text-sm font-medium text-red-600">Build Error:</p>
-                  <p className="text-xs text-red-600/80 mt-1">{status.message}</p>
+                  <p className="text-xs text-red-600/80 mt-1">{template.build_error}</p>
                 </div>
               )}
             </div>
@@ -240,12 +232,12 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
         <div className="flex justify-end gap-2 pt-4 border-t">
           {!isBuilding ? (
             <>
-              <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button
                 onClick={handleCreateAndBuild}
-                loading={createMutation.isPending || buildMutation.isPending}
+                loading={triggerBuild.isPending}
               >
                 Create & Build
               </Button>
@@ -254,7 +246,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
             <Button
               variant="outline"
               onClick={handleClose}
-              disabled={status?.status === "building" && connected}
+              disabled={template?.build_status === "building"}
             >
               Close
             </Button>

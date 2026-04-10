@@ -69,7 +69,7 @@ func newAgentAPIHarness(t *testing.T) *agentAPIHarness {
 
 	// Build router with agent routes (no auth middleware — we inject org context directly)
 	reg := registry.Global()
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil, nil, nil)
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(h.db, nil, nil)
 	agentHandler := handler.NewAgentHandler(h.db, reg, nil, nil)
 
 	r := chi.NewRouter()

@@ -67,8 +67,8 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
 
 	// Sandbox template build
-	if deps.Orchestrator != nil && deps.EventBus != nil {
-		mux.HandleFunc(TypeSandboxTemplateBuild, NewSandboxTemplateBuildHandler(deps.DB, deps.Orchestrator, deps.EventBus).Handle)
+	if deps.Orchestrator != nil {
+		mux.HandleFunc(TypeSandboxTemplateBuild, NewSandboxTemplateBuildHandler(deps.DB, deps.Orchestrator).Handle)
 	}
 
 	// Billing usage event

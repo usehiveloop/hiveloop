@@ -125,7 +125,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if orchestrator != nil {
 		templateBuilder = orchestrator
 	}
-	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer, eventBus)
+	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -318,7 +318,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Put("/{id}", sandboxTemplateHandler.Update)
 					r.Delete("/{id}", sandboxTemplateHandler.Delete)
 					r.Post("/{id}/build", sandboxTemplateHandler.TriggerBuild)
-					r.Get("/{id}/build-stream", sandboxTemplateHandler.StreamBuildLogs)
 				})
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
