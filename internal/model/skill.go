@@ -26,8 +26,11 @@ type Skill struct {
 	RepoSubpath *string `gorm:"type:text"`
 	RepoRef     string  `gorm:"not null;default:'main'"`
 
-	LatestVersionID *uuid.UUID    `gorm:"type:uuid"`
-	LatestVersion   *SkillVersion `gorm:"foreignKey:LatestVersionID;constraint:OnDelete:SET NULL"`
+	// LatestVersionID points at the newest SkillVersion for this skill. It is
+	// intentionally not a foreign-key association — SkillVersion has a FK back
+	// to Skill, and declaring both sides creates a cyclical migration that
+	// Postgres rejects at AutoMigrate time.
+	LatestVersionID *uuid.UUID `gorm:"type:uuid"`
 
 	Tags         pq.StringArray `gorm:"type:text[];default:'{}'"`
 	InstallCount int            `gorm:"not null;default:0"`
