@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U2147483697",
+      "text": "Hello hello can you hear me?",
+      "ts": "1355517523.000005"
+    },
+    {
+      "type": "message",
+      "user": "U2147483697",
+      "text": "Actually, I have a question about pricing.",
+      "ts": "1355517400.000002"
+    },
+    {
+      "type": "message",
+      "user": "U2147483697",
+      "text": "Hi there, are you the support bot?",
+      "ts": "1355517300.000001"
+    }
+  ],
+  "has_more": false
+}

@@ -84,6 +84,10 @@ type Config struct {
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`    // e.g. http://localhost:3004
 	NangoSecretKey string `env:"NANGO_SECRET_KEY"`  // Nango secret key for API auth
 
+	// GitHub API token used by the skill hydrator. Optional — raises the
+	// anonymous rate limit from 60 req/hr to 5000 req/hr per token.
+	GitHubToken string `env:"GITHUB_TOKEN"`
+
 	// MCP Server
 	MCPPort    int    `env:"MCP_PORT" envDefault:"8081"`
 	MCPBaseURL string `env:"MCP_BASE_URL" envDefault:"http://localhost:8081"`

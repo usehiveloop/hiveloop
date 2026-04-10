@@ -1,0 +1,29 @@
+{
+  "token": "verification_token",
+  "team_id": "T111",
+  "enterprise_id": "E111",
+  "api_app_id": "A111",
+  "event": {
+    "type": "reaction_added",
+    "user": "W111",
+    "item": {
+      "type": "message",
+      "channel": "C111",
+      "ts": "1599529504.000400"
+    },
+    "reaction": "heart_eyes",
+    "item_user": "W111",
+    "event_ts": "1599616881.000800"
+  },
+  "type": "event_callback",
+  "event_id": "Ev111",
+  "event_time": 1599616881,
+  "authorizations": [
+    {
+      "team_id": "T111",
+      "user_id": "W111",
+      "is_bot": false,
+      "is_enterprise_install": false
+    }
+  ]
+}

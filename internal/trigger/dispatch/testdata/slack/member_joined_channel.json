@@ -1,0 +1,25 @@
+{
+  "token": "verification_token",
+  "team_id": "T111",
+  "enterprise_id": "E111",
+  "api_app_id": "A111",
+  "event": {
+    "type": "member_joined_channel",
+    "user": "W23456789",
+    "channel": "C111",
+    "channel_type": "C",
+    "team": "T111",
+    "inviter": "U222"
+  },
+  "type": "event_callback",
+  "event_id": "Ev111",
+  "event_time": 1599616881,
+  "authorizations": [
+    {
+      "team_id": "T111",
+      "user_id": "W111",
+      "is_bot": false,
+      "is_enterprise_install": false
+    }
+  ]
+}

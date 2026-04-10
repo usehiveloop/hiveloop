@@ -32,7 +32,7 @@ export function StepInstructions() {
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={() => goTo("summary")} className="w-full">
+        <Button onClick={() => goTo("skills")} className="w-full">
           {instructions.trim() ? "Continue" : "Skip for now"}
         </Button>
       </div>

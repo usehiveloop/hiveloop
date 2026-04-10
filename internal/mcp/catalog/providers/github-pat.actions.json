@@ -38,7 +38,8 @@
         "issue_number": "$refs.issue_number",
         "owner": "$refs.owner",
         "repo": "$refs.repo"
-      }
+      },
+      "resource_key_template": "$refs.owner/$refs.repo#issue-$refs.issue_number"
     },
     "label": {
       "display_name": "Labels",
@@ -72,7 +73,6 @@
         }
       },
       "ref_bindings": {
-        "milestone_number": "$refs.milestone_number",
         "owner": "$refs.owner",
         "repo": "$refs.repo"
       }
@@ -89,9 +89,6 @@
         "query_params": {
           "per_page": "100"
         }
-      },
-      "ref_bindings": {
-        "org": "$refs.org"
       }
     },
     "pull_request": {
@@ -112,7 +109,8 @@
         "owner": "$refs.owner",
         "pull_number": "$refs.pull_number",
         "repo": "$refs.repo"
-      }
+      },
+      "resource_key_template": "$refs.owner/$refs.repo#pr-$refs.pull_number"
     },
     "release": {
       "display_name": "Releases",
@@ -131,7 +129,8 @@
         "owner": "$refs.owner",
         "release_id": "$refs.release_id",
         "repo": "$refs.repo"
-      }
+      },
+      "resource_key_template": "$refs.owner/$refs.repo#release-$refs.release_id"
     },
     "repository": {
       "display_name": "Repositories",
@@ -164,10 +163,6 @@
         "query_params": {
           "per_page": "100"
         }
-      },
-      "ref_bindings": {
-        "org": "$refs.org",
-        "team_slug": "$refs.team_slug"
       }
     },
     "workflow": {
@@ -188,7 +183,8 @@
         "owner": "$refs.owner",
         "repo": "$refs.repo",
         "run_id": "$refs.run_id"
-      }
+      },
+      "resource_key_template": "$refs.owner/$refs.repo#run-$refs.run_id"
     }
   },
   "actions": {
@@ -1481,10 +1477,18 @@
     "actions_review_custom_gates_for_run": {
       "display_name": "Review custom deployment protection rules for a workflow run",
       "description": "Approve or reject custom deployment protection rules provided by a GitHub App for a workflow run. For more information, see \"[Using environments for deployment](https://docs.github.com/actions/depl...",
-      "access": "read",
+      "access": "write",
       "resource_type": "workflow",
       "parameters": {
         "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Comment associated with the pending deployment protection rule. **Required when state is not provided.**"
+          },
+          "environment_name": {
+            "type": "string",
+            "description": "The name of the environment to approve or reject."
+          },
           "owner": {
             "type": "string",
             "description": "The account owner of the repository. The name is not case sensitive."
@@ -1496,24 +1500,36 @@
           "run_id": {
             "type": "integer",
             "description": "The unique identifier of the workflow run."
+          },
+          "state": {
+            "type": "string",
+            "description": "Whether to approve or reject deployment to the specified environments."
           }
         },
         "required": [
           "owner",
           "repo",
-          "run_id"
+          "run_id",
+          "environment_name",
+          "comment",
+          "state"
         ],
         "type": "object"
       },
       "execution": {
         "method": "POST",
-        "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule"
+        "path": "/repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule",
+        "body_mapping": {
+          "comment": "comment",
+          "environment_name": "environment_name",
+          "state": "state"
+        }
       }
     },
     "actions_review_pending_deployments_for_run": {
       "display_name": "Review pending deployments for a workflow run",
       "description": "Approve or reject pending deployments that are waiting on approval by a required reviewer. Required reviewers with read access to the repository contents and deployments can use this endpoint. OAut...",
-      "access": "read",
+      "access": "write",
       "resource_type": "workflow",
       "parameters": {
         "properties": {
@@ -2585,6 +2601,10 @@
             "type": "integer",
             "description": "The number that identifies the issue."
           },
+          "labels": {
+            "type": "array",
+            "description": "The names of the labels to add to the issue's existing labels. You can also pass an `array` of labels directly, but GitHub recommends passing an object with the `labels` key. To replace all of the ..."
+          },
           "owner": {
             "type": "string",
             "description": "The account owner of the repository. The name is not case sensitive."
@@ -2603,7 +2623,10 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels"
+        "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels",
+        "body_mapping": {
+          "labels": "labels"
+        }
       },
       "response_schema": "label_list"
     },
@@ -2652,6 +2675,37 @@
         }
       },
       "response_schema": "issue"
+    },
+    "issues_check_user_can_be_assigned": {
+      "display_name": "Check if a user can be assigned",
+      "description": "Checks if a user has permission to be assigned to an issue in this repository. If the `assignee` can be assigned to issues in the repository, a `204` header with no content is returned. Otherwise a...",
+      "access": "read",
+      "resource_type": "issue",
+      "parameters": {
+        "properties": {
+          "assignee": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "description": "The account owner of the repository. The name is not case sensitive."
+          },
+          "repo": {
+            "type": "string",
+            "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          }
+        },
+        "required": [
+          "owner",
+          "repo",
+          "assignee"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/assignees/{assignee}"
+      }
     },
     "issues_check_user_can_be_assigned_to_issue": {
       "display_name": "Check if a user can be assigned to a issue",
@@ -3182,6 +3236,46 @@
         "path": "/repos/{owner}/{repo}/issues/{issue_number}/parent"
       },
       "response_schema": "issue"
+    },
+    "issues_list_assignees": {
+      "display_name": "List assignees",
+      "description": "Lists the [available assignees](https://docs.github.com/articles/assigning-issues-and-pull-requests-to-other-github-users/) for issues in a repository.",
+      "access": "read",
+      "resource_type": "issue",
+      "parameters": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "The account owner of the repository. The name is not case sensitive."
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page number of the results to fetch. For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\""
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "The number of results per page (max 100). For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\""
+          },
+          "repo": {
+            "type": "string",
+            "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          }
+        },
+        "required": [
+          "owner",
+          "repo"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/assignees",
+        "query_mapping": {
+          "page": "page",
+          "per_page": "per_page"
+        }
+      },
+      "response_schema": "simple-user_list"
     },
     "issues_list_comments": {
       "display_name": "List issue comments",
@@ -4195,6 +4289,10 @@
             "type": "integer",
             "description": "The number that identifies the issue."
           },
+          "labels": {
+            "type": "array",
+            "description": "The names of the labels to set for the issue. The labels you set replace any existing labels. You can pass an empty array to remove all labels. Alternatively, you can pass a single label as a `stri..."
+          },
           "owner": {
             "type": "string",
             "description": "The account owner of the repository. The name is not case sensitive."
@@ -4213,7 +4311,10 @@
       },
       "execution": {
         "method": "PUT",
-        "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels"
+        "path": "/repos/{owner}/{repo}/issues/{issue_number}/labels",
+        "body_mapping": {
+          "labels": "labels"
+        }
       },
       "response_schema": "label_list"
     },
@@ -5608,7 +5709,7 @@
     "pulls_create_reply_for_review_comment": {
       "display_name": "Create a reply for a review comment",
       "description": "Creates a reply to a review comment for a pull request. For the `comment_id`, provide the ID of the review comment you are replying to. This must be the ID of a _top-level review comment_, not a re...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -5654,7 +5755,7 @@
     "pulls_create_review": {
       "display_name": "Create a review for a pull request",
       "description": "Creates a review on a specified pull request. This endpoint triggers [notifications](https://docs.github.com/github/managing-subscriptions-and-notifications-on-github/about-notifications). Creating...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -5709,7 +5810,7 @@
     "pulls_create_review_comment": {
       "display_name": "Create a review comment for a pull request",
       "description": "Creates a review comment on the diff of a specified pull request. To add a regular comment to a pull request timeline, see \"[Create an issue comment](https://docs.github.com/rest/issues/comments#cr...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -6519,7 +6620,7 @@
     "pulls_request_reviewers": {
       "display_name": "Request reviewers for a pull request",
       "description": "Requests reviews for a pull request from a given set of users and/or teams. This endpoint triggers [notifications](https://docs.github.com/github/managing-subscriptions-and-notifications-on-github/...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -6564,7 +6665,7 @@
     "pulls_submit_review": {
       "display_name": "Submit a review for a pull request",
       "description": "Submits a pending review for a pull request. For more information about creating a pending review for a pull request, see \"[Create a review for a pull request](https://docs.github.com/rest/pulls/re...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -6924,7 +7025,7 @@
     "reactions_create_for_pull_request_review_comment": {
       "display_name": "Create reaction for a pull request review comment",
       "description": "Create a reaction to a [pull request review comment](https://docs.github.com/rest/pulls/comments#get-a-review-comment-for-a-pull-request). A response with an HTTP `200` status means that you alread...",
-      "access": "read",
+      "access": "write",
       "resource_type": "pull_request",
       "parameters": {
         "properties": {
@@ -7544,13 +7645,17 @@
     "repos_add_status_check_contexts": {
       "display_name": "Add status check contexts",
       "description": "Protected branches are available in public repositories with GitHub Free and GitHub Free for organizations, and in public and private repositories with GitHub Pro, GitHub Team, GitHub Enterprise Cl...",
-      "access": "read",
+      "access": "write",
       "resource_type": "branch",
       "parameters": {
         "properties": {
           "branch": {
             "type": "string",
             "description": "The name of the branch. Cannot contain wildcard characters. To use wildcard characters in branch names, use [the GraphQL API](https://docs.github.com/graphql)."
+          },
+          "contexts": {
+            "type": "array",
+            "description": "The name of the status checks"
           },
           "owner": {
             "type": "string",
@@ -7564,13 +7669,17 @@
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "contexts"
         ],
         "type": "object"
       },
       "execution": {
         "method": "POST",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+        "body_mapping": {
+          "contexts": "contexts"
+        }
       }
     },
     "repos_add_team_access_restrictions": {
@@ -7591,18 +7700,26 @@
           "repo": {
             "type": "string",
             "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          },
+          "teams": {
+            "type": "array",
+            "description": "The slug values for teams"
           }
         },
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "teams"
         ],
         "type": "object"
       },
       "execution": {
         "method": "POST",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+        "body_mapping": {
+          "teams": "teams"
+        }
       },
       "response_schema": "team_list"
     },
@@ -7678,6 +7795,51 @@
         "method": "GET",
         "path": "/repos/{owner}/{repo}/collaborators/{username}"
       }
+    },
+    "repos_compare_commits": {
+      "display_name": "Compare two commits",
+      "description": "Compares two commits against one another. You can compare refs (branches or tags) and commit SHAs in the same repository, or you can compare refs and commit SHAs that exist in different repositorie...",
+      "access": "read",
+      "resource_type": "repository",
+      "parameters": {
+        "properties": {
+          "basehead": {
+            "type": "string",
+            "description": "The base branch and head branch to compare. This parameter expects the format `BASE...HEAD`. Both must be branch names in `repo`. To compare with a branch that exists in a different repository in t..."
+          },
+          "owner": {
+            "type": "string",
+            "description": "The account owner of the repository. The name is not case sensitive."
+          },
+          "page": {
+            "type": "integer",
+            "description": "The page number of the results to fetch. For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\""
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "The number of results per page (max 100). For more information, see \"[Using pagination in the REST API](https://docs.github.com/rest/using-the-rest-api/using-pagination-in-the-rest-api).\""
+          },
+          "repo": {
+            "type": "string",
+            "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          }
+        },
+        "required": [
+          "owner",
+          "repo",
+          "basehead"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/compare/{basehead}",
+        "query_mapping": {
+          "page": "page",
+          "per_page": "per_page"
+        }
+      },
+      "response_schema": "commit-comparison"
     },
     "repos_create_commit_comment": {
       "display_name": "Create a commit comment",
@@ -10003,6 +10165,89 @@
       },
       "response_schema": "release_list"
     },
+    "repos_merge": {
+      "display_name": "Merge a branch",
+      "description": "Merge a branch",
+      "access": "write",
+      "resource_type": "repository",
+      "parameters": {
+        "properties": {
+          "base": {
+            "type": "string",
+            "description": "The name of the base branch that the head will be merged into."
+          },
+          "commit_message": {
+            "type": "string",
+            "description": "Commit message to use for the merge commit. If omitted, a default message will be used."
+          },
+          "head": {
+            "type": "string",
+            "description": "The head to merge. This can be a branch name or a commit SHA1."
+          },
+          "owner": {
+            "type": "string",
+            "description": "The account owner of the repository. The name is not case sensitive."
+          },
+          "repo": {
+            "type": "string",
+            "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          }
+        },
+        "required": [
+          "owner",
+          "repo",
+          "base",
+          "head"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/repos/{owner}/{repo}/merges",
+        "body_mapping": {
+          "base": "base",
+          "commit_message": "commit_message",
+          "head": "head"
+        }
+      },
+      "response_schema": "commit"
+    },
+    "repos_merge_upstream": {
+      "display_name": "Sync a fork branch with the upstream repository",
+      "description": "Sync a branch of a forked repository to keep it up-to-date with the upstream repository.",
+      "access": "write",
+      "resource_type": "repository",
+      "parameters": {
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "The name of the branch which should be updated to match upstream."
+          },
+          "owner": {
+            "type": "string",
+            "description": "The account owner of the repository. The name is not case sensitive."
+          },
+          "repo": {
+            "type": "string",
+            "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          }
+        },
+        "required": [
+          "owner",
+          "repo",
+          "branch"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/repos/{owner}/{repo}/merge-upstream",
+        "body_mapping": {
+          "branch": "branch"
+        }
+      },
+      "response_schema": "merged-upstream"
+    },
     "repos_remove_app_access_restrictions": {
       "display_name": "Remove app access restrictions",
       "description": "Protected branches are available in public repositories with GitHub Free and GitHub Free for organizations, and in public and private repositories with GitHub Pro, GitHub Team, GitHub Enterprise Cl...",
@@ -10087,6 +10332,10 @@
             "type": "string",
             "description": "The name of the branch. Cannot contain wildcard characters. To use wildcard characters in branch names, use [the GraphQL API](https://docs.github.com/graphql)."
           },
+          "contexts": {
+            "type": "array",
+            "description": "The name of the status checks"
+          },
           "owner": {
             "type": "string",
             "description": "The account owner of the repository. The name is not case sensitive."
@@ -10099,13 +10348,17 @@
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "contexts"
         ],
         "type": "object"
       },
       "execution": {
         "method": "DELETE",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+        "body_mapping": {
+          "contexts": "contexts"
+        }
       }
     },
     "repos_remove_status_check_protection": {
@@ -10158,18 +10411,26 @@
           "repo": {
             "type": "string",
             "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          },
+          "teams": {
+            "type": "array",
+            "description": "The slug values for teams"
           }
         },
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "teams"
         ],
         "type": "object"
       },
       "execution": {
         "method": "DELETE",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+        "body_mapping": {
+          "teams": "teams"
+        }
       },
       "response_schema": "team_list"
     },
@@ -10376,6 +10637,10 @@
             "type": "string",
             "description": "The name of the branch. Cannot contain wildcard characters. To use wildcard characters in branch names, use [the GraphQL API](https://docs.github.com/graphql)."
           },
+          "contexts": {
+            "type": "array",
+            "description": "The name of the status checks"
+          },
           "owner": {
             "type": "string",
             "description": "The account owner of the repository. The name is not case sensitive."
@@ -10388,13 +10653,17 @@
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "contexts"
         ],
         "type": "object"
       },
       "execution": {
         "method": "PUT",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+        "body_mapping": {
+          "contexts": "contexts"
+        }
       }
     },
     "repos_set_team_access_restrictions": {
@@ -10415,18 +10684,26 @@
           "repo": {
             "type": "string",
             "description": "The name of the repository without the `.git` extension. The name is not case sensitive."
+          },
+          "teams": {
+            "type": "array",
+            "description": "The slug values for teams"
           }
         },
         "required": [
           "owner",
           "repo",
-          "branch"
+          "branch",
+          "teams"
         ],
         "type": "object"
       },
       "execution": {
         "method": "PUT",
-        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams"
+        "path": "/repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+        "body_mapping": {
+          "teams": "teams"
+        }
       },
       "response_schema": "team_list"
     },
@@ -12560,6 +12837,54 @@
         "$ref": "commit-comment"
       }
     },
+    "commit-comparison": {
+      "type": "object",
+      "properties": {
+        "ahead_by": {
+          "type": "integer"
+        },
+        "base_commit": {
+          "type": "object",
+          "description": "Commit",
+          "schema_ref": "commit"
+        },
+        "behind_by": {
+          "type": "integer"
+        },
+        "commits": {
+          "type": "array"
+        },
+        "diff_url": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array"
+        },
+        "html_url": {
+          "type": "string"
+        },
+        "merge_base_commit": {
+          "type": "object",
+          "description": "Commit",
+          "schema_ref": "commit"
+        },
+        "patch_url": {
+          "type": "string"
+        },
+        "permalink_url": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "total_commits": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
     "commit_list": {
       "type": "array",
       "items": {
@@ -14238,6 +14563,20 @@
     },
     "language": {
       "type": "object"
+    },
+    "merged-upstream": {
+      "type": "object",
+      "properties": {
+        "base_branch": {
+          "type": "string"
+        },
+        "merge_type": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "milestone": {
       "type": "object",

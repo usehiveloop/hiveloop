@@ -30,11 +30,14 @@ interface CreateAgentContextValue {
   direction: React.MutableRefObject<1 | -1>
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
+  selectedSkillIds: Set<string>
   isSubmitting: boolean
   setMode: (mode: CreationMode) => void
   goTo: (step: Step) => void
   toggleIntegration: (connectionId: string) => void
   toggleAction: (connectionId: string, actionKey: string) => void
+  toggleSkill: (skillId: string) => void
+  clearSkills: () => void
   handleCreate: () => void
   reset: () => void
 }
@@ -78,6 +81,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [mode, setModeState] = useState<CreationMode | null>(initialMode ?? null)
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
+  const [selectedSkillIds, setSelectedSkillIds] = useState<Set<string>>(new Set())
   const direction = useRef<1 | -1>(1)
 
   const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
@@ -126,11 +130,28 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     })
   }, [])
 
+  const toggleSkill = useCallback((skillId: string) => {
+    setSelectedSkillIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(skillId)) {
+        next.delete(skillId)
+      } else {
+        next.add(skillId)
+      }
+      return next
+    })
+  }, [])
+
+  const clearSkills = useCallback(() => {
+    setSelectedSkillIds(new Set())
+  }, [])
+
   const reset = useCallback(() => {
     setStep("mode")
     setModeState(null)
     setSelectedIntegrations(new Set())
     setSelectedActions({})
+    setSelectedSkillIds(new Set())
     form.reset()
   }, [form])
 
@@ -195,11 +216,14 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         direction,
         selectedIntegrations,
         selectedActions,
+        selectedSkillIds,
         isSubmitting: createAgent.isPending,
         setMode,
         goTo,
         toggleIntegration,
         toggleAction,
+        toggleSkill,
+        clearSkills,
         handleCreate,
         reset,
       }}

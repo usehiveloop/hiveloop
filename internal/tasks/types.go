@@ -17,6 +17,8 @@ const (
 	TypeBillingUsageEvent         = "billing:usage_event"
 	TypeSandboxTemplateBuild      = "sandbox_template:build"
 	TypeSandboxTemplateRetryBuild = "sandbox_template:retry"
+	TypeSkillHydrate              = "skill:hydrate"
+	TypeTriggerDispatch           = "trigger:dispatch"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

@@ -4933,6 +4933,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List skills attached to an agent */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSkillResponse"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Attach a skill to an agent
+         * @description Creates an agent_skills row. PinnedVersionID is optional — when null the agent follows the skill's latest version.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Skill to attach */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["attachSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSkillResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/skills/{skillID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Detach a skill from an agent
+         * @description Removes an agent_skills row.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Agent ID */
+                    agentID: string;
+                    /** @description Skill ID */
+                    skillID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{id}": {
         parameters: {
             query?: never;
@@ -11165,6 +11317,375 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List skills
+         * @description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter: public, own, all (default all) */
+                    scope?: string;
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-skillResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a skill
+         * @description Creates an inline-authored skill or registers a git-sourced skill for hydration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Skill details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/skills/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a skill
+         * @description Returns a skill with its latest hydrated bundle.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillDetailResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Archive a skill
+         * @description Marks an org-owned skill as archived. Public skills cannot be deleted via this endpoint.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update a skill
+         * @description Updates metadata on an org-owned skill. Public skills are read-only.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/skills/{id}/hydrate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-hydrate a git-sourced skill
+         * @description Enqueues a fresh git pull at the tracked ref. Only valid for git-sourced skills.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/skills/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List skill versions
+         * @description Returns all SkillVersion rows for a skill, newest first.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillVersionResponse"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -12554,6 +13075,21 @@ export interface components {
         "github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult": {
             resources?: components["schemas"]["github_com_ziraloop_ziraloop_internal_resources.AvailableResource"][];
         };
+        "github_com_ziraloop_ziraloop_internal_skills.Bundle": {
+            content?: string;
+            description?: string;
+            id?: string;
+            manifest?: {
+                [key: string]: unknown;
+            };
+            parameters_schema?: number[];
+            references?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Reference"][];
+            title?: string;
+        };
+        "github_com_ziraloop_ziraloop_internal_skills.Reference": {
+            body?: string;
+            path?: string;
+        };
         actionSchemaPaths: {
             paths?: components["schemas"]["schemaPath"][];
             response_schema?: string;
@@ -12863,6 +13399,12 @@ export interface components {
             tools?: components["schemas"]["JSON"];
             updated_at?: string;
         };
+        agentSkillResponse: {
+            created_at?: string;
+            pinned_version_id?: string;
+            skill?: components["schemas"]["skillResponse"];
+            skill_id?: string;
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -12877,6 +13419,10 @@ export interface components {
             active?: number;
             revoked?: number;
             total?: number;
+        };
+        attachSkillRequest: {
+            pinned_version_id?: string;
+            skill_id?: string;
         };
         auditEntryResponse: {
             action?: string;
@@ -13039,6 +13585,7 @@ export interface components {
             connection_id?: string;
             context_actions?: components["schemas"]["ContextAction"][];
             enabled?: boolean;
+            instructions?: string;
             trigger_keys?: string[];
         };
         createCheckoutRequest: {
@@ -13135,6 +13682,19 @@ export interface components {
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
             name?: string;
+        };
+        createSkillRequest: {
+            /** @description Inline source */
+            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            description?: string;
+            name?: string;
+            repo_ref?: string;
+            repo_subpath?: string;
+            /** @description Git source */
+            repo_url?: string;
+            /** @description "inline" | "git" */
+            source_type?: string;
+            tags?: string[];
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -13629,6 +14189,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-skillResponse": {
+            data?: components["schemas"]["skillResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-tokenListItem": {
             data?: components["schemas"]["tokenListItem"][];
             has_more?: boolean;
@@ -13765,6 +14330,52 @@ export interface components {
             env_var_keys?: string[];
             setup_commands?: string[];
         };
+        skillDetailResponse: {
+            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
+            created_at?: string;
+            description?: string;
+            featured?: boolean;
+            hydration_error?: string;
+            id?: string;
+            install_count?: number;
+            latest_version_id?: string;
+            name?: string;
+            org_id?: string;
+            repo_ref?: string;
+            repo_subpath?: string;
+            repo_url?: string;
+            slug?: string;
+            source_type?: string;
+            status?: string;
+            tags?: string[];
+            updated_at?: string;
+        };
+        skillResponse: {
+            created_at?: string;
+            description?: string;
+            featured?: boolean;
+            id?: string;
+            install_count?: number;
+            latest_version_id?: string;
+            name?: string;
+            org_id?: string;
+            repo_ref?: string;
+            repo_subpath?: string;
+            repo_url?: string;
+            slug?: string;
+            source_type?: string;
+            status?: string;
+            tags?: string[];
+            updated_at?: string;
+        };
+        skillVersionResponse: {
+            commit_sha?: string;
+            created_at?: string;
+            hydrated_at?: string;
+            hydration_error?: string;
+            id?: string;
+            version?: string;
+        };
         spendOverTime: {
             date?: string;
             total_cost?: number;
@@ -13898,6 +14509,13 @@ export interface components {
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
             name?: string;
+        };
+        updateSkillRequest: {
+            description?: string;
+            name?: string;
+            repo_ref?: string;
+            status?: string;
+            tags?: string[];
         };
         updateWebhookSettingsRequest: {
             url?: string;

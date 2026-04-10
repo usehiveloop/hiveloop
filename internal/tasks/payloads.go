@@ -371,3 +371,44 @@ func NewSkillHydrateTask(skillID uuid.UUID) (*asynq.Task, error) {
 		asynq.Timeout(2*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// trigger:dispatch
+// ---------------------------------------------------------------------------
+
+// TriggerDispatchPayload carries everything the dispatcher needs to decide
+// which agents should run for an incoming webhook. The connection is encoded
+// by ID — the worker reloads it from the DB so we don't carry secrets across
+// the queue boundary.
+//
+// PayloadJSON is the raw webhook body as bytes (not parsed) so the worker can
+// log/replay it verbatim. The dispatcher decodes it on demand.
+type TriggerDispatchPayload struct {
+	Provider     string    `json:"provider"`
+	EventType    string    `json:"event_type"`
+	EventAction  string    `json:"event_action"`
+	DeliveryID   string    `json:"delivery_id"`
+	OrgID        uuid.UUID `json:"org_id"`
+	ConnectionID uuid.UUID `json:"connection_id"`
+	PayloadJSON  []byte    `json:"payload"`
+}
+
+// NewTriggerDispatchTask creates a task that runs the dispatcher for a webhook.
+//
+// MaxRetry is intentionally low (3) — dispatch is fast and any error here is
+// either a transient DB issue (worth a retry) or a programmer error (more
+// retries don't help). Long timeouts are unnecessary; the dispatch step is
+// pure CPU + one DB query, so 30s is generous.
+func NewTriggerDispatchTask(payload TriggerDispatchPayload) (*asynq.Task, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal trigger dispatch payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeTriggerDispatch,
+		encoded,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(3),
+		asynq.Timeout(30*time.Second),
+	), nil
+}

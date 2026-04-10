@@ -126,6 +126,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		templateBuilder = orchestrator
 	}
 	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer)
+	skillHandler := handler.NewSkillHandler(database, enqueuer)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -320,6 +321,15 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Post("/{id}/build", sandboxTemplateHandler.TriggerBuild)
 					r.Post("/{id}/retry", sandboxTemplateHandler.RetryBuild)
 				})
+				r.Route("/skills", func(r chi.Router) {
+					r.Post("/", skillHandler.Create)
+					r.Get("/", skillHandler.List)
+					r.Get("/{id}", skillHandler.Get)
+					r.Patch("/{id}", skillHandler.Update)
+					r.Delete("/{id}", skillHandler.Delete)
+					r.Post("/{id}/hydrate", skillHandler.Hydrate)
+					r.Get("/{id}/versions", skillHandler.ListVersions)
+				})
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
 					r.Get("/", agentHandler.List)
@@ -342,6 +352,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Get("/{id}", agentTriggerHandler.Get)
 						r.Put("/{id}", agentTriggerHandler.Update)
 						r.Delete("/{id}", agentTriggerHandler.Delete)
+					})
+					r.Route("/{agentID}/skills", func(r chi.Router) {
+						r.Post("/", skillHandler.AttachToAgent)
+						r.Get("/", skillHandler.ListAgentSkills)
+						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
 					})
 				})
 				r.Route("/marketplace/agents", func(r chi.Router) {

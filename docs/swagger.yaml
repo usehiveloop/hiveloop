@@ -339,6 +339,35 @@ definitions:
           $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_resources.AvailableResource'
         type: array
     type: object
+  github_com_ziraloop_ziraloop_internal_skills.Bundle:
+    properties:
+      content:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      manifest:
+        additionalProperties: {}
+        type: object
+      parameters_schema:
+        items:
+          type: integer
+        type: array
+      references:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Reference'
+        type: array
+      title:
+        type: string
+    type: object
+  github_com_ziraloop_ziraloop_internal_skills.Reference:
+    properties:
+      body:
+        type: string
+      path:
+        type: string
+    type: object
   internal_handler.actionSchemaPaths:
     properties:
       paths:
@@ -941,6 +970,17 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_handler.agentSkillResponse:
+    properties:
+      created_at:
+        type: string
+      pinned_version_id:
+        type: string
+      skill:
+        $ref: '#/definitions/internal_handler.skillResponse'
+      skill_id:
+        type: string
+    type: object
   internal_handler.apiKeyResponse:
     properties:
       created_at:
@@ -970,6 +1010,13 @@ definitions:
         type: integer
       total:
         type: integer
+    type: object
+  internal_handler.attachSkillRequest:
+    properties:
+      pinned_version_id:
+        type: string
+      skill_id:
+        type: string
     type: object
   internal_handler.auditEntryResponse:
     properties:
@@ -1298,6 +1345,8 @@ definitions:
         type: array
       enabled:
         type: boolean
+      instructions:
+        type: string
       trigger_keys:
         items:
           type: string
@@ -1494,6 +1543,31 @@ definitions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       name:
         type: string
+    type: object
+  internal_handler.createSkillRequest:
+    properties:
+      bundle:
+        allOf:
+        - $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+        description: Inline source
+      description:
+        type: string
+      name:
+        type: string
+      repo_ref:
+        type: string
+      repo_subpath:
+        type: string
+      repo_url:
+        description: Git source
+        type: string
+      source_type:
+        description: '"inline" | "git"'
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.credentialResponse:
     properties:
@@ -2491,6 +2565,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_skillResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.skillResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_tokenListItem:
     properties:
       data:
@@ -2752,6 +2837,99 @@ definitions:
           type: string
         type: array
     type: object
+  internal_handler.skillDetailResponse:
+    properties:
+      bundle:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+      created_at:
+        type: string
+      description:
+        type: string
+      featured:
+        type: boolean
+      hydration_error:
+        type: string
+      id:
+        type: string
+      install_count:
+        type: integer
+      latest_version_id:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      repo_ref:
+        type: string
+      repo_subpath:
+        type: string
+      repo_url:
+        type: string
+      slug:
+        type: string
+      source_type:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  internal_handler.skillResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      featured:
+        type: boolean
+      id:
+        type: string
+      install_count:
+        type: integer
+      latest_version_id:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      repo_ref:
+        type: string
+      repo_subpath:
+        type: string
+      repo_url:
+        type: string
+      slug:
+        type: string
+      source_type:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  internal_handler.skillVersionResponse:
+    properties:
+      commit_sha:
+        type: string
+      created_at:
+        type: string
+      hydrated_at:
+        type: string
+      hydration_error:
+        type: string
+      id:
+        type: string
+      version:
+        type: string
+    type: object
   internal_handler.spendOverTime:
     properties:
       date:
@@ -3010,6 +3188,21 @@ definitions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       name:
         type: string
+    type: object
+  internal_handler.updateSkillRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      repo_ref:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.updateWebhookSettingsRequest:
     properties:
@@ -5924,6 +6117,101 @@ paths:
       summary: Start a forge run
       tags:
       - forge
+  /v1/agents/{agentID}/skills:
+    get:
+      parameters:
+      - description: Agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.agentSkillResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List skills attached to an agent
+      tags:
+      - skills
+    post:
+      consumes:
+      - application/json
+      description: Creates an agent_skills row. PinnedVersionID is optional — when
+        null the agent follows the skill's latest version.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Skill to attach
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.attachSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.agentSkillResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Attach a skill to an agent
+      tags:
+      - skills
+  /v1/agents/{agentID}/skills/{skillID}:
+    delete:
+      description: Removes an agent_skills row.
+      parameters:
+      - description: Agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Skill ID
+        in: path
+        name: skillID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detach a skill from an agent
+      tags:
+      - skills
   /v1/agents/{id}:
     delete:
       description: Deletes an agent and removes it from Bridge.
@@ -9397,6 +9685,226 @@ paths:
       summary: Rotate webhook secret
       tags:
       - settings
+  /v1/skills:
+    get:
+      description: Lists skills visible to the current org. Use scope=public to browse
+        the marketplace, scope=own for org skills, scope=all for both.
+      parameters:
+      - description: 'Filter: public, own, all (default all)'
+        in: query
+        name: scope
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_skillResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List skills
+      tags:
+      - skills
+    post:
+      consumes:
+      - application/json
+      description: Creates an inline-authored skill or registers a git-sourced skill
+        for hydration.
+      parameters:
+      - description: Skill details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.skillDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a skill
+      tags:
+      - skills
+  /v1/skills/{id}:
+    delete:
+      description: Marks an org-owned skill as archived. Public skills cannot be deleted
+        via this endpoint.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Archive a skill
+      tags:
+      - skills
+    get:
+      description: Returns a skill with its latest hydrated bundle.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.skillDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a skill
+      tags:
+      - skills
+    patch:
+      consumes:
+      - application/json
+      description: Updates metadata on an org-owned skill. Public skills are read-only.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.skillResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a skill
+      tags:
+      - skills
+  /v1/skills/{id}/hydrate:
+    post:
+      description: Enqueues a fresh git pull at the tracked ref. Only valid for git-sourced
+        skills.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Re-hydrate a git-sourced skill
+      tags:
+      - skills
+  /v1/skills/{id}/versions:
+    get:
+      description: Returns all SkillVersion rows for a skill, newest first.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.skillVersionResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List skill versions
+      tags:
+      - skills
   /v1/tokens:
     get:
       description: Returns tokens for the organization with cursor pagination. Supports

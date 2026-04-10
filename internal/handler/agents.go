@@ -371,6 +371,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 				contextActionsBytes, _ := json.Marshal(req.Trigger.ContextActions)
 				contextActionsJSON = model.RawJSON(contextActionsBytes)
 			}
+			var terminateOnJSON model.RawJSON
+			if len(req.Trigger.TerminateOn) > 0 {
+				terminateBytes, _ := json.Marshal(req.Trigger.TerminateOn)
+				terminateOnJSON = model.RawJSON(terminateBytes)
+			}
+			terminateEventKeys := pq.StringArray(model.CollectTerminateEventKeys(req.Trigger.TerminateOn))
 
 			enabled := true
 			if req.Trigger.Enabled != nil {
@@ -378,13 +384,16 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 
 			trigger := model.AgentTrigger{
-				OrgID:          org.ID,
-				AgentID:        agent.ID,
-				ConnectionID:   connectionID,
-				TriggerKeys:    req.Trigger.TriggerKeys,
-				Enabled:        enabled,
-				Conditions:     conditionsJSON,
-				ContextActions: contextActionsJSON,
+				OrgID:              org.ID,
+				AgentID:            agent.ID,
+				ConnectionID:       connectionID,
+				TriggerKeys:        req.Trigger.TriggerKeys,
+				Enabled:            enabled,
+				Conditions:         conditionsJSON,
+				ContextActions:     contextActionsJSON,
+				Instructions:       req.Trigger.Instructions,
+				TerminateOn:        terminateOnJSON,
+				TerminateEventKeys: terminateEventKeys,
 			}
 			if err := tx.Create(&trigger).Error; err != nil {
 				return fmt.Errorf("trigger: %w", err)

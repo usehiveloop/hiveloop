@@ -14,14 +14,15 @@ const (
 
 // ResourceDef mirrors the catalog ResourceDef for metadata.
 type ResourceDef struct {
-	DisplayName   string            `json:"display_name"`
-	Description   string            `json:"description"`
-	IDField       string            `json:"id_field"`
-	NameField     string            `json:"name_field"`
-	Icon          string            `json:"icon,omitempty"`
-	ListAction    string            `json:"list_action"`
-	RequestConfig *RequestConfig    `json:"request_config,omitempty"`
-	RefBindings   map[string]string `json:"ref_bindings,omitempty"`
+	DisplayName         string            `json:"display_name"`
+	Description         string            `json:"description"`
+	IDField             string            `json:"id_field"`
+	NameField           string            `json:"name_field"`
+	Icon                string            `json:"icon,omitempty"`
+	ListAction          string            `json:"list_action"`
+	RequestConfig       *RequestConfig    `json:"request_config,omitempty"`
+	RefBindings         map[string]string `json:"ref_bindings,omitempty"`
+	ResourceKeyTemplate string            `json:"resource_key_template,omitempty"`
 }
 
 // RequestConfig mirrors the catalog RequestConfig.
@@ -73,12 +74,13 @@ func writeProviderFiles(cfg ServiceConfig, result *ParseResult, metadata map[str
 	if len(cfg.Resources) > 0 {
 		for name, rc := range cfg.Resources {
 			rd := ResourceDef{
-				DisplayName: rc.DisplayName,
-				Description: rc.Description,
-				IDField:     rc.IDField,
-				NameField:   rc.NameField,
-				Icon:        rc.Icon,
-				ListAction:  rc.ListAction,
+				DisplayName:         rc.DisplayName,
+				Description:         rc.Description,
+				IDField:             rc.IDField,
+				NameField:           rc.NameField,
+				Icon:                rc.Icon,
+				ListAction:          rc.ListAction,
+				ResourceKeyTemplate: rc.ResourceKeyTemplate,
 			}
 			if rc.ListRequestConfig != nil {
 				rd.RequestConfig = rc.ListRequestConfig

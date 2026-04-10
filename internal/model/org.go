@@ -69,6 +69,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&Subscription{},
 		&DriveAsset{},
 		&AgentTrigger{},
+		&Skill{},
+		&SkillVersion{},
+		&AgentSkill{},
 	); err != nil {
 		return err
 	}
@@ -96,6 +99,11 @@ func AutoMigrate(db *gorm.DB) error {
 	db.Exec(`DROP INDEX IF EXISTS idx_agent_triggers_unique`)
 	// Unique constraint: one trigger config per agent+connection pair.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_agent_conn ON agent_triggers (agent_id, connection_id)`)
+
+	// Partial unique: a git-sourced skill can only have one version per commit SHA.
+	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
+	// GIN index for skill tag filtering in the marketplace.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_skills_tags ON skills USING GIN (tags)`)
 
 	return nil
 }

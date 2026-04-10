@@ -224,13 +224,13 @@
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "run_id": "workflow_run.id",
-        "workflow_name": "workflow_run.name"
+        "run_id": "workflow_job.run_id",
+        "workflow_name": "workflow_job.workflow_name"
       }
     },
     "check_run.completed": {
       "display_name": "Check Run Completed",
-      "description": "Triggered when a check run completes (CI status check)",
+      "description": "Triggered when a check run completes (any GitHub App-reported check, including CI)",
       "resource_type": "workflow",
       "payload_schema": "check_run_event",
       "refs": {
@@ -238,8 +238,8 @@
         "repo": "repository.name",
         "repository": "repository.full_name",
         "sender": "sender.login",
-        "run_id": "check_run.id",
-        "workflow_name": "workflow_run.name"
+        "check_run_id": "check_run.id",
+        "check_run_name": "check_run.name"
       }
     },
     "deployment_status.created": {
@@ -272,8 +272,8 @@
     },
     "create": {
       "display_name": "Branch or Tag Created",
-      "description": "Triggered when a branch or tag is created",
-      "resource_type": "branch",
+      "description": "Triggered when a branch or tag is created (payload.ref is the short name, e.g. 'main' or 'v1.0', not a full refs/heads/ path)",
+      "resource_type": "repository",
       "payload_schema": "create_event",
       "refs": {
         "owner": "repository.owner.login",
@@ -281,14 +281,13 @@
         "repository": "repository.full_name",
         "sender": "sender.login",
         "branch_name": "ref",
-        "ref": "ref",
         "ref_type": "ref_type"
       }
     },
     "delete": {
       "display_name": "Branch or Tag Deleted",
-      "description": "Triggered when a branch or tag is deleted",
-      "resource_type": "branch",
+      "description": "Triggered when a branch or tag is deleted (payload.ref is the short name, e.g. 'main' or 'v1.0', not a full refs/heads/ path)",
+      "resource_type": "repository",
       "payload_schema": "delete_event",
       "refs": {
         "owner": "repository.owner.login",
@@ -296,7 +295,6 @@
         "repository": "repository.full_name",
         "sender": "sender.login",
         "branch_name": "ref",
-        "ref": "ref",
         "ref_type": "ref_type"
       }
     },
@@ -559,7 +557,7 @@
         "comment": {
           "type": "object",
           "description": "The review comment object including id, diff_hunk, path, position, original_position, commit_id, body, user, created_at, updated_at, html_url, in_reply_to_id",
-          "schema_ref": "issue-comment"
+          "schema_ref": "pull-request-review-comment"
         },
         "pull_request": {
           "type": "object",

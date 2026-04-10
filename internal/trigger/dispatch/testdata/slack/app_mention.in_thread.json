@@ -1,0 +1,28 @@
+{
+  "token": "verification_token",
+  "team_id": "T111",
+  "enterprise_id": "E111",
+  "api_app_id": "A111",
+  "event": {
+    "client_msg_id": "4f1e9c25-7aa2-4c72-9ffb-d91e1d87b9e2",
+    "type": "app_mention",
+    "text": "<@W111> it's breaking on mobile",
+    "user": "W333",
+    "ts": "1595926540.012400",
+    "team": "T111",
+    "channel": "C111",
+    "thread_ts": "1595926230.009600",
+    "event_ts": "1595926540.012400"
+  },
+  "type": "event_callback",
+  "event_id": "Ev112",
+  "event_time": 1595926540,
+  "authorizations": [
+    {
+      "team_id": "T111",
+      "user_id": "W111",
+      "is_bot": true,
+      "is_enterprise_install": false
+    }
+  ]
+}
