@@ -61,7 +61,10 @@ export function useTriggerBuild() {
   return $api.useMutation("post", "/v1/sandbox-templates/{id}/build", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sandbox-templates"] })
-      queryClient.invalidateQueries({ queryKey: ["sandbox-template"] })
+      queryClient.invalidateQueries({
+        queryKey: ["sandbox-template"],
+        exact: false,
+      })
     },
   })
 }
