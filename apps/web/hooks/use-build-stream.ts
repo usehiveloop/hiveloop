@@ -89,18 +89,25 @@ export function useBuildStream(templateId: string | null) {
       headers["Last-Event-ID"] = lastEventIdRef.current
     }
 
+    console.log("[useBuildStream] Connecting to:", url, { templateId, headers: { ...headers, Authorization: "[REDACTED]" } })
+
     fetchEventSource(url, {
       signal: ctrl.signal,
       headers,
       onopen: async (response) => {
+        console.log("[useBuildStream] onopen:", { ok: response.ok, status: response.status, statusText: response.statusText })
         if (response.ok) {
           setConnected(true)
+          console.log("[useBuildStream] Stream connected")
         } else {
-          setError(`Stream failed: ${response.status}`)
+          const errorMsg = `Stream failed: ${response.status}`
+          console.error("[useBuildStream] onopen error:", errorMsg)
+          setError(errorMsg)
           throw new Error(`Stream open failed: ${response.status}`)
         }
       },
       onmessage: (event) => {
+        console.log("[useBuildStream] onmessage:", { event: event.event, id: event.id, data: event.data })
         if (!event.data) return
 
         lastEventIdRef.current = event.id
@@ -108,30 +115,36 @@ export function useBuildStream(templateId: string | null) {
         if (event.event === "log") {
           try {
             const data = JSON.parse(event.data) as BuildLog
+            console.log("[useBuildStream] log event:", data)
             setLogs((prev) => [...prev, data])
           } catch {
+            console.error("[useBuildStream] Failed to parse log event:", event.data)
             return
           }
         } else if (event.event === "status") {
           try {
             const data = JSON.parse(event.data) as BuildStatus
+            console.log("[useBuildStream] status event:", data)
             setStatus(data)
             if (data.status === "ready" || data.status === "failed") {
               setConnected(false)
               ctrl.abort()
             }
           } catch {
+            console.error("[useBuildStream] Failed to parse status event:", event.data)
             return
           }
         }
       },
       onerror: (err) => {
+        console.error("[useBuildStream] onerror:", err)
         if (!ctrl.signal.aborted) {
           setError(err instanceof Error ? err.message : "Stream connection lost")
         }
         throw err
       },
       onclose: () => {
+        console.log("[useBuildStream] Stream closed")
         setConnected(false)
       },
     }).catch(() => {
