@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
@@ -46,33 +43,13 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 	// Update status to building
 	h.db.Model(&tmpl).Update("build_status", "building")
 
-	// Accumulate logs in memory and flush to DB every 3 seconds
-	var logLines []string
-	var logMu sync.Mutex
-	logFlushTicker := time.NewTicker(3 * time.Second)
-	defer logFlushTicker.Stop()
-
-	flushLogs := func() {
-		logMu.Lock()
-		defer logMu.Unlock()
-		if len(logLines) > 0 {
-			newLogs := strings.Join(logLines, "\n")
-			h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
-			logLines = nil
-		}
-	}
-
 	onLog := func(line string) {
-		logMu.Lock()
-		logLines = append(logLines, line)
-		logMu.Unlock()
+		// Flush immediately so logs appear in DB while building
+		h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+line))
 	}
 
 	// Build the template with polling
 	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, &tmpl, onLog)
-
-	// Final flush of any remaining logs
-	flushLogs()
 
 	if err != nil {
 		errMsg := err.Error()
