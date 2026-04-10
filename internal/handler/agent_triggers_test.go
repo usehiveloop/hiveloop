@@ -33,8 +33,6 @@ func newTriggerHarness(t *testing.T) *triggerTestHarness {
 	t.Helper()
 	db := connectTestDB(t)
 
-	// Recreate the agent_triggers table with current schema.
-	db.Exec(`DROP TABLE IF EXISTS agent_triggers`)
 	db.Exec(`CREATE TABLE agent_triggers (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		org_id UUID NOT NULL,
