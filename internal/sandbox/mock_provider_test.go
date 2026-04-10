@@ -107,6 +107,10 @@ func (m *mockProvider) BuildSnapshotWithLogs(_ context.Context, _ BuildSnapshotO
 	return "mock-snapshot-id", nil
 }
 
+func (m *mockProvider) GetSnapshotStatus(_ context.Context, _ string) (*SnapshotStatusResult, error) {
+	return &SnapshotStatusResult{State: "ready"}, nil
+}
+
 func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
 	return nil
 }

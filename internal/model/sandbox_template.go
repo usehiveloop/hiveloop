@@ -15,7 +15,8 @@ type SandboxTemplate struct {
 	ExternalID    *string   // provider's template/snapshot ID once built
 	BuildStatus   string    `gorm:"not null;default:'pending'"` // pending, building, ready, failed
 	BuildError    *string
-	Config        JSON `gorm:"type:jsonb;not null;default:'{}'"` // resources, env vars, etc.
+	BuildLogs     string `gorm:"type:text;not null;default:''"`    // accumulated build logs (newline separated)
+	Config        JSON   `gorm:"type:jsonb;not null;default:'{}'"` // resources, env vars, etc.
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

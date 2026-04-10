@@ -322,6 +322,63 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
 	return d.client.Snapshot.Delete(ctx, snapshot)
 }
 
+// GetSnapshotStatus returns the current status of a Daytona snapshot build.
+func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*sandbox.SnapshotStatusResult, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshot/"+externalID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+d.apiKey)
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting snapshot status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get snapshot status failed (status %d): %s", resp.StatusCode, body)
+	}
+
+	var result struct {
+		State    string `json:"state"`
+		ErrorMsg string `json:"error,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding snapshot status response: %w", err)
+	}
+
+	return &sandbox.SnapshotStatusResult{
+		State:    result.State,
+		ErrorMsg: result.ErrorMsg,
+	}, nil
+}
+
+// GetSnapshotLogs returns the build logs for a Daytona snapshot.
+func (d *Driver) GetSnapshotLogs(ctx context.Context, externalID string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, d.apiURL+"/snapshot/"+externalID+"/logs", nil)
+	if err != nil {
+		return "", fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+d.apiKey)
+	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	if err != nil {
+		return "", fmt.Errorf("getting snapshot logs: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("get snapshot logs failed (status %d): %s", resp.StatusCode, body)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading snapshot logs: %w", err)
+	}
+	return string(body), nil
+}
+
 // SetAutoStop configures auto-stop interval for a sandbox.
 func (d *Driver) SetAutoStop(ctx context.Context, externalID string, intervalMinutes int) error {
 	url := fmt.Sprintf("%s/sandbox/%s/autostop/%d", d.apiURL, externalID, intervalMinutes)

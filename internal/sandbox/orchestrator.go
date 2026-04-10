@@ -879,6 +879,60 @@ func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.Sa
 	}, onLog)
 }
 
+// BuildTemplateWithPolling builds a sandbox template, polls for status, and accumulates logs to DB.
+// This is the recommended way to build templates as it properly handles async builds.
+func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (externalID string, buildErr error) {
+	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
+
+	// Start the async build
+	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
+		Name:          snapshotName,
+		BuildCommands: tmpl.BuildCommands,
+	}, onLog)
+	if err != nil {
+		return "", fmt.Errorf("starting snapshot build: %w", err)
+	}
+
+	// Poll for snapshot status until ready or error (max 15 minutes)
+	const pollInterval = 5 * time.Second
+	const maxWait = 15 * time.Minute
+	deadline := time.Now().Add(maxWait)
+
+	for time.Now().Before(deadline) {
+		select {
+		case <-ctx.Done():
+			return externalID, ctx.Err()
+		case <-time.After(pollInterval):
+		}
+
+		status, err := o.provider.GetSnapshotStatus(ctx, externalID)
+		if err != nil {
+			slog.Warn("failed to get snapshot status, retrying", "external_id", externalID, "error", err)
+			continue
+		}
+
+		switch status.State {
+		case "ready":
+			slog.Info("snapshot build completed", "external_id", externalID)
+			return externalID, nil
+		case "error":
+			errMsg := status.ErrorMsg
+			if errMsg == "" {
+				errMsg = "snapshot build failed with unknown error"
+			}
+			slog.Error("snapshot build failed", "external_id", externalID, "error", errMsg)
+			return externalID, fmt.Errorf("%s", errMsg)
+		case "building", "pending", "":
+			// Continue polling
+			slog.Debug("snapshot still building", "external_id", externalID, "state", status.State)
+		default:
+			slog.Warn("unknown snapshot state", "external_id", externalID, "state", status.State)
+		}
+	}
+
+	return externalID, fmt.Errorf("snapshot build timed out after %s", maxWait)
+}
+
 // DeleteTemplate deletes a sandbox template (snapshot) from the provider.
 func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) error {
 	return o.provider.DeleteSnapshot(ctx, externalID)
