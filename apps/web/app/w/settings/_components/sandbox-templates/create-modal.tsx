@@ -13,7 +13,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +20,7 @@ import { toast } from "sonner"
 import {
   useSandboxTemplate,
   useTriggerBuild,
+  useRetryBuild,
   createSandboxTemplate,
   type SandboxTemplate,
 } from "@/hooks/use-sandbox-template"
@@ -33,10 +33,10 @@ interface CreateSandboxTemplateModalProps {
 
 export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: CreateSandboxTemplateModalProps) {
   const [name, setName] = useState("")
-  const [buildCommands, setBuildCommands] = useState("")
+  const [buildCommands, setBuildCommands] = useState<string[]>([""])
   const [isBuilding, setIsBuilding] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const onSuccessRef = React.useRef(onSuccess)
   const onOpenChangeRef = React.useRef(onOpenChange)
   const hasShownSuccessRef = React.useRef(false)
@@ -51,10 +51,10 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
   const resetForm = useCallback(() => {
     setName("")
-    setBuildCommands("")
+    setBuildCommands([""])
     setIsBuilding(false)
+    setIsRetrying(false)
     setBuildTemplateId(null)
-    setError(null)
     hasShownSuccessRef.current = false
   }, [])
 
@@ -63,6 +63,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   )
 
   const triggerBuild = useTriggerBuild()
+  const retryBuild = useRetryBuild()
 
   useEffect(() => {
     if (!template || !isBuilding || hasShownSuccessRef.current) return
@@ -75,10 +76,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
         onOpenChangeRef.current(false)
         resetForm()
       }, 1500)
-    } else if (template.build_status === "failed") {
-      hasShownSuccessRef.current = true
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setError(template.build_error ?? "Build failed with unknown error")
     }
   }, [template, isBuilding, resetForm])
 
@@ -87,20 +84,38 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     resetForm()
   }
 
+  function updateCommand(index: number, value: string) {
+    const newCommands = [...buildCommands]
+    newCommands[index] = value
+    setBuildCommands(newCommands)
+  }
+
+  function addCommand() {
+    setBuildCommands([...buildCommands, ""])
+  }
+
+  function removeCommand(index: number) {
+    if (buildCommands.length <= 1) return
+    const newCommands = buildCommands.filter((_, i) => i !== index)
+    setBuildCommands(newCommands)
+  }
+
+  const filteredCommands = buildCommands.filter(cmd => cmd.trim() !== "")
+
   async function handleCreateAndBuild() {
     if (!name.trim()) {
       toast.error("Name is required")
       return
     }
-    if (!buildCommands.trim()) {
-      toast.error("Build commands are required")
+    if (filteredCommands.length === 0) {
+      toast.error("At least one build command is required")
       return
     }
 
     try {
       const createdTemplate = await createSandboxTemplate({
         name: name.trim(),
-        build_commands: buildCommands.trim(),
+        build_commands: filteredCommands,
       })
 
       if (!createdTemplate.id) {
@@ -137,6 +152,35 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
     }
   }
 
+  function handleRetry() {
+    if (!buildTemplateId) return
+    const cmds = template?.build_commands ?? [""]
+    setBuildCommands(cmds.length > 0 ? cmds : [""])
+    setIsRetrying(true)
+    setIsBuilding(false)
+  }
+
+  async function handleRetryBuild() {
+    if (!buildTemplateId || retryBuild.isPending) return
+
+    retryBuild.mutate(
+      {
+        params: { path: { id: buildTemplateId } },
+        body: { build_commands: filteredCommands },
+      },
+      {
+        onSuccess: () => {
+          setIsRetrying(false)
+          setIsBuilding(true)
+        },
+        onError: (err: unknown) => {
+          toast.error(`Failed to retry build: ${err}`)
+          setIsRetrying(false)
+        },
+      }
+    )
+  }
+
   const logs = template?.build_logs?.split("\n").filter(Boolean) ?? []
 
   return (
@@ -155,31 +199,58 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
 
         <div className="flex-1 overflow-hidden">
           {!isBuilding ? (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Template Name</Label>
-                <Input
-                  id="name"
-                  placeholder="my-custom-template"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  A descriptive name for your template.
-                </p>
-              </div>
+            <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
+              {!isRetrying && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Template Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="my-custom-template"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A descriptive name for your template.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="commands">Build Commands</Label>
-                <Textarea
-                  id="commands"
-                  placeholder={"pip install numpy pandas\nnpm install -g my-cli"}
-                  value={buildCommands}
-                  onChange={(e) => setBuildCommands(e.target.value)}
-                  className="font-mono text-sm min-h-[200px]"
-                />
+                <Label>Build Commands</Label>
+                <div className="space-y-2">
+                  {buildCommands.map((cmd, index) => (
+                    <div key={cmd ? `cmd-${cmd.substring(0, 10)}-${index}` : `empty-cmd-${index}`} className="flex items-center gap-2">
+                      <Input
+                        placeholder="apt-get install curl"
+                        value={cmd}
+                        onChange={(e) => updateCommand(index, e.target.value)}
+                        className="font-mono text-sm flex-1"
+                      />
+                      {buildCommands.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCommand(index)}
+                          className="h-8 px-2 shrink-0 text-muted-foreground hover:text-destructive"
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCommand}
+                  className="mt-2"
+                >
+                  + Add Command
+                </Button>
                 <p className="text-xs text-muted-foreground">
-                  One command per line. Each line runs in a separate shell layer.
+                  Each command runs in a separate shell layer, joined with &&.
                 </p>
               </div>
             </div>
@@ -195,9 +266,10 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                 )}
               </div>
 
-              {error && (
+              {template?.build_status === "failed" && template.build_error && (
                 <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3">
-                  <p className="text-sm text-red-600">{error}</p>
+                  <p className="text-sm font-medium text-red-600">Build Error:</p>
+                  <p className="text-xs text-red-600/80 mt-1">{template.build_error}</p>
                 </div>
               )}
 
@@ -216,13 +288,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                   {logs.length > 0 ? logs.join("\n") : "# Waiting for logs...\n"}
                 </SyntaxHighlighter>
               </ScrollToBottom>
-
-              {template?.build_status === "failed" && template.build_error && (
-                <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3">
-                  <p className="text-sm font-medium text-red-600">Build Error:</p>
-                  <p className="text-xs text-red-600/80 mt-1">{template.build_error}</p>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -230,24 +295,58 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
         <div className="flex justify-end gap-2 pt-4 border-t">
           {!isBuilding ? (
             <>
-              <Button variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateAndBuild}
-                loading={triggerBuild.isPending}
-              >
-                Create & Build
-              </Button>
+              {isRetrying ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsRetrying(false)
+                      setBuildCommands([""])
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleRetryBuild}
+                    loading={retryBuild.isPending}
+                    disabled={retryBuild.isPending}
+                  >
+                    Retry Build
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreateAndBuild}
+                    loading={triggerBuild.isPending}
+                    disabled={triggerBuild.isPending}
+                  >
+                    Create & Build
+                  </Button>
+                </>
+              )}
             </>
           ) : (
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={template?.build_status === "building"}
-            >
-              Close
-            </Button>
+            <>
+              {(template?.build_status === "failed" || template?.build_status === "ready") && (
+                <Button
+                  variant="outline"
+                  onClick={handleRetry}
+                >
+                  Retry
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={template?.build_status === "building"}
+              >
+                Close
+              </Button>
+            </>
           )}
         </div>
       </DialogContent>

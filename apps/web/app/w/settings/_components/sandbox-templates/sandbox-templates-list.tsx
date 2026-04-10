@@ -148,9 +148,9 @@ export function SandboxTemplatesList() {
                     <span className="font-medium truncate">{template.name}</span>
                     {getStatusBadge(template.build_status)}
                   </div>
-                  {template.build_commands && (
+                  {template.build_commands && template.build_commands.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1 truncate font-mono">
-                      {template.build_commands.split("\n")[0]}
+                      {template.build_commands[0]}
                     </p>
                   )}
                 </div>

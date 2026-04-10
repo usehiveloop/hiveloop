@@ -1487,7 +1487,9 @@ definitions:
   internal_handler.createSandboxTemplateRequest:
     properties:
       build_commands:
-        type: string
+        items:
+          type: string
+        type: array
       config:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       name:
@@ -2639,7 +2641,9 @@ definitions:
   internal_handler.retryBuildRequest:
     properties:
       build_commands:
-        type: string
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.sandboxResponse:
     properties:
@@ -2665,7 +2669,9 @@ definitions:
   internal_handler.sandboxTemplateResponse:
     properties:
       build_commands:
-        type: string
+        items:
+          type: string
+        type: array
       build_error:
         type: string
       build_logs:
@@ -2997,7 +3003,9 @@ definitions:
   internal_handler.updateSandboxTemplateRequest:
     properties:
       build_commands:
-        type: string
+        items:
+          type: string
+        type: array
       config:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       name:

@@ -81,7 +81,7 @@ export function useDeleteSandboxTemplate() {
 
 export async function createSandboxTemplate(data: {
   name: string
-  build_commands: string
+  build_commands: string[]
 }): Promise<SandboxTemplate> {
   const response = await api.POST("/v1/sandbox-templates", {
     body: data,
@@ -90,4 +90,18 @@ export async function createSandboxTemplate(data: {
     throw response.error
   }
   return response.data as SandboxTemplate
+}
+
+export function useRetryBuild() {
+  const queryClient = useQueryClient()
+
+  return $api.useMutation("post", "/v1/sandbox-templates/{id}/retry", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sandbox-templates"] })
+      queryClient.invalidateQueries({
+        queryKey: ["sandbox-template"],
+        exact: false,
+      })
+    },
+  })
 }

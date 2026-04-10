@@ -325,32 +325,49 @@ func NewSandboxTemplateBuildTask(templateID uuid.UUID) (*asynq.Task, error) {
 // SandboxTemplateRetryBuildPayload is the payload for retry tasks.
 type SandboxTemplateRetryBuildPayload struct {
 	TemplateID    uuid.UUID `json:"template_id"`
-	BuildCommands string    `json:"build_commands,omitempty"`
+	BuildCommands []string  `json:"build_commands,omitempty"`
 }
 
 // NewSandboxTemplateRetryBuildTask creates a task that retries building a sandbox template.
-func NewSandboxTemplateRetryBuildTask(templateID uuid.UUID, buildCommands *string) (*asynq.Task, error) {
-	payload, err := json.Marshal(SandboxTemplateRetryBuildPayload{
+func NewSandboxTemplateRetryBuildTask(templateID uuid.UUID, buildCommands []string) (*asynq.Task, error) {
+	payload := SandboxTemplateRetryBuildPayload{
 		TemplateID:    templateID,
-		BuildCommands: "",
-	})
+		BuildCommands: buildCommands,
+	}
+	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("marshal sandbox template retry payload: %w", err)
 	}
-	if buildCommands != nil {
-		payload, err = json.Marshal(SandboxTemplateRetryBuildPayload{
-			TemplateID:    templateID,
-			BuildCommands: *buildCommands,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("marshal sandbox template retry payload: %w", err)
-		}
-	}
 	return asynq.NewTask(
 		TypeSandboxTemplateRetryBuild,
-		payload,
+		data,
 		asynq.Queue(QueueDefault),
 		asynq.MaxRetry(2),
 		asynq.Timeout(30*time.Minute),
+	), nil
+}
+
+// ---------------------------------------------------------------------------
+// skill:hydrate
+// ---------------------------------------------------------------------------
+
+// SkillHydratePayload is the payload for TypeSkillHydrate tasks.
+type SkillHydratePayload struct {
+	SkillID uuid.UUID `json:"skill_id"`
+}
+
+// NewSkillHydrateTask creates a task that pulls a git-sourced skill at its
+// tracked ref and writes a new SkillVersion.
+func NewSkillHydrateTask(skillID uuid.UUID) (*asynq.Task, error) {
+	payload, err := json.Marshal(SkillHydratePayload{SkillID: skillID})
+	if err != nil {
+		return nil, fmt.Errorf("marshal skill hydrate payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeSkillHydrate,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(3),
+		asynq.Timeout(2*time.Minute),
 	), nil
 }

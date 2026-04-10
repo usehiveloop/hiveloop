@@ -846,9 +846,13 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 	o.db.Model(tmpl).Update("build_status", "building")
 
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
+	cmds := []string{}
+	if tmpl.BuildCommands != "" {
+		cmds = strings.Split(tmpl.BuildCommands, "\n")
+	}
 	externalID, err := o.provider.BuildSnapshot(ctx, BuildSnapshotOpts{
 		Name:          snapshotName,
-		BuildCommands: tmpl.BuildCommands,
+		BuildCommands: cmds,
 	})
 
 	if err != nil {
@@ -873,9 +877,13 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 // Returns the external snapshot ID once the build completes.
 func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
+	cmds := []string{}
+	if tmpl.BuildCommands != "" {
+		cmds = strings.Split(tmpl.BuildCommands, "\n")
+	}
 	return o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
 		Name:          snapshotName,
-		BuildCommands: tmpl.BuildCommands,
+		BuildCommands: cmds,
 	}, onLog)
 }
 
@@ -884,11 +892,15 @@ func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.Sa
 // onStatus is called whenever the build status changes (building, ready, failed).
 func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
+	cmds := []string{}
+	if tmpl.BuildCommands != "" {
+		cmds = strings.Split(tmpl.BuildCommands, "\n")
+	}
 
 	// Start the async build
 	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
 		Name:          snapshotName,
-		BuildCommands: tmpl.BuildCommands,
+		BuildCommands: cmds,
 	}, onLog)
 	if err != nil {
 		return "", fmt.Errorf("starting snapshot build: %w", err)
@@ -961,7 +973,7 @@ func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) er
 
 // RetryTemplateBuild deletes an existing snapshot and starts a new build.
 // If newCommands is provided, updates the template with those commands first.
-func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.SandboxTemplate, newCommands string, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
+func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.SandboxTemplate, newCommands []string, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	// Delete existing snapshot if present
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
 		slog.Info("deleting existing snapshot before retry", "external_id", *tmpl.ExternalID)
@@ -971,8 +983,8 @@ func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.Sandb
 	}
 
 	// Update commands if provided
-	if newCommands != "" {
-		tmpl.BuildCommands = newCommands
+	if len(newCommands) > 0 {
+		tmpl.BuildCommands = strings.Join(newCommands, "\n")
 	}
 
 	// Reset template status

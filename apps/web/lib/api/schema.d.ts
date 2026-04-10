@@ -13132,7 +13132,7 @@ export interface components {
             name?: string;
         };
         createSandboxTemplateRequest: {
-            build_commands?: string;
+            build_commands?: string[];
             config?: components["schemas"]["JSON"];
             name?: string;
         };
@@ -13709,7 +13709,7 @@ export interface components {
             };
         };
         retryBuildRequest: {
-            build_commands?: string;
+            build_commands?: string[];
         };
         sandboxResponse: {
             agent_id?: string;
@@ -13723,7 +13723,7 @@ export interface components {
             status?: string;
         };
         sandboxTemplateResponse: {
-            build_commands?: string;
+            build_commands?: string[];
             build_error?: string;
             build_logs?: string;
             build_status?: string;
@@ -13895,7 +13895,7 @@ export interface components {
             tags?: string[];
         };
         updateSandboxTemplateRequest: {
-            build_commands?: string;
+            build_commands?: string[];
             config?: components["schemas"]["JSON"];
             name?: string;
         };

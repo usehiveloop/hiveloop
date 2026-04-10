@@ -12960,7 +12960,10 @@
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
@@ -14722,7 +14725,10 @@
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -14762,7 +14768,10 @@
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "build_error": {
                     "type": "string"
@@ -15270,7 +15279,10 @@
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"

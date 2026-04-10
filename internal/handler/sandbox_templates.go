@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,17 @@ import (
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/tasks"
 )
+
+func commandsToString(cmds []string) string {
+	return strings.Join(cmds, "\n")
+}
+
+func commandsToArray(cmdStr string) []string {
+	if cmdStr == "" {
+		return []string{}
+	}
+	return strings.Split(cmdStr, "\n")
+}
 
 // TemplateBuildable is the interface for building sandbox templates.
 type TemplateBuildable interface {
@@ -37,24 +49,24 @@ func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer 
 
 type createSandboxTemplateRequest struct {
 	Name          string     `json:"name"`
-	BuildCommands string     `json:"build_commands"`
+	BuildCommands []string   `json:"build_commands"`
 	Config        model.JSON `json:"config,omitempty"`
 }
 
 type updateSandboxTemplateRequest struct {
 	Name          *string    `json:"name,omitempty"`
-	BuildCommands *string    `json:"build_commands,omitempty"`
+	BuildCommands []string   `json:"build_commands,omitempty"`
 	Config        model.JSON `json:"config,omitempty"`
 }
 
 type retryBuildRequest struct {
-	BuildCommands *string `json:"build_commands,omitempty"`
+	BuildCommands []string `json:"build_commands,omitempty"`
 }
 
 type sandboxTemplateResponse struct {
 	ID            string     `json:"id"`
 	Name          string     `json:"name"`
-	BuildCommands string     `json:"build_commands"`
+	BuildCommands []string   `json:"build_commands"`
 	ExternalID    *string    `json:"external_id,omitempty"`
 	BuildStatus   string     `json:"build_status"`
 	BuildError    *string    `json:"build_error,omitempty"`
@@ -65,10 +77,14 @@ type sandboxTemplateResponse struct {
 }
 
 func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse {
+	cmds := []string{}
+	if t.BuildCommands != "" {
+		cmds = []string{t.BuildCommands}
+	}
 	return sandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
-		BuildCommands: t.BuildCommands,
+		BuildCommands: cmds,
 		ExternalID:    t.ExternalID,
 		BuildStatus:   t.BuildStatus,
 		BuildError:    t.BuildError,
@@ -113,7 +129,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	tmpl := model.SandboxTemplate{
 		OrgID:         org.ID,
 		Name:          req.Name,
-		BuildCommands: req.BuildCommands,
+		BuildCommands: commandsToString(req.BuildCommands),
 		BuildStatus:   "pending",
 		Config:        req.Config,
 	}
@@ -255,7 +271,7 @@ func (h *SandboxTemplateHandler) Update(w http.ResponseWriter, r *http.Request) 
 		updates["name"] = *req.Name
 	}
 	if req.BuildCommands != nil {
-		updates["build_commands"] = *req.BuildCommands
+		updates["build_commands"] = commandsToString(req.BuildCommands)
 		// Reset build status when commands change
 		updates["build_status"] = "pending"
 		updates["external_id"] = nil
@@ -393,6 +409,16 @@ func (h *SandboxTemplateHandler) RetryBuild(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
+	// Update status to building and reset synchronously to prevent race conditions
+	h.db.Model(&tmpl).Updates(map[string]any{
+		"build_status": "building",
+		"build_error":  nil,
+		"build_logs":   "",
+	})
+	tmpl.BuildStatus = "building"
+	tmpl.BuildError = nil
+	tmpl.BuildLogs = ""
+
 	task, err := tasks.NewSandboxTemplateRetryBuildTask(tmpl.ID, req.BuildCommands)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue retry task"})
@@ -402,14 +428,6 @@ func (h *SandboxTemplateHandler) RetryBuild(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue retry task"})
 		return
 	}
-
-	// Update status to building and reset
-	h.db.Model(&tmpl).Updates(map[string]any{
-		"build_status": "building",
-		"build_error":  nil,
-		"build_logs":   "",
-	})
-	tmpl.BuildStatus = "building"
 
 	writeJSON(w, http.StatusAccepted, toSandboxTemplateResponse(tmpl))
 }

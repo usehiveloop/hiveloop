@@ -12963,7 +12963,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
@@ -14725,7 +14728,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -14765,7 +14771,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "build_error": {
                     "type": "string"
@@ -15273,7 +15282,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "build_commands": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"

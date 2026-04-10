@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
@@ -280,9 +281,18 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 		`curl -fsSL -o /usr/local/bin/codedb "https://github.com/justrach/codedb/releases/download/v0.2.54/codedb-linux-x86_64" && chmod +x /usr/local/bin/codedb`,
 	)
 
-	// Customer build commands
-	if opts.BuildCommands != "" {
-		image = image.Run(opts.BuildCommands)
+	// Customer build commands - join with && so they run as a single RUN instruction
+	if len(opts.BuildCommands) > 0 {
+		commands := make([]string, 0, len(opts.BuildCommands))
+		for _, cmd := range opts.BuildCommands {
+			trimmed := strings.TrimSpace(cmd)
+			if trimmed != "" {
+				commands = append(commands, trimmed)
+			}
+		}
+		if len(commands) > 0 {
+			image = image.Run(strings.Join(commands, " && "))
+		}
 	}
 
 	// Working directory + entrypoint

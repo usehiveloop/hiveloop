@@ -73,9 +73,9 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 	}
 
 	// Update commands if provided
-	if payload.BuildCommands != "" {
-		h.db.Model(&tmpl).Update("build_commands", payload.BuildCommands)
-		tmpl.BuildCommands = payload.BuildCommands
+	if len(payload.BuildCommands) > 0 {
+		h.db.Model(&tmpl).Update("build_commands", strings.Join(payload.BuildCommands, "\n"))
+		tmpl.BuildCommands = strings.Join(payload.BuildCommands, "\n")
 	}
 
 	// Reset template status

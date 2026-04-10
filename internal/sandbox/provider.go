@@ -29,9 +29,9 @@ type SandboxInfo struct {
 
 // BuildSnapshotOpts configures a snapshot (template) build.
 type BuildSnapshotOpts struct {
-	Name          string // snapshot name
-	BuildCommands string // commands to run on the base image
-	BaseImage     string // base image to build on top of
+	Name          string   // snapshot name
+	BuildCommands []string // commands to run on the base image
+	BaseImage     string   // base image to build on top of
 }
 
 // SnapshotBuildStatus tracks snapshot build progress.

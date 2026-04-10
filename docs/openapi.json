@@ -15268,7 +15268,10 @@
         "type": "object",
         "properties": {
           "build_commands": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "config": {
             "$ref": "#/components/schemas/JSON"
@@ -17030,7 +17033,10 @@
         "type": "object",
         "properties": {
           "build_commands": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -17070,7 +17076,10 @@
         "type": "object",
         "properties": {
           "build_commands": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "build_error": {
             "type": "string"
@@ -17578,7 +17587,10 @@
         "type": "object",
         "properties": {
           "build_commands": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "config": {
             "$ref": "#/components/schemas/JSON"
