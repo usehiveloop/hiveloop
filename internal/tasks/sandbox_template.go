@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
@@ -43,13 +46,58 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 	// Update status to building
 	h.db.Model(&tmpl).Update("build_status", "building")
 
+	// Buffered log channel
+	logChan := make(chan string, 100)
+	var logMu sync.Mutex
+	var bufferedLogs []string
+
+	// Goroutine to flush logs every 3 seconds
+	done := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				logMu.Lock()
+				if len(bufferedLogs) > 0 {
+					newLogs := strings.Join(bufferedLogs, "\n")
+					h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
+					bufferedLogs = nil
+				}
+				logMu.Unlock()
+			case line, ok := <-logChan:
+				if !ok {
+					return
+				}
+				logMu.Lock()
+				bufferedLogs = append(bufferedLogs, line)
+				logMu.Unlock()
+			}
+		}
+	}()
+
 	onLog := func(line string) {
-		// Flush immediately so logs appear in DB while building
-		h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+line))
+		select {
+		case logChan <- line:
+		default:
+			// Channel full, skip log
+		}
 	}
 
 	// Build the template with polling
 	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, &tmpl, onLog)
+
+	// Signal flusher to stop and do final flush
+	close(done)
+	logMu.Lock()
+	if len(bufferedLogs) > 0 {
+		newLogs := strings.Join(bufferedLogs, "\n")
+		h.db.Model(&tmpl).Update("build_logs", gorm.Expr("build_logs || ?", "\n"+newLogs))
+	}
+	logMu.Unlock()
 
 	if err != nil {
 		errMsg := err.Error()
