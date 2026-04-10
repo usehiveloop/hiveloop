@@ -1,7 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
+import ScrollToBottom from "react-scroll-to-bottom"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import {
   useSandboxTemplate,
@@ -35,10 +37,9 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   const [isBuilding, setIsBuilding] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const onSuccessRef = useRef(onSuccess)
-  const onOpenChangeRef = useRef(onOpenChange)
-  const hasShownSuccessRef = useRef(false)
+  const onSuccessRef = React.useRef(onSuccess)
+  const onOpenChangeRef = React.useRef(onOpenChange)
+  const hasShownSuccessRef = React.useRef(false)
 
   useEffect(() => {
     onSuccessRef.current = onSuccess
@@ -80,12 +81,6 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
       setError(template.build_error ?? "Build failed with unknown error")
     }
   }, [template, isBuilding, resetForm])
-
-  useEffect(() => {
-    if (template?.build_logs && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [template?.build_logs])
 
   function handleClose() {
     onOpenChange(false)
@@ -206,18 +201,21 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                 </div>
               )}
 
-              <ScrollArea className="h-[300px] rounded-md bg-muted/50 p-4">
-                <div className="space-y-1 font-mono text-xs">
-                  {logs.map((log) => (
-                    <div key={log} className="text-foreground/80">
-                      {log}
-                    </div>
-                  ))}
-                  {logs.length === 0 && !error && (
-                    <div className="text-muted-foreground">Waiting for logs...</div>
-                  )}
-                </div>
-              </ScrollArea>
+              <ScrollToBottom className="h-[300px] rounded-md bg-black border">
+                <SyntaxHighlighter
+                  language="bash"
+                  style={oneDark}
+                  customStyle={{
+                    margin: 0,
+                    padding: "1rem",
+                    background: "transparent",
+                    fontSize: "0.75rem",
+                  }}
+                  showLineNumbers
+                >
+                  {logs.length > 0 ? logs.join("\n") : "# Waiting for logs...\n"}
+                </SyntaxHighlighter>
+              </ScrollToBottom>
 
               {template?.build_status === "failed" && template.build_error && (
                 <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3">

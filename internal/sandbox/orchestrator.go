@@ -881,7 +881,8 @@ func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.Sa
 
 // BuildTemplateWithPolling builds a sandbox template, polls for status, and accumulates logs to DB.
 // This is the recommended way to build templates as it properly handles async builds.
-func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (externalID string, buildErr error) {
+// onStatus is called whenever the build status changes (building, ready, failed).
+func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
 
 	// Start the async build
@@ -914,6 +915,9 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		switch status.State {
 		case "ready":
 			slog.Info("snapshot build completed", "external_id", externalID)
+			if onStatus != nil {
+				onStatus("ready", "")
+			}
 			return externalID, nil
 		case "error":
 			errMsg := status.ErrorMsg
@@ -921,6 +925,9 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 				errMsg = "snapshot build failed with unknown error"
 			}
 			slog.Error("snapshot build failed", "external_id", externalID, "error", errMsg)
+			if onStatus != nil {
+				onStatus("failed", errMsg)
+			}
 			return externalID, fmt.Errorf("%s", errMsg)
 		case "building", "pending", "":
 			// Continue polling

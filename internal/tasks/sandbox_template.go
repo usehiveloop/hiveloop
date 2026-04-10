@@ -87,8 +87,18 @@ func (h *SandboxTemplateBuildHandler) Handle(ctx context.Context, t *asynq.Task)
 		}
 	}
 
+	onStatus := func(status, message string) {
+		updates := map[string]any{
+			"build_status": status,
+		}
+		if status == "failed" {
+			updates["build_error"] = message
+		}
+		h.db.Model(&tmpl).Updates(updates)
+	}
+
 	// Build the template with polling
-	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, &tmpl, onLog)
+	externalID, err := h.orchestrator.BuildTemplateWithPolling(ctx, &tmpl, onLog, onStatus)
 
 	// Signal flusher to stop and do final flush
 	close(done)
