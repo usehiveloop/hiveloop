@@ -122,11 +122,6 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Trigger build in background if builder is configured and commands are provided
-	if h.builder != nil && tmpl.BuildCommands != "" {
-		go h.builder.BuildTemplate(context.Background(), &tmpl)
-	}
-
 	writeJSON(w, http.StatusCreated, toSandboxTemplateResponse(tmpl))
 }
 
