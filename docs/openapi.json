@@ -11022,6 +11022,93 @@
         }
       }
     },
+    "/v1/sandbox-templates/{id}/retry": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Deletes the existing snapshot (if any) and starts a new build. Can optionally update build commands.",
+        "tags": [
+          "sandbox-templates"
+        ],
+        "summary": "Retry a sandbox template build",
+        "parameters": [
+          {
+            "description": "Template ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/retryBuildRequest"
+              }
+            }
+          },
+          "description": "Optional build commands update"
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sandboxTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/sandboxes": {
       "get": {
         "security": [
@@ -16936,6 +17023,14 @@
             "additionalProperties": {
               "type": "string"
             }
+          }
+        }
+      },
+      "retryBuildRequest": {
+        "type": "object",
+        "properties": {
+          "build_commands": {
+            "type": "string"
           }
         }
       },

@@ -317,3 +317,40 @@ func NewSandboxTemplateBuildTask(templateID uuid.UUID) (*asynq.Task, error) {
 		asynq.Timeout(30*time.Minute),
 	), nil
 }
+
+// ---------------------------------------------------------------------------
+// sandbox_template:retry
+// ---------------------------------------------------------------------------
+
+// SandboxTemplateRetryBuildPayload is the payload for retry tasks.
+type SandboxTemplateRetryBuildPayload struct {
+	TemplateID    uuid.UUID `json:"template_id"`
+	BuildCommands string    `json:"build_commands,omitempty"`
+}
+
+// NewSandboxTemplateRetryBuildTask creates a task that retries building a sandbox template.
+func NewSandboxTemplateRetryBuildTask(templateID uuid.UUID, buildCommands *string) (*asynq.Task, error) {
+	payload, err := json.Marshal(SandboxTemplateRetryBuildPayload{
+		TemplateID:    templateID,
+		BuildCommands: "",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal sandbox template retry payload: %w", err)
+	}
+	if buildCommands != nil {
+		payload, err = json.Marshal(SandboxTemplateRetryBuildPayload{
+			TemplateID:    templateID,
+			BuildCommands: *buildCommands,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("marshal sandbox template retry payload: %w", err)
+		}
+	}
+	return asynq.NewTask(
+		TypeSandboxTemplateRetryBuild,
+		payload,
+		asynq.Queue(QueueDefault),
+		asynq.MaxRetry(2),
+		asynq.Timeout(30*time.Minute),
+	), nil
+}

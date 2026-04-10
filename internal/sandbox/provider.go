@@ -43,8 +43,9 @@ type SnapshotBuildStatus struct {
 
 // SnapshotStatusResult holds the status check result.
 type SnapshotStatusResult struct {
-	State    string // "building", "ready", "error", "deleting"
-	ErrorMsg string
+	State       string // "building", "ready", "error", "deleting"
+	ErrorMsg    string
+	ErrorReason string // detailed error reason from Daytona
 }
 
 // Provider is the interface that all sandbox providers must implement.
@@ -65,6 +66,7 @@ type Provider interface {
 	BuildSnapshot(ctx context.Context, opts BuildSnapshotOpts) (externalID string, err error)
 	BuildSnapshotWithLogs(ctx context.Context, opts BuildSnapshotOpts, onLog func(string)) (externalID string, err error)
 	GetSnapshotStatus(ctx context.Context, externalID string) (*SnapshotStatusResult, error)
+	GetSnapshotLogs(ctx context.Context, externalID string) (string, error)
 	DeleteSnapshot(ctx context.Context, externalID string) error
 
 	// Auto-management
