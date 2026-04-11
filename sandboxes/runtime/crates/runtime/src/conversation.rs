@@ -100,6 +100,13 @@ pub struct ConversationParams {
     pub immortal_config: Option<bridge_core::agent::ImmortalConfig>,
     /// Journal state shared with the journal_write tool (only set in immortal mode).
     pub journal_state: Option<Arc<tools::journal::JournalState>>,
+    /// MCP scope key for per-conversation MCP servers.
+    /// `Some(conv_id)` when the conversation owns its own MCP connections that
+    /// must be torn down on exit; `None` when only agent-level MCP is in use.
+    pub per_conversation_mcp_scope: Option<String>,
+    /// MCP manager handle used to disconnect per-conversation servers during cleanup.
+    /// Only meaningful when `per_conversation_mcp_scope` is set.
+    pub mcp_manager: Option<Arc<mcp::McpManager>>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -141,6 +148,8 @@ pub async fn run_conversation(params: ConversationParams) {
         conversation_metrics,
         immortal_config,
         journal_state,
+        per_conversation_mcp_scope,
+        mcp_manager,
     } = params;
 
     info!(
@@ -1050,6 +1059,13 @@ pub async fn run_conversation(params: ConversationParams) {
         if let Some(ref registry) = ctx.task_registry {
             registry.cleanup_conversation(&conversation_id);
         }
+    }
+
+    // Disconnect any per-conversation MCP servers attached at creation time.
+    // Runs on every loop-exit path (DELETE, abort, drain, SIGINT/SIGTERM,
+    // max_turns, internal error) — panics and OS-level task aborts still skip it.
+    if let (Some(ref scope), Some(ref manager)) = (&per_conversation_mcp_scope, &mcp_manager) {
+        manager.disconnect_agent(scope).await;
     }
 
     token_tracker::decrement_active_conversations(&metrics);

@@ -73,6 +73,17 @@ pub struct CreateConversationRequest {
     /// Only named subagents are overridden; others keep their configured keys.
     #[serde(default)]
     pub subagent_api_keys: Option<HashMap<String, String>>,
+
+    /// Additional MCP servers to load for this conversation only.
+    /// Connected at conversation creation, torn down when the conversation ends
+    /// (or is aborted, drained, or cancelled). Tool names produced by these
+    /// servers must not collide with the agent's existing tool names.
+    ///
+    /// Stdio transport requires the runtime config flag
+    /// `allow_stdio_mcp_from_api` to be enabled; otherwise only
+    /// `streamable_http` is accepted.
+    #[serde(default)]
+    pub mcp_servers: Option<Vec<bridge_core::mcp::McpServerDefinition>>,
 }
 
 /// Request body for creating a message.
@@ -114,6 +125,7 @@ pub async fn create_conversation(
             request.api_key,
             request.subagent_api_keys,
             request.provider,
+            request.mcp_servers,
         )
         .await?;
 

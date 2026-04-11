@@ -67,6 +67,14 @@ pub struct RuntimeConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skill_discovery_dir: Option<String>,
 
+    /// Allow API clients to attach `stdio` MCP servers per conversation.
+    /// Off by default — stdio transport runs an arbitrary subprocess, which is
+    /// a foot-gun in anything but a trusted/sandboxed deployment. When false,
+    /// only `streamable_http` is accepted in `CreateConversationRequest::mcp_servers`.
+    /// Configured via `BRIDGE_ALLOW_STDIO_MCP_FROM_API` env var.
+    #[serde(default)]
+    pub allow_stdio_mcp_from_api: bool,
+
     /// OpenTelemetry OTLP endpoint for trace export.
     /// When set, Bridge exports all spans via OTLP gRPC to this endpoint.
     /// Configured via `BRIDGE_OTEL_ENDPOINT` env var.
@@ -213,6 +221,7 @@ impl Default for RuntimeConfig {
             codedb_binary: default_codedb_binary(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
+            allow_stdio_mcp_from_api: false,
             otel_endpoint: None,
             otel_service_name: default_otel_service_name(),
         }

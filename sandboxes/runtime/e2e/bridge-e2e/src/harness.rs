@@ -309,6 +309,13 @@ impl TestHarness {
     /// 3. Starts the bridge pointing at the mock control plane on a random port.
     /// 4. Polls the bridge /health endpoint until it responds 200 (max 30s).
     pub async fn start() -> Result<Self> {
+        Self::start_with_extra_env(&[]).await
+    }
+
+    /// Same as `start()` but allows the caller to inject extra environment variables
+    /// into the spawned bridge process. Used by per-conversation MCP tests which need
+    /// to flip `BRIDGE_ALLOW_STDIO_MCP_FROM_API=true` for that specific test run.
+    pub async fn start_with_extra_env(extra_env: &[(&str, &str)]) -> Result<Self> {
         // Locate workspace root — we assume this crate lives at <workspace>/e2e/bridge-e2e
         let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -413,6 +420,10 @@ impl TestHarness {
             if let Ok(value) = std::env::var(key) {
                 bridge_command.env(key, value);
             }
+        }
+
+        for (k, v) in extra_env {
+            bridge_command.env(k, v);
         }
 
         let bridge_process = bridge_command.spawn().context("failed to start bridge")?;
@@ -1728,6 +1739,56 @@ impl TestHarness {
             .context("POST create conversation request failed")?;
 
         Ok(resp)
+    }
+
+    /// POST /agents/{agent_id}/conversations with a JSON body for tool/MCP scoping,
+    /// provider override, or per-conversation MCP servers.
+    pub async fn create_conversation_with_body(
+        &self,
+        agent_id: &str,
+        body: serde_json::Value,
+    ) -> Result<reqwest::Response> {
+        let resp = self
+            .client
+            .post(format!(
+                "{}/agents/{}/conversations",
+                self.bridge_base_url, agent_id
+            ))
+            .json(&body)
+            .send()
+            .await
+            .context("POST create conversation request (with body) failed")?;
+
+        Ok(resp)
+    }
+
+    /// Build the mock-portal-mcp binary (if not already built) and return its path.
+    /// Used by per-conversation MCP tests that need a spawnable stdio MCP server.
+    pub fn ensure_mock_portal_mcp(&self) -> Result<PathBuf> {
+        let target_dir = self.workspace_root.join("target").join("debug");
+        let binary = target_dir.join("mock-portal-mcp");
+        if !binary.exists() {
+            let status = Command::new("cargo")
+                .args(["build", "-p", "mock-portal-mcp"])
+                .current_dir(&self.workspace_root)
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .status()
+                .context("failed to run cargo build for mock-portal-mcp")?;
+            if !status.success() {
+                return Err(anyhow!(
+                    "cargo build -p mock-portal-mcp failed with status {}",
+                    status
+                ));
+            }
+        }
+        if !binary.exists() {
+            return Err(anyhow!(
+                "mock-portal-mcp binary still missing at {}",
+                binary.display()
+            ));
+        }
+        Ok(binary)
     }
 
     /// POST /conversations/{conv_id}/messages — send a message.

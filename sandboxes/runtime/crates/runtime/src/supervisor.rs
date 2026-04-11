@@ -58,6 +58,9 @@ pub struct AgentSupervisor {
     skill_discovery_enabled: bool,
     /// Working directory for skill discovery. Defaults to `std::env::current_dir()`.
     skill_discovery_dir: Option<String>,
+    /// When true, API clients may attach `stdio` MCP servers per conversation.
+    /// Default: false (only `streamable_http` accepted from the API).
+    allow_stdio_mcp_from_api: bool,
 }
 
 /// Default maximum concurrent LLM calls when not configured.
@@ -83,6 +86,7 @@ impl AgentSupervisor {
             codedb_binary: "codedb".to_string(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
+            allow_stdio_mcp_from_api: false,
         }
     }
 
@@ -109,6 +113,7 @@ impl AgentSupervisor {
             codedb_binary: "codedb".to_string(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
+            allow_stdio_mcp_from_api: false,
         }
     }
 
@@ -140,6 +145,7 @@ impl AgentSupervisor {
         self.codedb_binary = config.codedb_binary.clone();
         self.skill_discovery_enabled = config.skill_discovery_enabled;
         self.skill_discovery_dir = config.skill_discovery_dir.clone();
+        self.allow_stdio_mcp_from_api = config.allow_stdio_mcp_from_api;
         self
     }
 
@@ -412,6 +418,7 @@ impl AgentSupervisor {
         api_key_override: Option<String>,
         subagent_api_key_overrides: Option<HashMap<String, String>>,
         provider_override: Option<bridge_core::ProviderConfig>,
+        per_conversation_mcp_servers: Option<Vec<McpServerDefinition>>,
     ) -> Result<(String, mpsc::Receiver<BridgeEvent>), BridgeError> {
         let state = self
             .agent_map
@@ -439,6 +446,33 @@ impl AgentSupervisor {
                     return Err(BridgeError::CapacityExhausted(format!(
                         "agent {} at max concurrent conversations ({})",
                         agent_id, max
+                    )));
+                }
+            }
+        }
+
+        // --- Validate per-conversation MCP servers (before any resource acquisition) ---
+        if let Some(ref servers) = per_conversation_mcp_servers {
+            let mut seen = std::collections::HashSet::new();
+            for server in servers {
+                if server.name.trim().is_empty() {
+                    return Err(BridgeError::InvalidRequest(
+                        "mcp_servers: server name cannot be empty".to_string(),
+                    ));
+                }
+                if !seen.insert(server.name.clone()) {
+                    return Err(BridgeError::InvalidRequest(format!(
+                        "mcp_servers: duplicate server name '{}'",
+                        server.name
+                    )));
+                }
+                if matches!(server.transport, McpTransport::Stdio { .. })
+                    && !self.allow_stdio_mcp_from_api
+                {
+                    return Err(BridgeError::InvalidRequest(format!(
+                        "mcp_servers: stdio transport not allowed from API (server '{}'); \
+                         enable allow_stdio_mcp_from_api in runtime config to permit it",
+                        server.name
                     )));
                 }
             }
@@ -672,6 +706,72 @@ impl AgentSupervisor {
             );
         }
 
+        // Connect per-conversation MCP servers and merge their tools into the
+        // per-conversation executor map. Scoped in McpManager under the conversation
+        // UUID, which cannot collide with any agent ID. On any error in this block
+        // the partial connection state and the conversation handle are unwound
+        // before returning.
+        let per_conv_mcp_scope: Option<String> = match per_conversation_mcp_servers {
+            Some(ref servers) if !servers.is_empty() => {
+                let scope_id = conv_id.clone();
+                if let Err(e) = self.mcp_manager.connect_agent(&scope_id, servers).await {
+                    self.mcp_manager.disconnect_agent(&scope_id).await;
+                    state.conversations.remove(&conv_id);
+                    return Err(e);
+                }
+
+                let expected: std::collections::HashSet<&str> =
+                    servers.iter().map(|s| s.name.as_str()).collect();
+                let connected: Vec<Arc<mcp::McpConnection>> =
+                    self.mcp_manager.get_agent_connections(&scope_id);
+                let connected_names: std::collections::HashSet<&str> =
+                    connected.iter().map(|c| c.server_name()).collect();
+                for name in &expected {
+                    if !connected_names.contains(name) {
+                        self.mcp_manager.disconnect_agent(&scope_id).await;
+                        state.conversations.remove(&conv_id);
+                        return Err(BridgeError::InvalidRequest(format!(
+                            "mcp_servers: failed to connect to '{}'",
+                            name
+                        )));
+                    }
+                }
+
+                for conn in connected {
+                    let server_name = conn.server_name().to_string();
+                    let tools = match conn.list_tools().await {
+                        Ok(t) => t,
+                        Err(e) => {
+                            self.mcp_manager.disconnect_agent(&scope_id).await;
+                            state.conversations.remove(&conv_id);
+                            return Err(BridgeError::InvalidRequest(format!(
+                                "mcp_servers: failed to list tools from '{}': {}",
+                                server_name, e
+                            )));
+                        }
+                    };
+                    let bridged = mcp::bridge_mcp_tools(conn.clone(), tools);
+                    for tool in bridged {
+                        let tool_name = tool.name().to_string();
+                        if tool_names.contains(&tool_name) {
+                            self.mcp_manager.disconnect_agent(&scope_id).await;
+                            state.conversations.remove(&conv_id);
+                            return Err(BridgeError::InvalidRequest(format!(
+                                "mcp_servers: tool '{}' from server '{}' collides with an \
+                                 existing agent tool",
+                                tool_name, server_name
+                            )));
+                        }
+                        tool_names.insert(tool_name.clone());
+                        tool_executors.insert(tool_name, tool);
+                    }
+                }
+
+                Some(scope_id)
+            }
+            _ => None,
+        };
+
         // Build a scoped definition when provider or API key overrides are present.
         // Provider override takes precedence (replaces the entire provider config).
         // API key override only swaps the key on the existing provider.
@@ -688,10 +788,12 @@ impl AgentSupervisor {
         };
         let effective_def: &AgentDefinition = scoped_def.as_ref().unwrap_or(&def);
 
-        // Build a conversation-scoped agent when filters are active or when immortal
-        // mode adds per-conversation tools (journal_write). When unfiltered and no
-        // extra tools, share the agent-wide instance.
-        let needs_scoped_agent = has_filters || journal_state.is_some();
+        // Build a conversation-scoped agent when filters are active, when immortal
+        // mode adds per-conversation tools (journal_write), or when per-conversation
+        // MCP servers were attached. When unfiltered and no extra tools, share the
+        // agent-wide instance.
+        let needs_scoped_agent =
+            has_filters || journal_state.is_some() || per_conv_mcp_scope.is_some();
         let conversation_agent = if needs_scoped_agent {
             let scoped_executors: Vec<Arc<dyn tools::ToolExecutor>> =
                 tool_executors.values().cloned().collect();
@@ -747,6 +849,8 @@ impl AgentSupervisor {
             model_name.clone(),
         ));
 
+        let cleanup_mcp_manager = self.mcp_manager.clone();
+
         state.tracker.spawn(async move {
             // Hold the conversation permit for the lifetime of the conversation.
             // When the conversation ends, the permit is dropped, freeing a slot.
@@ -781,6 +885,8 @@ impl AgentSupervisor {
                 conversation_metrics: conv_metrics,
                 immortal_config,
                 journal_state,
+                per_conversation_mcp_scope: per_conv_mcp_scope,
+                mcp_manager: Some(cleanup_mcp_manager),
             })
             .await;
         });
@@ -1315,6 +1421,8 @@ impl AgentSupervisor {
                 conversation_metrics: conv_metrics,
                 immortal_config,
                 journal_state,
+                per_conversation_mcp_scope: None,
+                mcp_manager: None,
             })
             .await;
         });
@@ -1974,7 +2082,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, None, None)
+            .create_conversation("agent1", None, None, None, None, None, None)
             .await;
 
         assert!(result.is_ok());
@@ -2003,7 +2111,7 @@ mod tests {
         let filter = all_tools.iter().take(2).cloned().collect::<Vec<_>>();
 
         let result = supervisor
-            .create_conversation("agent1", Some(filter.clone()), None, None, None, None)
+            .create_conversation("agent1", Some(filter.clone()), None, None, None, None, None)
             .await;
 
         assert!(result.is_ok());
@@ -2025,6 +2133,7 @@ mod tests {
             .create_conversation(
                 "agent1",
                 Some(vec!["totally_fake_tool".to_string()]),
+                None,
                 None,
                 None,
                 None,
@@ -2054,6 +2163,7 @@ mod tests {
                 None,
                 None,
                 None,
+                None,
             )
             .await;
 
@@ -2067,7 +2177,7 @@ mod tests {
         let supervisor = make_test_supervisor();
 
         let result = supervisor
-            .create_conversation("no_such_agent", None, None, None, None, None)
+            .create_conversation("no_such_agent", None, None, None, None, None, None)
             .await;
 
         assert!(result.is_err());
@@ -2093,6 +2203,7 @@ mod tests {
                 Some("sk-custom-override-key".to_string()),
                 None,
                 None,
+                None,
             )
             .await;
 
@@ -2112,7 +2223,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, Some("".to_string()), None, None)
+            .create_conversation("agent1", None, None, Some("".to_string()), None, None, None)
             .await;
 
         assert!(result.is_err());
@@ -2129,7 +2240,7 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, Some("   ".to_string()), None, None)
+            .create_conversation("agent1", None, None, Some("   ".to_string()), None, None, None)
             .await;
 
         assert!(result.is_err());
@@ -2157,6 +2268,7 @@ mod tests {
                 Some("sk-custom-key".to_string()),
                 None,
                 None,
+                None,
             )
             .await;
 
@@ -2177,7 +2289,7 @@ mod tests {
         overrides.insert("nonexistent_subagent".to_string(), "<provider-api-key>".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides), None)
+            .create_conversation("agent1", None, None, None, Some(overrides), None, None)
             .await;
 
         assert!(result.is_err());
@@ -2220,7 +2332,7 @@ mod tests {
         overrides.insert("sub1".to_string(), "".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides), None)
+            .create_conversation("agent1", None, None, None, Some(overrides), None, None)
             .await;
 
         assert!(result.is_err());
@@ -2263,12 +2375,172 @@ mod tests {
         overrides.insert("sub1".to_string(), "sk-overridden-sub-key".to_string());
 
         let result = supervisor
-            .create_conversation("agent1", None, None, None, Some(overrides), None)
+            .create_conversation("agent1", None, None, None, Some(overrides), None, None)
             .await;
 
         assert!(result.is_ok());
         let (conv_id, _sse_rx) = result.unwrap();
         supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    // ── per-conversation MCP server validation ──────────────────────────────
+
+    #[tokio::test]
+    async fn per_conv_mcp_rejects_stdio_when_flag_disabled() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let servers = vec![McpServerDefinition {
+            name: "local".to_string(),
+            transport: McpTransport::Stdio {
+                command: "/bin/echo".to_string(),
+                args: vec![],
+                env: std::collections::HashMap::new(),
+            },
+        }];
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None, None, Some(servers))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("stdio transport not allowed"),
+            "error should describe stdio gate, got: {err}"
+        );
+        assert!(err.contains("'local'"), "error should name server, got: {err}");
+
+        // Nothing should have leaked into the MCP manager.
+        assert_eq!(supervisor.mcp_manager.connection_count(), 0);
+        // No dangling conversation handle.
+        let state = supervisor.get_agent("agent1").unwrap();
+        assert_eq!(state.conversations.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn per_conv_mcp_rejects_empty_server_name() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let servers = vec![McpServerDefinition {
+            name: "   ".to_string(),
+            transport: McpTransport::StreamableHttp {
+                url: "http://127.0.0.1:1".to_string(),
+                headers: std::collections::HashMap::new(),
+            },
+        }];
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None, None, Some(servers))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("server name cannot be empty"),
+            "error should describe empty-name rejection, got: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn per_conv_mcp_rejects_duplicate_server_names() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let servers = vec![
+            McpServerDefinition {
+                name: "dup".to_string(),
+                transport: McpTransport::StreamableHttp {
+                    url: "http://127.0.0.1:1".to_string(),
+                    headers: std::collections::HashMap::new(),
+                },
+            },
+            McpServerDefinition {
+                name: "dup".to_string(),
+                transport: McpTransport::StreamableHttp {
+                    url: "http://127.0.0.1:2".to_string(),
+                    headers: std::collections::HashMap::new(),
+                },
+            },
+        ];
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None, None, Some(servers))
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("duplicate server name 'dup'"),
+            "error should describe duplicate, got: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn per_conv_mcp_empty_list_is_no_op() {
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        // Empty servers vec — should succeed and behave identically to None.
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None, None, Some(vec![]))
+            .await;
+
+        assert!(result.is_ok(), "empty mcp_servers list should be a no-op");
+        let (conv_id, _sse_rx) = result.unwrap();
+        assert!(!conv_id.is_empty());
+        assert_eq!(supervisor.mcp_manager.connection_count(), 0);
+        supervisor.end_conversation("agent1", &conv_id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn per_conv_mcp_unreachable_http_rolls_back_cleanly() {
+        // Point at an unreachable TCP port so the connect attempt fails.
+        // Expected: InvalidRequest error, no leaked MCP connections, no dangling
+        // conversation handle. This exercises the error-unwind path.
+        let supervisor = make_test_supervisor();
+        supervisor
+            .load_agents(vec![make_test_definition("agent1")])
+            .await
+            .unwrap();
+
+        let servers = vec![McpServerDefinition {
+            name: "unreachable".to_string(),
+            transport: McpTransport::StreamableHttp {
+                url: "http://127.0.0.1:1".to_string(),
+                headers: std::collections::HashMap::new(),
+            },
+        }];
+
+        let result = supervisor
+            .create_conversation("agent1", None, None, None, None, None, Some(servers))
+            .await;
+
+        assert!(result.is_err(), "unreachable MCP server should surface an error");
+        assert_eq!(
+            supervisor.mcp_manager.connection_count(),
+            0,
+            "no leaked MCP connections after failed connect"
+        );
+        let state = supervisor.get_agent("agent1").unwrap();
+        assert_eq!(
+            state.conversations.len(),
+            0,
+            "no dangling conversation handle after failed connect"
+        );
     }
 
     // ── codedb injection ─────────────────────────────────────────────────────

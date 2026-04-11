@@ -973,6 +973,7 @@ mod serde_roundtrip_tests {
             codedb_binary: "codedb".to_string(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
+            allow_stdio_mcp_from_api: false,
             otel_endpoint: None,
             otel_service_name: "bridge".to_string(),
         };
