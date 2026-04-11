@@ -173,6 +173,20 @@ Path to the `codedb` binary. Only relevant when `BRIDGE_CODEDB_ENABLED` is `true
 export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
 ```
 
+### `BRIDGE_ALLOW_STDIO_MCP_FROM_API`
+
+Allow API clients to attach `stdio`-transport MCP servers to a conversation via the `mcp_servers` field in `POST /agents/{id}/conversations`. See [Per-Conversation MCP Servers](../core-concepts/mcp.md#per-conversation-mcp-servers).
+
+- **Default:** `false`
+- **Valid values:** `true`, `false`
+- **Added in:** v0.18.0
+
+```bash
+export BRIDGE_ALLOW_STDIO_MCP_FROM_API="true"
+```
+
+**Security note:** stdio transport spawns a subprocess with Bridge's privileges and environment. Leave this off unless every API caller is trusted AND Bridge is sandboxed. `streamable_http` per-conversation MCP servers are always allowed regardless of this flag — the gate is strictly on stdio. Agent-level MCP servers (from control-plane-pushed agent definitions) are unaffected.
+
 ### `BRIDGE_OTEL_ENDPOINT`
 
 OpenTelemetry OTLP gRPC endpoint for trace export.
@@ -356,6 +370,7 @@ Fix the issue and restart.
 | `BRIDGE_STORAGE_PATH` | Valid file path (or omit to disable) |
 | `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
 | `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
+| `BRIDGE_ALLOW_STDIO_MCP_FROM_API` | `true` or `false` (default `false`) |
 | `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |
 | `BRIDGE_OTEL_SERVICE_NAME` | Non-empty string |
 

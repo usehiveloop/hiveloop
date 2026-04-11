@@ -75,7 +75,10 @@ mod openapi {
             crate::handlers::push::UpdateApiKeyRequest,
             crate::handlers::push::UpdateApiKeyResponse,
             // Request/Response schemas for agents
-            crate::handlers::agents::AgentDetailsResponse,
+            crate::handlers::agents::AgentResponse,
+            crate::handlers::agents::ProviderSummary,
+            crate::handlers::agents::SubAgentSummary,
+            crate::handlers::agents::RegisteredToolSummary,
             // Request/Response schemas for health
             crate::handlers::health::HealthResponse,
             // Request/Response schemas for permissions

@@ -14,17 +14,17 @@
         "tags": [
           "crate::handlers::agents"
         ],
-        "summary": "GET /agents — list all loaded agents.",
+        "summary": "GET /agents — list all loaded agents with full details (truncated system prompts).",
         "operationId": "list_agents",
         "responses": {
           "200": {
-            "description": "List of agent summaries",
+            "description": "List of agents with full details",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/AgentSummary"
+                    "$ref": "#/components/schemas/AgentResponse"
                   }
                 }
               }
@@ -38,7 +38,7 @@
         "tags": [
           "crate::handlers::agents"
         ],
-        "summary": "GET /agents/:agent_id — get agent details.",
+        "summary": "GET /agents/:agent_id — get full agent details.",
         "operationId": "get_agent",
         "parameters": [
           {
@@ -53,11 +53,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent details",
+            "description": "Full agent details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentDetailsResponse"
+                  "$ref": "#/components/schemas/AgentResponse"
                 }
               }
             }
@@ -86,6 +86,23 @@
             }
           }
         ],
+        "requestBody": {
+          "description": "Optional tool/MCP scoping filters",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateConversationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Conversation created",
@@ -96,6 +113,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid tool or MCP server name"
           },
           "404": {
             "description": "Agent not found"
@@ -716,8 +736,44 @@
               }
             ]
           },
+          "disabled_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools to disable for this agent. Takes priority over everything else —\ndisabled tools are removed from the registry before the agent is built,\nso the LLM never sees them. Works for built-in tools, MCP tools, codedb\ntools, integration tools, and spider tools."
+          },
+          "immortal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImmortalConfig",
+                "description": "Immortal conversation configuration (chain-based context management).\nWhen set, replaces compaction — the conversation chains into fresh context\nwindows transparently while maintaining a living journal."
+              }
+            ]
+          },
           "json_schema": {
             "description": "JSON schema for structured output"
+          },
+          "max_concurrent_conversations": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum concurrent conversations for this specific agent.\nTakes precedence over the global max_concurrent_conversations.",
+            "minimum": 0
+          },
+          "max_tasks_per_conversation": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum total subagent tasks per conversation. Limits resource consumption\nfrom recursive/parallel subagent spawning. Default: 50.",
+            "minimum": 0
           },
           "max_tokens": {
             "type": [
@@ -753,6 +809,13 @@
             ],
             "format": "double",
             "description": "Temperature for LLM sampling"
+          },
+          "tool_calls_only": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When true, the agent can complete a turn with only tool calls and no text.\nEmpty text responses are treated as success if tool calls were executed.\nDefault: false."
           }
         }
       },
@@ -868,39 +931,117 @@
           }
         }
       },
-      "AgentDetailsResponse": {
+      "AgentResponse": {
         "type": "object",
-        "description": "Response for getting agent details.",
+        "description": "Full agent response — returned by both list and detail endpoints.\nSystem prompts may be truncated on the list endpoint.",
         "required": [
           "id",
           "name",
           "system_prompt",
-          "active_conversations"
+          "provider",
+          "tools",
+          "mcp_servers",
+          "skills",
+          "integrations",
+          "config",
+          "subagents",
+          "permissions",
+          "active_conversations",
+          "metrics",
+          "registered_tools"
         ],
         "properties": {
           "active_conversations": {
             "type": "integer",
-            "description": "Number of currently active conversations.",
             "minimum": 0
           },
+          "config": {
+            "$ref": "#/components/schemas/AgentConfig"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
-            "type": "string",
-            "description": "Agent identifier."
+            "type": "string"
+          },
+          "integrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationDefinition"
+            }
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            }
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/MetricsSnapshot"
           },
           "name": {
-            "type": "string",
-            "description": "Agent display name."
+            "type": "string"
+          },
+          "permissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToolPermission"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "registered_tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisteredToolSummary"
+            },
+            "description": "All tools registered and available to this agent (built-in + MCP + integrations)."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillDefinition"
+            }
+          },
+          "subagents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubAgentSummary"
+            }
           },
           "system_prompt": {
-            "type": "string",
-            "description": "System prompt used by the agent."
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolDefinition"
+            }
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "version": {
             "type": [
               "string",
               "null"
-            ],
-            "description": "Agent version."
+            ]
+          },
+          "webhook_url": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -946,6 +1087,13 @@
         "properties": {
           "decision": {
             "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool call was denied.\nIncluded in the error returned to the LLM so the agent can adjust."
           }
         }
       },
@@ -1016,6 +1164,13 @@
         "properties": {
           "decision": {
             "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message explaining why the tool calls were denied."
           },
           "request_ids": {
             "type": "array",
@@ -1222,6 +1377,73 @@
           }
         }
       },
+      "CreateConversationRequest": {
+        "type": "object",
+        "description": "Optional request body for creating a conversation with tool/MCP scoping.",
+        "properties": {
+          "api_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When provided, overrides the agent's LLM API key for this conversation only.\nFor full provider/model override, use the `provider` field instead."
+          },
+          "mcp_server_names": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "When provided, only tools from these MCP servers are available.\nServer names must match the agent's configured MCP server names."
+          },
+          "mcp_servers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/McpServerDefinition"
+            },
+            "description": "Additional MCP servers to load for this conversation only.\nConnected at conversation creation, torn down when the conversation ends\n(or is aborted, drained, or cancelled). Tool names produced by these\nservers must not collide with the agent's existing tool names.\n\nStdio transport requires the runtime config flag\n`allow_stdio_mcp_from_api` to be enabled; otherwise only\n`streamable_http` is accepted."
+          },
+          "provider": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderConfig",
+                "description": "When provided, fully overrides the agent's LLM provider for this conversation.\nAllows switching model, provider type, API key, and base URL per conversation\nwhile keeping the same agent definition (tools, system prompt, skills, etc.)."
+              }
+            ]
+          },
+          "subagent_api_keys": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Per-subagent API key overrides. Key = subagent name, Value = API key.\nOnly named subagents are overridden; others keep their configured keys.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "tool_names": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "When provided, only these tools are available in the conversation.\nTool names must match the agent's registered tool names exactly."
+          }
+        }
+      },
       "CreateConversationResponse": {
         "type": "object",
         "description": "Response for creating a conversation.",
@@ -1325,6 +1547,38 @@
           "hydrated": {
             "type": "integer",
             "description": "Number of conversations hydrated.",
+            "minimum": 0
+          }
+        }
+      },
+      "ImmortalConfig": {
+        "type": "object",
+        "description": "Configuration for immortal conversations (chain-based context management).\n\nWhen the token budget is exceeded, instead of compacting (summarizing in-place),\nBridge extracts a structured checkpoint, resets the history with the checkpoint +\njournal + recent turns, and continues seamlessly. The external conversation_id\nnever changes.",
+        "required": [
+          "checkpoint_provider"
+        ],
+        "properties": {
+          "carry_forward_turns": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of complete user turns to carry forward verbatim into the new chain.\nA \"complete user turn\" includes the user message and all subsequent assistant\nresponses and tool calls until the next user message.",
+            "minimum": 0
+          },
+          "checkpoint_prompt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom prompt for checkpoint extraction. Uses a built-in default if None."
+          },
+          "checkpoint_provider": {
+            "$ref": "#/components/schemas/ProviderConfig",
+            "description": "Provider config for the checkpoint extraction LLM call."
+          },
+          "token_budget": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Token budget. Chain triggers when estimated tokens exceed this.",
             "minimum": 0
           }
         }
@@ -1492,6 +1746,13 @@
             "$ref": "#/components/schemas/Role",
             "description": "Role of the message sender"
           },
+          "system_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional per-message system reminder injected by the control plane.\nWrapped in `<system-reminder>` tags and prepended to the user message."
+          },
           "timestamp": {
             "type": "string",
             "format": "date-time",
@@ -1540,7 +1801,8 @@
           "active_conversations",
           "total_conversations",
           "tool_calls",
-          "avg_latency_ms"
+          "avg_latency_ms",
+          "tool_call_details"
         ],
         "properties": {
           "active_conversations": {
@@ -1579,6 +1841,13 @@
             "format": "int64",
             "description": "Total output tokens generated",
             "minimum": 0
+          },
+          "tool_call_details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolCallStatsSnapshot"
+            },
+            "description": "Per-tool call metrics"
           },
           "tool_calls": {
             "type": "integer",
@@ -1633,6 +1902,28 @@
           "provider_type": {
             "$ref": "#/components/schemas/ProviderType",
             "description": "The provider type (openai, anthropic, etc.)"
+          }
+        }
+      },
+      "ProviderSummary": {
+        "type": "object",
+        "description": "Provider info with secrets redacted.",
+        "required": [
+          "provider_type",
+          "model"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType"
           }
         }
       },
@@ -1736,6 +2027,22 @@
           }
         }
       },
+      "RegisteredToolSummary": {
+        "type": "object",
+        "description": "Summary of a registered tool (built-in, MCP, or integration).",
+        "required": [
+          "name",
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "RemoveAgentResponse": {
         "type": "object",
         "description": "Response for removing an agent.",
@@ -1787,6 +2094,13 @@
           "content": {
             "type": "string",
             "description": "The text content to send."
+          },
+          "system_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional system reminder to inject with this message.\nWill be wrapped in `<system-reminder>` tags and prepended to the user message."
           }
         }
       },
@@ -1815,11 +2129,32 @@
         "properties": {
           "content": {
             "type": "string",
-            "description": "Full skill prompt/instructions content\nCan contain template variables like {{args}} that will be substituted"
+            "description": "Full skill prompt/instructions content (the SKILL.md body or single-content string).\nCan contain template variables like {{args}}, $ARGUMENTS, $1, $2, etc."
           },
           "description": {
             "type": "string",
             "description": "Description of what the skill does"
+          },
+          "files": {
+            "type": "object",
+            "description": "Supporting files: relative_path -> file_content.\nContains files referenced by the skill (e.g., \"api-reference.md\", \"examples/ex1.md\").",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "frontmatter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SkillFrontmatter",
+                "description": "Parsed frontmatter configuration from SKILL.md YAML header."
+              }
+            ]
           },
           "id": {
             "$ref": "#/components/schemas/String",
@@ -1828,14 +2163,142 @@
           "parameters_schema": {
             "description": "Optional JSON Schema for structured parameters (for future use)"
           },
+          "source": {
+            "$ref": "#/components/schemas/SkillSource",
+            "description": "Where this skill originated from."
+          },
           "title": {
             "type": "string",
             "description": "Human-readable title"
           }
         }
       },
+      "SkillFrontmatter": {
+        "type": "object",
+        "description": "Frontmatter configuration parsed from a SKILL.md YAML header.\n\nOnly applicable to sources that support frontmatter (ClaudeCode, AgentSkills).",
+        "properties": {
+          "agent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Sub-agent type to delegate to when context is \"fork\"."
+          },
+          "allowed_tools": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "List of tools the skill is allowed to use."
+          },
+          "argument_hint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Hint text shown for the argument placeholder in autocomplete."
+          },
+          "context": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Execution context. \"fork\" runs in an isolated subagent."
+          },
+          "disable_model_invocation": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When true, only users can invoke this skill (hidden from the model)."
+          },
+          "effort": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Reasoning effort level (e.g., \"low\", \"medium\", \"high\")."
+          },
+          "paths": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns for auto-activation on matching files."
+          },
+          "shell": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Shell to use for shell-related operations (e.g., \"bash\", \"powershell\")."
+          },
+          "user_invocable": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When false, only the model can invoke this skill (hidden from slash commands)."
+          }
+        }
+      },
+      "SkillSource": {
+        "type": "string",
+        "description": "Where a skill originated from.",
+        "enum": [
+          "control_plane",
+          "claude_code",
+          "agent_skills",
+          "cursor_rules",
+          "git_hub_copilot",
+          "windsurf_rules"
+        ]
+      },
       "String": {
         "type": "string"
+      },
+      "SubAgentSummary": {
+        "type": "object",
+        "description": "Subagent summary for API responses.",
+        "required": [
+          "name",
+          "system_prompt",
+          "provider",
+          "config",
+          "tools"
+        ],
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/AgentConfig"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderSummary"
+          },
+          "system_prompt": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolDefinition"
+            }
+          }
+        }
       },
       "ToolCall": {
         "type": "object",
@@ -1856,6 +2319,52 @@
           "name": {
             "type": "string",
             "description": "Name of the tool to call"
+          }
+        }
+      },
+      "ToolCallStatsSnapshot": {
+        "type": "object",
+        "description": "Serializable snapshot of per-tool call statistics.",
+        "required": [
+          "tool_name",
+          "total_calls",
+          "successes",
+          "failures",
+          "success_rate",
+          "avg_latency_ms"
+        ],
+        "properties": {
+          "avg_latency_ms": {
+            "type": "number",
+            "format": "double",
+            "description": "Average latency in milliseconds"
+          },
+          "failures": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of failed completions",
+            "minimum": 0
+          },
+          "success_rate": {
+            "type": "number",
+            "format": "double",
+            "description": "Success rate (successes / total_calls)"
+          },
+          "successes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of successful completions",
+            "minimum": 0
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Tool name"
+          },
+          "total_calls": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of calls to this tool",
+            "minimum": 0
           }
         }
       },
@@ -1880,6 +2389,15 @@
             "description": "JSON Schema for the tool's parameters"
           }
         }
+      },
+      "ToolPermission": {
+        "type": "string",
+        "description": "Permission level for a tool within an agent.",
+        "enum": [
+          "allow",
+          "deny",
+          "require_approval"
+        ]
       },
       "ToolResult": {
         "type": "object",

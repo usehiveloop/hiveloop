@@ -26,7 +26,17 @@ All fields are optional. Send an empty body `{}` or omit the body entirely to us
   "subagent_api_keys": {
     "explorer": "<anthropic-api-key>",
     "coder": "<anthropic-api-key>"
-  }
+  },
+  "mcp_servers": [
+    {
+      "name": "project_issues",
+      "transport": {
+        "type": "streamable_http",
+        "url": "https://mcp.example.com/tools",
+        "headers": { "Authorization": "Bearer ..." }
+      }
+    }
+  ]
 }
 ```
 
@@ -36,12 +46,14 @@ All fields are optional. Send an empty body `{}` or omit the body entirely to us
 | `mcp_server_names` | string[] | No | Restrict available MCP servers. Only tools from these servers are available. Invalid names return 400. |
 | `api_key` | string | No | Override the agent's LLM API key for this conversation only. Useful for per-user billing or testing different providers. |
 | `subagent_api_keys` | object | No | Map of subagent name to API key override. Each named subagent uses the specified key instead of the agent's default. |
+| `mcp_servers` | McpServerDefinition[] | No | **New in v0.18.0.** Attach additional MCP servers scoped to this conversation only. Connected at creation, torn down on any termination path (end, abort, shutdown, drain). See [Per-Conversation MCP](#per-conversation-mcp) below. |
 
 **Notes:**
 - When `tool_names` is omitted, all tools configured on the agent are available.
 - When `mcp_server_names` is omitted, all configured MCP servers are available.
 - The `api_key` override applies only to this conversation and does not affect other conversations or the agent's stored key.
 - Keys in `subagent_api_keys` must match subagent names defined in the agent configuration.
+- `tool_names` / `mcp_server_names` filter the **agent's** existing tools. `mcp_servers` are **added on top** of whatever survives that filter.
 
 ### Response
 
@@ -64,6 +76,8 @@ All fields are optional. Send an empty body `{}` or omit the body entirely to us
 | Status | Code | Meaning |
 |--------|------|---------|
 | 404 | `agent_not_found` | Agent doesn't exist |
+| 400 | `invalid_request` | Unknown tool name in `tool_names`, unknown MCP server in `mcp_server_names`, empty `api_key`, or any `mcp_servers` validation failure (see below) |
+| 429 | `capacity_exhausted` | Global or per-agent concurrent conversation limit reached |
 
 ### Example
 
@@ -79,6 +93,142 @@ curl -N http://localhost:8080/conversations/conv-abc/stream \
 ```
 
 **Important:** You must connect to the SSE stream *after* creating the conversation and *before* sending the first message. The stream is single-consumer — only one client can be connected at a time.
+
+---
+
+## Per-Conversation MCP
+
+Since v0.18.0, `POST /agents/{agent_id}/conversations` accepts an `mcp_servers` field that attaches one or more MCP servers to a single conversation. The servers are connected at conversation creation, their tools are merged into the conversation's tool set on top of whatever the agent already exposes, and they are disconnected when the conversation ends by any path (`DELETE`, `abort`, shutdown signal, agent drain, `max_turns`, internal error).
+
+Use this when the tool surface varies per call — for example, passing a user-specific API token into an HTTP MCP server, or attaching a dev-only tool to a single debugging session — without mutating the agent definition.
+
+### Request shape
+
+```json
+{
+  "mcp_servers": [
+    {
+      "name": "project_issues",
+      "transport": {
+        "type": "streamable_http",
+        "url": "https://mcp.example.com/v1",
+        "headers": {
+          "Authorization": "Bearer <bridge-control-plane-api-key>",
+          "X-Project-Id": "proj-42"
+        }
+      }
+    }
+  ]
+}
+```
+
+Each entry is a `McpServerDefinition` with the same shape as agent-level MCP servers:
+
+```json
+{
+  "name": "<unique-server-name>",
+  "transport": {
+    "type": "streamable_http",
+    "url": "https://...",
+    "headers": { "...": "..." }
+  }
+}
+```
+
+Or for stdio (gated — see [Security](#security) below):
+
+```json
+{
+  "name": "<unique-server-name>",
+  "transport": {
+    "type": "stdio",
+    "command": "/path/to/mcp-binary",
+    "args": ["--flag"],
+    "env": { "KEY": "value" }
+  }
+}
+```
+
+### Lifecycle
+
+1. **On create** — Bridge connects to each server, lists its tools, and merges them into the per-conversation executor map. If any step fails, Bridge disconnects whatever connected partially and returns the error — no leaked processes, no dangling conversation handle.
+2. **During the conversation** — The agent sees the per-conv MCP tools alongside the agent's existing tools. Tool calls resolve normally.
+3. **On end** — The cleanup block in `run_conversation` calls `disconnect_agent(conversation_id)` on the MCP manager, tearing down every connection attached under that conversation's scope.
+
+This runs on *every* termination path enumerated in the [conversation lifecycle audit](../development/architecture-deep-dive.md) — `DELETE`, `POST /abort`, agent drain/update, `SIGINT`, `SIGTERM`, `max_turns`, and internal errors — not just graceful `DELETE`.
+
+### Security
+
+By default, only `streamable_http` transport is accepted from the API. `stdio` transport spawns an arbitrary subprocess with Bridge's privileges, so it is gated behind a runtime flag:
+
+```bash
+# To allow stdio MCP servers from the API (NOT recommended in multi-tenant deployments)
+export BRIDGE_ALLOW_STDIO_MCP_FROM_API=true
+./bridge
+```
+
+Or in `config.toml`:
+
+```toml
+allow_stdio_mcp_from_api = true
+```
+
+When the flag is `false` (default), sending a stdio server in `mcp_servers` returns HTTP 400 with `"stdio transport not allowed from API"`. Keep it off unless your deployment already sandboxes Bridge and trusts every caller.
+
+### Validation errors
+
+All validations run **before** any connection attempt, so a rejected request never spawns a process or opens a socket.
+
+| Error | Cause |
+|---|---|
+| `mcp_servers: server name cannot be empty` | An entry's `name` is empty or whitespace-only |
+| `mcp_servers: duplicate server name '<name>'` | Two entries share the same `name` within a single request |
+| `mcp_servers: stdio transport not allowed from API (server '<name>')` | `stdio` transport used while `allow_stdio_mcp_from_api=false` |
+| `mcp_servers: failed to connect to '<name>'` | The server listed in the request failed to initialize |
+| `mcp_servers: failed to list tools from '<name>': ...` | Connection succeeded but `tools/list` failed |
+| `mcp_servers: tool '<tool>' from server '<name>' collides with an existing agent tool` | A tool advertised by the per-conv MCP server shares a name with a tool the agent already has |
+
+### Name collision policy
+
+If a per-conversation MCP server advertises a tool whose name matches one the agent already has (built-in or from an agent-level MCP server), the request is **rejected with HTTP 400**. There is no shadowing, no auto-prefixing — the error is the hint to rename the tool on the MCP side or use `tool_names` to filter the colliding built-in out of the agent's base surface for this conversation.
+
+### Example: attaching a tenant-scoped HTTP MCP server
+
+```bash
+curl -X POST http://localhost:8080/agents/support-agent/conversations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mcp_servers": [{
+      "name": "tenant_billing",
+      "transport": {
+        "type": "streamable_http",
+        "url": "https://mcp.internal.example.com/billing",
+        "headers": {
+          "Authorization": "Bearer <bridge-control-plane-api-key>",
+          "X-Tenant-Id": "tenant-42"
+        }
+      }
+    }]
+  }'
+```
+
+The next `POST /conversations/{id}/messages` sees the agent's existing tools plus everything `tenant_billing` advertised. When the conversation is `DELETE`d (or aborted, or drained), the MCP connection is closed automatically.
+
+### Example: narrowing the agent's base tools to avoid collisions
+
+```bash
+curl -X POST http://localhost:8080/agents/coding-agent/conversations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_names": ["bash"],
+    "mcp_servers": [{
+      "name": "project_fs",
+      "transport": { "type": "streamable_http", "url": "https://fs.example.com/mcp" }
+    }]
+  }'
+```
+
+The base agent is narrowed to just `bash`, removing whichever of `Glob`/`Grep`/`Read` would have collided with the MCP server's filesystem tools.
 
 ---
 
