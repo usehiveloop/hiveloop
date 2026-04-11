@@ -51,25 +51,54 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 
 	// Use unique IDs per test run so this test can be re-run without cleanup.
 	orgID := uuid.New()
+	integrationID := uuid.New()
 	connectionID := uuid.New()
 	otherConnectionID := uuid.New()
 	agentID := uuid.New()
 	otherAgentID := uuid.New()
 
-	// Seed two agents — one we expect to match, one we expect to filter out.
-	// Order matters for cleanup: triggers → agents → org (children before parent).
+	// Seed the full FK chain (children get cleaned up before parents on defer):
+	// agent_triggers → agents → connections → integrations → org.
 	defer func() {
 		db.Where("id = ?", orgID).Delete(&model.Org{})
+		db.Where("id = ?", integrationID).Delete(&model.Integration{})
+		db.Where("id IN ?", []uuid.UUID{connectionID, otherConnectionID}).Delete(&model.Connection{})
 	}()
 	defer cleanupAgentTriggers(t, db, orgID)
 	defer cleanupAgents(t, db, orgID)
 
-	// Agents have a FK on orgs.id — seed a parent org row first.
+	// Agents, integrations, and connections all FK on orgs.id — seed the
+	// parent org first, then the integration, then the two connections.
 	if err := db.Create(&model.Org{
 		ID:   orgID,
 		Name: "dispatch-store-test-" + orgID.String()[:8],
 	}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
+	}
+	if err := db.Create(&model.Integration{
+		ID:          integrationID,
+		OrgID:       orgID,
+		UniqueKey:   "dispatch-store-test-" + integrationID.String()[:8],
+		Provider:    "github",
+		DisplayName: "github",
+	}).Error; err != nil {
+		t.Fatalf("create integration: %v", err)
+	}
+	if err := db.Create(&model.Connection{
+		ID:                connectionID,
+		OrgID:             orgID,
+		IntegrationID:     integrationID,
+		NangoConnectionID: "nango-" + connectionID.String()[:8],
+	}).Error; err != nil {
+		t.Fatalf("create connection: %v", err)
+	}
+	if err := db.Create(&model.Connection{
+		ID:                otherConnectionID,
+		OrgID:             orgID,
+		IntegrationID:     integrationID,
+		NangoConnectionID: "nango-" + otherConnectionID.String()[:8],
+	}).Error; err != nil {
+		t.Fatalf("create other connection: %v", err)
 	}
 
 	if err := db.Create(&model.Agent{
