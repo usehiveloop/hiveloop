@@ -7,14 +7,14 @@ import type { SkillPreview } from "./types"
 interface SkillCardProps {
   skill: SkillPreview
   selected: boolean
-  onToggle: (id: string) => void
+  onToggle: () => void
 }
 
 export function SkillCard({ skill, selected, onToggle }: SkillCardProps) {
   return (
     <button
       type="button"
-      onClick={() => onToggle(skill.id)}
+      onClick={onToggle}
       className={`group flex items-start gap-3 w-full rounded-xl p-4 text-left transition-colors cursor-pointer ${
         selected
           ? "bg-primary/5 border border-primary/20"

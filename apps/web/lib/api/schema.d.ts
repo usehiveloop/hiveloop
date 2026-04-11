@@ -11326,13 +11326,15 @@ export interface paths {
         };
         /**
          * List skills
-         * @description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both.
+         * @description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.
          */
         get: {
             parameters: {
                 query?: {
                     /** @description Filter: public, own, all (default all) */
                     scope?: string;
+                    /** @description Free-text search over name and description */
+                    q?: string;
                     /** @description Page size (default 50, max 100) */
                     limit?: number;
                     /** @description Pagination cursor */
@@ -13025,6 +13027,14 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        TerminateRule: {
+            conditions?: components["schemas"]["TriggerMatch"];
+            context_actions?: components["schemas"]["ContextAction"][];
+            ignore_parent_conditions?: boolean;
+            instructions?: string;
+            silent?: boolean;
+            trigger_keys?: string[];
+        };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
             operator?: string;
@@ -13572,6 +13582,8 @@ export interface components {
             sandbox_template_id?: string;
             sandbox_type?: string;
             shared_memory?: boolean;
+            /** @description skills from /v1/skills to attach on create */
+            skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
@@ -13586,6 +13598,7 @@ export interface components {
             context_actions?: components["schemas"]["ContextAction"][];
             enabled?: boolean;
             instructions?: string;
+            terminate_on?: components["schemas"]["TerminateRule"][];
             trigger_keys?: string[];
         };
         createCheckoutRequest: {

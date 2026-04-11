@@ -73,7 +73,14 @@ func (p *Pusher) markPushed(sandboxID, agentID string) {
 
 // PushAgent assigns a pool sandbox to the agent and pushes the agent definition to Bridge.
 // For shared agents only — called on agent create/update.
+//
+// System agents are a no-op here: they live in the singleton system sandbox
+// which is provisioned and populated at worker startup, then refreshed by
+// the periodic SystemAgentSync task. Their sandbox_id is already set.
 func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
+	if agent.IsSystem {
+		return nil
+	}
 	if agent.SandboxType != "shared" {
 		return nil // dedicated agents are pushed lazily on conversation create
 	}
@@ -82,12 +89,6 @@ func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
 	sb, err := p.orchestrator.AssignPoolSandbox(ctx, agent)
 	if err != nil {
 		return fmt.Errorf("assigning pool sandbox: %w", err)
-	}
-
-	// System agents don't have credentials — push without a proxy token.
-	// Per-conversation auth token override will supply the real token.
-	if agent.IsSystem {
-		return p.pushSystemAgentToSandbox(ctx, agent, sb)
 	}
 
 	// Build and push
@@ -99,7 +100,15 @@ func (p *Pusher) PushAgent(ctx context.Context, agent *model.Agent) error {
 // to reload the agent and wipe active conversations:
 //  1. In-memory cache (instant, survives within process lifetime)
 //  2. Bridge API check (survives server restarts)
+//
+// System agents are a no-op here: they're pre-loaded into the singleton
+// system sandbox at worker startup and re-pushed by the periodic
+// SystemAgentSync task. Per-request pushes would defeat the periodic strategy.
 func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+	if agent.IsSystem {
+		return nil
+	}
+
 	sandboxID := sb.ID.String()
 	agentID := agent.ID.String()
 
@@ -117,15 +126,11 @@ func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		}
 	}
 
-	// Not found in either layer — do the full push
-	if agent.IsSystem {
-		if err := p.pushSystemAgentToSandbox(ctx, agent, sb); err != nil {
-			return err
-		}
-	} else {
-		if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
-			return err
-		}
+	// Not found in either layer — do the full push.
+	// System agents return at the top of this function, so this is
+	// always a non-system push.
+	if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
+		return err
 	}
 	p.markPushed(sandboxID, agentID)
 	return nil
@@ -362,6 +367,62 @@ func (p *Pusher) pushSystemAgentToSandbox(ctx context.Context, agent *model.Agen
 		"sandbox_id", sb.ID,
 	)
 
+	return nil
+}
+
+// PushAllSystemAgents loads every is_system=true active agent and upserts its
+// definition into the given sandbox's Bridge. Idempotent — UpsertAgent
+// overwrites existing definitions, so this safely propagates YAML edits and
+// recovers from a Bridge restart that lost in-memory agent state.
+//
+// Called from worker startup (after the seeder) and from the periodic
+// SystemAgentSync Asynq task. A failure on one agent is logged and skipped;
+// the function returns an aggregated error only if at least one push failed.
+func (p *Pusher) PushAllSystemAgents(ctx context.Context, sb *model.Sandbox) error {
+	var agents []model.Agent
+	if err := p.db.WithContext(ctx).
+		Where("is_system = true AND status = ?", "active").
+		Find(&agents).Error; err != nil {
+		return fmt.Errorf("loading system agents: %w", err)
+	}
+
+	if len(agents) == 0 {
+		slog.Info("no system agents to push", "sandbox_id", sb.ID)
+		return nil
+	}
+
+	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
+	if err != nil {
+		return fmt.Errorf("getting bridge client for system sandbox: %w", err)
+	}
+
+	var failed []string
+	for i := range agents {
+		agent := &agents[i]
+		def := p.BuildSystemAgentDef(agent)
+		if err := client.UpsertAgent(ctx, agent.ID.String(), def); err != nil {
+			slog.Error("failed to push system agent",
+				"agent_id", agent.ID, "agent_name", agent.Name, "error", err)
+			failed = append(failed, agent.Name)
+			continue
+		}
+		// Mark in the layer-1 cache so any stray code path that still calls
+		// PushAgentToSandbox for a system agent (there shouldn't be any) is
+		// also a fast no-op.
+		p.markPushed(sb.ID.String(), agent.ID.String())
+	}
+
+	slog.Info("system agents synced to bridge",
+		"sandbox_id", sb.ID,
+		"total", len(agents),
+		"succeeded", len(agents)-len(failed),
+		"failed", len(failed),
+	)
+
+	if len(failed) > 0 {
+		return fmt.Errorf("failed to push %d/%d system agents: %s",
+			len(failed), len(agents), strings.Join(failed, ", "))
+	}
 	return nil
 }
 

@@ -254,6 +254,168 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 	return &sb, nil
 }
 
+// EnsureSystemSandbox returns the singleton system sandbox, provisioning or
+// waking it if needed. After ensuring the sandbox is running, it bulk-binds
+// every is_system=true agent row to that sandbox by setting their sandbox_id.
+//
+// Idempotent — safe to call on every server startup and from the periodic
+// SystemAgentSync task. Pushing the agent definitions to Bridge is the
+// caller's responsibility (see Pusher.PushAllSystemAgents).
+func (o *Orchestrator) EnsureSystemSandbox(ctx context.Context) (*model.Sandbox, error) {
+	var sb model.Sandbox
+	err := o.db.Where("sandbox_type = ?", "system").First(&sb).Error
+
+	switch {
+	case err == gorm.ErrRecordNotFound:
+		newSb, createErr := o.createSystemSandbox(ctx)
+		if createErr != nil {
+			return nil, fmt.Errorf("creating system sandbox: %w", createErr)
+		}
+		sb = *newSb
+
+	case err != nil:
+		return nil, fmt.Errorf("looking up system sandbox: %w", err)
+
+	default:
+		// Existing row — verify it's still alive at the provider.
+		if vErr := o.verifySandboxExists(ctx, &sb); vErr != nil {
+			slog.Warn("system sandbox stale at provider, recreating",
+				"sandbox_id", sb.ID, "error", vErr)
+			o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+			newSb, createErr := o.createSystemSandbox(ctx)
+			if createErr != nil {
+				return nil, fmt.Errorf("recreating system sandbox: %w", createErr)
+			}
+			sb = *newSb
+		} else if sb.Status != "running" {
+			woken, wakeErr := o.WakeSandbox(ctx, &sb)
+			if wakeErr != nil {
+				return nil, fmt.Errorf("waking system sandbox: %w", wakeErr)
+			}
+			sb = *woken
+		}
+	}
+
+	// Bind every system agent row to this sandbox so the existing
+	// `if agent.SandboxID == nil` branches in handlers naturally no-op.
+	if err := o.db.Model(&model.Agent{}).
+		Where("is_system = true").
+		Update("sandbox_id", sb.ID).Error; err != nil {
+		return nil, fmt.Errorf("binding system agents to sandbox: %w", err)
+	}
+
+	return &sb, nil
+}
+
+// createSystemSandbox provisions a fresh sandbox with sandbox_type='system'.
+// Mirrors createPoolSandbox but with the system tag and a stable name.
+func (o *Orchestrator) createSystemSandbox(ctx context.Context) (*model.Sandbox, error) {
+	bridgeAPIKey, err := generateRandomHex(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating bridge api key: %w", err)
+	}
+	encryptedKey, err := o.encKey.EncryptString(bridgeAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypting bridge api key: %w", err)
+	}
+
+	sb := model.Sandbox{
+		SandboxType:           "system",
+		EncryptedBridgeAPIKey: encryptedKey,
+		Status:                "creating",
+	}
+	if err := o.db.Create(&sb).Error; err != nil {
+		return nil, fmt.Errorf("saving system sandbox record: %w", err)
+	}
+
+	envVars := map[string]string{
+		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
+		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
+		"BRIDGE_LOG_FORMAT":            "json",
+		"BRIDGE_CODEDB_ENABLED":        "true",
+		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
+		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
+	}
+
+	snapshotID := o.cfg.BridgeBaseImagePrefix
+	name := fmt.Sprintf("zira-system-%s", shortID(sb.ID))
+
+	labels := map[string]string{
+		"sandbox_type": "system",
+		"sandbox_id":   sb.ID.String(),
+	}
+
+	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
+		Name:       name,
+		SnapshotID: snapshotID,
+		EnvVars:    envVars,
+		Labels:     labels,
+	})
+	if err != nil {
+		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
+		return nil, fmt.Errorf("creating system sandbox via provider: %w", err)
+	}
+
+	// Disable Daytona's auto-stop policy on this sandbox. The system sandbox
+	// must stay running indefinitely; the orchestrator's health check skips
+	// auto-stop for sandbox_type='system' but Daytona itself would otherwise
+	// apply its account-level default. Convention: intervalMinutes=0 disables.
+	// Non-fatal — if this fails the periodic health check will wake the
+	// sandbox after Daytona stops it.
+	if err := o.provider.SetAutoStop(ctx, info.ExternalID, 0); err != nil {
+		slog.Warn("failed to disable auto-stop on system sandbox",
+			"sandbox_id", sb.ID, "external_id", info.ExternalID, "error", err)
+	}
+
+	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
+	if err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"external_id":   info.ExternalID,
+			"status":        "error",
+			"error_message": fmt.Sprintf("failed to get endpoint: %v", err),
+		})
+		return nil, fmt.Errorf("getting system sandbox endpoint: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(bridgeURLTTL)
+	if err := o.db.Model(&sb).Updates(map[string]any{
+		"external_id":           info.ExternalID,
+		"bridge_url":            bridgeURL,
+		"bridge_url_expires_at": expiresAt,
+		"status":                "running",
+		"last_active_at":        now,
+	}).Error; err != nil {
+		return nil, fmt.Errorf("updating system sandbox record: %w", err)
+	}
+
+	sb.ExternalID = info.ExternalID
+	sb.BridgeURL = bridgeURL
+	sb.BridgeURLExpiresAt = &expiresAt
+	sb.Status = "running"
+	sb.LastActiveAt = &now
+
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /home/daytona/.bridge"); execErr != nil {
+		slog.Warn("failed to create bridge storage dir", "sandbox_id", sb.ID, "error", execErr)
+	}
+
+	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
+		o.db.Model(&sb).Updates(map[string]any{
+			"status":        "error",
+			"error_message": fmt.Sprintf("bridge failed to start: %v", err),
+		})
+		return nil, fmt.Errorf("waiting for system bridge: %w", err)
+	}
+
+	slog.Info("system sandbox created",
+		"sandbox_id", sb.ID,
+		"external_id", info.ExternalID,
+	)
+
+	return &sb, nil
+}
+
 // ReleasePoolSandbox clears an agent's sandbox assignment.
 func (o *Orchestrator) ReleasePoolSandbox(ctx context.Context, agent *model.Agent) error {
 	if agent.SandboxID == nil {
@@ -740,6 +902,19 @@ func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox
 	// Handle shared sandbox errors — unassign all agents
 	if sb.Status == "error" && sb.SandboxType == "shared" {
 		o.handleSharedSandboxError(sb)
+		return
+	}
+
+	// System sandbox: never auto-stop, never sleep. If it's not running,
+	// try to wake it; the periodic SystemAgentSync task will re-push the
+	// agent definitions to Bridge after wake.
+	if sb.SandboxType == "system" {
+		if sb.Status == "stopped" {
+			slog.Warn("system sandbox is stopped, attempting wake", "sandbox_id", sb.ID)
+			if _, err := o.WakeSandbox(ctx, sb); err != nil {
+				slog.Error("failed to wake system sandbox", "sandbox_id", sb.ID, "error", err)
+			}
+		}
 		return
 	}
 

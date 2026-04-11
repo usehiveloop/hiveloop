@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -276,10 +277,11 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // List handles GET /v1/skills.
 // @Summary List skills
-// @Description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both.
+// @Description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.
 // @Tags skills
 // @Produce json
 // @Param scope query string false "Filter: public, own, all (default all)"
+// @Param q query string false "Free-text search over name and description"
 // @Param limit query int false "Page size (default 50, max 100)"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[skillResponse]
@@ -311,6 +313,10 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "scope must be public, own, or all"})
 		return
+	}
+	if searchTerm := strings.TrimSpace(r.URL.Query().Get("q")); searchTerm != "" {
+		like := "%" + searchTerm + "%"
+		q = q.Where("name ILIKE ? OR description ILIKE ?", like, like)
 	}
 	q = applyPagination(q, cursor, limit)
 

@@ -1,0 +1,158 @@
+---
+title: "How we reduced token usage by 54% using context recipes"
+description: "Most agents waste half their turns figuring out what they're looking at before they start working. We replaced that phase with a small config file, and the numbers surprised us."
+date: "2026-04-11"
+author: "Kati Frantz"
+authorAvatar: "https://i.pravatar.cc/80?u=kati"
+category: "Engineering"
+readTime: "8 min"
+---
+
+Every LLM call costs money. That sounds obvious, but the more interesting version of it is: every token in the LLM's input context costs money, and that context grows with every turn of a conversation. Get this wrong and the bill for a single agent run can be 3x what it should be. Get it right and you can save more than half your token spend without touching a single model parameter.
+
+We measured 54% savings across our production PR review and support drafting agents after rolling out a pattern we call _context recipes_. This post is the story of what changed and why it worked.
+
+## The traditional way of building an agent
+
+When you build an agent with the standard approach, you hand it a toolbox. You give it a dozen or so functions it can call — read a pull request, list files in a PR, fetch comments, search for related issues, look up a user, read a file from the repo, and so on — and let the model decide what to call and when. This is the pattern every agent framework nudges you toward, and it feels natural because it mirrors how a human investigator works: see a problem, ask questions, gather information, decide what to do.
+
+For a PR review agent, the toolbox usually looks something like this:
+
+```ts title="agent-tools.ts"
+const tools = [
+  get_pull_request,
+  list_pull_request_files,
+  get_pull_request_reviews,
+  list_pull_request_comments,
+  get_issue,
+  list_issue_comments,
+  search_issues,
+  get_user,
+  get_repo_contents,
+  get_workflow_runs,
+  // ...plus the tools that actually do work
+  read_file,
+  edit_file,
+  run_bash,
+  create_comment,
+];
+```
+
+When a PR webhook fires, the agent wakes up and has to figure out what it's looking at. So it calls `get_pull_request` to read the title and body. Then it calls `list_pull_request_files` to see what changed. Maybe it pulls the existing comments to see if other reviewers have weighed in. Possibly it reads the repo's contributing guide. Only after all of that does the agent start doing what you actually hired it to do: review the code.
+
+## Why this gets expensive, fast
+
+The problem isn't that the agent is doing something wrong. It's that each of those "let me figure out what I'm looking at" calls is a full round trip through the LLM, and every round trip carries the entire conversation history with it.
+
+Here's what an average review agent's conversation actually looks like, measured in input tokens billed per turn:
+
+```text title="token-budget.txt"
+Turn 1   system + 14 tool descriptions             ≈ 3,800 tokens
+Turn 2   + get_pull_request response               ≈ 5,900 tokens
+Turn 3   + list_pull_request_files response        ≈ 7,800 tokens
+Turn 4   + list_pull_request_comments response     ≈ 9,200 tokens
+Turn 5   + get_repo_contents(CONTRIBUTING.md)      ≈ 9,900 tokens
+Turn 6   agent starts reasoning about the diff    ≈ 11,400 tokens
+Turn 7   agent drafts review comment              ≈ 13,100 tokens
+Turn 8   agent posts the comment                  ≈ 14,200 tokens
+────────────────────────────────────────────────────────────────
+Total input tokens billed across the run         ≈ 75,300 tokens
+```
+
+Notice what's happening. Turns 2 through 5 are purely orientation — the agent hasn't started reviewing anything yet, it's just building up a mental picture of what the PR is. Those four turns cost roughly 33,000 input tokens, or about 44% of the entire run's billable input. Before the agent writes a single line of actual review, nearly half the token budget is already gone.
+
+> Four turns to figure out what you're looking at, and four more to actually do the work. Half the run is orientation, and the orientation looks the same every single time.
+
+And the orientation phase is deterministic. Every PR review agent needs the PR, the files, the prior comments, and the contributing guide. It never varies. The agent isn't making any clever decisions about what to fetch — it's just running the same checklist that every previous run ran, one slow tool call at a time, paying full LLM prices for each round trip.
+
+There's also a quieter cost: tool descriptions. Every one of those 14 tools has a name, a description, and a parameter schema that gets jammed into the LLM's context on every single turn. In our measurements, the toolbox for a typical review agent added about 2,500 tokens per turn before the conversation even started. At eight turns, that's 20,000 tokens spent just describing capabilities the agent mostly already knew how to use.
+
+## The insight that changed things
+
+We started separating the agent's tool list into two buckets. The first was **orientation tools** — things like `get_pull_request`, `list_files`, and `get_conversation_history`. These exist purely to answer the question "what am I looking at?" The second bucket was **execution tools** — `read_file`, `edit_file`, `bash`, `create_comment`. These are the tools the agent uses to actually do its job.
+
+The orientation bucket has a property the execution bucket doesn't: its contents are predictable before the agent even wakes up. If you know the trigger is "pull request opened," you know the agent will need the PR, the files, and the guidelines. You can pre-fetch them without the LLM having to ask.
+
+Execution tools stay — the agent still needs to read files it discovers, edit them, run commands, and post results. You can't predict those in advance because they depend on what the agent learns while working. But orientation tools can disappear from the list entirely, replaced by a structured message the agent reads once at the start of the run.
+
+## Context recipes
+
+A context recipe is a small configuration file that says, for a given trigger event, what data should be fetched and how it should be laid out in the agent's opening message. The recipe is declarative — it describes the shape of the context, not the code that gathers it. Our runtime handles the rest: it watches for the event, runs the listed fetches in parallel or in sequence, and composes the results into the agent's first user message.
+
+A PR review agent's recipe ends up looking something like this:
+
+```yaml title="pr-review.recipe.yml"
+trigger: pull_request.opened
+
+conditions:
+  - sender.type is not Bot
+  - pull_request.draft is false
+
+context:
+  - as: pr
+    fetch: pulls.get
+  - as: files
+    fetch: pulls.list_files
+  - as: guidelines
+    fetch: repos.get_content
+    path: .github/CONTRIBUTING.md
+    optional: true
+
+instructions: |
+  A pull request was updated in {{repo}}.
+
+  Title: {{pr.title}}
+  Author: {{pr.user.login}}
+
+  Changed files:
+  {{files}}
+
+  Guidelines (if present):
+  {{guidelines}}
+
+  Review the changes and post one summary comment.
+```
+
+When a webhook arrives, the runtime fires the three fetches, waits for them, drops the results into the template, and hands the fully-formed message to the agent. The agent wakes up knowing exactly what PR it's looking at, who opened it, what files changed, and what the repo's conventions are — all in a single input turn. No tool calls needed for orientation. The agent can skip straight to reviewing the code.
+
+This works for every event-driven agent, not just PR reviewers. A customer support drafter pre-fetches the conversation, the contact's profile, past tickets, and relevant help articles. An issue triager pre-fetches the issue, the current labels, and similar open issues. A CI failure responder pre-fetches the run, the failed jobs, and recent deployments. The pattern is always the same: the event tells us what resource is in play, and every resource has a small set of predictable neighbors the agent needs to understand it.
+
+## The new budget
+
+Here's what the same PR review agent looks like after the recipe was in place:
+
+```text title="token-budget-after.txt"
+Turn 1   system + 6 tool descriptions + recipe      ≈ 6,100 tokens
+Turn 2   agent reasons about diff, starts editing   ≈ 7,600 tokens
+Turn 3   agent continues editing                   ≈ 9,200 tokens
+Turn 4   agent drafts review comment               ≈ 10,400 tokens
+Turn 5   agent posts the comment                   ≈ 11,500 tokens
+────────────────────────────────────────────────────────────────
+Total input tokens billed across the run         ≈ 44,800 tokens
+```
+
+Turn 1 is a bit fatter than before because the recipe's results are now in the opening message — about 2,300 extra tokens of pre-fetched context. But turns 2 through 5 are gone. The agent never needed to ask what it was looking at, so it never spent the turns on it. Total billable input drops from 75,300 tokens to 44,800 tokens — a 40% reduction on that single run.
+
+We saw bigger wins on agents that had more orientation work to do. A customer support drafter that previously used 11 tool calls to understand a conversation went from 92,000 billable input tokens to 38,000 — a 59% reduction. Across our production agents, the average improvement landed at 54%.
+
+> The single biggest source of token waste in most agents isn't the work they do. It's the questions they have to ask before they can start.
+
+## Why the savings go beyond tokens
+
+The token math was the reason we started on this, but it wasn't the most interesting outcome. The quieter win was that the agents got better at their actual jobs.
+
+When you hand an LLM fourteen tools, the model has to spend attention on choosing correctly between them every turn. Function-calling accuracy degrades measurably as tool count climbs — we see mistakes start showing up around 15 tools, and get noticeable around 20. Stripping the orientation tools out of the list dropped our review agent from 14 tools to 6. The remaining tools were the ones the agent actually used for work, and the accuracy of its tool selection jumped by a similar amount.
+
+Latency improved too. The old flow had four sequential round trips through the LLM just to gather context, each of which waited on a model response before starting the next fetch. The recipe runs all the fetches in parallel (when they don't depend on each other) and delivers the results in a single message. Average time-to-first-useful-action for our PR review agent dropped from 18 seconds to 6 seconds.
+
+## What we learned
+
+The biggest thing we learned is that most event-driven agents have a very clear "phase one" that nobody thinks to cut. The LLM is great at making decisions under uncertainty, but it shouldn't be the thing making decisions you can make in advance. Context recipes let you say "this part is deterministic, skip it" without giving up any of the agent's flexibility for the work that actually matters.
+
+The second thing we learned is that recipes double as a forcing function for clear agent scope. If you can write a recipe — if you can list the data the agent will always need — you've proven the agent has a well-defined job. If you can't list the data, your agent's scope is probably too vague to work reliably in production. The recipe refuses to cooperate until the scope is clear, and that turned out to be a useful signal during agent design.
+
+Not every agent is a fit. Exploratory tasks — the ones where the agent needs to discover what to fetch based on what it finds — still need the traditional tool-driven approach. But those turned out to be a much smaller fraction of our use cases than we expected. For the 90% that are event-driven and operate on predictable resources, recipes cut our token bill almost in half and made the agents faster and more accurate at the same time. We don't build agents without them anymore.
+
+> Recipes turned a tool-selection problem into a configuration problem. The parts a computer can figure out in advance stopped being the LLM's problem, and the LLM got better at the parts only it can do.
+
+If you're running agents in production and you've never measured where your token budget actually goes turn-by-turn, do that first. You'll probably find the same thing we did: the orientation phase is hiding half your cost in plain sight, and the fix doesn't require smarter models or better prompts. It just requires noticing which questions the LLM shouldn't have to ask.

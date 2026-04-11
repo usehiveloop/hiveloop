@@ -65,6 +65,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSandboxResourceCheck, NewSandboxResourceCheckHandler(deps.Orchestrator).Handle)
 	}
 
+	if deps.Orchestrator != nil && deps.Pusher != nil {
+		mux.HandleFunc(TypeSystemAgentSync, NewSystemAgentSyncHandler(deps.Orchestrator, deps.Pusher).Handle)
+	}
+
 	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
 	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
 

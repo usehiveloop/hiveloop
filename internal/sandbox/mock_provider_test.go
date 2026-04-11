@@ -14,6 +14,14 @@ type mockProvider struct {
 	endpointOverride string            // if set, all GetEndpoint calls return this URL
 	nextID           int
 	executeCommandFn func(ctx context.Context, externalID, command string) (string, error)
+	setAutoStopCalls []setAutoStopCall
+}
+
+// setAutoStopCall records one invocation of SetAutoStop. Tests assert against
+// this slice to verify the system sandbox path passes intervalMinutes=0.
+type setAutoStopCall struct {
+	externalID      string
+	intervalMinutes int
 }
 
 type mockSandbox struct {
@@ -119,7 +127,13 @@ func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
 	return nil
 }
 
-func (m *mockProvider) SetAutoStop(_ context.Context, _ string, _ int) error {
+func (m *mockProvider) SetAutoStop(_ context.Context, externalID string, intervalMinutes int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setAutoStopCalls = append(m.setAutoStopCalls, setAutoStopCall{
+		externalID:      externalID,
+		intervalMinutes: intervalMinutes,
+	})
 	return nil
 }
 

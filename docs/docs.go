@@ -9892,7 +9892,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both.",
+                "description": "Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.",
                 "produces": [
                     "application/json"
                 ],
@@ -9905,6 +9905,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter: public, own, all (default all)",
                         "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search over name and description",
+                        "name": "q",
                         "in": "query"
                     },
                     {
@@ -11551,6 +11557,35 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.TerminateRule": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch"
+                },
+                "context_actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ContextAction"
+                    }
+                },
+                "ignore_parent_conditions": {
+                    "type": "boolean"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "silent": {
+                    "type": "boolean"
+                },
+                "trigger_keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.TriggerCondition": {
             "type": "object",
             "properties": {
@@ -13191,6 +13226,13 @@ const docTemplate = `{
                 "shared_memory": {
                     "type": "boolean"
                 },
+                "skill_ids": {
+                    "description": "skills from /v1/skills to attach on create",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "skills": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
@@ -13236,6 +13278,12 @@ const docTemplate = `{
                 },
                 "instructions": {
                     "type": "string"
+                },
+                "terminate_on": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TerminateRule"
+                    }
                 },
                 "trigger_keys": {
                     "type": "array",

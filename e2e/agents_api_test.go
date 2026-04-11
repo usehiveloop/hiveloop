@@ -242,7 +242,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 		"credential_id": %q,
 		"sandbox_type": "shared",
 		"system_prompt": "You are a helpful customer support agent.",
-		"model": "gpt-4o",
+		"model": "gpt-5.4",
 		"agent_config": {"max_tokens": 4096, "temperature": 0.3},
 		"permissions": {"bash": "require_approval"}
 	}`, suffix, h.identity.ID.String(), h.cred.ID.String())
@@ -290,7 +290,7 @@ func TestAgentAPI_CRUD(t *testing.T) {
 	if created.SandboxType != "shared" {
 		t.Errorf("sandbox_type: got %q", created.SandboxType)
 	}
-	if created.Model != "gpt-4o" {
+	if created.Model != "gpt-5.4" {
 		t.Errorf("model: got %q", created.Model)
 	}
 	if created.Status != "active" {
@@ -370,7 +370,7 @@ func TestAgentAPI_Validation(t *testing.T) {
 	// Invalid sandbox_type
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
 		"name": "test", "identity_id": %q, "credential_id": %q, "sandbox_type": "invalid",
-		"system_prompt": "test", "model": "gpt-4o"
+		"system_prompt": "test", "model": "gpt-5.4"
 	}`, h.identity.ID.String(), h.cred.ID.String()))
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("invalid sandbox_type: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -379,7 +379,7 @@ func TestAgentAPI_Validation(t *testing.T) {
 	// Non-existent credential
 	rr = h.request(t, http.MethodPost, "/v1/agents", fmt.Sprintf(`{
 		"name": "test", "identity_id": %q, "credential_id": %q, "sandbox_type": "shared",
-		"system_prompt": "test", "model": "gpt-4o"
+		"system_prompt": "test", "model": "gpt-5.4"
 	}`, h.identity.ID.String(), uuid.New().String()))
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("bad credential: expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -413,7 +413,7 @@ func TestAgentAPI_DuplicateName(t *testing.T) {
 
 	body := fmt.Sprintf(`{
 		"name": %q, "identity_id": %q, "credential_id": %q, "sandbox_type": "shared",
-		"system_prompt": "test", "model": "gpt-4o"
+		"system_prompt": "test", "model": "gpt-5.4"
 	}`, name, h.identity.ID.String(), h.cred.ID.String())
 
 	// First create succeeds
@@ -466,7 +466,7 @@ func TestAgentAPI_WithTemplate(t *testing.T) {
 		"sandbox_type": "dedicated",
 		"sandbox_template_id": %q,
 		"system_prompt": "test",
-		"model": "gpt-4o"
+		"model": "gpt-5.4"
 	}`, suffix, h.identity.ID.String(), h.cred.ID.String(), tmpl.ID)
 
 	rr = h.request(t, http.MethodPost, "/v1/agents", body)

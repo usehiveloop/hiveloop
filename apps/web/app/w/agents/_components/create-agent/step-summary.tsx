@@ -8,7 +8,6 @@ import { IntegrationLogo } from "@/components/integration-logo"
 import { ProviderLogo } from "@/components/provider-logo"
 import { $api } from "@/lib/api/hooks"
 import { useCreateAgent } from "./context"
-import { MOCK_SKILLS } from "./mock-skills"
 
 interface SummaryRowProps {
   label: string
@@ -25,10 +24,10 @@ function SummaryRow({ label, children }: SummaryRowProps) {
 }
 
 export function StepSummary() {
-  const { form, mode, selectedIntegrations, selectedActions, selectedSkillIds, isSubmitting, goTo, handleCreate } = useCreateAgent()
+  const { form, mode, selectedIntegrations, selectedActions, selectedSkills, isSubmitting, goTo, handleCreate } = useCreateAgent()
   const credentialId = form.watch("credentialId")
 
-  const selectedSkills = MOCK_SKILLS.filter((skill) => selectedSkillIds.has(skill.id))
+  const selectedSkillsList = Array.from(selectedSkills.values())
 
   const { data: credentialsData } = $api.useQuery("get", "/v1/credentials")
   const credentials = credentialsData?.data ?? []
@@ -110,14 +109,14 @@ export function StepSummary() {
 
         <SummaryRow label="Skills">
           <span className="text-sm font-medium text-foreground">
-            {selectedSkills.length > 0 ? `${selectedSkills.length} attached` : "None"}
+            {selectedSkillsList.length > 0 ? `${selectedSkillsList.length} attached` : "None"}
           </span>
         </SummaryRow>
 
-        {selectedSkills.length > 0 && (
+        {selectedSkillsList.length > 0 && (
           <div className="rounded-xl bg-muted/50 px-4 py-3">
             <div className="flex flex-col gap-2">
-              {selectedSkills.map((skill) => (
+              {selectedSkillsList.map((skill) => (
                 <div key={skill.id} className="flex items-center gap-3 py-1">
                   <div className={`flex items-center justify-center size-6 rounded-md shrink-0 ${
                     skill.sourceType === "git" ? "bg-foreground/5" : "bg-blue-500/10"

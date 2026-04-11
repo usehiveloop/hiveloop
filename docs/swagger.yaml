@@ -245,6 +245,25 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
+  github_com_ziraloop_ziraloop_internal_model.TerminateRule:
+    properties:
+      conditions:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch'
+      context_actions:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ContextAction'
+        type: array
+      ignore_parent_conditions:
+        type: boolean
+      instructions:
+        type: string
+      silent:
+        type: boolean
+      trigger_keys:
+        items:
+          type: string
+        type: array
+    type: object
   github_com_ziraloop_ziraloop_internal_model.TriggerCondition:
     properties:
       operator:
@@ -1318,6 +1337,11 @@ definitions:
         type: string
       shared_memory:
         type: boolean
+      skill_ids:
+        description: skills from /v1/skills to attach on create
+        items:
+          type: string
+        type: array
       skills:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       subagents:
@@ -1347,6 +1371,10 @@ definitions:
         type: boolean
       instructions:
         type: string
+      terminate_on:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TerminateRule'
+        type: array
       trigger_keys:
         items:
           type: string
@@ -9688,11 +9716,16 @@ paths:
   /v1/skills:
     get:
       description: Lists skills visible to the current org. Use scope=public to browse
-        the marketplace, scope=own for org skills, scope=all for both.
+        the marketplace, scope=own for org skills, scope=all for both. Pass q to search
+        by name/description.
       parameters:
       - description: 'Filter: public, own, all (default all)'
         in: query
         name: scope
+        type: string
+      - description: Free-text search over name and description
+        in: query
+        name: q
         type: string
       - description: Page size (default 50, max 100)
         in: query

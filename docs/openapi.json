@@ -11938,7 +11938,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both.",
+        "description": "Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.",
         "tags": [
           "skills"
         ],
@@ -11947,6 +11947,14 @@
           {
             "description": "Filter: public, own, all (default all)",
             "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Free-text search over name and description",
+            "name": "q",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13949,6 +13957,35 @@
           }
         }
       },
+      "TerminateRule": {
+        "type": "object",
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/TriggerMatch"
+          },
+          "context_actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContextAction"
+            }
+          },
+          "ignore_parent_conditions": {
+            "type": "boolean"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "silent": {
+            "type": "boolean"
+          },
+          "trigger_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "TriggerCondition": {
         "type": "object",
         "properties": {
@@ -15589,6 +15626,13 @@
           "shared_memory": {
             "type": "boolean"
           },
+          "skill_ids": {
+            "description": "skills from /v1/skills to attach on create",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "skills": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -15634,6 +15678,12 @@
           },
           "instructions": {
             "type": "string"
+          },
+          "terminate_on": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TerminateRule"
+            }
           },
           "trigger_keys": {
             "type": "array",

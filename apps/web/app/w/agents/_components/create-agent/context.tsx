@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
-import type { CreationMode, Step } from "./types"
+import type { CreationMode, Step, SkillPreview } from "./types"
 
 export interface CreateAgentFormValues {
   name: string
@@ -30,13 +30,13 @@ interface CreateAgentContextValue {
   direction: React.MutableRefObject<1 | -1>
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
-  selectedSkillIds: Set<string>
+  selectedSkills: Map<string, SkillPreview>
   isSubmitting: boolean
   setMode: (mode: CreationMode) => void
   goTo: (step: Step) => void
   toggleIntegration: (connectionId: string) => void
   toggleAction: (connectionId: string, actionKey: string) => void
-  toggleSkill: (skillId: string) => void
+  toggleSkill: (skill: SkillPreview) => void
   clearSkills: () => void
   handleCreate: () => void
   reset: () => void
@@ -81,7 +81,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [mode, setModeState] = useState<CreationMode | null>(initialMode ?? null)
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
-  const [selectedSkillIds, setSelectedSkillIds] = useState<Set<string>>(new Set())
+  const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(new Map())
   const direction = useRef<1 | -1>(1)
 
   const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
@@ -130,20 +130,20 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     })
   }, [])
 
-  const toggleSkill = useCallback((skillId: string) => {
-    setSelectedSkillIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(skillId)) {
-        next.delete(skillId)
+  const toggleSkill = useCallback((skill: SkillPreview) => {
+    setSelectedSkills((prev) => {
+      const next = new Map(prev)
+      if (next.has(skill.id)) {
+        next.delete(skill.id)
       } else {
-        next.add(skillId)
+        next.set(skill.id, skill)
       }
       return next
     })
   }, [])
 
   const clearSkills = useCallback(() => {
-    setSelectedSkillIds(new Set())
+    setSelectedSkills(new Map())
   }, [])
 
   const reset = useCallback(() => {
@@ -151,7 +151,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setModeState(null)
     setSelectedIntegrations(new Set())
     setSelectedActions({})
-    setSelectedSkillIds(new Set())
+    setSelectedSkills(new Map())
     form.reset()
   }, [form])
 
@@ -176,6 +176,10 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       system_prompt: values.systemPrompt || "",
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
+    }
+
+    if (selectedSkills.size > 0) {
+      body.skill_ids = Array.from(selectedSkills.keys())
     }
 
     if (mode === "forge" && values.judgeKeyId && values.judgeModel) {
@@ -205,7 +209,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         },
       },
     )
-  }, [form, mode, selectedIntegrations, selectedActions, createAgent, queryClient, onClose, router])
+  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, createAgent, queryClient, onClose, router])
 
   return (
     <CreateAgentContext.Provider
@@ -216,7 +220,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         direction,
         selectedIntegrations,
         selectedActions,
-        selectedSkillIds,
+        selectedSkills,
         isSubmitting: createAgent.isPending,
         setMode,
         goTo,

@@ -1,16 +1,22 @@
-// Package registry provides an embedded provider/model catalog sourced from
-// models.dev. The JSON is embedded at build time via go:embed and parsed once
-// at init, giving O(1) provider lookups and zero network latency.
+// Package registry provides a hand-curated provider/model catalog. Each
+// provider and model in the registry has been manually verified to work
+// for autonomous agentic workflows (tool calling, structured output where
+// applicable, recent releases, and tested cost/context characteristics).
+//
+// The catalog is defined as a Go literal in models.go rather than embedded
+// JSON, so additions go through code review and the type checker enforces
+// the schema. To add a model: edit models.go, run `go test ./internal/registry/...`
+// to verify the registry still loads, then commit.
+//
+// This intentionally narrow allow-list replaces the previous approach of
+// embedding the full models.dev catalog (1000+ models from 110+ providers),
+// most of which we never tested.
 package registry
 
 import (
-	_ "embed"
-	"encoding/json"
+	"sort"
 	"sync"
 )
-
-//go:embed models.json
-var modelsJSON []byte
 
 // Provider represents an LLM provider.
 type Provider struct {
@@ -69,27 +75,28 @@ var (
 
 func Global() *Registry {
 	initOnce.Do(func() {
-		globalRegistry = mustParse(modelsJSON)
+		globalRegistry = buildIndex(curatedProviders)
 	})
 	return globalRegistry
 }
 
-func mustParse(data []byte) *Registry {
-	var providers []Provider
-	if err := json.Unmarshal(data, &providers); err != nil {
-		panic("registry: failed to parse embedded models.json: " + err.Error())
-	}
-	return buildIndex(providers)
-}
-
 func buildIndex(providers []Provider) *Registry {
+	// Defensive copy + alphabetical sort. The curated list in models.go
+	// can be in any order; the public AllProviders() contract is sorted by
+	// ID so the API responses and tests are stable.
+	sorted := make([]Provider, len(providers))
+	copy(sorted, providers)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].ID < sorted[j].ID
+	})
+
 	r := &Registry{
-		providers: providers,
-		byID:      make(map[string]*Provider, len(providers)),
+		providers: sorted,
+		byID:      make(map[string]*Provider, len(sorted)),
 	}
 
-	for i := range providers {
-		p := &providers[i]
+	for i := range sorted {
+		p := &sorted[i]
 		r.byID[p.ID] = p
 	}
 

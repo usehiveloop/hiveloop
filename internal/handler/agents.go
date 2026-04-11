@@ -82,6 +82,7 @@ type createAgentRequest struct {
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              string            `json:"team,omitempty"`
 	SharedMemory      bool              `json:"shared_memory,omitempty"`
+	SkillIDs          []string          `json:"skill_ids,omitempty"` // skills from /v1/skills to attach on create
 	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
 	Trigger           *createAgentTriggerRequest `json:"trigger,omitempty"` // optional webhook trigger to create with the agent
 }
@@ -352,10 +353,55 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		agent.SandboxTemplateID = &tmpl.ID
 	}
 
-	// Use a transaction so agent + trigger are created atomically.
+	// Parse skill IDs up front so a bad input fails the whole create cleanly.
+	var skillUUIDs []uuid.UUID
+	if len(req.SkillIDs) > 0 {
+		skillUUIDs = make([]uuid.UUID, 0, len(req.SkillIDs))
+		seen := make(map[uuid.UUID]struct{}, len(req.SkillIDs))
+		for _, raw := range req.SkillIDs {
+			parsed, parseErr := uuid.Parse(raw)
+			if parseErr != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid skill_id %q", raw)})
+				return
+			}
+			if _, dup := seen[parsed]; dup {
+				continue
+			}
+			seen[parsed] = struct{}{}
+			skillUUIDs = append(skillUUIDs, parsed)
+		}
+	}
+
+	// Use a transaction so agent + trigger + skill attachments are created atomically.
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
+		}
+
+		if len(skillUUIDs) > 0 {
+			var visibleSkills []model.Skill
+			if err := tx.
+				Select("id").
+				Where("id IN ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
+					skillUUIDs, org.ID, model.SkillStatusPublished).
+				Find(&visibleSkills).Error; err != nil {
+				return fmt.Errorf("validate skill_ids: %w", err)
+			}
+			if len(visibleSkills) != len(skillUUIDs) {
+				return fmt.Errorf("one or more skill_ids are not visible to this org")
+			}
+			links := make([]model.AgentSkill, len(visibleSkills))
+			for i, skill := range visibleSkills {
+				links[i] = model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}
+			}
+			if err := tx.Create(&links).Error; err != nil {
+				return fmt.Errorf("attach skills: %w", err)
+			}
+			if err := tx.Model(&model.Skill{}).
+				Where("id IN ?", skillUUIDs).
+				UpdateColumn("install_count", gorm.Expr("install_count + 1")).Error; err != nil {
+				return fmt.Errorf("bump install_count: %w", err)
+			}
 		}
 
 		if req.Trigger != nil && triggerProvider != "" {

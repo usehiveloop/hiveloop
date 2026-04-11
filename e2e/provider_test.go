@@ -35,8 +35,8 @@ func TestE2E_Provider_List(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 
-	if len(providers) < 50 {
-		t.Fatalf("expected at least 50 providers, got %d", len(providers))
+	if len(providers) < 10 {
+		t.Fatalf("expected at least 10 providers, got %d", len(providers))
 	}
 
 	// Verify well-known providers are present
@@ -96,16 +96,16 @@ func TestE2E_Provider_Get(t *testing.T) {
 		t.Fatal("expected models for openai")
 	}
 
-	// Check that gpt-4o exists in models
+	// Check that a gpt-5 family model exists in the curated catalog
 	found := false
 	for _, m := range provider.Models {
-		if strings.Contains(m.ID, "gpt-4o") {
+		if strings.Contains(m.ID, "gpt-5") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("expected gpt-4o model in openai provider")
+		t.Error("expected a gpt-5 family model in openai provider")
 	}
 
 	t.Logf("OpenAI has %d models", len(provider.Models))
@@ -222,11 +222,11 @@ func TestE2E_Registry_Stats(t *testing.T) {
 	providers := reg.ProviderCount()
 	models := reg.ModelCount()
 
-	if providers < 50 {
-		t.Errorf("expected at least 50 providers, got %d", providers)
+	if providers < 10 {
+		t.Errorf("expected at least 10 curated providers, got %d", providers)
 	}
-	if models < 1000 {
-		t.Errorf("expected at least 1000 models, got %d", models)
+	if models < 50 {
+		t.Errorf("expected at least 50 curated models, got %d", models)
 	}
 
 	t.Logf("Registry: %d providers, %d models", providers, models)

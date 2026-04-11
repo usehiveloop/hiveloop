@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-models fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys
+.PHONY: build test test-e2e test-e2e-vault lint vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-vault test-clean-integrations test-auth test-nango test-proxy test-connect test-vault test-integrations test-connections test-setup vault-up vault-dev openapi generate-auth-keys
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
@@ -7,10 +7,6 @@ IMAGE   ?= ziraloop/ziraloop
 # Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
 	@openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' && echo
-
-# Fetch models.dev provider catalog and write internal/registry/models.json
-fetch-models:
-	go run ./cmd/fetchmodels
 
 # Generate provider action files from API specs (OpenAPI 3.x, OpenAPI 2.0, GraphQL)
 fetch-actions: fetch-actions-oas3 fetch-actions-oas2 fetch-actions-graphql
@@ -54,8 +50,10 @@ generate-bridge-client:
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest \
 		--config=internal/bridge/oapi-codegen.yaml openapi/bridge.json
 
-# Generate all embedded assets
-generate: fetch-models fetch-actions
+# Generate all embedded assets. Note: the model registry is hand-curated in
+# internal/registry/models.go and is NOT a generate target — additions go
+# through code review, not regeneration.
+generate: fetch-actions
 
 # Build the binary
 build:

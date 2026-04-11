@@ -12,7 +12,6 @@ const (
 	TypeAPIKeyUpdate              = "apikey:update_last_used"
 	TypeAdminAuditWrite           = "admin_audit:write"
 	TypeEmailSend                 = "email:send"
-	TypeSystemAgentSeed           = "system_agent:seed"
 	TypeAgentCleanup              = "agent:cleanup"
 	TypeBillingUsageEvent         = "billing:usage_event"
 	TypeSandboxTemplateBuild      = "sandbox_template:build"
@@ -25,6 +24,7 @@ const (
 	TypeStreamCleanup        = "periodic:stream_cleanup"
 	TypeSandboxHealthCheck   = "periodic:sandbox_health_check"
 	TypeSandboxResourceCheck = "periodic:sandbox_resource_check"
+	TypeSystemAgentSync      = "periodic:system_agent_sync"
 )
 
 // Queue names with priority weights.

@@ -22,12 +22,32 @@ import (
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	cfg := deps.Config
 
-	// Seed system agents (idempotent, runs once at startup)
+	// Seed system agents and provision the singleton system sandbox.
+	// Both steps are idempotent and run once on every worker startup.
+	// Bridge agent definitions are pushed eagerly here and refreshed by
+	// the periodic SystemAgentSync task afterwards.
 	goroutine.Go(func() {
 		if err := systemagents.Seed(deps.DB); err != nil {
 			slog.Error("failed to seed system agents", "error", err)
-		} else {
-			slog.Info("system agents seeded")
+			return
+		}
+		slog.Info("system agents seeded")
+
+		if deps.Orchestrator == nil || deps.AgentPusher == nil {
+			slog.Info("orchestrator not configured, skipping system sandbox provisioning")
+			return
+		}
+
+		sb, err := deps.Orchestrator.EnsureSystemSandbox(ctx)
+		if err != nil {
+			slog.Error("failed to ensure system sandbox", "error", err)
+			return
+		}
+		slog.Info("system sandbox ensured", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
+
+		if err := deps.AgentPusher.PushAllSystemAgents(ctx, sb); err != nil {
+			slog.Error("failed to push system agents to bridge", "error", err)
+			return
 		}
 	})
 
