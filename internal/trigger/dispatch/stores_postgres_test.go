@@ -56,6 +56,10 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 	otherConnectionID := uuid.New()
 	agentID := uuid.New()
 	otherAgentID := uuid.New()
+	// Third agent is needed because idx_agent_triggers_agent_conn is a
+	// unique index on (agent_id, connection_id). Triggers 2 and 4 both
+	// target (connection_id) so they must use different agents.
+	thirdAgentID := uuid.New()
 
 	// Seed the full FK chain (children get cleaned up before parents on defer):
 	// agent_triggers → agents → connections → integrations → org.
@@ -121,6 +125,16 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
+	if err := db.Create(&model.Agent{
+		ID:           thirdAgentID,
+		OrgID:        &orgID,
+		Name:         "third-agent",
+		SandboxType:  "shared",
+		SystemPrompt: "test",
+		Model:        "claude-opus-4-6",
+	}).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
 
 	// Trigger 1: matches our event (issues.opened) on the right connection — SHOULD return.
 	wantTriggerID := uuid.New()
@@ -155,10 +169,13 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 	})
 
 	// Trigger 4: enabled, same connection, but listens for a DIFFERENT key only.
+	// Uses thirdAgentID because (otherAgentID, connectionID) is already
+	// claimed by Trigger 2 and the (agent_id, connection_id) tuple is
+	// uniquely indexed.
 	mustCreateTrigger(t, db, model.AgentTrigger{
 		ID:           uuid.New(),
 		OrgID:        orgID,
-		AgentID:      otherAgentID,
+		AgentID:      thirdAgentID,
 		ConnectionID: connectionID,
 		TriggerKeys:  pq.StringArray{"pull_request.opened"},
 		Enabled:      true,
