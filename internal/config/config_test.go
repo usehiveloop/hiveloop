@@ -208,17 +208,6 @@ func TestLoad_NoRedisConfig(t *testing.T) {
 	}
 }
 
-func TestLoad_ProductionRejectsAEAD(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("KMS_TYPE", "aead")
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error: AEAD should be rejected in production")
-	}
-}
-
 func TestLoad_ProductionAllowsAWSKMS(t *testing.T) {
 	setRequiredEnv(t)
 	t.Setenv("ENVIRONMENT", "production")

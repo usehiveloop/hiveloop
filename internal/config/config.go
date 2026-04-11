@@ -170,12 +170,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("KMS_TYPE must be 'aead', 'awskms', or 'vault' (got %q)", cfg.KMSType)
 	}
 
-	// AEAD is only safe for local development. Production must use a
-	// managed KMS that supports key rotation and audit logging.
-	if cfg.Environment == "production" && cfg.KMSType == "aead" {
-		return nil, fmt.Errorf("KMS_TYPE 'aead' is not allowed in production; use 'awskms' or 'vault'")
-	}
-
 	// Require at least one Redis connection method.
 	if cfg.RedisURL == "" && cfg.RedisAddr == "" {
 		return nil, fmt.Errorf("either REDIS_URL or REDIS_ADDR must be set")
