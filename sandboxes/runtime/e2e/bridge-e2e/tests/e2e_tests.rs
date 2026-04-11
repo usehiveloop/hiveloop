@@ -882,6 +882,7 @@ async fn test_webhook_end_conversation() {
 /// Test that the Anthropic native provider can create a conversation and get a response.
 /// Requires ANTHROPIC_API_KEY environment variable.
 #[tokio::test]
+#[ignore]
 async fn test_anthropic_native_provider() {
     let harness = TestHarness::start()
         .await
@@ -915,6 +916,7 @@ async fn test_anthropic_native_provider() {
 /// Test that the Gemini native provider can create a conversation and get a response.
 /// Requires GEMINI_API_KEY environment variable.
 #[tokio::test]
+#[ignore]
 async fn test_gemini_native_provider() {
     let harness = TestHarness::start()
         .await
@@ -948,6 +950,7 @@ async fn test_gemini_native_provider() {
 /// Test that the Cohere native provider can create a conversation and get a response.
 /// Requires COHERE_API_KEY environment variable.
 #[tokio::test]
+#[ignore]
 async fn test_cohere_native_provider() {
     let harness = TestHarness::start()
         .await
