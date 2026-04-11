@@ -231,12 +231,17 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 // uses at internal/handler/agent_triggers.go:301.
 func mustCreateTrigger(t *testing.T, db *gorm.DB, trigger model.AgentTrigger) {
 	t.Helper()
+	wantEnabled := trigger.Enabled
 	if err := db.Create(&trigger).Error; err != nil {
 		t.Fatalf("create trigger %s: %v", trigger.ID, err)
 	}
-	if !trigger.Enabled {
-		if err := db.Model(&model.AgentTrigger{}).Where("id = ?", trigger.ID).Update("enabled", false).Error; err != nil {
-			t.Fatalf("update trigger enabled=false: %v", err)
+	if !wantEnabled {
+		res := db.Model(&model.AgentTrigger{}).Where("id = ?", trigger.ID).Update("enabled", false)
+		if res.Error != nil {
+			t.Fatalf("update trigger enabled=false: %v", res.Error)
+		}
+		if res.RowsAffected != 1 {
+			t.Fatalf("update trigger enabled=false: RowsAffected = %d, want 1", res.RowsAffected)
 		}
 	}
 }
