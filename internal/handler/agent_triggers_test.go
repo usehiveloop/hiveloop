@@ -656,7 +656,7 @@ func TestAgentTrigger_Delete(t *testing.T) {
 
 	body := map[string]any{
 		"connection_id": h.conn.ID.String(),
-		"trigger_keys": []string{"release.created"},
+		"trigger_keys":  []string{"release.published"},
 	}
 	createRecorder := h.doRequest(t, http.MethodPost, h.basePath(), body)
 	if createRecorder.Code != http.StatusCreated {
