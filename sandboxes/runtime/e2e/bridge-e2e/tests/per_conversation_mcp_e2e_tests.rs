@@ -35,7 +35,10 @@ async fn per_conv_mcp_happy_path_create_stream_end() {
     let mcp_binary = harness
         .ensure_mock_portal_mcp()
         .expect("failed to build/locate mock-portal-mcp");
-    let mcp_binary_path = mcp_binary.to_str().expect("binary path is utf-8").to_string();
+    let mcp_binary_path = mcp_binary
+        .to_str()
+        .expect("binary path is utf-8")
+        .to_string();
 
     // Narrow the agent's base tool surface to just `bash`. mock-portal-mcp advertises
     // its own Glob/Grep/Read tools that would otherwise collide with the builtins,
@@ -230,7 +233,10 @@ async fn per_conv_mcp_collision_with_builtin_rejected() {
     let mcp_binary = harness
         .ensure_mock_portal_mcp()
         .expect("failed to build/locate mock-portal-mcp");
-    let mcp_binary_path = mcp_binary.to_str().expect("binary path is utf-8").to_string();
+    let mcp_binary_path = mcp_binary
+        .to_str()
+        .expect("binary path is utf-8")
+        .to_string();
 
     // No base tool filter → agent has Glob/Grep/Read built-ins → per-conv MCP
     // tries to register its own Glob/Grep/Read → collision guard fires.

@@ -410,6 +410,7 @@ impl AgentSupervisor {
     ///
     /// Returns the conversation ID and a BridgeEvent receiver for streaming responses.
     /// Returns `CapacityExhausted` if global or per-agent conversation limits are reached.
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_conversation(
         &self,
         agent_id: &str,
@@ -2240,7 +2241,15 @@ mod tests {
             .unwrap();
 
         let result = supervisor
-            .create_conversation("agent1", None, None, Some("   ".to_string()), None, None, None)
+            .create_conversation(
+                "agent1",
+                None,
+                None,
+                Some("   ".to_string()),
+                None,
+                None,
+                None,
+            )
             .await;
 
         assert!(result.is_err());
@@ -2412,7 +2421,10 @@ mod tests {
             err.contains("stdio transport not allowed"),
             "error should describe stdio gate, got: {err}"
         );
-        assert!(err.contains("'local'"), "error should name server, got: {err}");
+        assert!(
+            err.contains("'local'"),
+            "error should name server, got: {err}"
+        );
 
         // Nothing should have leaked into the MCP manager.
         assert_eq!(supervisor.mcp_manager.connection_count(), 0);
@@ -2529,7 +2541,10 @@ mod tests {
             .create_conversation("agent1", None, None, None, None, None, Some(servers))
             .await;
 
-        assert!(result.is_err(), "unreachable MCP server should surface an error");
+        assert!(
+            result.is_err(),
+            "unreachable MCP server should surface an error"
+        );
         assert_eq!(
             supervisor.mcp_manager.connection_count(),
             0,
