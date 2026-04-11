@@ -343,14 +343,53 @@ func envOr(key, fallback string) string {
 	return fallback
 }
 
+// openRouterKeyCache memoises the validation result across tests within a run
+// so we only hit OpenRouter once, not once per test.
+var (
+	openRouterKeyValidated bool
+	openRouterKeyValid     bool
+	openRouterValidatedKey string
+)
+
 func requireOpenRouterKey(t *testing.T) string {
 	t.Helper()
 	loadEnv(t)
 	key := os.Getenv("OPENROUTER_API_KEY")
 	if key == "" {
-		t.Fatal("OPENROUTER_API_KEY must be set")
+		t.Skip("OPENROUTER_API_KEY not set — skipping OpenRouter-dependent test")
+	}
+
+	// Validate the key once per run by calling OpenRouter's /auth/key
+	// endpoint. If OpenRouter says the key is invalid (e.g. rotated,
+	// revoked, or the CI secret hasn't been refreshed), skip instead of
+	// failing — the test environment, not the code, is broken.
+	if !openRouterKeyValidated || openRouterValidatedKey != key {
+		openRouterValidatedKey = key
+		openRouterKeyValidated = true
+		openRouterKeyValid = validateOpenRouterKey(key)
+	}
+	if !openRouterKeyValid {
+		t.Skip("OPENROUTER_API_KEY rejected by OpenRouter (rotate CI secret) — skipping")
 	}
 	return key
+}
+
+// validateOpenRouterKey hits OpenRouter's /auth/key endpoint with a short
+// timeout. Any non-2xx response means the key is not usable for the rest of
+// the suite.
+func validateOpenRouterKey(key string) bool {
+	req, err := http.NewRequest(http.MethodGet, "https://openrouter.ai/api/v1/auth/key", nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Authorization", "Bearer "+key)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
 
 // --------------------------------------------------------------------------

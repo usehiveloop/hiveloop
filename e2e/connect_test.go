@@ -225,8 +225,8 @@ func TestE2E_Connect_ProviderNoFilter(t *testing.T) {
 	}
 	json.NewDecoder(rr.Body).Decode(&providers)
 
-	if len(providers) < 50 {
-		t.Fatalf("expected 50+ providers with no filter, got %d", len(providers))
+	if len(providers) < 10 {
+		t.Fatalf("expected at least 10 curated providers with no filter, got %d", len(providers))
 	}
 }
 

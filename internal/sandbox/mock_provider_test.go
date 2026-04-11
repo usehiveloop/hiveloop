@@ -96,6 +96,14 @@ func (m *mockProvider) GetEndpoint(_ context.Context, externalID string, port in
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Honor the existence check even when endpointOverride is set so tests
+	// can simulate "provider lost the workspace" by omitting registerSandbox.
+	// Without this, verifySandboxExists → GetEndpoint always succeeds and
+	// the recreate branch of EnsureSystemSandbox is unreachable.
+	if _, exists := m.sandboxes[externalID]; !exists {
+		return "", fmt.Errorf("sandbox not found: %s", externalID)
+	}
+
 	if m.endpointOverride != "" {
 		return m.endpointOverride, nil
 	}

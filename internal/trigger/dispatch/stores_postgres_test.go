@@ -57,8 +57,20 @@ func TestGormAgentTriggerStore_FindMatching(t *testing.T) {
 	otherAgentID := uuid.New()
 
 	// Seed two agents — one we expect to match, one we expect to filter out.
+	// Order matters for cleanup: triggers → agents → org (children before parent).
+	defer func() {
+		db.Where("id = ?", orgID).Delete(&model.Org{})
+	}()
 	defer cleanupAgentTriggers(t, db, orgID)
 	defer cleanupAgents(t, db, orgID)
+
+	// Agents have a FK on orgs.id — seed a parent org row first.
+	if err := db.Create(&model.Org{
+		ID:   orgID,
+		Name: "dispatch-store-test-" + orgID.String()[:8],
+	}).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
 
 	if err := db.Create(&model.Agent{
 		ID:           agentID,

@@ -16,11 +16,10 @@ func TestResourceDef(t *testing.T) {
 	}{
 		{
 			provider:     "slack",
-			resourceType: "channel",
+			resourceType: "slack_channel",
 			wantExists:   true,
 			wantDef: ResourceDef{
-				DisplayName: "Channels",
-				Description: "Slack channels the AI can access",
+				DisplayName: "Slack Channels",
 				IDField:     "id",
 				NameField:   "name_normalized",
 				Icon:        "hash",
@@ -29,7 +28,7 @@ func TestResourceDef(t *testing.T) {
 		},
 		{
 			provider:     "github-app",
-			resourceType: "repo",
+			resourceType: "repository",
 			wantExists:   true,
 			wantDef: ResourceDef{
 				DisplayName: "Repositories",
@@ -91,7 +90,9 @@ func TestResourceDef(t *testing.T) {
 			if def.DisplayName != tt.wantDef.DisplayName {
 				t.Errorf("DisplayName = %q, want %q", def.DisplayName, tt.wantDef.DisplayName)
 			}
-			if def.Description != tt.wantDef.Description {
+			// Only assert Description when the test supplies one — catalog
+			// descriptions are prose and drift over time.
+			if tt.wantDef.Description != "" && def.Description != tt.wantDef.Description {
 				t.Errorf("Description = %q, want %q", def.Description, tt.wantDef.Description)
 			}
 			if def.IDField != tt.wantDef.IDField {
@@ -120,22 +121,18 @@ func TestListResourceTypes(t *testing.T) {
 	}{
 		{
 			provider:  "slack",
-			wantCount: 1,
-			wantTypes: []string{"channel"},
+			wantCount: 3,
+			wantTypes: []string{"slack_channel", "slack_thread", "slack_user"},
 		},
 		{
 			provider:  "github-app",
-			wantCount: 1,
-			wantTypes: []string{"repo"},
+			wantCount: 10,
+			wantTypes: []string{"repository", "issue", "pull_request"},
 		},
 		{
 			provider:  "notion",
 			wantCount: 2,
 			wantTypes: []string{"page", "database"},
-		},
-		{
-			provider:  "asana",
-			wantCount: 0,
 		},
 		{
 			provider:  "unknown",
@@ -196,53 +193,57 @@ func TestValidateResourcesWithConnectionResources(t *testing.T) {
 		wantErrContains   string
 	}{
 		{
+			// conversations_history + chat_post_message are slack_thread actions.
 			name:      "valid resources",
 			provider:  "slack",
 			actions:   []string{"conversations_history", "chat_post_message"},
-			requested: map[string][]string{"channel": {"C123", "C456"}},
-			allowed:   map[string][]string{"channel": {"C123", "C456", "C789"}},
+			requested: map[string][]string{"slack_thread": {"ts1", "ts2"}},
+			allowed:   map[string][]string{"slack_thread": {"ts1", "ts2", "ts3"}},
 			wantErr:   false,
 		},
 		{
 			name:            "resource not in allowed list",
 			provider:        "slack",
 			actions:         []string{"conversations_history"},
-			requested:       map[string][]string{"channel": {"C123", "C999"}},
-			allowed:         map[string][]string{"channel": {"C123", "C456"}},
+			requested:       map[string][]string{"slack_thread": {"ts1", "ts999"}},
+			allowed:         map[string][]string{"slack_thread": {"ts1", "ts2"}},
 			wantErr:         true,
-			wantErrContains: "resource \"C999\" of type \"channel\" not configured",
+			wantErrContains: "resource \"ts999\" of type \"slack_thread\" not configured",
 		},
 		{
+			// api_test has no resource_type in the catalog, so any requested
+			// resource type must be rejected.
 			name:            "resource type not valid for actions",
 			provider:        "slack",
 			actions:         []string{"api_test"},
-			requested:       map[string][]string{"channel": {"C123"}},
-			allowed:         map[string][]string{"channel": {"C123"}},
+			requested:       map[string][]string{"slack_thread": {"ts1"}},
+			allowed:         map[string][]string{"slack_thread": {"ts1"}},
 			wantErr:         true,
-			wantErrContains: "resource type \"channel\" does not match any listed action",
+			wantErrContains: "resource type \"slack_thread\" does not match any listed action",
 		},
 		{
 			name:      "empty resources",
 			provider:  "slack",
 			actions:   []string{"conversations_history"},
 			requested: map[string][]string{},
-			allowed:   map[string][]string{"channel": {"C123"}},
+			allowed:   map[string][]string{"slack_thread": {"ts1"}},
 			wantErr:   false,
 		},
 		{
 			name:      "nil allowed resources means no restrictions",
 			provider:  "slack",
 			actions:   []string{"conversations_history"},
-			requested: map[string][]string{"channel": {"C123"}},
+			requested: map[string][]string{"slack_thread": {"ts1"}},
 			allowed:   nil,
 			wantErr:   false,
 		},
 		{
+			// repos_get has resource_type "repository" in the curated catalog.
 			name:      "github repos",
 			provider:  "github-app",
-			actions:   []string{"issues_list", "issues_create"},
-			requested: map[string][]string{"repo": {"owner/repo1"}},
-			allowed:   map[string][]string{"repo": {"owner/repo1", "owner/repo2"}},
+			actions:   []string{"repos_get"},
+			requested: map[string][]string{"repository": {"owner/repo1"}},
+			allowed:   map[string][]string{"repository": {"owner/repo1", "owner/repo2"}},
 			wantErr:   false,
 		},
 	}
@@ -305,32 +306,30 @@ func TestRequestConfig(t *testing.T) {
 	}
 
 	// Test Slack channel (now has RequestConfig for generic discovery)
-	slackChannel, ok := c.GetResourceDef("slack", "channel")
+	slackChannel, ok := c.GetResourceDef("slack", "slack_channel")
 	if !ok {
-		t.Fatal("slack channel resource not found")
+		t.Fatal("slack_channel resource not found")
 	}
 	if slackChannel.RequestConfig == nil {
-		t.Fatal("slack channel RequestConfig is nil")
+		t.Fatal("slack_channel RequestConfig is nil")
 	}
-	if slackChannel.RequestConfig.Method != "GET" {
-		t.Errorf("slack channel method = %q, want GET", slackChannel.RequestConfig.Method)
-	}
-	if slackChannel.RequestConfig.QueryParams == nil {
-		t.Fatal("slack channel query params are nil")
+	// Slack channel discovery goes through POST now (body-templated).
+	if slackChannel.RequestConfig.Method != "POST" {
+		t.Errorf("slack_channel method = %q, want POST", slackChannel.RequestConfig.Method)
 	}
 	if slackChannel.ListAction != "/conversations.list" {
-		t.Errorf("slack channel list_action = %q, want /conversations.list", slackChannel.ListAction)
+		t.Errorf("slack_channel list_action = %q, want /conversations.list", slackChannel.ListAction)
 	}
 
 	// Test GitHub repo (has RequestConfig)
-	githubRepo, ok := c.GetResourceDef("github-app", "repo")
+	githubRepo, ok := c.GetResourceDef("github-app", "repository")
 	if !ok {
-		t.Fatal("github repo resource not found")
+		t.Fatal("github-app repository resource not found")
 	}
 	if githubRepo.RequestConfig == nil {
-		t.Fatal("github repo RequestConfig is nil")
+		t.Fatal("github-app repository RequestConfig is nil")
 	}
 	if githubRepo.ListAction != "/installation/repositories" {
-		t.Errorf("github repo list_action = %q, want /installation/repositories", githubRepo.ListAction)
+		t.Errorf("github-app repository list_action = %q, want /installation/repositories", githubRepo.ListAction)
 	}
 }

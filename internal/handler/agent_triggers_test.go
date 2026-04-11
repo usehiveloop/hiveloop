@@ -32,22 +32,10 @@ type triggerTestHarness struct {
 func newTriggerHarness(t *testing.T) *triggerTestHarness {
 	t.Helper()
 	db := connectTestDB(t)
-
-	db.Exec(`CREATE TABLE agent_triggers (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		org_id UUID NOT NULL,
-		agent_id UUID NOT NULL,
-		connection_id UUID NOT NULL,
-		trigger_keys TEXT[] NOT NULL,
-		enabled BOOLEAN NOT NULL DEFAULT true,
-		conditions JSONB,
-		context_actions JSONB,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-	)`)
-	// Drop old indexes if they exist from prior test runs.
+	// agent_triggers schema comes from model.AutoMigrate inside connectTestDB.
+	// Drop stale legacy indexes from earlier test runs that may linger in the
+	// shared test database.
 	db.Exec(`DROP INDEX IF EXISTS idx_agent_triggers_unique`)
-	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_agent_conn ON agent_triggers (agent_id, connection_id)`)
 
 	actionsCatalog := catalog.Global()
 
