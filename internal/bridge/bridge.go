@@ -137,23 +137,38 @@ type ConversationProviderOverride struct {
 	BaseUrl      string       `json:"base_url,omitempty"`
 }
 
-// CreateConversationRequest is the optional request body for creating a conversation.
+// CreateConversationRequest is the request body for POST /agents/{id}/conversations.
+// All fields are optional — pass an empty struct or nil to use agent defaults.
 type CreateConversationRequest struct {
 	// Provider overrides the agent's LLM provider for this conversation only.
 	Provider *ConversationProviderOverride `json:"provider,omitempty"`
+
+	// McpServers attaches additional MCP servers scoped to this conversation
+	// only. Bridge connects them at creation and tears them down on every
+	// termination path (end, abort, drain, signal, max_turns, error).
+	// Tools from these servers are merged on top of the agent's existing tools.
+	// Name collisions with existing agent tools are rejected (HTTP 400).
+	// Requires Bridge v0.18.0+.
+	McpServers []McpServerDefinition `json:"mcp_servers,omitempty"`
 }
 
-// CreateConversation creates a new conversation for an agent.
+// CreateConversation creates a new conversation for an agent with default settings.
 func (c *BridgeClient) CreateConversation(ctx context.Context, agentID string) (*CreateConversationResponse, error) {
-	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", nil)
+	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{})
 }
 
 // CreateConversationWithProvider creates a new conversation with a per-conversation
-// provider override. Used for forge system agents — the model and API key are
-// resolved at runtime from the user's credential, not from the system agent definition.
+// provider override. Convenience wrapper around CreateConversationWithOptions.
 func (c *BridgeClient) CreateConversationWithProvider(ctx context.Context, agentID string, provider ConversationProviderOverride) (*CreateConversationResponse, error) {
-	payload := CreateConversationRequest{Provider: &provider}
-	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", payload)
+	return c.CreateConversationWithOptions(ctx, agentID, CreateConversationRequest{
+		Provider: &provider,
+	})
+}
+
+// CreateConversationWithOptions creates a conversation with full control over
+// per-conversation overrides: provider config, MCP servers, or both.
+func (c *BridgeClient) CreateConversationWithOptions(ctx context.Context, agentID string, req CreateConversationRequest) (*CreateConversationResponse, error) {
+	return doJSON[CreateConversationResponse](c, ctx, http.MethodPost, "/agents/"+agentID+"/conversations", req)
 }
 
 // SendMessage sends a message to a conversation (async, returns 202).

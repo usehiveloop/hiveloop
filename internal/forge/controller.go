@@ -64,12 +64,11 @@ type ForgeOrchestrator interface {
 }
 
 // ForgePusher abstracts agent push operations so tests can inject mocks.
+// System agents are pre-loaded into the singleton system sandbox at worker
+// startup; forge only needs PushAgent for eval-target agents that live in
+// pool sandboxes with per-iteration system prompts.
 type ForgePusher interface {
 	PushAgent(ctx context.Context, agent *model.Agent) error
-	PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
-	// BuildSystemAgentDef builds a Bridge agent definition for a system agent.
-	// Used by forge controller to add MCP servers before upserting.
-	BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefinition
 }
 
 // ForgeController orchestrates forge runs — a persistent state machine
@@ -225,38 +224,17 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 		return nil, fmt.Errorf("minting context gatherer token: %w", err)
 	}
 
-	// Re-push the agent definition with the forge-context MCP server added so
-	// Bridge exposes the start_forge tool. PushAgentToSandbox already built the
-	// full definition (config, permissions, tools, etc.) — we just add the MCP server.
-	contextMCPURL := fmt.Sprintf("%s/forge-context/%s", fc.cfg.MCPBaseURL, forgeRun.ID.String())
-	mcpHeaders := map[string]string{"Authorization": "Bearer " + proxyToken}
-	var mcpTransport bridgepkg.McpTransport
-	mcpTransport.FromMcpTransport1(bridgepkg.McpTransport1{
-		Type:    bridgepkg.StreamableHttp,
-		Url:     contextMCPURL,
-		Headers: &mcpHeaders,
-	})
-	forgeMCP := bridgepkg.McpServerDefinition{
-		Name:      "forge-context",
-		Transport: mcpTransport,
-	}
-
-	// Build the same definition the pusher would, then append our MCP server.
-	agentDef := fc.pusher.BuildSystemAgentDef(gathererAgent)
-	if agentDef.McpServers == nil {
-		servers := []bridgepkg.McpServerDefinition{forgeMCP}
-		agentDef.McpServers = &servers
-	} else {
-		*agentDef.McpServers = append(*agentDef.McpServers, forgeMCP)
-	}
-	if err := client.UpsertAgent(ctx, gathererAgent.ID.String(), agentDef); err != nil {
-		return nil, fmt.Errorf("upserting context gatherer with MCP server: %w", err)
-	}
-
-	// Create Bridge conversation with per-conversation provider override.
-	// The model is resolved from the credential's provider via BestModelForForge.
+	// Create Bridge conversation with per-conversation provider override and
+	// the forge-context MCP server scoped to this conversation only. Bridge
+	// connects the MCP at creation and tears it down when the conversation ends.
 	providerOverride := fc.buildProviderOverride(cred, proxyToken)
-	convResp, err := client.CreateConversationWithProvider(ctx, gathererAgent.ID.String(), providerOverride)
+	contextMCPURL := fmt.Sprintf("%s/forge-context/%s", fc.cfg.MCPBaseURL, forgeRun.ID.String())
+	convResp, err := client.CreateConversationWithOptions(ctx, gathererAgent.ID.String(), bridgepkg.CreateConversationRequest{
+		Provider: &providerOverride,
+		McpServers: []bridgepkg.McpServerDefinition{
+			{Name: "forge-context", Transport: buildMcpTransport(contextMCPURL, proxyToken)},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("creating context conversation: %w", err)
 	}
@@ -432,34 +410,16 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 		return
 	}
 
-	// Upsert the eval designer with its MCP server so Bridge exposes submit_eval_cases.
-	evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
-	mcpHeaders := map[string]string{"Authorization": "Bearer " + evalDesignerToken}
-	var mcpTransport bridgepkg.McpTransport
-	mcpTransport.FromMcpTransport1(bridgepkg.McpTransport1{
-		Type:    bridgepkg.StreamableHttp,
-		Url:     evalMCPURL,
-		Headers: &mcpHeaders,
-	})
-	evalMCP := bridgepkg.McpServerDefinition{
-		Name:      "forge-eval-designer",
-		Transport: mcpTransport,
-	}
-	agentDef := fc.pusher.BuildSystemAgentDef(evalDesignerAgent)
-	if agentDef.McpServers == nil {
-		servers := []bridgepkg.McpServerDefinition{evalMCP}
-		agentDef.McpServers = &servers
-	} else {
-		*agentDef.McpServers = append(*agentDef.McpServers, evalMCP)
-	}
-	if err := evalClient.UpsertAgent(ctx, evalDesignerAgent.ID.String(), agentDef); err != nil {
-		fc.failRun(runID, fmt.Sprintf("upserting eval designer with MCP: %v", err))
-		return
-	}
-
-	// Create conversation with per-conversation provider override.
+	// Create conversation with per-conversation provider override and the
+	// eval-designer MCP scoped to this conversation only.
 	evalProviderOverride := fc.buildProviderOverride(&evalCred, evalDesignerToken)
-	evalConv, err := evalClient.CreateConversationWithProvider(ctx, evalDesignerAgent.ID.String(), evalProviderOverride)
+	evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
+	evalConv, err := evalClient.CreateConversationWithOptions(ctx, evalDesignerAgent.ID.String(), bridgepkg.CreateConversationRequest{
+		Provider: &evalProviderOverride,
+		McpServers: []bridgepkg.McpServerDefinition{
+			{Name: "forge-eval-designer", Transport: buildMcpTransport(evalMCPURL, evalDesignerToken)},
+		},
+	})
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating eval designer conversation: %v", err))
 		return
@@ -725,9 +685,16 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 		"elapsed_ms", time.Since(started).Milliseconds(),
 	)
 
-	// Create architect conversation with per-conversation provider override.
+	// Create architect conversation with per-conversation provider override and
+	// the forge-architect MCP that exposes submit_system_prompt.
 	archProviderOverride := fc.buildProviderOverride(&archCred, archToken)
-	archConv, err := archClient.CreateConversationWithProvider(ctx, archAgent.ID.String(), archProviderOverride)
+	archMCPURL := fmt.Sprintf("%s/forge-architect/%s", fc.cfg.MCPBaseURL, run.ID.String())
+	archConv, err := archClient.CreateConversationWithOptions(ctx, archAgent.ID.String(), bridgepkg.CreateConversationRequest{
+		Provider: &archProviderOverride,
+		McpServers: []bridgepkg.McpServerDefinition{
+			{Name: "forge-architect", Transport: buildMcpTransport(archMCPURL, archToken)},
+		},
+	})
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("creating architect conversation: %v", err))
 		return
@@ -986,7 +953,13 @@ func (fc *ForgeController) runIteration(
 		log.Info("forge: phase=eval_designing — generating eval cases")
 		fc.events.emit(ctx, run.ID, EventEvalDesignStarted, map[string]any{"iteration": iteration})
 
-		evalConv, err := evalDesignerClient.CreateConversationWithProvider(ctx, evalDesignerAgent.ID.String(), evalDesignerOverride)
+		evalMCPURL := fmt.Sprintf("%s/forge-eval-designer/%s", fc.cfg.MCPBaseURL, run.ID.String())
+		evalConv, err := evalDesignerClient.CreateConversationWithOptions(ctx, evalDesignerAgent.ID.String(), bridgepkg.CreateConversationRequest{
+			Provider: &evalDesignerOverride,
+			McpServers: []bridgepkg.McpServerDefinition{
+				{Name: "forge-eval-designer", Transport: buildMcpTransport(evalMCPURL, evalDesignerOverride.ApiKey)},
+			},
+		})
 		if err != nil {
 			fc.updateIterPhase(&iter, model.ForgePhaseFailed)
 			return nil, fmt.Errorf("creating eval designer conversation: %w", err)
@@ -1263,8 +1236,14 @@ evalPhase:
 				"sample_results": model.RawJSON(sampleResultsJSON), "deterministic_results": model.RawJSON(deterministicJSON), "status": model.ForgeEvalJudging,
 			})
 
-			// Inline judge
-			judgeConvInline, judgeConvErr := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
+			// Inline judge with per-conversation forge-judge MCP.
+			judgeMCPURL := fmt.Sprintf("%s/forge-judge/%s", fc.cfg.MCPBaseURL, run.ID.String())
+			judgeConvInline, judgeConvErr := judgeClient.CreateConversationWithOptions(ctx, judgeAgent.ID.String(), bridgepkg.CreateConversationRequest{
+				Provider: &judgeOverride,
+				McpServers: []bridgepkg.McpServerDefinition{
+					{Name: "forge-judge", Transport: buildMcpTransport(judgeMCPURL, judgeOverride.ApiKey)},
+				},
+			})
 			if judgeConvErr != nil {
 				fc.db.Model(result).Update("status", model.ForgeEvalFailed)
 				continue
@@ -1832,49 +1811,35 @@ func (fc *ForgeController) buildProviderOverride(cred *model.Credential, proxyTo
 	}
 }
 
-// ensureSystemAgentReady ensures a system agent has a pool sandbox and is pushed to Bridge.
-// Returns the Bridge client for the system agent's sandbox.
-// Agent config (tool_calls_only, permissions, tools) comes from DB — set at seed time
-// by ForgeAgentConfig(). No in-memory patching needed.
+// buildMcpTransport constructs a streamable-HTTP MCP transport with an
+// Authorization header. Used by every per-conversation MCP injection in forge.
+func buildMcpTransport(url, token string) bridgepkg.McpTransport {
+	headers := map[string]string{"Authorization": "Bearer " + token}
+	var transport bridgepkg.McpTransport
+	transport.FromMcpTransport1(bridgepkg.McpTransport1{
+		Type:    bridgepkg.StreamableHttp,
+		Url:     url,
+		Headers: &headers,
+	})
+	return transport
+}
+
+// ensureSystemAgentReady returns a Bridge client for a system agent's sandbox.
+// System agents are pre-loaded into the singleton system sandbox at worker
+// startup and refreshed every minute by the SystemAgentSync periodic task.
+// This function just looks up the sandbox and returns a client — no provisioning,
+// no push, no wake (the health check keeps the system sandbox running).
 func (fc *ForgeController) ensureSystemAgentReady(ctx context.Context, agent *model.Agent) (*bridgepkg.BridgeClient, error) {
-
-	// Assign pool sandbox if not already assigned.
 	if agent.SandboxID == nil {
-		if err := fc.pusher.PushAgent(ctx, agent); err != nil {
-			return nil, fmt.Errorf("assigning sandbox for %s: %w", agent.Name, err)
-		}
-		// Reload to get updated SandboxID.
-		fc.db.Where("id = ?", agent.ID).First(agent)
+		return nil, fmt.Errorf("system agent %s has no sandbox (system sandbox not provisioned)", agent.Name)
 	}
 
-	if agent.SandboxID == nil {
-		return nil, fmt.Errorf("system agent %s has no sandbox after assignment", agent.Name)
-	}
-
-	// Load sandbox and wake if stopped.
 	var sb model.Sandbox
 	if err := fc.db.Where("id = ?", *agent.SandboxID).First(&sb).Error; err != nil {
 		return nil, fmt.Errorf("loading sandbox for %s: %w", agent.Name, err)
 	}
-	if sb.Status == "stopped" {
-		woken, err := fc.orchestrator.WakeSandbox(ctx, &sb)
-		if err != nil {
-			return nil, fmt.Errorf("waking sandbox for %s: %w", agent.Name, err)
-		}
-		sb = *woken
-	}
 
-	// Ensure agent is pushed to Bridge (idempotent).
-	if err := fc.pusher.PushAgentToSandbox(ctx, agent, &sb); err != nil {
-		return nil, fmt.Errorf("pushing %s to bridge: %w", agent.Name, err)
-	}
-
-	// Get Bridge client.
-	client, err := fc.orchestrator.GetBridgeClient(ctx, &sb)
-	if err != nil {
-		return nil, fmt.Errorf("getting bridge client for %s: %w", agent.Name, err)
-	}
-	return client, nil
+	return fc.orchestrator.GetBridgeClient(ctx, &sb)
 }
 
 // pushEvalTargetToPool pushes a temporary eval-target agent to a pool sandbox.
@@ -2156,7 +2121,13 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 	}
 
 	judgeOverride := fc.buildProviderOverride(&judgeCred, judgeToken)
-	judgeConv, judgeConvErr := judgeClient.CreateConversationWithProvider(ctx, judgeAgent.ID.String(), judgeOverride)
+	judgeMCPURL := fmt.Sprintf("%s/forge-judge/%s", fc.cfg.MCPBaseURL, run.ID.String())
+	judgeConv, judgeConvErr := judgeClient.CreateConversationWithOptions(ctx, judgeAgent.ID.String(), bridgepkg.CreateConversationRequest{
+		Provider: &judgeOverride,
+		McpServers: []bridgepkg.McpServerDefinition{
+			{Name: "forge-judge", Transport: buildMcpTransport(judgeMCPURL, judgeToken)},
+		},
+	})
 	if judgeConvErr != nil {
 		log.Error("eval_judge: failed to create judge conversation", "error", judgeConvErr)
 		fc.db.Model(&evalResult).Update("status", model.ForgeEvalFailed)

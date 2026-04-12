@@ -143,6 +143,58 @@ func TestCreateConversation(t *testing.T) {
 	}
 }
 
+func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
+	var receivedBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewDecoder(r.Body).Decode(&receivedBody)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateConversationResponse{
+			ConversationId: "conv-mcp",
+			StreamUrl:      "/conversations/conv-mcp/stream",
+		})
+	}))
+	defer srv.Close()
+
+	headers := map[string]string{"Authorization": "Bearer tok-123"}
+	var transport McpTransport
+	transport.FromMcpTransport1(McpTransport1{
+		Type:    StreamableHttp,
+		Url:     "https://mcp.example.com/forge-context/run-42",
+		Headers: &headers,
+	})
+
+	client := NewBridgeClient(srv.URL, "key")
+	resp, err := client.CreateConversationWithOptions(context.Background(), "agent-1", CreateConversationRequest{
+		Provider: &ConversationProviderOverride{
+			ProviderType: Anthropic,
+			Model:        "claude-sonnet-4-6",
+			ApiKey:       "sk-test",
+		},
+		McpServers: []McpServerDefinition{
+			{Name: "forge-context", Transport: transport},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateConversationWithOptions: %v", err)
+	}
+	if resp.ConversationId != "conv-mcp" {
+		t.Errorf("conversation_id: got %q", resp.ConversationId)
+	}
+
+	// Verify both provider and mcp_servers were serialised into the request body.
+	if receivedBody["provider"] == nil {
+		t.Error("expected provider in request body")
+	}
+	mcpServers, ok := receivedBody["mcp_servers"].([]any)
+	if !ok || len(mcpServers) != 1 {
+		t.Fatalf("expected 1 mcp_server in request body, got %v", receivedBody["mcp_servers"])
+	}
+	first := mcpServers[0].(map[string]any)
+	if first["name"] != "forge-context" {
+		t.Errorf("mcp_servers[0].name: got %q, want forge-context", first["name"])
+	}
+}
+
 func TestSendMessage(t *testing.T) {
 	var receivedContent string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
