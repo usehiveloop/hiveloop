@@ -41,9 +41,11 @@ openapi:
 #        make build-templates VERSION=0.10.0 SIZE=small
 #        make build-templates VERSION=0.10.0 SIZE=small,medium
 #        make build-templates VERSION=0.10.0 PROVIDER=daytona
+#        make build-templates VERSION=0.10.0 FLAVOR=dev-box
+#        make build-templates VERSION=0.10.0 FLAVOR=dev-box SIZE=medium
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=0.10.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -provider=$(or $(PROVIDER),daytona) -size=$(or $(SIZE),all)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates -version=$(VERSION) -provider=$(or $(PROVIDER),daytona) -flavor=$(or $(FLAVOR),bridge) -size=$(or $(SIZE),all)
 
 # Generate Bridge Go client from OpenAPI spec
 generate-bridge-client:

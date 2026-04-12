@@ -52,37 +52,38 @@ func run(providerFilter string, force bool) error {
 
 	for _, svc := range services {
 		var actions map[string]ActionDef
+		var schemas map[string]SchemaDefinition
 
 		if svc.SchemaURL != "" {
 			// SDL mode: download and parse the .graphql schema file.
 			fmt.Printf("[%s] Fetching SDL schema from %s ...\n", svc.Name, svc.SchemaURL)
-			sdlContent, err := fetchSDL(svc.SchemaURL, force)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ERROR fetching SDL: %v (skipping)\n", svc.Name, err)
+			sdlContent, sdlErr := fetchSDL(svc.SchemaURL, force)
+			if sdlErr != nil {
+				fmt.Fprintf(os.Stderr, "[%s] ERROR fetching SDL: %v (skipping)\n", svc.Name, sdlErr)
 				continue
 			}
 			fmt.Printf("[%s] SDL downloaded (%d KB)\n", svc.Name, len(sdlContent)/1024)
 
-			schema, err := parseSDL(sdlContent)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ERROR parsing SDL: %v (skipping)\n", svc.Name, err)
+			parsedSchema, parseErr := parseSDL(sdlContent)
+			if parseErr != nil {
+				fmt.Fprintf(os.Stderr, "[%s] ERROR parsing SDL: %v (skipping)\n", svc.Name, parseErr)
 				continue
 			}
-			fmt.Printf("[%s] Parsed %d query fields, %d mutation fields\n",
-				svc.Name, len(schema.QueryFields), len(schema.MutationFields))
+			fmt.Printf("[%s] Parsed %d query fields, %d mutation fields, %d input types\n",
+				svc.Name, len(parsedSchema.QueryFields), len(parsedSchema.MutationFields), len(parsedSchema.InputTypes))
 
-			actions = parseSDLToActions(schema, svc)
+			actions, schemas = parseSDLToActions(parsedSchema, svc)
 		} else if svc.IntrospectionURL != "" {
 			// Introspection mode: live query.
 			fmt.Printf("[%s] Running introspection at %s ...\n", svc.Name, svc.IntrospectionURL)
-			schema, err := runIntrospection(svc.IntrospectionURL)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[%s] ERROR: %v (skipping)\n", svc.Name, err)
+			introSchema, introErr := runIntrospection(svc.IntrospectionURL)
+			if introErr != nil {
+				fmt.Fprintf(os.Stderr, "[%s] ERROR: %v (skipping)\n", svc.Name, introErr)
 				continue
 			}
-			fmt.Printf("[%s] Schema loaded (%d types)\n", svc.Name, len(schema.Types))
+			fmt.Printf("[%s] Schema loaded (%d types)\n", svc.Name, len(introSchema.Types))
 
-			actions = parseSchema(schema, svc)
+			actions, schemas = parseSchema(introSchema, svc)
 		} else {
 			fmt.Fprintf(os.Stderr, "[%s] ERROR: no SchemaURL or IntrospectionURL configured (skipping)\n", svc.Name)
 			continue
@@ -93,13 +94,17 @@ func run(providerFilter string, force bool) error {
 			continue
 		}
 
-		if err := writeProviderFiles(svc, actions, metadata); err != nil {
+		if err := writeProviderFiles(svc, actions, schemas, metadata); err != nil {
 			fmt.Fprintf(os.Stderr, "[%s] ERROR writing: %v\n", svc.Name, err)
 			continue
 		}
 
-		for _, id := range svc.NangoProviders {
-			fmt.Printf("  %s.actions.json: %d actions\n", id, len(actions))
+		for _, providerID := range svc.NangoProviders {
+			fmt.Printf("  %s.actions.json: %d actions", providerID, len(actions))
+			if len(schemas) > 0 {
+				fmt.Printf(", %d schemas", len(schemas))
+			}
+			fmt.Println()
 		}
 		totalFiles += len(svc.NangoProviders)
 		totalActions += len(actions)

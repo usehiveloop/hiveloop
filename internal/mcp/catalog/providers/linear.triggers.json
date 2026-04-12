@@ -5,91 +5,467 @@
       "display_name": "Issue Created",
       "description": "Triggered when a new issue is created in Linear",
       "resource_type": "issue",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "issue_id": "data.id",
+        "issue_identifier": "data.identifier",
+        "issue_title": "data.title",
+        "team_id": "data.teamId",
+        "project_id": "data.projectId",
+        "cycle_id": "data.cycleId",
+        "assignee_id": "data.assigneeId",
+        "creator_id": "data.creatorId",
+        "state_id": "data.stateId"
+      }
     },
     "Issue.update": {
       "display_name": "Issue Updated",
       "description": "Triggered when an issue is updated (title, description, status, assignee, priority, labels, etc.)",
       "resource_type": "issue",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "issue_id": "data.id",
+        "issue_identifier": "data.identifier",
+        "issue_title": "data.title",
+        "team_id": "data.teamId",
+        "project_id": "data.projectId",
+        "cycle_id": "data.cycleId",
+        "assignee_id": "data.assigneeId",
+        "state_id": "data.stateId"
+      }
     },
     "Issue.remove": {
       "display_name": "Issue Removed",
-      "description": "Triggered when an issue is deleted or archived",
+      "description": "Triggered when an issue is deleted or permanently removed",
       "resource_type": "issue",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "issue_id": "data.id",
+        "issue_identifier": "data.identifier",
+        "team_id": "data.teamId"
+      }
     },
     "Comment.create": {
       "display_name": "Comment Created",
-      "description": "Triggered when a new comment is added to an issue",
+      "description": "Triggered when a new comment is added to an issue, project update, or initiative update",
       "resource_type": "comment",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "comment_id": "data.id",
+        "issue_id": "data.issueId",
+        "project_id": "data.projectId",
+        "user_id": "data.userId",
+        "parent_id": "data.parentId"
+      }
     },
     "Comment.update": {
       "display_name": "Comment Updated",
-      "description": "Triggered when a comment on an issue is edited",
+      "description": "Triggered when a comment is edited",
       "resource_type": "comment",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "comment_id": "data.id",
+        "issue_id": "data.issueId",
+        "project_id": "data.projectId",
+        "user_id": "data.userId"
+      }
     },
     "Comment.remove": {
       "display_name": "Comment Removed",
-      "description": "Triggered when a comment is deleted from an issue",
+      "description": "Triggered when a comment is deleted",
       "resource_type": "comment",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "comment_id": "data.id",
+        "issue_id": "data.issueId"
+      }
     },
     "Project.create": {
       "display_name": "Project Created",
       "description": "Triggered when a new project is created",
       "resource_type": "project",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.id",
+        "creator_id": "data.creatorId"
+      }
     },
     "Project.update": {
       "display_name": "Project Updated",
-      "description": "Triggered when a project is updated (name, description, status, lead, target date, etc.)",
+      "description": "Triggered when a project is updated (name, description, status, lead, target date, health, etc.)",
       "resource_type": "project",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.id",
+        "creator_id": "data.creatorId"
+      }
     },
     "Project.remove": {
       "display_name": "Project Removed",
-      "description": "Triggered when a project is deleted or archived",
+      "description": "Triggered when a project is deleted or permanently removed",
       "resource_type": "project",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.id"
+      }
     },
     "ProjectUpdate.create": {
       "display_name": "Project Update Posted",
       "description": "Triggered when a new status update is posted on a project",
       "resource_type": "project",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.projectId",
+        "user_id": "data.userId"
+      }
+    },
+    "ProjectUpdate.update": {
+      "display_name": "Project Update Edited",
+      "description": "Triggered when a project status update is edited",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.projectId",
+        "user_id": "data.userId"
+      }
+    },
+    "ProjectUpdate.remove": {
+      "display_name": "Project Update Removed",
+      "description": "Triggered when a project status update is deleted",
+      "resource_type": "project",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "project_id": "data.projectId"
+      }
     },
     "Cycle.create": {
       "display_name": "Cycle Created",
       "description": "Triggered when a new cycle (sprint) is created",
       "resource_type": "cycle",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "cycle_id": "data.id",
+        "team_id": "data.teamId"
+      }
     },
     "Cycle.update": {
       "display_name": "Cycle Updated",
       "description": "Triggered when a cycle is updated (name, dates, progress, etc.)",
       "resource_type": "cycle",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "cycle_id": "data.id",
+        "team_id": "data.teamId"
+      }
     },
     "Cycle.remove": {
       "display_name": "Cycle Removed",
       "description": "Triggered when a cycle is deleted",
       "resource_type": "cycle",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "cycle_id": "data.id",
+        "team_id": "data.teamId"
+      }
     },
     "IssueLabel.create": {
       "display_name": "Label Created",
       "description": "Triggered when a new issue label is created",
       "resource_type": "label",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "label_id": "data.id",
+        "team_id": "data.teamId"
+      }
     },
     "IssueLabel.update": {
       "display_name": "Label Updated",
-      "description": "Triggered when an issue label is updated (name, color, etc.)",
+      "description": "Triggered when an issue label is updated (name, color, description)",
       "resource_type": "label",
-      "payload_schema": "linear_webhook_event"
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "label_id": "data.id",
+        "team_id": "data.teamId"
+      }
+    },
+    "IssueLabel.remove": {
+      "display_name": "Label Removed",
+      "description": "Triggered when an issue label is deleted",
+      "resource_type": "label",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "label_id": "data.id",
+        "team_id": "data.teamId"
+      }
+    },
+    "Attachment.create": {
+      "display_name": "Attachment Created",
+      "description": "Triggered when a URL, file, or external resource is attached to an issue",
+      "resource_type": "attachment",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "attachment_id": "data.id",
+        "issue_id": "data.issueId"
+      }
+    },
+    "Attachment.update": {
+      "display_name": "Attachment Updated",
+      "description": "Triggered when an issue attachment is updated",
+      "resource_type": "attachment",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "attachment_id": "data.id",
+        "issue_id": "data.issueId"
+      }
+    },
+    "Attachment.remove": {
+      "display_name": "Attachment Removed",
+      "description": "Triggered when an issue attachment is deleted",
+      "resource_type": "attachment",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "attachment_id": "data.id",
+        "issue_id": "data.issueId"
+      }
+    },
+    "Document.create": {
+      "display_name": "Document Created",
+      "description": "Triggered when a new document is created",
+      "resource_type": "document",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "document_id": "data.id",
+        "project_id": "data.projectId",
+        "creator_id": "data.creatorId"
+      }
+    },
+    "Document.update": {
+      "display_name": "Document Updated",
+      "description": "Triggered when a document is updated (title, content, etc.)",
+      "resource_type": "document",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "document_id": "data.id",
+        "project_id": "data.projectId"
+      }
+    },
+    "Document.remove": {
+      "display_name": "Document Removed",
+      "description": "Triggered when a document is deleted or trashed",
+      "resource_type": "document",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "document_id": "data.id"
+      }
+    },
+    "Reaction.create": {
+      "display_name": "Reaction Added",
+      "description": "Triggered when an emoji reaction is added to a comment, issue, or project update",
+      "resource_type": "reaction",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "reaction_id": "data.id",
+        "issue_id": "data.issueId",
+        "comment_id": "data.commentId",
+        "user_id": "data.userId"
+      }
+    },
+    "Reaction.update": {
+      "display_name": "Reaction Updated",
+      "description": "Triggered when an emoji reaction is changed",
+      "resource_type": "reaction",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "reaction_id": "data.id",
+        "issue_id": "data.issueId",
+        "comment_id": "data.commentId",
+        "user_id": "data.userId"
+      }
+    },
+    "Reaction.remove": {
+      "display_name": "Reaction Removed",
+      "description": "Triggered when an emoji reaction is removed",
+      "resource_type": "reaction",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "reaction_id": "data.id",
+        "issue_id": "data.issueId",
+        "comment_id": "data.commentId"
+      }
+    },
+    "User.create": {
+      "display_name": "User Created",
+      "description": "Triggered when a new user is added to the workspace",
+      "resource_type": "user",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "user_id": "data.id"
+      }
+    },
+    "User.update": {
+      "display_name": "User Updated",
+      "description": "Triggered when a user profile is updated (name, email, role, active status, etc.)",
+      "resource_type": "user",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "user_id": "data.id"
+      }
+    },
+    "User.remove": {
+      "display_name": "User Removed",
+      "description": "Triggered when a user is removed from the workspace",
+      "resource_type": "user",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "user_id": "data.id"
+      }
+    },
+    "Initiative.create": {
+      "display_name": "Initiative Created",
+      "description": "Triggered when a new initiative is created",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.id",
+        "creator_id": "data.creatorId"
+      }
+    },
+    "Initiative.update": {
+      "display_name": "Initiative Updated",
+      "description": "Triggered when an initiative is updated (name, description, status, health, etc.)",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.id"
+      }
+    },
+    "Initiative.remove": {
+      "display_name": "Initiative Removed",
+      "description": "Triggered when an initiative is deleted or archived",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.id"
+      }
+    },
+    "InitiativeUpdate.create": {
+      "display_name": "Initiative Update Posted",
+      "description": "Triggered when a new status update is posted on an initiative",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.initiativeId",
+        "user_id": "data.userId"
+      }
+    },
+    "InitiativeUpdate.update": {
+      "display_name": "Initiative Update Edited",
+      "description": "Triggered when an initiative status update is edited",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.initiativeId",
+        "user_id": "data.userId"
+      }
+    },
+    "InitiativeUpdate.remove": {
+      "display_name": "Initiative Update Removed",
+      "description": "Triggered when an initiative status update is deleted",
+      "resource_type": "initiative",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "initiative_id": "data.initiativeId"
+      }
+    },
+    "Customer.create": {
+      "display_name": "Customer Created",
+      "description": "Triggered when a new customer is created",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.id"
+      }
+    },
+    "Customer.update": {
+      "display_name": "Customer Updated",
+      "description": "Triggered when a customer is updated (name, domains, status, tier, etc.)",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.id"
+      }
+    },
+    "Customer.remove": {
+      "display_name": "Customer Removed",
+      "description": "Triggered when a customer is deleted",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.id"
+      }
+    },
+    "CustomerNeed.create": {
+      "display_name": "Customer Need Created",
+      "description": "Triggered when a new customer need (request) is created",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.customerId",
+        "issue_id": "data.issueId",
+        "project_id": "data.projectId"
+      }
+    },
+    "CustomerNeed.update": {
+      "display_name": "Customer Need Updated",
+      "description": "Triggered when a customer need is updated",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.customerId",
+        "issue_id": "data.issueId"
+      }
+    },
+    "CustomerNeed.remove": {
+      "display_name": "Customer Need Removed",
+      "description": "Triggered when a customer need is deleted or archived",
+      "resource_type": "customer",
+      "payload_schema": "linear_webhook_event",
+      "refs": {
+        "customer_id": "data.customerId"
+      }
+    },
+    "IssueSLA.set": {
+      "display_name": "Issue SLA Set",
+      "description": "Triggered when an SLA is applied to an issue",
+      "resource_type": "issue",
+      "payload_schema": "linear_sla_event",
+      "refs": {
+        "issue_id": "issueData.id",
+        "issue_identifier": "issueData.identifier",
+        "team_id": "issueData.teamId"
+      }
+    },
+    "IssueSLA.highRisk": {
+      "display_name": "Issue SLA High Risk",
+      "description": "Triggered when an issue is at high risk of breaching its SLA",
+      "resource_type": "issue",
+      "payload_schema": "linear_sla_event",
+      "refs": {
+        "issue_id": "issueData.id",
+        "issue_identifier": "issueData.identifier",
+        "team_id": "issueData.teamId"
+      }
+    },
+    "IssueSLA.breached": {
+      "display_name": "Issue SLA Breached",
+      "description": "Triggered when an issue has breached its SLA deadline",
+      "resource_type": "issue",
+      "payload_schema": "linear_sla_event",
+      "refs": {
+        "issue_id": "issueData.id",
+        "issue_identifier": "issueData.identifier",
+        "team_id": "issueData.teamId"
+      }
     }
   },
   "schemas": {
@@ -102,11 +478,11 @@
         },
         "type": {
           "type": "string",
-          "description": "The resource type that was affected (e.g. Issue, Comment, Project, Cycle, IssueLabel, ProjectUpdate)"
+          "description": "The resource type affected: Issue, Comment, Project, ProjectUpdate, Cycle, IssueLabel, Attachment, Document, Reaction, User, Initiative, InitiativeUpdate, Customer, CustomerNeed"
         },
         "actor": {
           "type": "object",
-          "description": "The user who performed the action. Contains id, name, email, and avatarUrl"
+          "description": "The actor who performed the action. Contains id, type (user | oauthClient | integration), name. For user actors also includes email and url"
         },
         "createdAt": {
           "type": "string",
@@ -114,15 +490,17 @@
         },
         "data": {
           "type": "object",
-          "description": "The full entity object after the action. For Issues: id, title, description, priority, status, assignee, team, labels, project, cycle, url, createdAt, updatedAt. For Comments: id, body, issue, user, createdAt. For Projects: id, name, description, state, lead, targetDate. For Cycles: id, name, number, startsAt, endsAt, team"
+          "description": "The full entity object after the action. Structure varies by type — for Issues includes id, identifier, title, description, priority, priorityLabel, stateId, state, teamId, team, assigneeId, assignee, projectId, cycleId, labelIds, labels, estimate, dueDate, url, createdAt, updatedAt. For Comments includes id, body, userId, user, issueId, issue, parentId, resolvedAt, reactionData. For Projects includes id, name, description, state, status, health, color, icon, content, startDate, targetDate, creatorId, url. For Cycles includes id, name, number, startsAt, endsAt, teamId, completedAt"
         },
         "updatedFrom": {
           "type": "object",
-          "description": "For update actions, contains the previous values of the fields that were changed (e.g. previous title, status, assignee)"
+          "description": "For update actions only. Contains the previous values of fields that changed (e.g. previous title, stateId, assigneeId, priority). Null for create and remove actions",
+          "nullable": true
         },
         "url": {
           "type": "string",
-          "description": "The URL to the resource in the Linear web application"
+          "description": "URL to the resource in the Linear web application",
+          "nullable": true
         },
         "organizationId": {
           "type": "string",
@@ -133,7 +511,45 @@
           "description": "The unique identifier of the webhook subscription that matched this event"
         },
         "webhookTimestamp": {
-          "type": "integer",
+          "type": "number",
+          "description": "Unix timestamp in milliseconds of when the webhook was dispatched"
+        }
+      }
+    },
+    "linear_sla_event": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The SLA action: set, highRisk, or breached"
+        },
+        "type": {
+          "type": "string",
+          "description": "Always 'IssueSLA'"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the event was created"
+        },
+        "issueData": {
+          "type": "object",
+          "description": "The full issue object that the SLA applies to, with same structure as Issue webhook data (id, identifier, title, stateId, teamId, priority, etc.)"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to the issue in the Linear web application",
+          "nullable": true
+        },
+        "organizationId": {
+          "type": "string",
+          "description": "The unique identifier of the Linear organization (workspace)"
+        },
+        "webhookId": {
+          "type": "string",
+          "description": "The unique identifier of the webhook subscription that matched this event"
+        },
+        "webhookTimestamp": {
+          "type": "number",
           "description": "Unix timestamp in milliseconds of when the webhook was dispatched"
         }
       }

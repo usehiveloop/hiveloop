@@ -180,5 +180,162 @@
   "zendesk": {
     "display_name": "Zendesk",
     "resources": {}
+  },
+  "linear": {
+    "display_name": "Linear",
+    "resources": {
+      "issue": {
+        "display_name": "Issues",
+        "description": "Linear issues within teams",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "issue-opened",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ issues(first: 100) { nodes { id title identifier number } } }"
+          },
+          "response_path": "data.issues.nodes"
+        },
+        "ref_bindings": {
+          "id": "$refs.issue_id"
+        },
+        "resource_key_template": "$refs.issue_id"
+      },
+      "team": {
+        "display_name": "Teams",
+        "description": "Linear teams within the workspace",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "people",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ teams(first: 100) { nodes { id name key } } }"
+          },
+          "response_path": "data.teams.nodes"
+        },
+        "ref_bindings": {
+          "id": "$refs.team_id"
+        }
+      },
+      "project": {
+        "display_name": "Projects",
+        "description": "Linear projects for tracking larger initiatives",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "project",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ projects(first: 100) { nodes { id name key } } }"
+          },
+          "response_path": "data.projects.nodes"
+        },
+        "ref_bindings": {
+          "id": "$refs.project_id"
+        },
+        "resource_key_template": "$refs.project_id"
+      },
+      "cycle": {
+        "display_name": "Cycles",
+        "description": "Linear cycles (sprints) within teams",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "iterations",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ cycles(first: 100) { nodes { id name number } } }"
+          },
+          "response_path": "data.cycles.nodes"
+        },
+        "ref_bindings": {
+          "id": "$refs.cycle_id"
+        }
+      },
+      "label": {
+        "display_name": "Labels",
+        "description": "Linear issue labels for categorization",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "tag",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ issueLabels(first: 250) { nodes { id name color } } }"
+          },
+          "response_path": "data.issueLabels.nodes"
+        }
+      },
+      "workflow_state": {
+        "display_name": "Workflow States",
+        "description": "Linear workflow states (statuses) within teams",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "workflow",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ workflowStates(first: 250) { nodes { id name type color } } }"
+          },
+          "response_path": "data.workflowStates.nodes"
+        }
+      },
+      "comment": {
+        "display_name": "Comments",
+        "description": "Comments on Linear issues and projects",
+        "id_field": "id",
+        "name_field": "body",
+        "icon": "comment",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ comments(first: 100) { nodes { id body } } }"
+          },
+          "response_path": "data.comments.nodes"
+        },
+        "ref_bindings": {
+          "id": "$refs.comment_id"
+        }
+      },
+      "user": {
+        "display_name": "Users",
+        "description": "Linear workspace members",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "person",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ users(first: 100) { nodes { id name displayName email } } }"
+          },
+          "response_path": "data.users.nodes"
+        }
+      },
+      "document": {
+        "display_name": "Documents",
+        "description": "Linear documents attached to projects and teams",
+        "id_field": "id",
+        "name_field": "title",
+        "icon": "file",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ documents(first: 100) { nodes { id title } } }"
+          },
+          "response_path": "data.documents.nodes"
+        }
+      }
+    }
   }
 }

@@ -14,13 +14,15 @@ const (
 
 // ResourceDef mirrors the catalog ResourceDef.
 type ResourceDef struct {
-	DisplayName   string         `json:"display_name"`
-	Description   string         `json:"description"`
-	IDField       string         `json:"id_field"`
-	NameField     string         `json:"name_field"`
-	Icon          string         `json:"icon,omitempty"`
-	ListAction    string         `json:"list_action"`
-	RequestConfig *RequestConfig `json:"request_config,omitempty"`
+	DisplayName         string            `json:"display_name"`
+	Description         string            `json:"description"`
+	IDField             string            `json:"id_field"`
+	NameField           string            `json:"name_field"`
+	Icon                string            `json:"icon,omitempty"`
+	ListAction          string            `json:"list_action"`
+	RequestConfig       *RequestConfig    `json:"request_config,omitempty"`
+	RefBindings         map[string]string `json:"ref_bindings,omitempty"`
+	ResourceKeyTemplate string            `json:"resource_key_template,omitempty"`
 }
 
 // RequestConfig mirrors the catalog RequestConfig.
@@ -40,9 +42,10 @@ type ServiceMetadata struct {
 
 // ProviderFile is the output format for each <provider>.actions.json.
 type ProviderFile struct {
-	DisplayName string                 `json:"display_name"`
-	Resources   map[string]ResourceDef `json:"resources"`
-	Actions     map[string]ActionDef   `json:"actions"`
+	DisplayName string                       `json:"display_name"`
+	Resources   map[string]ResourceDef       `json:"resources"`
+	Actions     map[string]ActionDef         `json:"actions"`
+	Schemas     map[string]SchemaDefinition  `json:"schemas,omitempty"`
 }
 
 // loadMetadata reads metadata.json.
@@ -59,7 +62,7 @@ func loadMetadata() (map[string]ServiceMetadata, error) {
 }
 
 // writeProviderFiles writes one .actions.json file per Nango provider ID.
-func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, metadata map[string]ServiceMetadata) error {
+func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, schemas map[string]SchemaDefinition, metadata map[string]ServiceMetadata) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("creating output dir: %w", err)
 	}
@@ -72,13 +75,14 @@ func writeProviderFiles(cfg ServiceConfig, actions map[string]ActionDef, metadat
 		}
 	}
 
-	pf := ProviderFile{
+	providerFile := ProviderFile{
 		DisplayName: meta.DisplayName,
 		Resources:   meta.Resources,
 		Actions:     actions,
+		Schemas:     schemas,
 	}
 
-	out, err := json.MarshalIndent(pf, "", "  ")
+	out, err := json.MarshalIndent(providerFile, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling provider file: %w", err)
 	}
