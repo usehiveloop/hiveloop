@@ -18,6 +18,7 @@ const (
 	TypeSandboxTemplateRetryBuild = "sandbox_template:retry"
 	TypeSkillHydrate              = "skill:hydrate"
 	TypeTriggerDispatch           = "trigger:dispatch"
+	TypeRouterDispatch            = "router:dispatch"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"
