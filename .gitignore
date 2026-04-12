@@ -22,8 +22,10 @@ fetchactions-oas3
 examples/
 certs/
 
-# buildtemplates binary output (not the source in cmd/)
+# binary outputs (not the source in cmd/)
 /buildtemplates
+/sandbox-exec
+/verify-devbox
 .next/
 .source/
 .ignored/*
