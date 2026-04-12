@@ -974,6 +974,7 @@ mod serde_roundtrip_tests {
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
+            standalone_agent: false,
             otel_endpoint: None,
             otel_service_name: "bridge".to_string(),
         };

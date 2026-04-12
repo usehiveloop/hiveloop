@@ -61,6 +61,8 @@ pub struct AgentSupervisor {
     /// When true, API clients may attach `stdio` MCP servers per conversation.
     /// Default: false (only `streamable_http` accepted from the API).
     allow_stdio_mcp_from_api: bool,
+    /// When true, inject environment system reminder (installed tools, resource usage).
+    standalone_agent: bool,
 }
 
 /// Default maximum concurrent LLM calls when not configured.
@@ -87,6 +89,7 @@ impl AgentSupervisor {
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
+            standalone_agent: false,
         }
     }
 
@@ -114,6 +117,7 @@ impl AgentSupervisor {
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
+            standalone_agent: false,
         }
     }
 
@@ -146,6 +150,7 @@ impl AgentSupervisor {
         self.skill_discovery_enabled = config.skill_discovery_enabled;
         self.skill_discovery_dir = config.skill_discovery_dir.clone();
         self.allow_stdio_mcp_from_api = config.allow_stdio_mcp_from_api;
+        self.standalone_agent = config.standalone_agent;
         self
     }
 
@@ -851,6 +856,7 @@ impl AgentSupervisor {
         ));
 
         let cleanup_mcp_manager = self.mcp_manager.clone();
+        let standalone_agent = self.standalone_agent;
 
         state.tracker.spawn(async move {
             // Hold the conversation permit for the lifetime of the conversation.
@@ -888,6 +894,7 @@ impl AgentSupervisor {
                 journal_state,
                 per_conversation_mcp_scope: per_conv_mcp_scope,
                 mcp_manager: Some(cleanup_mcp_manager),
+                standalone_agent,
             })
             .await;
         });
@@ -1391,6 +1398,7 @@ impl AgentSupervisor {
             agent_id.to_string(),
             model_name.clone(),
         ));
+        let standalone_agent = self.standalone_agent;
 
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
@@ -1424,6 +1432,7 @@ impl AgentSupervisor {
                 journal_state,
                 per_conversation_mcp_scope: None,
                 mcp_manager: None,
+                standalone_agent,
             })
             .await;
         });

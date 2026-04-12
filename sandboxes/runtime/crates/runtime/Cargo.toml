@@ -26,6 +26,7 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 futures = { workspace = true }
 tiktoken-rs = { workspace = true }
+libc = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

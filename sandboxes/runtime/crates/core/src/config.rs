@@ -75,6 +75,14 @@ pub struct RuntimeConfig {
     #[serde(default)]
     pub allow_stdio_mcp_from_api: bool,
 
+    /// When true, Bridge injects an environment system reminder into every
+    /// conversation that describes the sandbox runtime: pre-installed tools,
+    /// resource limits (CPU, memory, disk from cgroups), and OS version.
+    /// Intended for standalone agents running in a Daytona dev-box sandbox.
+    /// Configured via `BRIDGE_STANDALONE_AGENT` env var.
+    #[serde(default)]
+    pub standalone_agent: bool,
+
     /// OpenTelemetry OTLP endpoint for trace export.
     /// When set, Bridge exports all spans via OTLP gRPC to this endpoint.
     /// Configured via `BRIDGE_OTEL_ENDPOINT` env var.
@@ -222,6 +230,7 @@ impl Default for RuntimeConfig {
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
+            standalone_agent: false,
             otel_endpoint: None,
             otel_service_name: default_otel_service_name(),
         }

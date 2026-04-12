@@ -187,6 +187,21 @@ export BRIDGE_ALLOW_STDIO_MCP_FROM_API="true"
 
 **Security note:** stdio transport spawns a subprocess with Bridge's privileges and environment. Leave this off unless every API caller is trusted AND Bridge is sandboxed. `streamable_http` per-conversation MCP servers are always allowed regardless of this flag — the gate is strictly on stdio. Agent-level MCP servers (from control-plane-pushed agent definitions) are unaffected.
 
+### `BRIDGE_STANDALONE_AGENT`
+
+Enable the environment system reminder. When true, every conversation automatically receives a `<system-reminder>` block describing the sandbox runtime: pre-installed tools (Node.js, Go, Rust, Python, databases, browsers, etc.), and live resource usage (memory, CPU, disk) read from cgroup files so the agent sees actual sandbox limits — not the host machine's.
+
+Intended for standalone agents running in a Daytona dev-box sandbox.
+
+- **Default:** `false`
+- **Valid values:** `true`, `false`
+
+```bash
+export BRIDGE_STANDALONE_AGENT="true"
+```
+
+The environment snapshot refreshes every 5 turns to keep resource numbers current without adding overhead to every message. The pre-installed tools list is a static baseline from the sandbox template — it does not include tools the agent installs during the session (the agent already knows about those).
+
 ### `BRIDGE_OTEL_ENDPOINT`
 
 OpenTelemetry OTLP gRPC endpoint for trace export.
@@ -371,6 +386,7 @@ Fix the issue and restart.
 | `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
 | `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
 | `BRIDGE_ALLOW_STDIO_MCP_FROM_API` | `true` or `false` (default `false`) |
+| `BRIDGE_STANDALONE_AGENT` | `true` or `false` (default `false`) |
 | `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |
 | `BRIDGE_OTEL_SERVICE_NAME` | Non-empty string |
 

@@ -107,6 +107,8 @@ pub struct ConversationParams {
     /// MCP manager handle used to disconnect per-conversation servers during cleanup.
     /// Only meaningful when `per_conversation_mcp_scope` is set.
     pub mcp_manager: Option<Arc<mcp::McpManager>>,
+    /// When true, inject environment system reminder (resource usage, installed tools).
+    pub standalone_agent: bool,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -150,6 +152,7 @@ pub async fn run_conversation(params: ConversationParams) {
         journal_state,
         per_conversation_mcp_scope,
         mcp_manager,
+        standalone_agent,
     } = params;
 
     info!(
@@ -427,6 +430,22 @@ pub async fn run_conversation(params: ConversationParams) {
             } else {
                 system_reminder.clone()
             };
+
+        // Append environment snapshot when standalone_agent is enabled.
+        // Refreshes every 5 turns to keep resource numbers current without
+        // paying the cost every single message.
+        if standalone_agent && turn_count % 5 == 0 {
+            let env_section = crate::environment::EnvironmentSnapshot::collect().format_reminder();
+            if effective_reminder.is_empty() {
+                effective_reminder =
+                    format!("<system-reminder>\n{}\n</system-reminder>", env_section);
+            } else {
+                effective_reminder = format!(
+                    "{}\n\n<system-reminder>\n{}\n</system-reminder>",
+                    effective_reminder, env_section
+                );
+            }
+        }
 
         // Append per-message system reminder from the control plane
         if let Some(pmr) = per_message_reminder {

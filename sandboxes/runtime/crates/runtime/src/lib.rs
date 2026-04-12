@@ -4,6 +4,7 @@ pub mod agent_state;
 pub mod compaction;
 pub mod conversation;
 pub mod drain;
+pub mod environment;
 pub mod immortal;
 pub mod masking;
 pub mod permission_manager;
