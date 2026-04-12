@@ -301,19 +301,7 @@ func (m *MockForgeOrchestrator) WakeSandbox(ctx context.Context, sb *model.Sandb
 type MockForgePusher struct{}
 
 func (m *MockForgePusher) PushAgent(ctx context.Context, agent *model.Agent) error {
-	return nil // system agents already have sandboxes assigned in test setup
-}
-
-func (m *MockForgePusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
-	return nil // no-op in tests, mock Bridge handles agent registration
-}
-
-func (m *MockForgePusher) BuildSystemAgentDef(agent *model.Agent) bridge.AgentDefinition {
-	return bridge.AgentDefinition{
-		Id:           agent.ID.String(),
-		Name:         agent.Name,
-		SystemPrompt: agent.SystemPrompt,
-	}
+	return nil // eval-target agents get pushed to pool sandboxes; no-op in tests
 }
 
 // ---------------------------------------------------------------------------
