@@ -72,6 +72,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&Skill{},
 		&SkillVersion{},
 		&AgentSkill{},
+		&AgentSubagent{},
 	); err != nil {
 		return err
 	}

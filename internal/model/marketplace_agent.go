@@ -30,7 +30,6 @@ type MarketplaceAgent struct {
 	McpServers   JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Skills       JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Integrations JSON    `gorm:"type:jsonb;not null;default:'{}'"`
-	Subagents    JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	AgentConfig  JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Permissions  JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Team         string  `gorm:"not null;default:''"`

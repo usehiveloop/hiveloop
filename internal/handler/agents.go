@@ -77,12 +77,12 @@ type createAgentRequest struct {
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
 	Skills            model.JSON `json:"skills,omitempty"`
 	Integrations      model.JSON `json:"integrations,omitempty"`
-	Subagents         model.JSON `json:"subagents,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              string            `json:"team,omitempty"`
 	SharedMemory      bool              `json:"shared_memory,omitempty"`
-	SkillIDs          []string          `json:"skill_ids,omitempty"` // skills from /v1/skills to attach on create
+	SkillIDs          []string          `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
+	SubagentIDs       []string          `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
 	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
 	Trigger           *createAgentTriggerRequest `json:"trigger,omitempty"` // optional webhook trigger to create with the agent
 }
@@ -105,7 +105,6 @@ type updateAgentRequest struct {
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
 	Skills            model.JSON `json:"skills,omitempty"`
 	Integrations      model.JSON `json:"integrations,omitempty"`
-	Subagents         model.JSON `json:"subagents,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              *string    `json:"team,omitempty"`
@@ -129,7 +128,6 @@ type agentResponse struct {
 	McpServers        model.JSON `json:"mcp_servers"`
 	Skills            model.JSON `json:"skills"`
 	Integrations      model.JSON `json:"integrations"`
-	Subagents         model.JSON `json:"subagents"`
 	AgentConfig       model.JSON `json:"agent_config"`
 	Permissions       model.JSON `json:"permissions"`
 	Team              string     `json:"team"`
@@ -155,7 +153,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 		McpServers:   a.McpServers,
 		Skills:       a.Skills,
 		Integrations: a.Integrations,
-		Subagents:    a.Subagents,
 		AgentConfig:  a.AgentConfig,
 		Permissions:  a.Permissions,
 		Team:         a.Team,
@@ -324,7 +321,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		McpServers:   defaultJSON(req.McpServers),
 		Skills:       defaultJSON(req.Skills),
 		Integrations: defaultJSON(req.Integrations),
-		Subagents:    defaultJSON(req.Subagents),
 		AgentConfig:  defaultJSON(req.AgentConfig),
 		Permissions:  defaultJSON(req.Permissions),
 		Team:         req.Team,
@@ -372,7 +368,26 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Use a transaction so agent + trigger + skill attachments are created atomically.
+	// Parse subagent IDs up front.
+	var subagentUUIDs []uuid.UUID
+	if len(req.SubagentIDs) > 0 {
+		subagentUUIDs = make([]uuid.UUID, 0, len(req.SubagentIDs))
+		seen := make(map[uuid.UUID]struct{}, len(req.SubagentIDs))
+		for _, raw := range req.SubagentIDs {
+			parsed, parseErr := uuid.Parse(raw)
+			if parseErr != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid subagent_id %q", raw)})
+				return
+			}
+			if _, dup := seen[parsed]; dup {
+				continue
+			}
+			seen[parsed] = struct{}{}
+			subagentUUIDs = append(subagentUUIDs, parsed)
+		}
+	}
+
+	// Use a transaction so agent + trigger + skill + subagent attachments are created atomically.
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&agent).Error; err != nil {
 			return err
@@ -401,6 +416,27 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 				Where("id IN ?", skillUUIDs).
 				UpdateColumn("install_count", gorm.Expr("install_count + 1")).Error; err != nil {
 				return fmt.Errorf("bump install_count: %w", err)
+			}
+		}
+
+		if len(subagentUUIDs) > 0 {
+			var visibleSubs []model.Agent
+			if err := tx.
+				Select("id").
+				Where("id IN ? AND agent_type = ? AND (org_id = ? OR (org_id IS NULL AND status = ?))",
+					subagentUUIDs, model.AgentTypeSubagent, org.ID, "active").
+				Find(&visibleSubs).Error; err != nil {
+				return fmt.Errorf("validate subagent_ids: %w", err)
+			}
+			if len(visibleSubs) != len(subagentUUIDs) {
+				return fmt.Errorf("one or more subagent_ids are not visible to this org")
+			}
+			subLinks := make([]model.AgentSubagent, len(visibleSubs))
+			for index, sub := range visibleSubs {
+				subLinks[index] = model.AgentSubagent{AgentID: agent.ID, SubagentID: sub.ID}
+			}
+			if err := tx.Create(&subLinks).Error; err != nil {
+				return fmt.Errorf("attach subagents: %w", err)
 			}
 		}
 
@@ -733,9 +769,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Integrations != nil {
 		updates["integrations"] = req.Integrations
-	}
-	if req.Subagents != nil {
-		updates["subagents"] = req.Subagents
 	}
 	if req.AgentConfig != nil {
 		if errMsg := validateJSONSchema(req.AgentConfig); errMsg != "" {

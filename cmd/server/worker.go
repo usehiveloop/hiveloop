@@ -15,6 +15,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/registry"
 	"github.com/ziraloop/ziraloop/internal/skills"
+	subagents "github.com/ziraloop/ziraloop/internal/sub-agents"
 	"github.com/ziraloop/ziraloop/internal/tasks"
 	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 )
@@ -32,6 +33,12 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 			return
 		}
 		slog.Info("system agents seeded")
+
+		if err := subagents.Seed(deps.DB); err != nil {
+			slog.Error("failed to seed subagents", "error", err)
+			return
+		}
+		slog.Info("subagents seeded")
 
 		if deps.Orchestrator == nil || deps.AgentPusher == nil {
 			slog.Info("orchestrator not configured, skipping system sandbox provisioning")

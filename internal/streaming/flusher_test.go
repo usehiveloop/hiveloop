@@ -80,7 +80,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 		Name: "test-agent-" + suffix, Model: "test",
 		SystemPrompt: "test", SandboxType: "shared", Status: "active",
 		Tools: emptyJSON, McpServers: emptyJSON, Skills: emptyJSON,
-		Integrations: emptyJSON, Subagents: emptyJSON, AgentConfig: emptyJSON,
+		Integrations: emptyJSON, AgentConfig: emptyJSON,
 		Permissions: emptyJSON,
 	}
 	if err := db.Create(&agent).Error; err != nil {

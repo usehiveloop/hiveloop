@@ -5085,6 +5085,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/{agentID}/subagents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List subagents attached to an agent */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Parent agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSubagentResponse"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Attach a subagent to an agent */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Parent agent ID */
+                    agentID: string;
+                };
+                cookie?: never;
+            };
+            /** @description Subagent to attach */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["attachSubagentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSubagentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agentID}/subagents/{subagentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Detach a subagent from an agent */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Parent agent ID */
+                    agentID: string;
+                    /** @description Subagent ID */
+                    subagentID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{id}": {
         parameters: {
             query?: never;
@@ -11688,6 +11834,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subagents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List subagents
+         * @description Lists subagents visible to the current org. Use scope=public, own, or all.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter: public, own, all (default all) */
+                    scope?: string;
+                    /** @description Free-text search over name and description */
+                    q?: string;
+                    /** @description Page size (default 50, max 100) */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-subagentResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a subagent
+         * @description Creates a reusable subagent that parent agents can invoke. Does not require sandbox_type or credential.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Subagent definition */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["createSubagentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["subagentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subagents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a subagent */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Subagent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["subagentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Archive a subagent */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Subagent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update a subagent */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Subagent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateSubagentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["subagentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -13415,6 +13792,11 @@ export interface components {
             skill?: components["schemas"]["skillResponse"];
             skill_id?: string;
         };
+        agentSubagentResponse: {
+            created_at?: string;
+            subagent?: components["schemas"]["subagentResponse"];
+            subagent_id?: string;
+        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -13433,6 +13815,9 @@ export interface components {
         attachSkillRequest: {
             pinned_version_id?: string;
             skill_id?: string;
+        };
+        attachSubagentRequest: {
+            subagent_id?: string;
         };
         auditEntryResponse: {
             action?: string;
@@ -13585,6 +13970,8 @@ export interface components {
             /** @description skills from /v1/skills to attach on create */
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
+            /** @description subagents from /v1/subagents to attach on create */
+            subagent_ids?: string[];
             subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
@@ -13708,6 +14095,18 @@ export interface components {
             /** @description "inline" | "git" */
             source_type?: string;
             tags?: string[];
+        };
+        createSubagentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            description?: string;
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            skills?: components["schemas"]["JSON"];
+            system_prompt?: string;
+            tags?: string[];
+            tools?: components["schemas"]["JSON"];
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -14207,6 +14606,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-subagentResponse": {
+            data?: components["schemas"]["subagentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-tokenListItem": {
             data?: components["schemas"]["tokenListItem"][];
             has_more?: boolean;
@@ -14409,6 +14813,17 @@ export interface components {
             message?: string;
             status?: string;
         };
+        subagentResponse: {
+            created_at?: string;
+            description?: string;
+            id?: string;
+            model?: string;
+            name?: string;
+            org_id?: string;
+            status?: string;
+            system_prompt?: string;
+            updated_at?: string;
+        };
         subscriptionResponse: {
             plan?: string;
             product_type?: string;
@@ -14529,6 +14944,18 @@ export interface components {
             repo_ref?: string;
             status?: string;
             tags?: string[];
+        };
+        updateSubagentRequest: {
+            agent_config?: components["schemas"]["JSON"];
+            description?: string;
+            mcp_servers?: components["schemas"]["JSON"];
+            model?: string;
+            name?: string;
+            permissions?: components["schemas"]["JSON"];
+            skills?: components["schemas"]["JSON"];
+            status?: string;
+            system_prompt?: string;
+            tools?: components["schemas"]["JSON"];
         };
         updateWebhookSettingsRequest: {
             url?: string;

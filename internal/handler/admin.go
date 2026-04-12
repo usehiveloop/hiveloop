@@ -3647,7 +3647,6 @@ type adminUpdateAgentRequest struct {
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
 	Skills            model.JSON `json:"skills,omitempty"`
 	Integrations      model.JSON `json:"integrations,omitempty"`
-	Subagents         model.JSON `json:"subagents,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              *string    `json:"team,omitempty"`
@@ -3694,7 +3693,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		McpServers        model.JSON `json:"mcp_servers,omitempty"`
 		Skills            model.JSON `json:"skills,omitempty"`
 		Integrations      model.JSON `json:"integrations,omitempty"`
-		Subagents         model.JSON `json:"subagents,omitempty"`
 		AgentConfig       model.JSON `json:"agent_config,omitempty"`
 		Permissions       model.JSON `json:"permissions,omitempty"`
 		Team              *string    `json:"team,omitempty"`
@@ -3786,9 +3784,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Integrations != nil {
 		updates["integrations"] = req.Integrations
-	}
-	if req.Subagents != nil {
-		updates["subagents"] = req.Subagents
 	}
 	if req.AgentConfig != nil {
 		if errMsg := validateJSONSchema(req.AgentConfig); errMsg != "" {

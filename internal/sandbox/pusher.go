@@ -336,11 +336,6 @@ func (p *Pusher) BuildSystemAgentDef(agent *model.Agent) bridgepkg.AgentDefiniti
 		def.Skills = skills
 	}
 
-	subagents := decodeJSONAs[[]bridgepkg.AgentDefinition](agent.Subagents)
-	if subagents != nil && len(*subagents) > 0 {
-		def.Subagents = subagents
-	}
-
 	permissions := decodeJSONAs[map[string]bridgepkg.ToolPermission](agent.Permissions)
 	if permissions != nil && len(*permissions) > 0 {
 		def.Permissions = permissions
@@ -518,12 +513,6 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	skills := decodeJSONAs[[]bridgepkg.SkillDefinition](agent.Skills)
 	if skills != nil && len(*skills) > 0 {
 		def.Skills = skills
-	}
-
-	// Set subagents if present
-	subagents := decodeJSONAs[[]bridgepkg.AgentDefinition](agent.Subagents)
-	if subagents != nil && len(*subagents) > 0 {
-		def.Subagents = subagents
 	}
 
 	return def

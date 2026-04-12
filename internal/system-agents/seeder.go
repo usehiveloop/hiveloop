@@ -84,8 +84,8 @@ func seedAgent(db *gorm.DB, agentType, providerGroup, path string) error {
 
 	now := time.Now()
 	result := db.Exec(`
-		INSERT INTO agents (name, is_system, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, subagents, agent_config, permissions, created_at, updated_at)
-		VALUES (?, true, ?, ?, ?, 'shared', 'active', ?, '{}', '{}', '{}', '{}', ?, ?, ?, ?)
+		INSERT INTO agents (name, is_system, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
+		VALUES (?, true, ?, ?, ?, 'shared', 'active', ?, '{}', '{}', '{}', ?, ?, ?, ?)
 		ON CONFLICT (name) WHERE org_id IS NULL
 		DO UPDATE SET system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group,
 		             permissions = EXCLUDED.permissions, agent_config = EXCLUDED.agent_config, tools = EXCLUDED.tools, updated_at = EXCLUDED.updated_at

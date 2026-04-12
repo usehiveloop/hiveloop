@@ -127,6 +127,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer)
 	skillHandler := handler.NewSkillHandler(database, enqueuer)
+	subagentHandler := handler.NewSubagentHandler(database)
 
 	var pusherForHandler handler.AgentPusher
 	if agentPusher != nil {
@@ -330,6 +331,13 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Post("/{id}/hydrate", skillHandler.Hydrate)
 					r.Get("/{id}/versions", skillHandler.ListVersions)
 				})
+				r.Route("/subagents", func(r chi.Router) {
+					r.Post("/", subagentHandler.Create)
+					r.Get("/", subagentHandler.List)
+					r.Get("/{id}", subagentHandler.Get)
+					r.Patch("/{id}", subagentHandler.Update)
+					r.Delete("/{id}", subagentHandler.Delete)
+				})
 				r.Route("/agents", func(r chi.Router) {
 					r.Post("/", agentHandler.Create)
 					r.Get("/", agentHandler.List)
@@ -357,6 +365,11 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/", skillHandler.AttachToAgent)
 						r.Get("/", skillHandler.ListAgentSkills)
 						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
+					})
+					r.Route("/{agentID}/subagents", func(r chi.Router) {
+						r.Post("/", subagentHandler.AttachToAgent)
+						r.Get("/", subagentHandler.ListAgentSubagents)
+						r.Delete("/{subagentID}", subagentHandler.DetachFromAgent)
 					})
 				})
 				r.Route("/marketplace/agents", func(r chi.Router) {

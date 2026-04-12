@@ -1000,6 +1000,15 @@ definitions:
       skill_id:
         type: string
     type: object
+  internal_handler.agentSubagentResponse:
+    properties:
+      created_at:
+        type: string
+      subagent:
+        $ref: '#/definitions/internal_handler.subagentResponse'
+      subagent_id:
+        type: string
+    type: object
   internal_handler.apiKeyResponse:
     properties:
       created_at:
@@ -1035,6 +1044,11 @@ definitions:
       pinned_version_id:
         type: string
       skill_id:
+        type: string
+    type: object
+  internal_handler.attachSubagentRequest:
+    properties:
+      subagent_id:
         type: string
     type: object
   internal_handler.auditEntryResponse:
@@ -1344,6 +1358,11 @@ definitions:
         type: array
       skills:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      subagent_ids:
+        description: subagents from /v1/subagents to attach on create
+        items:
+          type: string
+        type: array
       subagents:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       system_prompt:
@@ -1596,6 +1615,31 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  internal_handler.createSubagentRequest:
+    properties:
+      agent_config:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      description:
+        type: string
+      mcp_servers:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      model:
+        type: string
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      skills:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      system_prompt:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      tools:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
   internal_handler.credentialResponse:
     properties:
@@ -2604,6 +2648,17 @@ definitions:
       next_cursor:
         type: string
     type: object
+  internal_handler.paginatedResponse-internal_handler_subagentResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.subagentResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   internal_handler.paginatedResponse-internal_handler_tokenListItem:
     properties:
       data:
@@ -2994,6 +3049,27 @@ definitions:
       status:
         type: string
     type: object
+  internal_handler.subagentResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      org_id:
+        type: string
+      status:
+        type: string
+      system_prompt:
+        type: string
+      updated_at:
+        type: string
+    type: object
   internal_handler.subscriptionResponse:
     properties:
       plan:
@@ -3231,6 +3307,29 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  internal_handler.updateSubagentRequest:
+    properties:
+      agent_config:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      description:
+        type: string
+      mcp_servers:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      model:
+        type: string
+      name:
+        type: string
+      permissions:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      skills:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      status:
+        type: string
+      system_prompt:
+        type: string
+      tools:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
   internal_handler.updateWebhookSettingsRequest:
     properties:
@@ -6240,6 +6339,98 @@ paths:
       summary: Detach a skill from an agent
       tags:
       - skills
+  /v1/agents/{agentID}/subagents:
+    get:
+      parameters:
+      - description: Parent agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.agentSubagentResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List subagents attached to an agent
+      tags:
+      - subagents
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Parent agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Subagent to attach
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.attachSubagentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.agentSubagentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Attach a subagent to an agent
+      tags:
+      - subagents
+  /v1/agents/{agentID}/subagents/{subagentID}:
+    delete:
+      parameters:
+      - description: Parent agent ID
+        in: path
+        name: agentID
+        required: true
+        type: string
+      - description: Subagent ID
+        in: path
+        name: subagentID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detach a subagent from an agent
+      tags:
+      - subagents
   /v1/agents/{id}:
     delete:
       description: Deletes an agent and removes it from Bridge.
@@ -9938,6 +10129,159 @@ paths:
       summary: List skill versions
       tags:
       - skills
+  /v1/subagents:
+    get:
+      description: Lists subagents visible to the current org. Use scope=public, own,
+        or all.
+      parameters:
+      - description: 'Filter: public, own, all (default all)'
+        in: query
+        name: scope
+        type: string
+      - description: Free-text search over name and description
+        in: query
+        name: q
+        type: string
+      - description: Page size (default 50, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_subagentResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List subagents
+      tags:
+      - subagents
+    post:
+      consumes:
+      - application/json
+      description: Creates a reusable subagent that parent agents can invoke. Does
+        not require sandbox_type or credential.
+      parameters:
+      - description: Subagent definition
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createSubagentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.subagentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a subagent
+      tags:
+      - subagents
+  /v1/subagents/{id}:
+    delete:
+      parameters:
+      - description: Subagent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Archive a subagent
+      tags:
+      - subagents
+    get:
+      parameters:
+      - description: Subagent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.subagentResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a subagent
+      tags:
+      - subagents
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subagent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateSubagentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.subagentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a subagent
+      tags:
+      - subagents
   /v1/tokens:
     get:
       description: Returns tokens for the organization with cursor pagination. Supports

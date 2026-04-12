@@ -93,7 +93,6 @@ func createForgeScaffold(t *testing.T, db *gorm.DB) forgeIDs {
 		McpServers:   model.JSON{},
 		Skills:       model.JSON{},
 		Integrations: model.JSON{},
-		Subagents:    model.JSON{},
 		AgentConfig:  model.JSON{},
 		Permissions:  model.JSON{},
 	}

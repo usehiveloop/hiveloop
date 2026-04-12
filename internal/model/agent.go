@@ -30,7 +30,6 @@ type Agent struct {
 	McpServers   JSON   `gorm:"type:jsonb;not null;default:'{}'"`
 	Skills       JSON   `gorm:"type:jsonb;not null;default:'{}'"`
 	Integrations JSON   `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
-	Subagents    JSON   `gorm:"type:jsonb;not null;default:'{}'"`
 	AgentConfig  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
 	Permissions  JSON   `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
 	Team         string `gorm:"not null;default:''"` // team tag for memory scoping (e.g. "engineering", "sales")
@@ -41,6 +40,7 @@ type Agent struct {
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // active, archived
+	AgentType     string `gorm:"not null;default:'agent';index"` // "agent" or "subagent"
 	IsSystem      bool   `gorm:"not null;default:false;index"`
 	ProviderGroup string `gorm:"not null;default:''"` // e.g. "anthropic", "openai", "gemini" — set for system agents
 	DeletedAt     *time.Time `gorm:"index"`
@@ -49,3 +49,8 @@ type Agent struct {
 }
 
 func (Agent) TableName() string { return "agents" }
+
+const (
+	AgentTypeAgent    = "agent"
+	AgentTypeSubagent = "subagent"
+)

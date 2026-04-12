@@ -1,5 +1,5 @@
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { PencilEdit02Icon, SparklesIcon, Store01Icon } from "@hugeicons/core-free-icons"
+import { PencilEdit02Icon, Store01Icon } from "@hugeicons/core-free-icons"
 import { ChoiceCard } from "./choice-card"
 import { useCreateAgent } from "./context"
 
@@ -11,7 +11,7 @@ export function StepChooseMode() {
       <DialogHeader>
         <DialogTitle>Create a new agent</DialogTitle>
         <DialogDescription className="mt-2">
-          Build from scratch, let AI generate one for you, or install a ready-made agent from the marketplace.
+          Build from scratch or install a ready-made agent from the marketplace.
         </DialogDescription>
       </DialogHeader>
 
@@ -21,12 +21,6 @@ export function StepChooseMode() {
           title="Create from scratch"
           description="Write your own system prompt and configure every detail manually."
           onClick={() => setMode("scratch")}
-        />
-        <ChoiceCard
-          icon={SparklesIcon}
-          title="Forge with AI"
-          description="Describe what you want and let AI generate an optimized agent for you."
-          onClick={() => setMode("forge")}
         />
         <ChoiceCard
           icon={Store01Icon}

@@ -65,7 +65,6 @@ type marketplaceAgentResponse struct {
 	McpServers           model.JSON `json:"mcp_servers"`
 	Skills               model.JSON `json:"skills"`
 	Integrations         model.JSON `json:"integrations"`
-	Subagents            model.JSON `json:"subagents"`
 	AgentConfig          model.JSON `json:"agent_config"`
 	Permissions          model.JSON `json:"permissions"`
 	Team                 string   `json:"team"`
@@ -101,7 +100,6 @@ func toMarketplaceAgentResponse(ma model.MarketplaceAgent) marketplaceAgentRespo
 		McpServers:           ma.McpServers,
 		Skills:               ma.Skills,
 		Integrations:         ma.Integrations,
-		Subagents:            ma.Subagents,
 		AgentConfig:          ma.AgentConfig,
 		Permissions:          ma.Permissions,
 		Team:                 ma.Team,
@@ -328,7 +326,6 @@ func (h *MarketplaceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		McpServers:           agent.McpServers,
 		Skills:               agent.Skills,
 		Integrations:         agent.Integrations,
-		Subagents:            agent.Subagents,
 		AgentConfig:          agent.AgentConfig,
 		Permissions:          agent.Permissions,
 		Team:                 agent.Team,
