@@ -47,7 +47,6 @@ export default function AgentsPage() {
       <>
         <AgentsEmpty
           onCreateFromScratch={() => openCreateWith("scratch")}
-          onCreateWithForge={() => openCreateWith("forge")}
           onCreateFromMarketplace={() => openCreateWith("marketplace")}
         />
         <CreateAgentDialog

@@ -53,13 +53,16 @@ func fetchSDL(url string, force bool) (string, error) {
 type sdlSchema struct {
 	QueryFields    []sdlField
 	MutationFields []sdlField
+	InputTypes     map[string][]sdlField // input type name → fields
+	ObjectTypes    map[string][]sdlField // object type name → fields (for response schemas)
 }
 
-// sdlField represents a single field on a Query or Mutation type.
+// sdlField represents a single field on a Query, Mutation, input, or object type.
 type sdlField struct {
 	Name        string
 	Description string
 	Args        []sdlArg
+	Type        string // field's return/value type (e.g., "String!", "Issue!", "[Issue!]!")
 }
 
 // sdlArg represents an argument on a field.
@@ -70,7 +73,8 @@ type sdlArg struct {
 	Required    bool
 }
 
-// parseSDL parses a GraphQL SDL string and extracts Query/Mutation fields.
+// parseSDL parses a GraphQL SDL string and extracts Query/Mutation fields,
+// input types, and object types.
 func parseSDL(sdl string) (*sdlSchema, error) {
 	schema := &sdlSchema{}
 
@@ -90,12 +94,16 @@ func parseSDL(sdl string) (*sdlSchema, error) {
 	}
 
 	// Parse the Query type.
-	queryFields := extractTypeFields(sdl, queryTypeName)
-	schema.QueryFields = queryFields
+	schema.QueryFields = extractTypeFields(sdl, queryTypeName)
 
 	// Parse the Mutation type.
-	mutationFields := extractTypeFields(sdl, mutationTypeName)
-	schema.MutationFields = mutationFields
+	schema.MutationFields = extractTypeFields(sdl, mutationTypeName)
+
+	// Parse all input types for parameter expansion.
+	schema.InputTypes = parseAllInputTypes(sdl)
+
+	// Parse all object types for response schemas.
+	schema.ObjectTypes = parseAllObjectTypes(sdl)
 
 	return schema, nil
 }
@@ -118,6 +126,42 @@ func extractTypeFields(sdl, typeName string) []sdlField {
 	}
 
 	return parseFieldsFromBlock(body)
+}
+
+// parseAllInputTypes finds all `input Xxx { ... }` blocks and parses their fields.
+func parseAllInputTypes(sdl string) map[string][]sdlField {
+	result := make(map[string][]sdlField)
+	inputStartRe := regexp.MustCompile(`(?m)^input\s+(\w+)\b[^{]*\{`)
+
+	for _, match := range inputStartRe.FindAllStringSubmatchIndex(sdl, -1) {
+		typeName := sdl[match[2]:match[3]]
+		// Extract the brace block starting from the match position.
+		body := extractBraceBlock(sdl[match[0]:])
+		if body == "" {
+			continue
+		}
+		fields := parseFieldsFromBlock(body)
+		result[typeName] = fields
+	}
+	return result
+}
+
+// parseAllObjectTypes finds all `type Xxx { ... }` blocks and parses their fields.
+// Used for generating response schemas.
+func parseAllObjectTypes(sdl string) map[string][]sdlField {
+	result := make(map[string][]sdlField)
+	typeStartRe := regexp.MustCompile(`(?m)^type\s+(\w+)\b[^{]*\{`)
+
+	for _, match := range typeStartRe.FindAllStringSubmatchIndex(sdl, -1) {
+		typeName := sdl[match[2]:match[3]]
+		body := extractBraceBlock(sdl[match[0]:])
+		if body == "" {
+			continue
+		}
+		fields := parseFieldsFromBlock(body)
+		result[typeName] = fields
+	}
+	return result
 }
 
 // extractBraceBlock extracts content between the first { and its matching }.
@@ -248,14 +292,13 @@ func parseFieldLine(line, description string) *sdlField {
 
 	m := fieldLineRe.FindStringSubmatch(line)
 	if m == nil {
-		// Try multiline args — if line has ( but no ), it spans multiple lines.
-		// For now, handle the simple case only.
 		return nil
 	}
 
 	field := &sdlField{
 		Name:        m[1],
 		Description: strings.TrimSpace(description),
+		Type:        strings.TrimSpace(m[3]),
 	}
 
 	// Parse args if present.
@@ -266,22 +309,64 @@ func parseFieldLine(line, description string) *sdlField {
 	return field
 }
 
-// parseArgs parses a comma-separated argument list from inside parentheses.
+// parseArgs parses an argument list from inside parentheses.
+// Handles both comma-separated args and whitespace-separated args (common in SDL
+// files where args appear on separate lines without commas).
 func parseArgs(argsStr string) []sdlArg {
+	argsStr = strings.TrimSpace(argsStr)
+	if argsStr == "" {
+		return nil
+	}
+
+	// Try comma-separated first (most common).
+	if strings.Contains(argsStr, ",") {
+		parts := splitArgs(argsStr)
+		var args []sdlArg
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			arg := parseOneArg(part)
+			if arg != nil {
+				args = append(args, *arg)
+			}
+		}
+		if len(args) > 0 {
+			return args
+		}
+	}
+
+	// Fallback: extract all name:Type patterns with optional """desc""" prefixes.
+	// This handles SDL where multiline args are joined into a single string
+	// without comma delimiters (e.g. `""" desc """ id: String! """ desc """ input: FooInput!`).
+	return parseArgsRegex(argsStr)
+}
+
+// sdlArgFinder matches individual arguments in a joined arg string.
+// Captures: (1) description inside """, (2) arg name, (3) type including list/non-null wrappers.
+var sdlArgFinder = regexp.MustCompile(`(?:"""((?:[^"]|"[^"]|""[^"])*)"""\s+)?(\w+)\s*:\s*(\[?\w+!?\]?!?)`)
+
+// parseArgsRegex extracts all arguments from a string using regex matching.
+// Used when args lack comma delimiters.
+func parseArgsRegex(argsStr string) []sdlArg {
+	matches := sdlArgFinder.FindAllStringSubmatch(argsStr, -1)
 	var args []sdlArg
 
-	// Split on commas, but be careful about nested types.
-	parts := splitArgs(argsStr)
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
+	for _, match := range matches {
+		desc := strings.TrimSpace(match[1])
+		// Collapse multi-line descriptions into single line.
+		desc = strings.Join(strings.Fields(desc), " ")
+		name := match[2]
+		typeStr := match[3]
+		required := strings.HasSuffix(typeStr, "!")
 
-		arg := parseOneArg(part)
-		if arg != nil {
-			args = append(args, *arg)
-		}
+		args = append(args, sdlArg{
+			Name:        name,
+			Type:        typeStr,
+			Description: desc,
+			Required:    required,
+		})
 	}
 
 	return args
@@ -358,14 +443,14 @@ func parseOneArg(s string) *sdlArg {
 // sdlTypeToJSONSchema maps a GraphQL SDL type string to a JSON Schema type.
 func sdlTypeToJSONSchema(gqlType string) string {
 	// Strip non-null marker.
-	t := strings.TrimSuffix(gqlType, "!")
+	typeName := strings.TrimSuffix(gqlType, "!")
 
 	// Check for list.
-	if strings.HasPrefix(t, "[") {
+	if strings.HasPrefix(typeName, "[") {
 		return "array"
 	}
 
-	switch t {
+	switch typeName {
 	case "String", "ID", "DateTime", "Date", "URI", "URL", "TimelessDate", "JSONObject", "JSON":
 		return "string"
 	case "Int":
@@ -375,7 +460,27 @@ func sdlTypeToJSONSchema(gqlType string) string {
 	case "Boolean":
 		return "boolean"
 	default:
-		// Input objects, enums, custom scalars.
+		// Enums, custom scalars — treat as string.
 		return "string"
 	}
+}
+
+// baseTypeName strips NonNull (!) and List ([]) wrappers to get the named type.
+// e.g. "IssueCreateInput!" → "IssueCreateInput", "[String!]!" → "String"
+func baseTypeName(gqlType string) string {
+	typeName := strings.TrimSuffix(gqlType, "!")
+	typeName = strings.TrimPrefix(typeName, "[")
+	typeName = strings.TrimSuffix(typeName, "]")
+	typeName = strings.TrimSuffix(typeName, "!")
+	return typeName
+}
+
+// isNullableSDL returns true if the SDL type is nullable (no trailing !).
+func isNullableSDL(gqlType string) bool {
+	return !strings.HasSuffix(gqlType, "!")
+}
+
+// isConnectionType returns true if the type name ends with "Connection".
+func isConnectionType(typeName string) bool {
+	return strings.HasSuffix(typeName, "Connection")
 }
