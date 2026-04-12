@@ -65,12 +65,14 @@ type ProviderActions struct {
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.
 type ExecutionConfig struct {
-	Method       string            `json:"method"`                  // HTTP method (GET, POST, etc.)
-	Path         string            `json:"path"`                    // Provider API path (via Nango proxy)
-	BodyMapping  map[string]string `json:"body_mapping,omitempty"`  // Param name → body field mapping
-	QueryMapping map[string]string `json:"query_mapping,omitempty"` // Param name → query param mapping
-	Headers      map[string]string `json:"headers,omitempty"`       // Extra provider headers
-	ResponsePath string            `json:"response_path,omitempty"` // Dot-path to extract data from response
+	Method           string            `json:"method"`                    // HTTP method (GET, POST, etc.)
+	Path             string            `json:"path"`                      // Provider API path (via Nango proxy)
+	BodyMapping      map[string]string `json:"body_mapping,omitempty"`    // Param name → body field mapping
+	QueryMapping     map[string]string `json:"query_mapping,omitempty"`   // Param name → query param mapping
+	Headers          map[string]string `json:"headers,omitempty"`         // Extra provider headers
+	ResponsePath     string            `json:"response_path,omitempty"`   // Dot-path to extract data from response
+	GraphQLOperation string            `json:"graphql_operation,omitempty"` // "query" or "mutation" (GraphQL providers only)
+	GraphQLField     string            `json:"graphql_field,omitempty"`    // Top-level GraphQL field name (e.g. "issueCreate")
 }
 
 // Access type constants.
