@@ -6,9 +6,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
+	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/skills"
 	"github.com/ziraloop/ziraloop/internal/streaming"
+	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
+	"github.com/ziraloop/ziraloop/internal/trigger/executor"
 )
 
 // WorkerDeps holds the dependencies needed by task handlers.
@@ -89,10 +92,18 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSkillHydrate, NewSkillHydrateHandler(deps.DB, deps.SkillFetcher).Handle)
 	}
 
-	// Trigger dispatch — runs the dispatcher for an incoming webhook,
-	// produces PreparedRun blueprints, and (in the next PR) enqueues
-	// per-agent run tasks.
-	mux.HandleFunc(TypeTriggerDispatch, NewTriggerDispatchHandler(deps.DB).Handle)
+	// Router dispatch (Zira routing system).
+	// Only registered when orchestrator + pusher are available (sandbox configured).
+	if deps.Orchestrator != nil && deps.Pusher != nil {
+		routerDispatcher := dispatch.NewRouterDispatcher(
+			dispatch.NewGormRouterTriggerStore(deps.DB, catalog.Global()),
+			catalog.Global(),
+			nil, // RouterAgent wired separately when credential picker is ready
+			nil, // logger — defaults to slog.Default()
+		)
+		routerExecutor := executor.NewExecutor(deps.DB, deps.Orchestrator, nil, nil)
+		mux.HandleFunc(TypeRouterDispatch, NewRouterDispatchHandler(routerDispatcher, routerExecutor).Handle)
+	}
 
 	return mux
 }

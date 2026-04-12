@@ -84,7 +84,6 @@ type createAgentRequest struct {
 	SkillIDs          []string          `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
 	SubagentIDs       []string          `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
 	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
-	Trigger           *createAgentTriggerRequest `json:"trigger,omitempty"` // optional webhook trigger to create with the agent
 }
 
 type forgeOptions struct {
@@ -294,17 +293,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate trigger before creating the agent (fail fast).
-	triggerProvider := ""
-	if req.Trigger != nil && h.actionsCatalog != nil {
-		var errMsg string
-		triggerProvider, errMsg = validateTriggerRequest(h.db, h.actionsCatalog, req.Trigger, org.ID, defaultJSON(req.Integrations))
-		if errMsg != "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": errMsg})
-			return
-		}
-	}
-
 	// Validate sandbox template if provided
 	var sandboxTemplateID *interface{ String() string }
 	_ = sandboxTemplateID // unused, we parse directly
@@ -437,51 +425,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 			if err := tx.Create(&subLinks).Error; err != nil {
 				return fmt.Errorf("attach subagents: %w", err)
-			}
-		}
-
-		if req.Trigger != nil && triggerProvider != "" {
-			connectionID, _ := uuid.Parse(req.Trigger.ConnectionID)
-
-			var conditionsJSON model.RawJSON
-			if req.Trigger.Conditions != nil {
-				conditionsBytes, _ := json.Marshal(req.Trigger.Conditions)
-				conditionsJSON = model.RawJSON(conditionsBytes)
-			}
-			var contextActionsJSON model.RawJSON
-			if len(req.Trigger.ContextActions) > 0 {
-				contextActionsBytes, _ := json.Marshal(req.Trigger.ContextActions)
-				contextActionsJSON = model.RawJSON(contextActionsBytes)
-			}
-			var terminateOnJSON model.RawJSON
-			if len(req.Trigger.TerminateOn) > 0 {
-				terminateBytes, _ := json.Marshal(req.Trigger.TerminateOn)
-				terminateOnJSON = model.RawJSON(terminateBytes)
-			}
-			terminateEventKeys := pq.StringArray(model.CollectTerminateEventKeys(req.Trigger.TerminateOn))
-
-			enabled := true
-			if req.Trigger.Enabled != nil {
-				enabled = *req.Trigger.Enabled
-			}
-
-			trigger := model.AgentTrigger{
-				OrgID:              org.ID,
-				AgentID:            agent.ID,
-				ConnectionID:       connectionID,
-				TriggerKeys:        req.Trigger.TriggerKeys,
-				Enabled:            enabled,
-				Conditions:         conditionsJSON,
-				ContextActions:     contextActionsJSON,
-				Instructions:       req.Trigger.Instructions,
-				TerminateOn:        terminateOnJSON,
-				TerminateEventKeys: terminateEventKeys,
-			}
-			if err := tx.Create(&trigger).Error; err != nil {
-				return fmt.Errorf("trigger: %w", err)
-			}
-			if !enabled {
-				tx.Model(&trigger).Update("enabled", false)
 			}
 		}
 

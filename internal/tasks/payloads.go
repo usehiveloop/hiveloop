@@ -412,3 +412,21 @@ func NewTriggerDispatchTask(payload TriggerDispatchPayload) (*asynq.Task, error)
 		asynq.Timeout(30*time.Second),
 	), nil
 }
+
+// NewRouterDispatchTask creates a task that runs the Zira router dispatcher
+// for a webhook event. Same payload shape as TriggerDispatchTask — the router
+// dispatcher reads the same fields. Timeout is higher (5 minutes) because the
+// triage LLM call adds latency.
+func NewRouterDispatchTask(payload TriggerDispatchPayload) (*asynq.Task, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal router dispatch payload: %w", err)
+	}
+	return asynq.NewTask(
+		TypeRouterDispatch,
+		encoded,
+		asynq.Queue(QueueCritical),
+		asynq.MaxRetry(3),
+		asynq.Timeout(5*time.Minute),
+	), nil
+}

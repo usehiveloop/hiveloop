@@ -62,7 +62,7 @@ func dispatchTrigger(
 	}
 
 	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
-	task, err := tasks.NewTriggerDispatchTask(tasks.TriggerDispatchPayload{
+	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
 		Provider:     providerName,
 		EventType:    eventType,
 		EventAction:  eventAction,

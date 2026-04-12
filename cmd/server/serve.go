@@ -22,6 +22,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/handler"
 	"github.com/ziraloop/ziraloop/internal/hindsight"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/mcpserver"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/proxy"
 )
@@ -73,7 +74,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
 	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
-	agentTriggerHandler := handler.NewAgentTriggerHandler(database, actionsCatalog)
+	routerHandler := handler.NewRouterHandler(database, actionsCatalog)
 	var emailSender email.Sender = &email.LogSender{}
 	if enqueuer != nil {
 		emailSender = email.NewAsynqSender(enqueuer)
@@ -354,13 +355,21 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 						r.Post("/{agentID}/forge", forgeHandler.Start)
 						r.Get("/{agentID}/forge", forgeHandler.GetLatestRun)
 					}
-					r.Route("/{agentID}/triggers", func(r chi.Router) {
-						r.Post("/", agentTriggerHandler.Create)
-						r.Get("/", agentTriggerHandler.List)
-						r.Get("/{id}", agentTriggerHandler.Get)
-						r.Put("/{id}", agentTriggerHandler.Update)
-						r.Delete("/{id}", agentTriggerHandler.Delete)
-					})
+					// Agent triggers removed — routing is now handled by the
+					// Zira router at /v1/router/triggers.
+				})
+
+				// Zira Router — unified routing identity for the org.
+				r.Route("/router", func(r chi.Router) {
+					r.Get("/", routerHandler.GetOrCreateRouter)
+					r.Put("/", routerHandler.UpdateRouter)
+					r.Post("/triggers", routerHandler.CreateTrigger)
+					r.Get("/triggers", routerHandler.ListTriggers)
+					r.Delete("/triggers/{id}", routerHandler.DeleteTrigger)
+					r.Post("/triggers/{id}/rules", routerHandler.CreateRule)
+					r.Get("/triggers/{id}/rules", routerHandler.ListRules)
+					r.Delete("/triggers/{id}/rules/{ruleID}", routerHandler.DeleteRule)
+					r.Get("/decisions", routerHandler.ListDecisions)
 					r.Route("/{agentID}/skills", func(r chi.Router) {
 						r.Post("/", skillHandler.AttachToAgent)
 						r.Get("/", skillHandler.ListAgentSkills)
@@ -681,6 +690,16 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Handle("/", forgeJudgeMCP.StreamableHTTPHandler())
 	})
 	slog.Info("forge agent MCP tools registered (architect, eval-designer, judge)")
+
+	// Zira reply MCP — exposes per-connection write tools for specialist agents
+	// to post back to the source channel (Slack thread, GitHub issue, etc.).
+	replyMCPHandler := mcpserver.NewReplyMCPHandler(database, actionsCatalog)
+	mcpRouter.Route("/reply/{connectionID}", func(r chi.Router) {
+		r.Use(middleware.TokenAuth(signingKey, database))
+		r.Handle("/*", replyMCPHandler.StreamableHTTPHandler())
+		r.Handle("/", replyMCPHandler.StreamableHTTPHandler())
+	})
+	slog.Info("zira reply MCP registered on /reply/{connectionID}")
 
 	mcpRouter.Route("/{jti}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))

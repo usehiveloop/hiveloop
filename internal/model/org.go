@@ -68,7 +68,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&ToolUsage{},
 		&Subscription{},
 		&DriveAsset{},
-		&AgentTrigger{},
 		&Router{},
 		&RouterTrigger{},
 		&RoutingRule{},
