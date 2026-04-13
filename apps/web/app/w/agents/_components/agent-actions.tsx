@@ -14,14 +14,30 @@ import {
   Delete02Icon,
   Archive02Icon,
   PlayIcon,
+  CommandLineIcon,
+  Key01Icon,
 } from "@hugeicons/core-free-icons"
+import type { components } from "@/lib/api/schema"
+
+type Agent = components["schemas"]["agentResponse"]
 
 interface AgentActionsProps {
+  agent: Agent
   onEdit?: () => void
   onDelete?: () => void
+  onEnvVars?: () => void
+  onSetupCommands?: () => void
 }
 
-export function AgentActions({ onEdit, onDelete }: AgentActionsProps) {
+export function AgentActions({
+  agent,
+  onEdit,
+  onDelete,
+  onEnvVars,
+  onSetupCommands,
+}: AgentActionsProps) {
+  const isDedicated = agent.sandbox_type === "dedicated"
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
@@ -42,6 +58,21 @@ export function AgentActions({ onEdit, onDelete }: AgentActionsProps) {
             Duplicate
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        {isDedicated && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={onEnvVars}>
+                <HugeiconsIcon icon={Key01Icon} size={16} className="text-muted-foreground" />
+                Add environment variables
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onSetupCommands}>
+                <HugeiconsIcon icon={CommandLineIcon} size={16} className="text-muted-foreground" />
+                Add setup commands
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>

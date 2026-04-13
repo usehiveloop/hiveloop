@@ -11,6 +11,8 @@ import { IntegrationLogos, type IntegrationSummary } from "@/components/integrat
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { AgentStatusIndicator } from "./agent-status"
 import { AgentActions } from "./agent-actions"
+import { EnvVarsDialog } from "./env-vars-dialog"
+import { SetupCommandsDialog } from "./setup-commands-dialog"
 import type { AgentStatus } from "../_data/agents"
 import type { components } from "@/lib/api/schema"
 
@@ -50,6 +52,8 @@ function getIntegrationSummaries(
 export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
   const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState<Agent | null>(null)
+  const [envVarsAgent, setEnvVarsAgent] = useState<Agent | null>(null)
+  const [setupCommandsAgent, setSetupCommandsAgent] = useState<Agent | null>(null)
   const deleteAgent = $api.useMutation("delete", "/v1/agents/{id}")
 
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
@@ -123,8 +127,14 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
               <div className="w-6 shrink-0 flex justify-center">
                 <AgentStatusIndicator status={(agent.status ?? "active") as AgentStatus} />
               </div>
-              <div className="w-8 shrink-0 flex justify-center" onClick={(e) => e.preventDefault()}>
-                <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
+              <div className="w-8 shrink-0 flex justify-center" onClick={(event) => event.preventDefault()}>
+                <AgentActions
+                  agent={agent}
+                  onEdit={() => onEditAgent?.(agent)}
+                  onDelete={() => setDeleting(agent)}
+                  onEnvVars={() => setEnvVarsAgent(agent)}
+                  onSetupCommands={() => setSetupCommandsAgent(agent)}
+                />
               </div>
             </Link>
 
@@ -148,8 +158,14 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
                   <span>{agent.sandbox_type}</span>
                   <span>{agent.created_at ? formatDate(agent.created_at) : "\u2014"}</span>
                 </div>
-                <div onClick={(e) => e.preventDefault()}>
-                  <AgentActions onEdit={() => onEditAgent?.(agent)} onDelete={() => setDeleting(agent)} />
+                <div onClick={(event) => event.preventDefault()}>
+                  <AgentActions
+                    agent={agent}
+                    onEdit={() => onEditAgent?.(agent)}
+                    onDelete={() => setDeleting(agent)}
+                    onEnvVars={() => setEnvVarsAgent(agent)}
+                    onSetupCommands={() => setSetupCommandsAgent(agent)}
+                  />
                 </div>
               </div>
             </Link>
@@ -167,6 +183,18 @@ export function AgentsTable({ agents, onEditAgent }: AgentsTableProps) {
         destructive
         loading={deleteAgent.isPending}
         onConfirm={handleDelete}
+      />
+
+      <EnvVarsDialog
+        open={envVarsAgent !== null}
+        onOpenChange={(open) => { if (!open) setEnvVarsAgent(null) }}
+        agentName={envVarsAgent?.name ?? ""}
+      />
+
+      <SetupCommandsDialog
+        open={setupCommandsAgent !== null}
+        onOpenChange={(open) => { if (!open) setSetupCommandsAgent(null) }}
+        agentName={setupCommandsAgent?.name ?? ""}
       />
     </>
   )
