@@ -24,6 +24,7 @@ interface ConditionBuilderViewProps {
   provider: string
   triggerDisplayNames: string[]
   refs: Record<string, string>
+  initialConditions?: TriggerConditionsConfig | null
   onConfirm: (conditions: TriggerConditionsConfig | null) => void
   onBack: () => void
 }
@@ -42,9 +43,9 @@ const OPERATORS = [
 
 const OPERATORS_WITHOUT_VALUE = new Set(["exists", "not_exists"])
 
-export function ConditionBuilderView({ provider, triggerDisplayNames, refs, onConfirm, onBack }: ConditionBuilderViewProps) {
-  const [matchMode, setMatchMode] = useState<"all" | "any">("all")
-  const [conditions, setConditions] = useState<TriggerConditionConfig[]>([])
+export function ConditionBuilderView({ provider, triggerDisplayNames, refs, initialConditions, onConfirm, onBack }: ConditionBuilderViewProps) {
+  const [matchMode, setMatchMode] = useState<"all" | "any">(initialConditions?.mode ?? "all")
+  const [conditions, setConditions] = useState<TriggerConditionConfig[]>(initialConditions?.conditions ?? [])
   const [customPathIndex, setCustomPathIndex] = useState<number | null>(null)
 
   const pathOptions = useMemo(() => {
