@@ -20,6 +20,7 @@ The skill tool lets an agent load a pre-defined skill (reusable prompt). This is
 |------|------|----------|-------------|
 | `name` | string | Yes | Skill ID or title to load (case-insensitive) |
 | `args` | string | No | Additional context for the skill |
+| `file` | string | No | Request a specific supporting file by its relative path. Returns only that file's content instead of the full skill. |
 
 ## Example
 
@@ -29,6 +30,18 @@ The skill tool lets an agent load a pre-defined skill (reusable prompt). This is
   "arguments": {
     "name": "commit",
     "args": "fix: handle null pointer in user authentication"
+  }
+}
+```
+
+### Requesting a specific file
+
+```json
+{
+  "name": "skill",
+  "arguments": {
+    "name": "use-railway",
+    "file": "references/deploy.md"
   }
 }
 ```
@@ -289,11 +302,34 @@ Additionally:
 
 ---
 
+## Skill Files
+
+Skills can include supporting files (scripts, reference docs). When present, Bridge writes them to `.skills/<skill-id>/` on the filesystem so the agent can execute scripts directly.
+
+When a skill with files is invoked, the output includes a location note:
+
+```
+NOTE: This skill's files are at .skills/use-railway/
+Prefix script paths with this directory.
+
+---
+
+[skill content]
+```
+
+The `${CLAUDE_SKILL_DIR}` variable in skill content is substituted with the filesystem path (e.g., `.skills/use-railway`).
+
+Scripts with `.sh`, `.py`, or `.rb` extensions are automatically marked executable. Files are cleaned up when an agent is removed or updated.
+
+See [Skill Files](../core-concepts/skills.md#skill-files) for full details.
+
+---
+
 ## Implementation Details
 
-### No Caching
+### Skill File Storage
 
-Skills are stored in memory when the agent is initialized. They are not cached to disk or shared between agents.
+When a skill has files, they are written to `.skills/<skill-id>/` relative to the working directory at agent load time. The agent can execute scripts by path. Files are cleaned up on agent removal or update.
 
 ### No Size Limits
 

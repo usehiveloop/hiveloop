@@ -4,6 +4,21 @@ Changes to Bridge.
 
 ---
 
+## v0.18.1 (2026-04-13)
+
+### Added
+
+- **Skill filesystem support.** Skills with `files` now have their supporting files (scripts, reference docs) written to `.skills/<skill-id>/` on disk at agent load time. Scripts (`.sh`, `.py`, `.rb`) are marked executable. The agent receives a location note when invoking the skill and can execute scripts directly. Files are cleaned up on agent removal or update. See [Skill Files](../core-concepts/skills.md#skill-files).
+- **`file` parameter on the skill tool.** Request a specific supporting file by relative path without loading the full skill content.
+- **`${CLAUDE_SKILL_DIR}` resolves to filesystem path.** The variable now substitutes to `.skills/<skill-id>` instead of the bare skill ID.
+- **Tool argument validation.** Tool arguments are validated against their JSON schema before execution, catching malformed calls early without a wasted round-trip to the tool executor.
+
+### Fixed
+
+- Cross-platform clippy warnings in `environment.rs` (`unnecessary_cast` on statvfs fields that differ between macOS and Linux).
+
+---
+
 ## v0.18.0 (2026-04-11)
 
 ### Added
@@ -107,6 +122,14 @@ No breaking changes. To use new features:
 Changes on main branch, not yet released:
 
 - (None currently)
+
+### v0.18.0 to v0.18.1
+
+No breaking changes. To use skill files:
+
+1. Add a `files` map to your skill definitions with relative paths as keys and file content as values.
+2. The agent will see a location note when invoking the skill and can execute scripts from `.skills/<skill-id>/`.
+3. No changes required to existing skills without files.
 
 ### v0.3.0 to v0.18.0
 

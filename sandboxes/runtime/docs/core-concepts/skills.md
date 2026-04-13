@@ -54,6 +54,7 @@ Skills are defined in your agent configuration:
 | `title` | Human-readable name |
 | `description` | What the skill does (shown to the AI in system reminders) |
 | `content` | The actual prompt content (only revealed when skill is invoked) |
+| `files` | Supporting files map (`relative_path` → `content`). Written to disk at `.skills/<id>/`. See [Skill Files](#skill-files). |
 | `parameters_schema` | Reserved for future structured parameters support |
 
 ---
@@ -307,6 +308,107 @@ Here's an agent with skills for different modes:
 ```
 
 The agent can switch modes by using different skills.
+
+---
+
+## Skill Files
+
+Skills can include supporting files — scripts, reference docs, and other assets. When a skill has files, Bridge writes them to disk so the agent can execute scripts directly.
+
+### Defining Files
+
+Files are defined as a map of relative paths to content in your skill definition:
+
+```json
+{
+  "id": "use-railway",
+  "title": "Use Railway",
+  "description": "Operate Railway infrastructure",
+  "content": "# Use Railway\n\nRun scripts/railway-api.sh to query the Railway API...",
+  "files": {
+    "scripts/railway-api.sh": "#!/usr/bin/env bash\nset -e\n...",
+    "scripts/analyze-postgres.py": "#!/usr/bin/env python3\nimport json\n...",
+    "scripts/dal.py": "#!/usr/bin/env python3\n...",
+    "references/deploy.md": "# Deploy guide\n..."
+  }
+}
+```
+
+### Filesystem Layout
+
+When a skill with files is loaded, Bridge writes them to `.skills/<skill-id>/` relative to the working directory:
+
+```
+.skills/use-railway/
+├── scripts/
+│   ├── railway-api.sh      (executable)
+│   ├── analyze-postgres.py  (executable)
+│   └── dal.py               (executable)
+└── references/
+    └── deploy.md
+```
+
+Scripts with `.sh`, `.py`, or `.rb` extensions are automatically marked executable.
+
+### How the Agent Uses Skill Files
+
+When the skill tool is invoked, Bridge prepends a note telling the agent where files live:
+
+```
+NOTE: This skill's files are at .skills/use-railway/
+Prefix script paths with this directory.
+
+---
+
+# Use Railway
+...
+```
+
+The agent then runs scripts directly:
+
+```bash
+.skills/use-railway/scripts/railway-api.sh '{"query": "..."}'
+```
+
+Python scripts with relative imports work because sibling files exist on disk:
+
+```bash
+cd .skills/use-railway/scripts && python3 analyze-postgres.py --service-id abc123
+```
+
+### The `file` Parameter
+
+The agent can also request a specific file without loading the full skill content:
+
+```json
+{
+  "name": "skill",
+  "arguments": {
+    "name": "use-railway",
+    "file": "references/deploy.md"
+  }
+}
+```
+
+This returns only that file's content, useful for quick lookups.
+
+### Cleanup
+
+When an agent is removed or updated with different skills, Bridge removes the old `.skills/<skill-id>/` directory automatically.
+
+### The `${CLAUDE_SKILL_DIR}` Variable
+
+Skill content can reference `${CLAUDE_SKILL_DIR}`, which Bridge substitutes with the skill's filesystem path (e.g., `.skills/use-railway`):
+
+```
+Run ${CLAUDE_SKILL_DIR}/scripts/deploy.sh
+```
+
+Becomes:
+
+```
+Run .skills/use-railway/scripts/deploy.sh
+```
 
 ---
 
