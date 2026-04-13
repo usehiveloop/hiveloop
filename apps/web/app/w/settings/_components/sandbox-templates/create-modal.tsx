@@ -258,7 +258,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                 <Label>Build Commands</Label>
                 <div className="space-y-2">
                   {buildCommands.map((cmd, index) => (
-                    <div key={cmd ? `cmd-${cmd.substring(0, 10)}-${index}` : `empty-cmd-${index}`} className="flex items-center gap-2">
+                    <div key={index} className="flex items-center gap-2">
                       <Input
                         placeholder="apt-get install curl"
                         value={cmd}
