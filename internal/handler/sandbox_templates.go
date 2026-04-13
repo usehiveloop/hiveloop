@@ -72,6 +72,7 @@ type sandboxTemplateResponse struct {
 	Slug           string     `json:"slug"`
 	Tags           model.JSON `json:"tags"`
 	Size           string     `json:"size"`
+	IsPublic       bool       `json:"is_public"`
 	BaseTemplateID *string    `json:"base_template_id,omitempty"`
 	BuildCommands  []string   `json:"build_commands"`
 	ExternalID     *string    `json:"external_id,omitempty"`
@@ -94,6 +95,7 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 		Slug:          t.Slug,
 		Tags:          t.Tags,
 		Size:          t.Size,
+		IsPublic:      t.OrgID == nil,
 		BuildCommands: cmds,
 		ExternalID:    t.ExternalID,
 		BuildStatus:   t.BuildStatus,

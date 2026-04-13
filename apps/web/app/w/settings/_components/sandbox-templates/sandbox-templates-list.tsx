@@ -32,7 +32,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 function isPublicTemplate(template: SandboxTemplate): boolean {
-  return !(template as Record<string, unknown>).org_id
+  return !!(template as Record<string, unknown>).is_public
 }
 
 export function SandboxTemplatesList() {

@@ -16561,6 +16561,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_public": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },

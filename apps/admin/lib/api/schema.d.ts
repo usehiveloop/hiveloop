@@ -15241,6 +15241,7 @@ export interface components {
             created_at?: string;
             external_id?: string;
             id?: string;
+            is_public?: boolean;
             name?: string;
             size?: string;
             slug?: string;
