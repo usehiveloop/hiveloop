@@ -232,6 +232,28 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
+  github_com_ziraloop_ziraloop_internal_model.TriggerCondition:
+    properties:
+      operator:
+        description: equals, not_equals, one_of, not_one_of, contains, not_contains,
+          matches, exists, not_exists
+        type: string
+      path:
+        description: dot-path into payload, e.g. "repository.full_name"
+        type: string
+      value:
+        description: string or []string depending on operator
+    type: object
+  github_com_ziraloop_ziraloop_internal_model.TriggerMatch:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerCondition'
+        type: array
+      mode:
+        description: '"all" (AND) or "any" (OR)'
+        type: string
+    type: object
   github_com_ziraloop_ziraloop_internal_nango.Credentials:
     properties:
       app_id:
@@ -928,6 +950,10 @@ definitions:
         type: string
       tools:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      triggers:
+        items:
+          $ref: '#/definitions/internal_handler.agentTriggerResponse'
+        type: array
       updated_at:
         type: string
     type: object
@@ -950,6 +976,33 @@ definitions:
         $ref: '#/definitions/internal_handler.subagentResponse'
       subagent_id:
         type: string
+    type: object
+  internal_handler.agentTriggerInput:
+    properties:
+      conditions:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch'
+      connection_id:
+        type: string
+      trigger_keys:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.agentTriggerResponse:
+    properties:
+      conditions: {}
+      connection_id:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      provider:
+        type: string
+      trigger_keys:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.apiKeyResponse:
     properties:
@@ -1311,6 +1364,11 @@ definitions:
         type: string
       tools:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      triggers:
+        description: webhook triggers to create
+        items:
+          $ref: '#/definitions/internal_handler.agentTriggerInput'
+        type: array
     type: object
   internal_handler.createCheckoutRequest:
     properties:
@@ -1899,6 +1957,8 @@ definitions:
         type: string
       updated_at:
         type: string
+      webhook_configured:
+        type: boolean
     type: object
   internal_handler.inIntegrationAvailableResponse:
     properties:
@@ -1944,6 +2004,8 @@ definitions:
         type: string
       updated_at:
         type: string
+      webhook_configured:
+        type: boolean
     type: object
   internal_handler.integrationDetail:
     properties:
@@ -3129,6 +3191,11 @@ definitions:
         type: string
       tools:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      triggers:
+        description: nil=don't touch, []=remove all
+        items:
+          $ref: '#/definitions/internal_handler.agentTriggerInput'
+        type: array
     type: object
   internal_handler.updateEvalCaseRequest:
     properties:
@@ -8526,6 +8593,32 @@ paths:
       security:
       - BearerAuth: []
       summary: Disconnect an in-connection
+      tags:
+      - in-connections
+  /v1/in/connections/{id}/webhook-configured:
+    patch:
+      description: Sets the webhook_configured flag to true on a connection, indicating
+        the user has manually configured the webhook URL in the provider's dashboard.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.inConnectionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark webhook as configured
       tags:
       - in-connections
   /v1/in/integrations/{id}/connect-session:

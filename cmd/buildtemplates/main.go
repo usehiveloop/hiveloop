@@ -220,7 +220,7 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	// instead of nvm's per-version prefix (/usr/local/nvm/versions/node/<v>/bin),
 	// which is NOT on the default PATH that the Bridge entrypoint sees. Without
 	// this, `chrome-devtools-axi: not found` at sandbox start.
-	image = image.Run("npm install -g --prefix=/usr/local chrome-devtools-axi gh-axi")
+	image = image.Run("npm install -g --prefix=/usr/local chrome-devtools-axi gh-axi vercel")
 
 	// Dev tools: compilers, databases, media, terminal multiplexers,
 	// network diagnostics, archive utilities, editors.
@@ -266,6 +266,12 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 		"curl -fsSL https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-x64.gz | gunzip > /usr/local/bin/tree-sitter && " +
 			"chmod +x /usr/local/bin/tree-sitter",
 	)
+
+	// Railway CLI — infrastructure deployment and management.
+	image = image.Run("bash <(curl -fsSL cli.new)")
+
+	// Render CLI — manage Render services from the command line.
+	image = image.Run("curl -fsSL https://raw.githubusercontent.com/render-oss/cli/refs/heads/main/bin/install.sh | sh")
 
 	image = image.Workdir(daytonaHome)
 	// Fail-fast entrypoint: if chrome-devtools-axi can't start its daemon,

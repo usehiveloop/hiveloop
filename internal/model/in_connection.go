@@ -15,10 +15,11 @@ type InConnection struct {
 	InIntegrationID   uuid.UUID     `gorm:"type:uuid;not null;index"`
 	InIntegration     InIntegration `gorm:"foreignKey:InIntegrationID;constraint:OnDelete:CASCADE"`
 	NangoConnectionID string        `gorm:"not null"`
-	Meta              JSON          `gorm:"type:jsonb;default:'{}'"`
-	RevokedAt         *time.Time
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	Meta                JSON          `gorm:"type:jsonb;default:'{}'"`
+	WebhookConfigured   bool          `gorm:"not null;default:true"`
+	RevokedAt           *time.Time
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func (InConnection) TableName() string { return "in_connections" }
