@@ -8,6 +8,7 @@ import {
   Tick02Icon,
   Notification03Icon,
   FlashIcon,
+  Settings02Icon,
 } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -21,13 +22,15 @@ interface TriggerPickerViewProps {
   connectionName: string
   search: string
   onSearchChange: (value: string) => void
-  selectedKeys: string[]
-  onToggleTrigger: (triggerKey: string, displayName: string, refs: Record<string, string>) => void
-  onConfirm: () => void
+  configuredKeys: Set<string>
+  onConfigureEvent: (triggerKey: string, displayName: string, refs: Record<string, string>) => void
+  onDone: () => void
   onBack: () => void
 }
 
-export function TriggerPickerView({ provider, connectionName, search, onSearchChange, selectedKeys, onToggleTrigger, onConfirm, onBack }: TriggerPickerViewProps) {
+const CONVERSATIONAL_KEYS = new Set(["app_mention", "message.im", "message.channels", "message.groups"])
+
+export function TriggerPickerView({ provider, connectionName, search, onSearchChange, configuredKeys, onConfigureEvent, onDone, onBack }: TriggerPickerViewProps) {
   const { data: triggersData, isLoading } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/triggers",
@@ -38,9 +41,7 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
   const triggers = useMemo(() => {
     if (!triggersData) return []
     const allTriggers = triggersData.triggers ?? []
-    // Filter out conversational triggers — those are handled by Zira, not agent triggers.
-    const conversationalKeys = new Set(["app_mention", "message.im", "message.channels", "message.groups"])
-    return allTriggers.filter((trigger) => !conversationalKeys.has(trigger.key ?? ""))
+    return allTriggers.filter((trigger) => !CONVERSATIONAL_KEYS.has(trigger.key ?? ""))
   }, [triggersData])
 
   const filtered = useMemo(() => {
@@ -54,8 +55,6 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
     )
   }, [triggers, search])
 
-  const selectedSet = new Set(selectedKeys)
-
   const grouped = useMemo(() => {
     const groups: Record<string, typeof filtered> = {}
     for (const trigger of filtered) {
@@ -63,16 +62,16 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
       if (!groups[resourceType]) groups[resourceType] = []
       groups[resourceType].push(trigger)
     }
-    // Sort selected triggers to top within each group.
+    // Sort configured triggers to top within each group.
     for (const group of Object.values(groups)) {
       group.sort((first, second) => {
-        const firstSelected = selectedSet.has(first.key ?? "") ? 0 : 1
-        const secondSelected = selectedSet.has(second.key ?? "") ? 0 : 1
-        return firstSelected - secondSelected
+        const firstConfigured = configuredKeys.has(first.key ?? "") ? 0 : 1
+        const secondConfigured = configuredKeys.has(second.key ?? "") ? 0 : 1
+        return firstConfigured - secondConfigured
       })
     }
     return groups
-  }, [filtered, selectedSet])
+  }, [filtered, configuredKeys])
 
   return (
     <>
@@ -83,17 +82,17 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
           </button>
           <div className="flex items-center gap-2.5">
             <IntegrationLogo provider={provider} size={20} />
-            <DialogTitle>Pick triggers</DialogTitle>
+            <DialogTitle>{connectionName} events</DialogTitle>
           </div>
         </div>
         <DialogDescription className="mt-2">
-          Choose which webhook events start this agent. You can select multiple.
+          Tap the gear icon to configure a trigger for an event. Add filters to narrow when it fires.
         </DialogDescription>
       </DialogHeader>
 
       <div className="relative mt-4">
         <HugeiconsIcon icon={Search01Icon} size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search triggers..." value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-9 h-9" />
+        <Input placeholder="Search events..." value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-9 h-9" />
       </div>
 
       <div className="flex flex-col gap-1 mt-4 flex-1 overflow-y-auto">
@@ -112,14 +111,12 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">{resourceType}</p>
               <div className="flex flex-col gap-1">
                 {resourceTriggers.map((trigger) => {
-                  const isSelected = selectedSet.has(trigger.key ?? "")
+                  const isConfigured = configuredKeys.has(trigger.key ?? "")
                   return (
-                    <button
+                    <div
                       key={trigger.key}
-                      type="button"
-                      onClick={() => onToggleTrigger(trigger.key ?? "", trigger.display_name ?? "", (trigger as any).refs ?? {})}
-                      className={`flex items-start gap-3 w-full rounded-xl p-3 text-left transition-colors cursor-pointer ${
-                        isSelected ? "bg-primary/5 border border-primary/20" : "bg-muted/50 hover:bg-muted border border-transparent"
+                      className={`flex items-start gap-3 w-full rounded-xl p-3 transition-colors ${
+                        isConfigured ? "bg-primary/5 border border-primary/20" : "bg-muted/50 border border-transparent"
                       }`}
                     >
                       <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
@@ -129,8 +126,21 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
                         <p className="text-sm font-medium text-foreground">{trigger.display_name}</p>
                         <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
                       </div>
-                      {isSelected && <HugeiconsIcon icon={Tick02Icon} size={16} className="text-primary shrink-0 mt-0.5" />}
-                    </button>
+                      {isConfigured ? (
+                        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                          <HugeiconsIcon icon={Tick02Icon} size={14} className="text-primary" />
+                          <span className="text-[11px] text-primary font-medium">Added</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onConfigureEvent(trigger.key ?? "", trigger.display_name ?? "", (trigger as Record<string, unknown>).refs as Record<string, string> ?? {})}
+                          className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors shrink-0 mt-0.5 cursor-pointer"
+                        >
+                          <HugeiconsIcon icon={Settings02Icon} size={14} className="text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -140,10 +150,10 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={onConfirm} disabled={selectedKeys.length === 0} className="w-full">
-          {selectedKeys.length > 0
-            ? `Continue with ${selectedKeys.length} event${selectedKeys.length > 1 ? "s" : ""}`
-            : "Select at least one event"}
+        <Button onClick={onDone} className="w-full">
+          {configuredKeys.size > 0
+            ? `Done — ${configuredKeys.size} trigger${configuredKeys.size > 1 ? "s" : ""} configured`
+            : "Back to triggers"}
         </Button>
       </div>
     </>
