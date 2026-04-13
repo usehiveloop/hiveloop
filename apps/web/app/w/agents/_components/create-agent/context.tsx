@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
-import type { CreationMode, Step, SkillPreview, TriggerConfig } from "./types"
+import type { CreationMode, Step, SkillPreview, TriggerConfig, SandboxToolId } from "./types"
 
 export interface CreateAgentFormValues {
   name: string
@@ -30,6 +30,7 @@ interface CreateAgentContextValue {
   direction: React.MutableRefObject<1 | -1>
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
+  selectedSandboxTools: Set<SandboxToolId>
   selectedSkills: Map<string, SkillPreview>
   triggers: TriggerConfig[]
   isSubmitting: boolean
@@ -37,6 +38,7 @@ interface CreateAgentContextValue {
   goTo: (step: Step) => void
   toggleIntegration: (connectionId: string) => void
   toggleAction: (connectionId: string, actionKey: string) => void
+  toggleSandboxTool: (toolId: SandboxToolId) => void
   toggleSkill: (skill: SkillPreview) => void
   clearSkills: () => void
   addTrigger: (trigger: TriggerConfig) => void
@@ -84,6 +86,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [mode, setModeState] = useState<CreationMode | null>(initialMode ?? null)
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
+  const [selectedSandboxTools, setSelectedSandboxTools] = useState<Set<SandboxToolId>>(new Set())
   const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(new Map())
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const direction = useRef<1 | -1>(1)
@@ -134,6 +137,18 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     })
   }, [])
 
+  const toggleSandboxTool = useCallback((toolId: SandboxToolId) => {
+    setSelectedSandboxTools((prev) => {
+      const next = new Set(prev)
+      if (next.has(toolId)) {
+        next.delete(toolId)
+      } else {
+        next.add(toolId)
+      }
+      return next
+    })
+  }, [])
+
   const toggleSkill = useCallback((skill: SkillPreview) => {
     setSelectedSkills((prev) => {
       const next = new Map(prev)
@@ -163,6 +178,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setModeState(null)
     setSelectedIntegrations(new Set())
     setSelectedActions({})
+    setSelectedSandboxTools(new Set())
     setSelectedSkills(new Map())
     setTriggers([])
     form.reset()
@@ -189,6 +205,10 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       system_prompt: values.systemPrompt || "",
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
+    }
+
+    if (selectedSandboxTools.size > 0) {
+      body.sandbox_tools = Array.from(selectedSandboxTools)
     }
 
     if (selectedSkills.size > 0) {
@@ -230,7 +250,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         },
       },
     )
-  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, triggers, createAgent, queryClient, onClose, router])
+  }, [form, mode, selectedIntegrations, selectedActions, selectedSandboxTools, selectedSkills, triggers, createAgent, queryClient, onClose, router])
 
   return (
     <CreateAgentContext.Provider
@@ -241,6 +261,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         direction,
         selectedIntegrations,
         selectedActions,
+        selectedSandboxTools,
         selectedSkills,
         triggers,
         isSubmitting: createAgent.isPending,
@@ -248,6 +269,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         goTo,
         toggleIntegration,
         toggleAction,
+        toggleSandboxTool,
         toggleSkill,
         clearSkills,
         addTrigger,

@@ -9,13 +9,18 @@ interface ChoiceCardProps {
   description: string
   onClick: () => void
   trailing?: React.ReactNode
+  selected?: boolean
 }
 
-export function ChoiceCard({ icon, iconClassName, logoUrl, title, description, onClick, trailing }: ChoiceCardProps) {
+export function ChoiceCard({ icon, iconClassName, logoUrl, title, description, onClick, trailing, selected }: ChoiceCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
+      className={`group flex items-start gap-4 w-full rounded-xl p-4 text-left transition-colors cursor-pointer ${
+        selected
+          ? "bg-primary/5 border border-primary/20"
+          : "bg-muted/50 hover:bg-muted border border-transparent"
+      }`}
     >
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

@@ -346,6 +346,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Delete("/{id}", subagentHandler.Delete)
 				})
 				r.Route("/agents", func(r chi.Router) {
+					r.Get("/sandbox-tools", agentHandler.ListSandboxTools)
 					r.Post("/", agentHandler.Create)
 					r.Get("/", agentHandler.List)
 					r.Get("/{id}", agentHandler.Get)

@@ -14,7 +14,7 @@ import { $api } from "@/lib/api/hooks"
 import { useCreateAgent } from "./context"
 
 export function StepIntegrations() {
-  const { selectedIntegrations, selectedActions, toggleIntegration, toggleAction, goTo } = useCreateAgent()
+  const { form, selectedIntegrations, selectedActions, toggleIntegration, toggleAction, goTo } = useCreateAgent()
   const [search, setSearch] = useState("")
   const [detailConnectionId, setDetailConnectionId] = useState<string | null>(null)
   const [actionSearch, setActionSearch] = useState("")
@@ -108,7 +108,7 @@ export function StepIntegrations() {
           >
             <DialogHeader>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => goTo("sandbox")} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
+                <button type="button" onClick={() => goTo(form.getValues("sandboxType") === "dedicated" ? "sandbox-tools" : "sandbox")} className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1">
                   <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
                 </button>
                 <DialogTitle>Connect integrations</DialogTitle>

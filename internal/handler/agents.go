@@ -100,6 +100,7 @@ type createAgentRequest struct {
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              string            `json:"team,omitempty"`
 	SharedMemory      bool              `json:"shared_memory,omitempty"`
+	SandboxTools      []string          `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome", "codedb")
 	SkillIDs          []string          `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
 	SubagentIDs       []string          `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
 	Triggers          []agentTriggerInput `json:"triggers,omitempty"`     // webhook triggers to create
@@ -128,6 +129,7 @@ type updateAgentRequest struct {
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              *string    `json:"team,omitempty"`
 	SharedMemory      *bool      `json:"shared_memory,omitempty"`
+	SandboxTools      []string   `json:"sandbox_tools,omitempty"` // tools to enable in dedicated sandbox
 	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"` // nil=don't touch, []=remove all
 }
 
@@ -152,6 +154,7 @@ type agentResponse struct {
 	Permissions       model.JSON `json:"permissions"`
 	Team              string     `json:"team"`
 	SharedMemory      bool       `json:"shared_memory"`
+	SandboxTools      []string   `json:"sandbox_tools"`
 	Status              string                `json:"status"`
 	Triggers            []agentTriggerResponse `json:"triggers"`
 	ForgeRunID          *string               `json:"forge_run_id,omitempty"`
@@ -178,6 +181,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Permissions:  a.Permissions,
 		Team:         a.Team,
 		SharedMemory: a.SharedMemory,
+		SandboxTools: ensureStringSlice(a.SandboxTools),
 		Status:       a.Status,
 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),
@@ -387,6 +391,14 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate sandbox tools (only meaningful for dedicated, but validate regardless)
+	if len(req.SandboxTools) > 0 {
+		if invalid := model.ValidateSandboxTools(req.SandboxTools); invalid != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid sandbox tool: %q", invalid)})
+			return
+		}
+	}
+
 	// Validate identity exists and belongs to org (optional)
 	var identity *model.Identity
 	if req.IdentityID != "" {
@@ -465,6 +477,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Permissions:  defaultJSON(req.Permissions),
 		Team:         req.Team,
 		SharedMemory: req.SharedMemory,
+		SandboxTools: pq.StringArray(req.SandboxTools),
 		Status:       "active",
 	}
 	if identity != nil {
@@ -923,6 +936,13 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.SharedMemory != nil {
 		updates["shared_memory"] = *req.SharedMemory
 	}
+	if req.SandboxTools != nil {
+		if invalid := model.ValidateSandboxTools(req.SandboxTools); invalid != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid sandbox tool: %q", invalid)})
+			return
+		}
+		updates["sandbox_tools"] = pq.StringArray(req.SandboxTools)
+	}
 
 	// Validate trigger inputs if provided. Connection IDs are in_connections IDs.
 	if req.Triggers != nil {
@@ -1057,6 +1077,13 @@ func defaultJSON(j model.JSON) model.JSON {
 		return model.JSON{}
 	}
 	return j
+}
+
+func ensureStringSlice(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 // sharedAgentTools are the only tools available to shared sandbox agents.
@@ -1365,5 +1392,17 @@ func (h *AgentHandler) UpdateSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// ListSandboxTools handles GET /v1/agents/sandbox-tools.
+// @Summary List available sandbox tools
+// @Description Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.
+// @Tags agents
+// @Produce json
+// @Success 200 {array} model.SandboxToolDefinition
+// @Security BearerAuth
+// @Router /v1/agents/sandbox-tools [get]
+func (h *AgentHandler) ListSandboxTools(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, model.ValidSandboxTools)
 }
 

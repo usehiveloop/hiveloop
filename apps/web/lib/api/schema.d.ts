@@ -5073,6 +5073,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents/sandbox-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available sandbox tools
+         * @description Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SandboxToolDefinition"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents/{agentID}/conversations": {
         parameters: {
             query?: never;
@@ -13861,6 +13900,11 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        SandboxToolDefinition: {
+            description?: string;
+            id?: string;
+            name?: string;
+        };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
             operator?: string;
@@ -14285,6 +14329,7 @@ export interface components {
             provider_id?: string;
             sandbox_id?: string;
             sandbox_template_id?: string;
+            sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
@@ -14487,6 +14532,8 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
+            /** @description tools to enable in dedicated sandbox (e.g. "chrome", "codedb") */
+            sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
             /** @description skills from /v1/skills to attach on create */
@@ -15429,6 +15476,8 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             sandbox_template_id?: string;
+            /** @description tools to enable in dedicated sandbox */
+            sandbox_tools?: string[];
             sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
