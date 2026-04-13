@@ -3,14 +3,15 @@
 import { useState, useRef } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { useCreateAgent } from "../context"
-import type { TriggerView, ContextActionConfig, TriggerConditionsConfig, TriggerSelection } from "./types"
+import type { TriggerView } from "./types"
+import type { TriggerConditionsConfig } from "../types"
 import { ChoiceView } from "./choice-view"
 import { ConnectionPickerView } from "./connection-picker"
 import { TriggerPickerView } from "./trigger-picker"
-import { ContextConfigView } from "./recipe-view"
+import { ConditionBuilderView } from "./condition-builder"
 
 export function StepTrigger() {
-  const { goTo } = useCreateAgent()
+  const { goTo, addTrigger } = useCreateAgent()
   const [view, setView] = useState<TriggerView>("choice")
   const [selectedConnection, setSelectedConnection] = useState<{
     id: string
@@ -20,10 +21,6 @@ export function StepTrigger() {
   const [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([])
   const [selectedTriggerNames, setSelectedTriggerNames] = useState<string[]>([])
   const [mergedRefs, setMergedRefs] = useState<Record<string, string>>({})
-  const [contextActions, setContextActions] = useState<ContextActionConfig[]>([])
-  const [triggerConditions, setTriggerConditions] = useState<TriggerConditionsConfig | undefined>(undefined)
-  const [triggerPrompt, setTriggerPrompt] = useState("")
-  const [triggerSelection, setTriggerSelection] = useState<TriggerSelection | null>(null)
   const [search, setSearch] = useState("")
   const navDirection = useRef<1 | -1>(1)
 
@@ -34,7 +31,7 @@ export function StepTrigger() {
   }
 
   function navigateTo(nextView: TriggerView) {
-    const order: TriggerView[] = ["choice", "connections", "triggers", "context"]
+    const order: TriggerView[] = ["choice", "connections", "triggers", "conditions"]
     navDirection.current = order.indexOf(nextView) > order.indexOf(view) ? 1 : -1
     setSearch("")
     setView(nextView)
@@ -57,43 +54,32 @@ export function StepTrigger() {
       setSelectedTriggerNames((names) => [...names, displayName])
       return [...previous, triggerKey]
     })
-    // Merge refs from all selected triggers.
     setMergedRefs((previous) => ({ ...previous, ...refs }))
   }
 
   function handleConfirmTriggers() {
-    setContextActions([])
-    navigateTo("context")
+    navigateTo("conditions")
   }
 
-  function handleConfirmTrigger(parsedActions: ContextActionConfig[], parsedConditions: TriggerConditionsConfig | undefined, parsedPrompt: string) {
+  function handleConfirmConditions(conditions: TriggerConditionsConfig | null) {
     if (!selectedConnection || selectedTriggerKeys.length === 0) return
-    setContextActions(parsedActions)
-    setTriggerConditions(parsedConditions)
-    setTriggerPrompt(parsedPrompt)
-    setTriggerSelection({
+    addTrigger({
       connectionId: selectedConnection.id,
       connectionName: selectedConnection.name,
       provider: selectedConnection.provider,
       triggerKeys: selectedTriggerKeys,
       triggerDisplayNames: selectedTriggerNames,
-      refs: mergedRefs,
-      contextActions: parsedActions,
-      conditions: parsedConditions,
-      prompt: parsedPrompt,
+      conditions,
     })
+    resetLocal()
     navigateTo("choice")
   }
 
-  function handleRemoveTrigger() {
-    setTriggerSelection(null)
+  function resetLocal() {
     setSelectedConnection(null)
     setSelectedTriggerKeys([])
     setSelectedTriggerNames([])
     setMergedRefs({})
-    setContextActions([])
-    setTriggerConditions(undefined)
-    setTriggerPrompt("")
   }
 
   return (
@@ -111,9 +97,7 @@ export function StepTrigger() {
         >
           {view === "choice" && (
             <ChoiceView
-              triggerSelection={triggerSelection}
               onAddTrigger={() => navigateTo("connections")}
-              onRemoveTrigger={handleRemoveTrigger}
               onContinue={() => goTo("llm-key")}
               onBack={() => goTo("integrations")}
             />
@@ -138,16 +122,12 @@ export function StepTrigger() {
               onBack={() => navigateTo("connections")}
             />
           )}
-          {view === "context" && selectedConnection && (
-            <ContextConfigView
+          {view === "conditions" && selectedConnection && (
+            <ConditionBuilderView
               provider={selectedConnection.provider}
               triggerDisplayNames={selectedTriggerNames}
-              triggerKeys={selectedTriggerKeys}
               refs={mergedRefs}
-              contextActions={contextActions}
-              conditions={triggerConditions}
-              prompt={triggerPrompt}
-              onConfirm={handleConfirmTrigger}
+              onConfirm={handleConfirmConditions}
               onBack={() => navigateTo("triggers")}
             />
           )}

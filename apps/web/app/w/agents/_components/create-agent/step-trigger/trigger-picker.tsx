@@ -36,8 +36,11 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
   )
 
   const triggers = useMemo(() => {
-    if (!triggersData || !Array.isArray(triggersData)) return []
-    return triggersData
+    if (!triggersData) return []
+    const allTriggers = triggersData.triggers ?? []
+    // Filter out conversational triggers — those are handled by Zira, not agent triggers.
+    const conversationalKeys = new Set(["app_mention", "message.im", "message.channels", "message.groups"])
+    return allTriggers.filter((trigger) => !conversationalKeys.has(trigger.key ?? ""))
   }, [triggersData])
 
   const filtered = useMemo(() => {

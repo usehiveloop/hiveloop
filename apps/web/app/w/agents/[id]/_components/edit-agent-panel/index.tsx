@@ -22,7 +22,10 @@ import {
   CloudServerIcon,
   LaptopProgrammingIcon,
   Tick02Icon,
+  Cancel01Icon,
+  FlashIcon,
 } from "@hugeicons/core-free-icons"
+import { Badge } from "@/components/ui/badge"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { LlmKeyCard } from "@/components/llm-key-card"
 import { ProviderModelCombobox } from "@/components/provider-model-combobox"
@@ -106,7 +109,7 @@ function SandboxOption({
 // ---------------------------------------------------------------------------
 
 function EditAgentForm() {
-  const { form, integrations, isSubmitting, setIntegrations, removeIntegration, handleSave } = useEditAgent()
+  const { form, integrations, triggers, isSubmitting, setIntegrations, removeIntegration, removeTrigger, handleSave } = useEditAgent()
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
 
   const credentialId = form.watch("credentialId")
@@ -307,6 +310,53 @@ function EditAgentForm() {
             >
               Manage integrations
             </Button>
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Triggers */}
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            title="Triggers"
+            description="Webhook events that automatically invoke this agent."
+          />
+
+          <div className="flex flex-col gap-2">
+            {triggers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No triggers configured. This agent is invoked through Zira or manually.</p>
+            ) : (
+              triggers.map((trigger, index) => (
+                <div
+                  key={`${trigger.connectionId}-${index}`}
+                  className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3"
+                >
+                  <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
+                    <HugeiconsIcon icon={FlashIcon} size={12} className="text-amber-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{trigger.connectionName}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {trigger.triggerKeys.map((key) => (
+                        <Badge key={key} variant="secondary" className="text-[10px] font-mono">{key}</Badge>
+                      ))}
+                    </div>
+                    {trigger.conditions && trigger.conditions.conditions.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {trigger.conditions.conditions.length} filter{trigger.conditions.conditions.length !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeTrigger(index)}
+                    className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors shrink-0"
+                  >
+                    <HugeiconsIcon icon={Cancel01Icon} size={14} className="text-destructive" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </section>
 

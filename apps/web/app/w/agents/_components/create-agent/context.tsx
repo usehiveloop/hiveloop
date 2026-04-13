@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
-import type { CreationMode, Step, SkillPreview } from "./types"
+import type { CreationMode, Step, SkillPreview, TriggerConfig } from "./types"
 
 export interface CreateAgentFormValues {
   name: string
@@ -31,6 +31,7 @@ interface CreateAgentContextValue {
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
   selectedSkills: Map<string, SkillPreview>
+  triggers: TriggerConfig[]
   isSubmitting: boolean
   setMode: (mode: CreationMode) => void
   goTo: (step: Step) => void
@@ -38,6 +39,8 @@ interface CreateAgentContextValue {
   toggleAction: (connectionId: string, actionKey: string) => void
   toggleSkill: (skill: SkillPreview) => void
   clearSkills: () => void
+  addTrigger: (trigger: TriggerConfig) => void
+  removeTrigger: (index: number) => void
   handleCreate: () => void
   reset: () => void
 }
@@ -82,6 +85,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
   const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(new Map())
+  const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const direction = useRef<1 | -1>(1)
 
   const currentSteps = mode === "marketplace" ? marketplaceSteps : mode === "forge" ? forgeSteps : scratchSteps
@@ -146,12 +150,21 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setSelectedSkills(new Map())
   }, [])
 
+  const addTrigger = useCallback((trigger: TriggerConfig) => {
+    setTriggers((previous) => [...previous, trigger])
+  }, [])
+
+  const removeTrigger = useCallback((index: number) => {
+    setTriggers((previous) => previous.filter((_, triggerIndex) => triggerIndex !== index))
+  }, [])
+
   const reset = useCallback(() => {
     setStep("mode")
     setModeState(null)
     setSelectedIntegrations(new Set())
     setSelectedActions({})
     setSelectedSkills(new Map())
+    setTriggers([])
     form.reset()
   }, [form])
 
@@ -182,6 +195,14 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       body.skill_ids = Array.from(selectedSkills.keys())
     }
 
+    if (triggers.length > 0) {
+      body.triggers = triggers.map((trigger) => ({
+        connection_id: trigger.connectionId,
+        trigger_keys: trigger.triggerKeys,
+        conditions: trigger.conditions,
+      }))
+    }
+
     if (mode === "forge" && values.judgeKeyId && values.judgeModel) {
       body.forge = {
         judge_credential_id: values.judgeKeyId,
@@ -209,7 +230,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         },
       },
     )
-  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, createAgent, queryClient, onClose, router])
+  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, triggers, createAgent, queryClient, onClose, router])
 
   return (
     <CreateAgentContext.Provider
@@ -221,6 +242,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         selectedIntegrations,
         selectedActions,
         selectedSkills,
+        triggers,
         isSubmitting: createAgent.isPending,
         setMode,
         goTo,
@@ -228,6 +250,8 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         toggleAction,
         toggleSkill,
         clearSkills,
+        addTrigger,
+        removeTrigger,
         handleCreate,
         reset,
       }}
