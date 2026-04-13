@@ -138,8 +138,8 @@ export function SandboxTemplatesList() {
           <div className="w-full max-w-sm">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(true)}
-              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
+              disabled
+              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left opacity-50 cursor-not-allowed"
             >
               <HugeiconsIcon icon={ContainerIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
               <div className="flex-1 min-w-0">
