@@ -98,6 +98,10 @@ func AutoMigrate(db *gorm.DB) error {
 	// GIN index for generation tags array filtering
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_gen_tags ON generations USING GIN (tags)")
 
+	// Drop old FK constraint on router_triggers that referenced the connections table.
+	// RouterTrigger.ConnectionID now references in_connections.
+	db.Exec(`ALTER TABLE router_triggers DROP CONSTRAINT IF EXISTS fk_router_triggers_connection`)
+
 	// Partial unique: a git-sourced skill can only have one version per commit SHA.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
 	// GIN index for skill tag filtering in the marketplace.

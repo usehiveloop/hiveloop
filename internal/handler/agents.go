@@ -613,6 +613,12 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("agent with name %q already exists in this workspace", req.Name)})
 			return
 		}
+		slog.Error("failed to create agent",
+			"error", err,
+			"org_id", org.ID,
+			"agent_name", req.Name,
+			"trigger_count", len(req.Triggers),
+		)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create agent"})
 		return
 	}
