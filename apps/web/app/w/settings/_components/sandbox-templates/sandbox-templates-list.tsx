@@ -32,7 +32,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 function isPublicTemplate(template: SandboxTemplate): boolean {
-  return !!(template as Record<string, unknown>).is_public
+  return !!template.is_public
 }
 
 export function SandboxTemplatesList() {
@@ -155,9 +155,7 @@ export function SandboxTemplatesList() {
         <div className="space-y-1.5">
           {templates.map((template) => {
             const isPublic = isPublicTemplate(template)
-            const tags = Array.isArray((template as Record<string, unknown>).tags)
-              ? ((template as Record<string, unknown>).tags as string[])
-              : []
+            const tags = Array.isArray(template.tags) ? (template.tags as string[]) : []
 
             return (
               <div
