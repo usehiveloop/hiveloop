@@ -56,9 +56,11 @@ func NewEnrichmentAgent(nangoClient *nango.Client, actionsCatalog *catalog.Catal
 	return &EnrichmentAgent{nangoClient: nangoClient, catalog: actionsCatalog, maxTurns: maxTurns}
 }
 
-// Enrich runs the enrichment loop. The CompletionClient and model are passed
-// per-call because they are resolved from the org's credentials at runtime.
-func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.CompletionClient, modelID string, input EnrichmentInput) (*EnrichmentResult, error) {
+// Enrich runs the enrichment loop. The CompletionClient, model, and provider
+// group are passed per-call because they are resolved from the org's
+// credentials at runtime. The provider group ("anthropic", "openai", "gemini",
+// etc.) selects the provider-optimized system prompt.
+func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.CompletionClient, modelID string, providerGroup string, input EnrichmentInput) (*EnrichmentResult, error) {
 	started := time.Now()
 
 	// Build connection lookup maps.
@@ -81,9 +83,9 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 	// Build tool definitions.
 	tools := buildEnrichmentToolDefs(input.Connections)
 
-	// Build messages.
+	// Build messages with provider-optimized prompt.
 	messages := []zira.Message{
-		{Role: "system", Content: enrichmentSystemPrompt},
+		{Role: "system", Content: getEnrichmentPrompt(providerGroup)},
 		{Role: "user", Content: buildUserMessage(input)},
 	}
 

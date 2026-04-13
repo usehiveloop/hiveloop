@@ -25,8 +25,10 @@ type RouterDispatchHandler struct {
 }
 
 // EnrichmentCredentialResolver resolves an LLM credential for enrichment.
-// Passed as a function to avoid coupling the handler to credential internals.
-type EnrichmentCredentialResolver func(ctx context.Context, orgID string) (zira.CompletionClient, string, error)
+// Returns a CompletionClient, model ID, and provider group (e.g. "anthropic",
+// "openai", "gemini"). Passed as a function to avoid coupling the handler to
+// credential internals.
+type EnrichmentCredentialResolver func(ctx context.Context, orgID string) (client zira.CompletionClient, modelID string, providerGroup string, err error)
 
 // NewRouterDispatchHandler creates a task handler with the dispatcher and executor.
 func NewRouterDispatchHandler(dispatcher *dispatch.RouterDispatcher, execut *executor.Executor) *RouterDispatchHandler {
@@ -138,13 +140,13 @@ func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, dispatc
 	if handler.credentialResolver == nil {
 		return
 	}
-	client, modelID, resolveErr := handler.credentialResolver(ctx, input.OrgID.String())
+	client, modelID, providerGroup, resolveErr := handler.credentialResolver(ctx, input.OrgID.String())
 	if resolveErr != nil {
 		slog.Warn("enrichment: no LLM credential available", "org", input.OrgID, "error", resolveErr)
 		return
 	}
 
-	result, enrichErr := handler.enricher.Enrich(ctx, client, modelID, enrichInput)
+	result, enrichErr := handler.enricher.Enrich(ctx, client, modelID, providerGroup, enrichInput)
 	if enrichErr != nil {
 		slog.Warn("enrichment: agent failed", "error", enrichErr)
 		return
