@@ -11,16 +11,19 @@ import { TriggerPickerView } from "./trigger-picker"
 import { ConditionBuilderView } from "./condition-builder"
 
 export function StepTrigger() {
-  const { goTo, addTrigger } = useCreateAgent()
+  const { goTo, addTrigger, triggers } = useCreateAgent()
   const [view, setView] = useState<TriggerView>("choice")
   const [selectedConnection, setSelectedConnection] = useState<{
     id: string
     name: string
     provider: string
   } | null>(null)
-  const [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([])
-  const [selectedTriggerNames, setSelectedTriggerNames] = useState<string[]>([])
-  const [mergedRefs, setMergedRefs] = useState<Record<string, string>>({})
+  // The single event currently being configured (gear icon clicked).
+  const [configuringEvent, setConfiguringEvent] = useState<{
+    key: string
+    displayName: string
+    refs: Record<string, string>
+  } | null>(null)
   const [search, setSearch] = useState("")
   const navDirection = useRef<1 | -1>(1)
 
@@ -39,48 +42,36 @@ export function StepTrigger() {
 
   function handlePickConnection(connectionId: string, connectionName: string, provider: string) {
     setSelectedConnection({ id: connectionId, name: connectionName, provider })
-    setSelectedTriggerKeys([])
-    setSelectedTriggerNames([])
-    setMergedRefs({})
     navigateTo("triggers")
   }
 
-  function handleToggleTrigger(triggerKey: string, displayName: string, refs: Record<string, string>) {
-    setSelectedTriggerKeys((previous) => {
-      if (previous.includes(triggerKey)) {
-        setSelectedTriggerNames((names) => names.filter((_, index) => previous[index] !== triggerKey))
-        return previous.filter((key) => key !== triggerKey)
-      }
-      setSelectedTriggerNames((names) => [...names, displayName])
-      return [...previous, triggerKey]
-    })
-    setMergedRefs((previous) => ({ ...previous, ...refs }))
-  }
-
-  function handleConfirmTriggers() {
+  function handleConfigureEvent(triggerKey: string, displayName: string, refs: Record<string, string>) {
+    setConfiguringEvent({ key: triggerKey, displayName, refs })
     navigateTo("conditions")
   }
 
   function handleConfirmConditions(conditions: TriggerConditionsConfig | null) {
-    if (!selectedConnection || selectedTriggerKeys.length === 0) return
+    if (!selectedConnection || !configuringEvent) return
     addTrigger({
       connectionId: selectedConnection.id,
       connectionName: selectedConnection.name,
       provider: selectedConnection.provider,
-      triggerKeys: selectedTriggerKeys,
-      triggerDisplayNames: selectedTriggerNames,
+      triggerKeys: [configuringEvent.key],
+      triggerDisplayNames: [configuringEvent.displayName],
       conditions,
     })
-    resetLocal()
-    navigateTo("choice")
+    setConfiguringEvent(null)
+    navigateTo("triggers")
   }
 
-  function resetLocal() {
-    setSelectedConnection(null)
-    setSelectedTriggerKeys([])
-    setSelectedTriggerNames([])
-    setMergedRefs({})
-  }
+  // Trigger keys already configured for the current connection.
+  const configuredKeysForConnection = selectedConnection
+    ? new Set(
+        triggers
+          .filter((trigger) => trigger.connectionId === selectedConnection.id)
+          .flatMap((trigger) => trigger.triggerKeys)
+      )
+    : new Set<string>()
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -116,17 +107,17 @@ export function StepTrigger() {
               connectionName={selectedConnection.name}
               search={search}
               onSearchChange={setSearch}
-              selectedKeys={selectedTriggerKeys}
-              onToggleTrigger={handleToggleTrigger}
-              onConfirm={handleConfirmTriggers}
+              configuredKeys={configuredKeysForConnection}
+              onConfigureEvent={handleConfigureEvent}
+              onDone={() => navigateTo("choice")}
               onBack={() => navigateTo("connections")}
             />
           )}
-          {view === "conditions" && selectedConnection && (
+          {view === "conditions" && selectedConnection && configuringEvent && (
             <ConditionBuilderView
               provider={selectedConnection.provider}
-              triggerDisplayNames={selectedTriggerNames}
-              refs={mergedRefs}
+              triggerDisplayNames={[configuringEvent.displayName]}
+              refs={configuringEvent.refs}
               onConfirm={handleConfirmConditions}
               onBack={() => navigateTo("triggers")}
             />
