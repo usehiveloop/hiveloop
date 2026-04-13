@@ -90,3 +90,23 @@ export interface SkillPreview {
   installCount: number
   featured: boolean
 }
+
+export interface TriggerConditionConfig {
+  path: string
+  operator: string
+  value: unknown
+}
+
+export interface TriggerConditionsConfig {
+  mode: "all" | "any"
+  conditions: TriggerConditionConfig[]
+}
+
+export interface TriggerConfig {
+  connectionId: string
+  connectionName: string
+  provider: string
+  triggerKeys: string[]
+  triggerDisplayNames: string[]
+  conditions: TriggerConditionsConfig | null
+}

@@ -8,6 +8,7 @@ import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
 import type { AgentIntegrations } from "@/app/w/agents/_components/manage-integrations-dialog"
+import type { TriggerConfig } from "@/app/w/agents/_components/create-agent/types"
 
 type Agent = components["schemas"]["agentResponse"]
 
@@ -27,9 +28,12 @@ interface EditAgentContextValue {
   form: UseFormReturn<EditAgentFormValues>
   agent: Agent | null
   integrations: AgentIntegrations
+  triggers: TriggerConfig[]
   isSubmitting: boolean
   setIntegrations: (integrations: AgentIntegrations) => void
   removeIntegration: (connectionId: string) => void
+  addTrigger: (trigger: TriggerConfig) => void
+  removeTrigger: (index: number) => void
   handleSave: () => void
 }
 
@@ -46,6 +50,19 @@ interface EditAgentProviderProps {
   agent: Agent | null
   open: boolean
   onClose: () => void
+}
+
+function parseAgentTriggers(agent: Agent): TriggerConfig[] {
+  const rawTriggers = (agent as Record<string, unknown>).triggers
+  if (!Array.isArray(rawTriggers)) return []
+  return rawTriggers.map((trigger: Record<string, unknown>) => ({
+    connectionId: (trigger.connection_id as string) ?? "",
+    connectionName: (trigger.provider as string) ?? "",
+    provider: (trigger.provider as string) ?? "",
+    triggerKeys: Array.isArray(trigger.trigger_keys) ? trigger.trigger_keys : [],
+    triggerDisplayNames: Array.isArray(trigger.trigger_keys) ? trigger.trigger_keys : [],
+    conditions: trigger.conditions as TriggerConfig["conditions"] ?? null,
+  }))
 }
 
 function parseAgentIntegrations(raw: unknown): AgentIntegrations {
@@ -79,6 +96,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
   })
 
   const [integrations, setIntegrations] = useState<AgentIntegrations>({})
+  const [triggers, setTriggers] = useState<TriggerConfig[]>([])
 
   // Reset form from agent data when panel opens
   useEffect(() => {
@@ -95,7 +113,16 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       sharedMemory: agent.shared_memory ?? false,
     })
     setIntegrations(parseAgentIntegrations(agent.integrations))
+    setTriggers(parseAgentTriggers(agent))
   }, [open, agent, form])
+
+  const addTrigger = useCallback((trigger: TriggerConfig) => {
+    setTriggers((previous) => [...previous, trigger])
+  }, [])
+
+  const removeTrigger = useCallback((index: number) => {
+    setTriggers((previous) => previous.filter((_, triggerIndex) => triggerIndex !== index))
+  }, [])
 
   const removeIntegration = useCallback((connectionId: string) => {
     setIntegrations((prev) => {
@@ -114,21 +141,28 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       integrationsPayload[id] = { actions: config.actions }
     }
 
+    const body: Record<string, unknown> = {
+      name: values.name.trim(),
+      description: values.description.trim() || undefined,
+      credential_id: values.credentialId || undefined,
+      model: values.model || undefined,
+      sandbox_type: values.sandboxType,
+      system_prompt: values.systemPrompt,
+      instructions: values.instructions || undefined,
+      integrations: integrationsPayload,
+      triggers: triggers.map((trigger) => ({
+        connection_id: trigger.connectionId,
+        trigger_keys: trigger.triggerKeys,
+        conditions: trigger.conditions,
+      })),
+      shared_memory: values.sharedMemory,
+      team: values.team.trim() || undefined,
+    }
+
     updateAgent.mutate(
       {
         params: { path: { id: agent.id } },
-        body: {
-          name: values.name.trim(),
-          description: values.description.trim() || undefined,
-          credential_id: values.credentialId || undefined,
-          model: values.model || undefined,
-          sandbox_type: values.sandboxType,
-          system_prompt: values.systemPrompt,
-          instructions: values.instructions || undefined,
-          integrations: integrationsPayload,
-          shared_memory: values.sharedMemory,
-          team: values.team.trim() || undefined,
-        },
+        body: body as never,
       },
       {
         onSuccess: () => {
@@ -141,7 +175,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
         },
       },
     )
-  }, [agent, form, integrations, updateAgent, queryClient, onClose])
+  }, [agent, form, integrations, triggers, updateAgent, queryClient, onClose])
 
   return (
     <EditAgentContext.Provider
@@ -149,9 +183,12 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
         form,
         agent,
         integrations,
+        triggers,
         isSubmitting: updateAgent.isPending,
         setIntegrations,
         removeIntegration,
+        addTrigger,
+        removeTrigger,
         handleSave,
       }}
     >

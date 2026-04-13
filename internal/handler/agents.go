@@ -63,6 +63,25 @@ func (h *AgentHandler) SetCatalog(c *catalog.Catalog) {
 // ensure sandbox.Pusher satisfies AgentPusher
 var _ AgentPusher = (*sandbox.Pusher)(nil)
 
+// agentTriggerInput defines a webhook trigger to create alongside the agent.
+// Each entry creates a RouterTrigger + RoutingRule that automatically invokes
+// this agent when the matching webhook event fires.
+type agentTriggerInput struct {
+	ConnectionID string              `json:"connection_id"`
+	TriggerKeys  []string            `json:"trigger_keys"`
+	Conditions   *model.TriggerMatch `json:"conditions,omitempty"`
+}
+
+// agentTriggerResponse is the trigger data returned in agent responses.
+type agentTriggerResponse struct {
+	ID           string   `json:"id"`
+	ConnectionID string   `json:"connection_id"`
+	Provider     string   `json:"provider"`
+	TriggerKeys  []string `json:"trigger_keys"`
+	Enabled      bool     `json:"enabled"`
+	Conditions   any      `json:"conditions"`
+}
+
 type createAgentRequest struct {
 	Name              string     `json:"name"`
 	Description       *string    `json:"description,omitempty"`
@@ -83,6 +102,7 @@ type createAgentRequest struct {
 	SharedMemory      bool              `json:"shared_memory,omitempty"`
 	SkillIDs          []string          `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
 	SubagentIDs       []string          `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
+	Triggers          []agentTriggerInput `json:"triggers,omitempty"`     // webhook triggers to create
 	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
 }
 
@@ -108,6 +128,7 @@ type updateAgentRequest struct {
 	Permissions       model.JSON `json:"permissions,omitempty"`
 	Team              *string    `json:"team,omitempty"`
 	SharedMemory      *bool      `json:"shared_memory,omitempty"`
+	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"` // nil=don't touch, []=remove all
 }
 
 type agentResponse struct {
@@ -131,12 +152,13 @@ type agentResponse struct {
 	Permissions       model.JSON `json:"permissions"`
 	Team              string     `json:"team"`
 	SharedMemory      bool       `json:"shared_memory"`
-	Status              string             `json:"status"`
-	ForgeRunID          *string            `json:"forge_run_id,omitempty"`
-	ForgeConversationID *string            `json:"forge_conversation_id,omitempty"`
-	ForgeRun            *forgeRunResponse  `json:"forge_run,omitempty"`
-	CreatedAt           string             `json:"created_at"`
-	UpdatedAt           string             `json:"updated_at"`
+	Status              string                `json:"status"`
+	Triggers            []agentTriggerResponse `json:"triggers"`
+	ForgeRunID          *string               `json:"forge_run_id,omitempty"`
+	ForgeConversationID *string               `json:"forge_conversation_id,omitempty"`
+	ForgeRun            *forgeRunResponse     `json:"forge_run,omitempty"`
+	CreatedAt           string                `json:"created_at"`
+	UpdatedAt           string                `json:"updated_at"`
 }
 
 func toAgentResponse(a model.Agent) agentResponse {
@@ -180,6 +202,135 @@ func toAgentResponse(a model.Agent) agentResponse {
 		resp.ProviderID = a.Credential.ProviderID
 	}
 	return resp
+}
+
+// loadAgentTriggers loads the routing triggers configured for one or more agents.
+// Returns a map from agent ID to trigger responses. Uses a single query with
+// joins to avoid N+1.
+func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]agentTriggerResponse {
+	if len(agentIDs) == 0 {
+		return nil
+	}
+
+	type triggerRow struct {
+		RuleID      uuid.UUID      `gorm:"column:rule_id"`
+		AgentID     uuid.UUID      `gorm:"column:agent_id"`
+		TriggerID   uuid.UUID      `gorm:"column:trigger_id"`
+		ConnID      uuid.UUID      `gorm:"column:conn_id"`
+		Provider    string         `gorm:"column:provider"`
+		TriggerKeys pq.StringArray `gorm:"column:trigger_keys"`
+		Enabled     bool           `gorm:"column:enabled"`
+		Conditions  model.RawJSON  `gorm:"column:conditions"`
+	}
+
+	var rows []triggerRow
+	h.db.Raw(`
+		SELECT
+			rr.id AS rule_id,
+			rr.agent_id,
+			rt.id AS trigger_id,
+			rt.connection_id AS conn_id,
+			i.provider,
+			rt.trigger_keys,
+			rt.enabled,
+			rr.conditions
+		FROM routing_rules rr
+		JOIN router_triggers rt ON rt.id = rr.router_trigger_id
+		JOIN connections c ON c.id = rt.connection_id
+		JOIN integrations i ON i.id = c.integration_id
+		WHERE rr.agent_id IN ?
+		ORDER BY rt.id ASC
+	`, agentIDs).Scan(&rows)
+
+	result := make(map[uuid.UUID][]agentTriggerResponse, len(agentIDs))
+	for _, row := range rows {
+		var conditions any
+		if len(row.Conditions) > 0 {
+			var parsed model.TriggerMatch
+			if err := json.Unmarshal(row.Conditions, &parsed); err == nil && len(parsed.Conditions) > 0 {
+				conditions = parsed
+			}
+		}
+
+		result[row.AgentID] = append(result[row.AgentID], agentTriggerResponse{
+			ID:           row.TriggerID.String(),
+			ConnectionID: row.ConnID.String(),
+			Provider:     row.Provider,
+			TriggerKeys:  []string(row.TriggerKeys),
+			Enabled:      row.Enabled,
+			Conditions:   conditions,
+		})
+	}
+	return result
+}
+
+// createAgentTriggers creates RouterTrigger + RoutingRule records for an agent
+// inside an existing transaction. The router is found or created for the org.
+func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
+	if len(triggers) == 0 {
+		return nil
+	}
+
+	var router model.Router
+	if err := tx.Where("org_id = ?", orgID).FirstOrCreate(&router, model.Router{
+		OrgID: orgID,
+		Name:  "Zira",
+	}).Error; err != nil {
+		return fmt.Errorf("find or create router: %w", err)
+	}
+
+	for _, input := range triggers {
+		connectionID, err := uuid.Parse(input.ConnectionID)
+		if err != nil {
+			return fmt.Errorf("invalid connection_id %q: %w", input.ConnectionID, err)
+		}
+
+		trigger := model.RouterTrigger{
+			OrgID:        orgID,
+			RouterID:     router.ID,
+			ConnectionID: connectionID,
+			TriggerKeys:  pq.StringArray(input.TriggerKeys),
+			Enabled:      true,
+			RoutingMode:  "rule",
+		}
+		if err := tx.Create(&trigger).Error; err != nil {
+			return fmt.Errorf("create router trigger: %w", err)
+		}
+
+		var conditionsJSON model.RawJSON
+		if input.Conditions != nil && len(input.Conditions.Conditions) > 0 {
+			conditionsJSON, _ = json.Marshal(input.Conditions)
+		}
+
+		rule := model.RoutingRule{
+			RouterTriggerID: trigger.ID,
+			AgentID:         agentID,
+			Priority:        1,
+			Conditions:      conditionsJSON,
+		}
+		if err := tx.Create(&rule).Error; err != nil {
+			return fmt.Errorf("create routing rule: %w", err)
+		}
+	}
+	return nil
+}
+
+// deleteAgentTriggers removes all RouterTrigger + RoutingRule records owned by
+// an agent. CASCADE on the RouterTrigger FK deletes the RoutingRule rows.
+func deleteAgentTriggers(db *gorm.DB, agentID uuid.UUID) error {
+	var triggerIDs []uuid.UUID
+	if err := db.Model(&model.RoutingRule{}).
+		Where("agent_id = ?", agentID).
+		Pluck("router_trigger_id", &triggerIDs).Error; err != nil {
+		return fmt.Errorf("find agent triggers: %w", err)
+	}
+	if len(triggerIDs) == 0 {
+		return nil
+	}
+	if err := db.Where("id IN ?", triggerIDs).Delete(&model.RouterTrigger{}).Error; err != nil {
+		return fmt.Errorf("delete agent triggers: %w", err)
+	}
+	return nil
 }
 
 var validSandboxTypes = map[string]bool{
@@ -338,6 +489,27 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse skill IDs up front so a bad input fails the whole create cleanly.
+	// Validate trigger inputs up front.
+	for triggerIndex, triggerInput := range req.Triggers {
+		if triggerInput.ConnectionID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
+			return
+		}
+		if _, parseErr := uuid.Parse(triggerInput.ConnectionID); parseErr != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: invalid connection_id", triggerIndex)})
+			return
+		}
+		if len(triggerInput.TriggerKeys) == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: trigger_keys is required", triggerIndex)})
+			return
+		}
+		var conn model.Connection
+		if err := h.db.Where("id = ? AND org_id = ?", triggerInput.ConnectionID, org.ID).First(&conn).Error; err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
+			return
+		}
+	}
+
 	var skillUUIDs []uuid.UUID
 	if len(req.SkillIDs) > 0 {
 		skillUUIDs = make([]uuid.UUID, 0, len(req.SkillIDs))
@@ -428,6 +600,11 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Create webhook triggers.
+		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
+			return fmt.Errorf("create triggers: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -452,6 +629,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := toAgentResponse(agent)
+	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 
 	// Auto-create forge run with context gathering if requested.
 	if req.Forge != nil && h.forgeController != nil {
@@ -538,8 +716,16 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := make([]agentResponse, len(agents))
-	for i, a := range agents {
-		resp[i] = toAgentResponse(a)
+	agentIDs := make([]uuid.UUID, len(agents))
+	for index, agent := range agents {
+		resp[index] = toAgentResponse(agent)
+		agentIDs[index] = agent.ID
+	}
+
+	// Batch load triggers for all agents in one query.
+	triggersMap := h.loadAgentTriggers(agentIDs...)
+	for index, agent := range agents {
+		resp[index].Triggers = triggersMap[agent.ID]
 	}
 
 	result := paginatedResponse[agentResponse]{Data: resp, HasMore: hasMore}
@@ -581,6 +767,7 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := toAgentResponse(agent)
+	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 
 	// Include the latest forge run if one exists.
 	var forgeRun model.ForgeRun
@@ -730,6 +917,29 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["shared_memory"] = *req.SharedMemory
 	}
 
+	// Validate trigger inputs if provided.
+	if req.Triggers != nil {
+		for triggerIndex, triggerInput := range *req.Triggers {
+			if triggerInput.ConnectionID == "" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
+				return
+			}
+			if _, parseErr := uuid.Parse(triggerInput.ConnectionID); parseErr != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: invalid connection_id", triggerIndex)})
+				return
+			}
+			if len(triggerInput.TriggerKeys) == 0 {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: trigger_keys is required", triggerIndex)})
+				return
+			}
+			var conn model.Connection
+			if err := h.db.Where("id = ? AND org_id = ?", triggerInput.ConnectionID, org.ID).First(&conn).Error; err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
+				return
+			}
+		}
+	}
+
 	// Detect sandbox_type transition before applying update
 	oldSandboxType := agent.SandboxType
 	newSandboxType := oldSandboxType
@@ -765,7 +975,19 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, toAgentResponse(agent))
+	// Reconcile triggers: delete old, create new.
+	if req.Triggers != nil {
+		if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
+			slog.Error("failed to delete old triggers during update", "agent_id", agent.ID, "error", err)
+		}
+		if err := createAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers); err != nil {
+			slog.Error("failed to create new triggers during update", "agent_id", agent.ID, "error", err)
+		}
+	}
+
+	resp := toAgentResponse(agent)
+	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // Delete handles DELETE /v1/agents/{id}.
@@ -802,6 +1024,11 @@ func (h *AgentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.Model(&agent).Update("deleted_at", &now).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
 		return
+	}
+
+	// Clean up routing triggers so a soft-deleted agent is never dispatched to.
+	if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
+		slog.Error("failed to clean up agent triggers on delete", "agent_id", agent.ID, "error", err)
 	}
 
 	// Enqueue async cleanup (sandbox teardown + hard delete)
