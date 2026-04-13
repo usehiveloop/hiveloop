@@ -56,13 +56,15 @@ type ScopeFilter = "all" | "public"
 
 interface CreateForm {
   name: string
-  externalId: string
+  slug: string
+  tags: string
   size: string
 }
 
 interface EditForm {
   name: string
-  externalId: string
+  slug: string
+  tags: string
   size: string
 }
 
@@ -90,7 +92,8 @@ export default function SandboxTemplatesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState<CreateForm>({
     name: "",
-    externalId: "",
+    slug: "",
+    tags: "",
     size: "medium",
   })
 
@@ -100,7 +103,8 @@ export default function SandboxTemplatesPage() {
   )
   const [editForm, setEditForm] = useState<EditForm>({
     name: "",
-    externalId: "",
+    slug: "",
+    tags: "",
     size: "medium",
   })
 
@@ -128,7 +132,7 @@ export default function SandboxTemplatesPage() {
       onSuccess: () => {
         invalidateList()
         setCreateOpen(false)
-        setCreateForm({ name: "", externalId: "", size: "medium" })
+        setCreateForm({ name: "", slug: "", tags: "", size: "medium" })
       },
     }
   )
@@ -156,19 +160,27 @@ export default function SandboxTemplatesPage() {
   )
 
   function handleCreate() {
+    const tags = createForm.tags
+      .split(",")
+      .map((tag: string) => tag.trim())
+      .filter(Boolean)
+
     createMutation.mutate({
       body: {
         name: createForm.name,
-        external_id: createForm.externalId,
+        slug: createForm.slug,
+        tags,
         size: createForm.size,
       },
     })
   }
 
   function openEditDialog(tpl: Record<string, string>) {
+    const tagsArray = Array.isArray(tpl.tags) ? tpl.tags : []
     setEditForm({
       name: tpl.name || "",
-      externalId: tpl.external_id || "",
+      slug: tpl.slug || "",
+      tags: tagsArray.join(", "),
       size: tpl.size || "medium",
     })
     updateMutation.reset()
@@ -178,11 +190,17 @@ export default function SandboxTemplatesPage() {
   function handleEdit() {
     if (!editingTemplate) return
 
+    const tags = editForm.tags
+      .split(",")
+      .map((tag: string) => tag.trim())
+      .filter(Boolean)
+
     updateMutation.mutate({
       params: { path: { id: editingTemplate.id } },
       body: {
         name: editForm.name,
-        external_id: editForm.externalId,
+        slug: editForm.slug,
+        tags,
         size: editForm.size,
       },
     })
@@ -264,9 +282,10 @@ export default function SandboxTemplatesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead>Scope</TableHead>
-                <TableHead>External ID</TableHead>
                 <TableHead>Build Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-12" />
@@ -277,6 +296,14 @@ export default function SandboxTemplatesPage() {
                 <TableRow key={tpl.id}>
                   <TableCell className="font-medium">
                     {tpl.name || "--"}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {tpl.slug || "--"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {Array.isArray(tpl.tags) && tpl.tags.length > 0
+                      ? (tpl.tags as unknown as string[]).join(", ")
+                      : "--"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {tpl.size || "--"}
@@ -294,9 +321,6 @@ export default function SandboxTemplatesPage() {
                         Public
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {tpl.external_id || "--"}
                   </TableCell>
                   <TableCell>
                     {tpl.build_status ? (
@@ -375,20 +399,34 @@ export default function SandboxTemplatesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-external-id">
-                External ID (Daytona snapshot name)
+              <Label htmlFor="create-slug">
+                Slug (Daytona snapshot name)
               </Label>
               <Input
-                id="create-external-id"
-                value={createForm.externalId}
+                id="create-slug"
+                value={createForm.slug}
                 onChange={(event) =>
                   setCreateForm((form) => ({
                     ...form,
-                    externalId: event.target.value,
+                    slug: event.target.value,
                   }))
                 }
                 placeholder="e.g. zira-dev-box-medium-v0.10.0"
                 className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-tags">Tags (comma-separated)</Label>
+              <Input
+                id="create-tags"
+                value={createForm.tags}
+                onChange={(event) =>
+                  setCreateForm((form) => ({
+                    ...form,
+                    tags: event.target.value,
+                  }))
+                }
+                placeholder="e.g. python, ml, data-science"
               />
             </div>
             <div className="space-y-2">
@@ -462,19 +500,32 @@ export default function SandboxTemplatesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-external-id">
-                External ID (Daytona snapshot name)
+              <Label htmlFor="edit-slug">
+                Slug (Daytona snapshot name)
               </Label>
               <Input
-                id="edit-external-id"
-                value={editForm.externalId}
+                id="edit-slug"
+                value={editForm.slug}
                 onChange={(event) =>
                   setEditForm((form) => ({
                     ...form,
-                    externalId: event.target.value,
+                    slug: event.target.value,
                   }))
                 }
                 className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
+              <Input
+                id="edit-tags"
+                value={editForm.tags}
+                onChange={(event) =>
+                  setEditForm((form) => ({
+                    ...form,
+                    tags: event.target.value,
+                  }))
+                }
               />
             </div>
             <div className="space-y-2">

@@ -2553,7 +2553,7 @@ export interface paths {
         };
         /**
          * Update a sandbox template
-         * @description Updates sandbox template name, size, external ID, and configuration.
+         * @description Updates sandbox template name, slug, tags, and size.
          */
         put: {
             parameters: {
@@ -13994,11 +13994,13 @@ export interface components {
             provider?: string;
         };
         adminCreateSandboxTemplateRequest: {
-            /** @description Daytona snapshot name (built via make build-templates) */
-            external_id?: string;
             name?: string;
             /** @description small, medium, large, xlarge */
             size?: string;
+            /** @description Daytona snapshot name (built via make build-templates) */
+            slug?: string;
+            /** @description user-facing tags, e.g. ["python","ml"] */
+            tags?: string[];
         };
         adminCreateSkillRequest: {
             /** @description Inline source */
@@ -14142,6 +14144,8 @@ export interface components {
             name?: string;
             org_id?: string;
             size?: string;
+            slug?: string;
+            tags?: components["schemas"]["JSON"];
         };
         adminSkillResponse: {
             created_at?: string;
@@ -14233,11 +14237,12 @@ export interface components {
             rate_limit?: number;
         };
         adminUpdateSandboxTemplateRequest: {
-            config?: components["schemas"]["JSON"];
-            /** @description Daytona snapshot name */
-            external_id?: string;
             name?: string;
             size?: string;
+            /** @description Daytona snapshot name */
+            slug?: string;
+            /** @description user-facing tags */
+            tags?: string[];
         };
         adminUpdateSkillRequest: {
             description?: string;
@@ -15157,6 +15162,8 @@ export interface components {
             id?: string;
             name?: string;
             size?: string;
+            slug?: string;
+            tags?: components["schemas"]["JSON"];
         };
         refreshRequest: {
             /** @description optional: switch org */
@@ -15236,6 +15243,8 @@ export interface components {
             id?: string;
             name?: string;
             size?: string;
+            slug?: string;
+            tags?: components["schemas"]["JSON"];
             updated_at?: string;
         };
         schemaPath: {

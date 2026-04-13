@@ -82,6 +82,8 @@ export function useDeleteSandboxTemplate() {
 export interface PublicTemplate {
   id: string
   name: string
+  slug: string
+  tags: string[]
   size: string
 }
 

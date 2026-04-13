@@ -33,9 +33,10 @@ func TestAgentModels_CRUD(t *testing.T) {
 	// === SandboxTemplate ===
 	t.Run("SandboxTemplate_CRUD", func(t *testing.T) {
 		st := model.SandboxTemplate{
-			OrgID: &org.ID, Name: "python-ml-" + suffix,
+			OrgID: &org.ID, Name: "python-ml-" + suffix, Slug: "zira-tmpl-" + suffix,
 			BuildCommands: "pip install numpy pandas", BuildStatus: "pending",
 			Config: model.JSON{"cpu": "2", "memory": "4096"},
+			Tags: model.JSON{},
 		}
 		h.db.Create(&st)
 		t.Cleanup(func() { h.db.Where("id = ?", st.ID).Delete(&model.SandboxTemplate{}) })
@@ -223,7 +224,7 @@ func TestAgentModels_CascadeDelete(t *testing.T) {
 	identity := model.Identity{OrgID: org.ID, ExternalID: "cascade-user-" + suffix}
 	h.db.Create(&identity)
 
-	st := model.SandboxTemplate{OrgID: &org.ID, Name: "cascade-tmpl-" + suffix}
+	st := model.SandboxTemplate{OrgID: &org.ID, Name: "cascade-tmpl-" + suffix, Slug: "zira-cascade-" + suffix, Tags: model.JSON{}}
 	h.db.Create(&st)
 
 	agent := model.Agent{

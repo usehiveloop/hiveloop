@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -68,6 +69,8 @@ type retryBuildRequest struct {
 type sandboxTemplateResponse struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
+	Slug           string     `json:"slug"`
+	Tags           model.JSON `json:"tags"`
 	Size           string     `json:"size"`
 	BaseTemplateID *string    `json:"base_template_id,omitempty"`
 	BuildCommands  []string   `json:"build_commands"`
@@ -88,6 +91,8 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 	resp := sandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
+		Slug:          t.Slug,
+		Tags:          t.Tags,
 		Size:          t.Size,
 		BuildCommands: cmds,
 		ExternalID:    t.ExternalID,
@@ -142,6 +147,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		BuildCommands: commandsToString(req.BuildCommands),
 		BuildStatus:   "pending",
 		Config:        req.Config,
+		Tags:          model.JSON{},
 	}
 	if tmpl.Config == nil {
 		tmpl.Config = model.JSON{}
@@ -162,6 +168,9 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		tmpl.BaseTemplateID = &baseID
 		tmpl.Size = baseTmpl.Size
 	}
+
+	// Auto-generate slug from ID after creation
+	tmpl.Slug = fmt.Sprintf("zira-tmpl-%s", uuid.New().String()[:8])
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create sandbox template"})
@@ -507,9 +516,11 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 }
 
 type publicTemplateResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Size string `json:"size"`
+	ID   string     `json:"id"`
+	Name string     `json:"name"`
+	Slug string     `json:"slug"`
+	Tags model.JSON `json:"tags"`
+	Size string     `json:"size"`
 }
 
 // ListPublic handles GET /v1/sandbox-templates/public.
@@ -533,6 +544,8 @@ func (h *SandboxTemplateHandler) ListPublic(w http.ResponseWriter, r *http.Reque
 		resp[index] = publicTemplateResponse{
 			ID:   tmpl.ID.String(),
 			Name: tmpl.Name,
+			Slug: tmpl.Slug,
+			Tags: tmpl.Tags,
 			Size: tmpl.Size,
 		}
 	}

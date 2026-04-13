@@ -2449,7 +2449,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates sandbox template name, size, external ID, and configuration.",
+                "description": "Updates sandbox template name, slug, tags, and size.",
                 "consumes": [
                     "application/json"
                 ],
@@ -12759,16 +12759,23 @@ const docTemplate = `{
         "internal_handler.adminCreateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
-                "external_id": {
-                    "description": "Daytona snapshot name (built via make build-templates)",
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
                 "size": {
                     "description": "small, medium, large, xlarge",
                     "type": "string"
+                },
+                "slug": {
+                    "description": "Daytona snapshot name (built via make build-templates)",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "user-facing tags, e.g. [\"python\",\"ml\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -13195,6 +13202,12 @@ const docTemplate = `{
                 },
                 "size": {
                     "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -13467,18 +13480,22 @@ const docTemplate = `{
         "internal_handler.adminUpdateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
-                "config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
-                "external_id": {
-                    "description": "Daytona snapshot name",
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
                 "size": {
                     "type": "string"
+                },
+                "slug": {
+                    "description": "Daytona snapshot name",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "user-facing tags",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -16315,6 +16332,12 @@ const docTemplate = `{
                 },
                 "size": {
                     "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 }
             }
         },
@@ -16543,6 +16566,12 @@ const docTemplate = `{
                 },
                 "size": {
                     "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "updated_at": {
                     "type": "string"

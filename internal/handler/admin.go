@@ -529,23 +529,27 @@ func toAdminCustomDomainResponse(d model.CustomDomain) adminCustomDomainResponse
 }
 
 type adminSandboxTemplateResponse struct {
-	ID             string  `json:"id"`
-	OrgID          *string `json:"org_id"`
-	Name           string  `json:"name"`
-	Size           string  `json:"size"`
-	BaseTemplateID *string `json:"base_template_id,omitempty"`
-	BuildStatus    string  `json:"build_status"`
-	BuildError     *string `json:"build_error,omitempty"`
-	BuildLogs      string  `json:"build_logs,omitempty"`
-	BuildCommands  string  `json:"build_commands,omitempty"`
-	ExternalID     *string `json:"external_id,omitempty"`
-	CreatedAt      string  `json:"created_at"`
+	ID             string     `json:"id"`
+	OrgID          *string    `json:"org_id"`
+	Name           string     `json:"name"`
+	Slug           string     `json:"slug"`
+	Tags           model.JSON `json:"tags"`
+	Size           string     `json:"size"`
+	BaseTemplateID *string    `json:"base_template_id,omitempty"`
+	BuildStatus    string     `json:"build_status"`
+	BuildError     *string    `json:"build_error,omitempty"`
+	BuildLogs      string     `json:"build_logs,omitempty"`
+	BuildCommands  string     `json:"build_commands,omitempty"`
+	ExternalID     *string    `json:"external_id,omitempty"`
+	CreatedAt      string     `json:"created_at"`
 }
 
 func toAdminSandboxTemplateResponse(t model.SandboxTemplate) adminSandboxTemplateResponse {
 	resp := adminSandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
+		Slug:          t.Slug,
+		Tags:          t.Tags,
 		Size:          t.Size,
 		BuildStatus:   t.BuildStatus,
 		BuildError:    t.BuildError,
@@ -4010,9 +4014,10 @@ func (h *AdminHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 type adminCreateSandboxTemplateRequest struct {
-	Name       string `json:"name"`
-	ExternalID string `json:"external_id"` // Daytona snapshot name (built via make build-templates)
-	Size       string `json:"size"`        // small, medium, large, xlarge
+	Name string   `json:"name"`
+	Slug string   `json:"slug"` // Daytona snapshot name (built via make build-templates)
+	Tags []string `json:"tags"` // user-facing tags, e.g. ["python","ml"]
+	Size string   `json:"size"` // small, medium, large, xlarge
 }
 
 // CreateSandboxTemplate handles POST /admin/v1/sandbox-templates.
@@ -4039,9 +4044,9 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	externalID := strings.TrimSpace(req.ExternalID)
-	if externalID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "external_id is required (Daytona snapshot name)"})
+	slug := strings.TrimSpace(req.Slug)
+	if slug == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "slug is required (Daytona snapshot name)"})
 		return
 	}
 
@@ -4054,11 +4059,23 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	tags := model.JSON{}
+	if len(req.Tags) > 0 {
+		tagSlice := make([]any, len(req.Tags))
+		for idx, tag := range req.Tags {
+			tagSlice[idx] = tag
+		}
+		tagsJSON, _ := json.Marshal(tagSlice)
+		_ = json.Unmarshal(tagsJSON, &tags)
+	}
+
 	tmpl := model.SandboxTemplate{
 		OrgID:       nil, // public template
 		Name:        name,
+		Slug:        slug,
+		Tags:        tags,
 		Size:        size,
-		ExternalID:  &externalID,
+		ExternalID:  &slug, // slug IS the Daytona snapshot name
 		BuildStatus: "ready",
 		Config:      model.JSON{},
 	}
@@ -4068,7 +4085,7 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	slog.Info("admin: public sandbox template registered", "template_id", tmpl.ID, "name", name, "size", size, "external_id", externalID)
+	slog.Info("admin: public sandbox template registered", "template_id", tmpl.ID, "name", name, "slug", slug, "size", size)
 	writeJSON(w, http.StatusCreated, toAdminSandboxTemplateResponse(tmpl))
 }
 
@@ -4099,15 +4116,15 @@ func (h *AdminHandler) GetSandboxTemplate(w http.ResponseWriter, r *http.Request
 }
 
 type adminUpdateSandboxTemplateRequest struct {
-	Name       *string    `json:"name,omitempty"`
-	Size       *string    `json:"size,omitempty"`
-	ExternalID *string    `json:"external_id,omitempty"` // Daytona snapshot name
-	Config     model.JSON `json:"config,omitempty"`
+	Name *string  `json:"name,omitempty"`
+	Slug *string  `json:"slug,omitempty"` // Daytona snapshot name
+	Tags []string `json:"tags,omitempty"` // user-facing tags
+	Size *string  `json:"size,omitempty"`
 }
 
 // UpdateSandboxTemplate handles PUT /admin/v1/sandbox-templates/{id}.
 // @Summary Update a sandbox template
-// @Description Updates sandbox template name, size, external ID, and configuration.
+// @Description Updates sandbox template name, slug, tags, and size.
 // @Tags admin
 // @Accept json
 // @Produce json
@@ -4154,17 +4171,21 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		}
 		updates["size"] = *req.Size
 	}
-	if req.ExternalID != nil {
-		extID := strings.TrimSpace(*req.ExternalID)
-		if extID == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "external_id cannot be empty"})
+	if req.Slug != nil {
+		slug := strings.TrimSpace(*req.Slug)
+		if slug == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "slug cannot be empty"})
 			return
 		}
-		updates["external_id"] = extID
+		updates["slug"] = slug
+		updates["external_id"] = slug // slug IS the Daytona snapshot name
 		updates["build_status"] = "ready"
 	}
-	if req.Config != nil {
-		updates["config"] = req.Config
+	if req.Tags != nil {
+		tagsJSON, _ := json.Marshal(req.Tags)
+		var tagsModel model.JSON
+		_ = json.Unmarshal(tagsJSON, &tagsModel)
+		updates["tags"] = tagsModel
 	}
 
 	if len(updates) == 0 {

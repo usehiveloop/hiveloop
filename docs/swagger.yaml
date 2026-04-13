@@ -489,14 +489,19 @@ definitions:
     type: object
   internal_handler.adminCreateSandboxTemplateRequest:
     properties:
-      external_id:
-        description: Daytona snapshot name (built via make build-templates)
-        type: string
       name:
         type: string
       size:
         description: small, medium, large, xlarge
         type: string
+      slug:
+        description: Daytona snapshot name (built via make build-templates)
+        type: string
+      tags:
+        description: user-facing tags, e.g. ["python","ml"]
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.adminCreateSkillRequest:
     properties:
@@ -776,6 +781,10 @@ definitions:
         type: string
       size:
         type: string
+      slug:
+        type: string
+      tags:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
   internal_handler.adminSkillResponse:
     properties:
@@ -953,15 +962,18 @@ definitions:
     type: object
   internal_handler.adminUpdateSandboxTemplateRequest:
     properties:
-      config:
-        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
-      external_id:
-        description: Daytona snapshot name
-        type: string
       name:
         type: string
       size:
         type: string
+      slug:
+        description: Daytona snapshot name
+        type: string
+      tags:
+        description: user-facing tags
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.adminUpdateSkillRequest:
     properties:
@@ -2815,6 +2827,10 @@ definitions:
         type: string
       size:
         type: string
+      slug:
+        type: string
+      tags:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
     type: object
   internal_handler.refreshRequest:
     properties:
@@ -2964,6 +2980,10 @@ definitions:
         type: string
       size:
         type: string
+      slug:
+        type: string
+      tags:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       updated_at:
         type: string
     type: object
@@ -5154,7 +5174,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates sandbox template name, size, external ID, and configuration.
+      description: Updates sandbox template name, slug, tags, and size.
       parameters:
       - description: Template ID
         in: path

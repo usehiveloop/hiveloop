@@ -1052,8 +1052,7 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) {
 	o.db.Model(tmpl).Update("build_status", "building")
 
-	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	opts := o.resolveBuildOpts(tmpl, snapshotName)
+	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
 	externalID, err := o.provider.BuildSnapshot(ctx, opts)
 
 	if err != nil {
@@ -1077,8 +1076,7 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 // BuildTemplateWithLogs builds a sandbox template and streams logs via onLog callback.
 // Returns the external snapshot ID once the build completes.
 func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
-	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	opts := o.resolveBuildOpts(tmpl, snapshotName)
+	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
 	return o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
 }
 
@@ -1086,8 +1084,7 @@ func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.Sa
 // This is the recommended way to build templates as it properly handles async builds.
 // onStatus is called whenever the build status changes (building, ready, failed).
 func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
-	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	opts := o.resolveBuildOpts(tmpl, snapshotName)
+	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
 
 	// Start the async build
 	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
