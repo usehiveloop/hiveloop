@@ -9625,6 +9625,53 @@
         }
       }
     },
+    "/v1/in/connections/{id}/webhook-configured": {
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.",
+        "tags": [
+          "in-connections"
+        ],
+        "summary": "Mark webhook as configured",
+        "parameters": [
+          {
+            "description": "Connection ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inConnectionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/in/integrations/available": {
       "get": {
         "security": [
@@ -14453,6 +14500,37 @@
           }
         }
       },
+      "TriggerCondition": {
+        "type": "object",
+        "properties": {
+          "operator": {
+            "description": "equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists",
+            "type": "string"
+          },
+          "path": {
+            "description": "dot-path into payload, e.g. \"repository.full_name\"",
+            "type": "string"
+          },
+          "value": {
+            "description": "string or []string depending on operator"
+          }
+        }
+      },
+      "TriggerMatch": {
+        "type": "object",
+        "properties": {
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TriggerCondition"
+            }
+          },
+          "mode": {
+            "description": "\"all\" (AND) or \"any\" (OR)",
+            "type": "string"
+          }
+        }
+      },
       "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
         "type": "object",
         "properties": {
@@ -15516,6 +15594,12 @@
           "tools": {
             "$ref": "#/components/schemas/JSON"
           },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerResponse"
+            }
+          },
           "updated_at": {
             "type": "string"
           }
@@ -15549,6 +15633,47 @@
           },
           "subagent_id": {
             "type": "string"
+          }
+        }
+      },
+      "agentTriggerInput": {
+        "type": "object",
+        "properties": {
+          "conditions": {
+            "$ref": "#/components/schemas/TriggerMatch"
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "trigger_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "agentTriggerResponse": {
+        "type": "object",
+        "properties": {
+          "conditions": {},
+          "connection_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "trigger_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -16103,6 +16228,13 @@
           },
           "tools": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "triggers": {
+            "description": "webhook triggers to create",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerInput"
+            }
           }
         }
       },
@@ -16998,6 +17130,9 @@
           },
           "updated_at": {
             "type": "string"
+          },
+          "webhook_configured": {
+            "type": "boolean"
           }
         }
       },
@@ -17067,6 +17202,9 @@
           },
           "updated_at": {
             "type": "string"
+          },
+          "webhook_configured": {
+            "type": "boolean"
           }
         }
       },
@@ -18885,6 +19023,13 @@
           },
           "tools": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "triggers": {
+            "description": "nil=don't touch, []=remove all",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentTriggerInput"
+            }
           }
         }
       },

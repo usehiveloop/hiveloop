@@ -43,6 +43,7 @@ type inConnectionResponse struct {
 	Meta              model.JSON `json:"meta,omitempty"`
 	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
 	ActionsCount      int        `json:"actions_count"`
+	WebhookConfigured bool       `json:"webhook_configured"`
 	RevokedAt         *string    `json:"revoked_at,omitempty"`
 	CreatedAt         string     `json:"created_at"`
 	UpdatedAt         string     `json:"updated_at"`
@@ -58,6 +59,7 @@ func (h *InConnectionHandler) toInConnectionResponse(conn model.InConnection) in
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
 		ActionsCount:      len(h.catalog.ListActions(conn.InIntegration.Provider)),
+		WebhookConfigured: conn.WebhookConfigured,
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
@@ -193,6 +195,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		InIntegrationID:   integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
 		Meta:              req.Meta,
+		WebhookConfigured: !providerRequiresWebhookConfig(integ.Provider),
 	}
 
 	if err := h.db.Create(&conn).Error; err != nil {
@@ -311,6 +314,51 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// MarkWebhookConfigured handles PATCH /v1/in/connections/{id}/webhook-configured.
+// @Summary Mark webhook as configured
+// @Description Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.
+// @Tags in-connections
+// @Produce json
+// @Param id path string true "Connection ID"
+// @Success 200 {object} inConnectionResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/in/connections/{id}/webhook-configured [patch]
+func (h *InConnectionHandler) MarkWebhookConfigured(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	connID := chi.URLParam(r, "id")
+	if connID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "connection id required"})
+		return
+	}
+
+	result := h.db.Model(&model.InConnection{}).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, org.ID).
+		Update("webhook_configured", true)
+
+	if result.Error != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update connection"})
+		return
+	}
+	if result.RowsAffected == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found"})
+		return
+	}
+
+	var conn model.InConnection
+	if err := h.db.Preload("InIntegration").Where("id = ?", connID).First(&conn).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to reload connection"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, h.toInConnectionResponse(conn))
 }
 
 // Revoke handles DELETE /v1/in/connections/{id}.

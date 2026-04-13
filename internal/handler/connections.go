@@ -40,6 +40,7 @@ type integConnResponse struct {
 	IdentityID        *string    `json:"identity_id,omitempty"`
 	Meta              model.JSON `json:"meta,omitempty"`
 	ProviderConfig    model.JSON `json:"provider_config,omitempty"`
+	WebhookConfigured bool       `json:"webhook_configured"`
 	RevokedAt         *string    `json:"revoked_at,omitempty"`
 	CreatedAt         string     `json:"created_at"`
 	UpdatedAt         string     `json:"updated_at"`
@@ -51,6 +52,7 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 		IntegrationID:     conn.IntegrationID.String(),
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
+		WebhookConfigured: conn.WebhookConfigured,
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
@@ -63,6 +65,20 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 		resp.RevokedAt = &s
 	}
 	return resp
+}
+
+// providerRequiresWebhookConfig checks the catalog to see if a provider
+// requires manual webhook URL configuration (e.g. Railway).
+func providerRequiresWebhookConfig(provider string) bool {
+	cat := catalog.Global()
+	pt, ok := cat.GetProviderTriggers(provider)
+	if !ok {
+		pt, ok = cat.GetProviderTriggersForVariant(provider)
+	}
+	if !ok || pt.WebhookConfig == nil {
+		return false
+	}
+	return pt.WebhookConfig.WebhookURLRequired
 }
 
 // buildConnectionProviderConfig extracts relevant fields from
@@ -147,6 +163,7 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		IntegrationID:     integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
 		Meta:              req.Meta,
+		WebhookConfigured: !providerRequiresWebhookConfig(integ.Provider),
 	}
 
 	if req.IdentityID != nil {

@@ -9154,6 +9154,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/in/connections/{id}/webhook-configured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark webhook as configured
+         * @description Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["inConnectionResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/in/integrations/available": {
         parameters: {
             query?: never;
@@ -13464,6 +13515,19 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        TriggerCondition: {
+            /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
+            operator?: string;
+            /** @description dot-path into payload, e.g. "repository.full_name" */
+            path?: string;
+            /** @description string or []string depending on operator */
+            value?: unknown;
+        };
+        TriggerMatch: {
+            conditions?: components["schemas"]["TriggerCondition"][];
+            /** @description "all" (AND) or "any" (OR) */
+            mode?: string;
+        };
         "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             app_id?: string;
             app_link?: string;
@@ -13821,6 +13885,7 @@ export interface components {
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
+            triggers?: components["schemas"]["agentTriggerResponse"][];
             updated_at?: string;
         };
         agentSkillResponse: {
@@ -13833,6 +13898,19 @@ export interface components {
             created_at?: string;
             subagent?: components["schemas"]["subagentResponse"];
             subagent_id?: string;
+        };
+        agentTriggerInput: {
+            conditions?: components["schemas"]["TriggerMatch"];
+            connection_id?: string;
+            trigger_keys?: string[];
+        };
+        agentTriggerResponse: {
+            conditions?: unknown;
+            connection_id?: string;
+            enabled?: boolean;
+            id?: string;
+            provider?: string;
+            trigger_keys?: string[];
         };
         apiKeyResponse: {
             created_at?: string;
@@ -14012,6 +14090,8 @@ export interface components {
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
+            /** @description webhook triggers to create */
+            triggers?: components["schemas"]["agentTriggerInput"][];
         };
         createCheckoutRequest: {
             /** @description "pro_shared" or "pro_dedicated" */
@@ -14308,6 +14388,7 @@ export interface components {
             provider_config?: components["schemas"]["JSON"];
             revoked_at?: string;
             updated_at?: string;
+            webhook_configured?: boolean;
         };
         inIntegrationAvailableResponse: {
             created_at?: string;
@@ -14332,6 +14413,7 @@ export interface components {
             provider_config?: components["schemas"]["JSON"];
             revoked_at?: string;
             updated_at?: string;
+            webhook_configured?: boolean;
         };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];
@@ -14927,6 +15009,8 @@ export interface components {
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
+            /** @description nil=don't touch, []=remove all */
+            triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateEvalCaseRequest: {
             category?: string;

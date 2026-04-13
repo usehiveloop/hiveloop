@@ -89,7 +89,7 @@ export function ChoiceView({ onAddTrigger, onContinue, onBack }: ChoiceViewProps
               <div className="h-px flex-1 bg-border" />
             </div>
             <div className="px-4 py-2">
-              <p className="text-sm text-muted-foreground text-center">Skip this step to invoke this agent only through Zira or manually.</p>
+              <p className="text-sm text-muted-foreground text-center">Skip this step to invoke this agent only through Zira.</p>
             </div>
           </>
         )}
