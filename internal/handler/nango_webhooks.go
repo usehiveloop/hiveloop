@@ -76,9 +76,10 @@ type webhookPayload struct {
 
 // webhookContext holds resolved entities from a Nango webhook.
 type webhookContext struct {
-	orgID       uuid.UUID
-	integration *model.Integration
-	connection  *model.Connection
+	orgID        uuid.UUID
+	integration  *model.Integration
+	connection   *model.Connection    // old connections table — used for org webhook forwarding
+	inConnection *model.InConnection  // new in_connections table — used for trigger dispatch
 }
 
 // Handle processes POST /internal/webhooks/nango.
@@ -289,6 +290,14 @@ func (h *NangoWebhookHandler) identify(wh *nangoWebhook) *webhookContext {
 		return wctx
 	}
 	wctx.connection = &connection
+
+	// Also resolve the InConnection (new integrations system) for trigger dispatch.
+	var inConnection model.InConnection
+	if err := h.db.Preload("InIntegration").
+		Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
+			wh.ConnectionID, orgID).First(&inConnection).Error; err == nil {
+		wctx.inConnection = &inConnection
+	}
 
 	logAttrs := []any{
 		"type", wh.Type,

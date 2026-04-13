@@ -230,14 +230,14 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			rr.agent_id,
 			rt.id AS trigger_id,
 			rt.connection_id AS conn_id,
-			i.provider,
+			ii.provider,
 			rt.trigger_keys,
 			rt.enabled,
 			rr.conditions
 		FROM routing_rules rr
 		JOIN router_triggers rt ON rt.id = rr.router_trigger_id
-		JOIN connections c ON c.id = rt.connection_id
-		JOIN integrations i ON i.id = c.integration_id
+		JOIN in_connections ic ON ic.id = rt.connection_id
+		JOIN in_integrations ii ON ii.id = ic.in_integration_id
 		WHERE rr.agent_id IN ?
 		ORDER BY rt.id ASC
 	`, agentIDs).Scan(&rows)
@@ -266,9 +266,8 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 
 // createAgentTriggers creates RouterTrigger + RoutingRule records for an agent
 // inside an existing transaction. The router is found or created for the org.
-// resolvedConnIDs maps each trigger index to its resolved connections table UUID
-// (the dispatcher matches on connections IDs, not in_connections IDs).
-func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput, resolvedConnIDs []uuid.UUID) error {
+// Connection IDs are in_connections IDs from the frontend.
+func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
 	if len(triggers) == 0 {
 		return nil
 	}
@@ -281,8 +280,11 @@ func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agent
 		return fmt.Errorf("find or create router: %w", err)
 	}
 
-	for triggerIndex, input := range triggers {
-		connectionID := resolvedConnIDs[triggerIndex]
+	for _, input := range triggers {
+		connectionID, err := uuid.Parse(input.ConnectionID)
+		if err != nil {
+			return fmt.Errorf("invalid connection_id %q: %w", input.ConnectionID, err)
+		}
 
 		trigger := model.RouterTrigger{
 			OrgID:        orgID,
@@ -488,9 +490,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse skill IDs up front so a bad input fails the whole create cleanly.
-	// Validate trigger inputs and resolve in_connections IDs to connections IDs.
-	// The frontend sends in_connections IDs but the dispatcher matches on connections IDs.
-	resolvedTriggerConnIDs := make([]uuid.UUID, len(req.Triggers))
+	// Validate trigger inputs. Connection IDs are in_connections IDs from the frontend.
 	for triggerIndex, triggerInput := range req.Triggers {
 		if triggerInput.ConnectionID == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
@@ -509,14 +509,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
 			return
 		}
-		// Resolve the corresponding connections table record via NangoConnectionID.
-		var conn model.Connection
-		if err := h.db.Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
-			inConn.NangoConnectionID, org.ID).First(&conn).Error; err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: webhook connection not found for this integration", triggerIndex)})
-			return
-		}
-		resolvedTriggerConnIDs[triggerIndex] = conn.ID
 	}
 
 	var skillUUIDs []uuid.UUID
@@ -610,7 +602,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Create webhook triggers.
-		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers, resolvedTriggerConnIDs); err != nil {
+		if err := createAgentTriggers(tx, org.ID, agent.ID, req.Triggers); err != nil {
 			return fmt.Errorf("create triggers: %w", err)
 		}
 
@@ -926,10 +918,8 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["shared_memory"] = *req.SharedMemory
 	}
 
-	// Validate trigger inputs and resolve connection IDs if provided.
-	var updateResolvedConnIDs []uuid.UUID
+	// Validate trigger inputs if provided. Connection IDs are in_connections IDs.
 	if req.Triggers != nil {
-		updateResolvedConnIDs = make([]uuid.UUID, len(*req.Triggers))
 		for triggerIndex, triggerInput := range *req.Triggers {
 			if triggerInput.ConnectionID == "" {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection_id is required", triggerIndex)})
@@ -948,13 +938,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: connection not found", triggerIndex)})
 				return
 			}
-			var conn model.Connection
-			if err := h.db.Where("nango_connection_id = ? AND org_id = ? AND revoked_at IS NULL",
-				inConn.NangoConnectionID, org.ID).First(&conn).Error; err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("triggers[%d]: webhook connection not found for this integration", triggerIndex)})
-				return
-			}
-			updateResolvedConnIDs[triggerIndex] = conn.ID
 		}
 	}
 
@@ -998,7 +981,7 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if err := deleteAgentTriggers(h.db, agent.ID); err != nil {
 			slog.Error("failed to delete old triggers during update", "agent_id", agent.ID, "error", err)
 		}
-		if err := createAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers, updateResolvedConnIDs); err != nil {
+		if err := createAgentTriggers(h.db, org.ID, agent.ID, *req.Triggers); err != nil {
 			slog.Error("failed to create new triggers during update", "agent_id", agent.ID, "error", err)
 		}
 	}

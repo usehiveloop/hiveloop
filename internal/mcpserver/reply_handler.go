@@ -47,16 +47,16 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 		return emptyReplyServer()
 	}
 
-	// Load the connection to resolve the provider.
-	var connection model.Connection
-	if err := handler.db.Preload("Integration").
+	// Load the in_connection to resolve the provider.
+	var connection model.InConnection
+	if err := handler.db.Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
 		slog.Warn("reply MCP: connection not found", "connection_id", connectionID, "error", err)
 		return emptyReplyServer()
 	}
 
-	provider := connection.Integration.Provider
+	provider := connection.InIntegration.Provider
 
 	// Get write actions for this provider from the catalog.
 	providerDef, ok := handler.catalog.GetProvider(provider)

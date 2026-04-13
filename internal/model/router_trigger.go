@@ -16,7 +16,7 @@ type RouterTrigger struct {
 	RouterID       uuid.UUID      `gorm:"type:uuid;not null;index"`
 	Router         Router         `gorm:"foreignKey:RouterID;constraint:OnDelete:CASCADE"`
 	ConnectionID   uuid.UUID      `gorm:"type:uuid;not null;index"`
-	Connection     Connection     `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
+	InConnection   InConnection   `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
 	TriggerKeys    pq.StringArray `gorm:"type:text[];not null"`
 	Enabled        bool           `gorm:"not null;default:true"`
 	RoutingMode    string         `gorm:"not null;default:'triage'"` // "rule" or "triage"

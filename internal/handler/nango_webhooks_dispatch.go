@@ -25,7 +25,7 @@ func dispatchTrigger(
 	wh *nangoWebhook,
 	wctx *webhookContext,
 ) {
-	if enqueuer == nil || wctx == nil || wctx.connection == nil || wctx.integration == nil {
+	if enqueuer == nil || wctx == nil || wctx.connection == nil || wctx.inConnection == nil || wctx.integration == nil {
 		return
 	}
 	if wh.Type != "forward" || len(wh.Payload) == 0 {
@@ -56,7 +56,7 @@ func dispatchTrigger(
 	if eventType == "" {
 		slog.Info("trigger dispatch: could not determine event type, skipping",
 			"provider", providerName,
-			"connection_id", wctx.connection.ID,
+			"in_connection_id", wctx.inConnection.ID,
 		)
 		return
 	}
@@ -69,7 +69,7 @@ func dispatchTrigger(
 		"event_type", eventType,
 		"event_action", eventAction,
 		"org_id", wctx.orgID,
-		"connection_id", wctx.connection.ID,
+		"in_connection_id", wctx.inConnection.ID,
 		"payload_bytes", len(rawBody),
 		"payload", string(rawBody),
 	)
@@ -80,7 +80,7 @@ func dispatchTrigger(
 		EventAction:  eventAction,
 		DeliveryID:   deliveryID,
 		OrgID:        wctx.orgID,
-		ConnectionID: wctx.connection.ID,
+		ConnectionID: wctx.inConnection.ID,
 		PayloadJSON:  rawBody,
 	})
 	if err != nil {

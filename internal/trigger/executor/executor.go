@@ -128,10 +128,10 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 
 	// 6. Store RouterConversation for thread affinity.
 	if err := executor.db.Create(&model.RouterConversation{
-		OrgID:                agentDispatch.ReplyConnection.OrgID,
+		OrgID:                agentDispatch.ReplyOrgID,
 		RouterTriggerID:      agentDispatch.RouterTriggerID,
 		AgentID:              agentDispatch.AgentID,
-		ConnectionID:         agentDispatch.ReplyConnection.ID,
+		ConnectionID:         agentDispatch.ReplyConnectionID,
 		ResourceKey:          agentDispatch.ResourceKey,
 		BridgeConversationID: conv.ConversationId,
 		SandboxID:            *agent.SandboxID,
@@ -177,7 +177,7 @@ func (executor *Executor) buildMCPList(agentDispatch dispatch.AgentDispatch) []b
 
 	// Reply MCP: exposes the source channel's write tools.
 	if executor.cfg != nil && executor.cfg.MCPBaseURL != "" {
-		replyURL := fmt.Sprintf("%s/reply/%s", executor.cfg.MCPBaseURL, agentDispatch.ReplyConnection.ID)
+		replyURL := fmt.Sprintf("%s/reply/%s", executor.cfg.MCPBaseURL, agentDispatch.ReplyConnectionID)
 		servers = append(servers, bridgepkg.McpServerDefinition{
 			Name:      "zira-reply",
 			Transport: buildMcpTransport(replyURL, ""),

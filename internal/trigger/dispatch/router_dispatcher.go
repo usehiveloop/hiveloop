@@ -32,9 +32,10 @@ type AgentDispatch struct {
 	AgentID         uuid.UUID
 	Priority        int
 	RoutingMode     string // "rule" or "triage"
-	EnrichmentPlan  []zira.PlannedEnrichment
-	ReplyConnection model.Connection
-	ResourceKey     string
+	EnrichmentPlan     []zira.PlannedEnrichment
+	ReplyConnectionID  uuid.UUID // in_connections ID for the source channel
+	ReplyOrgID         uuid.UUID
+	ResourceKey        string
 	RunIntent       string // "normal" (new conv) or "continue" (existing conv)
 	RouterTriggerID uuid.UUID
 	RouterPersona   string
@@ -185,7 +186,8 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 				Priority:        selection.Priority,
 				RoutingMode:     routingMode,
 				EnrichmentPlan:  enrichmentPlan,
-				ReplyConnection: model.Connection{ID: input.ConnectionID, OrgID: input.OrgID},
+				ReplyConnectionID: input.ConnectionID,
+				ReplyOrgID:        input.OrgID,
 				ResourceKey:     resourceKey,
 				RunIntent:       "normal",
 				RouterTriggerID: trigger.ID,
