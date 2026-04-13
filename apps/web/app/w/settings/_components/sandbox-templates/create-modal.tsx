@@ -47,7 +47,8 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   const [isRetrying, setIsRetrying] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
 
-  const { data: publicTemplates = [] } = usePublicTemplates()
+  const { data: publicTemplatesResponse } = usePublicTemplates()
+  const publicTemplates = (publicTemplatesResponse as { data?: { id: string; name: string; size: string }[] })?.data ?? []
   const onSuccessRef = React.useRef(onSuccess)
   const onOpenChangeRef = React.useRef(onOpenChange)
   const hasShownSuccessRef = React.useRef(false)

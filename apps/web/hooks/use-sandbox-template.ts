@@ -7,18 +7,16 @@ import type { components } from "@/lib/api/schema"
 
 export type SandboxTemplate = components["schemas"]["sandboxTemplateResponse"]
 
-interface UseSandboxTemplateOptions {
-  enabled?: boolean
-}
-
+// Uses manual useQuery because $api.useQuery doesn't support refetchInterval as a function,
+// which is needed to poll only while the template is building.
 export function useSandboxTemplate(
   templateId: string | null,
-  options: UseSandboxTemplateOptions = {}
+  options: { enabled?: boolean } = {}
 ) {
   const { enabled = true } = options
 
   return useQuery({
-    queryKey: ["sandbox-template", templateId],
+    queryKey: ["get", "/v1/sandbox-templates/{id}", { params: { path: { id: templateId } } }],
     queryFn: async () => {
       if (!templateId) return null
       const response = await api.GET("/v1/sandbox-templates/{id}", {
@@ -43,16 +41,7 @@ export function useSandboxTemplate(
 }
 
 export function useSandboxTemplates() {
-  return useQuery({
-    queryKey: ["sandbox-templates"],
-    queryFn: async () => {
-      const response = await api.GET("/v1/sandbox-templates")
-      if (response.error) {
-        throw response.error
-      }
-      return (response.data?.data ?? []) as SandboxTemplate[]
-    },
-  })
+  return $api.useQuery("get", "/v1/sandbox-templates")
 }
 
 export function useTriggerBuild() {
@@ -60,11 +49,7 @@ export function useTriggerBuild() {
 
   return $api.useMutation("post", "/v1/sandbox-templates/{id}/build", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sandbox-templates"] })
-      queryClient.invalidateQueries({
-        queryKey: ["sandbox-template"],
-        exact: false,
-      })
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/sandbox-templates"] })
     },
   })
 }
@@ -74,32 +59,26 @@ export function useDeleteSandboxTemplate() {
 
   return $api.useMutation("delete", "/v1/sandbox-templates/{id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sandbox-templates"] })
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/sandbox-templates"] })
     },
   })
 }
 
-export interface PublicTemplate {
-  id: string
-  name: string
-  slug: string
-  tags: string[]
-  size: string
+export function useRetryBuild() {
+  const queryClient = useQueryClient()
+
+  return $api.useMutation("post", "/v1/sandbox-templates/{id}/retry", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/sandbox-templates"] })
+    },
+  })
 }
 
 export function usePublicTemplates() {
-  return useQuery({
-    queryKey: ["sandbox-templates-public"],
-    queryFn: async () => {
-      const response = await api.GET("/v1/sandbox-templates/public")
-      if (response.error) {
-        throw response.error
-      }
-      const responseData = response.data as { data?: PublicTemplate[] } | undefined
-      return (responseData?.data ?? []) as PublicTemplate[]
-    },
-  })
+  return $api.useQuery("get", "/v1/sandbox-templates/public")
 }
+
+export type PublicTemplate = components["schemas"]["publicTemplateResponse"]
 
 export async function createSandboxTemplate(data: {
   name: string
@@ -113,18 +92,4 @@ export async function createSandboxTemplate(data: {
     throw response.error
   }
   return response.data as SandboxTemplate
-}
-
-export function useRetryBuild() {
-  const queryClient = useQueryClient()
-
-  return $api.useMutation("post", "/v1/sandbox-templates/{id}/retry", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sandbox-templates"] })
-      queryClient.invalidateQueries({
-        queryKey: ["sandbox-template"],
-        exact: false,
-      })
-    },
-  })
 }

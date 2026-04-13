@@ -39,7 +39,8 @@ export function SandboxTemplatesList() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [deletingTemplate, setDeletingTemplate] = useState<SandboxTemplate | null>(null)
 
-  const { data: templates = [], isLoading, refetch } = useSandboxTemplates()
+  const { data: response, isLoading, refetch } = useSandboxTemplates()
+  const templates = response?.data ?? []
 
   const deleteTemplate = useDeleteSandboxTemplate()
   const buildMutation = useTriggerBuild()
