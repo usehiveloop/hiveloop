@@ -257,7 +257,8 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	)
 
 	// Railway CLI — infrastructure deployment and management.
-	image = image.Run("bash <(curl -fsSL cli.new)")
+	// npm install is more reliable than the shell script in Docker builds.
+	image = image.Run("npm install -g --prefix=/usr/local @railway/cli")
 
 	// Render CLI — manage Render services from the command line.
 	image = image.Run("curl -fsSL https://raw.githubusercontent.com/render-oss/cli/refs/heads/main/bin/install.sh | sh")
