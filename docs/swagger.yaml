@@ -487,6 +487,32 @@ definitions:
       provider:
         type: string
     type: object
+  internal_handler.adminCreateSkillRequest:
+    properties:
+      description:
+        type: string
+      featured:
+        type: boolean
+      name:
+        type: string
+      repo_ref:
+        type: string
+      repo_subpath:
+        type: string
+      repo_url:
+        description: Git source
+        type: string
+      source_type:
+        description: '"inline" or "git"'
+        type: string
+      status:
+        description: defaults to "published" for global skills
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
   internal_handler.adminCredentialResponse:
     properties:
       created_at:
@@ -728,6 +754,43 @@ definitions:
       org_id:
         type: string
     type: object
+  internal_handler.adminSkillResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      featured:
+        type: boolean
+      id:
+        type: string
+      install_count:
+        type: integer
+      name:
+        type: string
+      org_id:
+        type: string
+      publisher_id:
+        type: string
+      repo_ref:
+        type: string
+      repo_subpath:
+        type: string
+      repo_url:
+        type: string
+      slug:
+        type: string
+      source_type:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
   internal_handler.adminStatsResponse:
     properties:
       total_agents:
@@ -871,6 +934,23 @@ definitions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       name:
         type: string
+    type: object
+  internal_handler.adminUpdateSkillRequest:
+    properties:
+      description:
+        type: string
+      featured:
+        type: boolean
+      name:
+        type: string
+      repo_ref:
+        type: string
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
     type: object
   internal_handler.adminUpdateUserRequest:
     properties:
@@ -2406,6 +2486,17 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.adminSandboxTemplateResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_adminSkillResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.adminSkillResponse'
         type: array
       has_more:
         type: boolean
@@ -5135,6 +5226,156 @@ paths:
       security:
       - BearerAuth: []
       summary: Bulk cleanup sandboxes
+      tags:
+      - admin
+  /admin/v1/skills:
+    get:
+      description: Lists all skills with optional filters.
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter scope (global)
+        in: query
+        name: scope
+        type: string
+      - description: Filter by source type
+        in: query
+        name: source_type
+        type: string
+      - description: Search by name
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_adminSkillResponse'
+      security:
+      - BearerAuth: []
+      summary: List skills
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      description: Creates a global skill (org_id = nil) visible to all users.
+      parameters:
+      - description: Skill to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminCreateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.adminSkillResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a global skill
+      tags:
+      - admin
+  /admin/v1/skills/{id}:
+    delete:
+      description: Permanently deletes a skill and all its versions.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a skill
+      tags:
+      - admin
+    get:
+      description: Returns a skill by ID.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminSkillResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get skill details
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Updates skill properties.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.adminSkillResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a skill
       tags:
       - admin
   /admin/v1/stats:
