@@ -36,7 +36,7 @@ func parsePagination(r *http.Request) (int, *paginationCursor, error) {
 	}
 
 	var cursor *paginationCursor
-	if c := r.URL.Query().Get("cursor"); c != "" {
+	if c := r.URL.Query().Get("cursor"); c != "" && c != "0" {
 		var err error
 		cursor, err = decodeCursor(c)
 		if err != nil {
