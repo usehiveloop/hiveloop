@@ -79,9 +79,30 @@ export function useDeleteSandboxTemplate() {
   })
 }
 
+export interface PublicTemplate {
+  id: string
+  name: string
+  size: string
+}
+
+export function usePublicTemplates() {
+  return useQuery({
+    queryKey: ["sandbox-templates-public"],
+    queryFn: async () => {
+      const response = await api.GET("/v1/sandbox-templates/public")
+      if (response.error) {
+        throw response.error
+      }
+      const responseData = response.data as { data?: PublicTemplate[] } | undefined
+      return (responseData?.data ?? []) as PublicTemplate[]
+    },
+  })
+}
+
 export async function createSandboxTemplate(data: {
   name: string
   build_commands: string[]
+  base_template_id?: string
 }): Promise<SandboxTemplate> {
   const response = await api.POST("/v1/sandbox-templates", {
     body: data,

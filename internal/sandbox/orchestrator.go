@@ -1015,20 +1015,46 @@ func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, co
 	return o.provider.ExecuteCommand(ctx, sb.ExternalID, command)
 }
 
+// resolveBuildOpts resolves the base image and resource allocation for a template build.
+func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotName string) BuildSnapshotOpts {
+	cmds := []string{}
+	if tmpl.BuildCommands != "" {
+		cmds = strings.Split(tmpl.BuildCommands, "\n")
+	}
+
+	opts := BuildSnapshotOpts{
+		Name:          snapshotName,
+		BuildCommands: cmds,
+	}
+
+	// Resolve base image from parent public template
+	if tmpl.BaseTemplateID != nil {
+		var baseTmpl model.SandboxTemplate
+		if err := o.db.First(&baseTmpl, "id = ?", *tmpl.BaseTemplateID).Error; err == nil {
+			if baseTmpl.ExternalID != nil {
+				opts.BaseImage = *baseTmpl.ExternalID
+			}
+		}
+	}
+
+	// Resolve resource allocation from template size
+	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {
+		opts.CPU = sz.CPU
+		opts.Memory = sz.Memory
+		opts.Disk = sz.Disk
+	}
+
+	return opts
+}
+
 // BuildTemplate builds a sandbox template (snapshot) via the provider.
 // Runs asynchronously — updates the template record with build status.
 func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) {
 	o.db.Model(tmpl).Update("build_status", "building")
 
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	cmds := []string{}
-	if tmpl.BuildCommands != "" {
-		cmds = strings.Split(tmpl.BuildCommands, "\n")
-	}
-	externalID, err := o.provider.BuildSnapshot(ctx, BuildSnapshotOpts{
-		Name:          snapshotName,
-		BuildCommands: cmds,
-	})
+	opts := o.resolveBuildOpts(tmpl, snapshotName)
+	externalID, err := o.provider.BuildSnapshot(ctx, opts)
 
 	if err != nil {
 		errMsg := err.Error()
@@ -1052,14 +1078,8 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 // Returns the external snapshot ID once the build completes.
 func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	cmds := []string{}
-	if tmpl.BuildCommands != "" {
-		cmds = strings.Split(tmpl.BuildCommands, "\n")
-	}
-	return o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
-		Name:          snapshotName,
-		BuildCommands: cmds,
-	}, onLog)
+	opts := o.resolveBuildOpts(tmpl, snapshotName)
+	return o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
 }
 
 // BuildTemplateWithPolling builds a sandbox template, polls for status, and accumulates logs to DB.
@@ -1067,16 +1087,10 @@ func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.Sa
 // onStatus is called whenever the build status changes (building, ready, failed).
 func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	snapshotName := fmt.Sprintf("zira-tmpl-%s", shortID(tmpl.ID))
-	cmds := []string{}
-	if tmpl.BuildCommands != "" {
-		cmds = strings.Split(tmpl.BuildCommands, "\n")
-	}
+	opts := o.resolveBuildOpts(tmpl, snapshotName)
 
 	// Start the async build
-	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, BuildSnapshotOpts{
-		Name:          snapshotName,
-		BuildCommands: cmds,
-	}, onLog)
+	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
 	if err != nil {
 		return "", fmt.Errorf("starting snapshot build: %w", err)
 	}

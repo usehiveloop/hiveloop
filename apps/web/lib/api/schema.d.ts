@@ -2430,13 +2430,15 @@ export interface paths {
         };
         /**
          * List all sandbox templates
-         * @description Returns sandbox templates across all organizations.
+         * @description Returns sandbox templates across all organizations. Use scope=public to list only public templates.
          */
         get: {
             parameters: {
                 query?: {
                     /** @description Filter by org ID */
                     org_id?: string;
+                    /** @description Filter by scope (public = org_id IS NULL) */
+                    scope?: string;
                     /** @description Filter by build status (pending, building, ready, failed) */
                     build_status?: string;
                     /** @description Page size */
@@ -2462,7 +2464,44 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Create a public sandbox template
+         * @description Creates a new public (platform-wide) sandbox template.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Template details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminCreateSandboxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2476,10 +2515,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get a sandbox template
+         * @description Returns a single sandbox template by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         /**
          * Update a sandbox template
-         * @description Updates sandbox template name and configuration.
+         * @description Updates sandbox template name, size, build commands, and configuration.
          */
         put: {
             parameters: {
@@ -2491,12 +2565,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["adminUpdateSandboxTemplateRequest"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -2566,6 +2635,144 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandbox-templates/{id}/build": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger a sandbox template build
+         * @description Enqueues an async build job for the template.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/sandbox-templates/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry a sandbox template build
+         * @description Deletes the existing snapshot and starts a new build. Can optionally update build commands.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Template ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -10870,6 +11077,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sandbox-templates/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List public sandbox templates
+         * @description Returns all public (platform-wide) sandbox templates that are ready.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: components["schemas"]["publicTemplateResponse"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sandbox-templates/{id}": {
         parameters: {
             query?: never;
@@ -13878,7 +14126,15 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             provider?: string;
         };
+        adminCreateSandboxTemplateRequest: {
+            build_commands?: string[];
+            name?: string;
+            /** @description small, medium, large, xlarge */
+            size?: string;
+        };
         adminCreateSkillRequest: {
+            /** @description Inline source */
+            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
             description?: string;
             featured?: boolean;
             name?: string;
@@ -14007,13 +14263,17 @@ export interface components {
             status?: string;
         };
         adminSandboxTemplateResponse: {
+            base_template_id?: string;
+            build_commands?: string;
             build_error?: string;
+            build_logs?: string;
             build_status?: string;
             created_at?: string;
             external_id?: string;
             id?: string;
             name?: string;
             org_id?: string;
+            size?: string;
         };
         adminSkillResponse: {
             created_at?: string;
@@ -14103,10 +14363,6 @@ export interface components {
             allowed_origins?: string[];
             name?: string;
             rate_limit?: number;
-        };
-        adminUpdateSandboxTemplateRequest: {
-            config?: components["schemas"]["JSON"];
-            name?: string;
         };
         adminUpdateSkillRequest: {
             description?: string;
@@ -14455,6 +14711,8 @@ export interface components {
             name?: string;
         };
         createSandboxTemplateRequest: {
+            /** @description UUID of a public template to use as base */
+            base_template_id?: string;
             build_commands?: string[];
             config?: components["schemas"]["JSON"];
             name?: string;
@@ -15020,6 +15278,11 @@ export interface components {
             model_count?: number;
             name?: string;
         };
+        publicTemplateResponse: {
+            id?: string;
+            name?: string;
+            size?: string;
+        };
         refreshRequest: {
             /** @description optional: switch org */
             org_id?: string;
@@ -15087,6 +15350,7 @@ export interface components {
             status?: string;
         };
         sandboxTemplateResponse: {
+            base_template_id?: string;
             build_commands?: string[];
             build_error?: string;
             build_logs?: string;
@@ -15096,6 +15360,7 @@ export interface components {
             external_id?: string;
             id?: string;
             name?: string;
+            size?: string;
             updated_at?: string;
         };
         schemaPath: {

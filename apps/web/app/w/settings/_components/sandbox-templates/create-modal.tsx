@@ -18,9 +18,17 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   useSandboxTemplate,
   useTriggerBuild,
   useRetryBuild,
+  usePublicTemplates,
   createSandboxTemplate,
   type SandboxTemplate,
 } from "@/hooks/use-sandbox-template"
@@ -34,9 +42,12 @@ interface CreateSandboxTemplateModalProps {
 export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: CreateSandboxTemplateModalProps) {
   const [name, setName] = useState("")
   const [buildCommands, setBuildCommands] = useState<string[]>([""])
+  const [selectedBaseTemplate, setSelectedBaseTemplate] = useState<string>("")
   const [isBuilding, setIsBuilding] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
   const [buildTemplateId, setBuildTemplateId] = useState<string | null>(null)
+
+  const { data: publicTemplates = [] } = usePublicTemplates()
   const onSuccessRef = React.useRef(onSuccess)
   const onOpenChangeRef = React.useRef(onOpenChange)
   const hasShownSuccessRef = React.useRef(false)
@@ -52,6 +63,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
   const resetForm = useCallback(() => {
     setName("")
     setBuildCommands([""])
+    setSelectedBaseTemplate("")
     setIsBuilding(false)
     setIsRetrying(false)
     setBuildTemplateId(null)
@@ -116,6 +128,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
       const createdTemplate = await createSandboxTemplate({
         name: name.trim(),
         build_commands: filteredCommands,
+        base_template_id: selectedBaseTemplate || undefined,
       })
 
       if (!createdTemplate.id) {
@@ -201,18 +214,44 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
           {!isBuilding ? (
             <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
               {!isRetrying && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Template Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="my-custom-template"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    A descriptive name for your template.
-                  </p>
-                </div>
+                <>
+                  {publicTemplates.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Base Template</Label>
+                      <Select
+                        value={selectedBaseTemplate}
+                        onValueChange={setSelectedBaseTemplate}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="None (default base image)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None (default base image)</SelectItem>
+                          {publicTemplates.map((tmpl) => (
+                            <SelectItem key={tmpl.id} value={tmpl.id}>
+                              {tmpl.name} ({tmpl.size})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Optionally build on top of a public template instead of the default base image.
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Template Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="my-custom-template"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      A descriptive name for your template.
+                    </p>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">

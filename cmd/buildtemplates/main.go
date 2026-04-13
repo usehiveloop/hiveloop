@@ -24,6 +24,7 @@ import (
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 const (
@@ -103,20 +104,8 @@ var devToolPackages = []string{
 	"postgresql-16-pgvector",
 }
 
-// templateSize defines a sandbox template variant.
-type templateSize struct {
-	Name   string
-	CPU    int
-	Memory int // GB
-	Disk   int // GB
-}
-
-var sizes = map[string]templateSize{
-	"small":  {Name: "small", CPU: 1, Memory: 2, Disk: 10},
-	"medium": {Name: "medium", CPU: 2, Memory: 4, Disk: 20},
-	"large":  {Name: "large", CPU: 4, Memory: 8, Disk: 40},
-	"xlarge": {Name: "xlarge", CPU: 8, Memory: 16, Disk: 80},
-}
+// sizes re-exports model.TemplateSizes for local convenience.
+var sizes = model.TemplateSizes
 
 func bridgeDownloadURL(version string) string {
 	return fmt.Sprintf("%s/v%s/bridge-v%s-x86_64-unknown-linux-gnu.tar.gz",
@@ -145,7 +134,7 @@ func buildBaseImage(bridgeVersion string) *daytona.DockerImage {
 
 	// CodeDB binary (code intelligence for agents)
 	image = image.Run(fmt.Sprintf(
-		`curl -fsSL -o %s/codedb "https://github.com/justrach/codedb/releases/download/v0.2.54/codedb-linux-x86_64" && chmod +x %s/codedb`,
+		`curl -fsSL -o %s/codedb "https://github.com/justrach/codedb/releases/download/v0.2.57/codedb-linux-x86_64" && chmod +x %s/codedb`,
 		bridgeDir, bridgeDir,
 	))
 

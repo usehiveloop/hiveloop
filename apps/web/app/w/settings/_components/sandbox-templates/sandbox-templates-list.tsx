@@ -28,6 +28,8 @@ import {
   MoreHorizontalIcon,
   Delete02Icon,
   PlayCircleIcon,
+  ContainerIcon,
+  ArrowRight01Icon,
 } from "@hugeicons/core-free-icons"
 
 export function SandboxTemplatesList() {
@@ -122,18 +124,29 @@ export function SandboxTemplatesList() {
       </div>
 
       {templates.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No sandbox templates yet. Create one to get started.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            <HugeiconsIcon icon={Add01Icon} size={16} className="mr-2" />
-            Create Template
-          </Button>
+        <div className="flex flex-col items-center py-14">
+          <div className="text-center mb-6">
+            <h2 className="font-heading text-lg font-semibold text-foreground">No sandbox templates yet</h2>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
+              Create a template to define custom sandbox environments for your agents.
+            </p>
+          </div>
+          <div className="w-full max-w-sm">
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(true)}
+              className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
+            >
+              <HugeiconsIcon icon={ContainerIcon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Create template</p>
+                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Define a custom environment with build commands and dependencies.
+                </p>
+              </div>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

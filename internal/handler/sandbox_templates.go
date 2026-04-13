@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/enqueue"
@@ -48,9 +49,10 @@ func NewSandboxTemplateHandler(db *gorm.DB, builder TemplateBuildable, enqueuer 
 }
 
 type createSandboxTemplateRequest struct {
-	Name          string     `json:"name"`
-	BuildCommands []string   `json:"build_commands"`
-	Config        model.JSON `json:"config,omitempty"`
+	Name           string     `json:"name"`
+	BuildCommands  []string   `json:"build_commands"`
+	Config         model.JSON `json:"config,omitempty"`
+	BaseTemplateID *string    `json:"base_template_id,omitempty"` // UUID of a public template to use as base
 }
 
 type updateSandboxTemplateRequest struct {
@@ -64,16 +66,18 @@ type retryBuildRequest struct {
 }
 
 type sandboxTemplateResponse struct {
-	ID            string     `json:"id"`
-	Name          string     `json:"name"`
-	BuildCommands []string   `json:"build_commands"`
-	ExternalID    *string    `json:"external_id,omitempty"`
-	BuildStatus   string     `json:"build_status"`
-	BuildError    *string    `json:"build_error,omitempty"`
-	BuildLogs     string     `json:"build_logs,omitempty"`
-	Config        model.JSON `json:"config"`
-	CreatedAt     string     `json:"created_at"`
-	UpdatedAt     string     `json:"updated_at"`
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Size           string     `json:"size"`
+	BaseTemplateID *string    `json:"base_template_id,omitempty"`
+	BuildCommands  []string   `json:"build_commands"`
+	ExternalID     *string    `json:"external_id,omitempty"`
+	BuildStatus    string     `json:"build_status"`
+	BuildError     *string    `json:"build_error,omitempty"`
+	BuildLogs      string     `json:"build_logs,omitempty"`
+	Config         model.JSON `json:"config"`
+	CreatedAt      string     `json:"created_at"`
+	UpdatedAt      string     `json:"updated_at"`
 }
 
 func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse {
@@ -81,9 +85,10 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 	if t.BuildCommands != "" {
 		cmds = []string{t.BuildCommands}
 	}
-	return sandboxTemplateResponse{
+	resp := sandboxTemplateResponse{
 		ID:            t.ID.String(),
 		Name:          t.Name,
+		Size:          t.Size,
 		BuildCommands: cmds,
 		ExternalID:    t.ExternalID,
 		BuildStatus:   t.BuildStatus,
@@ -93,6 +98,11 @@ func toSandboxTemplateResponse(t model.SandboxTemplate) sandboxTemplateResponse 
 		CreatedAt:     t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
 	}
+	if t.BaseTemplateID != nil {
+		baseIDStr := t.BaseTemplateID.String()
+		resp.BaseTemplateID = &baseIDStr
+	}
+	return resp
 }
 
 // Create handles POST /v1/sandbox-templates.
@@ -127,7 +137,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 
 	tmpl := model.SandboxTemplate{
-		OrgID:         org.ID,
+		OrgID:         &org.ID,
 		Name:          req.Name,
 		BuildCommands: commandsToString(req.BuildCommands),
 		BuildStatus:   "pending",
@@ -135,6 +145,22 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 	if tmpl.Config == nil {
 		tmpl.Config = model.JSON{}
+	}
+
+	// If a base template is specified, validate it's a public ready template and inherit its size.
+	if req.BaseTemplateID != nil && *req.BaseTemplateID != "" {
+		baseID, err := uuid.Parse(*req.BaseTemplateID)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid base_template_id"})
+			return
+		}
+		var baseTmpl model.SandboxTemplate
+		if err := h.db.Where("id = ? AND org_id IS NULL AND build_status = ?", baseID, "ready").First(&baseTmpl).Error; err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "base template not found or not ready"})
+			return
+		}
+		tmpl.BaseTemplateID = &baseID
+		tmpl.Size = baseTmpl.Size
 	}
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
@@ -169,7 +195,7 @@ func (h *SandboxTemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ?", org.ID)
+	q := h.db.Where("org_id = ? OR org_id IS NULL", org.ID)
 	q = applyPagination(q, cursor, limit)
 
 	var templates []model.SandboxTemplate
@@ -478,4 +504,38 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+type publicTemplateResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Size string `json:"size"`
+}
+
+// ListPublic handles GET /v1/sandbox-templates/public.
+// @Summary List public sandbox templates
+// @Description Returns all public (platform-wide) sandbox templates that are ready.
+// @Tags sandbox-templates
+// @Produce json
+// @Success 200 {object} map[string][]publicTemplateResponse
+// @Security BearerAuth
+// @Router /v1/sandbox-templates/public [get]
+func (h *SandboxTemplateHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
+	var templates []model.SandboxTemplate
+	if err := h.db.Where("org_id IS NULL AND build_status = ?", "ready").
+		Order("name ASC").Find(&templates).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list public templates"})
+		return
+	}
+
+	resp := make([]publicTemplateResponse, len(templates))
+	for index, tmpl := range templates {
+		resp[index] = publicTemplateResponse{
+			ID:   tmpl.ID.String(),
+			Name: tmpl.Name,
+			Size: tmpl.Size,
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": resp})
 }
