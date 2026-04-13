@@ -62,6 +62,18 @@ func dispatchTrigger(
 	}
 
 	deliveryID := wh.ConnectionID + ":" + uuid.New().String()
+
+	slog.Info("trigger dispatch: webhook received",
+		"delivery_id", deliveryID,
+		"provider", providerName,
+		"event_type", eventType,
+		"event_action", eventAction,
+		"org_id", wctx.orgID,
+		"connection_id", wctx.connection.ID,
+		"payload_bytes", len(rawBody),
+		"payload", string(rawBody),
+	)
+
 	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
 		Provider:     providerName,
 		EventType:    eventType,
@@ -72,19 +84,21 @@ func dispatchTrigger(
 		PayloadJSON:  rawBody,
 	})
 	if err != nil {
-		slog.Error("trigger dispatch: failed to build task", "error", err)
+		slog.Error("trigger dispatch: failed to build task",
+			"delivery_id", deliveryID,
+			"error", err,
+		)
 		return
 	}
 	if _, err := enqueuer.Enqueue(task); err != nil {
-		slog.Error("trigger dispatch: failed to enqueue task", "error", err)
+		slog.Error("trigger dispatch: failed to enqueue task",
+			"delivery_id", deliveryID,
+			"error", err,
+		)
 		return
 	}
 	slog.Info("trigger dispatch: enqueued",
-		"provider", providerName,
-		"event_type", eventType,
-		"event_action", eventAction,
 		"delivery_id", deliveryID,
-		"connection_id", wctx.connection.ID,
 	)
 }
 

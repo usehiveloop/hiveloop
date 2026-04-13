@@ -140,16 +140,30 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 	}
 
 	// 7. Build and send instructions.
+	instructionSource := "flat_refs"
+	if agentDispatch.EnrichedMessage != "" {
+		instructionSource = "enriched"
+	}
 	instructions := buildInstructions(agentDispatch)
+
+	slog.Info("executor: sending instructions",
+		"agent", agent.Name,
+		"agent_id", agentDispatch.AgentID,
+		"conversation_id", conv.ConversationId,
+		"instruction_source", instructionSource,
+		"instruction_bytes", len(instructions),
+	)
+
 	if err := client.SendMessage(ctx, conv.ConversationId, instructions); err != nil {
 		return fmt.Errorf("sending instructions to %s: %w", agent.Name, err)
 	}
 
 	slog.Info("executor: conversation created",
 		"agent", agent.Name,
+		"agent_id", agentDispatch.AgentID,
 		"conversation_id", conv.ConversationId,
 		"resource_key", agentDispatch.ResourceKey,
-		"enrichments", len(agentDispatch.EnrichmentPlan),
+		"instruction_source", instructionSource,
 	)
 	return nil
 }

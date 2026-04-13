@@ -20,8 +20,8 @@ import (
 type RouterDispatchHandler struct {
 	dispatcher         *dispatch.RouterDispatcher
 	executor           *executor.Executor
-	enricher           *enrichment.EnrichmentAgent    // nil = skip enrichment
-	credentialResolver EnrichmentCredentialResolver    // nil = skip enrichment
+	enricher           *enrichment.EnrichmentAgent // nil = skip enrichment
+	credentialResolver EnrichmentCredentialResolver // nil = skip enrichment
 }
 
 // EnrichmentCredentialResolver resolves an LLM credential for enrichment.
@@ -49,9 +49,24 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("unmarshal router dispatch payload: %w", err)
 	}
 
+	// Build a logger with the delivery ID attached to every message in this flow.
+	logger := slog.With(
+		"delivery_id", payload.DeliveryID,
+		"org_id", payload.OrgID,
+		"provider", payload.Provider,
+		"event", payload.EventType+"."+payload.EventAction,
+		"connection_id", payload.ConnectionID,
+	)
+
+	logger.Info("webhook received",
+		"payload_bytes", len(payload.PayloadJSON),
+		"payload", string(payload.PayloadJSON),
+	)
+
 	// Decode the raw webhook payload.
 	var webhookPayload map[string]any
 	if err := json.Unmarshal(payload.PayloadJSON, &webhookPayload); err != nil {
+		logger.Error("failed to unmarshal webhook payload", "error", err)
 		return fmt.Errorf("unmarshal webhook payload: %w", err)
 	}
 
@@ -64,39 +79,52 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		Payload:      webhookPayload,
 	}
 
+	// Run dispatcher: match triggers, evaluate rules, select agents.
+	logger.Info("dispatcher starting")
 	dispatches, err := handler.dispatcher.Run(ctx, input)
 	if err != nil {
-		slog.Error("router dispatch failed", "error", err, "delivery_id", payload.DeliveryID)
+		logger.Error("dispatcher failed", "error", err)
 		return fmt.Errorf("router dispatch: %w", err)
 	}
 
 	if len(dispatches) == 0 {
-		slog.Info("router dispatch: no agents dispatched",
-			"event", payload.EventType+"."+payload.EventAction,
-			"delivery_id", payload.DeliveryID)
+		logger.Info("dispatcher matched no agents")
 		return nil
 	}
 
-	// Run enrichment for new conversations (best effort).
-	handler.runEnrichment(ctx, dispatches, input)
+	// Log each dispatch decision.
+	for dispatchIndex, agentDispatch := range dispatches {
+		logger.Info("dispatcher selected agent",
+			"dispatch_index", dispatchIndex,
+			"agent_id", agentDispatch.AgentID,
+			"routing_mode", agentDispatch.RoutingMode,
+			"run_intent", agentDispatch.RunIntent,
+			"priority", agentDispatch.Priority,
+			"resource_key", agentDispatch.ResourceKey,
+			"trigger_id", agentDispatch.RouterTriggerID,
+			"ref_count", len(agentDispatch.Refs),
+		)
+	}
 
+	// Run enrichment for new conversations (best effort).
+	handler.runEnrichment(ctx, logger, dispatches, input)
+
+	// Execute: create or continue Bridge conversations.
+	logger.Info("executor starting", "dispatch_count", len(dispatches))
 	if err := handler.executor.Execute(ctx, dispatches); err != nil {
-		slog.Error("router executor failed", "error", err, "delivery_id", payload.DeliveryID)
+		logger.Error("executor failed", "error", err)
 		return fmt.Errorf("router execute: %w", err)
 	}
 
-	slog.Info("router dispatch complete",
-		"event", payload.EventType+"."+payload.EventAction,
-		"delivery_id", payload.DeliveryID,
-		"agents", len(dispatches))
-
+	logger.Info("pipeline complete", "agents_dispatched", len(dispatches))
 	return nil
 }
 
 // runEnrichment gathers context for new conversations. Failures are logged but
 // never prevent the specialist from running.
-func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, dispatches []dispatch.AgentDispatch, input dispatch.RouterDispatchInput) {
+func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, logger *slog.Logger, dispatches []dispatch.AgentDispatch, input dispatch.RouterDispatchInput) {
 	if handler.enricher == nil {
+		logger.Debug("enrichment skipped: no enrichment agent configured")
 		return
 	}
 
@@ -109,18 +137,24 @@ func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, dispatc
 		}
 	}
 	if !hasNewConversations {
+		logger.Debug("enrichment skipped: all dispatches are continuations")
 		return
 	}
 
 	// Load all org connections for enrichment.
 	connections, err := handler.dispatcher.LoadConnections(ctx, input.OrgID)
 	if err != nil {
-		slog.Warn("enrichment: failed to load connections", "error", err)
+		logger.Warn("enrichment skipped: failed to load connections", "error", err)
 		return
 	}
 	if len(connections) == 0 {
+		logger.Warn("enrichment skipped: no connections available")
 		return
 	}
+
+	logger.Info("enrichment starting",
+		"connections_available", len(connections),
+	)
 
 	// Use refs from the first dispatch (all dispatches share the same event).
 	refs := dispatches[0].Refs
@@ -134,37 +168,48 @@ func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, dispatc
 		Connections: connections,
 	}
 
-	// The enrichment agent needs a CompletionClient. For now, we skip enrichment
-	// if no client is available. In production, credential resolution is wired
-	// via the CredentialResolver set on the handler.
 	if handler.credentialResolver == nil {
+		logger.Warn("enrichment skipped: no credential resolver configured")
 		return
 	}
 	client, modelID, providerGroup, resolveErr := handler.credentialResolver(ctx, input.OrgID.String())
 	if resolveErr != nil {
-		slog.Warn("enrichment: no LLM credential available", "org", input.OrgID, "error", resolveErr)
+		logger.Warn("enrichment skipped: credential resolution failed",
+			"error", resolveErr,
+		)
 		return
 	}
 
-	result, enrichErr := handler.enricher.Enrich(ctx, client, modelID, providerGroup, enrichInput)
+	logger.Info("enrichment credential resolved",
+		"model", modelID,
+		"provider_group", providerGroup,
+	)
+
+	result, enrichErr := handler.enricher.Enrich(ctx, client, modelID, providerGroup, enrichInput, logger)
 	if enrichErr != nil {
-		slog.Warn("enrichment: agent failed", "error", enrichErr)
+		logger.Warn("enrichment failed", "error", enrichErr)
 		return
 	}
 
 	if result.ComposedMessage == "" {
+		logger.Warn("enrichment produced empty message")
 		return
 	}
 
 	// Apply the enriched message to all new-conversation dispatches.
+	enrichedCount := 0
 	for index := range dispatches {
 		if dispatches[index].RunIntent == "normal" {
 			dispatches[index].EnrichedMessage = result.ComposedMessage
+			enrichedCount++
 		}
 	}
 
-	slog.Info("enrichment: complete",
-		"fetches", result.FetchCount,
-		"turns", result.TurnCount,
-		"latency_ms", result.LatencyMs)
+	logger.Info("enrichment complete",
+		"fetch_count", result.FetchCount,
+		"turn_count", result.TurnCount,
+		"latency_ms", result.LatencyMs,
+		"composed_message_bytes", len(result.ComposedMessage),
+		"dispatches_enriched", enrichedCount,
+	)
 }

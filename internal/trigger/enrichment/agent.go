@@ -60,13 +60,30 @@ func NewEnrichmentAgent(nangoClient *nango.Client, actionsCatalog *catalog.Catal
 // group are passed per-call because they are resolved from the org's
 // credentials at runtime. The provider group ("anthropic", "openai", "gemini",
 // etc.) selects the provider-optimized system prompt.
-func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.CompletionClient, modelID string, providerGroup string, input EnrichmentInput) (*EnrichmentResult, error) {
+func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.CompletionClient, modelID string, providerGroup string, input EnrichmentInput, logger *slog.Logger) (*EnrichmentResult, error) {
 	started := time.Now()
 
 	// Build connection lookup maps.
 	connMap := make(map[string]zira.ConnectionWithActions, len(input.Connections))
 	for _, conn := range input.Connections {
 		connMap[conn.Connection.ID.String()] = conn
+	}
+
+	// Log available connections and their action counts.
+	for connID, conn := range connMap {
+		logger.Debug("enrichment: connection available",
+			"conn_id", connID,
+			"provider", conn.Provider,
+			"read_actions", len(conn.ReadActions),
+		)
+	}
+
+	// Log refs.
+	for refKey, refValue := range input.Refs {
+		logger.Debug("enrichment: ref",
+			"key", refKey,
+			"value", refValue,
+		)
 	}
 
 	// Shared state accumulated by tool handlers.
@@ -76,20 +93,38 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 
 	// Build tool handlers.
 	handlers := map[string]zira.ToolHandler{
-		"fetch": agent.newFetchHandler(ctx, input.OrgID, connMap, &fetchResults, &fetchCount),
-		"compose": newComposeHandler(&composedMessage),
+		"fetch":   agent.newFetchHandler(ctx, input.OrgID, connMap, &fetchResults, &fetchCount, logger),
+		"compose": newComposeHandler(&composedMessage, logger),
 	}
 
 	// Build tool definitions.
 	tools := buildEnrichmentToolDefs(input.Connections)
 
 	// Build messages with provider-optimized prompt.
+	systemPrompt := getEnrichmentPrompt(providerGroup)
+	userMessage := buildUserMessage(input)
+
+	logger.Debug("enrichment: system prompt selected",
+		"provider_group", providerGroup,
+		"prompt_bytes", len(systemPrompt),
+	)
+	logger.Debug("enrichment: user message built",
+		"message_bytes", len(userMessage),
+	)
+
 	messages := []zira.Message{
-		{Role: "system", Content: getEnrichmentPrompt(providerGroup)},
-		{Role: "user", Content: buildUserMessage(input)},
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userMessage},
 	}
 
 	for turn := 0; turn < agent.maxTurns; turn++ {
+		turnStart := time.Now()
+		logger.Info("enrichment: llm turn starting",
+			"turn", turn+1,
+			"max_turns", agent.maxTurns,
+			"message_count", len(messages),
+		)
+
 		resp, err := client.ChatCompletion(ctx, zira.CompletionRequest{
 			Model:      modelID,
 			Messages:   messages,
@@ -98,14 +133,41 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 			MaxTokens:  4096,
 		})
 		if err != nil {
+			logger.Error("enrichment: llm call failed",
+				"turn", turn+1,
+				"error", err,
+				"latency_ms", time.Since(turnStart).Milliseconds(),
+			)
 			return nil, fmt.Errorf("enrichment agent turn %d: %w", turn+1, err)
 		}
 
+		llmLatency := time.Since(turnStart).Milliseconds()
 		assistantMsg := resp.Message
+
 		if len(assistantMsg.ToolCalls) == 0 {
-			slog.Warn("enrichment agent produced text instead of tool calls",
-				"turn", turn+1, "content", truncateString(assistantMsg.Content, 100))
+			logger.Warn("enrichment: llm produced text instead of tool calls",
+				"turn", turn+1,
+				"content", truncateString(assistantMsg.Content, 200),
+				"llm_latency_ms", llmLatency,
+			)
 			break
+		}
+
+		logger.Info("enrichment: llm turn complete",
+			"turn", turn+1,
+			"tool_calls", len(assistantMsg.ToolCalls),
+			"llm_latency_ms", llmLatency,
+		)
+
+		// Log each tool call the LLM made.
+		for callIndex, toolCall := range assistantMsg.ToolCalls {
+			logger.Info("enrichment: tool call",
+				"turn", turn+1,
+				"call_index", callIndex,
+				"tool", toolCall.Name,
+				"call_id", toolCall.ID,
+				"arguments", truncateString(toolCall.Arguments, 500),
+			)
 		}
 
 		messages = append(messages, assistantMsg)
@@ -113,6 +175,10 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 		for _, toolCall := range assistantMsg.ToolCalls {
 			handler, ok := handlers[toolCall.Name]
 			if !ok {
+				logger.Warn("enrichment: unknown tool called",
+					"tool", toolCall.Name,
+					"call_id", toolCall.ID,
+				)
 				messages = append(messages, zira.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
@@ -122,8 +188,17 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 				continue
 			}
 
+			handlerStart := time.Now()
 			result, done, handlerErr := handler(ctx, toolCall.ID, json.RawMessage(toolCall.Arguments))
+			handlerLatency := time.Since(handlerStart).Milliseconds()
+
 			if handlerErr != nil {
+				logger.Warn("enrichment: tool handler error",
+					"tool", toolCall.Name,
+					"call_id", toolCall.ID,
+					"error", handlerErr,
+					"handler_latency_ms", handlerLatency,
+				)
 				messages = append(messages, zira.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
@@ -133,6 +208,14 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 				continue
 			}
 
+			logger.Info("enrichment: tool handler success",
+				"tool", toolCall.Name,
+				"call_id", toolCall.ID,
+				"result_bytes", len(result),
+				"done", done,
+				"handler_latency_ms", handlerLatency,
+			)
+
 			messages = append(messages, zira.Message{
 				Role:       "tool",
 				ToolCallID: toolCall.ID,
@@ -141,26 +224,40 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client zira.Completion
 			})
 
 			if done {
+				totalLatency := int(time.Since(started).Milliseconds())
+				logger.Info("enrichment: finished via compose",
+					"total_turns", turn+1,
+					"total_fetches", fetchCount,
+					"composed_message_bytes", len(composedMessage),
+					"total_latency_ms", totalLatency,
+				)
 				return &EnrichmentResult{
 					ComposedMessage: composedMessage,
 					FetchCount:      fetchCount,
 					TurnCount:       turn + 1,
-					LatencyMs:       int(time.Since(started).Milliseconds()),
+					LatencyMs:       totalLatency,
 				}, nil
 			}
 		}
 	}
 
 	// Max turns reached without compose — fallback.
+	totalLatency := int(time.Since(started).Milliseconds())
 	if composedMessage == "" {
 		composedMessage = buildFallbackMessage(input, fetchResults)
+		logger.Warn("enrichment: max turns reached, using fallback compose",
+			"max_turns", agent.maxTurns,
+			"total_fetches", fetchCount,
+			"fallback_message_bytes", len(composedMessage),
+			"total_latency_ms", totalLatency,
+		)
 	}
 
 	return &EnrichmentResult{
 		ComposedMessage: composedMessage,
 		FetchCount:      fetchCount,
 		TurnCount:       agent.maxTurns,
-		LatencyMs:       int(time.Since(started).Milliseconds()),
+		LatencyMs:       totalLatency,
 	}, nil
 }
 
@@ -179,6 +276,7 @@ func (agent *EnrichmentAgent) newFetchHandler(
 	connMap map[string]zira.ConnectionWithActions,
 	fetchResults *[]fetchResultEntry,
 	fetchCount *int,
+	logger *slog.Logger,
 ) zira.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
@@ -196,6 +294,10 @@ func (agent *EnrichmentAgent) newFetchHandler(
 			for connID, connEntry := range connMap {
 				available = append(available, fmt.Sprintf("%s (%s)", connID, connEntry.Provider))
 			}
+			logger.Warn("enrichment: fetch connection not found",
+				"requested_conn_id", args.ConnectionID,
+				"available", strings.Join(available, ", "),
+			)
 			return "", false, fmt.Errorf("connection %q not found. Available: %s", args.ConnectionID, strings.Join(available, ", "))
 		}
 
@@ -205,12 +307,26 @@ func (agent *EnrichmentAgent) newFetchHandler(
 			for actionKey := range conn.ReadActions {
 				available = append(available, actionKey)
 			}
+			logger.Warn("enrichment: fetch action not found",
+				"provider", conn.Provider,
+				"requested_action", args.Action,
+				"available", strings.Join(available, ", "),
+			)
 			return "", false, fmt.Errorf("action %q not found for %s. Available: %s", args.Action, conn.Provider, strings.Join(available, ", "))
 		}
+
+		paramsJSON, _ := json.Marshal(args.Params)
+		logger.Info("enrichment: fetch executing",
+			"provider", conn.Provider,
+			"action", args.Action,
+			"conn_id", args.ConnectionID,
+			"params", string(paramsJSON),
+		)
 
 		providerCfgKey := fmt.Sprintf("%s_%s", orgID.String(), conn.Connection.Integration.UniqueKey)
 		nangoConnID := conn.Connection.NangoConnectionID
 
+		fetchStart := time.Now()
 		result, err := mcpserver.ExecuteAction(
 			ctx,
 			agent.nangoClient,
@@ -221,12 +337,28 @@ func (agent *EnrichmentAgent) newFetchHandler(
 			args.Params,
 			nil, // no resource access restrictions for enrichment
 		)
+		fetchLatency := time.Since(fetchStart).Milliseconds()
+
 		if err != nil {
+			logger.Warn("enrichment: fetch failed",
+				"provider", conn.Provider,
+				"action", args.Action,
+				"error", err,
+				"fetch_latency_ms", fetchLatency,
+			)
 			return fmt.Sprintf("Fetch failed: %s", err.Error()), false, nil
 		}
 
 		resultJSON, _ := json.Marshal(result)
 		resultStr := truncateString(string(resultJSON), 4000)
+
+		logger.Info("enrichment: fetch success",
+			"provider", conn.Provider,
+			"action", args.Action,
+			"response_bytes", len(resultJSON),
+			"truncated_bytes", len(resultStr),
+			"fetch_latency_ms", fetchLatency,
+		)
 
 		*fetchResults = append(*fetchResults, fetchResultEntry{Action: args.Action, Result: resultStr})
 		*fetchCount++
@@ -235,7 +367,7 @@ func (agent *EnrichmentAgent) newFetchHandler(
 	}
 }
 
-func newComposeHandler(composedMessage *string) zira.ToolHandler {
+func newComposeHandler(composedMessage *string, logger *slog.Logger) zira.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			Message string `json:"message"`
@@ -247,6 +379,12 @@ func newComposeHandler(composedMessage *string) zira.ToolHandler {
 			return "", false, fmt.Errorf("message is required")
 		}
 		*composedMessage = args.Message
+
+		logger.Info("enrichment: compose called",
+			"message_bytes", len(args.Message),
+			"message_preview", truncateString(args.Message, 300),
+		)
+
 		return "Message composed.", true, nil
 	}
 }
