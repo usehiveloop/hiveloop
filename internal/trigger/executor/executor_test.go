@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
 )
 
 func TestGroupByPriority_SinglePriority(t *testing.T) {
@@ -75,17 +74,31 @@ func TestBuildInstructions_NoPersona(t *testing.T) {
 	}
 }
 
-func TestBuildInstructions_WithEnrichmentPlan(t *testing.T) {
+func TestBuildInstructions_WithEnrichedMessage(t *testing.T) {
 	agentDispatch := dispatch.AgentDispatch{
-		Refs: map[string]string{"channel": "C123"},
-		EnrichmentPlan: []zira.PlannedEnrichment{
-			{As: "pr", Action: "pulls_get"},
-			{As: "diff", Action: "pulls_get_diff"},
-		},
+		RouterPersona:   "You are Zira.",
+		Refs:            map[string]string{"channel": "C123"},
+		EnrichedMessage: "## PR #87: Auth refactor\n\nFull context here.",
 	}
 	instructions := buildInstructions(agentDispatch)
-	if !containsString(instructions, "2 enrichment steps") {
-		t.Error("instructions should mention enrichment steps count")
+	if !containsString(instructions, "PR #87: Auth refactor") {
+		t.Error("instructions should contain enriched message")
+	}
+	if !containsString(instructions, "You are Zira") {
+		t.Error("instructions should still contain persona")
+	}
+	if containsString(instructions, "C123") {
+		t.Error("instructions should not contain flat refs when enriched message is present")
+	}
+}
+
+func TestBuildInstructions_FallsBackToRefsWithoutEnrichment(t *testing.T) {
+	agentDispatch := dispatch.AgentDispatch{
+		Refs: map[string]string{"channel": "C123"},
+	}
+	instructions := buildInstructions(agentDispatch)
+	if !containsString(instructions, "C123") {
+		t.Error("instructions should contain flat refs when no enrichment")
 	}
 }
 

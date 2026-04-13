@@ -41,6 +41,9 @@ type AgentDispatch struct {
 	MemoryTeam      string
 	Refs            map[string]string
 
+	// Set by the enrichment agent — replaces flat refs in instructions.
+	EnrichedMessage string
+
 	// For "continue" intent — the existing conversation to send to.
 	ExistingConversationID string
 	ExistingSandboxID      uuid.UUID
@@ -215,6 +218,12 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 	}
 
 	return allDispatches, nil
+}
+
+// LoadConnections loads all org connections with their read actions.
+// Used by the enrichment agent to know what integrations are available.
+func (dispatcher *RouterDispatcher) LoadConnections(ctx context.Context, orgID uuid.UUID) ([]zira.ConnectionWithActions, error) {
+	return dispatcher.store.LoadOrgConnections(ctx, orgID, uuid.Nil)
 }
 
 // --------------------------------------------------------------------------

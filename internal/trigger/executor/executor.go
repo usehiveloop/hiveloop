@@ -222,15 +222,15 @@ func buildInstructions(agentDispatch dispatch.AgentDispatch) string {
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// Event refs.
-	for key, value := range agentDispatch.Refs {
-		builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
+	// Prefer enriched message over flat refs.
+	if agentDispatch.EnrichedMessage != "" {
+		builder.WriteString(agentDispatch.EnrichedMessage)
+		return builder.String()
 	}
 
-	// Enrichment plan note (executor will substitute {{step.field}} after fetches).
-	if len(agentDispatch.EnrichmentPlan) > 0 {
-		builder.WriteString(fmt.Sprintf("\n[%d enrichment steps planned — context will be populated by executor]\n",
-			len(agentDispatch.EnrichmentPlan)))
+	// Fallback: flat refs.
+	for key, value := range agentDispatch.Refs {
+		builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
 	}
 
 	return builder.String()
