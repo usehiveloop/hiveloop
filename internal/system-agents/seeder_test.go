@@ -83,9 +83,8 @@ func TestYAMLDefinitions_AllParseable(t *testing.T) {
 		}
 	}
 
-	// We expect 6 agent types x 6 providers = 36 definitions.
-	// (architect, eval-designer, context-gatherer, judge, planner, trigger-config-specialist)
-	if count != 36 {
-		t.Errorf("expected 36 YAML definitions, got %d", count)
+	// 6 agent types x 6 providers + 1 zira (anthropic only) = 37 definitions.
+	if count != 37 {
+		t.Errorf("expected 37 YAML definitions, got %d", count)
 	}
 }
