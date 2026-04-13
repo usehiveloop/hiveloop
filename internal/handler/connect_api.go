@@ -828,7 +828,7 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 		NangoConnectionID: req.NangoConnectionID,
 		IdentityID:        sess.IdentityID,
 		Meta:              meta,
-		WebhookConfigured: !providerRequiresWebhookConfig(integ.Provider),
+		WebhookConfigured: boolPtr(!providerRequiresWebhookConfig(integ.Provider)),
 	}
 
 	if err := h.db.Create(&conn).Error; err != nil {
