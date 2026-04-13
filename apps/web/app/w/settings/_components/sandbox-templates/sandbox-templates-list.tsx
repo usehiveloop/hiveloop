@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { extractErrorMessage } from "@/lib/api/error"
@@ -31,6 +30,10 @@ import {
   ContainerIcon,
   ArrowRight01Icon,
 } from "@hugeicons/core-free-icons"
+
+function isPublicTemplate(template: SandboxTemplate): boolean {
+  return !(template as Record<string, unknown>).org_id
+}
 
 export function SandboxTemplatesList() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -100,8 +103,8 @@ export function SandboxTemplatesList() {
           <Skeleton className="h-10 w-32" />
         </div>
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+          {[1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 w-full" />
           ))}
         </div>
       </div>
@@ -149,56 +152,72 @@ export function SandboxTemplatesList() {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              className="flex items-center justify-between rounded-lg border border-border p-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{template.name}</span>
-                    {getStatusBadge(template.build_status)}
+        <div className="space-y-1.5">
+          {templates.map((template) => {
+            const isPublic = isPublicTemplate(template)
+            const tags = Array.isArray((template as Record<string, unknown>).tags)
+              ? ((template as Record<string, unknown>).tags as string[])
+              : []
+
+            return (
+              <div
+                key={template.id}
+                className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{template.name}</span>
+                      {getStatusBadge(template.build_status)}
+                      {isPublic && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Public</Badge>
+                      )}
+                    </div>
+                    {tags.length > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {tags.map((tag) => (
+                          <span key={tag} className="text-[11px] text-muted-foreground">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {template.build_commands && template.build_commands.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate font-mono">
-                      {template.build_commands[0]}
-                    </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isPublic && template.build_status !== "ready" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleBuild(template)}
+                      loading={buildMutation.isPending}
+                      disabled={template.build_status === "building"}
+                    >
+                      <HugeiconsIcon icon={PlayCircleIcon} size={14} className="mr-1" />
+                      Build
+                    </Button>
+                  )}
+                  {!isPublic && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
+                        <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeletingTemplate(template)}
+                        >
+                          <HugeiconsIcon icon={Delete02Icon} size={14} className="mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                {template.build_status !== "ready" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleBuild(template)}
-                    loading={buildMutation.isPending}
-                    disabled={template.build_status === "building"}
-                  >
-                    <HugeiconsIcon icon={PlayCircleIcon} size={14} className="mr-1" />
-                    Build
-                  </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
-                    <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => setDeletingTemplate(template)}
-                    >
-                      <HugeiconsIcon icon={Delete02Icon} size={14} className="mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
