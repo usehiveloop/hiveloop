@@ -4010,14 +4010,14 @@ func (h *AdminHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 type adminCreateSandboxTemplateRequest struct {
-	Name          string   `json:"name"`
-	BuildCommands []string `json:"build_commands"`
-	Size          string   `json:"size"` // small, medium, large, xlarge
+	Name       string `json:"name"`
+	ExternalID string `json:"external_id"` // Daytona snapshot name (built via make build-templates)
+	Size       string `json:"size"`        // small, medium, large, xlarge
 }
 
 // CreateSandboxTemplate handles POST /admin/v1/sandbox-templates.
-// @Summary Create a public sandbox template
-// @Description Creates a new public (platform-wide) sandbox template.
+// @Summary Register a public sandbox template
+// @Description Registers a pre-built Daytona snapshot as a public (platform-wide) sandbox template.
 // @Tags admin
 // @Accept json
 // @Produce json
@@ -4039,6 +4039,12 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	externalID := strings.TrimSpace(req.ExternalID)
+	if externalID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "external_id is required (Daytona snapshot name)"})
+		return
+	}
+
 	size := req.Size
 	if size == "" {
 		size = "medium"
@@ -4048,15 +4054,13 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	buildCommands := strings.Join(req.BuildCommands, "\n")
-
 	tmpl := model.SandboxTemplate{
-		OrgID:         nil, // public template
-		Name:          name,
-		Size:          size,
-		BuildCommands: buildCommands,
-		BuildStatus:   "pending",
-		Config:        model.JSON{},
+		OrgID:       nil, // public template
+		Name:        name,
+		Size:        size,
+		ExternalID:  &externalID,
+		BuildStatus: "ready",
+		Config:      model.JSON{},
 	}
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
@@ -4064,7 +4068,7 @@ func (h *AdminHandler) CreateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	slog.Info("admin: public sandbox template created", "template_id", tmpl.ID, "name", name, "size", size)
+	slog.Info("admin: public sandbox template registered", "template_id", tmpl.ID, "name", name, "size", size, "external_id", externalID)
 	writeJSON(w, http.StatusCreated, toAdminSandboxTemplateResponse(tmpl))
 }
 
@@ -4095,15 +4099,15 @@ func (h *AdminHandler) GetSandboxTemplate(w http.ResponseWriter, r *http.Request
 }
 
 type adminUpdateSandboxTemplateRequest struct {
-	Name          *string    `json:"name,omitempty"`
-	Size          *string    `json:"size,omitempty"`
-	BuildCommands []string   `json:"build_commands,omitempty"`
-	Config        model.JSON `json:"config,omitempty"`
+	Name       *string    `json:"name,omitempty"`
+	Size       *string    `json:"size,omitempty"`
+	ExternalID *string    `json:"external_id,omitempty"` // Daytona snapshot name
+	Config     model.JSON `json:"config,omitempty"`
 }
 
 // UpdateSandboxTemplate handles PUT /admin/v1/sandbox-templates/{id}.
 // @Summary Update a sandbox template
-// @Description Updates sandbox template name, size, build commands, and configuration.
+// @Description Updates sandbox template name, size, external ID, and configuration.
 // @Tags admin
 // @Accept json
 // @Produce json
@@ -4127,12 +4131,7 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req struct {
-		Name          *string    `json:"name,omitempty"`
-		Size          *string    `json:"size,omitempty"`
-		BuildCommands []string   `json:"build_commands,omitempty"`
-		Config        model.JSON `json:"config,omitempty"`
-	}
+	var req adminUpdateSandboxTemplateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
@@ -4155,11 +4154,14 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 		}
 		updates["size"] = *req.Size
 	}
-	if req.BuildCommands != nil {
-		updates["build_commands"] = strings.Join(req.BuildCommands, "\n")
-		updates["build_status"] = "pending"
-		updates["external_id"] = nil
-		updates["build_error"] = nil
+	if req.ExternalID != nil {
+		extID := strings.TrimSpace(*req.ExternalID)
+		if extID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "external_id cannot be empty"})
+			return
+		}
+		updates["external_id"] = extID
+		updates["build_status"] = "ready"
 	}
 	if req.Config != nil {
 		updates["config"] = req.Config
@@ -4183,126 +4185,6 @@ func (h *AdminHandler) UpdateSandboxTemplate(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, toAdminSandboxTemplateResponse(tmpl))
 }
 
-// TriggerSandboxTemplateBuild handles POST /admin/v1/sandbox-templates/{id}/build.
-// @Summary Trigger a sandbox template build
-// @Description Enqueues an async build job for the template.
-// @Tags admin
-// @Produce json
-// @Param id path string true "Template ID"
-// @Success 202 {object} adminSandboxTemplateResponse
-// @Failure 404 {object} errorResponse
-// @Failure 409 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/sandbox-templates/{id}/build [post]
-func (h *AdminHandler) TriggerSandboxTemplateBuild(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	var tmpl model.SandboxTemplate
-	if err := h.db.Where("id = ?", id).First(&tmpl).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox template not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox template"})
-		return
-	}
-
-	if tmpl.BuildStatus == "building" {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "build already in progress"})
-		return
-	}
-
-	if h.enqueuer == nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "build worker not configured"})
-		return
-	}
-
-	task, err := tasks.NewSandboxTemplateBuildTask(tmpl.ID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue build task"})
-		return
-	}
-	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue build task"})
-		return
-	}
-
-	h.db.Model(&tmpl).Update("build_status", "building")
-	tmpl.BuildStatus = "building"
-
-	slog.Info("admin: sandbox template build triggered", "template_id", id)
-	writeJSON(w, http.StatusAccepted, toAdminSandboxTemplateResponse(tmpl))
-}
-
-// RetrySandboxTemplateBuild handles POST /admin/v1/sandbox-templates/{id}/retry.
-// @Summary Retry a sandbox template build
-// @Description Deletes the existing snapshot and starts a new build. Can optionally update build commands.
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Param id path string true "Template ID"
-// @Success 202 {object} adminSandboxTemplateResponse
-// @Failure 404 {object} errorResponse
-// @Failure 409 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /admin/v1/sandbox-templates/{id}/retry [post]
-func (h *AdminHandler) RetrySandboxTemplateBuild(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	var tmpl model.SandboxTemplate
-	if err := h.db.Where("id = ?", id).First(&tmpl).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox template not found"})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get sandbox template"})
-		return
-	}
-
-	if tmpl.BuildStatus == "building" {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "build already in progress"})
-		return
-	}
-
-	if h.enqueuer == nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "build worker not configured"})
-		return
-	}
-
-	var req struct {
-		BuildCommands []string `json:"build_commands,omitempty"`
-	}
-	if r.ContentLength > 0 {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-			return
-		}
-	}
-
-	h.db.Model(&tmpl).Updates(map[string]any{
-		"build_status": "building",
-		"build_error":  nil,
-		"build_logs":   "",
-	})
-	tmpl.BuildStatus = "building"
-	tmpl.BuildError = nil
-	tmpl.BuildLogs = ""
-
-	task, err := tasks.NewSandboxTemplateRetryBuildTask(tmpl.ID, req.BuildCommands)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue retry task"})
-		return
-	}
-	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue retry task"})
-		return
-	}
-
-	slog.Info("admin: sandbox template build retry triggered", "template_id", id)
-	writeJSON(w, http.StatusAccepted, toAdminSandboxTemplateResponse(tmpl))
-}
 
 // ---------------------------------------------------------------------------
 // Helpers

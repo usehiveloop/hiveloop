@@ -562,8 +562,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Get("/sandbox-templates/{id}", adminHandler.GetSandboxTemplate)
 			r.Put("/sandbox-templates/{id}", adminHandler.UpdateSandboxTemplate)
 			r.Delete("/sandbox-templates/{id}", adminHandler.DeleteSandboxTemplate)
-			r.Post("/sandbox-templates/{id}/build", adminHandler.TriggerSandboxTemplateBuild)
-			r.Post("/sandbox-templates/{id}/retry", adminHandler.RetrySandboxTemplateBuild)
 			r.Get("/conversations", adminHandler.ListConversations)
 			r.Get("/conversations/{id}", adminHandler.GetConversation)
 			r.Delete("/conversations/{id}", adminHandler.EndConversation)

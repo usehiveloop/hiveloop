@@ -489,10 +489,9 @@ definitions:
     type: object
   internal_handler.adminCreateSandboxTemplateRequest:
     properties:
-      build_commands:
-        items:
-          type: string
-        type: array
+      external_id:
+        description: Daytona snapshot name (built via make build-templates)
+        type: string
       name:
         type: string
       size:
@@ -954,12 +953,11 @@ definitions:
     type: object
   internal_handler.adminUpdateSandboxTemplateRequest:
     properties:
-      build_commands:
-        items:
-          type: string
-        type: array
       config:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      external_id:
+        description: Daytona snapshot name
+        type: string
       name:
         type: string
       size:
@@ -5077,7 +5075,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new public (platform-wide) sandbox template.
+      description: Registers a pre-built Daytona snapshot as a public (platform-wide)
+        sandbox template.
       parameters:
       - description: Template details
         in: body
@@ -5098,7 +5097,7 @@ paths:
             $ref: '#/definitions/internal_handler.errorResponse'
       security:
       - BearerAuth: []
-      summary: Create a public sandbox template
+      summary: Register a public sandbox template
       tags:
       - admin
   /admin/v1/sandbox-templates/{id}:
@@ -5155,7 +5154,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates sandbox template name, size, build commands, and configuration.
+      description: Updates sandbox template name, size, external ID, and configuration.
       parameters:
       - description: Template ID
         in: path
@@ -5186,75 +5185,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a sandbox template
-      tags:
-      - admin
-  /admin/v1/sandbox-templates/{id}/build:
-    post:
-      description: Enqueues an async build job for the template.
-      parameters:
-      - description: Template ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            $ref: '#/definitions/internal_handler.adminSandboxTemplateResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Trigger a sandbox template build
-      tags:
-      - admin
-  /admin/v1/sandbox-templates/{id}/retry:
-    post:
-      consumes:
-      - application/json
-      description: Deletes the existing snapshot and starts a new build. Can optionally
-        update build commands.
-      parameters:
-      - description: Template ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            $ref: '#/definitions/internal_handler.adminSandboxTemplateResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Retry a sandbox template build
       tags:
       - admin
   /admin/v1/sandboxes:

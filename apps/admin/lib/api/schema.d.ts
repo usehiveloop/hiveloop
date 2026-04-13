@@ -2465,8 +2465,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Create a public sandbox template
-         * @description Creates a new public (platform-wide) sandbox template.
+         * Register a public sandbox template
+         * @description Registers a pre-built Daytona snapshot as a public (platform-wide) sandbox template.
          */
         post: {
             parameters: {
@@ -2553,7 +2553,7 @@ export interface paths {
         };
         /**
          * Update a sandbox template
-         * @description Updates sandbox template name, size, build commands, and configuration.
+         * @description Updates sandbox template name, size, external ID, and configuration.
          */
         put: {
             parameters: {
@@ -2640,144 +2640,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/sandbox-templates/{id}/build": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger a sandbox template build
-         * @description Enqueues an async build job for the template.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Template ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Accepted */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/sandbox-templates/{id}/retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Retry a sandbox template build
-         * @description Deletes the existing snapshot and starts a new build. Can optionally update build commands.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Template ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Accepted */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["adminSandboxTemplateResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -14132,7 +13994,8 @@ export interface components {
             provider?: string;
         };
         adminCreateSandboxTemplateRequest: {
-            build_commands?: string[];
+            /** @description Daytona snapshot name (built via make build-templates) */
+            external_id?: string;
             name?: string;
             /** @description small, medium, large, xlarge */
             size?: string;
@@ -14370,8 +14233,9 @@ export interface components {
             rate_limit?: number;
         };
         adminUpdateSandboxTemplateRequest: {
-            build_commands?: string[];
             config?: components["schemas"]["JSON"];
+            /** @description Daytona snapshot name */
+            external_id?: string;
             name?: string;
             size?: string;
         };

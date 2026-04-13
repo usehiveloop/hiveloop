@@ -2752,11 +2752,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new public (platform-wide) sandbox template.",
+        "description": "Registers a pre-built Daytona snapshot as a public (platform-wide) sandbox template.",
         "tags": [
           "admin"
         ],
-        "summary": "Create a public sandbox template",
+        "summary": "Register a public sandbox template",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2844,7 +2844,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Updates sandbox template name, size, build commands, and configuration.",
+        "description": "Updates sandbox template name, size, external ID, and configuration.",
         "tags": [
           "admin"
         ],
@@ -2942,140 +2942,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/v1/sandbox-templates/{id}/build": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Enqueues an async build job for the template.",
-        "tags": [
-          "admin"
-        ],
-        "summary": "Trigger a sandbox template build",
-        "parameters": [
-          {
-            "description": "Template ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminSandboxTemplateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/v1/sandbox-templates/{id}/retry": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Deletes the existing snapshot and starts a new build. Can optionally update build commands.",
-        "tags": [
-          "admin"
-        ],
-        "summary": "Retry a sandbox template build",
-        "parameters": [
-          {
-            "description": "Template ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminSandboxTemplateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -15430,11 +15296,9 @@
       "adminCreateSandboxTemplateRequest": {
         "type": "object",
         "properties": {
-          "build_commands": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "external_id": {
+            "description": "Daytona snapshot name (built via make build-templates)",
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -16140,14 +16004,12 @@
       "adminUpdateSandboxTemplateRequest": {
         "type": "object",
         "properties": {
-          "build_commands": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "config": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "external_id": {
+            "description": "Daytona snapshot name",
+            "type": "string"
           },
           "name": {
             "type": "string"

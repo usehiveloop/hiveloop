@@ -2366,7 +2366,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new public (platform-wide) sandbox template.",
+                "description": "Registers a pre-built Daytona snapshot as a public (platform-wide) sandbox template.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2376,7 +2376,7 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
-                "summary": "Create a public sandbox template",
+                "summary": "Register a public sandbox template",
                 "parameters": [
                     {
                         "description": "Template details",
@@ -2449,7 +2449,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates sandbox template name, size, build commands, and configuration.",
+                "description": "Updates sandbox template name, size, external ID, and configuration.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2534,113 +2534,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/v1/sandbox-templates/{id}/build": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Enqueues an async build job for the template.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Trigger a sandbox template build",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/v1/sandbox-templates/{id}/retry": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes the existing snapshot and starts a new build. Can optionally update build commands.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Retry a sandbox template build",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Template ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -12866,11 +12759,9 @@ const docTemplate = `{
         "internal_handler.adminCreateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
-                "build_commands": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "external_id": {
+                    "description": "Daytona snapshot name (built via make build-templates)",
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -13576,14 +13467,12 @@ const docTemplate = `{
         "internal_handler.adminUpdateSandboxTemplateRequest": {
             "type": "object",
             "properties": {
-                "build_commands": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "external_id": {
+                    "description": "Daytona snapshot name",
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"

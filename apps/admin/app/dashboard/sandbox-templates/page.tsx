@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -57,13 +56,13 @@ type ScopeFilter = "all" | "public"
 
 interface CreateForm {
   name: string
-  buildCommands: string
+  externalId: string
   size: string
 }
 
 interface EditForm {
   name: string
-  buildCommands: string
+  externalId: string
   size: string
 }
 
@@ -91,7 +90,7 @@ export default function SandboxTemplatesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState<CreateForm>({
     name: "",
-    buildCommands: "",
+    externalId: "",
     size: "medium",
   })
 
@@ -101,16 +100,9 @@ export default function SandboxTemplatesPage() {
   )
   const [editForm, setEditForm] = useState<EditForm>({
     name: "",
-    buildCommands: "",
+    externalId: "",
     size: "medium",
   })
-
-  // Build logs dialog
-  const [logsTemplate, setLogsTemplate] = useState<{
-    id: string
-    name: string
-    logs: string
-  } | null>(null)
 
   const queryParams: Record<string, string> = {}
   if (buildStatusFilter !== "all") queryParams.build_status = buildStatusFilter
@@ -136,7 +128,7 @@ export default function SandboxTemplatesPage() {
       onSuccess: () => {
         invalidateList()
         setCreateOpen(false)
-        setCreateForm({ name: "", buildCommands: "", size: "medium" })
+        setCreateForm({ name: "", externalId: "", size: "medium" })
       },
     }
   )
@@ -163,27 +155,11 @@ export default function SandboxTemplatesPage() {
     }
   )
 
-  const buildMutation = $api.useMutation(
-    "post",
-    "/admin/v1/sandbox-templates/{id}/build",
-    { onSuccess: invalidateList }
-  )
-
-  const retryMutation = $api.useMutation(
-    "post",
-    "/admin/v1/sandbox-templates/{id}/retry",
-    { onSuccess: invalidateList }
-  )
-
   function handleCreate() {
-    const buildCommands = createForm.buildCommands
-      .split("\n")
-      .filter((line: string) => line.trim() !== "")
-
     createMutation.mutate({
       body: {
         name: createForm.name,
-        build_commands: buildCommands,
+        external_id: createForm.externalId,
         size: createForm.size,
       },
     })
@@ -192,7 +168,7 @@ export default function SandboxTemplatesPage() {
   function openEditDialog(tpl: Record<string, string>) {
     setEditForm({
       name: tpl.name || "",
-      buildCommands: tpl.build_commands || "",
+      externalId: tpl.external_id || "",
       size: tpl.size || "medium",
     })
     updateMutation.reset()
@@ -202,38 +178,18 @@ export default function SandboxTemplatesPage() {
   function handleEdit() {
     if (!editingTemplate) return
 
-    const buildCommands = editForm.buildCommands
-      .split("\n")
-      .filter((line: string) => line.trim() !== "")
-
     updateMutation.mutate({
       params: { path: { id: editingTemplate.id } },
       body: {
         name: editForm.name,
+        external_id: editForm.externalId,
         size: editForm.size,
-        build_commands: buildCommands,
       },
     })
   }
 
   function handleDelete(id: string) {
     deleteMutation.mutate({ params: { path: { id } } })
-  }
-
-  function handleBuild(id: string) {
-    buildMutation.mutate({ params: { path: { id } } })
-  }
-
-  function handleRetry(id: string) {
-    retryMutation.mutate({ params: { path: { id } } })
-  }
-
-  function handleViewLogs(tpl: Record<string, string>) {
-    setLogsTemplate({
-      id: tpl.id!,
-      name: tpl.name || tpl.id!,
-      logs: tpl.build_logs || "(no logs)",
-    })
   }
 
   const createError = createMutation.error
@@ -250,10 +206,10 @@ export default function SandboxTemplatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Sandbox Templates"
-        description="Manage sandbox templates across all organizations."
+        description="Register pre-built Daytona snapshots as public templates."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
-            Create Public Template
+            Register Public Template
           </Button>
         }
       />
@@ -312,7 +268,6 @@ export default function SandboxTemplatesPage() {
                 <TableHead>Scope</TableHead>
                 <TableHead>External ID</TableHead>
                 <TableHead>Build Status</TableHead>
-                <TableHead>Build Error</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
@@ -350,12 +305,6 @@ export default function SandboxTemplatesPage() {
                       "--"
                     )}
                   </TableCell>
-                  <TableCell
-                    className="max-w-xs truncate text-muted-foreground"
-                    title={tpl.build_error || undefined}
-                  >
-                    {tpl.build_error || "--"}
-                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     <TimeAgo date={tpl.created_at} />
                   </TableCell>
@@ -369,26 +318,6 @@ export default function SandboxTemplatesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEditDialog(tpl)}>
                           Edit
-                        </DropdownMenuItem>
-                        {(tpl.build_status === "pending" ||
-                          tpl.build_status === "ready") && (
-                          <DropdownMenuItem
-                            onClick={() => handleBuild(tpl.id!)}
-                          >
-                            Build
-                          </DropdownMenuItem>
-                        )}
-                        {tpl.build_status === "failed" && (
-                          <DropdownMenuItem
-                            onClick={() => handleRetry(tpl.id!)}
-                          >
-                            Retry Build
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => handleViewLogs(tpl)}
-                        >
-                          View Logs
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
@@ -411,7 +340,7 @@ export default function SandboxTemplatesPage() {
         </div>
       )}
 
-      {/* Create Public Template Dialog */}
+      {/* Register Public Template Dialog */}
       <Dialog
         open={createOpen}
         onOpenChange={(open) => {
@@ -421,10 +350,13 @@ export default function SandboxTemplatesPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create public template</DialogTitle>
+            <DialogTitle>Register public template</DialogTitle>
             <DialogDescription>
-              Create a platform-wide sandbox template available to all
-              organizations.
+              Register a pre-built Daytona snapshot as a public template.
+              Build snapshots first with{" "}
+              <code className="rounded bg-muted px-1 text-xs">
+                make build-templates
+              </code>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -439,7 +371,24 @@ export default function SandboxTemplatesPage() {
                     name: event.target.value,
                   }))
                 }
-                placeholder="e.g. Python ML Environment"
+                placeholder="e.g. Dev Box Medium"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-external-id">
+                External ID (Daytona snapshot name)
+              </Label>
+              <Input
+                id="create-external-id"
+                value={createForm.externalId}
+                onChange={(event) =>
+                  setCreateForm((form) => ({
+                    ...form,
+                    externalId: event.target.value,
+                  }))
+                }
+                placeholder="e.g. zira-dev-box-medium-v0.10.0"
+                className="font-mono"
               />
             </div>
             <div className="space-y-2">
@@ -462,23 +411,6 @@ export default function SandboxTemplatesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-commands">
-                Build Commands (one per line)
-              </Label>
-              <Textarea
-                id="create-commands"
-                value={createForm.buildCommands}
-                onChange={(event) =>
-                  setCreateForm((form) => ({
-                    ...form,
-                    buildCommands: event.target.value,
-                  }))
-                }
-                placeholder={"apt-get install -y python3\npip install numpy"}
-                rows={6}
-              />
-            </div>
             {createError && (
               <p className="text-sm text-destructive">{createError}</p>
             )}
@@ -491,7 +423,7 @@ export default function SandboxTemplatesPage() {
               onClick={handleCreate}
               disabled={createMutation.isPending}
             >
-              {createMutation.isPending ? "Creating..." : "Create Template"}
+              {createMutation.isPending ? "Registering..." : "Register Template"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -511,8 +443,7 @@ export default function SandboxTemplatesPage() {
           <DialogHeader>
             <DialogTitle>Edit sandbox template</DialogTitle>
             <DialogDescription>
-              Update the template details. Changing build commands will reset the
-              build status.
+              Update the template details.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -528,6 +459,22 @@ export default function SandboxTemplatesPage() {
                   }))
                 }
                 placeholder="Template name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-external-id">
+                External ID (Daytona snapshot name)
+              </Label>
+              <Input
+                id="edit-external-id"
+                value={editForm.externalId}
+                onChange={(event) =>
+                  setEditForm((form) => ({
+                    ...form,
+                    externalId: event.target.value,
+                  }))
+                }
+                className="font-mono"
               />
             </div>
             <div className="space-y-2">
@@ -549,22 +496,6 @@ export default function SandboxTemplatesPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-commands">
-                Build Commands (one per line)
-              </Label>
-              <Textarea
-                id="edit-commands"
-                value={editForm.buildCommands}
-                onChange={(event) =>
-                  setEditForm((form) => ({
-                    ...form,
-                    buildCommands: event.target.value,
-                  }))
-                }
-                rows={6}
-              />
             </div>
             {editError && (
               <p className="text-sm text-destructive">{editError}</p>
@@ -612,33 +543,6 @@ export default function SandboxTemplatesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Build Logs Dialog */}
-      <Dialog
-        open={!!logsTemplate}
-        onOpenChange={(open) => !open && setLogsTemplate(null)}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              Build Logs: {logsTemplate?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-96 overflow-auto rounded bg-muted p-4">
-            <pre className="whitespace-pre-wrap font-mono text-xs">
-              {logsTemplate?.logs}
-            </pre>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setLogsTemplate(null)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
