@@ -9,7 +9,6 @@ import { Add01Icon } from "@hugeicons/core-free-icons"
 import { CreateAgentProvider, useCreateAgent } from "./context"
 import { StepChooseMode } from "./step-choose-mode"
 import { StepSandboxType } from "./step-sandbox-type"
-import { StepSandboxTools } from "./step-sandbox-tools"
 import { StepIntegrations } from "./step-integrations"
 import { StepLlmKey } from "./step-llm-key"
 import { StepBasics } from "./step-basics"
@@ -48,7 +47,6 @@ function StepRouter() {
           {step === "marketplace-browse" && <StepMarketplaceBrowse />}
           {step === "marketplace-detail" && <StepMarketplaceDetail />}
           {step === "sandbox" && <StepSandboxType />}
-          {step === "sandbox-tools" && <StepSandboxTools />}
           {step === "integrations" && <StepIntegrations />}
           {step === "trigger" && <StepTrigger />}
           {step === "llm-key" && <StepLlmKey />}

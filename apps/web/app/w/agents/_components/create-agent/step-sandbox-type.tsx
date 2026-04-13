@@ -9,7 +9,7 @@ export function StepSandboxType() {
 
   function handleSelect(type: "shared" | "dedicated") {
     form.setValue("sandboxType", type)
-    goTo(type === "dedicated" ? "sandbox-tools" : "integrations")
+    goTo("integrations")
   }
 
   return (

@@ -3,7 +3,6 @@ export type CreationMode = "scratch" | "forge" | "marketplace"
 export type Step =
   | "mode"
   | "sandbox"
-  | "sandbox-tools"
   | "integrations"
   | "trigger"
   | "llm-key"
@@ -19,7 +18,6 @@ export type Step =
 export const scratchSteps: Step[] = [
   "mode",
   "sandbox",
-  "sandbox-tools",
   "integrations",
   "trigger",
   "llm-key",
@@ -33,7 +31,6 @@ export const scratchSteps: Step[] = [
 export const forgeSteps: Step[] = [
   "mode",
   "sandbox",
-  "sandbox-tools",
   "integrations",
   "trigger",
   "llm-key",
@@ -43,7 +40,6 @@ export const forgeSteps: Step[] = [
   "summary",
 ]
 
-export type SandboxToolId = string
 
 export const marketplaceSteps: Step[] = [
   "mode",
