@@ -206,7 +206,7 @@ func (h *SandboxTemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ? OR org_id IS NULL", org.ID)
+	q := h.db.Where("org_id = ?", org.ID)
 	q = applyPagination(q, cursor, limit)
 
 	var templates []model.SandboxTemplate
