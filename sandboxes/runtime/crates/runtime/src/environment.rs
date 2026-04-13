@@ -135,7 +135,7 @@ fn read_memory_used_mb() -> Option<u64> {
 fn read_cpu_cores() -> Option<f64> {
     // cgroup v2: /sys/fs/cgroup/cpu.max contains "QUOTA PERIOD" e.g. "200000 100000" = 2 cores
     if let Ok(content) = std::fs::read_to_string("/sys/fs/cgroup/cpu.max") {
-        let parts: Vec<&str> = content.trim().split_whitespace().collect();
+        let parts: Vec<&str> = content.split_whitespace().collect();
         if parts.len() == 2 && parts[0] != "max" {
             if let (Ok(quota), Ok(period)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
                 if period > 0.0 {
@@ -196,6 +196,7 @@ fn read_disk_stats(path: &str) -> Option<(f64, f64, f64)> {
 }
 
 #[cfg(unix)]
+#[allow(clippy::unnecessary_cast)]
 fn nix_statvfs(path: &Path) -> Option<(u64, u64)> {
     use std::ffi::CString;
     let c_path = CString::new(path.to_str()?).ok()?;
@@ -204,6 +205,7 @@ fn nix_statvfs(path: &Path) -> Option<(u64, u64)> {
     if ret != 0 {
         return None;
     }
+    // Casts needed: statvfs fields are u32 on macOS, u64 on Linux.
     let block_size = stat.f_frsize as u64;
     let total = stat.f_blocks as u64 * block_size;
     let available = stat.f_bavail as u64 * block_size;

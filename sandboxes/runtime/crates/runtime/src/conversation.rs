@@ -434,7 +434,7 @@ pub async fn run_conversation(params: ConversationParams) {
         // Append environment snapshot when standalone_agent is enabled.
         // Refreshes every 5 turns to keep resource numbers current without
         // paying the cost every single message.
-        if standalone_agent && turn_count % 5 == 0 {
+        if standalone_agent && turn_count.is_multiple_of(5) {
             let env_section = crate::environment::EnvironmentSnapshot::collect().format_reminder();
             if effective_reminder.is_empty() {
                 effective_reminder =
