@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/auth"
@@ -4181,4 +4182,342 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 		},
 		Orgs: orgs,
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Skills (global / org-scoped)
+// ---------------------------------------------------------------------------
+
+type adminSkillResponse struct {
+	ID           string   `json:"id"`
+	OrgID        *string  `json:"org_id"`
+	PublisherID  *string  `json:"publisher_id"`
+	Slug         string   `json:"slug"`
+	Name         string   `json:"name"`
+	Description  *string  `json:"description"`
+	SourceType   string   `json:"source_type"`
+	RepoURL      *string  `json:"repo_url"`
+	RepoSubpath  *string  `json:"repo_subpath"`
+	RepoRef      string   `json:"repo_ref"`
+	Tags         []string `json:"tags"`
+	InstallCount int      `json:"install_count"`
+	Featured     bool     `json:"featured"`
+	Status       string   `json:"status"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+}
+
+func toAdminSkillResponse(skill model.Skill) adminSkillResponse {
+	resp := adminSkillResponse{
+		ID:           skill.ID.String(),
+		Slug:         skill.Slug,
+		Name:         skill.Name,
+		Description:  skill.Description,
+		SourceType:   skill.SourceType,
+		RepoURL:      skill.RepoURL,
+		RepoSubpath:  skill.RepoSubpath,
+		RepoRef:      skill.RepoRef,
+		Tags:         skill.Tags,
+		InstallCount: skill.InstallCount,
+		Featured:     skill.Featured,
+		Status:       skill.Status,
+		CreatedAt:    skill.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    skill.UpdatedAt.Format(time.RFC3339),
+	}
+	if skill.OrgID != nil {
+		orgIDStr := skill.OrgID.String()
+		resp.OrgID = &orgIDStr
+	}
+	if skill.PublisherID != nil {
+		pubIDStr := skill.PublisherID.String()
+		resp.PublisherID = &pubIDStr
+	}
+	if resp.Tags == nil {
+		resp.Tags = []string{}
+	}
+	return resp
+}
+
+// ListSkills handles GET /admin/v1/skills.
+// @Summary List skills
+// @Description Lists all skills with optional filters.
+// @Tags admin
+// @Produce json
+// @Param status query string false "Filter by status"
+// @Param scope query string false "Filter scope (global)"
+// @Param source_type query string false "Filter by source type"
+// @Param q query string false "Search by name"
+// @Success 200 {object} paginatedResponse[adminSkillResponse]
+// @Security BearerAuth
+// @Router /admin/v1/skills [get]
+func (h *AdminHandler) ListSkills(w http.ResponseWriter, r *http.Request) {
+	limit, cursor, err := parsePagination(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	q := h.db.Model(&model.Skill{})
+	if orgID := r.URL.Query().Get("org_id"); orgID != "" {
+		q = q.Where("org_id = ?", orgID)
+	}
+	if scope := r.URL.Query().Get("scope"); scope == "global" {
+		q = q.Where("org_id IS NULL")
+	}
+	if status := r.URL.Query().Get("status"); status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if sourceType := r.URL.Query().Get("source_type"); sourceType != "" {
+		q = q.Where("source_type = ?", sourceType)
+	}
+	if search := r.URL.Query().Get("q"); search != "" {
+		q = q.Where("name ILIKE ? OR slug ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
+	q = applyPagination(q, cursor, limit)
+
+	var skills []model.Skill
+	if err := q.Find(&skills).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list skills"})
+		return
+	}
+
+	hasMore := len(skills) > limit
+	if hasMore {
+		skills = skills[:limit]
+	}
+
+	resp := make([]adminSkillResponse, len(skills))
+	for index, skill := range skills {
+		resp[index] = toAdminSkillResponse(skill)
+	}
+
+	result := paginatedResponse[adminSkillResponse]{Data: resp, HasMore: hasMore}
+	if hasMore {
+		last := skills[len(skills)-1]
+		cursorStr := encodeCursor(last.CreatedAt, last.ID)
+		result.NextCursor = &cursorStr
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+// GetSkill handles GET /admin/v1/skills/{id}.
+// @Summary Get skill details
+// @Description Returns a skill by ID.
+// @Tags admin
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Success 200 {object} adminSkillResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /admin/v1/skills/{id} [get]
+func (h *AdminHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var skill model.Skill
+	if err := h.db.Where("id = ?", id).First(&skill).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "skill not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get skill"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toAdminSkillResponse(skill))
+}
+
+type adminCreateSkillRequest struct {
+	Name        string   `json:"name"`
+	Description *string  `json:"description,omitempty"`
+	SourceType  string   `json:"source_type"` // "inline" or "git"
+	Tags        []string `json:"tags,omitempty"`
+	Status      string   `json:"status,omitempty"` // defaults to "published" for global skills
+	Featured    bool     `json:"featured,omitempty"`
+
+	// Git source
+	RepoURL     *string `json:"repo_url,omitempty"`
+	RepoSubpath *string `json:"repo_subpath,omitempty"`
+	RepoRef     *string `json:"repo_ref,omitempty"`
+}
+
+// CreateSkill handles POST /admin/v1/skills.
+// @Summary Create a global skill
+// @Description Creates a global skill (org_id = nil) visible to all users.
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param body body adminCreateSkillRequest true "Skill to create"
+// @Success 201 {object} adminSkillResponse
+// @Failure 400 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /admin/v1/skills [post]
+func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
+	var req adminCreateSkillRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.Name == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return
+	}
+	if req.SourceType == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "source_type is required (inline or git)"})
+		return
+	}
+	if req.SourceType != model.SkillSourceInline && req.SourceType != model.SkillSourceGit {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "source_type must be 'inline' or 'git'"})
+		return
+	}
+	if req.SourceType == model.SkillSourceGit && (req.RepoURL == nil || *req.RepoURL == "") {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "repo_url is required for git skills"})
+		return
+	}
+
+	status := req.Status
+	if status == "" {
+		status = model.SkillStatusPublished
+	}
+
+	slug := model.GenerateSlug(req.Name)
+	repoRef := "main"
+	if req.RepoRef != nil && *req.RepoRef != "" {
+		repoRef = *req.RepoRef
+	}
+
+	skill := model.Skill{
+		OrgID:       nil, // global skill
+		Slug:        slug,
+		Name:        req.Name,
+		Description: req.Description,
+		SourceType:  req.SourceType,
+		RepoURL:     req.RepoURL,
+		RepoSubpath: req.RepoSubpath,
+		RepoRef:     repoRef,
+		Tags:        req.Tags,
+		Featured:    req.Featured,
+		Status:      status,
+	}
+
+	if err := h.db.Create(&skill).Error; err != nil {
+		if isDuplicateKeyError(err) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "a skill with this name already exists"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create skill"})
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, toAdminSkillResponse(skill))
+}
+
+type adminUpdateSkillRequest struct {
+	Name        *string   `json:"name,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	Status      *string   `json:"status,omitempty"`
+	Featured    *bool     `json:"featured,omitempty"`
+	Tags        *[]string `json:"tags,omitempty"`
+	RepoRef     *string   `json:"repo_ref,omitempty"`
+}
+
+// UpdateSkill handles PUT /admin/v1/skills/{id}.
+// @Summary Update a skill
+// @Description Updates skill properties.
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Param body body adminUpdateSkillRequest true "Fields to update"
+// @Success 200 {object} adminSkillResponse
+// @Failure 404 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Security BearerAuth
+// @Router /admin/v1/skills/{id} [put]
+func (h *AdminHandler) UpdateSkill(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var skill model.Skill
+	if err := h.db.Where("id = ?", id).First(&skill).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "skill not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get skill"})
+		return
+	}
+
+	var req adminUpdateSkillRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	updates := map[string]any{}
+	if req.Name != nil {
+		updates["name"] = *req.Name
+		updates["slug"] = model.GenerateSlug(*req.Name)
+	}
+	if req.Description != nil {
+		updates["description"] = *req.Description
+	}
+	if req.Status != nil {
+		updates["status"] = *req.Status
+	}
+	if req.Featured != nil {
+		updates["featured"] = *req.Featured
+	}
+	if req.Tags != nil {
+		updates["tags"] = pq.StringArray(*req.Tags)
+	}
+	if req.RepoRef != nil {
+		updates["repo_ref"] = *req.RepoRef
+	}
+
+	if len(updates) > 0 {
+		if err := h.db.Model(&skill).Updates(updates).Error; err != nil {
+			if isDuplicateKeyError(err) {
+				writeJSON(w, http.StatusConflict, map[string]string{"error": "a skill with this name already exists"})
+				return
+			}
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update skill"})
+			return
+		}
+	}
+
+	h.db.Where("id = ?", id).First(&skill)
+	writeJSON(w, http.StatusOK, toAdminSkillResponse(skill))
+}
+
+// DeleteSkill handles DELETE /admin/v1/skills/{id}.
+// @Summary Delete a skill
+// @Description Permanently deletes a skill and all its versions.
+// @Tags admin
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Success 200 {object} map[string]string
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /admin/v1/skills/{id} [delete]
+func (h *AdminHandler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var skill model.Skill
+	if err := h.db.Where("id = ?", id).First(&skill).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "skill not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get skill"})
+		return
+	}
+
+	if err := h.db.Delete(&skill).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete skill"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

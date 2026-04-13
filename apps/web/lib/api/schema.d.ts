@@ -2830,6 +2830,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/v1/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List skills
+         * @description Lists all skills with optional filters.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status */
+                    status?: string;
+                    /** @description Filter scope (global) */
+                    scope?: string;
+                    /** @description Filter by source type */
+                    source_type?: string;
+                    /** @description Search by name */
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-adminSkillResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a global skill
+         * @description Creates a global skill (org_id = nil) visible to all users.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Skill to create */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminCreateSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSkillResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/v1/skills/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get skill details
+         * @description Returns a skill by ID.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSkillResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update a skill
+         * @description Updates skill properties.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["adminSkillResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a skill
+         * @description Permanently deletes a skill and all its versions.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/v1/stats": {
         parameters: {
             query?: never;
@@ -13647,6 +13878,20 @@ export interface components {
             meta?: components["schemas"]["JSON"];
             provider?: string;
         };
+        adminCreateSkillRequest: {
+            description?: string;
+            featured?: boolean;
+            name?: string;
+            repo_ref?: string;
+            repo_subpath?: string;
+            /** @description Git source */
+            repo_url?: string;
+            /** @description "inline" or "git" */
+            source_type?: string;
+            /** @description defaults to "published" for global skills */
+            status?: string;
+            tags?: string[];
+        };
         adminCredentialResponse: {
             created_at?: string;
             id?: string;
@@ -13770,6 +14015,24 @@ export interface components {
             name?: string;
             org_id?: string;
         };
+        adminSkillResponse: {
+            created_at?: string;
+            description?: string;
+            featured?: boolean;
+            id?: string;
+            install_count?: number;
+            name?: string;
+            org_id?: string;
+            publisher_id?: string;
+            repo_ref?: string;
+            repo_subpath?: string;
+            repo_url?: string;
+            slug?: string;
+            source_type?: string;
+            status?: string;
+            tags?: string[];
+            updated_at?: string;
+        };
         adminStatsResponse: {
             total_agents?: number;
             total_conversations_active?: number;
@@ -13844,6 +14107,14 @@ export interface components {
         adminUpdateSandboxTemplateRequest: {
             config?: components["schemas"]["JSON"];
             name?: string;
+        };
+        adminUpdateSkillRequest: {
+            description?: string;
+            featured?: boolean;
+            name?: string;
+            repo_ref?: string;
+            status?: string;
+            tags?: string[];
         };
         adminUpdateUserRequest: {
             email?: string;
@@ -14614,6 +14885,11 @@ export interface components {
         };
         "paginatedResponse-adminSandboxTemplateResponse": {
             data?: components["schemas"]["adminSandboxTemplateResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-adminSkillResponse": {
+            data?: components["schemas"]["adminSkillResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
