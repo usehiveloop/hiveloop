@@ -32,6 +32,9 @@ type BuildSnapshotOpts struct {
 	Name          string   // snapshot name
 	BuildCommands []string // commands to run on the base image
 	BaseImage     string   // base image to build on top of
+	CPU           int      // CPU cores (0 = provider default)
+	Memory        int      // memory in GB (0 = provider default)
+	Disk          int      // disk in GB (0 = provider default)
 }
 
 // SnapshotBuildStatus tracks snapshot build progress.

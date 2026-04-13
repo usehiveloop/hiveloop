@@ -299,10 +299,19 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	image = image.Workdir("/home/daytona")
 	image = image.Entrypoint([]string{"/bin/sh", "-c", "mkdir -p /home/daytona/.bridge && /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
-	snapshot, logChan, err := d.client.Snapshot.Create(ctx, &types.CreateSnapshotParams{
+	params := &types.CreateSnapshotParams{
 		Name:  opts.Name,
 		Image: image,
-	})
+	}
+	if opts.CPU > 0 || opts.Memory > 0 || opts.Disk > 0 {
+		params.Resources = &types.Resources{
+			CPU:    opts.CPU,
+			Memory: opts.Memory,
+			Disk:   opts.Disk,
+		}
+	}
+
+	snapshot, logChan, err := d.client.Snapshot.Create(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("creating snapshot: %w", err)
 	}

@@ -2311,7 +2311,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns sandbox templates across all organizations.",
+                "description": "Returns sandbox templates across all organizations. Use scope=public to list only public templates.",
                 "produces": [
                     "application/json"
                 ],
@@ -2324,6 +2324,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by org ID",
                         "name": "org_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by scope (public = org_id IS NULL)",
+                        "name": "scope",
                         "in": "query"
                     },
                     {
@@ -2353,16 +2359,97 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new public (platform-wide) sandbox template.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Create a public sandbox template",
+                "parameters": [
+                    {
+                        "description": "Template details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminCreateSandboxTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
             }
         },
         "/admin/v1/sandbox-templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a single sandbox template by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get a sandbox template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates sandbox template name and configuration.",
+                "description": "Updates sandbox template name, size, build commands, and configuration.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2380,15 +2467,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Fields to update",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handler.adminUpdateSandboxTemplateRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -2447,6 +2525,113 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/v1/sandbox-templates/{id}/build": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enqueues an async build job for the template.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Trigger a sandbox template build",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/v1/sandbox-templates/{id}/retry": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes the existing snapshot and starts a new build. Can optionally update build commands.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Retry a sandbox template build",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminSandboxTemplateResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.errorResponse"
                         }
@@ -9558,6 +9743,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/sandbox-templates/public": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all public (platform-wide) sandbox templates that are ready.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sandbox-templates"
+                ],
+                "summary": "List public sandbox templates",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/internal_handler.publicTemplateResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/sandbox-templates/{id}": {
             "get": {
                 "security": [
@@ -12638,9 +12854,35 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.adminCreateSandboxTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "build_commands": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "description": "small, medium, large, xlarge",
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.adminCreateSkillRequest": {
             "type": "object",
             "properties": {
+                "bundle": {
+                    "description": "Inline source",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
+                        }
+                    ]
+                },
                 "description": {
                     "type": "string"
                 },
@@ -13021,7 +13263,16 @@ const docTemplate = `{
         "internal_handler.adminSandboxTemplateResponse": {
             "type": "object",
             "properties": {
+                "base_template_id": {
+                    "type": "string"
+                },
+                "build_commands": {
+                    "type": "string"
+                },
                 "build_error": {
+                    "type": "string"
+                },
+                "build_logs": {
                     "type": "string"
                 },
                 "build_status": {
@@ -13040,6 +13291,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "org_id": {
+                    "type": "string"
+                },
+                "size": {
                     "type": "string"
                 }
             }
@@ -13307,17 +13561,6 @@ const docTemplate = `{
                 },
                 "rate_limit": {
                     "type": "integer"
-                }
-            }
-        },
-        "internal_handler.adminUpdateSandboxTemplateRequest": {
-            "type": "object",
-            "properties": {
-                "config": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
-                "name": {
-                    "type": "string"
                 }
             }
         },
@@ -14390,6 +14633,10 @@ const docTemplate = `{
         "internal_handler.createSandboxTemplateRequest": {
             "type": "object",
             "properties": {
+                "base_template_id": {
+                    "description": "UUID of a public template to use as base",
+                    "type": "string"
+                },
                 "build_commands": {
                     "type": "array",
                     "items": {
@@ -16139,6 +16386,20 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.publicTemplateResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.refreshRequest": {
             "type": "object",
             "properties": {
@@ -16329,6 +16590,9 @@ const docTemplate = `{
         "internal_handler.sandboxTemplateResponse": {
             "type": "object",
             "properties": {
+                "base_template_id": {
+                    "type": "string"
+                },
                 "build_commands": {
                     "type": "array",
                     "items": {
@@ -16357,6 +16621,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "size": {
                     "type": "string"
                 },
                 "updated_at": {
