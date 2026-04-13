@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
@@ -11,6 +12,7 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectTrigger,
@@ -43,8 +45,8 @@ const OPERATORS = [
 
 const OPERATORS_WITHOUT_VALUE = new Set(["exists", "not_exists"])
 
-export function ConditionBuilderView({ provider, triggerDisplayNames, refs, initialConditions, onConfirm, onBack }: ConditionBuilderViewProps) {
-  const [matchMode, setMatchMode] = useState<"all" | "any">(initialConditions?.mode ?? "all")
+export function ConditionBuilderView({ triggerDisplayNames, refs, initialConditions, onConfirm, onBack }: ConditionBuilderViewProps) {
+  const [matchAll, setMatchAll] = useState(initialConditions?.mode !== "any")
   const [conditions, setConditions] = useState<TriggerConditionConfig[]>(initialConditions?.conditions ?? [])
   const [customPathIndex, setCustomPathIndex] = useState<number | null>(null)
 
@@ -90,7 +92,7 @@ export function ConditionBuilderView({ provider, triggerDisplayNames, refs, init
     if (validConditions.length === 0) {
       onConfirm(null)
     } else {
-      onConfirm({ mode: matchMode, conditions: validConditions })
+      onConfirm({ mode: matchAll ? "all" : "any", conditions: validConditions })
     }
   }
 
@@ -104,113 +106,136 @@ export function ConditionBuilderView({ provider, triggerDisplayNames, refs, init
           <DialogTitle>Filters</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          Optionally add conditions to filter which events trigger this agent. No filters means every matching event triggers it.
+          Optionally add conditions to filter when this trigger fires. No filters means every matching event triggers it.
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-4 mt-4 flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto">
+        {/* Event context */}
         <div className="rounded-xl bg-muted/50 p-3">
           <p className="text-[12px] text-muted-foreground">
-            Triggering on: {triggerDisplayNames.join(", ")}
+            {triggerDisplayNames.join(", ")}
           </p>
         </div>
 
-        {conditions.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Label className="text-sm">Match</Label>
-            <Select value={matchMode} onValueChange={(value) => setMatchMode((value ?? "all") as "all" | "any")}>
-              <SelectTrigger className="w-fit" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">all (AND)</SelectItem>
-                <SelectItem value="any">any (OR)</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="text-[12px] text-muted-foreground">of the following:</span>
-          </div>
+        {/* Match mode toggle */}
+        {conditions.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
+          >
+            <div>
+              <Label className="text-sm">Match all conditions</Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {matchAll ? "All conditions must pass (AND)" : "Any condition can pass (OR)"}
+              </p>
+            </div>
+            <Switch checked={matchAll} onCheckedChange={setMatchAll} size="sm" />
+          </motion.div>
         )}
 
-        <div className="flex flex-col gap-2">
+        {/* Condition cards */}
+        <AnimatePresence initial={false}>
           {conditions.map((condition, index) => (
-            <div key={index} className="flex items-start gap-2">
-              {customPathIndex === index ? (
-                <Input
-                  placeholder="payload.path"
-                  value={condition.path}
-                  onChange={(event) => updateCondition(index, "path", event.target.value)}
-                  className="flex-1 font-mono text-[12px] h-8"
-                  autoFocus
-                />
-              ) : (
-                <Select value={condition.path || undefined} onValueChange={(value) => handlePathSelect(index, value)}>
-                  <SelectTrigger className="flex-1" size="sm">
-                    <SelectValue placeholder="Select field..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pathOptions.map((option) => (
-                      <SelectItem key={option.path} value={option.path}>
-                        <span className="font-mono text-[11px]">{option.label}</span>
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="__custom__">
-                      <span className="text-muted-foreground">Custom path...</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: -8, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -8, height: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="rounded-xl bg-muted/50 border border-transparent p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Condition {index + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeCondition(index)}
+                    className="flex items-center justify-center h-6 w-6 rounded-lg hover:bg-destructive/10 transition-colors"
+                  >
+                    <HugeiconsIcon icon={Cancel01Icon} size={12} className="text-destructive" />
+                  </button>
+                </div>
 
-              <Select value={condition.operator} onValueChange={(value) => updateCondition(index, "operator", value ?? "equals")}>
-                <SelectTrigger className="w-[120px] shrink-0" size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {OPERATORS.map((operator) => (
-                    <SelectItem key={operator.value} value={operator.value}>{operator.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <div className="flex flex-col gap-2.5">
+                  {/* Field */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Field</Label>
+                    {customPathIndex === index ? (
+                      <Input
+                        placeholder="payload.path"
+                        value={condition.path}
+                        onChange={(event) => updateCondition(index, "path", event.target.value)}
+                        className="font-mono text-[12px]"
+                        autoFocus
+                      />
+                    ) : (
+                      <Select value={condition.path || undefined} onValueChange={(value) => handlePathSelect(index, value)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select field..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pathOptions.map((option) => (
+                            <SelectItem key={option.path} value={option.path}>
+                              <span className="font-mono text-[11px]">{option.label}</span>
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__custom__">
+                            <span className="text-muted-foreground">Custom path...</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-              {!OPERATORS_WITHOUT_VALUE.has(condition.operator) && (
-                <Input
-                  placeholder="value"
-                  value={typeof condition.value === "string" ? condition.value : String(condition.value ?? "")}
-                  onChange={(event) => updateCondition(index, "value", event.target.value)}
-                  className="flex-1 font-mono text-[12px] h-8"
-                />
-              )}
+                  {/* Operator */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-[11px] text-muted-foreground">Operator</Label>
+                    <Select value={condition.operator} onValueChange={(value) => updateCondition(index, "operator", value ?? "equals")}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OPERATORS.map((operator) => (
+                          <SelectItem key={operator.value} value={operator.value}>{operator.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <button
-                type="button"
-                onClick={() => removeCondition(index)}
-                className="shrink-0 h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <HugeiconsIcon icon={Cancel01Icon} size={12} />
-              </button>
-            </div>
+                  {/* Value */}
+                  {!OPERATORS_WITHOUT_VALUE.has(condition.operator) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.12 }}
+                      className="flex flex-col gap-1.5"
+                    >
+                      <Label className="text-[11px] text-muted-foreground">Value</Label>
+                      <Input
+                        placeholder="value"
+                        value={typeof condition.value === "string" ? condition.value : String(condition.value ?? "")}
+                        onChange={(event) => updateCondition(index, "value", event.target.value)}
+                        className="font-mono text-[12px]"
+                      />
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           ))}
-        </div>
+        </AnimatePresence>
 
-        <Button variant="ghost" size="xs" onClick={addCondition} className="w-fit">
+        {/* Add filter button */}
+        <Button variant="outline" size="sm" onClick={addCondition} className="w-fit">
           <HugeiconsIcon icon={Add01Icon} size={12} data-icon="inline-start" />
           Add filter
         </Button>
-
-        {pathOptions.length > 0 && conditions.length > 0 && (
-          <div className="rounded-lg bg-muted/50 border border-border p-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
-              Available fields for {provider}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {pathOptions.map((option) => (
-                <div key={option.path} className="flex items-center justify-between text-[11px]">
-                  <span className="text-foreground">{option.label}</span>
-                  <span className="text-muted-foreground font-mono">{option.path}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="pt-4 shrink-0">
