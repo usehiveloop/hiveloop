@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { $api } from "@/lib/api/hooks"
-import { api } from "@/lib/api/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { PageHeader } from "@/components/admin/page-header"
 import { StatusBadge } from "@/components/admin/status-badge"
@@ -75,6 +74,8 @@ const TEMPLATE_SIZES = [
   { value: "xlarge", label: "XLarge (8 CPU, 16GB RAM, 80GB Disk)" },
 ]
 
+const QUERY_KEY = ["get", "/admin/v1/sandbox-templates"] as const
+
 export default function SandboxTemplatesPage() {
   const queryClient = useQueryClient()
   const [buildStatusFilter, setBuildStatusFilter] =
@@ -93,8 +94,6 @@ export default function SandboxTemplatesPage() {
     buildCommands: "",
     size: "medium",
   })
-  const [createError, setCreateError] = useState<string | null>(null)
-  const [createSaving, setCreateSaving] = useState(false)
 
   // Edit dialog
   const [editingTemplate, setEditingTemplate] = useState<{ id: string } | null>(
@@ -105,8 +104,6 @@ export default function SandboxTemplatesPage() {
     buildCommands: "",
     size: "medium",
   })
-  const [editError, setEditError] = useState<string | null>(null)
-  const [editSaving, setEditSaving] = useState(false)
 
   // Build logs dialog
   const [logsTemplate, setLogsTemplate] = useState<{
@@ -129,40 +126,67 @@ export default function SandboxTemplatesPage() {
   const templates = (data as { data?: Record<string, string>[] })?.data ?? []
 
   function invalidateList() {
-    queryClient.invalidateQueries({
-      queryKey: ["get", "/admin/v1/sandbox-templates"],
-    })
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY })
   }
 
-  async function handleCreate() {
-    setCreateSaving(true)
-    setCreateError(null)
-    try {
-      const buildCommands = createForm.buildCommands
-        .split("\n")
-        .filter((line: string) => line.trim() !== "")
-
-      const res = await api.POST("/admin/v1/sandbox-templates", {
-        body: {
-          name: createForm.name,
-          build_commands: buildCommands,
-          size: createForm.size,
-        },
-      })
-      if (res.error) {
-        const msg =
-          (res.error as { error?: string }).error || "Failed to create template."
-        setCreateError(msg)
-        return
-      }
-      invalidateList()
-      setCreateOpen(false)
-      setCreateForm({ name: "", buildCommands: "", size: "medium" })
-    } catch {
-      setCreateError("An unexpected error occurred.")
-    } finally {
-      setCreateSaving(false)
+  const createMutation = $api.useMutation(
+    "post",
+    "/admin/v1/sandbox-templates",
+    {
+      onSuccess: () => {
+        invalidateList()
+        setCreateOpen(false)
+        setCreateForm({ name: "", buildCommands: "", size: "medium" })
+      },
     }
+  )
+
+  const updateMutation = $api.useMutation(
+    "put",
+    "/admin/v1/sandbox-templates/{id}",
+    {
+      onSuccess: () => {
+        invalidateList()
+        setEditingTemplate(null)
+      },
+    }
+  )
+
+  const deleteMutation = $api.useMutation(
+    "delete",
+    "/admin/v1/sandbox-templates/{id}",
+    {
+      onSuccess: () => {
+        invalidateList()
+        setDeleteTarget(null)
+      },
+    }
+  )
+
+  const buildMutation = $api.useMutation(
+    "post",
+    "/admin/v1/sandbox-templates/{id}/build",
+    { onSuccess: invalidateList }
+  )
+
+  const retryMutation = $api.useMutation(
+    "post",
+    "/admin/v1/sandbox-templates/{id}/retry",
+    { onSuccess: invalidateList }
+  )
+
+  function handleCreate() {
+    const buildCommands = createForm.buildCommands
+      .split("\n")
+      .filter((line: string) => line.trim() !== "")
+
+    createMutation.mutate({
+      body: {
+        name: createForm.name,
+        build_commands: buildCommands,
+        size: createForm.size,
+      },
+    })
   }
 
   function openEditDialog(tpl: Record<string, string>) {
@@ -171,76 +195,56 @@ export default function SandboxTemplatesPage() {
       buildCommands: tpl.build_commands || "",
       size: tpl.size || "medium",
     })
-    setEditError(null)
+    updateMutation.reset()
     setEditingTemplate({ id: tpl.id! })
   }
 
-  async function handleEdit() {
+  function handleEdit() {
     if (!editingTemplate) return
-    setEditSaving(true)
-    setEditError(null)
-    try {
-      const buildCommands = editForm.buildCommands
-        .split("\n")
-        .filter((line: string) => line.trim() !== "")
 
-      const res = await api.PUT("/admin/v1/sandbox-templates/{id}", {
-        params: { path: { id: editingTemplate.id } },
-        body: {
-          name: editForm.name,
-          size: editForm.size,
-          build_commands: buildCommands,
-        },
-      })
-      if (res.error) {
-        const msg =
-          (res.error as { error?: string }).error ||
-          "Failed to update template."
-        setEditError(msg)
-        return
-      }
-      invalidateList()
-      setEditingTemplate(null)
-    } catch {
-      setEditError("An unexpected error occurred.")
-    } finally {
-      setEditSaving(false)
-    }
+    const buildCommands = editForm.buildCommands
+      .split("\n")
+      .filter((line: string) => line.trim() !== "")
+
+    updateMutation.mutate({
+      params: { path: { id: editingTemplate.id } },
+      body: {
+        name: editForm.name,
+        size: editForm.size,
+        build_commands: buildCommands,
+      },
+    })
   }
 
-  async function handleDelete(id: string) {
-    await api.DELETE("/admin/v1/sandbox-templates/{id}", {
-      params: { path: { id } },
-    })
-    invalidateList()
-    setDeleteTarget(null)
+  function handleDelete(id: string) {
+    deleteMutation.mutate({ params: { path: { id } } })
   }
 
-  async function handleBuild(id: string) {
-    await api.POST("/admin/v1/sandbox-templates/{id}/build", {
-      params: { path: { id } },
-    })
-    invalidateList()
+  function handleBuild(id: string) {
+    buildMutation.mutate({ params: { path: { id } } })
   }
 
-  async function handleRetry(id: string) {
-    await api.POST("/admin/v1/sandbox-templates/{id}/retry", {
-      params: { path: { id } },
-    })
-    invalidateList()
+  function handleRetry(id: string) {
+    retryMutation.mutate({ params: { path: { id } } })
   }
 
-  async function handleViewLogs(tpl: Record<string, string>) {
-    const res = await api.GET("/admin/v1/sandbox-templates/{id}", {
-      params: { path: { id: tpl.id! } },
-    })
-    const detail = res.data as Record<string, string> | undefined
+  function handleViewLogs(tpl: Record<string, string>) {
     setLogsTemplate({
       id: tpl.id!,
       name: tpl.name || tpl.id!,
-      logs: detail?.build_logs || "(no logs)",
+      logs: tpl.build_logs || "(no logs)",
     })
   }
+
+  const createError = createMutation.error
+    ? ((createMutation.error as { error?: string }).error ??
+      "Failed to create template.")
+    : null
+
+  const editError = updateMutation.error
+    ? ((updateMutation.error as { error?: string }).error ??
+      "Failed to update template.")
+    : null
 
   return (
     <div className="space-y-6">
@@ -280,7 +284,7 @@ export default function SandboxTemplatesPage() {
           <Input
             placeholder="Filter by org ID..."
             value={orgFilter}
-            onChange={(e) => setOrgFilter(e.target.value)}
+            onChange={(event) => setOrgFilter(event.target.value)}
             className="max-w-xs"
           />
         )}
@@ -408,7 +412,13 @@ export default function SandboxTemplatesPage() {
       )}
 
       {/* Create Public Template Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open)
+          if (!open) createMutation.reset()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create public template</DialogTitle>
@@ -477,8 +487,11 @@ export default function SandboxTemplatesPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={createSaving}>
-              {createSaving ? "Creating..." : "Create Template"}
+            <Button
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? "Creating..." : "Create Template"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -487,7 +500,12 @@ export default function SandboxTemplatesPage() {
       {/* Edit Template Dialog */}
       <Dialog
         open={!!editingTemplate}
-        onOpenChange={(open) => !open && setEditingTemplate(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTemplate(null)
+            updateMutation.reset()
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -559,8 +577,11 @@ export default function SandboxTemplatesPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={editSaving}>
-              {editSaving ? "Saving..." : "Save changes"}
+            <Button
+              onClick={handleEdit}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Saving..." : "Save changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -583,9 +604,10 @@ export default function SandboxTemplatesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
+              disabled={deleteMutation.isPending}
               onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
             >
-              Delete
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
