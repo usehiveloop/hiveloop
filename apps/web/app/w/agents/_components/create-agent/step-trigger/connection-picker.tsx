@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
+import { useCreateAgent } from "../context"
 
 interface ConnectionPickerViewProps {
   search: string
@@ -21,8 +22,13 @@ interface ConnectionPickerViewProps {
 }
 
 export function ConnectionPickerView({ search, onSearchChange, onPickConnection, onBack }: ConnectionPickerViewProps) {
+  const { selectedIntegrations } = useCreateAgent()
   const { data: connectionsData, isLoading } = $api.useQuery("get", "/v1/in/connections")
-  const connections = connectionsData?.data ?? []
+  const allConnections = connectionsData?.data ?? []
+  const connections = useMemo(
+    () => allConnections.filter((connection) => selectedIntegrations.has(connection.id!)),
+    [allConnections, selectedIntegrations],
+  )
 
   const filtered = useMemo(() => {
     if (!search.trim()) return connections
