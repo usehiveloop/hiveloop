@@ -121,7 +121,7 @@ export function SandboxTemplatesList() {
             Custom sandbox environments for your agents.
           </p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)}>
+        <Button onClick={() => setCreateModalOpen(true)} disabled>
           <HugeiconsIcon icon={Add01Icon} size={16} className="mr-2" />
           New Template
         </Button>
