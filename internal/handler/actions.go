@@ -180,13 +180,18 @@ type triggerSummary struct {
 	Refs          map[string]string `json:"refs,omitempty"` // ref_name → dot-path into payload
 }
 
+type triggersResponse struct {
+	WebhookConfig *catalog.WebhookConfig `json:"webhook_config,omitempty"`
+	Triggers      []triggerSummary       `json:"triggers"`
+}
+
 // ListTriggers handles GET /v1/catalog/integrations/{id}/triggers — returns webhook triggers for a provider.
 // @Summary List triggers for an integration
-// @Description Returns all webhook event triggers for a single integration.
+// @Description Returns all webhook event triggers for a single integration, including manual webhook configuration requirements if applicable.
 // @Tags integrations
 // @Produce json
 // @Param id path string true "Provider ID"
-// @Success 200 {array} triggerSummary
+// @Success 200 {object} triggersResponse
 // @Failure 404 {object} errorResponse
 // @Router /v1/catalog/integrations/{id}/triggers [get]
 func (h *ActionsHandler) ListTriggers(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +222,10 @@ func (h *ActionsHandler) ListTriggers(w http.ResponseWriter, r *http.Request) {
 		return triggers[i].Key < triggers[j].Key
 	})
 
-	writeJSON(w, http.StatusOK, triggers)
+	writeJSON(w, http.StatusOK, triggersResponse{
+		WebhookConfig: pt.WebhookConfig,
+		Triggers:      triggers,
+	})
 }
 
 type schemaPath struct {

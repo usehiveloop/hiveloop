@@ -1,0 +1,329 @@
+{
+  "display_name": "Railway",
+  "webhook_config": {
+    "webhook_url_required": true,
+    "configuration_notes": "Railway requires manual webhook configuration.\n\n1. Open your Railway project dashboard\n2. Go to **Settings → Webhooks**\n3. Paste the webhook URL shown below\n4. Click **Save**\n\nRailway will send deployment status events to this URL. Note: Railway does not support webhook signature verification."
+  },
+  "triggers": {
+    "Deployment.initializing": {
+      "display_name": "Deployment Initializing",
+      "description": "Triggered when a deployment begins initializing",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.building": {
+      "display_name": "Deployment Building",
+      "description": "Triggered when a deployment starts building",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.deploying": {
+      "display_name": "Deployment Deploying",
+      "description": "Triggered when a deployment is being deployed (build completed, starting up)",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.success": {
+      "display_name": "Deployment Succeeded",
+      "description": "Triggered when a deployment completes successfully and is live",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.failed": {
+      "display_name": "Deployment Failed",
+      "description": "Triggered when a deployment fails during build or startup",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.crashed": {
+      "display_name": "Deployment Crashed",
+      "description": "Triggered when a running deployment crashes unexpectedly",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.removed": {
+      "display_name": "Deployment Removed",
+      "description": "Triggered when a deployment is removed",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id"
+      }
+    },
+    "Deployment.sleeping": {
+      "display_name": "Deployment Sleeping",
+      "description": "Triggered when a deployment enters sleep mode due to inactivity",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id"
+      }
+    },
+    "Deployment.queued": {
+      "display_name": "Deployment Queued",
+      "description": "Triggered when a deployment is queued and waiting to start",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    },
+    "Deployment.needs_approval": {
+      "display_name": "Deployment Needs Approval",
+      "description": "Triggered when a deployment is waiting for manual approval before proceeding",
+      "resource_type": "deployment",
+      "payload_schema": "railway_alert",
+      "refs": {
+        "deployment_id": "resource.deployment.id",
+        "project_id": "resource.project.id",
+        "project_name": "resource.project.name",
+        "service_id": "resource.service.id",
+        "service_name": "resource.service.name",
+        "environment_id": "resource.environment.id",
+        "environment_name": "resource.environment.name",
+        "workspace_id": "resource.workspace.id",
+        "commit_hash": "details.commitHash",
+        "branch": "details.branch",
+        "commit_author": "details.commitAuthor"
+      }
+    }
+  },
+  "schemas": {
+    "railway_alert": {
+      "type": "object",
+      "description": "Railway webhook alert payload. Sourced from bzvstudio/railway-assistant types/railway.go and Railway official docs (docs.railway.com/observability/webhooks).",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The event type in Deployment.<state> format (e.g. Deployment.failed, Deployment.success, Deployment.crashed, Deployment.building, Deployment.deploying)"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Alert severity level: ERROR, WARNING, INFO, or SUCCESS"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the event occurred"
+        },
+        "details": {
+          "type": "object",
+          "description": "Event-specific details including deployment and git information",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The deployment UUID"
+            },
+            "source": {
+              "type": "string",
+              "description": "The deploy source (e.g. GitHub)"
+            },
+            "status": {
+              "type": "string",
+              "description": "The deployment status string (e.g. SUCCESS, FAILED)"
+            },
+            "branch": {
+              "type": "string",
+              "description": "The git branch that triggered the deployment"
+            },
+            "commitHash": {
+              "type": "string",
+              "description": "The git commit SHA"
+            },
+            "repoSource": {
+              "type": "string",
+              "description": "The repository source identifier"
+            },
+            "commitAuthor": {
+              "type": "string",
+              "description": "The git commit author name"
+            },
+            "commitMessage": {
+              "type": "string",
+              "description": "The git commit message"
+            }
+          }
+        },
+        "resource": {
+          "type": "object",
+          "description": "Contextual resource identifiers for the event",
+          "properties": {
+            "workspace": {
+              "type": "object",
+              "description": "The Railway workspace",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Workspace UUID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Workspace name"
+                }
+              }
+            },
+            "project": {
+              "type": "object",
+              "description": "The Railway project",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Project UUID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Project name"
+                }
+              }
+            },
+            "environment": {
+              "type": "object",
+              "description": "The Railway environment",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Environment UUID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Environment name (e.g. production, staging)"
+                },
+                "isEphemeral": {
+                  "type": "boolean",
+                  "description": "Whether this is an ephemeral environment (e.g. PR deploy)"
+                }
+              }
+            },
+            "service": {
+              "type": "object",
+              "description": "The Railway service. Nullable — omitted for non-deployment alerts (e.g. volume or monitor alerts)",
+              "nullable": true,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Service UUID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Service name"
+                }
+              }
+            },
+            "deployment": {
+              "type": "object",
+              "description": "The Railway deployment. Nullable — omitted for non-deployment alerts",
+              "nullable": true,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Deployment UUID"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

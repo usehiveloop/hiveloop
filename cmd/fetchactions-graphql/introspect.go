@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // The standard GraphQL introspection query.
@@ -168,6 +171,63 @@ func runIntrospection(url string) (*IntrospectionSchema, error) {
 
 	if len(result.Errors) > 0 {
 		return nil, fmt.Errorf("introspection errors: %s", result.Errors[0].Message)
+	}
+
+	return &result.Data.Schema, nil
+}
+
+// loadIntrospectionJSON fetches a pre-published introspection JSON file from a URL
+// and parses it into an IntrospectionSchema. The file must be in the standard
+// introspection format: {"data": {"__schema": {...}}}.
+func loadIntrospectionJSON(url string, force bool) (*IntrospectionSchema, error) {
+	if err := os.MkdirAll(sdlCacheDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating cache dir: %w", err)
+	}
+
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(url)))
+	cachePath := filepath.Join(sdlCacheDir, "introspection-"+hash)
+
+	var data []byte
+
+	if !force {
+		if cached, err := os.ReadFile(cachePath); err == nil {
+			data = cached
+		}
+	}
+
+	if data == nil {
+		fmt.Printf("  Downloading %s ...\n", url)
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, fmt.Errorf("fetching %s: %w", url, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("fetching %s: status %d: %s", url, resp.StatusCode, string(body[:min(len(body), 200)]))
+		}
+
+		var err2 error
+		data, err2 = io.ReadAll(resp.Body)
+		if err2 != nil {
+			return nil, fmt.Errorf("reading response: %w", err2)
+		}
+
+		_ = os.WriteFile(cachePath, data, 0644)
+	}
+
+	var result IntrospectionResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("parsing introspection JSON: %w", err)
+	}
+
+	if len(result.Errors) > 0 {
+		return nil, fmt.Errorf("introspection errors: %s", result.Errors[0].Message)
+	}
+
+	if result.Data.Schema.QueryType == nil && len(result.Data.Schema.Types) == 0 {
+		return nil, fmt.Errorf("introspection JSON appears empty (no types found)")
 	}
 
 	return &result.Data.Schema, nil

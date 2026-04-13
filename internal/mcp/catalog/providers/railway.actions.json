@@ -1,0 +1,3483 @@
+{
+  "display_name": "Railway",
+  "resources": {
+    "deployment": {
+      "display_name": "Deployments",
+      "description": "Deployments of Railway services",
+      "id_field": "id",
+      "name_field": "id",
+      "icon": "rocket",
+      "list_action": "/graphql",
+      "request_config": {
+        "method": "POST",
+        "body_template": {
+          "query": "{ deployments(input: { projectId: \"$refs.project_id\" }, first: 50) { edges { node { id status } } } }"
+        },
+        "response_path": "data.deployments.edges"
+      },
+      "ref_bindings": {
+        "id": "$refs.deployment_id"
+      }
+    },
+    "environment": {
+      "display_name": "Environments",
+      "description": "Environments within Railway projects",
+      "id_field": "id",
+      "name_field": "name",
+      "icon": "globe",
+      "list_action": "/graphql",
+      "request_config": {
+        "method": "POST",
+        "body_template": {
+          "query": "{ environments(projectId: \"$refs.project_id\", first: 100) { edges { node { id name } } } }"
+        },
+        "response_path": "data.environments.edges"
+      },
+      "ref_bindings": {
+        "id": "$refs.environment_id"
+      }
+    },
+    "project": {
+      "display_name": "Projects",
+      "description": "Railway projects for deploying applications",
+      "id_field": "id",
+      "name_field": "name",
+      "icon": "project",
+      "list_action": "/graphql",
+      "request_config": {
+        "method": "POST",
+        "body_template": {
+          "query": "{ projects(first: 100) { edges { node { id name } } } }"
+        },
+        "response_path": "data.projects.edges"
+      },
+      "ref_bindings": {
+        "id": "$refs.project_id"
+      },
+      "resource_key_template": "$refs.project_id"
+    },
+    "service": {
+      "display_name": "Services",
+      "description": "Services within Railway projects",
+      "id_field": "id",
+      "name_field": "name",
+      "icon": "server",
+      "list_action": "/graphql",
+      "request_config": {
+        "method": "POST",
+        "body_template": {
+          "query": "{ project(id: \"$refs.project_id\") { services { edges { node { id name } } } } }"
+        },
+        "response_path": "data.project.services.edges"
+      },
+      "ref_bindings": {
+        "id": "$refs.service_id"
+      }
+    }
+  },
+  "actions": {
+    "build_logs": {
+      "display_name": "Build Logs",
+      "description": "Fetch logs for a build",
+      "access": "read",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "deploymentId": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter logs by a string. Providing an empty value will match all logs."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Limit the number of logs returned (defaults 100, max 5000)"
+          },
+          "startDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deploymentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "deploymentId": "deploymentId",
+          "endDate": "endDate",
+          "filter": "filter",
+          "limit": "limit",
+          "startDate": "startDate"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "buildLogs"
+      },
+      "response_schema": "log"
+    },
+    "custom_domain_create": {
+      "display_name": "Custom Domain Create",
+      "description": "Creates a new custom domain.",
+      "access": "write",
+      "resource_type": "domain",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "environmentId": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "targetPort": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "environmentId",
+              "projectId",
+              "serviceId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "customDomainCreate"
+      },
+      "response_schema": "custom_domain"
+    },
+    "custom_domain_delete": {
+      "display_name": "Custom Domain Delete",
+      "description": "Deletes a custom domain.",
+      "access": "write",
+      "resource_type": "domain",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "customDomainDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "deployment": {
+      "display_name": "Deployment",
+      "description": "Find a single deployment",
+      "access": "read",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "deployment"
+      },
+      "response_schema": "deployment"
+    },
+    "deployment_cancel": {
+      "display_name": "Deployment Cancel",
+      "description": "Cancels a deployment.",
+      "access": "write",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "deploymentCancel"
+      },
+      "response_schema": "boolean"
+    },
+    "deployment_logs": {
+      "display_name": "Deployment Logs",
+      "description": "Fetch logs for a deployment",
+      "access": "read",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "deploymentId": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter logs by a string. Providing an empty value will match all logs."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Limit the number of logs returned (defaults 100, max 5000)"
+          },
+          "startDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deploymentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "deploymentId": "deploymentId",
+          "endDate": "endDate",
+          "filter": "filter",
+          "limit": "limit",
+          "startDate": "startDate"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "deploymentLogs"
+      },
+      "response_schema": "log"
+    },
+    "deployment_redeploy": {
+      "display_name": "Deployment Redeploy",
+      "description": "Redeploys a deployment.",
+      "access": "write",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "usePreviousImageTag": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id",
+          "usePreviousImageTag": "usePreviousImageTag"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "deploymentRedeploy"
+      },
+      "response_schema": "deployment"
+    },
+    "deployment_restart": {
+      "display_name": "Deployment Restart",
+      "description": "Restarts a deployment.",
+      "access": "write",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "deploymentRestart"
+      },
+      "response_schema": "boolean"
+    },
+    "deployment_rollback": {
+      "display_name": "Deployment Rollback",
+      "description": "Rolls back to a deployment.",
+      "access": "write",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "deploymentRollback"
+      },
+      "response_schema": "boolean"
+    },
+    "deployment_stop": {
+      "display_name": "Deployment Stop",
+      "description": "Stops a deployment.",
+      "access": "write",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "deploymentStop"
+      },
+      "response_schema": "boolean"
+    },
+    "deployments": {
+      "display_name": "Deployments",
+      "description": "Get all deployments",
+      "access": "read",
+      "resource_type": "deployment",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "first": {
+            "type": "integer"
+          },
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "includeDeleted": {
+                "type": "boolean"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "in": {
+                    "type": "string"
+                  },
+                  "notIn": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "last": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "after": "after",
+          "before": "before",
+          "first": "first",
+          "input": "input",
+          "last": "last"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "deployments"
+      },
+      "response_schema": "query_deployments_connection"
+    },
+    "domains": {
+      "display_name": "Domains",
+      "description": "All domains for a service instance",
+      "access": "read",
+      "resource_type": "domain",
+      "parameters": {
+        "properties": {
+          "environmentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "environmentId",
+          "projectId",
+          "serviceId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "environmentId": "environmentId",
+          "projectId": "projectId",
+          "serviceId": "serviceId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "domains"
+      },
+      "response_schema": "all_domains"
+    },
+    "environment": {
+      "display_name": "Environment",
+      "description": "Find a single environment",
+      "access": "read",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id",
+          "projectId": "projectId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "environment"
+      },
+      "response_schema": "environment"
+    },
+    "environment_create": {
+      "display_name": "Environment Create",
+      "description": "Creates a new environment.",
+      "access": "write",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "applyChangesInBackground": {
+                "type": "boolean",
+                "description": "If true, the changes will be applied in the background and the mutation will return immediately. If false, the mutation will wait for the changes to be applied before returning."
+              },
+              "ephemeral": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "skipInitialDeploys": {
+                "type": "boolean",
+                "description": "When committing the changes immediately, skip any initial deployments."
+              },
+              "sourceEnvironmentId": {
+                "type": "string",
+                "description": "Create the environment with all of the services, volumes, configuration, and variables from this source environment."
+              },
+              "stageInitialChanges": {
+                "type": "boolean",
+                "description": "Stage the initial changes for the environment. If false (default), the changes will be committed immediately."
+              }
+            },
+            "required": [
+              "name",
+              "projectId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "environmentCreate"
+      },
+      "response_schema": "environment"
+    },
+    "environment_delete": {
+      "display_name": "Environment Delete",
+      "description": "Deletes an environment.",
+      "access": "write",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "environmentDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "environment_logs": {
+      "display_name": "Environment Logs",
+      "description": "Fetch logs for a project environment. Build logs are excluded unless a snapshot ID is explicitly provided in the filter",
+      "access": "read",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "afterDate": {
+            "type": "string",
+            "description": "Latest date to look for logs after the anchor"
+          },
+          "afterLimit": {
+            "type": "integer",
+            "description": "Limit the number of logs returned after the anchor"
+          },
+          "anchorDate": {
+            "type": "string",
+            "description": "Target date time to look for logs"
+          },
+          "beforeDate": {
+            "type": "string",
+            "description": "Oldest date to look for logs before the anchor"
+          },
+          "beforeLimit": {
+            "type": "integer",
+            "description": "Limit the number of logs returned before the anchor"
+          },
+          "environmentId": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter logs using a query syntax"
+          }
+        },
+        "required": [
+          "environmentId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "afterDate": "afterDate",
+          "afterLimit": "afterLimit",
+          "anchorDate": "anchorDate",
+          "beforeDate": "beforeDate",
+          "beforeLimit": "beforeLimit",
+          "environmentId": "environmentId",
+          "filter": "filter"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "environmentLogs"
+      },
+      "response_schema": "log"
+    },
+    "environment_triggers_deploy": {
+      "display_name": "Environment Triggers Deploy",
+      "description": "Deploys all connected triggers for an environment.",
+      "access": "write",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "environmentId",
+              "projectId",
+              "serviceId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "environmentTriggersDeploy"
+      },
+      "response_schema": "boolean"
+    },
+    "environments": {
+      "display_name": "Environments",
+      "description": "Gets all environments for a project.",
+      "access": "read",
+      "resource_type": "environment",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "first": {
+            "type": "integer"
+          },
+          "isEphemeral": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "integer"
+          },
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "after": "after",
+          "before": "before",
+          "first": "first",
+          "isEphemeral": "isEphemeral",
+          "last": "last",
+          "projectId": "projectId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "environments"
+      },
+      "response_schema": "query_environments_connection"
+    },
+    "github_repo_branches": {
+      "display_name": "Github Repo Branches",
+      "description": "Get branches for a GitHub repo that the authenticated user has access to",
+      "access": "read",
+      "resource_type": "github",
+      "parameters": {
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner",
+          "repo"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "owner": "owner",
+          "repo": "repo"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "githubRepoBranches"
+      },
+      "response_schema": "git_hub_branch"
+    },
+    "github_repo_deploy": {
+      "display_name": "Github Repo Deploy",
+      "description": "Deploys a GitHub repo",
+      "access": "write",
+      "resource_type": "github",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "branch": {
+                "type": "string"
+              },
+              "environmentId": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "repo": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "projectId",
+              "repo"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "githubRepoDeploy"
+      },
+      "response_schema": "string"
+    },
+    "github_repos": {
+      "display_name": "Github Repos",
+      "description": "Get a list of repos for a user that Railway has access to",
+      "access": "read",
+      "resource_type": "github",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "githubRepos"
+      },
+      "response_schema": "git_hub_repo"
+    },
+    "me": {
+      "display_name": "Me",
+      "description": "Gets the authenticated user.",
+      "access": "read",
+      "resource_type": "user",
+      "parameters": {
+        "properties": {},
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "graphql_operation": "query",
+        "graphql_field": "me"
+      },
+      "response_schema": "user"
+    },
+    "metrics": {
+      "display_name": "Metrics",
+      "description": "Get metrics for a project, environment, and service",
+      "access": "read",
+      "resource_type": "metric",
+      "parameters": {
+        "properties": {
+          "averagingWindowSeconds": {
+            "type": "integer",
+            "description": "The averaging window when computing CPU usage. By default, it is the same as the `sampleRateSeconds`."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "The end of the period to get metrics for. If not provided, the current datetime is used."
+          },
+          "environmentId": {
+            "type": "string"
+          },
+          "groupBy": {
+            "type": "string",
+            "description": "What to group the aggregated usage by. By default, it is grouped over the entire project."
+          },
+          "includeDeleted": {
+            "type": "boolean",
+            "description": "Whether or not to include deleted projects in the results"
+          },
+          "measurements": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "sampleRateSeconds": {
+            "type": "integer",
+            "description": "The frequency of data points in the response. If the `sampleRateSeconds` is 60, then the response will contain one data point per minute."
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "The start of the period to get metrics for."
+          },
+          "volumeId": {
+            "type": "string"
+          },
+          "volumeInstanceExternalId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "measurements",
+          "startDate"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "averagingWindowSeconds": "averagingWindowSeconds",
+          "endDate": "endDate",
+          "environmentId": "environmentId",
+          "groupBy": "groupBy",
+          "includeDeleted": "includeDeleted",
+          "measurements": "measurements",
+          "projectId": "projectId",
+          "sampleRateSeconds": "sampleRateSeconds",
+          "serviceId": "serviceId",
+          "startDate": "startDate",
+          "volumeId": "volumeId",
+          "volumeInstanceExternalId": "volumeInstanceExternalId",
+          "workspaceId": "workspaceId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "metrics"
+      },
+      "response_schema": "metrics_result"
+    },
+    "project": {
+      "display_name": "Project",
+      "description": "Get a project by ID",
+      "access": "read",
+      "resource_type": "project",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "project"
+      },
+      "response_schema": "project"
+    },
+    "project_create": {
+      "display_name": "Project Create",
+      "description": "Creates a new project.",
+      "access": "write",
+      "resource_type": "project",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "defaultEnvironmentName": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "isMonorepo": {
+                "type": "boolean"
+              },
+              "isPublic": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "prDeploys": {
+                "type": "boolean"
+              },
+              "repo": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string"
+                  },
+                  "fullRepoName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "branch",
+                  "fullRepoName"
+                ]
+              },
+              "runtime": {
+                "type": "string"
+              },
+              "workspaceId": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "projectCreate"
+      },
+      "response_schema": "project"
+    },
+    "project_delete": {
+      "display_name": "Project Delete",
+      "description": "Deletes a project.",
+      "access": "write",
+      "resource_type": "project",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "projectDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "project_update": {
+      "display_name": "Project Update",
+      "description": "Updates a project.",
+      "access": "write",
+      "resource_type": "project",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "properties": {
+              "baseEnvironmentId": {
+                "type": "string"
+              },
+              "botPrEnvironments": {
+                "type": "boolean",
+                "description": "Enable/disable pull request environments for PRs created by bots"
+              },
+              "description": {
+                "type": "string"
+              },
+              "focusedPrEnvironments": {
+                "type": "boolean",
+                "description": "Enable focused PR environments that only deploy services affected by changed files"
+              },
+              "isPublic": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "prDeploys": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id",
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "projectUpdate"
+      },
+      "response_schema": "project"
+    },
+    "projects": {
+      "display_name": "Projects",
+      "description": "Gets all projects for a user or workspace.",
+      "access": "read",
+      "resource_type": "project",
+      "parameters": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "first": {
+            "type": "integer"
+          },
+          "includeDeleted": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "after": "after",
+          "before": "before",
+          "first": "first",
+          "includeDeleted": "includeDeleted",
+          "last": "last",
+          "userId": "userId",
+          "workspaceId": "workspaceId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "projects"
+      },
+      "response_schema": "query_projects_connection"
+    },
+    "regions": {
+      "display_name": "Regions",
+      "description": "List available regions",
+      "access": "read",
+      "resource_type": "region",
+      "parameters": {
+        "properties": {
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "projectId": "projectId"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "regions"
+      },
+      "response_schema": "region"
+    },
+    "service": {
+      "display_name": "Service",
+      "description": "Get a service by ID",
+      "access": "read",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "service"
+      },
+      "response_schema": "service"
+    },
+    "service_connect": {
+      "display_name": "Service Connect",
+      "description": "Connect a service to a source",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "properties": {
+              "branch": {
+                "type": "string",
+                "description": "The branch to connect to. e.g. 'main'"
+              },
+              "image": {
+                "type": "string",
+                "description": "Name of the Dockerhub or GHCR image to connect this service to."
+              },
+              "repo": {
+                "type": "string",
+                "description": "The full name of the repo to connect to. e.g. 'railwayapp/starters'"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id",
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceConnect"
+      },
+      "response_schema": "service"
+    },
+    "service_create": {
+      "display_name": "Service Create",
+      "description": "Creates a new service.",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "branch": {
+                "type": "string"
+              },
+              "environmentId": {
+                "type": "string",
+                "description": "Environment ID. If the specified environment is a fork, the service will only be created in it. Otherwise it will created in all environments that are not forks of other environments"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "registryCredentials": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "username"
+                ]
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "repo": {
+                    "type": "string"
+                  }
+                }
+              },
+              "templateId": {
+                "type": "string",
+                "description": "Template ID. Required when templateServiceId is provided."
+              },
+              "templateServiceId": {
+                "type": "string",
+                "description": "Template service ID within the template's serializedConfig. Required when templateId is provided."
+              },
+              "variables": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "projectId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceCreate"
+      },
+      "response_schema": "service"
+    },
+    "service_delete": {
+      "display_name": "Service Delete",
+      "description": "Deletes a service.",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "environmentId": {
+            "type": "string",
+            "description": "[Experimental] Environment ID. If the environment is a forked environment, the service will only be deleted in the specified environment, otherwise it will deleted in all environments that are not ..."
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "environmentId": "environmentId",
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "service_disconnect": {
+      "display_name": "Service Disconnect",
+      "description": "Disconnect a service from a repo",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceDisconnect"
+      },
+      "response_schema": "service"
+    },
+    "service_domain_create": {
+      "display_name": "Service Domain Create",
+      "description": "Creates a new service domain.",
+      "access": "write",
+      "resource_type": "domain",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "targetPort": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "environmentId",
+              "serviceId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceDomainCreate"
+      },
+      "response_schema": "service_domain"
+    },
+    "service_domain_delete": {
+      "display_name": "Service Domain Delete",
+      "description": "Deletes a service domain.",
+      "access": "write",
+      "resource_type": "domain",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceDomainDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "service_instance_deploy": {
+      "display_name": "Service Instance Deploy",
+      "description": "Deploy a service instance",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "commitSha": {
+            "type": "string"
+          },
+          "environmentId": {
+            "type": "string"
+          },
+          "latestCommit": {
+            "type": "boolean"
+          },
+          "serviceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "environmentId",
+          "serviceId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "commitSha": "commitSha",
+          "environmentId": "environmentId",
+          "latestCommit": "latestCommit",
+          "serviceId": "serviceId"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceInstanceDeploy"
+      },
+      "response_schema": "boolean"
+    },
+    "service_instance_redeploy": {
+      "display_name": "Service Instance Redeploy",
+      "description": "Redeploy a service instance",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "environmentId": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "environmentId",
+          "serviceId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "environmentId": "environmentId",
+          "serviceId": "serviceId"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceInstanceRedeploy"
+      },
+      "response_schema": "boolean"
+    },
+    "service_instance_update": {
+      "display_name": "Service Instance Update",
+      "description": "Update a service instance",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "environmentId": {
+            "type": "string",
+            "description": "[Experimental] Environment ID. If the environment is a fork, the service will only be updated in it. Otherwise it will updated in all environments that are not forks of other environments"
+          },
+          "input": {
+            "type": "object",
+            "properties": {
+              "buildCommand": {
+                "type": "string"
+              },
+              "builder": {
+                "type": "string"
+              },
+              "cronSchedule": {
+                "type": "string"
+              },
+              "dockerfilePath": {
+                "type": "string"
+              },
+              "drainingSeconds": {
+                "type": "integer"
+              },
+              "healthcheckPath": {
+                "type": "string"
+              },
+              "healthcheckTimeout": {
+                "type": "integer"
+              },
+              "ipv6EgressEnabled": {
+                "type": "boolean"
+              },
+              "multiRegionConfig": {
+                "type": "string"
+              },
+              "nixpacksPlan": {
+                "type": "string"
+              },
+              "numReplicas": {
+                "type": "integer"
+              },
+              "overlapSeconds": {
+                "type": "integer"
+              },
+              "preDeployCommand": {
+                "type": "string"
+              },
+              "railwayConfigFile": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              },
+              "registryCredentials": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "username"
+                ]
+              },
+              "restartPolicyMaxRetries": {
+                "type": "integer"
+              },
+              "restartPolicyType": {
+                "type": "string"
+              },
+              "rootDirectory": {
+                "type": "string"
+              },
+              "sleepApplication": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "repo": {
+                    "type": "string"
+                  }
+                }
+              },
+              "startCommand": {
+                "type": "string"
+              },
+              "watchPatterns": {
+                "type": "string"
+              }
+            }
+          },
+          "serviceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "serviceId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "environmentId": "environmentId",
+          "input": "input",
+          "serviceId": "serviceId"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceInstanceUpdate"
+      },
+      "response_schema": "boolean"
+    },
+    "service_update": {
+      "display_name": "Service Update",
+      "description": "Updates a service.",
+      "access": "write",
+      "resource_type": "service",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id",
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "serviceUpdate"
+      },
+      "response_schema": "service"
+    },
+    "template_deploy": {
+      "display_name": "Template Deploy",
+      "description": "Deploys a template.",
+      "access": "write",
+      "resource_type": "template",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "services": {
+                "type": "object",
+                "properties": {
+                  "commit": {
+                    "type": "string"
+                  },
+                  "hasDomain": {
+                    "type": "boolean"
+                  },
+                  "healthcheckPath": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "isPrivate": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "owner": {
+                    "type": "string"
+                  },
+                  "preDeployCommand": {
+                    "type": "string"
+                  },
+                  "rootDirectory": {
+                    "type": "string"
+                  },
+                  "serviceIcon": {
+                    "type": "string"
+                  },
+                  "serviceName": {
+                    "type": "string"
+                  },
+                  "startCommand": {
+                    "type": "string"
+                  },
+                  "tcpProxyApplicationPort": {
+                    "type": "integer"
+                  },
+                  "template": {
+                    "type": "string"
+                  },
+                  "variables": {
+                    "type": "string"
+                  },
+                  "volumes": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "serviceName",
+                  "template"
+                ]
+              },
+              "templateCode": {
+                "type": "string"
+              },
+              "workspaceId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "services"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "templateDeploy"
+      },
+      "response_schema": "template_deploy_payload"
+    },
+    "variable_collection_upsert": {
+      "display_name": "Variable Collection Upsert",
+      "description": "Upserts a collection of variables.",
+      "access": "write",
+      "resource_type": "variable",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "replace": {
+                "type": "boolean",
+                "description": "When set to true, removes all existing variables before upserting the new collection."
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "skipDeploys": {
+                "type": "boolean",
+                "description": "Skip deploys for affected services"
+              },
+              "variables": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "environmentId",
+              "projectId",
+              "variables"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "variableCollectionUpsert"
+      },
+      "response_schema": "boolean"
+    },
+    "variable_delete": {
+      "display_name": "Variable Delete",
+      "description": "Deletes a variable.",
+      "access": "write",
+      "resource_type": "variable",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "environmentId",
+              "name",
+              "projectId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "variableDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "variable_upsert": {
+      "display_name": "Variable Upsert",
+      "description": "Upserts a variable.",
+      "access": "write",
+      "resource_type": "variable",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "skipDeploys": {
+                "type": "boolean",
+                "description": "Skip deploys for affected services"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "environmentId",
+              "name",
+              "projectId",
+              "value"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "variableUpsert"
+      },
+      "response_schema": "boolean"
+    },
+    "variables": {
+      "display_name": "Variables",
+      "description": "All variables by pluginId or serviceId. If neither are provided, all shared variables are returned.",
+      "access": "read",
+      "resource_type": "variable",
+      "parameters": {
+        "properties": {
+          "environmentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string",
+            "description": "Provide a serviceId to get all variables for a specific service."
+          },
+          "unrendered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "environmentId",
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "environmentId": "environmentId",
+          "projectId": "projectId",
+          "serviceId": "serviceId",
+          "unrendered": "unrendered"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "variables"
+      },
+      "response_schema": "environment_variables"
+    },
+    "volume_create": {
+      "display_name": "Volume Create",
+      "description": "Create a persistent volume in a project",
+      "access": "write",
+      "resource_type": "volume",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "environmentId": {
+                "type": "string",
+                "description": "The environment to deploy the volume instances into. If `null`, the volume will not be deployed to any environment. `undefined` will deploy to all environments."
+              },
+              "mountPath": {
+                "type": "string",
+                "description": "The path in the container to mount the volume to"
+              },
+              "projectId": {
+                "type": "string",
+                "description": "The project to create the volume in"
+              },
+              "region": {
+                "type": "string",
+                "description": "The region to create the volume instances in. If not provided, the default region will be used."
+              },
+              "serviceId": {
+                "type": "string",
+                "description": "The service to attach the volume to. If not provided, the volume will be disconnected."
+              }
+            },
+            "required": [
+              "mountPath",
+              "projectId"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "volumeCreate"
+      },
+      "response_schema": "volume"
+    },
+    "volume_delete": {
+      "display_name": "Volume Delete",
+      "description": "Delete a persistent volume in a project",
+      "access": "write",
+      "resource_type": "volume",
+      "parameters": {
+        "properties": {
+          "volumeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "volumeId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "volumeId": "volumeId"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "volumeDelete"
+      },
+      "response_schema": "boolean"
+    },
+    "volume_instance": {
+      "display_name": "Volume Instance",
+      "description": "Get a single volume instance by id",
+      "access": "read",
+      "resource_type": "volume",
+      "parameters": {
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "id": "id"
+        },
+        "graphql_operation": "query",
+        "graphql_field": "volumeInstance"
+      },
+      "response_schema": "volume_instance"
+    },
+    "volume_update": {
+      "display_name": "Volume Update",
+      "description": "Update a persistent volume in a project",
+      "access": "write",
+      "resource_type": "volume",
+      "parameters": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the volume"
+              }
+            }
+          },
+          "volumeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "volumeId"
+        ],
+        "type": "object"
+      },
+      "execution": {
+        "method": "POST",
+        "path": "/graphql",
+        "body_mapping": {
+          "input": "input",
+          "volumeId": "volumeId"
+        },
+        "graphql_operation": "mutation",
+        "graphql_field": "volumeUpdate"
+      },
+      "response_schema": "volume"
+    }
+  },
+  "schemas": {
+    "all_domains": {
+      "type": "object",
+      "properties": {
+        "customDomains": {
+          "type": "object",
+          "schema_ref": "custom_domain"
+        },
+        "serviceDomains": {
+          "type": "object",
+          "schema_ref": "service_domain"
+        }
+      }
+    },
+    "api_token_rate_limit": {
+      "type": "object",
+      "properties": {
+        "remainingPoints": {
+          "type": "integer"
+        },
+        "resetsAt": {
+          "type": "string"
+        }
+      }
+    },
+    "cname_check": {
+      "type": "object",
+      "properties": {
+        "link": {
+          "type": "string",
+          "nullable": true
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "custom_domain": {
+      "type": "object",
+      "properties": {
+        "cdnMode": {
+          "type": "string",
+          "nullable": true
+        },
+        "cnameCheck": {
+          "type": "object",
+          "schema_ref": "cname_check"
+        },
+        "createdAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "deletedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "domain": {
+          "type": "string"
+        },
+        "edgeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "environmentId": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "serviceId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "object",
+          "schema_ref": "custom_domain_status"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "targetPort": {
+          "type": "integer",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "custom_domain_status": {
+      "type": "object",
+      "properties": {
+        "cdnProvider": {
+          "type": "string",
+          "nullable": true
+        },
+        "certificateErrorMessage": {
+          "type": "string",
+          "description": "Human-readable error message when certificate issuance fails",
+          "nullable": true
+        },
+        "certificateErrorType": {
+          "type": "string",
+          "description": "Structured error type for programmatic handling",
+          "nullable": true
+        },
+        "certificateRetryable": {
+          "type": "boolean",
+          "description": "Whether the certificate issuance can be retried",
+          "nullable": true
+        },
+        "certificateStatus": {
+          "type": "string"
+        },
+        "certificateStatusDetailed": {
+          "type": "string",
+          "nullable": true
+        },
+        "certificates": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "certificate_public_data"
+        },
+        "dnsRecords": {
+          "type": "object",
+          "schema_ref": "dns_records"
+        },
+        "verificationDnsHost": {
+          "type": "string",
+          "nullable": true
+        },
+        "verificationToken": {
+          "type": "string",
+          "nullable": true
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "canRedeploy": {
+          "type": "boolean"
+        },
+        "canRollback": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "creator": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "deployment_creator"
+        },
+        "deploymentStopped": {
+          "type": "boolean",
+          "description": "Check if a deployment's instances have all stopped"
+        },
+        "diagnosis": {
+          "type": "string",
+          "nullable": true
+        },
+        "environment": {
+          "type": "object",
+          "schema_ref": "environment"
+        },
+        "environmentId": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "instances": {
+          "type": "object",
+          "schema_ref": "deployment_deployment_instance"
+        },
+        "meta": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "service": {
+          "type": "object",
+          "schema_ref": "service"
+        },
+        "serviceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "snapshotId": {
+          "type": "string",
+          "nullable": true
+        },
+        "sockets": {
+          "type": "object",
+          "schema_ref": "deployment_socket"
+        },
+        "staticUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "status": {
+          "type": "string"
+        },
+        "statusUpdatedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "suggestAddServiceDomain": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "deployment_creator": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string",
+          "nullable": true
+        },
+        "email": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "deployment_deployment_instance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "deployment_socket": {
+      "type": "object",
+      "properties": {
+        "ipv6": {
+          "type": "boolean"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "processName": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "integer"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "canAccess": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "deletedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "isEphemeral": {
+          "type": "boolean"
+        },
+        "meta": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "environment_meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "sourceEnvironment": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "environment"
+        },
+        "unmergedChangesCount": {
+          "type": "integer",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "environment_meta": {
+      "type": "object",
+      "properties": {
+        "baseBranch": {
+          "type": "string",
+          "nullable": true
+        },
+        "branch": {
+          "type": "string",
+          "nullable": true
+        },
+        "latestSuccessfulGitHubDeploymentId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "prCommentId": {
+          "type": "integer",
+          "nullable": true
+        },
+        "prNumber": {
+          "type": "integer",
+          "nullable": true
+        },
+        "prRepo": {
+          "type": "string",
+          "nullable": true
+        },
+        "prTitle": {
+          "type": "string",
+          "nullable": true
+        },
+        "skippedResourceIds": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "git_hub_branch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "git_hub_repo": {
+      "type": "object",
+      "properties": {
+        "defaultBranch": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "installationId": {
+          "type": "string"
+        },
+        "isPrivate": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ownerAvatarUrl": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "log": {
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "description": "The attributes that were parsed from a structured log",
+          "schema_ref": "log_attribute"
+        },
+        "message": {
+          "type": "string",
+          "description": "The contents of the log message"
+        },
+        "severity": {
+          "type": "string",
+          "description": "The severity of the log message (eg. err)",
+          "nullable": true
+        },
+        "tags": {
+          "type": "object",
+          "description": "The tags that were associated with the log",
+          "nullable": true,
+          "schema_ref": "log_tags"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the log message in format RFC3339 (nano)"
+        }
+      }
+    },
+    "log_attribute": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "log_tags": {
+      "type": "object",
+      "properties": {
+        "deploymentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "deploymentInstanceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "environmentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "pluginId": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "serviceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "snapshotId": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "properties": {
+        "ts": {
+          "type": "integer",
+          "description": "The timestamp of the sample. Represented has number of seconds since the Unix epoch."
+        },
+        "value": {
+          "type": "number",
+          "description": "The value of the sample."
+        }
+      }
+    },
+    "metric_tags": {
+      "type": "object",
+      "properties": {
+        "deploymentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "deploymentInstanceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "environmentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "pluginId": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "region": {
+          "type": "string",
+          "nullable": true
+        },
+        "serviceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "volumeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "volumeInstanceId": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "metrics_result": {
+      "type": "object",
+      "properties": {
+        "measurement": {
+          "type": "string",
+          "description": "The measurement of the metric."
+        },
+        "tags": {
+          "type": "object",
+          "description": "The tags that were used to group the metric. Only the tags that were used to by will be present.",
+          "schema_ref": "metric_tags"
+        },
+        "values": {
+          "type": "object",
+          "description": "The samples of the metric.",
+          "schema_ref": "metric"
+        }
+      }
+    },
+    "page_info": {
+      "type": "object",
+      "properties": {
+        "endCursor": {
+          "type": "string",
+          "nullable": true
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
+        "hasPreviousPage": {
+          "type": "boolean"
+        },
+        "startCursor": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "baseEnvironment": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "environment"
+        },
+        "baseEnvironmentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "botPrEnvironments": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "deletedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "expiredAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "featureFlags": {
+          "type": "string"
+        },
+        "focusedPrEnvironments": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "isTempProject": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "object",
+          "schema_ref": "project_member"
+        },
+        "name": {
+          "type": "string"
+        },
+        "prDeploys": {
+          "type": "boolean"
+        },
+        "subscriptionPlanLimit": {
+          "type": "string"
+        },
+        "subscriptionType": {
+          "type": "string"
+        },
+        "team": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "team"
+        },
+        "teamId": {
+          "type": "string",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "workspace": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "workspace"
+        },
+        "workspaceId": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "project_member": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string",
+          "nullable": true
+        },
+        "email": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "query_deployments_connection": {
+      "type": "object",
+      "properties": {
+        "edges": {
+          "type": "object",
+          "schema_ref": "query_deployments_connection_edge"
+        },
+        "pageInfo": {
+          "type": "object",
+          "schema_ref": "page_info"
+        }
+      }
+    },
+    "query_deployments_connection_edge": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "node": {
+          "type": "object",
+          "schema_ref": "deployment"
+        }
+      }
+    },
+    "query_environments_connection": {
+      "type": "object",
+      "properties": {
+        "edges": {
+          "type": "object",
+          "schema_ref": "query_environments_connection_edge"
+        },
+        "pageInfo": {
+          "type": "object",
+          "schema_ref": "page_info"
+        }
+      }
+    },
+    "query_environments_connection_edge": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "node": {
+          "type": "object",
+          "schema_ref": "environment"
+        }
+      }
+    },
+    "query_projects_connection": {
+      "type": "object",
+      "properties": {
+        "edges": {
+          "type": "object",
+          "schema_ref": "query_projects_connection_edge"
+        },
+        "pageInfo": {
+          "type": "object",
+          "schema_ref": "page_info"
+        }
+      }
+    },
+    "query_projects_connection_edge": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "node": {
+          "type": "object",
+          "schema_ref": "project"
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "type": "string",
+          "description": "Region country"
+        },
+        "deploymentConstraints": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "region_deployment_constraints"
+        },
+        "location": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "railwayMetal": {
+          "type": "boolean",
+          "description": "Region is on Railway Metal",
+          "nullable": true
+        },
+        "region": {
+          "type": "string",
+          "nullable": true
+        },
+        "workspaceId": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "region_deployment_constraints": {
+      "type": "object",
+      "properties": {
+        "adminOnly": {
+          "type": "boolean",
+          "description": "Admin only region",
+          "nullable": true
+        },
+        "deprecationInfo": {
+          "type": "object",
+          "description": "Deprecation information for the region",
+          "nullable": true,
+          "schema_ref": "region_deprecation_info"
+        },
+        "runtimeExclusivity": {
+          "type": "string",
+          "nullable": true
+        },
+        "stagingOnly": {
+          "type": "boolean",
+          "description": "Staging only region",
+          "nullable": true
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "deletedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "featureFlags": {
+          "type": "string"
+        },
+        "hasHiddenRegistryCredentialsFromTemplate": {
+          "type": "boolean",
+          "description": "Whether this service has hidden registry credentials from a template. When true, the credentials are stored in the template and used during deployment."
+        },
+        "icon": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "project": {
+          "type": "object",
+          "schema_ref": "project"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "templateId": {
+          "type": "string",
+          "nullable": true
+        },
+        "templateServiceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "templateThreadSlug": {
+          "type": "string",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "service_domain": {
+      "type": "object",
+      "properties": {
+        "cdnMode": {
+          "type": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "deletedAt": {
+          "type": "string",
+          "nullable": true
+        },
+        "domain": {
+          "type": "string"
+        },
+        "edgeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "environmentId": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "newDomainName": {
+          "type": "string",
+          "nullable": true
+        },
+        "newHostLabel": {
+          "type": "string",
+          "nullable": true
+        },
+        "projectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "serviceId": {
+          "type": "string"
+        },
+        "suffix": {
+          "type": "string",
+          "nullable": true
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "targetPort": {
+          "type": "integer",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "properties": {
+        "adoptionHistory": {
+          "type": "object",
+          "schema_ref": "adoption_info"
+        },
+        "adoptionLevel": {
+          "type": "number"
+        },
+        "apiTokenRateLimit": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "api_token_rate_limit"
+        },
+        "avatar": {
+          "type": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "customer": {
+          "type": "object",
+          "schema_ref": "customer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "members": {
+          "type": "object",
+          "schema_ref": "team_member"
+        },
+        "name": {
+          "type": "string"
+        },
+        "preferredRegion": {
+          "type": "string",
+          "nullable": true
+        },
+        "slackChannelId": {
+          "type": "string",
+          "nullable": true
+        },
+        "supportTierOverride": {
+          "type": "string",
+          "nullable": true
+        },
+        "teamPermissions": {
+          "type": "object",
+          "schema_ref": "team_permission"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "workspace": {
+          "type": "object",
+          "schema_ref": "workspace"
+        }
+      }
+    },
+    "template_deploy_payload": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        },
+        "workflowId": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "agreedFairUse": {
+          "type": "boolean"
+        },
+        "apiTokenRateLimit": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "api_token_rate_limit"
+        },
+        "avatar": {
+          "type": "string",
+          "nullable": true
+        },
+        "banReason": {
+          "type": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "featureFlags": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "string"
+        },
+        "githubProviderId": {
+          "type": "string",
+          "nullable": true
+        },
+        "githubUsername": {
+          "type": "string",
+          "nullable": true
+        },
+        "has2FA": {
+          "type": "boolean"
+        },
+        "hasPasskeys": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isAdmin": {
+          "type": "boolean"
+        },
+        "isConductor": {
+          "type": "boolean"
+        },
+        "isVerified": {
+          "type": "boolean"
+        },
+        "lastLogin": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "platformFeatureFlags": {
+          "type": "string"
+        },
+        "profile": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "user_profile"
+        },
+        "registrationStatus": {
+          "type": "string"
+        },
+        "riskLevel": {
+          "type": "number",
+          "nullable": true
+        },
+        "termsAgreedOn": {
+          "type": "string",
+          "nullable": true
+        },
+        "username": {
+          "type": "string",
+          "nullable": true
+        },
+        "workspace": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "workspace"
+        },
+        "workspaces": {
+          "type": "object",
+          "description": "Workspaces user is member of",
+          "schema_ref": "workspace"
+        }
+      }
+    },
+    "user_profile": {
+      "type": "object",
+      "properties": {
+        "bio": {
+          "type": "string",
+          "nullable": true
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "website": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "project": {
+          "type": "object",
+          "schema_ref": "project"
+        },
+        "projectId": {
+          "type": "string"
+        }
+      }
+    },
+    "volume_instance": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "currentSizeMB": {
+          "type": "number"
+        },
+        "environment": {
+          "type": "object",
+          "schema_ref": "environment"
+        },
+        "environmentId": {
+          "type": "string"
+        },
+        "externalId": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string"
+        },
+        "mountPath": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string",
+          "nullable": true
+        },
+        "service": {
+          "type": "object",
+          "schema_ref": "service"
+        },
+        "serviceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "sizeMB": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string",
+          "nullable": true
+        },
+        "volume": {
+          "type": "object",
+          "schema_ref": "volume"
+        },
+        "volumeId": {
+          "type": "string"
+        }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "properties": {
+        "adoptionHistory": {
+          "type": "object",
+          "schema_ref": "adoption_info"
+        },
+        "adoptionLevel": {
+          "type": "number"
+        },
+        "allowDeprecatedRegions": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "apiTokenRateLimit": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "api_token_rate_limit"
+        },
+        "avatar": {
+          "type": "string",
+          "nullable": true
+        },
+        "banReason": {
+          "type": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "customer": {
+          "type": "object",
+          "schema_ref": "customer"
+        },
+        "discordRole": {
+          "type": "string",
+          "nullable": true
+        },
+        "has2FAEnforcement": {
+          "type": "boolean",
+          "description": "Whether 2FA enforcement is enabled for this workspace."
+        },
+        "hasAutomaticDiagnosis": {
+          "type": "boolean",
+          "description": "Whether automatic deployment diagnosis is enabled for this workspace."
+        },
+        "hasGuardrailsAccess": {
+          "type": "boolean",
+          "description": "Whether this workspace has access to guardrails policies."
+        },
+        "hasSAML": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "members": {
+          "type": "object",
+          "schema_ref": "workspace_member"
+        },
+        "name": {
+          "type": "string"
+        },
+        "partnerProfile": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "partner_profile"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "preferredRegion": {
+          "type": "string",
+          "nullable": true
+        },
+        "redactedDueTo2FAPending": {
+          "type": "boolean",
+          "description": "Whether the current user's access is redacted due to pending 2FA requirement. Returns true if the user is a workspace member, workspace has 2FA enforcement enabled, and the current user needs to en..."
+        },
+        "referredUsers": {
+          "type": "object",
+          "schema_ref": "referral_user"
+        },
+        "slackChannelId": {
+          "type": "string",
+          "nullable": true
+        },
+        "subscriptionModel": {
+          "type": "string"
+        },
+        "subscriptionPlanLimit": {
+          "type": "string",
+          "nullable": true
+        },
+        "supportTierOverride": {
+          "type": "string",
+          "nullable": true
+        },
+        "team": {
+          "type": "object",
+          "nullable": true,
+          "schema_ref": "team"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "usersWithout2FA": {
+          "type": "string",
+          "description": "Get a list of user emails in the workspace who do not have verified 2FA enabled. Returns an empty array if all users have 2FA enabled."
+        }
+      }
+    }
+  }
+}

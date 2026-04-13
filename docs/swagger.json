@@ -3812,6 +3812,60 @@
                 }
             }
         },
+        "/incoming/webhooks/{provider}/{connectionID}": {
+            "post": {
+                "description": "Receives webhook events directly from providers that require manual webhook URL configuration (e.g. Railway). The connection UUID in the URL identifies the org and connection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Receive incoming webhook from external provider",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider name (e.g. railway)",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Connection UUID",
+                        "name": "connectionID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/oauth/exchange": {
             "post": {
                 "description": "Exchanges a short-lived, single-use OAuth exchange token for an access/refresh token pair. The exchange token is obtained from the OAuth callback redirect.",
@@ -5399,7 +5453,7 @@
         },
         "/v1/catalog/integrations/{id}/triggers": {
             "get": {
-                "description": "Returns all webhook event triggers for a single integration.",
+                "description": "Returns all webhook event triggers for a single integration, including manual webhook configuration requirements if applicable.",
                 "produces": [
                     "application/json"
                 ],
@@ -5420,10 +5474,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_handler.triggerSummary"
-                            }
+                            "$ref": "#/definitions/internal_handler.triggersResponse"
                         }
                     },
                     "404": {
@@ -11654,6 +11705,19 @@
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig": {
+            "type": "object",
+            "properties": {
+                "configuration_notes": {
+                    "description": "ConfigurationNotes is markdown text shown to the user explaining how to\nconfigure the webhook in the provider's settings.",
+                    "type": "string"
+                },
+                "webhook_url_required": {
+                    "description": "WebhookURLRequired indicates the user must manually configure a webhook\nURL in the provider's dashboard for triggers to work.",
+                    "type": "boolean"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.ConnectionConfigField": {
             "type": "object",
             "properties": {
@@ -11682,39 +11746,6 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_ziraloop_ziraloop_internal_model.ContextAction": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "description": "catalog action key, e.g. \"issues_get\"",
-                    "type": "string"
-                },
-                "as": {
-                    "description": "name in the context bag (used in prompt template + referenced by later steps)",
-                    "type": "string"
-                },
-                "only_when": {
-                    "description": "only run when the event matches these trigger keys",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "optional": {
-                    "description": "if true, failure doesn't block the trigger",
-                    "type": "boolean"
-                },
-                "params": {
-                    "description": "explicit/override params (supports $refs.x and {{step.field}} templates)",
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "ref": {
-                    "description": "resource ref — auto-fills params from resource's ref_bindings",
                     "type": "string"
                 }
             }
@@ -11937,66 +11968,6 @@
                 },
                 "webhook_user_defined_secret": {
                     "type": "boolean"
-                }
-            }
-        },
-        "github_com_ziraloop_ziraloop_internal_model.TerminateRule": {
-            "type": "object",
-            "properties": {
-                "conditions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch"
-                },
-                "context_actions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ContextAction"
-                    }
-                },
-                "ignore_parent_conditions": {
-                    "type": "boolean"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "silent": {
-                    "type": "boolean"
-                },
-                "trigger_keys": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "github_com_ziraloop_ziraloop_internal_model.TriggerCondition": {
-            "type": "object",
-            "properties": {
-                "operator": {
-                    "description": "equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists",
-                    "type": "string"
-                },
-                "path": {
-                    "description": "dot-path into payload, e.g. \"repository.full_name\"",
-                    "type": "string"
-                },
-                "value": {
-                    "description": "string or []string depending on operator"
-                }
-            }
-        },
-        "github_com_ziraloop_ziraloop_internal_model.TriggerMatch": {
-            "type": "object",
-            "properties": {
-                "conditions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerCondition"
-                    }
-                },
-                "mode": {
-                    "description": "\"all\" (AND) or \"any\" (OR)",
-                    "type": "string"
                 }
             }
         },
@@ -12827,9 +12798,6 @@
                 "status": {
                     "type": "string"
                 },
-                "subagents": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
                 "system_prompt": {
                     "type": "string"
                 },
@@ -13056,9 +13024,6 @@
                 },
                 "status": {
                     "type": "string"
-                },
-                "subagents": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -13648,9 +13613,6 @@
                         "type": "string"
                     }
                 },
-                "subagents": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
                 "system_prompt": {
                     "type": "string"
                 },
@@ -13659,49 +13621,6 @@
                 },
                 "tools": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
-                "trigger": {
-                    "description": "optional webhook trigger to create with the agent",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/internal_handler.createAgentTriggerRequest"
-                        }
-                    ]
-                }
-            }
-        },
-        "internal_handler.createAgentTriggerRequest": {
-            "type": "object",
-            "properties": {
-                "conditions": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TriggerMatch"
-                },
-                "connection_id": {
-                    "type": "string"
-                },
-                "context_actions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ContextAction"
-                    }
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "terminate_on": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.TerminateRule"
-                    }
-                },
-                "trigger_keys": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 }
             }
         },
@@ -14884,9 +14803,6 @@
                 },
                 "status": {
                     "type": "string"
-                },
-                "subagents": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {
                     "type": "string"
@@ -16423,6 +16339,20 @@
                 }
             }
         },
+        "internal_handler.triggersResponse": {
+            "type": "object",
+            "properties": {
+                "triggers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.triggerSummary"
+                    }
+                },
+                "webhook_config": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.WebhookConfig"
+                }
+            }
+        },
         "internal_handler.updateAgentRequest": {
             "type": "object",
             "properties": {
@@ -16463,9 +16393,6 @@
                     "type": "boolean"
                 },
                 "skills": {
-                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
-                },
-                "subagents": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "system_prompt": {

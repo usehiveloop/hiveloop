@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -54,7 +55,18 @@ func run(providerFilter string, force bool) error {
 		var actions map[string]ActionDef
 		var schemas map[string]SchemaDefinition
 
-		if svc.SchemaURL != "" {
+		if svc.SchemaURL != "" && strings.HasSuffix(svc.SchemaURL, ".json") {
+			// Introspection JSON mode: download a pre-published introspection result.
+			fmt.Printf("[%s] Fetching introspection JSON from %s ...\n", svc.Name, svc.SchemaURL)
+			introSchema, introErr := loadIntrospectionJSON(svc.SchemaURL, force)
+			if introErr != nil {
+				fmt.Fprintf(os.Stderr, "[%s] ERROR loading introspection JSON: %v (skipping)\n", svc.Name, introErr)
+				continue
+			}
+			fmt.Printf("[%s] Schema loaded (%d types)\n", svc.Name, len(introSchema.Types))
+
+			actions, schemas = parseSchema(introSchema, svc)
+		} else if svc.SchemaURL != "" {
 			// SDL mode: download and parse the .graphql schema file.
 			fmt.Printf("[%s] Fetching SDL schema from %s ...\n", svc.Name, svc.SchemaURL)
 			sdlContent, sdlErr := fetchSDL(svc.SchemaURL, force)

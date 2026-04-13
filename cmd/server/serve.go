@@ -121,6 +121,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
+	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 
 	var templateBuilder handler.TemplateBuildable
 	if orchestrator != nil {
@@ -195,6 +196,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		polarWebhookHandler := handler.NewPolarWebhookHandler(database, cfg.PolarWebhookSecret, cfg.PolarProductFreeID)
 		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
 	}
+
+	// Direct incoming webhooks for providers requiring manual webhook configuration
+	// (e.g. Railway). URL format: /incoming/webhooks/{provider}/{connectionID}
+	r.Post("/incoming/webhooks/{provider}/{connectionID}", incomingWebhookHandler.Handle)
 
 	// Embedded auth
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)

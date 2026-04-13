@@ -181,6 +181,84 @@
     "display_name": "Zendesk",
     "resources": {}
   },
+  "railway": {
+    "display_name": "Railway",
+    "resources": {
+      "project": {
+        "display_name": "Projects",
+        "description": "Railway projects for deploying applications",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "project",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ projects(first: 100) { edges { node { id name } } } }"
+          },
+          "response_path": "data.projects.edges"
+        },
+        "ref_bindings": {
+          "id": "$refs.project_id"
+        },
+        "resource_key_template": "$refs.project_id"
+      },
+      "service": {
+        "display_name": "Services",
+        "description": "Services within Railway projects",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "server",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ project(id: \"$refs.project_id\") { services { edges { node { id name } } } } }"
+          },
+          "response_path": "data.project.services.edges"
+        },
+        "ref_bindings": {
+          "id": "$refs.service_id"
+        }
+      },
+      "environment": {
+        "display_name": "Environments",
+        "description": "Environments within Railway projects",
+        "id_field": "id",
+        "name_field": "name",
+        "icon": "globe",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ environments(projectId: \"$refs.project_id\", first: 100) { edges { node { id name } } } }"
+          },
+          "response_path": "data.environments.edges"
+        },
+        "ref_bindings": {
+          "id": "$refs.environment_id"
+        }
+      },
+      "deployment": {
+        "display_name": "Deployments",
+        "description": "Deployments of Railway services",
+        "id_field": "id",
+        "name_field": "id",
+        "icon": "rocket",
+        "list_action": "/graphql",
+        "request_config": {
+          "method": "POST",
+          "body_template": {
+            "query": "{ deployments(input: { projectId: \"$refs.project_id\" }, first: 50) { edges { node { id status } } } }"
+          },
+          "response_path": "data.deployments.edges"
+        },
+        "ref_bindings": {
+          "id": "$refs.deployment_id"
+        }
+      }
+    }
+  },
   "linear": {
     "display_name": "Linear",
     "resources": {

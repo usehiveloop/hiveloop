@@ -32,6 +32,7 @@ openapi:
 	raw = raw.replace('internal_handler_', ''); \
 	raw = raw.replace('github_com_ziraloop_ziraloop_internal_registry.', ''); \
 	raw = raw.replace('github_com_ziraloop_ziraloop_internal_model.', ''); \
+	raw = raw.replace('github_com_ziraloop_ziraloop_internal_mcp_catalog.', ''); \
 	json.dump(json.loads(raw), open('docs/openapi.json','w'), indent=2) \
 	"
 	@echo "✓ docs/openapi.json updated"

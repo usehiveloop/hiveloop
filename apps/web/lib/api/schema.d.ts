@@ -4246,6 +4246,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/incoming/webhooks/{provider}/{connectionID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive incoming webhook from external provider
+         * @description Receives webhook events directly from providers that require manual webhook URL configuration (e.g. Railway). The connection UUID in the URL identifies the org and connection.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Provider name (e.g. railway) */
+                    provider: string;
+                    /** @description Connection UUID */
+                    connectionID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/oauth/exchange": {
         parameters: {
             query?: never;
@@ -6154,7 +6218,7 @@ export interface paths {
         };
         /**
          * List triggers for an integration
-         * @description Returns all webhook event triggers for a single integration.
+         * @description Returns all webhook event triggers for a single integration, including manual webhook configuration requirements if applicable.
          */
         get: {
             parameters: {
@@ -6174,7 +6238,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["triggerSummary"][];
+                        "application/json": components["schemas"]["triggersResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -13277,23 +13341,35 @@ export interface components {
                 [key: string]: string[];
             };
         };
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
+        SchemaDefinition: {
             /** @description for array types */
-            items?: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef"];
+            items?: components["schemas"]["SchemaRef"];
             properties?: {
-                [key: string]: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef"];
+                [key: string]: components["schemas"]["SchemaPropertyDef"];
             };
             type?: string;
         };
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaPropertyDef": {
+        SchemaPropertyDef: {
             description?: string;
             nullable?: boolean;
             /** @description references another schema by name for nested object resolution */
             schema_ref?: string;
             type?: string;
         };
-        "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaRef": {
+        SchemaRef: {
             $ref?: string;
+        };
+        WebhookConfig: {
+            /**
+             * @description ConfigurationNotes is markdown text shown to the user explaining how to
+             *     configure the webhook in the provider's settings.
+             */
+            configuration_notes?: string;
+            /**
+             * @description WebhookURLRequired indicates the user must manually configure a webhook
+             *     URL in the provider's dashboard for triggers to work.
+             */
+            webhook_url_required?: boolean;
         };
         ConnectionConfigField: {
             automated?: boolean;
@@ -13305,22 +13381,6 @@ export interface components {
             pattern?: string;
             title?: string;
             type?: string;
-        };
-        ContextAction: {
-            /** @description catalog action key, e.g. "issues_get" */
-            action?: string;
-            /** @description name in the context bag (used in prompt template + referenced by later steps) */
-            as?: string;
-            /** @description only run when the event matches these trigger keys */
-            only_when?: string[];
-            /** @description if true, failure doesn't block the trigger */
-            optional?: boolean;
-            /** @description explicit/override params (supports $refs.x and {{step.field}} templates) */
-            params?: {
-                [key: string]: unknown;
-            };
-            /** @description resource ref — auto-fills params from resource's ref_bindings */
-            ref?: string;
         };
         ForgeEvalCase: {
             /** @description happy_path, edge_case, adversarial, tool_error */
@@ -13403,27 +13463,6 @@ export interface components {
             webhook_secret?: string;
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
-        };
-        TerminateRule: {
-            conditions?: components["schemas"]["TriggerMatch"];
-            context_actions?: components["schemas"]["ContextAction"][];
-            ignore_parent_conditions?: boolean;
-            instructions?: string;
-            silent?: boolean;
-            trigger_keys?: string[];
-        };
-        TriggerCondition: {
-            /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
-            operator?: string;
-            /** @description dot-path into payload, e.g. "repository.full_name" */
-            path?: string;
-            /** @description string or []string depending on operator */
-            value?: unknown;
-        };
-        TriggerMatch: {
-            conditions?: components["schemas"]["TriggerCondition"][];
-            /** @description "all" (AND) or "any" (OR) */
-            mode?: string;
         };
         "github_com_ziraloop_ziraloop_internal_nango.Credentials": {
             app_id?: string;
@@ -13702,7 +13741,6 @@ export interface components {
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
-            subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -13780,7 +13818,6 @@ export interface components {
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
-            subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -13972,21 +14009,9 @@ export interface components {
             skills?: components["schemas"]["JSON"];
             /** @description subagents from /v1/subagents to attach on create */
             subagent_ids?: string[];
-            subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
-            /** @description optional webhook trigger to create with the agent */
-            trigger?: components["schemas"]["createAgentTriggerRequest"];
-        };
-        createAgentTriggerRequest: {
-            conditions?: components["schemas"]["TriggerMatch"];
-            connection_id?: string;
-            context_actions?: components["schemas"]["ContextAction"][];
-            enabled?: boolean;
-            instructions?: string;
-            terminate_on?: components["schemas"]["TerminateRule"][];
-            trigger_keys?: string[];
         };
         createCheckoutRequest: {
             /** @description "pro_shared" or "pro_dedicated" */
@@ -14316,7 +14341,7 @@ export interface components {
                 [key: string]: components["schemas"]["resource"];
             };
             schemas?: {
-                [key: string]: components["schemas"]["github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition"];
+                [key: string]: components["schemas"]["SchemaDefinition"];
             };
         };
         integrationProviderInfo: {
@@ -14383,7 +14408,6 @@ export interface components {
             slug?: string;
             source_agent_id?: string;
             status?: string;
-            subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             tags?: string[];
             team?: string;
@@ -14882,6 +14906,10 @@ export interface components {
             };
             resource_type?: string;
         };
+        triggersResponse: {
+            triggers?: components["schemas"]["triggerSummary"][];
+            webhook_config?: components["schemas"]["WebhookConfig"];
+        };
         updateAgentRequest: {
             agent_config?: components["schemas"]["JSON"];
             credential_id?: string;
@@ -14896,7 +14924,6 @@ export interface components {
             sandbox_type?: string;
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
-            subagents?: components["schemas"]["JSON"];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];

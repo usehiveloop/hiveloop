@@ -106,6 +106,111 @@ func AllServices() []ServiceConfig {
 			},
 		},
 		{
+			Name:             "railway",
+			SchemaURL:        "https://raw.githubusercontent.com/railwayapp/cli/master/src/gql/schema.json",
+			IntrospectionURL: "https://backboard.railway.com/graphql/v2",
+			NangoProviders:   []string{"railway"},
+			ResourcePrefixes: map[string]string{
+				"project":           "project",
+				"projects":          "project",
+				"projectCreate":     "project",
+				"projectUpdate":     "project",
+				"projectDelete":     "project",
+				"service":           "service",
+				"serviceCreate":     "service",
+				"serviceUpdate":     "service",
+				"serviceDelete":     "service",
+				"serviceConnect":    "service",
+				"serviceDisconnect": "service",
+				"serviceDomain":     "domain",
+				"serviceInstance":   "service",
+				"deployment":        "deployment",
+				"deployments":       "deployment",
+				"deploymentRedeploy":  "deployment",
+				"deploymentRestart":   "deployment",
+				"deploymentRollback":  "deployment",
+				"deploymentStop":      "deployment",
+				"deploymentCancel":    "deployment",
+				"deploymentLogs":      "deployment",
+				"buildLogs":           "deployment",
+				"environment":       "environment",
+				"environments":      "environment",
+				"environmentCreate": "environment",
+				"environmentDelete": "environment",
+				"variable":          "variable",
+				"variables":         "variable",
+				"variableUpsert":    "variable",
+				"variableDelete":    "variable",
+				"variableCollection": "variable",
+				"domain":            "domain",
+				"domains":           "domain",
+				"customDomain":      "domain",
+				"volume":            "volume",
+				"volumeCreate":      "volume",
+				"volumeDelete":      "volume",
+				"volumeUpdate":      "volume",
+				"volumeInstance":    "volume",
+				"me":                "user",
+				"region":            "region",
+				"regions":           "region",
+				"github":            "github",
+				"template":          "template",
+				"metric":            "metric",
+			},
+			IncludeFields: []string{
+				// ── User ──
+				"me",
+
+				// ── Project ──
+				"project", "projects",
+				"projectCreate", "projectUpdate", "projectDelete",
+
+				// ── Service ──
+				"service",
+				"serviceCreate", "serviceUpdate", "serviceDelete",
+				"serviceConnect", "serviceDisconnect",
+				"serviceInstanceDeploy", "serviceInstanceRedeploy", "serviceInstanceUpdate",
+
+				// ── Deployment ──
+				"deployment", "deployments",
+				"deploymentRedeploy", "deploymentRestart", "deploymentRollback",
+				"deploymentStop", "deploymentCancel",
+				"deploymentLogs", "buildLogs",
+
+				// ── Environment ──
+				"environment", "environments",
+				"environmentCreate", "environmentDelete",
+				"environmentTriggersDeploy",
+
+				// ── Variables ──
+				"variables",
+				"variableUpsert", "variableDelete", "variableCollectionUpsert",
+
+				// ── Domains ──
+				"domains",
+				"serviceDomainCreate", "serviceDomainDelete",
+				"customDomainCreate", "customDomainDelete",
+
+				// ── Volumes ──
+				"volumeInstance",
+				"volumeCreate", "volumeDelete", "volumeUpdate",
+
+				// ── GitHub ──
+				"githubRepos", "githubRepoBranches",
+				"githubRepoDeploy",
+
+				// ── Templates ──
+				"templateDeploy",
+
+				// ── Regions ──
+				"regions",
+
+				// ── Logs / Metrics ──
+				"environmentLogs",
+				"metrics",
+			},
+		},
+		{
 			Name:             "monday",
 			IntrospectionURL: "https://api.monday.com/v2",
 			NangoProviders:   []string{"monday"},

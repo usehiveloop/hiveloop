@@ -121,11 +121,25 @@ type TriggerDef struct {
 	Refs          map[string]string `json:"refs,omitempty"`           // ref_name → dot-path into webhook payload for entity extraction
 }
 
+// WebhookConfig describes manual webhook configuration requirements for
+// providers that don't support automatic webhook registration (e.g. Railway).
+// When present, the frontend should show a modal after connection setup with
+// the webhook URL the user needs to paste into the provider's dashboard.
+type WebhookConfig struct {
+	// WebhookURLRequired indicates the user must manually configure a webhook
+	// URL in the provider's dashboard for triggers to work.
+	WebhookURLRequired bool `json:"webhook_url_required"`
+	// ConfigurationNotes is markdown text shown to the user explaining how to
+	// configure the webhook in the provider's settings.
+	ConfigurationNotes string `json:"configuration_notes"`
+}
+
 // ProviderTriggers describes a provider's webhook event triggers.
 type ProviderTriggers struct {
-	DisplayName string                      `json:"display_name"`
-	Triggers    map[string]TriggerDef       `json:"triggers"`
-	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
+	DisplayName   string                      `json:"display_name"`
+	WebhookConfig *WebhookConfig              `json:"webhook_config,omitempty"`
+	Triggers      map[string]TriggerDef       `json:"triggers"`
+	Schemas       map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
 // Catalog holds all providers and their actions/triggers, indexed for fast lookup.
