@@ -98,13 +98,6 @@ func AutoMigrate(db *gorm.DB) error {
 	// GIN index for generation tags array filtering
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_gen_tags ON generations USING GIN (tags)")
 
-	// Partial index for efficient webhook → trigger lookup (only enabled triggers).
-	db.Exec(`CREATE INDEX IF NOT EXISTS idx_agent_triggers_lookup ON agent_triggers (connection_id) WHERE enabled = true`)
-	// Drop old single-key unique index if it exists.
-	db.Exec(`DROP INDEX IF EXISTS idx_agent_triggers_unique`)
-	// Unique constraint: one trigger config per agent+connection pair.
-	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_triggers_agent_conn ON agent_triggers (agent_id, connection_id)`)
-
 	// Partial unique: a git-sourced skill can only have one version per commit SHA.
 	db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_versions_skill_sha ON skill_versions (skill_id, commit_sha) WHERE commit_sha IS NOT NULL`)
 	// GIN index for skill tag filtering in the marketplace.
