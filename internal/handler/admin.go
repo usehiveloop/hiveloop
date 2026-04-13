@@ -4094,6 +4094,13 @@ func (h *AdminHandler) GetSandboxTemplate(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, toAdminSandboxTemplateResponse(tmpl))
 }
 
+type adminUpdateSandboxTemplateRequest struct {
+	Name          *string    `json:"name,omitempty"`
+	Size          *string    `json:"size,omitempty"`
+	BuildCommands []string   `json:"build_commands,omitempty"`
+	Config        model.JSON `json:"config,omitempty"`
+}
+
 // UpdateSandboxTemplate handles PUT /admin/v1/sandbox-templates/{id}.
 // @Summary Update a sandbox template
 // @Description Updates sandbox template name, size, build commands, and configuration.
@@ -4101,6 +4108,7 @@ func (h *AdminHandler) GetSandboxTemplate(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Param id path string true "Template ID"
+// @Param body body adminUpdateSandboxTemplateRequest true "Fields to update"
 // @Success 200 {object} adminSandboxTemplateResponse
 // @Failure 400 {object} errorResponse
 // @Failure 404 {object} errorResponse

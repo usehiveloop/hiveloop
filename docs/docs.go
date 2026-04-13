@@ -2467,6 +2467,15 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.adminUpdateSandboxTemplateRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -13561,6 +13570,26 @@ const docTemplate = `{
                 },
                 "rate_limit": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_handler.adminUpdateSandboxTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "build_commands": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "config": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
                 }
             }
         },

@@ -2565,7 +2565,12 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["adminUpdateSandboxTemplateRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -14363,6 +14368,12 @@ export interface components {
             allowed_origins?: string[];
             name?: string;
             rate_limit?: number;
+        };
+        adminUpdateSandboxTemplateRequest: {
+            build_commands?: string[];
+            config?: components["schemas"]["JSON"];
+            name?: string;
+            size?: string;
         };
         adminUpdateSkillRequest: {
             description?: string;

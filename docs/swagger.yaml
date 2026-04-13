@@ -952,6 +952,19 @@ definitions:
       rate_limit:
         type: integer
     type: object
+  internal_handler.adminUpdateSandboxTemplateRequest:
+    properties:
+      build_commands:
+        items:
+          type: string
+        type: array
+      config:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      name:
+        type: string
+      size:
+        type: string
+    type: object
   internal_handler.adminUpdateSkillRequest:
     properties:
       description:
@@ -5149,6 +5162,12 @@ paths:
         name: id
         required: true
         type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.adminUpdateSandboxTemplateRequest'
       produces:
       - application/json
       responses:

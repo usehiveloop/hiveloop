@@ -2860,6 +2860,17 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminUpdateSandboxTemplateRequest"
+              }
+            }
+          },
+          "description": "Fields to update",
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -16123,6 +16134,26 @@
           },
           "rate_limit": {
             "type": "integer"
+          }
+        }
+      },
+      "adminUpdateSandboxTemplateRequest": {
+        "type": "object",
+        "properties": {
+          "build_commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "config": {
+            "$ref": "#/components/schemas/JSON"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
           }
         }
       },
