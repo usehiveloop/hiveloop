@@ -26,3 +26,6 @@ portal-mcp-logs/
 # LSP server binaries for integration tests
 .lsp-servers/
 codedb.snapshot
+
+# Materialized skill files
+.skills/

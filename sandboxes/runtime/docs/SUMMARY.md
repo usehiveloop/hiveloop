@@ -106,5 +106,6 @@
 
 - [Glossary](reference/glossary.md)
 - [Environment Variables](reference/environment-variables.md)
+- [Sandbox Reference](reference/sandbox-reference.md)
 - [OpenAPI](reference/openapi.md)
 - [Changelog](reference/changelog.md)

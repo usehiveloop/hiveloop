@@ -273,7 +273,11 @@ impl AgentSupervisor {
             .merge_with_discovered_skills(definition.skills.clone())
             .await;
         if !all_skills.is_empty() {
-            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(all_skills)));
+            let base_dir = self.resolve_working_dir();
+            tools::skill_files::write_skill_files(&all_skills, &base_dir).await;
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::with_base_dir(
+                all_skills, base_dir,
+            )));
         }
 
         // Create task registry for tracking background subagent tasks
@@ -375,6 +379,14 @@ impl AgentSupervisor {
         self.agent_map.list_states()
     }
 
+    /// Resolve the working directory for skill discovery and skill file materialization.
+    fn resolve_working_dir(&self) -> std::path::PathBuf {
+        self.skill_discovery_dir
+            .as_deref()
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+    }
+
     /// Merge control-plane skills with locally discovered skills.
     ///
     /// Control-plane skills always take precedence. Local skills are only added
@@ -387,11 +399,7 @@ impl AgentSupervisor {
             return cp_skills;
         }
 
-        let dir = self
-            .skill_discovery_dir
-            .as_deref()
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+        let dir = self.resolve_working_dir();
 
         let local_skills = crate::skill_discovery::discover_skills(&dir).await;
 
@@ -1043,6 +1051,14 @@ impl AgentSupervisor {
         // Remove agents
         for agent_id in removed {
             if let Some(state) = self.agent_map.remove(&agent_id) {
+                // Clean up materialized skill files.
+                {
+                    let base_dir = self.resolve_working_dir();
+                    let def = state.definition.read().await;
+                    let skill_ids: Vec<&str> = def.skills.iter().map(|s| s.id.as_str()).collect();
+                    tools::skill_files::cleanup_skill_files(&skill_ids, &base_dir).await;
+                }
+
                 state.cancel.cancel();
                 state.tracker.close();
                 state.tracker.wait().await;
@@ -1118,7 +1134,20 @@ impl AgentSupervisor {
             .merge_with_discovered_skills(definition.skills.clone())
             .await;
         if !all_skills.is_empty() {
-            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::new(all_skills)));
+            let base_dir = self.resolve_working_dir();
+
+            // Clean up old skill files when updating an existing agent.
+            if let Some(old_state) = self.agent_map.get(&agent_id) {
+                let old_def = old_state.definition.read().await;
+                let old_skill_ids: Vec<&str> =
+                    old_def.skills.iter().map(|s| s.id.as_str()).collect();
+                tools::skill_files::cleanup_skill_files(&old_skill_ids, &base_dir).await;
+            }
+
+            tools::skill_files::write_skill_files(&all_skills, &base_dir).await;
+            tool_registry.register(Arc::new(tools::skill_tools::SkillTool::with_base_dir(
+                all_skills, base_dir,
+            )));
         }
 
         // Create task registry for tracking background subagent tasks

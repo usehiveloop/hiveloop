@@ -24,6 +24,38 @@ use webhooks::EventBus;
 /// implement their own truncation.
 const TOOL_RESULT_MAX_BYTES: usize = 50 * 1024; // 50KB
 
+/// Validate tool arguments against a JSON schema.
+/// Returns Ok(()) if valid, Err(message) with human-readable validation errors if not.
+fn validate_tool_args(args: &serde_json::Value, schema: &serde_json::Value) -> Result<(), String> {
+    // Skip validation for empty/trivial schemas
+    if schema.is_null() || schema == &serde_json::json!({}) {
+        return Ok(());
+    }
+
+    let validator = match jsonschema::validator_for(schema) {
+        Ok(v) => v,
+        Err(_) => return Ok(()), // If schema itself is invalid, skip validation
+    };
+
+    let errors: Vec<String> = validator
+        .iter_errors(args)
+        .map(|e| {
+            let path = e.instance_path().to_string();
+            if path.is_empty() {
+                e.to_string()
+            } else {
+                format!("{}: {}", path, e)
+            }
+        })
+        .collect();
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("; "))
+    }
+}
+
 /// Truncate a tool result string if it exceeds the safety net threshold.
 /// Returns the original string if within limits.
 fn truncate_if_needed(result: String) -> String {
@@ -254,6 +286,38 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             }
             Some(ToolPermission::Allow) | None => {
                 // Fall through to normal execution
+            }
+        }
+
+        // Validate tool arguments against the tool's JSON schema.
+        // Catches malformed calls early so the agent can retry immediately
+        // without a wasted round-trip to the tool executor.
+        if let Some(executor) = self.tool_executors.get(&effective_name) {
+            let schema = executor.parameters_schema();
+            if let Err(validation_error) = validate_tool_args(&arguments, &schema) {
+                let error = json!({
+                    "error": format!("Invalid arguments for tool '{}': {}", effective_name, validation_error)
+                })
+                .to_string();
+                let duration_ms = call_start.elapsed().as_millis() as u64;
+                self.metrics
+                    .record_tool_call_detailed(&effective_name, true, duration_ms);
+                info!(
+                    agent_id = %self.agent_id,
+                    conversation_id = %self.conversation_id,
+                    tool_name = %effective_name,
+                    error = %error,
+                    "tool_call_args_invalid"
+                );
+                self.event_bus.emit(BridgeEvent::new(
+                    BridgeEventType::ToolCallCompleted,
+                    &self.agent_id,
+                    &self.conversation_id,
+                    json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
+                ));
+                return ToolCallHookAction::Skip {
+                    reason: truncate_if_needed(error),
+                };
             }
         }
 

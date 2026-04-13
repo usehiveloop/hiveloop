@@ -4,6 +4,7 @@ use regex::Regex;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use crate::ToolExecutor;
 
@@ -28,11 +29,25 @@ pub struct SkillToolArgs {
 /// substitution and file reference resolution applied.
 pub struct SkillTool {
     skills: Vec<SkillDefinition>,
+    /// Base directory where `.skills/<skill-id>/` directories are written.
+    /// When set, `${CLAUDE_SKILL_DIR}` resolves to `<base_dir>/.skills/<skill-id>`.
+    base_dir: Option<PathBuf>,
 }
 
 impl SkillTool {
     pub fn new(skills: Vec<SkillDefinition>) -> Self {
-        Self { skills }
+        Self {
+            skills,
+            base_dir: None,
+        }
+    }
+
+    /// Create a SkillTool whose skill files are materialized under `base_dir`.
+    pub fn with_base_dir(skills: Vec<SkillDefinition>, base_dir: PathBuf) -> Self {
+        Self {
+            skills,
+            base_dir: Some(base_dir),
+        }
     }
 
     /// Get a reference to the skills held by this tool.
@@ -46,12 +61,12 @@ impl SkillTool {
 /// Supported variables:
 /// - `{{args}}` and `$ARGUMENTS` → full args string
 /// - `$1`, `$2`, ... → positional args (whitespace-split)
-/// - `${CLAUDE_SKILL_DIR}` → skill id (virtual path)
-fn substitute_variables(content: &str, args: Option<&str>, skill_id: &str) -> String {
+/// - `${CLAUDE_SKILL_DIR}` → skill directory path (e.g. `.skills/my-skill`)
+fn substitute_variables(content: &str, args: Option<&str>, skill_dir: &str) -> String {
     let mut result = content.to_string();
 
     // Always substitute ${CLAUDE_SKILL_DIR}
-    result = result.replace("${CLAUDE_SKILL_DIR}", skill_id);
+    result = result.replace("${CLAUDE_SKILL_DIR}", skill_dir);
 
     if let Some(args_str) = args {
         // Substitute $ARGUMENTS and {{args}} with the full args string
@@ -156,8 +171,17 @@ impl ToolExecutor for SkillTool {
                     };
                 }
 
+                // Resolve the skill directory path for variable substitution.
+                let skill_dir_str = match &self.base_dir {
+                    Some(base) => crate::skill_files::skill_dir_path(&s.id, base)
+                        .to_string_lossy()
+                        .to_string(),
+                    None => s.id.clone(),
+                };
+
                 // Substitute variables, then resolve file references
-                let content = substitute_variables(&s.content, args.args.as_deref(), &s.id);
+                let content =
+                    substitute_variables(&s.content, args.args.as_deref(), &skill_dir_str);
                 let content = resolve_file_references(&content, &s.files);
 
                 // If no variable substitution happened but args were provided,
@@ -176,10 +200,25 @@ impl ToolExecutor for SkillTool {
                     content
                 };
 
+                // Prepend a note about the skill's files location on disk.
+                let files_note = if !s.files.is_empty() {
+                    if let Some(base) = &self.base_dir {
+                        let dir = crate::skill_files::skill_dir_path(&s.id, base);
+                        format!(
+                            "NOTE: This skill's files are at {}/\nPrefix script paths with this directory.\n\n---\n\n",
+                            dir.display()
+                        )
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                };
+
                 let source_attr = format!("{:?}", s.source).to_lowercase();
                 Ok(format!(
-                    "<skill_content name=\"{}\" title=\"{}\" source=\"{}\">\n{}\n</skill_content>",
-                    s.id, s.title, source_attr, content
+                    "<skill_content name=\"{}\" title=\"{}\" source=\"{}\">\n{}{}\n</skill_content>",
+                    s.id, s.title, source_attr, files_note, content
                 ))
             }
             None => {
@@ -535,5 +574,53 @@ mod tests {
         let tool = SkillTool::new(skills.clone());
         assert_eq!(tool.skills().len(), 2);
         assert_eq!(tool.skills()[0].id, "code-review");
+    }
+
+    #[test]
+    fn substitute_variables_with_base_dir_skill_dir() {
+        let result = substitute_variables(
+            "Run ${CLAUDE_SKILL_DIR}/script.sh",
+            None,
+            ".skills/my-skill",
+        );
+        assert_eq!(result, "Run .skills/my-skill/script.sh");
+    }
+
+    #[tokio::test]
+    async fn execute_with_base_dir_prepends_files_note() {
+        let tool = SkillTool::with_base_dir(
+            vec![make_multi_file_skill()],
+            std::path::PathBuf::from("/workspace"),
+        );
+        let args = serde_json::json!({ "name": "api-docs" });
+        let result = tool.execute(args).await.expect("execute");
+
+        assert!(result.contains("NOTE: This skill's files are at /workspace/.skills/api-docs/"));
+        assert!(result.contains("Prefix script paths with this directory."));
+    }
+
+    #[tokio::test]
+    async fn execute_without_base_dir_no_files_note() {
+        let tool = SkillTool::new(vec![make_multi_file_skill()]);
+        let args = serde_json::json!({ "name": "api-docs" });
+        let result = tool.execute(args).await.expect("execute");
+
+        assert!(!result.contains("NOTE: This skill's files are at"));
+    }
+
+    #[tokio::test]
+    async fn execute_with_base_dir_substitutes_skill_dir() {
+        let skill = SkillDefinition {
+            id: "deploy".to_string(),
+            title: "Deploy".to_string(),
+            description: "Deploy helper".to_string(),
+            content: "Run ${CLAUDE_SKILL_DIR}/scripts/deploy.sh".to_string(),
+            ..Default::default()
+        };
+        let tool = SkillTool::with_base_dir(vec![skill], std::path::PathBuf::from("/workspace"));
+        let args = serde_json::json!({ "name": "deploy" });
+        let result = tool.execute(args).await.expect("execute");
+
+        assert!(result.contains("Run /workspace/.skills/deploy/scripts/deploy.sh"));
     }
 }
