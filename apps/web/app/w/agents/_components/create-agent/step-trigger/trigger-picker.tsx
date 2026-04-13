@@ -5,32 +5,42 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
   Search01Icon,
-  Tick02Icon,
   Notification03Icon,
   FlashIcon,
   Settings02Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { $api } from "@/lib/api/hooks"
+
+interface SelectedEvent {
+  key: string
+  displayName: string
+  refs: Record<string, string>
+  conditions: { mode: "all" | "any"; conditions: Array<{ path: string; operator: string; value: unknown }> } | null
+}
 
 interface TriggerPickerViewProps {
   provider: string
   connectionName: string
   search: string
   onSearchChange: (value: string) => void
-  configuredKeys: Set<string>
-  onConfigureEvent: (triggerKey: string, displayName: string, refs: Record<string, string>) => void
-  onDone: () => void
+  selectedEvents: Map<string, SelectedEvent>
+  onToggleEvent: (key: string, displayName: string, refs: Record<string, string>) => void
+  onRemoveEvent: (key: string) => void
+  onConfigureEvent: (key: string) => void
+  onConfirm: () => void
   onBack: () => void
 }
 
 const CONVERSATIONAL_KEYS = new Set(["app_mention", "message.im", "message.channels", "message.groups"])
 
-export function TriggerPickerView({ provider, connectionName, search, onSearchChange, configuredKeys, onConfigureEvent, onDone, onBack }: TriggerPickerViewProps) {
+export function TriggerPickerView({ provider, connectionName, search, onSearchChange, selectedEvents, onToggleEvent, onRemoveEvent, onConfigureEvent, onConfirm, onBack }: TriggerPickerViewProps) {
   const { data: triggersData, isLoading } = $api.useQuery(
     "get",
     "/v1/catalog/integrations/{id}/triggers",
@@ -62,16 +72,16 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
       if (!groups[resourceType]) groups[resourceType] = []
       groups[resourceType].push(trigger)
     }
-    // Sort configured triggers to top within each group.
+    // Sort selected triggers to top within each group.
     for (const group of Object.values(groups)) {
       group.sort((first, second) => {
-        const firstConfigured = configuredKeys.has(first.key ?? "") ? 0 : 1
-        const secondConfigured = configuredKeys.has(second.key ?? "") ? 0 : 1
-        return firstConfigured - secondConfigured
+        const firstSelected = selectedEvents.has(first.key ?? "") ? 0 : 1
+        const secondSelected = selectedEvents.has(second.key ?? "") ? 0 : 1
+        return firstSelected - secondSelected
       })
     }
     return groups
-  }, [filtered, configuredKeys])
+  }, [filtered, selectedEvents])
 
   return (
     <>
@@ -86,7 +96,7 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
           </div>
         </div>
         <DialogDescription className="mt-2">
-          Tap the gear icon to configure a trigger for an event. Add filters to narrow when it fires.
+          Select events that trigger this agent. Use the gear icon to add filters.
         </DialogDescription>
       </DialogHeader>
 
@@ -111,13 +121,18 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1 mb-1.5">{resourceType}</p>
               <div className="flex flex-col gap-1">
                 {resourceTriggers.map((trigger) => {
-                  const isConfigured = configuredKeys.has(trigger.key ?? "")
+                  const triggerKey = trigger.key ?? ""
+                  const isSelected = selectedEvents.has(triggerKey)
+                  const selectedEvent = selectedEvents.get(triggerKey)
+                  const hasFilters = selectedEvent?.conditions && selectedEvent.conditions.conditions.length > 0
+
                   return (
                     <div
-                      key={trigger.key}
+                      key={triggerKey}
                       className={`flex items-start gap-3 w-full rounded-xl p-3 transition-colors ${
-                        isConfigured ? "bg-primary/5 border border-primary/20" : "bg-muted/50 border border-transparent"
+                        isSelected ? "bg-primary/5 border border-primary/20" : "bg-muted/50 hover:bg-muted border border-transparent cursor-pointer"
                       }`}
+                      onClick={isSelected ? undefined : () => onToggleEvent(triggerKey, trigger.display_name ?? "", (trigger as Record<string, unknown>).refs as Record<string, string> ?? {})}
                     >
                       <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10 shrink-0 mt-0.5">
                         <HugeiconsIcon icon={FlashIcon} size={12} className="text-amber-500" />
@@ -125,20 +140,31 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">{trigger.display_name}</p>
                         <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">{trigger.description}</p>
+                        {hasFilters && (
+                          <Badge variant="secondary" className="text-[10px] mt-1.5">
+                            {selectedEvent.conditions!.conditions.length} filter{selectedEvent.conditions!.conditions.length !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
                       </div>
-                      {isConfigured ? (
-                        <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                          <HugeiconsIcon icon={Tick02Icon} size={14} className="text-primary" />
-                          <span className="text-[11px] text-primary font-medium">Added</span>
+                      {isSelected && (
+                        <div className="flex items-center gap-1 shrink-0 mt-0.5" onClick={(event) => event.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => onConfigureEvent(triggerKey)}
+                            className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            title="Configure filters"
+                          >
+                            <HugeiconsIcon icon={Settings02Icon} size={14} className="text-muted-foreground" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveEvent(triggerKey)}
+                            className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer"
+                            title="Remove"
+                          >
+                            <HugeiconsIcon icon={Cancel01Icon} size={12} className="text-destructive" />
+                          </button>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onConfigureEvent(trigger.key ?? "", trigger.display_name ?? "", (trigger as Record<string, unknown>).refs as Record<string, string> ?? {})}
-                          className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors shrink-0 mt-0.5 cursor-pointer"
-                        >
-                          <HugeiconsIcon icon={Settings02Icon} size={14} className="text-muted-foreground" />
-                        </button>
                       )}
                     </div>
                   )
@@ -150,10 +176,10 @@ export function TriggerPickerView({ provider, connectionName, search, onSearchCh
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={onDone} className="w-full">
-          {configuredKeys.size > 0
-            ? `Done — ${configuredKeys.size} trigger${configuredKeys.size > 1 ? "s" : ""} configured`
-            : "Back to triggers"}
+        <Button onClick={onConfirm} disabled={selectedEvents.size === 0} className="w-full">
+          {selectedEvents.size > 0
+            ? `Continue with ${selectedEvents.size} event${selectedEvents.size > 1 ? "s" : ""}`
+            : "Select at least one event"}
         </Button>
       </div>
     </>
