@@ -33,8 +33,6 @@ Later sources override earlier ones.
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | unlimited | Limit concurrent conversations |
 | `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | `500` | Global ceiling on simultaneous LLM API calls |
 | `BRIDGE_STORAGE_PATH` | — | Path to SQLite database for persistence |
-| `BRIDGE_CODEDB_ENABLED` | `false` | Enable CodeDB MCP server |
-| `BRIDGE_CODEDB_BINARY` | `codedb` | Path to codedb binary |
 | `BRIDGE_OTEL_ENDPOINT` | — | OpenTelemetry OTLP gRPC endpoint |
 | `BRIDGE_OTEL_SERVICE_NAME` | `bridge` | Service name in OpenTelemetry traces |
 
@@ -194,28 +192,6 @@ When unset (the default), all of the above are **ephemeral** — held in memory 
 
 ---
 
-## CodeDB
-
-[CodeDB](https://github.com/nicobailey/codedb) is an MCP server that replaces Bridge's built-in Grep/Read/Glob tools with optimised equivalents. Enable it in `config.toml`:
-
-```toml
-codedb_enabled = true
-
-# Optional: explicit path to the binary (defaults to "codedb" on PATH)
-codedb_binary = "/usr/local/bin/codedb"
-```
-
-Or via environment variables:
-
-```bash
-export BRIDGE_CODEDB_ENABLED="true"
-export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
-```
-
-When enabled, the `codedb` binary must be available. Bridge will fail to start if it cannot find the binary.
-
----
-
 ## OpenTelemetry
 
 Bridge can export distributed traces via OpenTelemetry OTLP over gRPC. Configure it in `config.toml`:
@@ -315,8 +291,6 @@ Fix the issue and restart.
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | Positive integer (or omit for unlimited) |
 | `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | Positive integer |
 | `BRIDGE_STORAGE_PATH` | Valid file path (or omit to disable) |
-| `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
-| `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
 | `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |
 | `BRIDGE_OTEL_SERVICE_NAME` | Non-empty string |
 

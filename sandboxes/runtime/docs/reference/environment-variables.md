@@ -150,29 +150,6 @@ When unset, all of the above are ephemeral and lost on restart.
 export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
 ```
 
-### `BRIDGE_CODEDB_ENABLED`
-
-Enable the CodeDB MCP server, which replaces the built-in Grep/Read/Glob tools with CodeDB equivalents.
-
-- **Default:** `false`
-- **Valid values:** `true`, `false`
-
-```bash
-export BRIDGE_CODEDB_ENABLED="true"
-```
-
-### `BRIDGE_CODEDB_BINARY`
-
-Path to the `codedb` binary. Only relevant when `BRIDGE_CODEDB_ENABLED` is `true`.
-
-- **Default:** `codedb` (looked up via `PATH`)
-- **Format:** File path or binary name (string)
-- **Example:** `/usr/local/bin/codedb`
-
-```bash
-export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
-```
-
 ### `BRIDGE_ALLOW_STDIO_MCP_FROM_API`
 
 Allow API clients to attach `stdio`-transport MCP servers to a conversation via the `mcp_servers` field in `POST /agents/{id}/conversations`. See [Per-Conversation MCP Servers](../core-concepts/mcp.md#per-conversation-mcp-servers).
@@ -347,9 +324,6 @@ export BRIDGE_MAX_CONCURRENT_LLM_CALLS="500"
 # Optional: persistence
 export BRIDGE_STORAGE_PATH="/var/lib/bridge/bridge.db"
 
-# Optional: CodeDB
-export BRIDGE_CODEDB_ENABLED="true"
-export BRIDGE_CODEDB_BINARY="/usr/local/bin/codedb"
 
 # Optional: OpenTelemetry tracing
 export BRIDGE_OTEL_ENDPOINT="http://localhost:4317"
@@ -383,8 +357,6 @@ Fix the issue and restart.
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | Positive integer (or omit for unlimited) |
 | `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | Positive integer |
 | `BRIDGE_STORAGE_PATH` | Valid file path (or omit to disable) |
-| `BRIDGE_CODEDB_ENABLED` | `true` or `false` |
-| `BRIDGE_CODEDB_BINARY` | Valid file path or binary name |
 | `BRIDGE_ALLOW_STDIO_MCP_FROM_API` | `true` or `false` (default `false`) |
 | `BRIDGE_STANDALONE_AGENT` | `true` or `false` (default `false`) |
 | `BRIDGE_OTEL_ENDPOINT` | Valid URL (or omit to disable) |

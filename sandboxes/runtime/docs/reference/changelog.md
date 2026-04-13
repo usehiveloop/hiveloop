@@ -4,6 +4,14 @@ Changes to Bridge.
 
 ---
 
+## v0.18.2 (2026-04-13)
+
+### Removed
+
+- **CodeDB as a first-class concept.** The `BRIDGE_CODEDB_ENABLED` and `BRIDGE_CODEDB_BINARY` config options, auto-injection, and built-in tool suppression have been removed. To use CodeDB, add it as a regular MCP server in your agent's `mcp_servers` array and use `disabled_tools` to drop built-in tools you don't want. This simplifies Bridge's codebase and configuration surface.
+
+---
+
 ## v0.18.1 (2026-04-13)
 
 ### Added

@@ -32,7 +32,7 @@ Control tool execution behavior per-agent using the `permissions` field. Tools n
 
 Use `disabled_tools` in the agent config to completely remove tools from the agent. Disabled tools are removed from the registry before the agent is built — the LLM never sees them. This takes priority over everything else, including `permissions` and `tools` allow-lists.
 
-Works for any tool type: built-in, MCP, codedb, spider, integration, and skills.
+Works for any tool type: built-in, MCP, spider, integration, and skills.
 
 ```json
 {
@@ -131,39 +131,6 @@ These tools are registered when `config.immortal` is set on the agent. They prov
 | Tool Name | Description | Requires |
 |-----------|-------------|----------|
 | `skill` | Invoke a skill defined in the agent's `skills` array | Agent has skills defined |
-
----
-
-## CodeDB Tools (MCP)
-
-When `BRIDGE_CODEDB_ENABLED=true`, the CodeDB MCP server is auto-injected and provides these tools. They replace `Read`, `Grep`, and `Glob` with code-aware alternatives.
-
-| Tool Name | Description |
-|-----------|-------------|
-| `codedb_search` | Semantic and keyword code search |
-| `codedb_read` | Read file contents with code-aware context |
-| `codedb_outline` | Get file outline (functions, classes, structs, etc.) |
-| `codedb_symbol` | Look up symbol definitions and references |
-| `codedb_tree` | Display directory tree structure |
-| `codedb_word` | Word-level search across the codebase |
-| `codedb_hot` | Find frequently changed files (hot spots) |
-| `codedb_deps` | Analyze file and module dependencies |
-| `codedb_edit` | Code-aware file editing |
-| `codedb_bundle` | Bundle multiple files into a single context |
-| `codedb_status` | Show indexing and project status |
-| `codedb_changes` | Show recent file changes |
-| `codedb_snapshot` | Capture project state snapshot |
-| `codedb_remote` | Fetch remote repository information |
-| `codedb_projects` | List indexed projects |
-| `codedb_index` | Trigger re-indexing |
-
-CodeDB tools respect the agent's `tools` allow-list:
-
-```json
-{
-  "tools": ["codedb_search", "codedb_read", "codedb_outline"]
-}
-```
 
 ---
 
@@ -278,7 +245,6 @@ Any MCP server connected to the agent exposes its tools. Tool names are determin
 ## See Also
 
 - [Tools Concept](../core-concepts/tools.md) — How tools work
-- [CodeDB](codedb.md) — Code intelligence MCP server
 - [Agent Tools](agent-tools.md) — Subagent orchestration
 - [Skill Tool](skill-tool.md) — Skill invocation
 - [Integration Tools](integration-tools.md) — External service connectors

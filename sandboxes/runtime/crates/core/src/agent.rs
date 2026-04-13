@@ -113,8 +113,8 @@ pub struct AgentConfig {
 
     /// Tools to disable for this agent. Takes priority over everything else —
     /// disabled tools are removed from the registry before the agent is built,
-    /// so the LLM never sees them. Works for built-in tools, MCP tools, codedb
-    /// tools, integration tools, and spider tools.
+    /// so the LLM never sees them. Works for built-in tools, MCP tools,
+    /// integration tools, and spider tools.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled_tools: Vec<String>,
 }

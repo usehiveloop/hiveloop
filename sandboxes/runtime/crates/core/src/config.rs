@@ -44,18 +44,6 @@ pub struct RuntimeConfig {
     #[serde(default)]
     pub websocket_enabled: bool,
 
-    /// Replace built-in filesystem search tools (Grep, Read, Glob) with codedb MCP server.
-    /// When true, codedb is auto-injected as an MCP server for all agents and
-    /// the built-in Grep, Read, and Glob tools are not registered.
-    /// Configured via `BRIDGE_CODEDB_ENABLED` env var.
-    #[serde(default)]
-    pub codedb_enabled: bool,
-
-    /// Path to the codedb binary. Defaults to "codedb" (looked up in PATH).
-    /// Configured via `BRIDGE_CODEDB_BINARY` env var.
-    #[serde(default = "default_codedb_binary")]
-    pub codedb_binary: String,
-
     /// Enable auto-discovery of skills from .claude/skills/, .cursor/rules/,
     /// .github/copilot-instructions.md, .windsurf/rules/, and .agent/skills/.
     /// Configured via `BRIDGE_SKILL_DISCOVERY_ENABLED` env var.
@@ -148,9 +136,6 @@ fn default_webhook_max_retries() -> usize {
 fn default_webhook_worker_idle_timeout() -> u64 {
     300
 }
-fn default_codedb_binary() -> String {
-    "codedb".to_string()
-}
 fn default_otel_service_name() -> String {
     "bridge".to_string()
 }
@@ -225,8 +210,6 @@ impl Default for RuntimeConfig {
             max_concurrent_llm_calls: None,
             webhook_config: None,
             websocket_enabled: false,
-            codedb_enabled: false,
-            codedb_binary: default_codedb_binary(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
@@ -358,45 +341,6 @@ mod tests {
         // Defaults for unset fields
         assert_eq!(wh.max_idle_connections, 20);
         assert_eq!(wh.max_retries, 5);
-    }
-
-    #[test]
-    fn test_codedb_defaults() {
-        let config = RuntimeConfig::default();
-        assert!(!config.codedb_enabled);
-        assert_eq!(config.codedb_binary, "codedb");
-    }
-
-    #[test]
-    fn test_codedb_enabled_from_json() {
-        let json = r#"{
-            "control_plane_url": "http://localhost",
-            "control_plane_api_key": "key",
-            "listen_addr": "0.0.0.0:8080",
-            "drain_timeout_secs": 60,
-            "log_level": "info",
-            "log_format": "text",
-            "codedb_enabled": true,
-            "codedb_binary": "/usr/local/bin/codedb"
-        }"#;
-        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
-        assert!(config.codedb_enabled);
-        assert_eq!(config.codedb_binary, "/usr/local/bin/codedb");
-    }
-
-    #[test]
-    fn test_backwards_compat_without_codedb_fields() {
-        let json = r#"{
-            "control_plane_url": "http://localhost",
-            "control_plane_api_key": "key",
-            "listen_addr": "0.0.0.0:8080",
-            "drain_timeout_secs": 60,
-            "log_level": "info",
-            "log_format": "text"
-        }"#;
-        let config: RuntimeConfig = serde_json::from_str(json).unwrap();
-        assert!(!config.codedb_enabled);
-        assert_eq!(config.codedb_binary, "codedb");
     }
 
     #[test]

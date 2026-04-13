@@ -79,30 +79,6 @@ Available when the agent has `config.immortal` set. Journal entries survive cont
 | `lsp` | Query Language Server Protocol servers for diagnostics, hover information, go-to-definition, find references, and completions. | LSP manager configured |
 | `skill` | Invoke a skill defined in the agent's skills array. Skills are reusable prompt templates that can accept arguments. | Agent has `skills` defined |
 
-## CodeDB (MCP)
-
-Available when `BRIDGE_CODEDB_ENABLED=true`. Replaces `Read`, `Grep`, and `Glob` with code-aware alternatives. Tools are provided by the CodeDB MCP server.
-
-| Tool | Description |
-|------|-------------|
-| `codedb_outline` | **Start here.** Get the structural outline of a file: all functions, structs, enums, imports, constants with line numbers. Returns 4-15x fewer tokens than reading the raw file. Always use before `codedb_read`. |
-| `codedb_tree` | Get the full file tree of the indexed codebase with language detection, line counts, and symbol counts per file. Use first to understand project structure. |
-| `codedb_symbol` | Find where a symbol is defined across the codebase. Returns file, line, and kind (function/struct/import). Use `body=true` to include source code. More precise than search — finds definitions, not text matches. |
-| `codedb_search` | Full-text search across all indexed files. Returns matching lines with file paths and line numbers. Use `scope=true` to see the enclosing function/struct. For single identifiers, prefer `codedb_word` or `codedb_symbol`. |
-| `codedb_word` | O(1) word lookup using inverted index. Finds all occurrences of an exact word (identifier) across the codebase. Much faster than search for single-word queries. |
-| `codedb_find` | Fuzzy file search — finds files by approximate name. Typo-tolerant subsequence matching. Use when you know roughly what file you're looking for but not the exact path. |
-| `codedb_read` | Read file contents. Use `codedb_outline` first to find line numbers, then read only that range with `line_start`/`line_end`. Use `compact=true` to skip comments and blanks. |
-| `codedb_edit` | Apply a line-based edit to a file. Supports replace (range), insert (after line), and delete (range) operations. |
-| `codedb_hot` | Get the most recently modified files, ordered by recency. Useful to see what's been actively worked on. |
-| `codedb_deps` | Get reverse dependencies: which files import/depend on the given file. Useful for impact analysis before making changes. |
-| `codedb_changes` | Get files that changed since a sequence number. Use with `codedb_status` to poll for changes. |
-| `codedb_status` | Get current codedb status: number of indexed files and current sequence number. |
-| `codedb_bundle` | Batch multiple queries in one call (max 20 ops). Bundle outline+symbol+search for efficiency. Avoid bundling multiple full file reads. |
-| `codedb_snapshot` | Get the full pre-rendered snapshot of the codebase as a single JSON blob. Contains tree, outlines, symbol index, and dependency graph. |
-| `codedb_remote` | Query any GitHub repo via codedb cloud intelligence. Gets file tree, symbol outlines, or searches code in external repos without cloning. |
-| `codedb_projects` | List all locally indexed projects. Shows project paths, data directory hashes, and snapshot availability. |
-| `codedb_index` | Index a local folder. Scans source files, builds outlines/trigrams/word indexes, creates a snapshot. After indexing, the folder is queryable via the `project` param. |
-
 ## Integration Tools
 
 Defined per-agent in the `integrations` array. Each integration action becomes a tool named `{integration}_{action}`. Permissions are set per-action.

@@ -6,7 +6,7 @@ Bridge agents run inside isolated sandbox environments powered by Daytona. Each 
 
 | Flavor | Snapshot name | Description |
 |--------|--------------|-------------|
-| `bridge` | `ziraloop-bridge-<version>-<size>` | Minimal runtime: Bridge binary, CodeDB, base system packages. |
+| `bridge` | `ziraloop-bridge-<version>-<size>` | Minimal runtime: Bridge binary and base system packages. |
 | `dev-box` | `zira-dev-box-<size>-v<version>` | Full developer environment: everything in `bridge` plus Node.js, Go, Rust, Python, Chrome, databases, and CLI tools. |
 
 ## Sizes
@@ -29,7 +29,6 @@ The `dev-box` flavor ships the following tools pre-installed. Nothing starts aut
 | Tool | Description |
 |------|-------------|
 | Bridge | Agent runtime (port 8080) |
-| CodeDB | Code intelligence for agents |
 | curl, wget, git, jq, unzip | Standard system utilities |
 
 ### Browser Automation

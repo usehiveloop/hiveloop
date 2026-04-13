@@ -969,8 +969,6 @@ mod serde_roundtrip_tests {
             max_concurrent_llm_calls: Some(500),
             webhook_config: None,
             websocket_enabled: false,
-            codedb_enabled: false,
-            codedb_binary: "codedb".to_string(),
             skill_discovery_enabled: false,
             skill_discovery_dir: None,
             allow_stdio_mcp_from_api: false,
