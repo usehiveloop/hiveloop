@@ -505,7 +505,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	// Admin API
 	if cfg.AdminAPIEnabled {
 		adminHandler := handler.NewAdminHandler(database, orchestrator, nangoClient, actionsCatalog,
-			rsaKey, signingKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL)
+			rsaKey, signingKey, cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL, enqueuer)
 		r.Route("/admin/v1", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 			r.Use(middleware.RequireEmailConfirmed(database))
