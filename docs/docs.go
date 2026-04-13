@@ -4519,6 +4519,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/agents/sandbox-tools": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the fixed list of tools and services that can be enabled in a dedicated agent sandbox.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "List available sandbox tools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/agents/{agentID}/conversations": {
             "get": {
                 "security": [
@@ -12369,6 +12397,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.TriggerCondition": {
             "type": "object",
             "properties": {
@@ -13622,6 +13664,12 @@ const docTemplate = `{
                 "sandbox_template_id": {
                     "type": "string"
                 },
+                "sandbox_tools": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "sandbox_type": {
                     "type": "string"
                 },
@@ -14245,6 +14293,13 @@ const docTemplate = `{
                 },
                 "sandbox_template_id": {
                     "type": "string"
+                },
+                "sandbox_tools": {
+                    "description": "tools to enable in dedicated sandbox (e.g. \"chrome\", \"codedb\")",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "sandbox_type": {
                     "type": "string"
@@ -17110,6 +17165,13 @@ const docTemplate = `{
                 },
                 "sandbox_template_id": {
                     "type": "string"
+                },
+                "sandbox_tools": {
+                    "description": "tools to enable in dedicated sandbox",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "sandbox_type": {
                     "type": "string"

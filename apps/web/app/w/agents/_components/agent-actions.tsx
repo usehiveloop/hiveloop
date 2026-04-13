@@ -43,7 +43,7 @@ export function AgentActions({
       <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
         <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={4}>
+      <DropdownMenuContent align="end" sideOffset={4} className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={onEdit}>
             <HugeiconsIcon icon={Edit02Icon} size={16} className="text-muted-foreground" />

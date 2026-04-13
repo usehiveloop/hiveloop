@@ -36,6 +36,7 @@ type Agent struct {
 	SharedMemory bool   `gorm:"not null;default:false"` // can store shared memories visible to all agents in identity
 
 	// Sandbox setup (dedicated agents only — ignored for shared agents)
+	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"`  // enabled sandbox tools (e.g. "chrome", "codedb", "codebase-memory")
 	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"`  // shell commands run on dedicated sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`                // AES-256-GCM encrypted JSON map of env vars
 
@@ -54,3 +55,37 @@ const (
 	AgentTypeAgent    = "agent"
 	AgentTypeSubagent = "subagent"
 )
+
+// SandboxToolDefinition describes a tool/service that can be enabled in a dedicated sandbox.
+type SandboxToolDefinition struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// ValidSandboxTools is the canonical list of sandbox tools the platform supports.
+var ValidSandboxTools = []SandboxToolDefinition{
+	{ID: "chrome", Name: "Chrome browser", Description: "Headless Chrome for web scraping, testing, and browser automation via chrome-devtools-axi."},
+	{ID: "codedb", Name: "CodeDB", Description: "Code intelligence tools for searching, navigating, and understanding codebases."},
+	{ID: "codebase-memory", Name: "Codebase memory", Description: "MCP server that builds a structural code graph from ASTs for deep code understanding."},
+}
+
+// validSandboxToolIDs is a set for fast validation lookups.
+var validSandboxToolIDs = func() map[string]bool {
+	result := make(map[string]bool, len(ValidSandboxTools))
+	for _, tool := range ValidSandboxTools {
+		result[tool.ID] = true
+	}
+	return result
+}()
+
+// ValidateSandboxTools checks that all provided tool IDs are recognized.
+// Returns the first invalid ID, or empty string if all are valid.
+func ValidateSandboxTools(tools []string) string {
+	for _, tool := range tools {
+		if !validSandboxToolIDs[tool] {
+			return tool
+		}
+	}
+	return ""
+}
