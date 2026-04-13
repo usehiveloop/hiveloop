@@ -16,7 +16,7 @@ type Connection struct {
 	IdentityID        *uuid.UUID   `gorm:"type:uuid;index"`
 	Identity          *Identity    `gorm:"foreignKey:IdentityID;constraint:OnDelete:SET NULL"`
 	Meta                JSON         `gorm:"type:jsonb;default:'{}'"`
-	WebhookConfigured   bool         `gorm:"not null;default:true"`
+	WebhookConfigured   *bool        `gorm:"not null;default:true"`
 	RevokedAt           *time.Time
 	CreatedAt           time.Time
 	UpdatedAt           time.Time

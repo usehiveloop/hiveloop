@@ -59,7 +59,7 @@ func (h *InConnectionHandler) toInConnectionResponse(conn model.InConnection) in
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
 		ActionsCount:      len(h.catalog.ListActions(conn.InIntegration.Provider)),
-		WebhookConfigured: conn.WebhookConfigured,
+		WebhookConfigured: derefBool(conn.WebhookConfigured, true),
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
@@ -195,7 +195,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		InIntegrationID:   integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
 		Meta:              req.Meta,
-		WebhookConfigured: !providerRequiresWebhookConfig(integ.Provider),
+		WebhookConfigured: boolPtr(!providerRequiresWebhookConfig(integ.Provider)),
 	}
 
 	if err := h.db.Create(&conn).Error; err != nil {

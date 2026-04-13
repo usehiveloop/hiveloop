@@ -16,7 +16,7 @@ type InConnection struct {
 	InIntegration     InIntegration `gorm:"foreignKey:InIntegrationID;constraint:OnDelete:CASCADE"`
 	NangoConnectionID string        `gorm:"not null"`
 	Meta                JSON          `gorm:"type:jsonb;default:'{}'"`
-	WebhookConfigured   bool          `gorm:"not null;default:true"`
+	WebhookConfigured   *bool         `gorm:"not null;default:true"`
 	RevokedAt           *time.Time
 	CreatedAt           time.Time
 	UpdatedAt           time.Time

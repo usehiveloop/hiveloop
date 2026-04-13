@@ -52,7 +52,7 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 		IntegrationID:     conn.IntegrationID.String(),
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
-		WebhookConfigured: conn.WebhookConfigured,
+		WebhookConfigured: derefBool(conn.WebhookConfigured, true),
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}
@@ -65,6 +65,15 @@ func toIntegConnResponse(conn model.Connection) integConnResponse {
 		resp.RevokedAt = &s
 	}
 	return resp
+}
+
+func boolPtr(v bool) *bool { return &v }
+
+func derefBool(p *bool, fallback bool) bool {
+	if p != nil {
+		return *p
+	}
+	return fallback
 }
 
 // providerRequiresWebhookConfig checks the catalog to see if a provider
@@ -163,7 +172,7 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		IntegrationID:     integ.ID,
 		NangoConnectionID: req.NangoConnectionID,
 		Meta:              req.Meta,
-		WebhookConfigured: !providerRequiresWebhookConfig(integ.Provider),
+		WebhookConfigured: boolPtr(!providerRequiresWebhookConfig(integ.Provider)),
 	}
 
 	if req.IdentityID != nil {
