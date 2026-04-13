@@ -105,7 +105,8 @@ type Config struct {
 	SandboxTarget      string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
 
 	// Bridge (agent runtime in sandboxes)
-	BridgeBaseImagePrefix string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"` // full snapshot name (no size suffix appended)
+	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"`                    // snapshot for shared/pool sandboxes
+	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"ziraloop-bridge-0-10-0-small-v2"` // snapshot for dedicated agent sandboxes
 	BridgeHost            string `env:"BRIDGE_HOST"`                                                  // our external hostname for webhook URLs
 	ProxyHost             string `env:"PROXY_HOST" envDefault:"proxy.ziraloop.com"`                   // LLM proxy hostname (proxy.ziraloop.com)
 

@@ -858,7 +858,7 @@ func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
 			}
 		}
 	}
-	return o.cfg.BridgeBaseImagePrefix
+	return o.cfg.BridgeBaseDedicatedImagePrefix
 }
 
 func (o *Orchestrator) buildSandboxName(identity *model.Identity, agent *model.Agent) string {
