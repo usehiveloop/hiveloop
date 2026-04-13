@@ -15,11 +15,14 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/auth"
+	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/middleware"
 	"github.com/ziraloop/ziraloop/internal/model"
 	"github.com/ziraloop/ziraloop/internal/nango"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
+	"github.com/ziraloop/ziraloop/internal/skills"
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // setAuditDiff computes a changes map from old and new values for the given
@@ -46,6 +49,7 @@ type AdminHandler struct {
 	orchestrator *sandbox.Orchestrator
 	nango        *nango.Client
 	catalog      *catalog.Catalog
+	enqueuer     enqueue.TaskEnqueuer
 
 	// Token-issuing dependencies for impersonation.
 	privateKey *rsa.PrivateKey
@@ -66,12 +70,14 @@ func NewAdminHandler(
 	signingKey []byte,
 	issuer, audience string,
 	accessTTL, refreshTTL time.Duration,
+	enqueuer enqueue.TaskEnqueuer,
 ) *AdminHandler {
 	return &AdminHandler{
 		db:           db,
 		orchestrator: orchestrator,
 		nango:        nangoClient,
 		catalog:      cat,
+		enqueuer:     enqueuer,
 		privateKey:   privateKey,
 		signingKey:   signingKey,
 		issuer:       issuer,
@@ -4335,6 +4341,9 @@ type adminCreateSkillRequest struct {
 	Status      string   `json:"status,omitempty"` // defaults to "published" for global skills
 	Featured    bool     `json:"featured,omitempty"`
 
+	// Inline source
+	Bundle *skills.Bundle `json:"bundle,omitempty"`
+
 	// Git source
 	RepoURL     *string `json:"repo_url,omitempty"`
 	RepoSubpath *string `json:"repo_subpath,omitempty"`
@@ -4409,6 +4418,29 @@ func (h *AdminHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create skill"})
 		return
+	}
+
+	if req.SourceType == model.SkillSourceInline && req.Bundle != nil {
+		if req.Bundle.ID == "" {
+			req.Bundle.ID = skill.Slug
+		}
+		if req.Bundle.Title == "" {
+			req.Bundle.Title = skill.Name
+		}
+		if req.Bundle.Description == "" && skill.Description != nil {
+			req.Bundle.Description = *skill.Description
+		}
+		if _, err := skills.HydrateInline(r.Context(), h.db, skill.ID, req.Bundle, "v1"); err != nil {
+			slog.Error("admin: failed to hydrate inline skill", "skill_id", skill.ID, "error", err)
+		}
+		_ = h.db.First(&skill, "id = ?", skill.ID).Error
+	} else if req.SourceType == model.SkillSourceGit {
+		if h.enqueuer != nil {
+			task, err := tasks.NewSkillHydrateTask(skill.ID)
+			if err == nil {
+				_, _ = h.enqueuer.Enqueue(task)
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusCreated, toAdminSkillResponse(skill))
