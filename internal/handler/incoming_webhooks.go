@@ -14,7 +14,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/enqueue"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
 	"github.com/ziraloop/ziraloop/internal/model"
-	// "github.com/ziraloop/ziraloop/internal/tasks" // TODO: re-enable after webhook testing
+	"github.com/ziraloop/ziraloop/internal/tasks"
 )
 
 // IncomingWebhookHandler receives webhook events directly from external
@@ -137,58 +137,42 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		"body_size", len(body),
 	)
 
-	// Deep logging: dump full payload and all resolved context.
-	slog.Info("incoming webhook: FULL PAYLOAD",
+	// Return 200 immediately, then dispatch asynchronously.
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+
+	deliveryID := connectionID.String() + ":" + uuid.New().String()
+	task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
+		Provider:     provider,
+		EventType:    eventType,
+		EventAction:  eventAction,
+		DeliveryID:   deliveryID,
+		OrgID:        connection.OrgID,
+		ConnectionID: connectionID,
+		PayloadJSON:  body,
+	})
+	if err != nil {
+		slog.Error("incoming webhook: failed to build dispatch task",
+			"provider", provider,
+			"error", err,
+		)
+		return
+	}
+
+	if _, err := h.enqueuer.Enqueue(task); err != nil {
+		slog.Error("incoming webhook: failed to enqueue dispatch task",
+			"provider", provider,
+			"error", err,
+		)
+		return
+	}
+
+	slog.Info("incoming webhook: dispatched",
 		"provider", provider,
-		"connection_id", connectionID,
-		"org_id", connection.OrgID,
-		"integration_id", connection.InIntegrationID,
 		"event_type", eventType,
 		"event_action", eventAction,
-		"body_size", len(body),
-		"body", string(body),
-		"headers_content_type", r.Header.Get("Content-Type"),
-		"headers_user_agent", r.Header.Get("User-Agent"),
-		"remote_addr", r.RemoteAddr,
+		"delivery_id", deliveryID,
+		"connection_id", connectionID,
 	)
-
-	// Return 200 immediately.
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "event_type": eventType, "event_action": eventAction})
-
-	// TODO: re-enable dispatch after webhook testing.
-	// deliveryID := connectionID.String() + ":" + uuid.New().String()
-	// task, err := tasks.NewRouterDispatchTask(tasks.TriggerDispatchPayload{
-	// 	Provider:     provider,
-	// 	EventType:    eventType,
-	// 	EventAction:  eventAction,
-	// 	DeliveryID:   deliveryID,
-	// 	OrgID:        connection.OrgID,
-	// 	ConnectionID: connectionID,
-	// 	PayloadJSON:  body,
-	// })
-	// if err != nil {
-	// 	slog.Error("incoming webhook: failed to build dispatch task",
-	// 		"provider", provider,
-	// 		"error", err,
-	// 	)
-	// 	return
-	// }
-	//
-	// if _, err := h.enqueuer.Enqueue(task); err != nil {
-	// 	slog.Error("incoming webhook: failed to enqueue dispatch task",
-	// 		"provider", provider,
-	// 		"error", err,
-	// 	)
-	// 	return
-	// }
-	//
-	// slog.Info("incoming webhook: dispatched",
-	// 	"provider", provider,
-	// 	"event_type", eventType,
-	// 	"event_action", eventAction,
-	// 	"delivery_id", deliveryID,
-	// 	"connection_id", connectionID,
-	// )
 }
 
 // inferDirectWebhookEvent extracts the event type and action from a raw
@@ -202,21 +186,14 @@ func inferDirectWebhookEvent(provider string, body []byte) (eventType, eventActi
 }
 
 // inferRailwayEvent extracts the event type from a Railway webhook payload.
-// Railway sends {"type": "Deployment.failed", ...} — the type field maps
-// directly to trigger keys in railway.triggers.json.
+// Railway sends {"type": "Deployment.failed", ...}. The type field maps
+// directly to trigger keys — no splitting needed.
 func inferRailwayEvent(body []byte) (eventType, eventAction string) {
 	var probe struct {
 		Type string `json:"type"`
 	}
 	if err := json.Unmarshal(body, &probe); err != nil || probe.Type == "" {
 		return "", ""
-	}
-
-	// The type field is "Deployment.failed", "Deployment.success", etc.
-	// Split into event type and action: "Deployment" + "failed".
-	parts := strings.SplitN(probe.Type, ".", 2)
-	if len(parts) == 2 {
-		return probe.Type, parts[1]
 	}
 	return probe.Type, ""
 }

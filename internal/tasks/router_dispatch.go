@@ -106,17 +106,18 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		)
 	}
 
-	// Run enrichment for new conversations (best effort).
-	handler.runEnrichment(ctx, logger, dispatches, input)
+	// TODO: re-enable enrichment + executor after dispatch pipeline is verified.
+	// // Run enrichment for new conversations (best effort).
+	// handler.runEnrichment(ctx, logger, dispatches, input)
+	//
+	// // Execute: create or continue Bridge conversations.
+	// logger.Info("executor starting", "dispatch_count", len(dispatches))
+	// if err := handler.executor.Execute(ctx, dispatches); err != nil {
+	// 	logger.Error("executor failed", "error", err)
+	// 	return fmt.Errorf("router execute: %w", err)
+	// }
 
-	// Execute: create or continue Bridge conversations.
-	logger.Info("executor starting", "dispatch_count", len(dispatches))
-	if err := handler.executor.Execute(ctx, dispatches); err != nil {
-		logger.Error("executor failed", "error", err)
-		return fmt.Errorf("router execute: %w", err)
-	}
-
-	logger.Info("pipeline complete", "agents_dispatched", len(dispatches))
+	logger.Info("pipeline complete (dry run — executor disabled)", "agents_dispatched", len(dispatches))
 	return nil
 }
 

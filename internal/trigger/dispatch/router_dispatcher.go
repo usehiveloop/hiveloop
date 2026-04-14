@@ -76,36 +76,77 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		eventKey = input.EventType + "." + input.EventAction
 	}
 
+	dispatcher.logger.Info("step 1: finding matching triggers",
+		"event_key", eventKey,
+		"provider", input.Provider,
+		"org_id", input.OrgID,
+		"connection_id", input.ConnectionID,
+	)
+
 	// 1. Find matching router triggers.
 	triggerMatches, err := dispatcher.store.FindMatchingTriggers(ctx, input.OrgID, input.ConnectionID, []string{eventKey})
 	if err != nil {
 		return nil, fmt.Errorf("finding matching triggers: %w", err)
 	}
 	if len(triggerMatches) == 0 {
-		dispatcher.logger.Debug("no matching router triggers", "event", eventKey, "org", input.OrgID)
+		dispatcher.logger.Info("step 1: no matching triggers found", "event_key", eventKey)
 		return nil, nil
 	}
 
+	dispatcher.logger.Info("step 1: triggers matched", "count", len(triggerMatches))
+
 	var allDispatches []AgentDispatch
 
-	for _, match := range triggerMatches {
+	for matchIndex, match := range triggerMatches {
 		trigger := match.Trigger
 		router := match.Router
 
+		dispatcher.logger.Info("step 2: looking up trigger definition",
+			"match_index", matchIndex,
+			"trigger_id", trigger.ID,
+			"router_id", router.ID,
+			"routing_mode", trigger.RoutingMode,
+			"provider", input.Provider,
+			"event_key", eventKey,
+		)
+
 		// 2. Extract refs from payload.
-		triggerDef := dispatcher.lookupTriggerDef(trigger, eventKey)
+		triggerDef := dispatcher.lookupTriggerDef(input.Provider, eventKey)
 		refs, _ := extractRefs(input.Payload, triggerDef.Refs)
+
+		dispatcher.logger.Info("step 2: refs extracted",
+			"match_index", matchIndex,
+			"trigger_def_found", triggerDef.DisplayName != "",
+			"trigger_def_name", triggerDef.DisplayName,
+			"ref_count", len(refs),
+			"refs", refs,
+		)
 
 		// 3. Resolve resource key.
 		resourceDef := dispatcher.lookupResourceDef(trigger, triggerDef)
 		resourceKey := resolveRouterResourceKey(resourceDef, refs)
 
+		dispatcher.logger.Info("step 3: resource key resolved",
+			"match_index", matchIndex,
+			"resource_key", resourceKey,
+			"has_resource_def", resourceDef != nil,
+		)
+
 		// 4. Thread affinity: check for existing conversation.
+		dispatcher.logger.Info("step 4: checking thread affinity",
+			"match_index", matchIndex,
+			"resource_key", resourceKey,
+		)
 		existingConv, err := dispatcher.store.FindExistingConversation(ctx, input.OrgID, input.ConnectionID, resourceKey)
 		if err != nil {
-			dispatcher.logger.Error("thread affinity check failed", "error", err)
+			dispatcher.logger.Error("step 4: thread affinity check failed", "error", err)
 		}
 		if existingConv != nil {
+			dispatcher.logger.Info("step 4: continuing existing conversation",
+				"match_index", matchIndex,
+				"agent_id", existingConv.AgentID,
+				"conversation_id", existingConv.BridgeConversationID,
+			)
 			allDispatches = append(allDispatches, AgentDispatch{
 				AgentID:                existingConv.AgentID,
 				RunIntent:              "continue",
@@ -120,11 +161,18 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 			continue
 		}
 
+		dispatcher.logger.Info("step 4: no existing conversation, creating new")
+
 		// 5. Route: rule-based or LLM triage.
 		var selectedAgents []zira.AgentSelection
 		var enrichmentPlan []zira.PlannedEnrichment
 		routingMode := trigger.RoutingMode
 		routingStart := time.Now()
+
+		dispatcher.logger.Info("step 5: routing",
+			"match_index", matchIndex,
+			"routing_mode", routingMode,
+		)
 
 		switch routingMode {
 		case "rule":
@@ -163,6 +211,13 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 			}
 		}
 
+		dispatcher.logger.Info("step 5: routing complete",
+			"match_index", matchIndex,
+			"selected_count", len(selectedAgents),
+			"routing_mode", routingMode,
+			"latency_ms", time.Since(routingStart).Milliseconds(),
+		)
+
 		// 6. Fallback to default agent if no agents selected.
 		if len(selectedAgents) == 0 && router.DefaultAgentID != nil {
 			selectedAgents = []zira.AgentSelection{{
@@ -173,8 +228,21 @@ func (dispatcher *RouterDispatcher) Run(ctx context.Context, input RouterDispatc
 		}
 
 		if len(selectedAgents) == 0 {
-			dispatcher.logger.Info("no agents selected for event", "event", eventKey, "trigger", trigger.ID)
+			dispatcher.logger.Info("step 6: no agents selected, skipping", "event", eventKey, "trigger_id", trigger.ID)
 			continue
+		}
+
+		dispatcher.logger.Info("step 6: agents selected",
+			"match_index", matchIndex,
+			"count", len(selectedAgents),
+		)
+		for agentIndex, selection := range selectedAgents {
+			dispatcher.logger.Info("step 6: selected agent detail",
+				"agent_index", agentIndex,
+				"agent_id", selection.AgentID,
+				"priority", selection.Priority,
+				"reason", selection.Reason,
+			)
 		}
 
 		// 7. Build dispatches.
@@ -232,23 +300,12 @@ func (dispatcher *RouterDispatcher) LoadConnections(ctx context.Context, orgID u
 // Helpers
 // --------------------------------------------------------------------------
 
-func (dispatcher *RouterDispatcher) lookupTriggerDef(trigger model.RouterTrigger, eventKey string) catalog.TriggerDef {
-	// Try the trigger's connection provider first, then variant fallback.
-	var connection model.Connection
-	// In production, we'd load the connection's integration.provider.
-	// For now, use the catalog's variant lookup.
-	providerTriggers, ok := dispatcher.catalog.GetProviderTriggers(trigger.ConnectionID.String())
+func (dispatcher *RouterDispatcher) lookupTriggerDef(provider, eventKey string) catalog.TriggerDef {
+	providerTriggers, ok := dispatcher.catalog.GetProviderTriggers(provider)
 	if !ok {
-		// Try common providers.
-		for _, provider := range []string{"github", "slack", "linear", "discord"} {
-			providerTriggers, ok = dispatcher.catalog.GetProviderTriggers(provider)
-			if ok {
-				break
-			}
-		}
+		providerTriggers, ok = dispatcher.catalog.GetProviderTriggersForVariant(provider)
 	}
-	_ = connection
-	if providerTriggers != nil {
+	if ok {
 		if def, ok := providerTriggers.Triggers[eventKey]; ok {
 			return def
 		}

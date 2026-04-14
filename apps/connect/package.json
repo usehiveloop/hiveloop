@@ -1,6 +1,7 @@
 {
   "name": "connect",
   "private": true,
+  "license": "O'Saasy",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
