@@ -42,6 +42,9 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 }
 
+// INTENTIONAL BREAK: testing Railway deployment failure webhook
+const THIS_WILL_BREAK: never = "not a never type"
+
 export default function RootLayout({
   children,
 }: Readonly<{
