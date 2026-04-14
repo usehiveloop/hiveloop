@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 }
 
-// INTENTIONAL BREAK: testing Railway deployment failure webhook
+// INTENTIONAL BREAK: testing Railway deployment failure webhook + enrichment
 const THIS_WILL_BREAK: never = "not a never type"
 
 export default function RootLayout({
