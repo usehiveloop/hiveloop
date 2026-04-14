@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -55,6 +56,10 @@ type updateSkillRequest struct {
 	Tags        *[]string `json:"tags,omitempty"`
 	RepoRef     *string   `json:"repo_ref,omitempty"`
 	Status      *string   `json:"status,omitempty"`
+}
+
+type updateContentRequest struct {
+	Bundle skills.Bundle `json:"bundle"`
 }
 
 type skillResponse struct {
@@ -565,6 +570,64 @@ func (h *SkillHandler) Hydrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "hydrating"})
+}
+
+// UpdateContent handles PUT /v1/skills/{id}/content.
+// @Summary Push a new inline version for a skill
+// @Description Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.
+// @Tags skills
+// @Accept json
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Param body body updateContentRequest true "Bundle content"
+// @Success 200 {object} skillDetailResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/skills/{id}/content [put]
+func (h *SkillHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+	skill, err := h.loadOwnSkill(r.Context(), chi.URLParam(r, "id"), org.ID)
+	if err != nil {
+		writeSkillLookupError(w, err)
+		return
+	}
+
+	var req updateContentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.Bundle.ID == "" {
+		req.Bundle.ID = skill.Slug
+	}
+	if req.Bundle.Title == "" {
+		req.Bundle.Title = skill.Name
+	}
+	if req.Bundle.Description == "" && skill.Description != nil {
+		req.Bundle.Description = *skill.Description
+	}
+
+	// Count existing versions to generate the next label.
+	var versionCount int64
+	h.db.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&versionCount)
+	versionLabel := fmt.Sprintf("v%d", versionCount+1)
+
+	latest, err := skills.HydrateInline(r.Context(), h.db, skill.ID, &req.Bundle, versionLabel)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create version"})
+		return
+	}
+
+	// Reload skill to pick up latest_version_id.
+	_ = h.db.First(skill, "id = ?", skill.ID).Error
+
+	writeJSON(w, http.StatusOK, toSkillDetailResponse(*skill, latest))
 }
 
 // Publish handles POST /v1/skills/{id}/publish.

@@ -12952,6 +12952,74 @@
         }
       }
     },
+    "/v1/skills/{id}/content": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.",
+        "tags": [
+          "skills"
+        ],
+        "summary": "Push a new inline version for a skill",
+        "parameters": [
+          {
+            "description": "Skill ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateContentRequest"
+              }
+            }
+          },
+          "description": "Bundle content",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/skillDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/skills/{id}/hydrate": {
       "post": {
         "security": [
@@ -19867,6 +19935,14 @@
             "items": {
               "$ref": "#/components/schemas/agentTriggerInput"
             }
+          }
+        }
+      },
+      "updateContentRequest": {
+        "type": "object",
+        "properties": {
+          "bundle": {
+            "$ref": "#/components/schemas/github_com_ziraloop_ziraloop_internal_skills.Bundle"
           }
         }
       },

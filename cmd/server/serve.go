@@ -335,6 +335,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Get("/{id}", skillHandler.Get)
 					r.Patch("/{id}", skillHandler.Update)
 					r.Delete("/{id}", skillHandler.Delete)
+					r.Put("/{id}/content", skillHandler.UpdateContent)
 					r.Post("/{id}/hydrate", skillHandler.Hydrate)
 					r.Get("/{id}/versions", skillHandler.ListVersions)
 					r.Post("/{id}/publish", skillHandler.Publish)

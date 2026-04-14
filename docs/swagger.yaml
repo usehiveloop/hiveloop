@@ -3389,6 +3389,11 @@ definitions:
           $ref: '#/definitions/internal_handler.agentTriggerInput'
         type: array
     type: object
+  internal_handler.updateContentRequest:
+    properties:
+      bundle:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle'
+    type: object
   internal_handler.updateEvalCaseRequest:
     properties:
       category:
@@ -10552,6 +10557,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a skill
+      tags:
+      - skills
+  /v1/skills/{id}/content:
+    put:
+      consumes:
+      - application/json
+      description: Creates a new SkillVersion with the provided bundle. Works for
+        both inline and git-sourced skills. The new version becomes the latest.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Bundle content
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.updateContentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.skillDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Push a new inline version for a skill
       tags:
       - skills
   /v1/skills/{id}/hydrate:

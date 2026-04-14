@@ -12221,6 +12221,71 @@ export interface paths {
         };
         trace?: never;
     };
+    "/v1/skills/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Push a new inline version for a skill
+         * @description Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Bundle content */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateContentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/skills/{id}/hydrate": {
         parameters: {
             query?: never;
@@ -15599,6 +15664,9 @@ export interface components {
             tools?: components["schemas"]["JSON"];
             /** @description nil=don't touch, []=remove all */
             triggers?: components["schemas"]["agentTriggerInput"][];
+        };
+        updateContentRequest: {
+            bundle?: components["schemas"]["github_com_ziraloop_ziraloop_internal_skills.Bundle"];
         };
         updateEvalCaseRequest: {
             category?: string;

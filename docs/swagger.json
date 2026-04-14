@@ -10757,6 +10757,64 @@
                 }
             }
         },
+        "/v1/skills/{id}/content": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "skills"
+                ],
+                "summary": "Push a new inline version for a skill",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Skill ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Bundle content",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.updateContentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.skillDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/skills/{id}/hydrate": {
             "post": {
                 "security": [
@@ -17304,6 +17362,14 @@
                     "items": {
                         "$ref": "#/definitions/internal_handler.agentTriggerInput"
                     }
+                }
+            }
+        },
+        "internal_handler.updateContentRequest": {
+            "type": "object",
+            "properties": {
+                "bundle": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_skills.Bundle"
                 }
             }
         },
