@@ -218,7 +218,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                 ));
-                self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
+                self.persist_tool_interaction(
+                    &effective_name,
+                    &id_for_bg,
+                    &arguments,
+                    &error,
+                    true,
+                );
                 return ToolCallHookAction::Skip { reason: error };
             }
             Some(ToolPermission::RequireApproval) => {
@@ -264,7 +270,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                             &self.conversation_id,
                             json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                         ));
-                        self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
+                        self.persist_tool_interaction(
+                            &effective_name,
+                            &id_for_bg,
+                            &arguments,
+                            &error,
+                            true,
+                        );
                         return ToolCallHookAction::Skip { reason: error };
                     }
                     Ok((ApprovalDecision::Approve, _)) => {
@@ -291,7 +303,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         let duration_ms = call_start.elapsed().as_millis() as u64;
                         self.metrics
                             .record_tool_call_detailed(&effective_name, true, duration_ms);
-                        self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
+                        self.persist_tool_interaction(
+                            &effective_name,
+                            &id_for_bg,
+                            &arguments,
+                            &error,
+                            true,
+                        );
                         return ToolCallHookAction::Skip { reason: error };
                     }
                 }
@@ -327,7 +345,13 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                 ));
-                self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
+                self.persist_tool_interaction(
+                    &effective_name,
+                    &id_for_bg,
+                    &arguments,
+                    &error,
+                    true,
+                );
                 return ToolCallHookAction::Skip {
                     reason: truncate_if_needed(error),
                 };
@@ -683,7 +707,13 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": tool_name}),
                 ));
-                self.persist_tool_interaction(tool_name, &sse_id, &serde_json::Value::Null, &error, true);
+                self.persist_tool_interaction(
+                    tool_name,
+                    &sse_id,
+                    &serde_json::Value::Null,
+                    &error,
+                    true,
+                );
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -833,7 +863,13 @@ impl ToolCallEmitter {
             &self.conversation_id,
             json!({"id": &sse_id, "result": &result_json_clone, "is_error": false, "duration_ms": duration_ms, "tool_name": "bash"}),
         ));
-        self.persist_tool_interaction("bash", &sse_id, &serde_json::Value::Null, &result_json_clone, false);
+        self.persist_tool_interaction(
+            "bash",
+            &sse_id,
+            &serde_json::Value::Null,
+            &result_json_clone,
+            false,
+        );
 
         ToolCallHookAction::Skip {
             reason: truncate_if_needed(result_json),
@@ -866,7 +902,13 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "agent"}),
                 ));
-                self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &error, true);
+                self.persist_tool_interaction(
+                    "agent",
+                    &sse_id,
+                    &serde_json::Value::Null,
+                    &error,
+                    true,
+                );
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -946,7 +988,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
-            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
+            self.persist_tool_interaction(
+                "agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &result_str,
+                is_error,
+            );
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -981,7 +1029,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
-            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
+            self.persist_tool_interaction(
+                "agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &result_str,
+                is_error,
+            );
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -1014,7 +1068,13 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
                 ));
-                self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
+                self.persist_tool_interaction(
+                    "sub_agent",
+                    &sse_id,
+                    &serde_json::Value::Null,
+                    &error,
+                    true,
+                );
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -1035,7 +1095,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
+            self.persist_tool_interaction(
+                "sub_agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &error,
+                true,
+            );
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -1068,7 +1134,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
+            self.persist_tool_interaction(
+                "sub_agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &error,
+                true,
+            );
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -1105,7 +1177,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
+            self.persist_tool_interaction(
+                "sub_agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &result_str,
+                is_error,
+            );
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -1144,7 +1222,13 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
-            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
+            self.persist_tool_interaction(
+                "sub_agent",
+                &sse_id,
+                &serde_json::Value::Null,
+                &result_str,
+                is_error,
+            );
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }

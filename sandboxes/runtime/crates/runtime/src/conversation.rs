@@ -165,8 +165,9 @@ pub async fn run_conversation(params: ConversationParams) {
     token_tracker::increment_total_conversations(&metrics);
 
     let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
-    let persisted_messages: Arc<std::sync::Mutex<Vec<Message>>> =
-        Arc::new(std::sync::Mutex::new(initial_persisted_messages.unwrap_or_default()));
+    let persisted_messages: Arc<std::sync::Mutex<Vec<Message>>> = Arc::new(std::sync::Mutex::new(
+        initial_persisted_messages.unwrap_or_default(),
+    ));
     let mut turn_count: usize = 0;
     let msg_id = uuid::Uuid::new_v4().to_string();
 
