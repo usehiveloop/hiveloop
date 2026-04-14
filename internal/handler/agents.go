@@ -1125,11 +1125,6 @@ var dedicatedAgentTools = []string{
 	"journal_write", "journal_read",
 	// Code intelligence
 	"lsp", "skill",
-	// CodeDB
-	"codedb_outline", "codedb_tree", "codedb_symbol", "codedb_search", "codedb_word",
-	"codedb_find", "codedb_read", "codedb_edit", "codedb_hot", "codedb_deps",
-	"codedb_changes", "codedb_status", "codedb_bundle", "codedb_snapshot",
-	"codedb_remote", "codedb_projects", "codedb_index",
 }
 
 // defaultToolPermissions returns the default permission map for an agent based
