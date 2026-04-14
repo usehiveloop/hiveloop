@@ -221,7 +221,7 @@ export function CreateSandboxTemplateModal({ open, onOpenChange, onSuccess }: Cr
                       <Label>Base Template</Label>
                       <Select
                         value={selectedBaseTemplate}
-                        onValueChange={setSelectedBaseTemplate}
+                        onValueChange={(value) => setSelectedBaseTemplate(value ?? "")}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="None (default base image)" />
