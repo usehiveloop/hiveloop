@@ -85,6 +85,7 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		},
 		PolarClient:  deps.PolarClient,
 		SkillFetcher: skills.NewGitFetcher(cfg.GitHubToken),
+		NangoClient:  deps.NangoClient,
 	}
 
 	// Create forge controller for the worker (if sandbox is configured)

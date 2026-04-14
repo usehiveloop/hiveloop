@@ -7,10 +7,12 @@ import (
 
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/mcp/catalog"
+	"github.com/ziraloop/ziraloop/internal/nango"
 	"github.com/ziraloop/ziraloop/internal/sandbox"
 	"github.com/ziraloop/ziraloop/internal/skills"
 	"github.com/ziraloop/ziraloop/internal/streaming"
 	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
+	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
 	"github.com/ziraloop/ziraloop/internal/trigger/executor"
 )
 
@@ -28,6 +30,7 @@ type WorkerDeps struct {
 	PolarClient      *polargo.Polar        // nil if billing not configured
 	EventBus         *streaming.EventBus   // nil if streaming not configured
 	SkillFetcher     *skills.GitFetcher    // nil disables git skill hydration
+	NangoClient      *nango.Client         // nil disables deterministic enrichment
 }
 
 // NewServeMux creates an Asynq ServeMux with all task handlers registered.
@@ -102,7 +105,13 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 			nil, // logger — defaults to slog.Default()
 		)
 		routerExecutor := executor.NewExecutor(deps.DB, deps.Orchestrator, nil, nil)
-		mux.HandleFunc(TypeRouterDispatch, NewRouterDispatchHandler(routerDispatcher, routerExecutor).Handle)
+		routerHandler := NewRouterDispatchHandler(routerDispatcher, routerExecutor)
+		if deps.NangoClient != nil {
+			routerHandler.SetDeterministicEnrichment(
+				enrichment.NewDeterministicEnricher(deps.NangoClient, catalog.Global(), deps.DB),
+			)
+		}
+		mux.HandleFunc(TypeRouterDispatch, routerHandler.Handle)
 	}
 
 	return mux
