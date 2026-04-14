@@ -42,6 +42,54 @@ const (
 	healthCheckInterval = 30 * time.Second
 )
 
+// baseEnvVars returns the environment variables common to all sandbox types.
+// bridgeAPIKey is the per-sandbox control plane key.
+// sandboxID is always available and included in every sandbox.
+// webhookURL may be empty for sandbox types that don't use webhooks (e.g. forge).
+func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, webhookURL string) map[string]string {
+	envVars := map[string]string{
+		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
+		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
+		"BRIDGE_LOG_FORMAT":            "json",
+		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
+		"BRIDGE_WEB_URL":               fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
+		"ZIRALOOP_SANDBOX_ID":          sandboxID.String(),
+	}
+	if webhookURL != "" {
+		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL
+	}
+	return envVars
+}
+
+// setOrgEnvVars adds org-level environment variables to the env map.
+func setOrgEnvVars(envVars map[string]string, orgID uuid.UUID) {
+	envVars["ZIRALOOP_ORG_ID"] = orgID.String()
+}
+
+// setAgentEnvVars adds agent-level environment variables to the env map.
+func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.Config) {
+	if agent == nil {
+		return
+	}
+	envVars["ZIRALOOP_AGENT_ID"] = agent.ID.String()
+	envVars["ZIRALOOP_GIT_CREDENTIALS_URL"] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
+	envVars["ZIRALOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
+}
+
+// setDriveEndpoint sets the ZIRALOOP_DRIVE_ENDPOINT env var once the sandbox ID is known.
+// Must be called after the sandbox record is created.
+func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
+	envVars["ZIRALOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
+}
+
+// setIdentityEnvVars adds identity-level environment variables to the env map.
+func setIdentityEnvVars(envVars map[string]string, identityID *uuid.UUID) {
+	if identityID == nil {
+		return
+	}
+	envVars["ZIRALOOP_IDENTITY_ID"] = identityID.String()
+}
+
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
 // and providing BridgeClients to talk to them.
 type Orchestrator struct {
@@ -176,15 +224,8 @@ func (o *Orchestrator) createPoolSandbox(ctx context.Context) (*model.Sandbox, e
 		return nil, fmt.Errorf("saving pool sandbox record: %w", err)
 	}
 
-	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
-		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_CODEDB_ENABLED":        "true",
-		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
-	}
+	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID)
+	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
 	name := fmt.Sprintf("zira-pool-%s", shortID(sb.ID))
@@ -328,15 +369,8 @@ func (o *Orchestrator) createSystemSandbox(ctx context.Context) (*model.Sandbox,
 		return nil, fmt.Errorf("saving system sandbox record: %w", err)
 	}
 
-	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
-		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_CODEDB_ENABLED":        "true",
-		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
-	}
+	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID)
+	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 
 	snapshotID := o.cfg.BridgeBaseImagePrefix
 	name := fmt.Sprintf("zira-system-%s", shortID(sb.ID))
@@ -487,14 +521,9 @@ func (o *Orchestrator) CreateForgeSandbox(ctx context.Context, org *model.Org, i
 	}
 
 	// Forge sandboxes do NOT set BRIDGE_WEBHOOK_URL — controller reads via direct SSE.
-	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_CODEDB_ENABLED":        "true",
-		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
-	}
+	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, "")
+	setOrgEnvVars(envVars, org.ID)
+	setIdentityEnvVars(envVars, identityID)
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
 		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
@@ -675,14 +704,13 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	}
 
 	// Build env vars for Bridge
-	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY": bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":           fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_WEBHOOK_URL":           fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID),
-		"BRIDGE_LOG_FORMAT":            "json",
-		"BRIDGE_CODEDB_ENABLED":        "true",
-		"BRIDGE_CODEDB_BINARY":         "/usr/local/bin/codedb",
-		"BRIDGE_STORAGE_PATH":          "/home/daytona/.bridge/storage",
+	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID)
+	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
+	setOrgEnvVars(envVars, org.ID)
+	setAgentEnvVars(envVars, agent, o.cfg)
+	setDriveEndpoint(envVars, sb.ID, o.cfg)
+	if identity != nil {
+		setIdentityEnvVars(envVars, &identity.ID)
 	}
 	if storageURL != "" {
 		envVars["BRIDGE_STORAGE_URL"] = storageURL
