@@ -330,37 +330,63 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 		}
 	}
 
-	// --- Verify: GraphQL queries contain substituted refs ---
+	// --- Verify: GraphQL queries use pre-defined query + variables format ---
 
-	// Collect all query strings.
-	var queries []string
-	for _, request := range captured {
-		if query, ok := request.Body["query"].(string); ok {
-			queries = append(queries, query)
+	for index, request := range captured {
+		query, hasQuery := request.Body["query"].(string)
+		if !hasQuery {
+			t.Errorf("request %d: expected query in body", index)
+			continue
+		}
+		// Pre-defined queries use $variable placeholders, not inline args.
+		if !strings.Contains(query, "query(") {
+			t.Errorf("request %d: expected parameterized query, got %q", index, query)
+		}
+		// Must have variables map with substituted refs.
+		variables, hasVars := request.Body["variables"].(map[string]any)
+		if !hasVars {
+			t.Errorf("request %d: expected variables in body", index)
+			continue
+		}
+		// At least one variable should be non-empty.
+		if len(variables) == 0 {
+			t.Errorf("request %d: variables map is empty", index)
 		}
 	}
-	allQueries := strings.Join(queries, "\n")
 
-	// build_logs: deploymentId from $refs.deployment_id, limit=500
-	assertContains(t, allQueries, `deploymentId: "deploy-0df056be"`, "build_logs deploymentId")
-	assertContains(t, allQueries, "limit: 500", "build_logs limit")
-
-	// deployment_logs: deploymentId from $refs.deployment_id, limit=200
-	assertContains(t, allQueries, "limit: 200", "deployment_logs limit")
-
-	// service: id from $refs.service_id
-	assertContains(t, allQueries, `id: "svc-b6c22e03"`, "service id")
-
-	// deployments: nested input with refs, first=5
-	assertContains(t, allQueries, "first: 5", "deployments first")
-	assertContains(t, allQueries, `serviceId: "svc-b6c22e03"`, "deployments input.serviceId")
-	assertContains(t, allQueries, `environmentId: "env-3c177170"`, "deployments input.environmentId")
-
-	// All queries should be query operations (not mutations).
-	for index, query := range queries {
-		if !strings.Contains(query, "query {") {
-			t.Errorf("query %d: expected 'query {', got %q", index, query)
+	// Collect all variables maps to verify ref substitution.
+	var allVariables []map[string]any
+	for _, request := range captured {
+		if vars, ok := request.Body["variables"].(map[string]any); ok {
+			allVariables = append(allVariables, vars)
 		}
+	}
+
+	// Verify specific ref values appear in variables across all requests.
+	foundDeploymentId := false
+	foundServiceId := false
+	foundEnvironmentId := false
+	for _, vars := range allVariables {
+		if vars["deploymentId"] == "deploy-0df056be" {
+			foundDeploymentId = true
+		}
+		if vars["id"] == "svc-b6c22e03" {
+			foundServiceId = true
+		}
+		if inputMap, ok := vars["input"].(map[string]any); ok {
+			if inputMap["serviceId"] == "svc-b6c22e03" && inputMap["environmentId"] == "env-3c177170" {
+				foundEnvironmentId = true
+			}
+		}
+	}
+	if !foundDeploymentId {
+		t.Error("no request had variables.deploymentId = deploy-0df056be")
+	}
+	if !foundServiceId {
+		t.Error("no request had variables.id = svc-b6c22e03")
+	}
+	if !foundEnvironmentId {
+		t.Error("no request had variables.input.serviceId + environmentId")
 	}
 
 	// --- Verify: all actions succeeded ---

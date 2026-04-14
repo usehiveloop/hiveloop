@@ -61,9 +61,17 @@ func ExecuteAction(
 		}
 	}
 
-	// Build body — GraphQL actions get a proper query, REST actions use body mapping.
+	// Build body.
 	var body map[string]any
-	if catalog.IsGraphQL(*exec) {
+	if exec.GraphQLQuery != "" {
+		// Pre-defined GraphQL query with $variable placeholders — send as
+		// {"query": "...", "variables": {...}} using params as variables.
+		body = map[string]any{
+			"query":     exec.GraphQLQuery,
+			"variables": params,
+		}
+	} else if catalog.IsGraphQL(*exec) {
+		// Auto-generated GraphQL from body_mapping + graphql_field + schemas.
 		var schemaMap map[string]catalog.SchemaDefinition
 		if len(schemas) > 0 {
 			schemaMap = schemas[0]
