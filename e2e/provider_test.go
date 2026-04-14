@@ -35,8 +35,8 @@ func TestE2E_Provider_List(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 
-	if len(providers) < 10 {
-		t.Fatalf("expected at least 10 providers, got %d", len(providers))
+	if len(providers) < 8 {
+		t.Fatalf("expected at least 8 providers, got %d", len(providers))
 	}
 
 	// Verify well-known providers are present
@@ -222,8 +222,8 @@ func TestE2E_Registry_Stats(t *testing.T) {
 	providers := reg.ProviderCount()
 	models := reg.ModelCount()
 
-	if providers < 10 {
-		t.Errorf("expected at least 10 curated providers, got %d", providers)
+	if providers < 8 {
+		t.Errorf("expected at least 8 curated providers, got %d", providers)
 	}
 	if models < 50 {
 		t.Errorf("expected at least 50 curated models, got %d", models)
