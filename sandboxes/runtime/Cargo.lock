@@ -359,7 +359,7 @@ checksum = "dc0b364ead1874514c8c2855ab558056ebfeb775653e7ae45ff72f28f8f3166c"
 
 [[package]]
 name = "bridge"
-version = "0.18.2"
+version = "0.18.3"
 dependencies = [
  "anyhow",
  "api",
@@ -1966,6 +1966,7 @@ dependencies = [
  "schemars 1.2.1",
  "serde",
  "serde_json",
+ "storage",
  "strsim 0.11.1",
  "thiserror 2.0.18",
  "tokio",

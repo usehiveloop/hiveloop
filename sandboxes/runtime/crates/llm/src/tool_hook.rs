@@ -1,4 +1,7 @@
 use crate::permission_manager::PermissionManager;
+use bridge_core::conversation::{
+    ContentBlock, Message, Role, ToolCall, ToolResult as BridgeToolResult,
+};
 use bridge_core::event::{BridgeEvent, BridgeEventType};
 use bridge_core::permission::{ApprovalDecision, ToolPermission};
 use bridge_core::AgentMetrics;
@@ -7,8 +10,9 @@ use rig::agent::{HookAction, PromptHook, ToolCallHookAction};
 use rig::completion::CompletionModel;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use storage::StorageHandle;
 use tokio_util::sync::CancellationToken;
 use tools::agent::{AgentTaskNotification, SubAgentToolParams, AGENT_CONTEXT};
 use tools::bash::{run_command, BashArgs};
@@ -110,6 +114,10 @@ pub struct ToolCallEmitter {
     /// Used to measure latency for rig-core dispatched tools where
     /// timing spans on_tool_call → on_tool_result.
     pub pending_tool_timings: Arc<DashMap<String, (Instant, String)>>,
+    /// Optional storage handle for incremental persistence after each tool call.
+    pub storage: Option<StorageHandle>,
+    /// Shared persisted messages — updated incrementally after each tool interaction.
+    pub persisted_messages: Option<Arc<Mutex<Vec<Message>>>>,
 }
 
 impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
@@ -178,6 +186,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                             &self.conversation_id,
                             json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": tool_name}),
                         ));
+                    self.persist_tool_interaction(tool_name, &id_for_bg, &arguments, &error, true);
                     return ToolCallHookAction::Skip { reason: error };
                 }
             }
@@ -209,6 +218,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                 ));
+                self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
                 return ToolCallHookAction::Skip { reason: error };
             }
             Some(ToolPermission::RequireApproval) => {
@@ -254,6 +264,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                             &self.conversation_id,
                             json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                         ));
+                        self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
                         return ToolCallHookAction::Skip { reason: error };
                     }
                     Ok((ApprovalDecision::Approve, _)) => {
@@ -280,6 +291,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                         let duration_ms = call_start.elapsed().as_millis() as u64;
                         self.metrics
                             .record_tool_call_detailed(&effective_name, true, duration_ms);
+                        self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
                         return ToolCallHookAction::Skip { reason: error };
                     }
                 }
@@ -315,6 +327,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &id_for_bg, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": &effective_name}),
                 ));
+                self.persist_tool_interaction(&effective_name, &id_for_bg, &arguments, &error, true);
                 return ToolCallHookAction::Skip {
                     reason: truncate_if_needed(error),
                 };
@@ -391,7 +404,7 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
         tool_name: &str,
         tool_call_id: Option<String>,
         internal_call_id: &str,
-        _args: &str,
+        args: &str,
         result: &str,
     ) -> HookAction {
         let id = tool_call_id.unwrap_or_else(|| internal_call_id.to_string());
@@ -429,6 +442,9 @@ impl<M: CompletionModel> PromptHook<M> for ToolCallEmitter {
             &self.conversation_id,
             json!({"id": &id, "result": result, "is_error": false, "duration_ms": duration_ms, "tool_name": &effective_name}),
         ));
+
+        let args_value = serde_json::from_str(args).unwrap_or(serde_json::Value::Null);
+        self.persist_tool_interaction(&effective_name, &id, &args_value, result, false);
 
         // Emit a structured TodoUpdated event when the todowrite tool completes.
         if tool_name == "todowrite" {
@@ -499,6 +515,56 @@ impl std::fmt::Display for Truncated<'_> {
 }
 
 impl ToolCallEmitter {
+    /// Persist a tool call + result pair incrementally to SQLite.
+    ///
+    /// This is fire-and-forget: the write is enqueued on the storage channel
+    /// and does not block the tool execution path. At turn end, the
+    /// authoritative rebuild from rig's enriched_history replaces these
+    /// incremental messages, ensuring consistency.
+    fn persist_tool_interaction(
+        &self,
+        tool_name: &str,
+        tool_call_id: &str,
+        args: &serde_json::Value,
+        result: &str,
+        is_error: bool,
+    ) {
+        let (Some(storage), Some(shared)) = (&self.storage, &self.persisted_messages) else {
+            return;
+        };
+
+        let tool_call_msg = Message {
+            role: Role::Assistant,
+            content: vec![ContentBlock::ToolCall(ToolCall {
+                id: tool_call_id.to_string(),
+                name: tool_name.to_string(),
+                arguments: args.clone(),
+            })],
+            timestamp: chrono::Utc::now(),
+            system_reminder: None,
+        };
+
+        let tool_result_msg = Message {
+            role: Role::Tool,
+            content: vec![ContentBlock::ToolResult(BridgeToolResult {
+                tool_call_id: tool_call_id.to_string(),
+                content: result.to_string(),
+                is_error,
+            })],
+            timestamp: chrono::Utc::now(),
+            system_reminder: None,
+        };
+
+        let messages = {
+            let mut guard = shared.lock().unwrap();
+            guard.push(tool_call_msg);
+            guard.push(tool_result_msg);
+            guard.clone()
+        };
+
+        storage.replace_messages(self.conversation_id.clone(), messages);
+    }
+
     /// Try to resolve a raw tool name to a known canonical tool name.
     ///
     /// Resolution order:
@@ -617,6 +683,7 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": tool_name}),
                 ));
+                self.persist_tool_interaction(tool_name, &sse_id, &serde_json::Value::Null, &error, true);
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -624,7 +691,7 @@ impl ToolCallEmitter {
         let args_value: serde_json::Value =
             serde_json::from_str(args).unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
 
-        let (result_str, is_error) = match executor.execute(args_value).await {
+        let (result_str, is_error) = match executor.execute(args_value.clone()).await {
             Ok(output) => (output, false),
             Err(e) => (format!("Toolset error: {}", e), true),
         };
@@ -659,6 +726,7 @@ impl ToolCallEmitter {
             &self.conversation_id,
             json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": tool_name}),
         ));
+        self.persist_tool_interaction(tool_name, &sse_id, &args_value, &result_str, is_error);
 
         ToolCallHookAction::Skip {
             reason: truncate_if_needed(result_str),
@@ -765,6 +833,7 @@ impl ToolCallEmitter {
             &self.conversation_id,
             json!({"id": &sse_id, "result": &result_json_clone, "is_error": false, "duration_ms": duration_ms, "tool_name": "bash"}),
         ));
+        self.persist_tool_interaction("bash", &sse_id, &serde_json::Value::Null, &result_json_clone, false);
 
         ToolCallHookAction::Skip {
             reason: truncate_if_needed(result_json),
@@ -797,6 +866,7 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "agent"}),
                 ));
+                self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &error, true);
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -817,6 +887,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
+            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &error, true);
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -835,6 +906,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &e, "is_error": true, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
+            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &e, true);
             return ToolCallHookAction::Skip { reason: e };
         }
 
@@ -874,6 +946,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
+            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -908,6 +981,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "agent"}),
             ));
+            self.persist_tool_interaction("agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -940,6 +1014,7 @@ impl ToolCallEmitter {
                     &self.conversation_id,
                     json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
                 ));
+                self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
                 return ToolCallHookAction::Skip { reason: error };
             }
         };
@@ -960,6 +1035,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
+            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -992,6 +1068,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &error, "is_error": true, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
+            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &error, true);
             return ToolCallHookAction::Skip { reason: error };
         }
 
@@ -1028,6 +1105,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
+            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -1066,6 +1144,7 @@ impl ToolCallEmitter {
                 &self.conversation_id,
                 json!({"id": &sse_id, "result": &result_str, "is_error": is_error, "duration_ms": duration_ms, "tool_name": "sub_agent"}),
             ));
+            self.persist_tool_interaction("sub_agent", &sse_id, &serde_json::Value::Null, &result_str, is_error);
             ToolCallHookAction::Skip {
                 reason: truncate_if_needed(result_str),
             }
@@ -1101,6 +1180,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -1140,6 +1221,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let action = PromptHook::<TestModel>::on_tool_result(
@@ -1176,6 +1259,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let tool_action =
@@ -1211,6 +1296,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -1243,6 +1330,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         PromptHook::<TestModel>::on_tool_call(
@@ -1316,6 +1405,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let action = AGENT_CONTEXT
@@ -1377,6 +1468,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         // bash without background: true should Continue normally
@@ -1454,6 +1547,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let action = AGENT_CONTEXT
@@ -1519,6 +1614,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let action = PromptHook::<TestModel>::on_tool_call(
@@ -1567,6 +1664,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         // Known tool should pass through
@@ -1597,6 +1696,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         // With empty tool_names, all tools should pass through (backward compat)
@@ -1656,6 +1757,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         // "Bash" should auto-repair to "bash" and execute directly
@@ -1731,6 +1834,8 @@ mod tests {
             metrics: Arc::new(bridge_core::AgentMetrics::new()),
             conversation_metrics: None,
             pending_tool_timings: Arc::new(DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         // " bash" (leading space) should auto-repair to "bash"

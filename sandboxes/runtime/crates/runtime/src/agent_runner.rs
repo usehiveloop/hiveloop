@@ -305,6 +305,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
             metrics: self.metrics.clone(),
             conversation_metrics: None,
             pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
+            storage: None,
+            persisted_messages: None,
         };
 
         let prompt_owned = prompt.to_string();
@@ -474,6 +476,8 @@ impl SubAgentRunner for ConversationSubAgentRunner {
                 metrics: metrics_clone,
                 conversation_metrics: None,
                 pending_tool_timings: std::sync::Arc::new(dashmap::DashMap::new()),
+                storage: None,
+                persisted_messages: None,
             };
 
             let result = AGENT_CONTEXT

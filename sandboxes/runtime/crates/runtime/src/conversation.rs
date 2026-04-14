@@ -165,7 +165,8 @@ pub async fn run_conversation(params: ConversationParams) {
     token_tracker::increment_total_conversations(&metrics);
 
     let mut history: Vec<rig::message::Message> = initial_history.unwrap_or_default();
-    let mut persisted_messages: Vec<Message> = initial_persisted_messages.unwrap_or_default();
+    let persisted_messages: Arc<std::sync::Mutex<Vec<Message>>> =
+        Arc::new(std::sync::Mutex::new(initial_persisted_messages.unwrap_or_default()));
     let mut turn_count: usize = 0;
     let msg_id = uuid::Uuid::new_v4().to_string();
 
@@ -319,7 +320,10 @@ pub async fn run_conversation(params: ConversationParams) {
                         history = result.new_history;
 
                         // Rebuild persisted messages from the new rig history
-                        persisted_messages = convert_from_rig_messages(&history);
+                        {
+                            let mut guard = persisted_messages.lock().unwrap();
+                            *guard = convert_from_rig_messages(&history);
+                        }
 
                         // Update immortal state
                         imm_state.current_chain_index = result.chain_index;
@@ -329,7 +333,7 @@ pub async fn run_conversation(params: ConversationParams) {
                         if let Some(storage) = &storage {
                             storage.replace_messages(
                                 conversation_id.clone(),
-                                persisted_messages.clone(),
+                                persisted_messages.lock().unwrap().clone(),
                             );
                             storage.save_chain_link(
                                 conversation_id.clone(),
@@ -372,15 +376,20 @@ pub async fn run_conversation(params: ConversationParams) {
                     // Replace in-memory history
                     history = result.compacted_history;
 
-                    apply_compaction_to_persisted_history(
-                        &mut persisted_messages,
-                        &result.summary_text,
-                        result.messages_compacted,
-                    );
+                    {
+                        let mut guard = persisted_messages.lock().unwrap();
+                        apply_compaction_to_persisted_history(
+                            &mut guard,
+                            &result.summary_text,
+                            result.messages_compacted,
+                        );
+                    }
 
                     if let Some(storage) = &storage {
-                        storage
-                            .replace_messages(conversation_id.clone(), persisted_messages.clone());
+                        storage.replace_messages(
+                            conversation_id.clone(),
+                            persisted_messages.lock().unwrap().clone(),
+                        );
                     }
 
                     // Fire compaction event
@@ -480,7 +489,21 @@ pub async fn run_conversation(params: ConversationParams) {
         };
 
         history.push(rig::message::Message::user(&final_user_text));
-        persisted_messages.push(persisted_user_message);
+        let persisted_user_message_clone = persisted_user_message.clone();
+        let pre_turn_len = {
+            let mut guard = persisted_messages.lock().unwrap();
+            let len = guard.len();
+            guard.push(persisted_user_message);
+            len
+        };
+
+        // Persist immediately so the user message survives a crash
+        if let Some(storage) = &storage {
+            storage.replace_messages(
+                conversation_id.clone(),
+                persisted_messages.lock().unwrap().clone(),
+            );
+        }
 
         // Signal response starting
         event_bus.emit(BridgeEvent::new(
@@ -524,6 +547,8 @@ pub async fn run_conversation(params: ConversationParams) {
         let metrics_for_task = metrics.clone();
         let conversation_metrics_for_task = conversation_metrics.clone();
         let msg_id_clone = msg_id.clone();
+        let storage_for_emitter = storage.clone();
+        let persisted_messages_for_emitter = persisted_messages.clone();
         // Acquire LLM semaphore permit before spawning the task.
         // This provides global backpressure on concurrent LLM API calls.
         let llm_permit = match llm_semaphore.clone().acquire_owned().await {
@@ -567,6 +592,8 @@ pub async fn run_conversation(params: ConversationParams) {
                     metrics: metrics_for_task,
                     conversation_metrics: Some(conversation_metrics_for_task),
                     pending_tool_timings: Arc::new(DashMap::new()),
+                    storage: storage_for_emitter.clone(),
+                    persisted_messages: Some(persisted_messages_for_emitter.clone()),
                 };
 
                 let fut = async {
@@ -682,7 +709,7 @@ pub async fn run_conversation(params: ConversationParams) {
                 // no assistant response was generated, so leaving it would
                 // create consecutive user messages in history.
                 history.pop();
-                persisted_messages.pop();
+                persisted_messages.lock().unwrap().truncate(pre_turn_len);
                 event_bus.emit(BridgeEvent::new(BridgeEventType::AgentError, &agent_id, &conversation_id, json!({"code": "aborted", "message": "Turn aborted by user"})));
                 event_bus.emit(BridgeEvent::new(BridgeEventType::Done, &agent_id, &conversation_id, json!({})));
                 event_bus.emit(BridgeEvent::new(BridgeEventType::TurnCompleted, &agent_id, &conversation_id, json!({})));
@@ -709,7 +736,7 @@ pub async fn run_conversation(params: ConversationParams) {
             // Timeout fired — restore history from backup
             Err(_timeout) => {
                 history = history_backup;
-                persisted_messages.pop();
+                persisted_messages.lock().unwrap().truncate(pre_turn_len);
                 let elapsed = start.elapsed();
                 error!(
                     conversation_id = conversation_id,
@@ -735,7 +762,7 @@ pub async fn run_conversation(params: ConversationParams) {
             // Task was cancelled (oneshot sender dropped) — restore history from backup
             Ok(Err(_)) => {
                 history = history_backup;
-                persisted_messages.pop();
+                persisted_messages.lock().unwrap().truncate(pre_turn_len);
                 error!(
                     conversation_id = conversation_id,
                     "agent chat task cancelled unexpectedly"
@@ -785,7 +812,7 @@ pub async fn run_conversation(params: ConversationParams) {
                             (None, 0u64, 0u64)
                         } else {
                             // Genuine error — keep existing fatal handling
-                            persisted_messages.pop();
+                            persisted_messages.lock().unwrap().truncate(pre_turn_len);
                             error!(
                                 agent_id = agent_id,
                                 conversation_id = conversation_id,
@@ -847,6 +874,8 @@ pub async fn run_conversation(params: ConversationParams) {
                         let agent_permissions_clone = agent_permissions.clone();
                         let metrics_for_cont = metrics.clone();
                         let conversation_metrics_for_cont = conversation_metrics.clone();
+                        let storage_for_cont = storage.clone();
+                        let persisted_messages_for_cont = persisted_messages.clone();
                         let mut history_for_continuation = enriched_history.clone();
                         let (cont_tx, cont_rx) = tokio::sync::oneshot::channel();
                         let cont_prompt = if tool_calls_only {
@@ -874,6 +903,8 @@ pub async fn run_conversation(params: ConversationParams) {
                                 metrics: metrics_for_cont,
                                 conversation_metrics: Some(conversation_metrics_for_cont.clone()),
                                 pending_tool_timings: Arc::new(DashMap::new()),
+                                storage: storage_for_cont,
+                                persisted_messages: Some(persisted_messages_for_cont),
                             };
                             let fut = async {
                                 agent_clone
@@ -1003,12 +1034,22 @@ pub async fn run_conversation(params: ConversationParams) {
                     ));
                 }
 
+                // Authoritative rebuild: discard incremental tool messages added
+                // during the turn and replace with the canonical rig history.
                 let new_persisted_messages =
                     convert_from_rig_messages(&enriched_history[history_backup.len()..]);
-                persisted_messages.extend(new_persisted_messages);
+                {
+                    let mut guard = persisted_messages.lock().unwrap();
+                    guard.truncate(pre_turn_len);
+                    guard.push(persisted_user_message_clone);
+                    guard.extend(new_persisted_messages);
+                }
 
                 if let Some(storage) = &storage {
-                    storage.replace_messages(conversation_id.clone(), persisted_messages.clone());
+                    storage.replace_messages(
+                        conversation_id.clone(),
+                        persisted_messages.lock().unwrap().clone(),
+                    );
                 }
 
                 // Replace main history with the enriched version so that
