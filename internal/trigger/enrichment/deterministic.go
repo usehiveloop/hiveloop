@@ -99,7 +99,7 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		return "", nil
 	}
 
-	providerCfgKey := fmt.Sprintf("%s_%s", input.OrgID.String(), inConn.InIntegration.UniqueKey)
+	providerCfgKey := inConn.InIntegration.UniqueKey
 	nangoConnID := inConn.NangoConnectionID
 	providerName := inConn.InIntegration.Provider
 
