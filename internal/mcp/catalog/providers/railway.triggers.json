@@ -98,7 +98,43 @@
         "commit_hash": "details.commitHash",
         "branch": "details.branch",
         "commit_author": "details.commitAuthor"
-      }
+      },
+      "enrichment": [
+        {
+          "action": "build_logs",
+          "as": "build_logs",
+          "params": {
+            "deploymentId": "$refs.deployment_id",
+            "limit": 500
+          }
+        },
+        {
+          "action": "deployment_logs",
+          "as": "runtime_logs",
+          "params": {
+            "deploymentId": "$refs.deployment_id",
+            "limit": 200
+          }
+        },
+        {
+          "action": "service",
+          "as": "service_details",
+          "params": {
+            "id": "$refs.service_id"
+          }
+        },
+        {
+          "action": "deployments",
+          "as": "recent_deployments",
+          "params": {
+            "input": {
+              "serviceId": "$refs.service_id",
+              "environmentId": "$refs.environment_id"
+            },
+            "first": 5
+          }
+        }
+      ]
     },
     "Deployment.crashed": {
       "display_name": "Deployment Crashed",

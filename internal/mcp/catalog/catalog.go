@@ -114,11 +114,20 @@ type SchemaRef struct {
 
 // TriggerDef describes a single webhook event trigger a provider supports.
 type TriggerDef struct {
-	DisplayName   string            `json:"display_name"`
-	Description   string            `json:"description"`
-	ResourceType  string            `json:"resource_type"`            // which resource this trigger relates to
-	PayloadSchema string            `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
-	Refs          map[string]string `json:"refs,omitempty"`           // ref_name → dot-path into webhook payload for entity extraction
+	DisplayName   string              `json:"display_name"`
+	Description   string              `json:"description"`
+	ResourceType  string              `json:"resource_type"`            // which resource this trigger relates to
+	PayloadSchema string              `json:"payload_schema,omitempty"` // ref into ProviderTriggers.Schemas
+	Refs          map[string]string   `json:"refs,omitempty"`           // ref_name → dot-path into webhook payload for entity extraction
+	Enrichment    []EnrichmentAction  `json:"enrichment,omitempty"`     // actions to run for pre-fetching context before dispatching to agent
+}
+
+// EnrichmentAction defines a provider action to run during trigger enrichment.
+// Params values starting with "$refs." are substituted from extracted refs.
+type EnrichmentAction struct {
+	Action string         `json:"action"`           // action key from the provider's actions.json
+	As     string         `json:"as"`               // label for the result in the composed instructions
+	Params map[string]any `json:"params,omitempty"` // action parameters — $refs.xxx values are substituted
 }
 
 // WebhookConfig describes manual webhook configuration requirements for
