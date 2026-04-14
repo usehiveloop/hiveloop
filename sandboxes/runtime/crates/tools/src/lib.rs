@@ -18,6 +18,7 @@ pub mod ls;
 pub mod lsp_tool;
 pub mod multiedit;
 pub mod parallel_agent;
+pub mod ping_me_back;
 pub mod read;
 pub mod registry;
 pub mod skill_files;

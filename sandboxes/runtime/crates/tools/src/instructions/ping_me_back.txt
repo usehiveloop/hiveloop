@@ -1,0 +1,27 @@
+Schedule a delayed ping-back to yourself. Returns immediately — does NOT block the conversation.
+
+When to use:
+- Waiting for a build, deployment, or CI pipeline to finish
+- Waiting for DNS propagation or certificate provisioning
+- Polling for a resource to become available
+- Any situation where you need to pause and resume after a delay
+
+How it works:
+1. Call this tool with the number of seconds to wait and a message explaining why
+2. The tool returns immediately with a ping ID
+3. You can continue working on other things while the timer runs
+4. Pending pings appear in system reminders so you can track them
+5. When the timer fires, you receive a ping-back with your original message as context
+6. You can cancel a pending ping with cancel_ping_me_back if you no longer need it
+
+Parameters:
+- seconds: How long to wait (1-3600 seconds, clamped to 1 hour max)
+- message: Why you want to be pinged back — this is returned to you after the delay
+
+Example usage:
+  ping_me_back_in(seconds=120, message="Check if the Railway deployment finished and verify the health endpoint returns 200")
+
+Tips:
+- Use descriptive messages — they will be your only context when the ping fires
+- For very short waits (under 5 seconds), just proceed with your work instead
+- You can have multiple pings running concurrently

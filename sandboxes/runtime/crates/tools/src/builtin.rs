@@ -112,6 +112,15 @@ pub fn register_builtin_tools_with_lsp(
         registry.register(Arc::new(crate::lsp_tool::LspTool::new(manager)));
     }
 
+    // Ping-me-back tools — non-blocking delayed self-reminder
+    let ping_state = crate::ping_me_back::PingState::new();
+    registry.register(Arc::new(crate::ping_me_back::PingMeBackTool::new(
+        ping_state.clone(),
+    )));
+    registry.register(Arc::new(crate::ping_me_back::CancelPingTool::new(
+        ping_state,
+    )));
+
     // Self-delegation agent tool (uses task_local for context)
     registry.register(Arc::new(crate::self_agent::AgentTool::new()));
 
@@ -199,6 +208,15 @@ pub fn register_builtin_tools_for_subagent(registry: &mut ToolRegistry) {
         todo_state.clone(),
     )));
     registry.register(Arc::new(crate::todo::TodoReadTool::with_state(todo_state)));
+
+    // Ping-me-back tools — non-blocking delayed self-reminder
+    let ping_state = crate::ping_me_back::PingState::new();
+    registry.register(Arc::new(crate::ping_me_back::PingMeBackTool::new(
+        ping_state.clone(),
+    )));
+    registry.register(Arc::new(crate::ping_me_back::CancelPingTool::new(
+        ping_state,
+    )));
 
     // No agent tool — subagents cannot spawn other subagents
 

@@ -1,3 +1,5 @@
+IMPORTANT: If the codebase-memory tool is available (via Bash), prefer it for finding code files — it understands project structure and returns results with structural context. Use Glob only when codebase-memory does not have the information you need, or when searching for non-code files.
+
 - Fast file pattern matching tool that works with any codebase size
 - Supports glob patterns like "**/*.js" or "src/**/*.ts"
 - Returns matching file paths sorted by modification time

@@ -39,6 +39,7 @@ use crate::token_tracker;
 enum IncomingMessage {
     User(Message),
     BackgroundComplete(AgentTaskNotification),
+    PingFired(Vec<tools::ping_me_back::PendingPing>),
 }
 
 /// Parameters for running a conversation loop.
@@ -109,6 +110,8 @@ pub struct ConversationParams {
     pub mcp_manager: Option<Arc<mcp::McpManager>>,
     /// When true, inject environment system reminder (resource usage, installed tools).
     pub standalone_agent: bool,
+    /// Shared state for ping-me-back timers (non-blocking delayed reminders).
+    pub ping_state: Option<tools::ping_me_back::PingState>,
 }
 
 /// Run a conversation loop for a single conversation.
@@ -153,6 +156,7 @@ pub async fn run_conversation(params: ConversationParams) {
         per_conversation_mcp_scope,
         mcp_manager,
         standalone_agent,
+        ping_state,
     } = params;
 
     info!(
@@ -186,7 +190,8 @@ pub async fn run_conversation(params: ConversationParams) {
     });
 
     loop {
-        // Wait for either a user message, a background task notification, or cancellation
+        // Wait for either a user message, a background task notification,
+        // a ping-me-back timer firing, or cancellation
         let incoming = tokio::select! {
             _ = cancel.cancelled() => {
                 debug!(conversation_id = conversation_id, "conversation cancelled");
@@ -208,6 +213,21 @@ pub async fn run_conversation(params: ConversationParams) {
                 }
             } => {
                 IncomingMessage::BackgroundComplete(notif)
+            }
+            _ = async {
+                match &ping_state {
+                    Some(ps) => match ps.next_fire_time().await {
+                        Some(instant) => tokio::time::sleep_until(instant).await,
+                        None => std::future::pending().await,
+                    },
+                    None => std::future::pending().await,
+                }
+            } => {
+                let fired = match &ping_state {
+                    Some(ps) => ps.pop_fired().await,
+                    None => vec![],
+                };
+                IncomingMessage::PingFired(fired)
             }
         };
 
@@ -263,6 +283,16 @@ pub async fn run_conversation(params: ConversationParams) {
                     output_text,
                 )
             }
+            IncomingMessage::PingFired(pings) => {
+                let mut parts = Vec::new();
+                for ping in pings {
+                    parts.push(format!(
+                        "[Ping-Me-Back Fired]\nYou are being pinged back because you asked to be pinged back. It has been {} seconds since then.\n\nYour message: {}",
+                        ping.delay_secs, ping.message
+                    ));
+                }
+                parts.join("\n\n")
+            }
         };
 
         let persisted_user_message = match &incoming {
@@ -272,7 +302,9 @@ pub async fn run_conversation(params: ConversationParams) {
                     .next()
                     .unwrap_or_else(|| msg.clone())
             }
-            IncomingMessage::BackgroundComplete(_) => text_message(Role::User, user_text.clone()),
+            IncomingMessage::BackgroundComplete(_) | IncomingMessage::PingFired(_) => {
+                text_message(Role::User, user_text.clone())
+            }
         };
 
         // Mask old tool outputs to reduce context pressure before budget checks.
@@ -463,6 +495,21 @@ pub async fn run_conversation(params: ConversationParams) {
                 effective_reminder = pmr;
             } else {
                 effective_reminder = format!("{}\n\n{}", effective_reminder, pmr);
+            }
+        }
+
+        // Append pending ping-me-back timers to system reminder
+        if let Some(ref ps) = ping_state {
+            let pings = ps.list().await;
+            let ping_reminder = tools::ping_me_back::format_pending_pings_reminder(&pings);
+            if !ping_reminder.is_empty() {
+                let ping_section =
+                    format!("<system-reminder>\n{}\n</system-reminder>", ping_reminder);
+                if effective_reminder.is_empty() {
+                    effective_reminder = ping_section;
+                } else {
+                    effective_reminder = format!("{}\n\n{}", effective_reminder, ping_section);
+                }
             }
         }
 

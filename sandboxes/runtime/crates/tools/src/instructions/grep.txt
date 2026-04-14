@@ -1,3 +1,5 @@
+IMPORTANT: If the codebase-memory tool is available (via Bash), prefer it for codebase exploration — it understands code structure and returns more relevant results. Use Grep only when codebase-memory does not have the information you need, or when you need raw text/regex search rather than structural code queries.
+
 - Fast content search tool that works with any codebase size
 - Searches file contents using regular expressions
 - Supports full regex syntax (eg. "log.*Error", "function\s+\w+", etc.)

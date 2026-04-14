@@ -1,3 +1,5 @@
+IMPORTANT: If the codebase-memory tool is available (via Bash), prefer it for reading source code — it returns targeted code with structural context. Use Read when codebase-memory does not have the information you need, when you need the full file content, or when reading non-code files (configs, images, docs).
+
 Read a file or directory from the local filesystem. If the path does not exist, an error is returned.
 
 Usage:

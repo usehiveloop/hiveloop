@@ -853,6 +853,7 @@ impl AgentSupervisor {
             // Hold the conversation permit for the lifetime of the conversation.
             // When the conversation ends, the permit is dropped, freeing a slot.
             let _conversation_permit = conversation_permit;
+            let ping_state = get_ping_state_from_registry(&tool_executors);
 
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -886,6 +887,7 @@ impl AgentSupervisor {
                 per_conversation_mcp_scope: per_conv_mcp_scope,
                 mcp_manager: Some(cleanup_mcp_manager),
                 standalone_agent,
+                ping_state,
             })
             .await;
         });
@@ -1425,6 +1427,7 @@ impl AgentSupervisor {
         ));
         let standalone_agent = self.standalone_agent;
 
+        let ping_state = get_ping_state_from_registry(&tool_executors);
         state.tracker.spawn(async move {
             run_conversation(ConversationParams {
                 agent_id: agent_id_owned,
@@ -1458,6 +1461,7 @@ impl AgentSupervisor {
                 per_conversation_mcp_scope: None,
                 mcp_manager: None,
                 standalone_agent,
+                ping_state,
             })
             .await;
         });
@@ -1775,6 +1779,20 @@ async fn get_todos_from_registry(
     }
 
     None
+}
+
+/// Extract `PingState` from the tool registry by downcasting the ping_me_back_in tool.
+fn get_ping_state_from_registry(
+    tool_executors: &std::collections::HashMap<String, Arc<dyn tools::ToolExecutor>>,
+) -> Option<tools::ping_me_back::PingState> {
+    tool_executors
+        .get("ping_me_back_in")
+        .and_then(|tool| {
+            tool.as_ref()
+                .as_any()
+                .downcast_ref::<tools::ping_me_back::PingMeBackTool>()
+        })
+        .map(|t| t.state().clone())
 }
 
 #[cfg(test)]
