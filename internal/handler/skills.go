@@ -647,11 +647,9 @@ func (h *SkillHandler) Publish(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	user, ok := middleware.UserFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
-		return
-	}
+
+	// User context is optional — API key auth doesn't set it.
+	user, _ := middleware.UserFromContext(r.Context())
 
 	skill, err := h.loadOwnSkill(r.Context(), chi.URLParam(r, "id"), org.ID)
 	if err != nil {
@@ -678,7 +676,11 @@ func (h *SkillHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	originOrgID := org.ID
 	originSkillID := skill.ID
-	publisherID := user.ID
+
+	var publisherID *uuid.UUID
+	if user != nil {
+		publisherID = &user.ID
+	}
 
 	publicSkill := model.Skill{
 		OrgID:         nil,
@@ -691,7 +693,7 @@ func (h *SkillHandler) Publish(w http.ResponseWriter, r *http.Request) {
 		RepoRef:       skill.RepoRef,
 		Tags:          skill.Tags,
 		Status:        model.SkillStatusPublished,
-		PublisherID:   &publisherID,
+		PublisherID:   publisherID,
 		OriginSkillID: &originSkillID,
 		OriginOrgID:   &originOrgID,
 		PublishedAt:   &now,

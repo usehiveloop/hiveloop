@@ -937,11 +937,15 @@ function SkillsSettings() {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [deleting, setDeleting] = useState<SkillRow | null>(null)
+  const [publishing, setPublishing] = useState<SkillRow | null>(null)
+  const [unpublishing, setUnpublishing] = useState<SkillRow | null>(null)
   const { data, isLoading } = $api.useQuery("get", "/v1/skills", {
     params: { query: { scope: "own" } },
   })
   const skills = data?.data ?? []
   const deleteSkill = $api.useMutation("delete", "/v1/skills/{id}")
+  const publishSkill = $api.useMutation("post", "/v1/skills/{id}/publish")
+  const unpublishSkill = $api.useMutation("delete", "/v1/skills/{id}/publish")
 
   function handleDelete() {
     if (!deleting?.id) return
@@ -957,6 +961,44 @@ function SkillsSettings() {
         onError: (error) => {
           toast.error(extractErrorMessage(error, "Failed to archive skill"))
           setDeleting(null)
+        },
+      },
+    )
+  }
+
+  function handlePublish() {
+    if (!publishing?.id) return
+
+    publishSkill.mutate(
+      { params: { path: { id: publishing.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${publishing.name}" published to marketplace`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          setPublishing(null)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to publish skill"))
+          setPublishing(null)
+        },
+      },
+    )
+  }
+
+  function handleUnpublish() {
+    if (!unpublishing?.id) return
+
+    unpublishSkill.mutate(
+      { params: { path: { id: unpublishing.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${unpublishing.name}" removed from marketplace`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          setUnpublishing(null)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to unpublish skill"))
+          setUnpublishing(null)
         },
       },
     )
@@ -1030,7 +1072,7 @@ function SkillsSettings() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{skill.name}</p>
                       {skill.description && (
-                        <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[280px]">{skill.description}</p>
                       )}
                     </div>
                   </div>
@@ -1049,6 +1091,8 @@ function SkillsSettings() {
                     <SkillActions
                       skill={skill}
                       onDelete={() => setDeleting(skill)}
+                      onPublish={() => setPublishing(skill)}
+                      onUnpublish={() => setUnpublishing(skill)}
                     />
                   </div>
                 </div>
@@ -1065,13 +1109,15 @@ function SkillsSettings() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{skill.name}</p>
                         {skill.description && (
-                          <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[280px]">{skill.description}</p>
                         )}
                       </div>
                     </div>
                     <SkillActions
                       skill={skill}
                       onDelete={() => setDeleting(skill)}
+                      onPublish={() => setPublishing(skill)}
+                      onUnpublish={() => setUnpublishing(skill)}
                     />
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono tabular-nums">
@@ -1101,6 +1147,27 @@ function SkillsSettings() {
         loading={deleteSkill.isPending}
         onConfirm={handleDelete}
       />
+
+      <ConfirmDialog
+        open={publishing !== null}
+        onOpenChange={(open) => { if (!open) setPublishing(null) }}
+        title="Publish to marketplace"
+        description={`This will make "${publishing?.name ?? ""}" publicly available in the marketplace. Other users will be able to discover and install it.`}
+        confirmLabel="Publish"
+        loading={publishSkill.isPending}
+        onConfirm={handlePublish}
+      />
+
+      <ConfirmDialog
+        open={unpublishing !== null}
+        onOpenChange={(open) => { if (!open) setUnpublishing(null) }}
+        title="Unpublish from marketplace"
+        description={`This will remove "${unpublishing?.name ?? ""}" from the public marketplace. Agents that already have it installed will no longer receive updates.`}
+        confirmLabel="Unpublish"
+        destructive
+        loading={unpublishSkill.isPending}
+        onConfirm={handleUnpublish}
+      />
     </div>
   )
 }
@@ -1108,45 +1175,11 @@ function SkillsSettings() {
 interface SkillActionsProps {
   skill: SkillRow
   onDelete: () => void
+  onPublish: () => void
+  onUnpublish: () => void
 }
 
-function SkillActions({ skill, onDelete }: SkillActionsProps) {
-  const queryClient = useQueryClient()
-  const publishSkill = $api.useMutation("post", "/v1/skills/{id}/publish")
-  const unpublishSkill = $api.useMutation("delete", "/v1/skills/{id}/publish")
-
-  function handlePublish() {
-    if (!skill.id) return
-    publishSkill.mutate(
-      { params: { path: { id: skill.id } } },
-      {
-        onSuccess: () => {
-          toast.success(`"${skill.name}" published to marketplace`)
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
-        },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error, "Failed to publish skill"))
-        },
-      },
-    )
-  }
-
-  function handleUnpublish() {
-    if (!skill.id) return
-    unpublishSkill.mutate(
-      { params: { path: { id: skill.id } } },
-      {
-        onSuccess: () => {
-          toast.success(`"${skill.name}" removed from marketplace`)
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
-        },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error, "Failed to unpublish skill"))
-        },
-      },
-    )
-  }
-
+function SkillActions({ skill, onDelete, onPublish, onUnpublish }: SkillActionsProps) {
   const isPublished = !!skill.public_skill_id
 
   return (
@@ -1154,15 +1187,15 @@ function SkillActions({ skill, onDelete }: SkillActionsProps) {
       <ActionsMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
         <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
       </ActionsMenuTrigger>
-      <ActionsMenuContent align="end" sideOffset={4}>
+      <ActionsMenuContent align="end" sideOffset={4} className="min-w-56">
         <ActionsMenuGroup>
           {isPublished ? (
-            <ActionsMenuItem onClick={handleUnpublish} disabled={unpublishSkill.isPending}>
+            <ActionsMenuItem onClick={onUnpublish}>
               <HugeiconsIcon icon={Globe02Icon} size={16} className="text-muted-foreground" />
               Unpublish from marketplace
             </ActionsMenuItem>
           ) : (
-            <ActionsMenuItem onClick={handlePublish} disabled={publishSkill.isPending}>
+            <ActionsMenuItem onClick={onPublish}>
               <HugeiconsIcon icon={Globe02Icon} size={16} className="text-muted-foreground" />
               Publish to marketplace
             </ActionsMenuItem>
