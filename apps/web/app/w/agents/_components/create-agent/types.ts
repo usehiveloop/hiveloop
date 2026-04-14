@@ -11,6 +11,7 @@ export type Step =
   | "instructions"
   | "forge-judge"
   | "skills"
+  | "subagents"
   | "summary"
   | "marketplace-browse"
   | "marketplace-detail"
@@ -25,6 +26,7 @@ export const scratchSteps: Step[] = [
   "system-prompt",
   "instructions",
   "skills",
+  "subagents",
   "summary",
 ]
 
@@ -37,6 +39,7 @@ export const forgeSteps: Step[] = [
   "basics",
   "forge-judge",
   "skills",
+  "subagents",
   "summary",
 ]
 
@@ -90,6 +93,14 @@ export interface SkillPreview {
   tags: string[]
   installCount: number
   featured: boolean
+}
+
+export interface SubagentPreview {
+  id: string
+  name: string
+  description: string
+  model: string
+  scope: "public" | "org"
 }
 
 export interface TriggerConditionConfig {

@@ -104,159 +104,7 @@ var curatedProviders = []Provider{
 			},
 		},
 	},
-	{ // cohere — Cohere
-		ID:   "cohere",
-		Name: "Cohere",
-		Doc:  "https://docs.cohere.com/docs/models",
-		Models: map[string]Model{
-			"command-a-translate-08-2025": {
-				ID:          "command-a-translate-08-2025",
-				Name:        "Command A Translate",
-				Family:      "command-a",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-06-01",
-				ReleaseDate: "2025-08-28",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  2.5,
-					Output: 10,
-				},
-				Limit: &Limit{
-					Context: 8000,
-					Output:  8000,
-				},
-			},
-			"command-a-reasoning-08-2025": {
-				ID:          "command-a-reasoning-08-2025",
-				Name:        "Command A Reasoning",
-				Family:      "command-a",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-06-01",
-				ReleaseDate: "2025-08-21",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  2.5,
-					Output: 10,
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  32000,
-				},
-			},
-			"command-a-03-2025": {
-				ID:          "command-a-03-2025",
-				Name:        "Command A",
-				Family:      "command-a",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-06-01",
-				ReleaseDate: "2025-03-13",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  2.5,
-					Output: 10,
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  8000,
-				},
-			},
-			"c4ai-aya-vision-8b": {
-				ID:          "c4ai-aya-vision-8b",
-				Name:        "Aya Vision 8B",
-				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2025-03-04",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 16000,
-					Output:  4000,
-				},
-			},
-			"c4ai-aya-vision-32b": {
-				ID:          "c4ai-aya-vision-32b",
-				Name:        "Aya Vision 32B",
-				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2025-03-04",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 16000,
-					Output:  4000,
-				},
-			},
-		},
-	},
-	{ // deepseek — DeepSeek
-		ID:   "deepseek",
-		Name: "DeepSeek",
-		API:  "https://api.deepseek.com",
-		Doc:  "https://api-docs.deepseek.com/quick_start/pricing",
-		Models: map[string]Model{
-			"deepseek-reasoner": {
-				ID:          "deepseek-reasoner",
-				Name:        "DeepSeek Reasoner",
-				Family:      "deepseek-thinking",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-09",
-				ReleaseDate: "2025-12-01",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.28,
-					Output: 0.42,
-				},
-				Limit: &Limit{
-					Context: 128000,
-					Output:  64000,
-				},
-			},
-			"deepseek-chat": {
-				ID:          "deepseek-chat",
-				Name:        "DeepSeek Chat",
-				Family:      "deepseek",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-09",
-				ReleaseDate: "2025-12-01",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.28,
-					Output: 0.42,
-				},
-				Limit: &Limit{
-					Context: 128000,
-					Output:  8192,
-				},
-			},
-		},
-	},
+	// cohere, deepseek removed — not in supported provider set
 	{ // fireworks-ai — Fireworks AI
 		ID:   "fireworks-ai",
 		Name: "Fireworks AI",
@@ -368,28 +216,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 198000,
 					Output:  198000,
-				},
-			},
-			"accounts/fireworks/models/deepseek-v3p2": {
-				ID:          "accounts/fireworks/models/deepseek-v3p2",
-				Name:        "DeepSeek V3.2",
-				Family:      "deepseek",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-09",
-				ReleaseDate: "2025-12-01",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.56,
-					Output: 1.68,
-				},
-				Limit: &Limit{
-					Context: 160000,
-					Output:  160000,
 				},
 			},
 			"accounts/fireworks/models/kimi-k2-thinking": {
@@ -637,95 +463,9 @@ var curatedProviders = []Provider{
 				},
 				Status: "deprecated",
 			},
-			"meta-llama/llama-4-scout-17b-16e-instruct": {
-				ID:          "meta-llama/llama-4-scout-17b-16e-instruct",
-				Name:        "Llama 4 Scout 17B",
-				Family:      "llama",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-08",
-				ReleaseDate: "2025-04-05",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.11,
-					Output: 0.34,
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  8192,
-				},
-			},
 		},
 	},
-	{ // mistral — Mistral
-		ID:   "mistral",
-		Name: "Mistral",
-		Doc:  "https://docs.mistral.ai/getting-started/models/",
-		Models: map[string]Model{
-			"labs-devstral-small-2512": {
-				ID:          "labs-devstral-small-2512",
-				Name:        "Devstral Small 2",
-				Family:      "devstral",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-12",
-				ReleaseDate: "2025-12-09",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  256000,
-				},
-			},
-			"devstral-2512": {
-				ID:          "devstral-2512",
-				Name:        "Devstral 2",
-				Family:      "devstral",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-12",
-				ReleaseDate: "2025-12-09",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.4,
-					Output: 2,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"devstral-medium-latest": {
-				ID:          "devstral-medium-latest",
-				Name:        "Devstral 2 (latest)",
-				Family:      "devstral",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-12",
-				ReleaseDate: "2025-12-02",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.4,
-					Output: 2,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-		},
-	},
+	// mistral removed — no models from supported provider families
 	{ // moonshotai — Moonshot AI
 		ID:   "moonshotai",
 		Name: "Moonshot AI",
@@ -1080,7 +820,7 @@ var curatedProviders = []Provider{
 			},
 		},
 	},
-	{ // openrouter — OpenRouter
+	{ // openrouter — OpenRouter (filtered to models from supported provider families only)
 		ID:   "openrouter",
 		Name: "OpenRouter",
 		API:  "https://openrouter.ai/api/v1",
@@ -1126,26 +866,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1050000,
 					Output:  128000,
-				},
-			},
-			"inception/mercury-2": {
-				ID:          "inception/mercury-2",
-				Name:        "Mercury 2",
-				Family:      "mercury",
-				Reasoning:   true,
-				ToolCall:    true,
-				ReleaseDate: "2026-03-04",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.25,
-					Output: 0.75,
-				},
-				Limit: &Limit{
-					Context: 128000,
-					Output:  50000,
 				},
 			},
 			"openai/gpt-5.3-codex": {
@@ -1231,49 +951,6 @@ var curatedProviders = []Provider{
 					Output:  128000,
 				},
 			},
-			"qwen/qwen3.5-plus-02-15": {
-				ID:          "qwen/qwen3.5-plus-02-15",
-				Name:        "Qwen3.5 Plus 2026-02-15",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				Knowledge:   "2025-04",
-				ReleaseDate: "2026-02-16",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image", "video"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.4,
-					Output: 2.4,
-				},
-				Limit: &Limit{
-					Context: 1000000,
-					Output:  65536,
-				},
-			},
-			"qwen/qwen3.5-397b-a17b": {
-				ID:          "qwen/qwen3.5-397b-a17b",
-				Name:        "Qwen3.5 397B A17B",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-04",
-				ReleaseDate: "2026-02-16",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image", "video"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.6,
-					Output: 3.6,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  65536,
-				},
-			},
 			"z-ai/glm-5": {
 				ID:          "z-ai/glm-5",
 				Name:        "GLM-5",
@@ -1316,21 +993,6 @@ var curatedProviders = []Provider{
 					Output:  131072,
 				},
 			},
-			"openrouter/aurora-alpha": {
-				ID:          "openrouter/aurora-alpha",
-				Name:        "Aurora Alpha",
-				Reasoning:   true,
-				ToolCall:    true,
-				ReleaseDate: "2026-02-09",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 128000,
-					Output:  50000,
-				},
-			},
 			"anthropic/claude-opus-4.6": {
 				ID:          "anthropic/claude-opus-4.6",
 				Name:        "Claude Opus 4.6",
@@ -1350,95 +1012,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1000000,
 					Output:  128000,
-				},
-			},
-			"openrouter/free": {
-				ID:          "openrouter/free",
-				Name:        "Free Models Router",
-				Reasoning:   true,
-				ToolCall:    true,
-				ReleaseDate: "2026-02-01",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 200000,
-					Output:  8000,
-				},
-			},
-			"stepfun/step-3.5-flash:free": {
-				ID:          "stepfun/step-3.5-flash:free",
-				Name:        "Step 3.5 Flash (free)",
-				Family:      "step",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-01",
-				ReleaseDate: "2026-01-29",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  256000,
-				},
-			},
-			"stepfun/step-3.5-flash": {
-				ID:          "stepfun/step-3.5-flash",
-				Name:        "Step 3.5 Flash",
-				Family:      "step",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-01",
-				ReleaseDate: "2026-01-29",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.1,
-					Output: 0.3,
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  256000,
-				},
-			},
-			"arcee-ai/trinity-mini:free": {
-				ID:          "arcee-ai/trinity-mini:free",
-				Name:        "Trinity Mini",
-				Family:      "trinity-mini",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-28",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  131072,
-				},
-			},
-			"arcee-ai/trinity-large-preview:free": {
-				ID:          "arcee-ai/trinity-large-preview:free",
-				Name:        "Trinity Large Preview",
-				Family:      "trinity",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-28",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  131072,
 				},
 			},
 			"moonshotai/kimi-k2.5": {
@@ -1461,39 +1034,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 262144,
 					Output:  262144,
-				},
-			},
-			"liquid/lfm-2.5-1.2b-thinking:free": {
-				ID:          "liquid/lfm-2.5-1.2b-thinking:free",
-				Name:        "LFM2.5-1.2B-Thinking (free)",
-				Family:      "liquid",
-				Reasoning:   true,
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-20",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  32768,
-				},
-			},
-			"liquid/lfm-2.5-1.2b-instruct:free": {
-				ID:          "liquid/lfm-2.5-1.2b-instruct:free",
-				Name:        "LFM2.5-1.2B-Instruct (free)",
-				Family:      "liquid",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-20",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  32768,
 				},
 			},
 			"z-ai/glm-4.7-flash": {
@@ -1538,39 +1078,6 @@ var curatedProviders = []Provider{
 					Output:  128000,
 				},
 			},
-			"black-forest-labs/flux.2-klein-4b": {
-				ID:          "black-forest-labs/flux.2-klein-4b",
-				Name:        "FLUX.2 Klein 4B",
-				Family:      "flux",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-14",
-				Modalities: &Modalities{
-					Input:  []string{"image", "text"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 40960,
-					Output:  40960,
-				},
-			},
-			"allenai/molmo-2-8b:free": {
-				ID:          "allenai/molmo-2-8b:free",
-				Name:        "Molmo2 8B (free)",
-				Family:      "allenai",
-				Reasoning:   true,
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2026-01-09",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image", "video"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 36864,
-					Output:  36864,
-				},
-			},
 			"minimax/minimax-m2.1": {
 				ID:          "minimax/minimax-m2.1",
 				Name:        "MiniMax M2.1",
@@ -1590,22 +1097,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 204800,
 					Output:  131072,
-				},
-			},
-			"bytedance-seed/seedream-4.5": {
-				ID:          "bytedance-seed/seedream-4.5",
-				Name:        "Seedream 4.5",
-				Family:      "seed",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-12-23",
-				Modalities: &Modalities{
-					Input:  []string{"image", "text"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 4096,
-					Output:  4096,
 				},
 			},
 			"z-ai/glm-4.7": {
@@ -1649,61 +1140,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1048576,
 					Output:  65536,
-				},
-			},
-			"black-forest-labs/flux.2-max": {
-				ID:          "black-forest-labs/flux.2-max",
-				Name:        "FLUX.2 Max",
-				Family:      "flux",
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-12-16",
-				Modalities: &Modalities{
-					Input:  []string{"image", "text"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 46864,
-					Output:  46864,
-				},
-			},
-			"xiaomi/mimo-v2-flash": {
-				ID:          "xiaomi/mimo-v2-flash",
-				Name:        "MiMo-V2-Flash",
-				Family:      "mimo",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-12",
-				ReleaseDate: "2025-12-14",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.1,
-					Output: 0.3,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  65536,
-				},
-			},
-			"nvidia/nemotron-3-nano-30b-a3b:free": {
-				ID:          "nvidia/nemotron-3-nano-30b-a3b:free",
-				Name:        "Nemotron 3 Nano 30B A3B (free)",
-				Family:      "nemotron",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-11",
-				ReleaseDate: "2025-12-14",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  256000,
 				},
 			},
 			"openai/gpt-5.2-pro": {
@@ -1769,146 +1205,6 @@ var curatedProviders = []Provider{
 					Output:  128000,
 				},
 			},
-			"sourceful/riverflow-v2-standard-preview": {
-				ID:          "sourceful/riverflow-v2-standard-preview",
-				Name:        "Riverflow V2 Standard Preview",
-				Family:      "sourceful",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-12-08",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 8192,
-					Output:  8192,
-				},
-			},
-			"sourceful/riverflow-v2-max-preview": {
-				ID:          "sourceful/riverflow-v2-max-preview",
-				Name:        "Riverflow V2 Max Preview",
-				Family:      "sourceful",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-12-08",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 8192,
-					Output:  8192,
-				},
-			},
-			"sourceful/riverflow-v2-fast-preview": {
-				ID:          "sourceful/riverflow-v2-fast-preview",
-				Name:        "Riverflow V2 Fast Preview",
-				Family:      "sourceful",
-				OpenWeights: true,
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-12-08",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 8192,
-					Output:  8192,
-				},
-			},
-			"deepseek/deepseek-v3.2-speciale": {
-				ID:          "deepseek/deepseek-v3.2-speciale",
-				Name:        "DeepSeek V3.2 Speciale",
-				Family:      "deepseek",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-07",
-				ReleaseDate: "2025-12-01",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.27,
-					Output: 0.41,
-				},
-				Limit: &Limit{
-					Context: 163840,
-					Output:  65536,
-				},
-			},
-			"deepseek/deepseek-v3.2": {
-				ID:          "deepseek/deepseek-v3.2",
-				Name:        "DeepSeek V3.2",
-				Family:      "deepseek",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-07",
-				ReleaseDate: "2025-12-01",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.28,
-					Output: 0.4,
-				},
-				Limit: &Limit{
-					Context: 163840,
-					Output:  65536,
-				},
-			},
-			"tngtech/tng-r1t-chimera:free": {
-				ID:          "tngtech/tng-r1t-chimera:free",
-				Name:        "R1T Chimera (free)",
-				Family:      "tngtech",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-07",
-				ReleaseDate: "2025-11-26",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 163840,
-					Output:  163840,
-				},
-			},
-			"black-forest-labs/flux.2-pro": {
-				ID:          "black-forest-labs/flux.2-pro",
-				Name:        "FLUX.2 Pro",
-				Family:      "flux",
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-11-25",
-				Modalities: &Modalities{
-					Input:  []string{"image", "text"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 46864,
-					Output:  46864,
-				},
-			},
-			"black-forest-labs/flux.2-flex": {
-				ID:          "black-forest-labs/flux.2-flex",
-				Name:        "FLUX.2 Flex",
-				Family:      "flux",
-				Knowledge:   "2025-06",
-				ReleaseDate: "2025-11-25",
-				Modalities: &Modalities{
-					Input:  []string{"image", "text"},
-					Output: []string{"image"},
-				},
-				Limit: &Limit{
-					Context: 67344,
-					Output:  67344,
-				},
-			},
 			"anthropic/claude-opus-4.5": {
 				ID:          "anthropic/claude-opus-4.5",
 				Name:        "Claude Opus 4.5",
@@ -1930,27 +1226,6 @@ var curatedProviders = []Provider{
 					Output:  32000,
 				},
 			},
-			"x-ai/grok-4.1-fast": {
-				ID:          "x-ai/grok-4.1-fast",
-				Name:        "Grok 4.1 Fast",
-				Family:      "grok",
-				Reasoning:   true,
-				ToolCall:    true,
-				Knowledge:   "2024-11",
-				ReleaseDate: "2025-11-19",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.2,
-					Output: 0.5,
-				},
-				Limit: &Limit{
-					Context: 2000000,
-					Output:  30000,
-				},
-			},
 			"google/gemini-3-pro-preview": {
 				ID:          "google/gemini-3-pro-preview",
 				Name:        "Gemini 3 Pro Preview",
@@ -1970,37 +1245,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1050000,
 					Output:  66000,
-				},
-			},
-			"openrouter/sherlock-think-alpha": {
-				ID:          "openrouter/sherlock-think-alpha",
-				Name:        "Sherlock Think Alpha",
-				Family:      "sherlock",
-				Reasoning:   true,
-				ToolCall:    true,
-				Knowledge:   "2025-11",
-				ReleaseDate: "2025-11-15",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 1840000,
-				},
-			},
-			"openrouter/sherlock-dash-alpha": {
-				ID:          "openrouter/sherlock-dash-alpha",
-				Name:        "Sherlock Dash Alpha",
-				Family:      "sherlock",
-				ToolCall:    true,
-				Knowledge:   "2025-11",
-				ReleaseDate: "2025-11-15",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 1840000,
 				},
 			},
 			"openai/gpt-5.1-codex-mini": {
@@ -2108,22 +1352,6 @@ var curatedProviders = []Provider{
 					Output:  128000,
 				},
 			},
-			"kwaipilot/kat-coder-pro:free": {
-				ID:          "kwaipilot/kat-coder-pro:free",
-				Name:        "Kat Coder Pro (free)",
-				Family:      "kat-coder",
-				ToolCall:    true,
-				Knowledge:   "2025-11",
-				ReleaseDate: "2025-11-10",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 256000,
-					Output:  65536,
-				},
-			},
 			"moonshotai/kimi-k2-thinking": {
 				ID:          "moonshotai/kimi-k2-thinking",
 				Name:        "Kimi K2 Thinking",
@@ -2148,212 +1376,7 @@ var curatedProviders = []Provider{
 			},
 		},
 	},
-	{ // togetherai — Together AI
-		ID:   "togetherai",
-		Name: "Together AI",
-		Doc:  "https://docs.together.ai/docs/serverless-models",
-		Models: map[string]Model{
-			"Qwen/Qwen3.5-397B-A17B": {
-				ID:          "Qwen/Qwen3.5-397B-A17B",
-				Name:        "Qwen3.5 397B A17B",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2026-02-16",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.6,
-					Output: 3.6,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  130000,
-				},
-			},
-			"MiniMaxAI/MiniMax-M2.5": {
-				ID:          "MiniMaxAI/MiniMax-M2.5",
-				Name:        "MiniMax-M2.5",
-				Family:      "minimax",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2026-02-12",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.3,
-					Output: 1.2,
-				},
-				Limit: &Limit{
-					Context: 204800,
-					Output:  131072,
-				},
-			},
-			"zai-org/GLM-5": {
-				ID:          "zai-org/GLM-5",
-				Name:        "GLM-5",
-				Family:      "glm",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-11",
-				ReleaseDate: "2026-02-11",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  1,
-					Output: 3.2,
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  131072,
-				},
-			},
-			"Qwen/Qwen3-Coder-Next-FP8": {
-				ID:          "Qwen/Qwen3-Coder-Next-FP8",
-				Name:        "Qwen3 Coder Next FP8",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2026-02-03",
-				ReleaseDate: "2026-02-03",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.5,
-					Output: 1.2,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"moonshotai/Kimi-K2.5": {
-				ID:          "moonshotai/Kimi-K2.5",
-				Name:        "Kimi K2.5",
-				Family:      "kimi",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2026-01",
-				ReleaseDate: "2026-01-27",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.5,
-					Output: 2.8,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"essentialai/Rnj-1-Instruct": {
-				ID:          "essentialai/Rnj-1-Instruct",
-				Name:        "Rnj-1 Instruct",
-				Family:      "rnj",
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2024-10",
-				ReleaseDate: "2025-12-05",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.15,
-					Output: 0.15,
-				},
-				Limit: &Limit{
-					Context: 32768,
-					Output:  32768,
-				},
-			},
-			"moonshotai/Kimi-K2-Thinking": {
-				ID:          "moonshotai/Kimi-K2-Thinking",
-				Name:        "Kimi K2 Thinking",
-				Family:      "kimi-thinking",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Knowledge:   "2025-07",
-				ReleaseDate: "2025-11-06",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  1.2,
-					Output: 4,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-		},
-	},
-	{ // xai — xAI
-		ID:   "xai",
-		Name: "xAI",
-		Doc:  "https://docs.x.ai/docs/models",
-		Models: map[string]Model{
-			"grok-4-1-fast-non-reasoning": {
-				ID:          "grok-4-1-fast-non-reasoning",
-				Name:        "Grok 4.1 Fast (Non-Reasoning)",
-				Family:      "grok",
-				ToolCall:    true,
-				Knowledge:   "2025-07",
-				ReleaseDate: "2025-11-19",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.2,
-					Output: 0.5,
-				},
-				Limit: &Limit{
-					Context: 2000000,
-					Output:  30000,
-				},
-			},
-			"grok-4-1-fast": {
-				ID:          "grok-4-1-fast",
-				Name:        "Grok 4.1 Fast",
-				Family:      "grok",
-				Reasoning:   true,
-				ToolCall:    true,
-				Knowledge:   "2025-07",
-				ReleaseDate: "2025-11-19",
-				Modalities: &Modalities{
-					Input:  []string{"text", "image"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.2,
-					Output: 0.5,
-				},
-				Limit: &Limit{
-					Context: 2000000,
-					Output:  30000,
-				},
-			},
-		},
-	},
+	// togetherai, xai removed — not in supported provider set
 	{ // zai — Z.AI
 		ID:   "zai",
 		Name: "Z.AI",
