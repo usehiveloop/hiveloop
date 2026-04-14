@@ -7,7 +7,7 @@
       "id_field": "id",
       "name_field": "id",
       "icon": "rocket",
-      "list_action": "/graphql",
+      "list_action": "/graphql/v2",
       "request_config": {
         "method": "POST",
         "body_template": {
@@ -25,7 +25,7 @@
       "id_field": "id",
       "name_field": "name",
       "icon": "globe",
-      "list_action": "/graphql",
+      "list_action": "/graphql/v2",
       "request_config": {
         "method": "POST",
         "body_template": {
@@ -43,7 +43,7 @@
       "id_field": "id",
       "name_field": "name",
       "icon": "project",
-      "list_action": "/graphql",
+      "list_action": "/graphql/v2",
       "request_config": {
         "method": "POST",
         "body_template": {
@@ -62,7 +62,7 @@
       "id_field": "id",
       "name_field": "name",
       "icon": "server",
-      "list_action": "/graphql",
+      "list_action": "/graphql/v2",
       "request_config": {
         "method": "POST",
         "body_template": {
@@ -108,7 +108,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "deploymentId": "deploymentId",
           "endDate": "endDate",
@@ -162,7 +162,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -189,7 +189,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -216,7 +216,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -243,7 +243,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -284,7 +284,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "deploymentId": "deploymentId",
           "endDate": "endDate",
@@ -318,7 +318,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id",
           "usePreviousImageTag": "usePreviousImageTag"
@@ -346,7 +346,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -373,7 +373,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -400,7 +400,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -464,7 +464,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "after": "after",
           "before": "before",
@@ -503,7 +503,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "environmentId": "environmentId",
           "projectId": "projectId",
@@ -535,7 +535,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id",
           "projectId": "projectId"
@@ -594,7 +594,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -621,7 +621,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -672,7 +672,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "afterDate": "afterDate",
           "afterLimit": "afterLimit",
@@ -721,7 +721,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -763,7 +763,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "after": "after",
           "before": "before",
@@ -799,7 +799,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "owner": "owner",
           "repo": "repo"
@@ -845,7 +845,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -865,7 +865,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "graphql_operation": "query",
         "graphql_field": "githubRepos"
       },
@@ -882,7 +882,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "graphql_operation": "query",
         "graphql_field": "me"
       },
@@ -949,7 +949,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "averagingWindowSeconds": "averagingWindowSeconds",
           "endDate": "endDate",
@@ -988,7 +988,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -1056,7 +1056,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1083,7 +1083,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -1139,7 +1139,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id",
           "input": "input"
@@ -1182,7 +1182,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "after": "after",
           "before": "before",
@@ -1212,7 +1212,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "projectId": "projectId"
         },
@@ -1239,7 +1239,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -1284,7 +1284,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id",
           "input": "input"
@@ -1370,7 +1370,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1401,7 +1401,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "environmentId": "environmentId",
           "id": "id"
@@ -1429,7 +1429,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -1471,7 +1471,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1498,7 +1498,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -1535,7 +1535,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "commitSha": "commitSha",
           "environmentId": "environmentId",
@@ -1569,7 +1569,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "environmentId": "environmentId",
           "serviceId": "serviceId"
@@ -1696,7 +1696,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "environmentId": "environmentId",
           "input": "input",
@@ -1737,7 +1737,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id",
           "input": "input"
@@ -1840,7 +1840,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1894,7 +1894,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1940,7 +1940,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -1994,7 +1994,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -2032,7 +2032,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "environmentId": "environmentId",
           "projectId": "projectId",
@@ -2088,7 +2088,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input"
         },
@@ -2115,7 +2115,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "volumeId": "volumeId"
         },
@@ -2142,7 +2142,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "id": "id"
         },
@@ -2179,7 +2179,7 @@
       },
       "execution": {
         "method": "POST",
-        "path": "/graphql",
+        "path": "/graphql/v2",
         "body_mapping": {
           "input": "input",
           "volumeId": "volumeId"
