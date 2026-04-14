@@ -103,6 +103,12 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 	nangoConnID := inConn.NangoConnectionID
 	providerName := inConn.InIntegration.Provider
 
+	// Load provider schemas for GraphQL query building.
+	var providerSchemas map[string]catalog.SchemaDefinition
+	if provider, providerOK := enricher.catalog.GetProvider(providerName); providerOK {
+		providerSchemas = provider.Schemas
+	}
+
 	logger.Info("deterministic enrichment: credentials resolved",
 		"provider_name", providerName,
 		"provider_cfg_key", providerCfgKey,
@@ -147,6 +153,7 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 				actionDef,
 				params,
 				nil, // no resource scoping for enrichment
+				providerSchemas,
 			)
 			result.Data = data
 			result.Err = err

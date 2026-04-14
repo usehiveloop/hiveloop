@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"net/http/httptest"
 	"sync"
 	"testing"
@@ -307,7 +308,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 		t.Fatalf("expected 4 Nango requests, got %d", len(captured))
 	}
 
-	// --- Verify: all requests use correct Nango credentials ---
+	// --- Verify: all requests use correct Nango credentials and GraphQL format ---
 
 	for index, request := range captured {
 		if request.ProviderCfgKey != providerCfgKey {
@@ -319,50 +320,47 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 		if request.Method != "POST" {
 			t.Errorf("request %d: expected POST, got %s", index, request.Method)
 		}
-		if request.Path != "/proxy/graphql" {
-			t.Errorf("request %d: expected /proxy/graphql, got %s", index, request.Path)
+		if request.Path != "/proxy/graphql/v2" {
+			t.Errorf("request %d: expected /proxy/graphql/v2, got %s", index, request.Path)
+		}
+		// All bodies should be GraphQL queries.
+		query, hasQuery := request.Body["query"].(string)
+		if !hasQuery || query == "" {
+			t.Errorf("request %d: expected GraphQL query in body, got %v", index, request.Body)
 		}
 	}
 
-	// --- Verify: payload shapes have substituted refs ---
+	// --- Verify: GraphQL queries contain substituted refs ---
 
-	// Build action→body map. Actions run in parallel so order isn't guaranteed.
-	actionBodies := identifyActionBodies(captured)
+	// Collect all query strings.
+	var queries []string
+	for _, request := range captured {
+		if query, ok := request.Body["query"].(string); ok {
+			queries = append(queries, query)
+		}
+	}
+	allQueries := strings.Join(queries, "\n")
 
 	// build_logs: deploymentId from $refs.deployment_id, limit=500
-	assertActionBody(t, actionBodies, "build_logs", map[string]any{
-		"deploymentId": "deploy-0df056be",
-		"limit":        float64(500),
-	})
+	assertContains(t, allQueries, `deploymentId: "deploy-0df056be"`, "build_logs deploymentId")
+	assertContains(t, allQueries, "limit: 500", "build_logs limit")
 
 	// deployment_logs: deploymentId from $refs.deployment_id, limit=200
-	assertActionBody(t, actionBodies, "deployment_logs", map[string]any{
-		"deploymentId": "deploy-0df056be",
-		"limit":        float64(200),
-	})
+	assertContains(t, allQueries, "limit: 200", "deployment_logs limit")
 
 	// service: id from $refs.service_id
-	assertActionBody(t, actionBodies, "service", map[string]any{
-		"id": "svc-b6c22e03",
-	})
+	assertContains(t, allQueries, `id: "svc-b6c22e03"`, "service id")
 
 	// deployments: nested input with refs, first=5
-	deploymentsBody, ok := actionBodies["deployments"]
-	if !ok {
-		t.Fatal("deployments action was not captured")
-	}
-	inputMap, isMap := deploymentsBody["input"].(map[string]any)
-	if !isMap {
-		t.Fatalf("deployments: expected input to be map, got %T", deploymentsBody["input"])
-	}
-	if inputMap["serviceId"] != "svc-b6c22e03" {
-		t.Errorf("deployments: expected input.serviceId=svc-b6c22e03, got %v", inputMap["serviceId"])
-	}
-	if inputMap["environmentId"] != "env-3c177170" {
-		t.Errorf("deployments: expected input.environmentId=env-3c177170, got %v", inputMap["environmentId"])
-	}
-	if deploymentsBody["first"] != float64(5) {
-		t.Errorf("deployments: expected first=5, got %v", deploymentsBody["first"])
+	assertContains(t, allQueries, "first: 5", "deployments first")
+	assertContains(t, allQueries, `serviceId: "svc-b6c22e03"`, "deployments input.serviceId")
+	assertContains(t, allQueries, `environmentId: "env-3c177170"`, "deployments input.environmentId")
+
+	// All queries should be query operations (not mutations).
+	for index, query := range queries {
+		if !strings.Contains(query, "query {") {
+			t.Errorf("query %d: expected 'query {', got %q", index, query)
+		}
 	}
 
 	// --- Verify: all actions succeeded ---
@@ -404,46 +402,6 @@ func TestEnrichActions_UnknownProvider(t *testing.T) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// identifyActionBodies maps captured Nango requests to action names by
-// inspecting the body shape. This handles the fact that parallel execution
-// means captured order is nondeterministic.
-func identifyActionBodies(captured []capturedRequest) map[string]map[string]any {
-	result := make(map[string]map[string]any)
-	for _, request := range captured {
-		if _, hasDeplID := request.Body["deploymentId"]; hasDeplID {
-			limit, hasLimit := request.Body["limit"]
-			if hasLimit {
-				limitNum, isFloat := limit.(float64)
-				if isFloat && limitNum == 500 {
-					result["build_logs"] = request.Body
-				} else if isFloat && limitNum == 200 {
-					result["deployment_logs"] = request.Body
-				}
-			}
-		}
-		if _, hasID := request.Body["id"]; hasID {
-			result["service"] = request.Body
-		}
-		if _, hasInput := request.Body["input"]; hasInput {
-			result["deployments"] = request.Body
-		}
-	}
-	return result
-}
-
-func assertActionBody(t *testing.T, actionBodies map[string]map[string]any, actionName string, expected map[string]any) {
-	t.Helper()
-	body, ok := actionBodies[actionName]
-	if !ok {
-		t.Errorf("%s action was not captured", actionName)
-		return
-	}
-	for key, expectedValue := range expected {
-		if body[key] != expectedValue {
-			t.Errorf("%s: expected %s=%v, got %v", actionName, key, expectedValue, body[key])
-		}
-	}
-}
 
 func assertContains(t *testing.T, haystack, needle, description string) {
 	t.Helper()

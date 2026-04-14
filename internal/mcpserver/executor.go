@@ -22,6 +22,7 @@ func ExecuteAction(
 	action *catalog.ActionDef,
 	params map[string]any,
 	allowedResources map[string][]string,
+	schemas ...map[string]catalog.SchemaDefinition,
 ) (map[string]any, error) {
 	exec := action.Execution
 	if exec == nil {
@@ -60,9 +61,15 @@ func ExecuteAction(
 		}
 	}
 
-	// Build body from BodyMapping
+	// Build body — GraphQL actions get a proper query, REST actions use body mapping.
 	var body map[string]any
-	if len(exec.BodyMapping) > 0 {
+	if catalog.IsGraphQL(*exec) {
+		var schemaMap map[string]catalog.SchemaDefinition
+		if len(schemas) > 0 {
+			schemaMap = schemas[0]
+		}
+		body = catalog.BuildGraphQLRequest(*action, *exec, params, schemaMap)
+	} else if len(exec.BodyMapping) > 0 {
 		body = make(map[string]any)
 		for bodyKey, paramName := range exec.BodyMapping {
 			if val, ok := params[paramName]; ok {
