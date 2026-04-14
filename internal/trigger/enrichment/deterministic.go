@@ -103,12 +103,6 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 	nangoConnID := inConn.NangoConnectionID
 	providerName := inConn.InIntegration.Provider
 
-	// Load provider schemas for GraphQL query building.
-	var providerSchemas map[string]catalog.SchemaDefinition
-	if provider, providerOK := enricher.catalog.GetProvider(providerName); providerOK {
-		providerSchemas = provider.Schemas
-	}
-
 	logger.Info("deterministic enrichment: credentials resolved",
 		"provider_name", providerName,
 		"provider_cfg_key", providerCfgKey,
@@ -144,6 +138,9 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 			)
 
 			// Execute the action directly via Nango proxy.
+			// We intentionally omit schemas so GraphQL queries have no selection
+			// set — Railway (and most providers) will return all fields, which
+			// is what we want for enrichment context.
 			data, err := mcpserver.ExecuteAction(
 				ctx,
 				enricher.nangoClient,
@@ -153,7 +150,6 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 				actionDef,
 				params,
 				nil, // no resource scoping for enrichment
-				providerSchemas,
 			)
 			result.Data = data
 			result.Err = err
