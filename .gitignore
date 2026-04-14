@@ -31,3 +31,5 @@ certs/
 .ignored/*
 .analysis/*
 .gitnexus
+
+codedb.snapshot

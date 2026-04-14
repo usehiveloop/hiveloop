@@ -12548,6 +12548,23 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig": {
+            "type": "object",
+            "properties": {
+                "model": {
+                    "type": "string"
+                },
+                "system_prompt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig"
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition": {
             "type": "object",
             "properties": {
@@ -13809,6 +13826,9 @@ const docTemplate = `{
                 "provider_id": {
                     "type": "string"
                 },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                },
                 "sandbox_id": {
                     "type": "string"
                 },
@@ -14441,6 +14461,9 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -17330,6 +17353,9 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
                 },
                 "sandbox_template_id": {
                     "type": "string"

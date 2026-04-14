@@ -232,6 +232,17 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
+  github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig:
+    properties:
+      model:
+        type: string
+      system_prompt:
+        type: string
+    type: object
+  github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap:
+    additionalProperties:
+      $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig'
+    type: object
   github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition:
     properties:
       description:
@@ -1061,6 +1072,8 @@ definitions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       provider_id:
         type: string
+      provider_prompts:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
       sandbox_id:
         type: string
       sandbox_template_id:
@@ -1473,6 +1486,8 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      provider_prompts:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
       sandbox_template_id:
         type: string
       sandbox_tools:
@@ -3364,6 +3379,8 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      provider_prompts:
+        $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap'
       sandbox_template_id:
         type: string
       sandbox_tools:

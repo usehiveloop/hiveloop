@@ -23,8 +23,8 @@ type Agent struct {
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
-	SystemPrompt    string  `gorm:"type:text;not null"`
-	ProviderPrompts JSON    `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
+	SystemPrompt    string             `gorm:"type:text;not null"`
+	ProviderPrompts ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
 	Instructions    *string `gorm:"type:text"`                        // optional markdown instructions for auto-starting runs
 	Model           string  `gorm:"not null"`                         // must match credential's provider
 	Tools        JSON   `gorm:"type:jsonb;not null;default:'{}'"`

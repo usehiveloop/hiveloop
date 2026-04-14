@@ -1,12 +1,63 @@
 package token
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+// ProxyToken holds the result of MintAndPersist.
+type ProxyToken struct {
+	TokenString string    // "ptok_" prefixed JWT
+	JTI         string    // unique token identifier
+	ExpiresAt   time.Time // when the token expires
+}
+
+// MintAndPersist mints a proxy token, persists it to the database, and returns
+// the prefixed token string. This is the canonical way to create proxy tokens.
+//
+// The meta parameter is stored in the token's JSONB meta field and should
+// contain at minimum a "type" key (e.g. "agent_proxy", "embedding_proxy").
+func MintAndPersist(db *gorm.DB, signingKey []byte, orgID, credentialID uuid.UUID, ttl time.Duration, meta map[string]any) (*ProxyToken, error) {
+	tokenStr, jti, err := Mint(signingKey, orgID.String(), credentialID.String(), ttl)
+	if err != nil {
+		return nil, fmt.Errorf("minting token: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(ttl)
+
+	jsonMeta := make(map[string]any, len(meta))
+	for key, value := range meta {
+		jsonMeta[key] = value
+	}
+
+	// Persist so the proxy middleware can validate by JTI
+	if err := db.Exec(`
+		INSERT INTO tokens (org_id, credential_id, jti, expires_at, meta, created_at)
+		VALUES (?, ?, ?, ?, ?::jsonb, ?)
+	`, orgID, credentialID, jti, expiresAt, toJSON(jsonMeta), now).Error; err != nil {
+		return nil, fmt.Errorf("persisting token: %w", err)
+	}
+
+	return &ProxyToken{
+		TokenString: "ptok_" + tokenStr,
+		JTI:         jti,
+		ExpiresAt:   expiresAt,
+	}, nil
+}
+
+func toJSON(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
 
 // Claims represents the JWT claims for a sandbox proxy token.
 type Claims struct {

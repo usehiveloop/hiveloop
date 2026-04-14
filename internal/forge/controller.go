@@ -204,7 +204,7 @@ func (fc *ForgeController) SetupContextGathering(ctx context.Context, agent *mod
 	log := slog.With("agent_id", agent.ID, "forge_run_id", forgeRun.ID)
 
 	// Determine provider group and load the context-gatherer system agent.
-	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID)
+	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID, agent.Model)
 	agentName := fmt.Sprintf("forge-context-gatherer-%s", providerGroup)
 	gathererAgent, err := fc.loadSystemAgent(agentName)
 	if err != nil {
@@ -390,7 +390,7 @@ func (fc *ForgeController) DesignEvals(ctx context.Context, runID uuid.UUID) {
 	}
 
 	// Load and provision the eval designer system agent.
-	providerGroup := systemagents.MapProviderToGroup(evalCred.ProviderID)
+	providerGroup := systemagents.MapProviderToGroup(evalCred.ProviderID, "")
 	evalDesignerAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-eval-designer-%s", providerGroup))
 	if err != nil {
 		fc.failRun(runID, fmt.Sprintf("loading eval designer agent: %v", err))
@@ -586,7 +586,7 @@ func (fc *ForgeController) run(ctx context.Context, runID uuid.UUID) {
 	fc.updateRunStatus(&run, model.ForgeStatusProvisioning)
 
 	targetProviderID := targetCred.ProviderID
-	providerGroup := systemagents.MapProviderToGroup(targetProviderID)
+	providerGroup := systemagents.MapProviderToGroup(targetProviderID, run.Agent.Model)
 
 	// Load the 3 system agents from DB.
 	archAgent, err := fc.loadSystemAgent(fmt.Sprintf("forge-architect-%s", providerGroup))
@@ -2085,7 +2085,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 	// ── JUDGE PHASE ──
 	log.Info("eval_judge: starting judge phase", "eval_name", evalCase.TestName)
 	// Load judge system agent.
-	providerGroup := systemagents.MapProviderToGroup(run.JudgeCredentialID.String())
+	providerGroup := systemagents.MapProviderToGroup(run.JudgeCredentialID.String(), "")
 	// Actually we need the provider ID, not the credential ID. Load the credential.
 	var judgeCred model.Credential
 	if err := fc.db.Where("id = ?", run.JudgeCredentialID).First(&judgeCred).Error; err != nil {
@@ -2094,7 +2094,7 @@ func (fc *ForgeController) ExecuteEvalJudge(ctx context.Context, payload tasks.F
 		fc.selfReplenish(ctx, payload)
 		return
 	}
-	providerGroup = systemagents.MapProviderToGroup(judgeCred.ProviderID)
+	providerGroup = systemagents.MapProviderToGroup(judgeCred.ProviderID, "")
 	judgeAgent, loadErr := fc.loadSystemAgent(fmt.Sprintf("forge-judge-%s", providerGroup))
 	if loadErr != nil {
 		log.Error("eval_judge: failed to load judge agent", "error", loadErr)

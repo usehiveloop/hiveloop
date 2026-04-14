@@ -1,13 +1,23 @@
+import { useCallback } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { useCreateAgent } from "./context"
+import { ProviderPromptEditor } from "./provider-prompt-editor"
 
 export function StepSystemPrompt() {
   const { form, goTo } = useCreateAgent()
-  const systemPrompt = form.watch("systemPrompt")
+  const providerPrompts = form.watch("providerPrompts")
+
+  const hasAtLeastOnePrompt = Object.values(providerPrompts).some((prompt) => prompt.trim())
+
+  const handleChange = useCallback(
+    (nextValue: Record<string, string>) => {
+      form.setValue("providerPrompts", nextValue)
+    },
+    [form],
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -19,20 +29,16 @@ export function StepSystemPrompt() {
           <DialogTitle>System prompt</DialogTitle>
         </div>
         <DialogDescription className="mt-2">
-          Define your agent&apos;s core behavior, personality, and constraints. This is the main instruction that shapes how your agent responds.
+          Define your agent&apos;s core behavior per provider. You need at least one provider prompt to continue.
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2 mt-4 flex-1">
-        <Textarea
-          {...form.register("systemPrompt")}
-          placeholder={"You are a helpful assistant that triages GitHub issues.\n\nYour responsibilities:\n- Read and classify incoming issues\n- Assign appropriate labels and priority\n- Route to the correct team\n- Notify stakeholders of urgent issues"}
-          className="flex-1 min-h-48 max-h-140.5 font-mono text-sm"
-        />
+      <div className="flex flex-col gap-2 mt-4 flex-1 min-h-0">
+        <ProviderPromptEditor value={providerPrompts} onChange={handleChange} />
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={() => goTo("instructions")} className="w-full" disabled={!systemPrompt.trim()}>
+        <Button onClick={() => goTo("instructions")} className="w-full" disabled={!hasAtLeastOnePrompt}>
           Continue
         </Button>
       </div>

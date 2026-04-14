@@ -25,11 +25,11 @@ func TestResolveProviderConfig_MatchingProvider(t *testing.T) {
 	agent := &Agent{
 		SystemPrompt: "default prompt",
 		Model:        "default-model",
+		ProviderPrompts: ProviderPromptsMap{
+			"anthropic": {SystemPrompt: "anthropic prompt", Model: "claude-sonnet-4"},
+			"openai":    {SystemPrompt: "openai prompt", Model: "gpt-4o"},
+		},
 	}
-	agent.SetProviderPrompts(map[string]ProviderPromptConfig{
-		"anthropic": {SystemPrompt: "anthropic prompt", Model: "claude-sonnet-4"},
-		"openai":    {SystemPrompt: "openai prompt", Model: "gpt-4o"},
-	})
 
 	prompt, model := agent.ResolveProviderConfig("anthropic")
 	if prompt != "anthropic prompt" {
@@ -44,10 +44,10 @@ func TestResolveProviderConfig_NonMatchingProvider(t *testing.T) {
 	agent := &Agent{
 		SystemPrompt: "default prompt",
 		Model:        "default-model",
+		ProviderPrompts: ProviderPromptsMap{
+			"anthropic": {SystemPrompt: "anthropic prompt", Model: "claude-sonnet-4"},
+		},
 	}
-	agent.SetProviderPrompts(map[string]ProviderPromptConfig{
-		"anthropic": {SystemPrompt: "anthropic prompt", Model: "claude-sonnet-4"},
-	})
 
 	prompt, model := agent.ResolveProviderConfig("gemini")
 	if prompt != "default prompt" {
@@ -62,10 +62,10 @@ func TestResolveProviderConfig_PartialConfig_OnlyPrompt(t *testing.T) {
 	agent := &Agent{
 		SystemPrompt: "default prompt",
 		Model:        "default-model",
+		ProviderPrompts: ProviderPromptsMap{
+			"kimi": {SystemPrompt: "kimi prompt"},
+		},
 	}
-	agent.SetProviderPrompts(map[string]ProviderPromptConfig{
-		"kimi": {SystemPrompt: "kimi prompt", Model: ""},
-	})
 
 	prompt, model := agent.ResolveProviderConfig("kimi")
 	if prompt != "kimi prompt" {
@@ -80,10 +80,10 @@ func TestResolveProviderConfig_PartialConfig_OnlyModel(t *testing.T) {
 	agent := &Agent{
 		SystemPrompt: "default prompt",
 		Model:        "default-model",
+		ProviderPrompts: ProviderPromptsMap{
+			"minimax": {Model: "minimax-m1"},
+		},
 	}
-	agent.SetProviderPrompts(map[string]ProviderPromptConfig{
-		"minimax": {SystemPrompt: "", Model: "minimax-m1"},
-	})
 
 	prompt, model := agent.ResolveProviderConfig("minimax")
 	if prompt != "default prompt" {
@@ -131,37 +131,5 @@ func TestBridgeAgentID_SystemAgent_EmptyProviderGroup(t *testing.T) {
 	bridgeID := agent.BridgeAgentID("")
 	if bridgeID != agentID.String() {
 		t.Errorf("expected plain agent ID when providerGroup is empty, got %q", bridgeID)
-	}
-}
-
-func TestProviderPromptsMap_RoundTrip(t *testing.T) {
-	agent := &Agent{}
-	input := map[string]ProviderPromptConfig{
-		"anthropic": {SystemPrompt: "anthropic prompt", Model: "claude-sonnet-4"},
-		"openai":    {SystemPrompt: "openai prompt", Model: "gpt-4o"},
-		"gemini":    {SystemPrompt: "gemini prompt", Model: "gemini-2.5-pro"},
-	}
-
-	if err := agent.SetProviderPrompts(input); err != nil {
-		t.Fatalf("SetProviderPrompts: %v", err)
-	}
-
-	output := agent.ProviderPromptsMap()
-	if len(output) != 3 {
-		t.Fatalf("expected 3 entries, got %d", len(output))
-	}
-
-	for provider, expectedConfig := range input {
-		got, ok := output[provider]
-		if !ok {
-			t.Errorf("missing provider %q", provider)
-			continue
-		}
-		if got.SystemPrompt != expectedConfig.SystemPrompt {
-			t.Errorf("provider %q: expected prompt %q, got %q", provider, expectedConfig.SystemPrompt, got.SystemPrompt)
-		}
-		if got.Model != expectedConfig.Model {
-			t.Errorf("provider %q: expected model %q, got %q", provider, expectedConfig.Model, got.Model)
-		}
 	}
 }

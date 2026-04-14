@@ -18,7 +18,7 @@ export interface EditAgentFormValues {
   credentialId: string
   model: string
   sandboxType: "shared" | "dedicated"
-  systemPrompt: string
+  providerPrompts: Record<string, string>
   instructions: string
   team: string
   sharedMemory: boolean
@@ -88,7 +88,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       credentialId: "",
       model: "",
       sandboxType: "shared",
-      systemPrompt: "",
+      providerPrompts: {},
       instructions: "",
       team: "",
       sharedMemory: false,
@@ -101,13 +101,20 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
   // Reset form from agent data when panel opens
   useEffect(() => {
     if (!open || !agent) return
+
+    const rawPrompts = agent.provider_prompts ?? {}
+    const providerPrompts: Record<string, string> = {}
+    for (const [provider, config] of Object.entries(rawPrompts)) {
+      providerPrompts[provider] = config.system_prompt ?? ""
+    }
+
     form.reset({
       name: agent.name ?? "",
       description: agent.description ?? "",
       credentialId: agent.credential_id ?? "",
       model: agent.model ?? "",
       sandboxType: (agent.sandbox_type as "shared" | "dedicated") ?? "shared",
-      systemPrompt: agent.system_prompt ?? "",
+      providerPrompts,
       instructions: agent.instructions ?? "",
       team: agent.team ?? "",
       sharedMemory: agent.shared_memory ?? false,
@@ -141,13 +148,23 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       integrationsPayload[id] = { actions: config.actions }
     }
 
+    const firstPrompt = Object.values(values.providerPrompts).find((prompt) => prompt.trim()) ?? ""
+
+    const providerPromptsPayload: Record<string, { system_prompt: string }> = {}
+    for (const [provider, prompt] of Object.entries(values.providerPrompts)) {
+      if (prompt.trim()) {
+        providerPromptsPayload[provider] = { system_prompt: prompt }
+      }
+    }
+
     const body: Record<string, unknown> = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
       credential_id: values.credentialId || undefined,
       model: values.model || undefined,
       sandbox_type: values.sandboxType,
-      system_prompt: values.systemPrompt,
+      system_prompt: firstPrompt,
+      provider_prompts: providerPromptsPayload,
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
       triggers: triggers.map((trigger) => ({

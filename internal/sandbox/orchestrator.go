@@ -18,6 +18,7 @@ import (
 	"github.com/ziraloop/ziraloop/internal/config"
 	"github.com/ziraloop/ziraloop/internal/crypto"
 	"github.com/ziraloop/ziraloop/internal/model"
+	"github.com/ziraloop/ziraloop/internal/token"
 	"github.com/ziraloop/ziraloop/internal/turso"
 )
 
@@ -77,9 +78,42 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 }
 
 // setDriveEndpoint sets the ZIRALOOP_DRIVE_ENDPOINT env var once the sandbox ID is known.
-// Must be called after the sandbox record is created.
 func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
 	envVars["ZIRALOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
+}
+
+// embeddingTokenTTL is the lifetime of embedding proxy tokens.
+const embeddingTokenTTL = 24 * time.Hour
+
+// setEmbeddingEnvVars finds an OpenAI credential in the org, mints a proxy token
+// for it, and injects ZIRALOOP_EMBEDDING_ENDPOINT, ZIRALOOP_EMBEDDING_API_KEY,
+// and ZIRALOOP_EMBEDDING_MODEL into the sandbox env vars.
+//
+// If no OpenAI credential is found, embedding env vars are not set and the
+// ziraloop-embeddings CLI will be disabled (prints an error when called).
+func (o *Orchestrator) setEmbeddingEnvVars(envVars map[string]string, orgID uuid.UUID) {
+	var cred model.Credential
+	err := o.db.Where("org_id = ? AND provider_id = 'openai' AND revoked_at IS NULL", orgID).
+		Order("created_at DESC").
+		First(&cred).Error
+	if err != nil {
+		slog.Info("no OpenAI credential found for embedding, ziraloop-embeddings disabled", "org_id", orgID)
+		return
+	}
+
+	signingKey := []byte(o.cfg.JWTSigningKey)
+	proxyToken, err := token.MintAndPersist(o.db, signingKey, orgID, cred.ID, embeddingTokenTTL, map[string]any{
+		"type": "embedding_proxy",
+	})
+	if err != nil {
+		slog.Error("failed to mint embedding proxy token", "org_id", orgID, "error", err)
+		return
+	}
+
+	envVars["ZIRALOOP_EMBEDDING_ENDPOINT"] = fmt.Sprintf("https://%s/v1/proxy", o.cfg.ProxyHost)
+	envVars["ZIRALOOP_EMBEDDING_API_KEY"] = proxyToken.TokenString
+	envVars["ZIRALOOP_EMBEDDING_MODEL"] = "text-embedding-3-large"
+	envVars["ZIRALOOP_EMBEDDINGS_DB"] = "/tmp/ziraloop-vectors.db"
 }
 
 // setIdentityEnvVars adds identity-level environment variables to the env map.
@@ -709,6 +743,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, identi
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)
 	setDriveEndpoint(envVars, sb.ID, o.cfg)
+	o.setEmbeddingEnvVars(envVars, org.ID)
 	if identity != nil {
 		setIdentityEnvVars(envVars, &identity.ID)
 	}

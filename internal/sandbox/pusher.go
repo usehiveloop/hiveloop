@@ -15,6 +15,7 @@ import (
 	bridgepkg "github.com/ziraloop/ziraloop/internal/bridge"
 	"github.com/ziraloop/ziraloop/internal/config"
 	"github.com/ziraloop/ziraloop/internal/model"
+	systemagents "github.com/ziraloop/ziraloop/internal/system-agents"
 	"github.com/ziraloop/ziraloop/internal/token"
 )
 
@@ -452,11 +453,15 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	// we strip the /v1/proxy prefix so the full upstream path is preserved.
 	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
 
+	// Resolve the system prompt for the credential's provider group.
+	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID, agent.Model)
+	systemPrompt, _ := agent.ResolveProviderConfig(providerGroup)
+
 	def := bridgepkg.AgentDefinition{
 		Id:           agent.ID.String(),
 		Name:         agent.Name,
 		Description:  agent.Description,
-		SystemPrompt: agent.SystemPrompt,
+		SystemPrompt: systemPrompt,
 		Provider: bridgepkg.ProviderConfig{
 			ProviderType: providerType,
 			Model:        agent.Model,

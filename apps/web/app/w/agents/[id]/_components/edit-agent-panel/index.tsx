@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { ProviderPromptEditor } from "@/app/w/agents/_components/create-agent/provider-prompt-editor"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -236,11 +237,12 @@ function EditAgentForm() {
         <section className="flex flex-col gap-4">
           <SectionHeader
             title="System prompt"
-            description="The core instruction that shapes your agent's behavior."
+            description="Define per-provider prompts that shape your agent's behavior."
           />
-          <Textarea
-            {...form.register("systemPrompt")}
-            className="min-h-40 font-mono text-sm"
+          <ProviderPromptEditor
+            value={form.watch("providerPrompts")}
+            onChange={(nextValue) => form.setValue("providerPrompts", nextValue)}
+            className="min-h-80"
           />
         </section>
 
