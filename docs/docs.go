@@ -13781,6 +13781,12 @@ const docTemplate = `{
                 "agent_config": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
+                "attached_skills": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentSkillSummary"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -13853,6 +13859,12 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "subagents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.agentSubagentSummary"
+                    }
+                },
                 "system_prompt": {
                     "type": "string"
                 },
@@ -13890,6 +13902,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.agentSkillSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "source_type": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.agentSubagentResponse": {
             "type": "object",
             "properties": {
@@ -13900,6 +13929,23 @@ const docTemplate = `{
                     "$ref": "#/definitions/internal_handler.subagentResponse"
                 },
                 "subagent_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.agentSubagentSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

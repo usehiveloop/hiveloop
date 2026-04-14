@@ -1042,6 +1042,10 @@ definitions:
     properties:
       agent_config:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
+      attached_skills:
+        items:
+          $ref: '#/definitions/internal_handler.agentSkillSummary'
+        type: array
       created_at:
         type: string
       credential_id:
@@ -1090,6 +1094,10 @@ definitions:
         $ref: '#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON'
       status:
         type: string
+      subagents:
+        items:
+          $ref: '#/definitions/internal_handler.agentSubagentSummary'
+        type: array
       system_prompt:
         type: string
       team:
@@ -1114,6 +1122,17 @@ definitions:
       skill_id:
         type: string
     type: object
+  internal_handler.agentSkillSummary:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      source_type:
+        type: string
+    type: object
   internal_handler.agentSubagentResponse:
     properties:
       created_at:
@@ -1121,6 +1140,17 @@ definitions:
       subagent:
         $ref: '#/definitions/internal_handler.subagentResponse'
       subagent_id:
+        type: string
+    type: object
+  internal_handler.agentSubagentSummary:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      model:
+        type: string
+      name:
         type: string
     type: object
   internal_handler.agentTriggerInput:

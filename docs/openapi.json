@@ -16351,6 +16351,12 @@
           "agent_config": {
             "$ref": "#/components/schemas/JSON"
           },
+          "attached_skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentSkillSummary"
+            }
+          },
           "created_at": {
             "type": "string"
           },
@@ -16423,6 +16429,12 @@
           "status": {
             "type": "string"
           },
+          "subagents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/agentSubagentSummary"
+            }
+          },
           "system_prompt": {
             "type": "string"
           },
@@ -16460,6 +16472,23 @@
           }
         }
       },
+      "agentSkillSummary": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "source_type": {
+            "type": "string"
+          }
+        }
+      },
       "agentSubagentResponse": {
         "type": "object",
         "properties": {
@@ -16470,6 +16499,23 @@
             "$ref": "#/components/schemas/subagentResponse"
           },
           "subagent_id": {
+            "type": "string"
+          }
+        }
+      },
+      "agentSubagentSummary": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           }
         }
