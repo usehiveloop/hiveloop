@@ -135,6 +135,22 @@ type updateAgentRequest struct {
 	Triggers          *[]agentTriggerInput `json:"triggers,omitempty"` // nil=don't touch, []=remove all
 }
 
+// agentSubagentSummary is a lightweight subagent included in agent responses.
+type agentSubagentSummary struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	Model       string  `json:"model"`
+}
+
+// agentSkillSummary is a lightweight skill included in agent responses.
+type agentSkillSummary struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	SourceType  string  `json:"source_type"`
+}
+
 type agentResponse struct {
 	ID                string     `json:"id"`
 	Name              string     `json:"name"`
@@ -158,13 +174,15 @@ type agentResponse struct {
 	Team              string     `json:"team"`
 	SharedMemory      bool       `json:"shared_memory"`
 	SandboxTools      []string   `json:"sandbox_tools"`
-	Status              string                `json:"status"`
-	Triggers            []agentTriggerResponse `json:"triggers"`
-	ForgeRunID          *string               `json:"forge_run_id,omitempty"`
-	ForgeConversationID *string               `json:"forge_conversation_id,omitempty"`
-	ForgeRun            *forgeRunResponse     `json:"forge_run,omitempty"`
-	CreatedAt           string                `json:"created_at"`
-	UpdatedAt           string                `json:"updated_at"`
+	Status              string                  `json:"status"`
+	Triggers            []agentTriggerResponse  `json:"triggers"`
+	AttachedSubagents   []agentSubagentSummary  `json:"subagents"`
+	AttachedSkills      []agentSkillSummary     `json:"attached_skills"`
+	ForgeRunID          *string                 `json:"forge_run_id,omitempty"`
+	ForgeConversationID *string                 `json:"forge_conversation_id,omitempty"`
+	ForgeRun            *forgeRunResponse       `json:"forge_run,omitempty"`
+	CreatedAt           string                  `json:"created_at"`
+	UpdatedAt           string                  `json:"updated_at"`
 }
 
 func toAgentResponse(a model.Agent) agentResponse {
@@ -267,6 +285,86 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			TriggerKeys:  []string(row.TriggerKeys),
 			Enabled:      row.Enabled,
 			Conditions:   conditions,
+		})
+	}
+	return result
+}
+
+// loadAgentSubagents batch-loads attached subagent summaries for one or more agents.
+func (h *AgentHandler) loadAgentSubagents(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSubagentSummary {
+	if len(agentIDs) == 0 {
+		return nil
+	}
+	var links []model.AgentSubagent
+	if err := h.db.Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil {
+		return nil
+	}
+	if len(links) == 0 {
+		return nil
+	}
+	subIDs := make([]uuid.UUID, len(links))
+	for index, link := range links {
+		subIDs[index] = link.SubagentID
+	}
+	var subs []model.Agent
+	if err := h.db.Select("id, name, description, model").Where("id IN ?", subIDs).Find(&subs).Error; err != nil {
+		return nil
+	}
+	subByID := make(map[uuid.UUID]model.Agent, len(subs))
+	for _, sub := range subs {
+		subByID[sub.ID] = sub
+	}
+	result := make(map[uuid.UUID][]agentSubagentSummary, len(agentIDs))
+	for _, link := range links {
+		sub, ok := subByID[link.SubagentID]
+		if !ok {
+			continue
+		}
+		result[link.AgentID] = append(result[link.AgentID], agentSubagentSummary{
+			ID:          sub.ID.String(),
+			Name:        sub.Name,
+			Description: sub.Description,
+			Model:       sub.Model,
+		})
+	}
+	return result
+}
+
+// loadAgentSkills batch-loads attached skill summaries for one or more agents.
+func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
+	if len(agentIDs) == 0 {
+		return nil
+	}
+	var links []model.AgentSkill
+	if err := h.db.Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil {
+		return nil
+	}
+	if len(links) == 0 {
+		return nil
+	}
+	skillIDs := make([]uuid.UUID, len(links))
+	for index, link := range links {
+		skillIDs[index] = link.SkillID
+	}
+	var skills []model.Skill
+	if err := h.db.Select("id, name, description, source_type").Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
+		return nil
+	}
+	skillByID := make(map[uuid.UUID]model.Skill, len(skills))
+	for _, skill := range skills {
+		skillByID[skill.ID] = skill
+	}
+	result := make(map[uuid.UUID][]agentSkillSummary, len(agentIDs))
+	for _, link := range links {
+		skill, ok := skillByID[link.SkillID]
+		if !ok {
+			continue
+		}
+		result[link.AgentID] = append(result[link.AgentID], agentSkillSummary{
+			ID:          skill.ID.String(),
+			Name:        skill.Name,
+			Description: skill.Description,
+			SourceType:  skill.SourceType,
 		})
 	}
 	return result
@@ -747,10 +845,14 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 		agentIDs[index] = agent.ID
 	}
 
-	// Batch load triggers for all agents in one query.
+	// Batch load triggers, subagents, and skills for all agents.
 	triggersMap := h.loadAgentTriggers(agentIDs...)
+	subagentsMap := h.loadAgentSubagents(agentIDs...)
+	skillsMap := h.loadAgentSkills(agentIDs...)
 	for index, agent := range agents {
 		resp[index].Triggers = triggersMap[agent.ID]
+		resp[index].AttachedSubagents = subagentsMap[agent.ID]
+		resp[index].AttachedSkills = skillsMap[agent.ID]
 	}
 
 	result := paginatedResponse[agentResponse]{Data: resp, HasMore: hasMore}
@@ -793,6 +895,8 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
+	resp.AttachedSubagents = h.loadAgentSubagents(agent.ID)[agent.ID]
+	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
 
 	// Include the latest forge run if one exists.
 	var forgeRun model.ForgeRun
