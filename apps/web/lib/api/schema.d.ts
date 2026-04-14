@@ -14071,6 +14071,13 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
+        ProviderPromptConfig: {
+            model?: string;
+            system_prompt?: string;
+        };
+        ProviderPromptsMap: {
+            [key: string]: components["schemas"]["ProviderPromptConfig"];
+        };
         SandboxToolDefinition: {
             description?: string;
             id?: string;
@@ -14498,6 +14505,7 @@ export interface components {
             name?: string;
             permissions?: components["schemas"]["JSON"];
             provider_id?: string;
+            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             sandbox_id?: string;
             sandbox_template_id?: string;
             sandbox_tools?: string[];
@@ -14702,6 +14710,7 @@ export interface components {
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
+            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             sandbox_template_id?: string;
             /** @description tools to enable in dedicated sandbox (e.g. "chrome", "codedb") */
             sandbox_tools?: string[];
@@ -15653,6 +15662,7 @@ export interface components {
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
+            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
             sandbox_template_id?: string;
             /** @description tools to enable in dedicated sandbox */
             sandbox_tools?: string[];

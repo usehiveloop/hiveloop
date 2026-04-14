@@ -16,7 +16,7 @@ export interface CreateAgentFormValues {
   model: string
   credentialId: string
   sandboxType: "shared" | "dedicated"
-  systemPrompt: string
+  providerPrompts: Record<string, string>
   instructions: string
   judgeKeyId: string
   judgeModel: string
@@ -74,7 +74,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       model: "",
       credentialId: "",
       sandboxType: "shared",
-      systemPrompt: "",
+      providerPrompts: {},
       instructions: "",
       judgeKeyId: "",
       judgeModel: "",
@@ -201,13 +201,23 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
       }
     }
 
+    const firstPrompt = Object.values(values.providerPrompts).find((prompt) => prompt.trim()) ?? ""
+
+    const providerPromptsPayload: Record<string, { system_prompt: string }> = {}
+    for (const [provider, prompt] of Object.entries(values.providerPrompts)) {
+      if (prompt.trim()) {
+        providerPromptsPayload[provider] = { system_prompt: prompt }
+      }
+    }
+
     const body: Record<string, unknown> = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
       credential_id: values.credentialId,
       model: values.model,
       sandbox_type: values.sandboxType,
-      system_prompt: values.systemPrompt || "",
+      system_prompt: firstPrompt,
+      provider_prompts: providerPromptsPayload,
       instructions: values.instructions || undefined,
       integrations: integrationsPayload,
     }

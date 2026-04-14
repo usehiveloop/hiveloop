@@ -1,0 +1,5 @@
+{
+  "name": "ziraloop-embeddings",
+  "description": "Semantic code search via vector embeddings. Find functions by meaning, discover patterns, locate similar code.",
+  "root": "./SKILL.md"
+}

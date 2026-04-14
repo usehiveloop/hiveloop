@@ -89,22 +89,23 @@ type createAgentRequest struct {
 	CredentialID      string     `json:"credential_id"`
 	SandboxType       string     `json:"sandbox_type"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      string     `json:"system_prompt"`
-	Instructions      *string    `json:"instructions,omitempty"`
-	Model             string     `json:"model"`
-	Tools             model.JSON `json:"tools,omitempty"`
-	McpServers        model.JSON `json:"mcp_servers,omitempty"`
-	Skills            model.JSON `json:"skills,omitempty"`
-	Integrations      model.JSON `json:"integrations,omitempty"`
-	AgentConfig       model.JSON `json:"agent_config,omitempty"`
-	Permissions       model.JSON `json:"permissions,omitempty"`
-	Team              string            `json:"team,omitempty"`
-	SharedMemory      bool              `json:"shared_memory,omitempty"`
-	SandboxTools      []string          `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome", "codedb")
-	SkillIDs          []string          `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
-	SubagentIDs       []string          `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
-	Triggers          []agentTriggerInput `json:"triggers,omitempty"`     // webhook triggers to create
-	Forge             *forgeOptions              `json:"forge,omitempty"`   // triggers forge context gathering on create
+	SystemPrompt      string                      `json:"system_prompt"`
+	ProviderPrompts   model.ProviderPromptsMap    `json:"provider_prompts,omitempty"`
+	Instructions      *string                     `json:"instructions,omitempty"`
+	Model             string                      `json:"model"`
+	Tools             model.JSON                  `json:"tools,omitempty"`
+	McpServers        model.JSON                  `json:"mcp_servers,omitempty"`
+	Skills            model.JSON                  `json:"skills,omitempty"`
+	Integrations      model.JSON                  `json:"integrations,omitempty"`
+	AgentConfig       model.JSON                  `json:"agent_config,omitempty"`
+	Permissions       model.JSON                  `json:"permissions,omitempty"`
+	Team              string                      `json:"team,omitempty"`
+	SharedMemory      bool                        `json:"shared_memory,omitempty"`
+	SandboxTools      []string                    `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome", "codedb")
+	SkillIDs          []string                    `json:"skill_ids,omitempty"`      // skills from /v1/skills to attach on create
+	SubagentIDs       []string                    `json:"subagent_ids,omitempty"`   // subagents from /v1/subagents to attach on create
+	Triggers          []agentTriggerInput         `json:"triggers,omitempty"`       // webhook triggers to create
+	Forge             *forgeOptions               `json:"forge,omitempty"`          // triggers forge context gathering on create
 }
 
 type forgeOptions struct {
@@ -118,8 +119,9 @@ type updateAgentRequest struct {
 	CredentialID      *string    `json:"credential_id,omitempty"`
 	SandboxType       *string    `json:"sandbox_type,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      *string    `json:"system_prompt,omitempty"`
-	Instructions      *string    `json:"instructions,omitempty"`
+	SystemPrompt      *string                     `json:"system_prompt,omitempty"`
+	ProviderPrompts   model.ProviderPromptsMap    `json:"provider_prompts,omitempty"`
+	Instructions      *string                     `json:"instructions,omitempty"`
 	Model             *string    `json:"model,omitempty"`
 	Tools             model.JSON `json:"tools,omitempty"`
 	McpServers        model.JSON `json:"mcp_servers,omitempty"`
@@ -143,15 +145,16 @@ type agentResponse struct {
 	SandboxType       string     `json:"sandbox_type"`
 	SandboxID         *string    `json:"sandbox_id,omitempty"`
 	SandboxTemplateID *string    `json:"sandbox_template_id,omitempty"`
-	SystemPrompt      string     `json:"system_prompt"`
-	Instructions      *string    `json:"instructions,omitempty"`
-	Model             string     `json:"model"`
-	Tools             model.JSON `json:"tools"`
-	McpServers        model.JSON `json:"mcp_servers"`
-	Skills            model.JSON `json:"skills"`
-	Integrations      model.JSON `json:"integrations"`
-	AgentConfig       model.JSON `json:"agent_config"`
-	Permissions       model.JSON `json:"permissions"`
+	SystemPrompt      string                      `json:"system_prompt"`
+	ProviderPrompts   model.ProviderPromptsMap    `json:"provider_prompts"`
+	Instructions      *string                     `json:"instructions,omitempty"`
+	Model             string                      `json:"model"`
+	Tools             model.JSON                  `json:"tools"`
+	McpServers        model.JSON                  `json:"mcp_servers"`
+	Skills            model.JSON                  `json:"skills"`
+	Integrations      model.JSON                  `json:"integrations"`
+	AgentConfig       model.JSON                  `json:"agent_config"`
+	Permissions       model.JSON                  `json:"permissions"`
 	Team              string     `json:"team"`
 	SharedMemory      bool       `json:"shared_memory"`
 	SandboxTools      []string   `json:"sandbox_tools"`
@@ -170,9 +173,10 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Name:         a.Name,
 		Description:  a.Description,
 		SandboxType:  a.SandboxType,
-		SystemPrompt: a.SystemPrompt,
-		Instructions: a.Instructions,
-		Model:        a.Model,
+		SystemPrompt:    a.SystemPrompt,
+		ProviderPrompts: a.ProviderPrompts,
+		Instructions:    a.Instructions,
+		Model:           a.Model,
 		Tools:        a.Tools,
 		McpServers:   a.McpServers,
 		Skills:       a.Skills,
@@ -466,9 +470,10 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Description:  req.Description,
 		CredentialID: &cred.ID,
 		SandboxType:  req.SandboxType,
-		SystemPrompt: req.SystemPrompt,
-		Instructions: req.Instructions,
-		Model:        req.Model,
+		SystemPrompt:    req.SystemPrompt,
+		ProviderPrompts: req.ProviderPrompts,
+		Instructions:    req.Instructions,
+		Model:           req.Model,
 		Tools:        defaultJSON(req.Tools),
 		McpServers:   defaultJSON(req.McpServers),
 		Skills:       defaultJSON(req.Skills),
@@ -856,6 +861,9 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SystemPrompt != nil {
 		updates["system_prompt"] = *req.SystemPrompt
+	}
+	if len(req.ProviderPrompts) > 0 {
+		updates["provider_prompts"] = req.ProviderPrompts
 	}
 	if req.Instructions != nil {
 		updates["instructions"] = *req.Instructions

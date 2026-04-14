@@ -88,7 +88,7 @@ func (h *SystemConversationHandler) Create(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Map credential provider to system agent name
-	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID)
+	providerGroup := systemagents.MapProviderToGroup(cred.ProviderID, "")
 	systemAgentName := fmt.Sprintf("%s-%s", agentType, providerGroup)
 
 	// Load the system agent

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"sort"
 	"sync"
 	"time"
@@ -46,11 +45,11 @@ type embeddingData struct {
 	Embedding []float32 `json:"embedding"`
 }
 
-func New(endpoint, model string) *Embedder {
+func New(endpoint, model, apiKey string) *Embedder {
 	return &Embedder{
 		endpoint: endpoint,
 		model:    model,
-		apiKey:   os.Getenv("ZIRALOOP_EMBEDDING_API_KEY"),
+		apiKey:   apiKey,
 		client:   &http.Client{Timeout: 60 * time.Second},
 	}
 }

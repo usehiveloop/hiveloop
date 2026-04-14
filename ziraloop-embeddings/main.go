@@ -125,7 +125,7 @@ func runInit(args []string) {
 	}
 	defer db.Close()
 
-	emb := embedder.New(cfg.EmbeddingEndpoint, cfg.EmbeddingModel)
+	emb := embedder.New(cfg.EmbeddingEndpoint, cfg.EmbeddingModel, cfg.EmbeddingAPIKey)
 	supportedExts := extractor.SupportedExtensions()
 
 	for _, repoPath := range repoPaths {
@@ -338,7 +338,7 @@ func runSearch(args []string) {
 	}
 	defer db.Close()
 
-	emb := embedder.New(cfg.EmbeddingEndpoint, cfg.EmbeddingModel)
+	emb := embedder.New(cfg.EmbeddingEndpoint, cfg.EmbeddingModel, cfg.EmbeddingAPIKey)
 
 	embedStart := time.Now()
 	queryVec, err := emb.EmbedOne(query)
