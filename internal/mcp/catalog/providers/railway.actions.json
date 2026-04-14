@@ -117,7 +117,8 @@
           "startDate": "startDate"
         },
         "graphql_operation": "query",
-        "graphql_field": "buildLogs"
+        "graphql_field": "buildLogs",
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: String, $endDate: String) { buildLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
       },
       "response_schema": "log"
     },
@@ -293,7 +294,8 @@
           "startDate": "startDate"
         },
         "graphql_operation": "query",
-        "graphql_field": "deploymentLogs"
+        "graphql_field": "deploymentLogs",
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: String, $endDate: String) { deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
       },
       "response_schema": "log"
     },
@@ -473,7 +475,8 @@
           "last": "last"
         },
         "graphql_operation": "query",
-        "graphql_field": "deployments"
+        "graphql_field": "deployments",
+        "graphql_query": "query($input: DeploymentListInput!, $first: Int, $after: String) { deployments(input: $input, first: $first, after: $after) { edges { node { id status createdAt staticUrl creator { name } } } } }"
       },
       "response_schema": "query_deployments_connection"
     },
@@ -1244,7 +1247,8 @@
           "id": "id"
         },
         "graphql_operation": "query",
-        "graphql_field": "service"
+        "graphql_field": "service",
+        "graphql_query": "query($id: String!) { service(id: $id) { id name icon updatedAt } }"
       },
       "response_schema": "service"
     },

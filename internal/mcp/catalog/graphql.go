@@ -77,47 +77,44 @@ func buildGraphQLArgs(bodyMapping map[string]string, params map[string]any) stri
 }
 
 // buildSelectionSet generates a GraphQL selection set from a schema definition.
-// Scalar fields are included directly. Object fields get a nested { id name }
-// selection (safe default for most entities). Arrays are skipped to keep
-// queries lightweight — the enrichment LLM can plan separate fetches for
-// related collections if needed.
+// Scalar fields are included directly. Object/ref fields resolve their schema_ref
+// (if present) and recurse to select actual scalar fields from the referenced
+// schema. Arrays of objects also resolve their schema_ref. This makes selection
+// sets correct for any provider, not just Linear.
 //
 // maxDepth prevents infinite recursion on self-referential schemas.
 func buildSelectionSet(schema SchemaDefinition, allSchemas map[string]SchemaDefinition, depth int) string {
-	if depth > 1 || len(schema.Properties) == 0 {
-		return "{ id }"
+	if depth > 3 || len(schema.Properties) == 0 {
+		return ""
 	}
 
 	var fields []string
 	for fieldName, prop := range schema.Properties {
-		fieldType := prop.Type
-		if fieldType == "" && prop.SchemaRef != "" {
-			fieldType = "ref"
+		// If there's a schema_ref, resolve it regardless of type.
+		if prop.SchemaRef != "" {
+			if refSchema, ok := allSchemas[prop.SchemaRef]; ok {
+				nested := buildSelectionSet(refSchema, allSchemas, depth+1)
+				if nested != "" {
+					fields = append(fields, fieldName+" "+nested)
+				}
+				continue
+			}
 		}
 
-		switch fieldType {
+		switch prop.Type {
 		case "string", "number", "integer", "boolean":
 			fields = append(fields, fieldName)
 		case "object":
-			// Nested object: select id + name as safe defaults.
-			// These are the two most universally present fields on Linear entities.
-			fields = append(fields, fieldName+" { id name }")
+			// Inline object without schema_ref — skip (can't know the fields).
 		case "array":
-			// Skip arrays in automatic selection — they can be huge (e.g., labels, comments).
-			// The enrichment LLM plans separate fetches for collections if needed.
-		case "ref":
-			// Schema reference — resolve and recurse (one level).
-			// Not currently used by Linear schemas (they use inline type: "object")
-			// but included for completeness.
-			fields = append(fields, fieldName+" { id name }")
+			// Arrays without schema_ref — skip.
 		default:
-			// Unknown type — include as scalar (will be null if not a real field).
 			fields = append(fields, fieldName)
 		}
 	}
 
 	if len(fields) == 0 {
-		return "{ id }"
+		return ""
 	}
 
 	return "{ " + strings.Join(fields, " ") + " }"
