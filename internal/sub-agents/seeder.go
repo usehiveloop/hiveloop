@@ -2,28 +2,40 @@ package subagents
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
+
+	"github.com/ziraloop/ziraloop/internal/model"
 )
 
 //go:embed */*.yaml
 var subagentsFS embed.FS
 
 type subagentFile struct {
-	Name         string `yaml:"name"`
-	Description  string `yaml:"description"`
-	Model        string `yaml:"model"`
-	SystemPrompt string `yaml:"system_prompt"`
+	Name         string   `yaml:"name"`
+	Description  string   `yaml:"description"`
+	Model        string   `yaml:"model"`
+	SystemPrompt string   `yaml:"system_prompt"`
+	Skills       []string `yaml:"skills"`
 }
 
-// Seed walks internal/sub-agents/<type>/<provider-group>.yaml and upserts
-// each as a system subagent (agent_type='subagent', is_system=true, org_id=NULL).
+// subagentGroup collects all provider YAML files for a single subagent type.
+type subagentGroup struct {
+	name        string
+	description string
+	skills      []string
+	providers   map[string]subagentFile // provider_group -> parsed YAML
+}
+
+// Seed walks internal/sub-agents/<type>/<provider-group>.yaml, groups all
+// provider files per subagent type, and upserts one row per type with
+// provider-specific prompts stored in the provider_prompts JSONB column.
 func Seed(db *gorm.DB) error {
 	typeDirs, err := subagentsFS.ReadDir(".")
 	if err != nil {
@@ -34,70 +46,174 @@ func Seed(db *gorm.DB) error {
 		if !typeDir.IsDir() {
 			continue
 		}
-		subagentType := typeDir.Name()
 
-		files, err := subagentsFS.ReadDir(subagentType)
+		group, err := loadGroup(typeDir.Name())
 		if err != nil {
-			return fmt.Errorf("reading %s dir: %w", subagentType, err)
+			return err
 		}
 
-		for _, file := range files {
-			if file.IsDir() || !strings.HasSuffix(file.Name(), ".yaml") {
-				continue
-			}
-
-			providerGroup := strings.TrimSuffix(file.Name(), ".yaml")
-
-			if err := seedSubagent(db, subagentType, providerGroup, filepath.Join(subagentType, file.Name())); err != nil {
-				return err
-			}
+		if err := seedGroup(db, group); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func seedSubagent(db *gorm.DB, subagentType, providerGroup, path string) error {
-	data, err := subagentsFS.ReadFile(path)
+// loadGroup reads all provider YAMLs for a subagent type directory and
+// returns them as a single group.
+func loadGroup(subagentType string) (*subagentGroup, error) {
+	files, err := subagentsFS.ReadDir(subagentType)
 	if err != nil {
-		return fmt.Errorf("reading %s: %w", path, err)
+		return nil, fmt.Errorf("reading %s dir: %w", subagentType, err)
 	}
 
-	var sf subagentFile
-	if err := yaml.Unmarshal(data, &sf); err != nil {
-		return fmt.Errorf("parsing %s: %w", path, err)
+	group := &subagentGroup{
+		name:      subagentType,
+		providers: make(map[string]subagentFile),
 	}
 
-	if sf.SystemPrompt == "" {
-		return fmt.Errorf("%s: system_prompt is required", path)
-	}
-	if sf.Model == "" {
-		return fmt.Errorf("%s: model is required", path)
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".yaml") {
+			continue
+		}
+
+		providerGroup := strings.TrimSuffix(file.Name(), ".yaml")
+		path := subagentType + "/" + file.Name()
+
+		data, err := subagentsFS.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", path, err)
+		}
+
+		var sf subagentFile
+		if err := yaml.Unmarshal(data, &sf); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", path, err)
+		}
+
+		if sf.SystemPrompt == "" {
+			return nil, fmt.Errorf("%s: system_prompt is required", path)
+		}
+		if sf.Model == "" {
+			return nil, fmt.Errorf("%s: model is required", path)
+		}
+
+		if sf.Name != "" {
+			group.name = sf.Name
+		}
+		if sf.Description != "" {
+			group.description = sf.Description
+		}
+		if len(sf.Skills) > 0 && len(group.skills) == 0 {
+			group.skills = sf.Skills
+		}
+
+		group.providers[providerGroup] = sf
 	}
 
-	name := fmt.Sprintf("%s-%s", subagentType, providerGroup)
-	if sf.Name != "" {
-		name = fmt.Sprintf("%s-%s", sf.Name, providerGroup)
+	if len(group.providers) == 0 {
+		return nil, fmt.Errorf("%s: no YAML files found", subagentType)
 	}
+
+	return group, nil
+}
+
+// seedGroup upserts a single subagent row with all provider prompts merged
+// into the provider_prompts JSONB column. The default system_prompt and model
+// come from the "openai" provider (fallback for unknown providers).
+func seedGroup(db *gorm.DB, group *subagentGroup) error {
+	providerPrompts := make(map[string]model.ProviderPromptConfig, len(group.providers))
+	for providerGroup, sf := range group.providers {
+		providerPrompts[providerGroup] = model.ProviderPromptConfig{
+			SystemPrompt: sf.SystemPrompt,
+			Model:        sf.Model,
+		}
+	}
+
+	providerPromptsJSON, err := json.Marshal(providerPrompts)
+	if err != nil {
+		return fmt.Errorf("marshaling provider_prompts for %s: %w", group.name, err)
+	}
+
+	// Use openai as the default system_prompt and model (fallback).
+	defaultProvider := group.providers["openai"]
+	if defaultProvider.SystemPrompt == "" {
+		for _, sf := range group.providers {
+			defaultProvider = sf
+			break
+		}
+	}
+
+	var description *string
+	if group.description != "" {
+		description = &group.description
+	}
+
+	skillsJSON := resolveSkills(db, group.skills, group.name)
 
 	now := time.Now()
 
-	var description *string
-	if sf.Description != "" {
-		description = &sf.Description
-	}
-
 	result := db.Exec(`
-		INSERT INTO agents (name, description, is_system, agent_type, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
-		VALUES (?, ?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', '{}', '{}', '{}', '{}', ?, ?)
+		INSERT INTO agents (name, description, is_system, agent_type, system_prompt, model, provider_prompts, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
+		VALUES (?, ?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', ?, '{}', '{}', '{}', ?, ?)
 		ON CONFLICT (name) WHERE org_id IS NULL
-		DO UPDATE SET description = EXCLUDED.description, system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group, agent_type = 'subagent', updated_at = EXCLUDED.updated_at
-	`, name, description, providerGroup, sf.SystemPrompt, sf.Model, now, now)
+		DO UPDATE SET description = EXCLUDED.description, system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_prompts = EXCLUDED.provider_prompts, agent_type = 'subagent', skills = EXCLUDED.skills, updated_at = EXCLUDED.updated_at
+	`, group.name, description, defaultProvider.SystemPrompt, defaultProvider.Model, string(providerPromptsJSON), skillsJSON, now, now)
 
 	if result.Error != nil {
-		return fmt.Errorf("seeding subagent %s: %w", name, result.Error)
+		return fmt.Errorf("seeding subagent %s: %w", group.name, result.Error)
 	}
 
-	slog.Debug("subagent seeded", "name", name, "provider_group", providerGroup)
+	slog.Debug("subagent seeded", "name", group.name, "providers", len(group.providers))
 	return nil
+}
+
+// resolveSkills looks up public marketplace skills by slug and returns a JSON
+// string suitable for the agent.skills JSONB column. Skills not found in the
+// marketplace are logged and skipped.
+func resolveSkills(db *gorm.DB, slugs []string, agentName string) string {
+	if len(slugs) == 0 {
+		return "{}"
+	}
+
+	type skillRow struct {
+		ID   string
+		Slug string
+	}
+
+	var rows []skillRow
+	if err := db.Raw(`SELECT id, slug FROM skills WHERE slug IN ? AND org_id IS NULL AND status = 'published'`, slugs).Scan(&rows).Error; err != nil {
+		slog.Warn("failed to resolve skills for subagent", "agent", agentName, "error", err)
+		return "{}"
+	}
+
+	found := make(map[string]string, len(rows))
+	for _, row := range rows {
+		found[row.Slug] = row.ID
+	}
+
+	skillsMap := make(map[string]any, len(slugs))
+	for _, slug := range slugs {
+		skillID, ok := found[slug]
+		if !ok {
+			slog.Warn("skill not found in marketplace, skipping", "slug", slug, "agent", agentName)
+			continue
+		}
+		skillsMap[slug] = map[string]string{
+			"skill_id": skillID,
+			"slug":     slug,
+		}
+	}
+
+	if len(skillsMap) == 0 {
+		return "{}"
+	}
+
+	raw, err := json.Marshal(skillsMap)
+	if err != nil {
+		slog.Warn("failed to marshal skills for subagent", "agent", agentName, "error", err)
+		return "{}"
+	}
+
+	return string(raw)
 }

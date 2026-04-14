@@ -55,3 +55,25 @@ func TestAllYAMLsParse(t *testing.T) {
 		t.Errorf("expected 42 YAML definitions (7 subagents x 6 providers), got %d", count)
 	}
 }
+
+func TestLoadGroupMergesProviders(t *testing.T) {
+	group, err := loadGroup("browser-tester-expert")
+	if err != nil {
+		t.Fatalf("loadGroup: %v", err)
+	}
+
+	if group.name != "browser-tester-expert" {
+		t.Errorf("expected name browser-tester-expert, got %s", group.name)
+	}
+
+	expectedProviders := []string{"anthropic", "gemini", "glm", "kimi", "minimax", "openai"}
+	for _, provider := range expectedProviders {
+		if _, ok := group.providers[provider]; !ok {
+			t.Errorf("missing provider %s", provider)
+		}
+	}
+
+	if len(group.providers) != 6 {
+		t.Errorf("expected 6 providers, got %d", len(group.providers))
+	}
+}

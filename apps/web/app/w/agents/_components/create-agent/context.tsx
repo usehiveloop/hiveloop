@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
 import { scratchSteps, forgeSteps, marketplaceSteps } from "./types"
-import type { CreationMode, Step, SkillPreview, TriggerConfig } from "./types"
+import type { CreationMode, Step, SkillPreview, SubagentPreview, TriggerConfig } from "./types"
 
 export interface CreateAgentFormValues {
   name: string
@@ -31,6 +31,7 @@ interface CreateAgentContextValue {
   selectedIntegrations: Set<string>
   selectedActions: Record<string, Set<string>>
   selectedSkills: Map<string, SkillPreview>
+  selectedSubagents: Map<string, SubagentPreview>
   triggers: TriggerConfig[]
   isSubmitting: boolean
   setMode: (mode: CreationMode) => void
@@ -39,6 +40,8 @@ interface CreateAgentContextValue {
   toggleAction: (connectionId: string, actionKey: string) => void
   toggleSkill: (skill: SkillPreview) => void
   clearSkills: () => void
+  toggleSubagent: (subagent: SubagentPreview) => void
+  clearSubagents: () => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
   handleCreate: () => void
@@ -85,6 +88,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedActions, setSelectedActions] = useState<Record<string, Set<string>>>({})
   const [selectedSkills, setSelectedSkills] = useState<Map<string, SkillPreview>>(new Map())
+  const [selectedSubagents, setSelectedSubagents] = useState<Map<string, SubagentPreview>>(new Map())
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
   const direction = useRef<1 | -1>(1)
 
@@ -150,6 +154,22 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setSelectedSkills(new Map())
   }, [])
 
+  const toggleSubagent = useCallback((subagent: SubagentPreview) => {
+    setSelectedSubagents((prev) => {
+      const next = new Map(prev)
+      if (next.has(subagent.id)) {
+        next.delete(subagent.id)
+      } else {
+        next.set(subagent.id, subagent)
+      }
+      return next
+    })
+  }, [])
+
+  const clearSubagents = useCallback(() => {
+    setSelectedSubagents(new Map())
+  }, [])
+
   const addTrigger = useCallback((trigger: TriggerConfig) => {
     setTriggers((previous) => [...previous, trigger])
   }, [])
@@ -164,6 +184,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
     setSelectedIntegrations(new Set())
     setSelectedActions({})
     setSelectedSkills(new Map())
+    setSelectedSubagents(new Map())
     setTriggers([])
     form.reset()
   }, [form])
@@ -193,6 +214,10 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
 
     if (selectedSkills.size > 0) {
       body.skill_ids = Array.from(selectedSkills.keys())
+    }
+
+    if (selectedSubagents.size > 0) {
+      body.subagent_ids = Array.from(selectedSubagents.keys())
     }
 
     if (triggers.length > 0) {
@@ -230,7 +255,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         },
       },
     )
-  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, triggers, createAgent, queryClient, onClose, router])
+  }, [form, mode, selectedIntegrations, selectedActions, selectedSkills, selectedSubagents, triggers, createAgent, queryClient, onClose, router])
 
   return (
     <CreateAgentContext.Provider
@@ -242,6 +267,7 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         selectedIntegrations,
         selectedActions,
         selectedSkills,
+        selectedSubagents,
         triggers,
         isSubmitting: createAgent.isPending,
         setMode,
@@ -250,6 +276,8 @@ export function CreateAgentProvider({ children, onClose, initialMode }: CreateAg
         toggleAction,
         toggleSkill,
         clearSkills,
+        toggleSubagent,
+        clearSubagents,
         addTrigger,
         removeTrigger,
         handleCreate,
