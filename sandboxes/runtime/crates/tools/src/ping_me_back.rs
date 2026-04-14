@@ -181,7 +181,7 @@ impl ToolExecutor for CancelPingTool {
     }
 
     fn description(&self) -> &str {
-        "Cancel a pending ping-me-back timer by its ID. Use this if you no longer need to be pinged back."
+        include_str!("instructions/cancel_ping_me_back.txt")
     }
 
     fn parameters_schema(&self) -> serde_json::Value {

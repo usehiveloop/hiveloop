@@ -1,0 +1,8 @@
+Cancel a pending ping-me-back timer by its ID.
+
+Use this when you no longer need to be pinged back — for example, if you already got the information you were waiting for, or the task became irrelevant.
+
+Parameters:
+- id: The ping ID returned by ping_me_back_in
+
+The tool returns an error if the ping ID is not found (it may have already fired or been cancelled). You can safely ignore as this is non consequential.
