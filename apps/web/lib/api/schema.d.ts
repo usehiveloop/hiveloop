@@ -14490,6 +14490,7 @@ export interface components {
         };
         agentResponse: {
             agent_config?: components["schemas"]["JSON"];
+            attached_skills?: components["schemas"]["agentSkillSummary"][];
             created_at?: string;
             credential_id?: string;
             description?: string;
@@ -14513,6 +14514,7 @@ export interface components {
             shared_memory?: boolean;
             skills?: components["schemas"]["JSON"];
             status?: string;
+            subagents?: components["schemas"]["agentSubagentSummary"][];
             system_prompt?: string;
             team?: string;
             tools?: components["schemas"]["JSON"];
@@ -14525,10 +14527,22 @@ export interface components {
             skill?: components["schemas"]["skillResponse"];
             skill_id?: string;
         };
+        agentSkillSummary: {
+            description?: string;
+            id?: string;
+            name?: string;
+            source_type?: string;
+        };
         agentSubagentResponse: {
             created_at?: string;
             subagent?: components["schemas"]["subagentResponse"];
             subagent_id?: string;
+        };
+        agentSubagentSummary: {
+            description?: string;
+            id?: string;
+            model?: string;
+            name?: string;
         };
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
