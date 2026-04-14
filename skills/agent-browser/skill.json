@@ -1,0 +1,47 @@
+{
+  "name": "agent-browser",
+  "description": "Browser automation CLI for AI agents via Chrome CDP.",
+  "root": "./SKILL.md",
+  "files": [
+    {
+      "path": "references/commands.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/commands.md"
+    },
+    {
+      "path": "references/authentication.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/authentication.md"
+    },
+    {
+      "path": "references/session-management.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/session-management.md"
+    },
+    {
+      "path": "references/snapshot-refs.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/snapshot-refs.md"
+    },
+    {
+      "path": "references/video-recording.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/video-recording.md"
+    },
+    {
+      "path": "references/profiling.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/profiling.md"
+    },
+    {
+      "path": "references/proxy-support.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/references/proxy-support.md"
+    },
+    {
+      "path": "templates/capture-workflow.sh",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/templates/capture-workflow.sh"
+    },
+    {
+      "path": "templates/form-automation.sh",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/templates/form-automation.sh"
+    },
+    {
+      "path": "templates/authenticated-session.sh",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/templates/authenticated-session.sh"
+    }
+  ]
+}

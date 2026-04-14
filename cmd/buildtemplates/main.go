@@ -47,35 +47,13 @@ var basePackages = []string{
 	"openssh-client",
 }
 
-// chromeRuntimePackages are the shared libraries chrome-headless-shell needs
-// to start on Ubuntu 24.04 (noble). Several library packages got the t64
-// suffix in noble due to the time_t transition.
-var chromeRuntimePackages = []string{
-	"libnss3",
-	"libatk-bridge2.0-0t64",
-	"libatk1.0-0t64",
-	"libcups2t64",
-	"libdrm2",
-	"libgbm1",
-	"libxkbcommon0",
-	"libxcomposite1",
-	"libxdamage1",
-	"libxfixes3",
-	"libxrandr2",
-	"libasound2t64",
-	"libpango-1.0-0",
-	"libcairo2",
-	"fonts-liberation",
-	"fonts-noto-color-emoji",
-}
-
 const nvmVersion = "v0.40.4"
 
 const goVersion = "1.24.2"
 
 // devToolPackages are CLI tools and server binaries that ship dormant in the
 // dev-box image. None of these start daemons at boot — the entrypoint only
-// runs chrome-devtools-axi and Bridge. Agents start postgres/redis explicitly.
+// runs Bridge at boot. Agents start postgres/redis explicitly.
 var devToolPackages = []string{
 	"build-essential",
 	"python3-pip",
@@ -152,14 +130,11 @@ func buildBridgeImage(bridgeVersion string) *daytona.DockerImage {
 }
 
 // buildDevBoxImage layers a developer toolchain on top of the base bridge
-// runtime: Node.js (via nvm), chrome-headless-shell, and chrome-devtools-axi
-// for AI-driven browser automation. The chrome-devtools-axi daemon is
-// pre-warmed by the entrypoint so the first browser command pays no cold start.
+// runtime: Node.js (via nvm), Chrome for Testing, and agent-browser
+// for AI-driven browser automation. agent-browser's daemon starts lazily
+// on the first CLI command — no pre-warming needed in the entrypoint.
 func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image := buildBaseImage(bridgeVersion)
-
-	// Chromium runtime libs (chrome-headless-shell needs these to start).
-	image = image.AptGet(chromeRuntimePackages)
 
 	// Install nvm + Node LTS into a system-wide location and symlink the
 	// resulting binaries into /usr/local/bin so non-login shells (and Bridge)
@@ -179,37 +154,20 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	}, " && ")
 	image = image.Run("bash -c '" + nvmInstall + "'")
 
-	// Bridge is the runtime — not Claude Code or Codex — so the axi-sdk-js
-	// session-start hooks that write to ~/.claude/ and ~/.codex/ are dead weight.
-	image = image.Env("CHROME_DEVTOOLS_AXI_DISABLE_HOOKS", "1")
-
-	// chrome-devtools-mcp (the backend chrome-devtools-axi delegates to) uses
-	// Puppeteer with channel: 'stable', which looks for /opt/google/chrome/chrome.
-	// We install chrome-headless-shell (lean, ~170 MB) and symlink it there.
-	image = image.Run(
-		"npx -y @puppeteer/browsers install chrome-headless-shell@stable --path /home/daytona/.cache/puppeteer && " +
-			"mkdir -p /opt/google/chrome && " +
-			"ln -sf $(find /home/daytona/.cache/puppeteer -type f -name chrome-headless-shell | head -n1) /opt/google/chrome/chrome",
-	)
-
-	// Chrome needs --no-sandbox when running as root, --disable-dev-shm-usage
-	// for small /dev/shm, and --disable-gpu in headless containers. Docker ENV
-	// can't hold spaces in values (the SDK doesn't quote them), so we set the
-	// env var via profile.d (interactive SSH) and the entrypoint (daemon).
-	image = image.Run(
-		`echo 'export CHROME_DEVTOOLS_AXI_CHROME_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"' > /etc/profile.d/chrome-args.sh`,
-	)
-
-	// Install the AXI CLIs globally. dev-box uses gh-axi instead of the
-	// standard gh CLI: it sits on the same axi-sdk-js runtime, ships TOON
-	// output, and outperforms gh on the GitHub benchmark across cost,
-	// duration, and turn count.
+	// Install agent-browser and other global CLIs.
+	// dev-box uses gh-axi instead of the standard gh CLI: it sits on the
+	// same axi-sdk-js runtime, ships TOON output, and outperforms gh on
+	// the GitHub benchmark across cost, duration, and turn count.
 	//
 	// --prefix=/usr/local forces npm to drop the bin shims into /usr/local/bin
 	// instead of nvm's per-version prefix (/usr/local/nvm/versions/node/<v>/bin),
-	// which is NOT on the default PATH that the Bridge entrypoint sees. Without
-	// this, `chrome-devtools-axi: not found` at sandbox start.
-	image = image.Run("npm install -g --prefix=/usr/local chrome-devtools-axi gh-axi vercel")
+	// which is NOT on the default PATH that the Bridge entrypoint sees.
+	image = image.Run("npm install -g --prefix=/usr/local agent-browser gh-axi vercel")
+
+	// Download Chrome for Testing and install its Linux shared-library
+	// dependencies (libnss3, libatk, libgbm, fonts, etc.) in one step.
+	// agent-browser auto-detects container environments and adds --no-sandbox.
+	image = image.Run("agent-browser install --with-deps")
 
 	// Dev tools: compilers, databases, media, terminal multiplexers,
 	// network diagnostics, archive utilities, editors.
@@ -264,20 +222,11 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image = image.Run("curl -fsSL https://raw.githubusercontent.com/render-oss/cli/refs/heads/main/bin/install.sh | sh")
 
 	image = image.Workdir(daytonaHome)
-	// Fail-fast entrypoint: if chrome-devtools-axi can't start its daemon,
-	// Bridge does not launch. This makes Bridge /health on :8080 a transitive
-	// proof that the daemon is also healthy — the only signal we can reach
-	// from outside the sandbox, since the daemon binds 127.0.0.1:9224.
-	//
-	// The curl --retry loop blocks until the daemon is actually accepting
-	// connections (chrome-devtools-axi start forks and returns before listen
-	// is bound), eliminating the race where Bridge could come up before the
-	// daemon is ready to serve.
+	// agent-browser's daemon starts lazily on the first CLI command, so
+	// the entrypoint only needs to launch Bridge. No daemon pre-warming
+	// or health check is required.
 	image = image.Entrypoint([]string{"/bin/sh", "-c",
-		"export CHROME_DEVTOOLS_AXI_CHROME_ARGS='--no-sandbox --disable-dev-shm-usage --disable-gpu' && " +
-			"mkdir -p /home/daytona/.bridge && " +
-			"chrome-devtools-axi start >> /tmp/cda.log 2>&1 && " +
-			"curl --retry 30 --retry-delay 1 --retry-connrefused -sf http://127.0.0.1:9224/health >> /tmp/cda.log 2>&1 && " +
+		"mkdir -p /home/daytona/.bridge && " +
 			"exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1"})
 
 	return image

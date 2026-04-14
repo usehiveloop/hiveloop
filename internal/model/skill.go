@@ -40,6 +40,18 @@ type Skill struct {
 	// Status is draft, published, or archived.
 	Status string `gorm:"not null;default:'draft';index"`
 
+	// PublicSkillID references the cloned public skill when this org skill has
+	// been published to the marketplace.
+	PublicSkillID *uuid.UUID `gorm:"type:uuid;index"`
+
+	// OriginSkillID references the original org-scoped skill that was cloned
+	// to create this public skill. Only set on public (OrgID=nil) skills.
+	OriginSkillID *uuid.UUID `gorm:"type:uuid;index"`
+	// OriginOrgID is the org that published this public skill.
+	OriginOrgID *uuid.UUID `gorm:"type:uuid"`
+	// PublishedAt is when this skill was made public.
+	PublishedAt *time.Time
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

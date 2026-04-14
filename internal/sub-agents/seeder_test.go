@@ -51,7 +51,7 @@ func TestAllYAMLsParse(t *testing.T) {
 		}
 	}
 
-	if count != 36 {
-		t.Errorf("expected 36 YAML definitions (6 subagents x 6 providers), got %d", count)
+	if count != 42 {
+		t.Errorf("expected 42 YAML definitions (7 subagents x 6 providers), got %d", count)
 	}
 }

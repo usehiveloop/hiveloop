@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,10 @@ import {
   ArrowRight01Icon,
   Tick02Icon,
   ContainerIcon,
+  BookOpen01Icon,
+  GitBranchIcon,
+  File01Icon,
+  Globe02Icon,
 } from "@hugeicons/core-free-icons"
 
 interface SettingsItem {
@@ -96,6 +101,7 @@ const settingsGroups: SettingsGroup[] = [
     items: [
       { id: "llm-keys", label: "LLM Keys", icon: ArtificialIntelligence01Icon },
       { id: "api-keys", label: "API Keys", icon: Key01Icon },
+      { id: "skills", label: "Skills", icon: BookOpen01Icon },
       { id: "sandboxes", label: "Sandboxes", icon: ContainerIcon },
     ],
   },
@@ -892,6 +898,465 @@ function CreateApiKeyDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   )
 }
 
+type SkillRow = components["schemas"]["skillResponse"]
+
+function SkillHydrationBadge({ skill }: { skill: SkillRow }) {
+  const status = skill.hydration_status ?? "pending"
+
+  if (status === "error") {
+    return (
+      <Tooltip>
+        <TooltipTrigger className="cursor-default">
+          <Badge variant="secondary" className="text-[10px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+            error
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p className="text-xs font-mono whitespace-pre-wrap">{skill.hydration_error ?? "Unknown error"}</p>
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  if (status === "pending") {
+    return (
+      <Badge variant="secondary" className="text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20">
+        pending
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge variant="default" className="text-[10px] bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+      ready
+    </Badge>
+  )
+}
+
+function SkillsSettings() {
+  const queryClient = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [deleting, setDeleting] = useState<SkillRow | null>(null)
+  const { data, isLoading } = $api.useQuery("get", "/v1/skills", {
+    params: { query: { scope: "own" } },
+  })
+  const skills = data?.data ?? []
+  const deleteSkill = $api.useMutation("delete", "/v1/skills/{id}")
+
+  function handleDelete() {
+    if (!deleting?.id) return
+
+    deleteSkill.mutate(
+      { params: { path: { id: deleting.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${deleting.name}" archived`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          setDeleting(null)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to archive skill"))
+          setDeleting(null)
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Skills</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Reusable instruction bundles your agents can invoke on demand.
+          </p>
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => setCreateOpen(true)}>
+          <HugeiconsIcon icon={Add01Icon} size={14} data-icon="inline-start" />
+          Add skill
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+          ))
+        ) : skills.length === 0 ? (
+          <div className="flex flex-col items-center py-14">
+            <div className="text-center mb-6">
+              <h2 className="font-heading text-lg font-semibold text-foreground">No skills yet</h2>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
+                Create a skill to give your agents reusable capabilities.
+              </p>
+            </div>
+            <div className="w-full max-w-sm">
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="group flex items-start gap-4 w-full rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted cursor-pointer"
+              >
+                <HugeiconsIcon icon={BookOpen01Icon} size={20} className="shrink-0 mt-0.5 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Create a skill</p>
+                  <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Write inline instructions or sync from a Git repository.
+                  </p>
+                </div>
+                <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="hidden md:flex items-center gap-3 px-4 py-1 text-[10px] font-mono uppercase tracking-[1px] text-muted-foreground/50">
+              <span className="flex-1 min-w-0">Name</span>
+              <span className="w-20 shrink-0 text-right">Source</span>
+              <span className="w-20 shrink-0 text-right">Status</span>
+              <span className="w-28 shrink-0 text-right">Created</span>
+              <span className="w-8 shrink-0" />
+            </div>
+
+            {skills.map((skill) => (
+              <div key={skill.id}>
+                {/* Desktop row */}
+                <div className="hidden md:flex items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <HugeiconsIcon
+                      icon={skill.source_type === "git" ? GitBranchIcon : File01Icon}
+                      size={16}
+                      className="shrink-0 text-muted-foreground"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{skill.name}</p>
+                      {skill.description && (
+                        <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="w-20 shrink-0 text-right">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {skill.source_type === "git" ? "git" : "inline"}
+                    </Badge>
+                  </span>
+                  <span className="w-20 shrink-0 text-right">
+                    <SkillHydrationBadge skill={skill} />
+                  </span>
+                  <span className="w-28 shrink-0 text-right text-[11px] text-muted-foreground font-mono tabular-nums">
+                    {skill.created_at ? formatDate(skill.created_at) : "\u2014"}
+                  </span>
+                  <div className="w-8 shrink-0 flex justify-center">
+                    <SkillActions
+                      skill={skill}
+                      onDelete={() => setDeleting(skill)}
+                    />
+                  </div>
+                </div>
+
+                {/* Mobile row */}
+                <div className="flex md:hidden flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <HugeiconsIcon
+                        icon={skill.source_type === "git" ? GitBranchIcon : File01Icon}
+                        size={16}
+                        className="shrink-0 text-muted-foreground"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{skill.name}</p>
+                        {skill.description && (
+                          <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <SkillActions
+                      skill={skill}
+                      onDelete={() => setDeleting(skill)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono tabular-nums">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {skill.source_type === "git" ? "git" : "inline"}
+                    </Badge>
+                    <SkillHydrationBadge skill={skill} />
+                    <span>{skill.created_at ? formatDate(skill.created_at) : "\u2014"}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      <CreateSkillDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => { if (!open) setDeleting(null) }}
+        title="Archive skill"
+        description={`This will archive "${deleting?.name ?? ""}". Agents using this skill will no longer be able to invoke it.`}
+        confirmText="archive"
+        confirmLabel="Archive skill"
+        destructive
+        loading={deleteSkill.isPending}
+        onConfirm={handleDelete}
+      />
+    </div>
+  )
+}
+
+interface SkillActionsProps {
+  skill: SkillRow
+  onDelete: () => void
+}
+
+function SkillActions({ skill, onDelete }: SkillActionsProps) {
+  const queryClient = useQueryClient()
+  const publishSkill = $api.useMutation("post", "/v1/skills/{id}/publish")
+  const unpublishSkill = $api.useMutation("delete", "/v1/skills/{id}/publish")
+
+  function handlePublish() {
+    if (!skill.id) return
+    publishSkill.mutate(
+      { params: { path: { id: skill.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${skill.name}" published to marketplace`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to publish skill"))
+        },
+      },
+    )
+  }
+
+  function handleUnpublish() {
+    if (!skill.id) return
+    unpublishSkill.mutate(
+      { params: { path: { id: skill.id } } },
+      {
+        onSuccess: () => {
+          toast.success(`"${skill.name}" removed from marketplace`)
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to unpublish skill"))
+        },
+      },
+    )
+  }
+
+  const isPublished = !!skill.public_skill_id
+
+  return (
+    <ActionsMenu>
+      <ActionsMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
+        <HugeiconsIcon icon={MoreHorizontalIcon} size={16} className="text-muted-foreground" />
+      </ActionsMenuTrigger>
+      <ActionsMenuContent align="end" sideOffset={4}>
+        <ActionsMenuGroup>
+          {isPublished ? (
+            <ActionsMenuItem onClick={handleUnpublish} disabled={unpublishSkill.isPending}>
+              <HugeiconsIcon icon={Globe02Icon} size={16} className="text-muted-foreground" />
+              Unpublish from marketplace
+            </ActionsMenuItem>
+          ) : (
+            <ActionsMenuItem onClick={handlePublish} disabled={publishSkill.isPending}>
+              <HugeiconsIcon icon={Globe02Icon} size={16} className="text-muted-foreground" />
+              Publish to marketplace
+            </ActionsMenuItem>
+          )}
+        </ActionsMenuGroup>
+        <ActionsMenuSeparator />
+        <ActionsMenuGroup>
+          <ActionsMenuItem variant="destructive" onClick={onDelete}>
+            <HugeiconsIcon icon={Delete02Icon} size={16} />
+            Archive
+          </ActionsMenuItem>
+        </ActionsMenuGroup>
+      </ActionsMenuContent>
+    </ActionsMenu>
+  )
+}
+
+function CreateSkillDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const queryClient = useQueryClient()
+  const [sourceType, setSourceType] = useState<"inline" | "git">("inline")
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [repoUrl, setRepoUrl] = useState("")
+  const [repoSubpath, setRepoSubpath] = useState("")
+  const [repoRef, setRepoRef] = useState("main")
+  const createSkill = $api.useMutation("post", "/v1/skills")
+
+  function reset() {
+    setSourceType("inline")
+    setName("")
+    setDescription("")
+    setRepoUrl("")
+    setRepoSubpath("")
+    setRepoRef("main")
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) reset()
+    onOpenChange(nextOpen)
+  }
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!name.trim()) return
+
+    const body: Record<string, unknown> = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      source_type: sourceType,
+    }
+
+    if (sourceType === "git") {
+      if (!repoUrl.trim()) {
+        toast.error("Repository URL is required for git skills")
+        return
+      }
+      body.repo_url = repoUrl.trim()
+      body.repo_subpath = repoSubpath.trim() || undefined
+      body.repo_ref = repoRef.trim() || "main"
+    } else {
+      body.bundle = {
+        id: name.trim().toLowerCase().replace(/\s+/g, "-"),
+        title: name.trim(),
+        description: description.trim(),
+        content: "",
+        references: [],
+      }
+    }
+
+    createSkill.mutate(
+      { body: body as never },
+      {
+        onSuccess: () => {
+          toast.success("Skill created")
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
+          handleOpenChange(false)
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, "Failed to create skill"))
+        },
+      },
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent showCloseButton className="sm:max-w-md max-h-[90dvh] overflow-y-auto">
+        <DialogTitle>Create skill</DialogTitle>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <Tabs
+            value={sourceType}
+            onValueChange={(value) => setSourceType(value as "inline" | "git")}
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="inline">
+                <HugeiconsIcon icon={File01Icon} size={14} />
+                Inline
+              </TabsTrigger>
+              <TabsTrigger value="git">
+                <HugeiconsIcon icon={GitBranchIcon} size={14} />
+                Git
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="inline">
+              <div className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-name-inline">Name</Label>
+                  <Input
+                    id="skill-name-inline"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Browser automation"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-description-inline">Description</Label>
+                  <Input
+                    id="skill-description-inline"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="What this skill does..."
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="git">
+              <div className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-name-git">Name</Label>
+                  <Input
+                    id="skill-name-git"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Browser automation"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-description-git">Description</Label>
+                  <Input
+                    id="skill-description-git"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="What this skill does..."
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="skill-repo-url">Repository URL</Label>
+                  <Input
+                    id="skill-repo-url"
+                    value={repoUrl}
+                    onChange={(event) => setRepoUrl(event.target.value)}
+                    placeholder="https://github.com/org/repo"
+                    required
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <Label htmlFor="skill-repo-subpath">Subpath</Label>
+                    <Input
+                      id="skill-repo-subpath"
+                      value={repoSubpath}
+                      onChange={(event) => setRepoSubpath(event.target.value)}
+                      placeholder="skills/my-skill"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 w-24">
+                    <Label htmlFor="skill-repo-ref">Ref</Label>
+                    <Input
+                      id="skill-repo-ref"
+                      value={repoRef}
+                      onChange={(event) => setRepoRef(event.target.value)}
+                      placeholder="main"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <Button type="submit" className="w-full" loading={createSkill.isPending} disabled={!name.trim()}>
+            Create skill
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function SecuritySettings() {
   return (
     <div className="space-y-6">
@@ -925,6 +1390,7 @@ const sectionComponents: Record<string, React.ComponentType> = {
   notifications: NotificationsSettings,
   "llm-keys": LlmKeysSettings,
   "api-keys": ApiKeysSettings,
+  skills: SkillsSettings,
   security: SecuritySettings,
   sandboxes: SandboxTemplatesList,
 }

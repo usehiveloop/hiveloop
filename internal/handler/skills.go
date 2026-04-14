@@ -72,6 +72,9 @@ type skillResponse struct {
 	InstallCount    int       `json:"install_count"`
 	Featured        bool      `json:"featured"`
 	Status          string    `json:"status"`
+	PublicSkillID   *string   `json:"public_skill_id,omitempty"`
+	HydrationStatus string    `json:"hydration_status"`          // pending, ready, error
+	HydrationError  *string   `json:"hydration_error,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
@@ -107,7 +110,7 @@ type agentSkillResponse struct {
 // Marshaling helpers
 // ---------------------------------------------------------------------------
 
-func toSkillResponse(s model.Skill) skillResponse {
+func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResponse {
 	resp := skillResponse{
 		ID:           s.ID.String(),
 		Slug:         s.Slug,
@@ -132,18 +135,56 @@ func toSkillResponse(s model.Skill) skillResponse {
 		latestIDStr := s.LatestVersionID.String()
 		resp.LatestVersionID = &latestIDStr
 	}
+	if s.PublicSkillID != nil {
+		publicIDStr := s.PublicSkillID.String()
+		resp.PublicSkillID = &publicIDStr
+	}
 	if resp.Tags == nil {
 		resp.Tags = []string{}
 	}
+
+	// Compute hydration status from the latest version.
+	switch {
+	case s.LatestVersionID == nil:
+		resp.HydrationStatus = "pending"
+	case latestVersion != nil && latestVersion.HydrationError != nil:
+		resp.HydrationStatus = "error"
+		resp.HydrationError = latestVersion.HydrationError
+	default:
+		resp.HydrationStatus = "ready"
+	}
+
 	return resp
 }
 
+// loadVersionMap batch-loads SkillVersions for the given skills and returns
+// them keyed by version ID. Skills without a LatestVersionID are skipped.
+func (h *SkillHandler) loadVersionMap(skills []model.Skill) map[uuid.UUID]model.SkillVersion {
+	versionIDs := make([]uuid.UUID, 0, len(skills))
+	for _, s := range skills {
+		if s.LatestVersionID != nil {
+			versionIDs = append(versionIDs, *s.LatestVersionID)
+		}
+	}
+	if len(versionIDs) == 0 {
+		return nil
+	}
+	var versions []model.SkillVersion
+	if err := h.db.Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
+		return nil
+	}
+	result := make(map[uuid.UUID]model.SkillVersion, len(versions))
+	for _, sv := range versions {
+		result[sv.ID] = sv
+	}
+	return result
+}
+
 func toSkillDetailResponse(s model.Skill, latest *model.SkillVersion) skillDetailResponse {
-	detail := skillDetailResponse{skillResponse: toSkillResponse(s)}
+	detail := skillDetailResponse{skillResponse: toSkillResponse(s, latest)}
 	if latest == nil {
 		return detail
 	}
-	detail.HydrationError = latest.HydrationError
 	if len(latest.Bundle) > 0 {
 		var bundle skills.Bundle
 		if err := json.Unmarshal(latest.Bundle, &bundle); err == nil {
@@ -330,9 +371,16 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 	if hasMore {
 		rows = rows[:limit]
 	}
+	versionMap := h.loadVersionMap(rows)
 	resp := make([]skillResponse, len(rows))
 	for i, s := range rows {
-		resp[i] = toSkillResponse(s)
+		var version *model.SkillVersion
+		if s.LatestVersionID != nil {
+			if sv, ok := versionMap[*s.LatestVersionID]; ok {
+				version = &sv
+			}
+		}
+		resp[i] = toSkillResponse(s, version)
 	}
 	result := paginatedResponse[skillResponse]{Data: resp, HasMore: hasMore}
 	if hasMore {
@@ -439,7 +487,14 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = h.db.First(skill, "id = ?", skill.ID).Error
 	}
-	writeJSON(w, http.StatusOK, toSkillResponse(*skill))
+	var latestVersion *model.SkillVersion
+	if skill.LatestVersionID != nil {
+		var sv model.SkillVersion
+		if err := h.db.First(&sv, "id = ?", *skill.LatestVersionID).Error; err == nil {
+			latestVersion = &sv
+		}
+	}
+	writeJSON(w, http.StatusOK, toSkillResponse(*skill, latestVersion))
 }
 
 // Delete handles DELETE /v1/skills/{id}. Soft-deletes by marking archived.
@@ -510,6 +565,169 @@ func (h *SkillHandler) Hydrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "hydrating"})
+}
+
+// Publish handles POST /v1/skills/{id}/publish.
+// @Summary Publish a skill to the public marketplace
+// @Description Clones an org-owned skill into a public skill (OrgID=nil) with a reference back to the original. The original skill gets a reference to the public clone.
+// @Tags skills
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Success 201 {object} skillDetailResponse
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/skills/{id}/publish [post]
+func (h *SkillHandler) Publish(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing user context"})
+		return
+	}
+
+	skill, err := h.loadOwnSkill(r.Context(), chi.URLParam(r, "id"), org.ID)
+	if err != nil {
+		writeSkillLookupError(w, err)
+		return
+	}
+
+	if skill.PublicSkillID != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "skill is already published publicly"})
+		return
+	}
+	if skill.LatestVersionID == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "skill has no version to publish"})
+		return
+	}
+
+	// Load the latest version so we can clone its bundle.
+	var latestVersion model.SkillVersion
+	if err := h.db.First(&latestVersion, "id = ?", *skill.LatestVersionID).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load latest version"})
+		return
+	}
+
+	now := time.Now()
+	originOrgID := org.ID
+	originSkillID := skill.ID
+	publisherID := user.ID
+
+	publicSkill := model.Skill{
+		OrgID:         nil,
+		Slug:          model.GenerateSlug(skill.Name),
+		Name:          skill.Name,
+		Description:   skill.Description,
+		SourceType:    skill.SourceType,
+		RepoURL:       skill.RepoURL,
+		RepoSubpath:   skill.RepoSubpath,
+		RepoRef:       skill.RepoRef,
+		Tags:          skill.Tags,
+		Status:        model.SkillStatusPublished,
+		PublisherID:   &publisherID,
+		OriginSkillID: &originSkillID,
+		OriginOrgID:   &originOrgID,
+		PublishedAt:   &now,
+	}
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&publicSkill).Error; err != nil {
+			return err
+		}
+
+		// Clone the latest version into the public skill.
+		publicVersion := model.SkillVersion{
+			SkillID:    publicSkill.ID,
+			Version:    latestVersion.Version,
+			CommitSHA:  latestVersion.CommitSHA,
+			Bundle:     latestVersion.Bundle,
+			HydratedAt: latestVersion.HydratedAt,
+			CreatedAt:  now,
+		}
+		if err := tx.Create(&publicVersion).Error; err != nil {
+			return err
+		}
+
+		// Point the public skill at its version.
+		if err := tx.Model(&publicSkill).Update("latest_version_id", publicVersion.ID).Error; err != nil {
+			return err
+		}
+
+		// Link the original skill back to the public clone.
+		if err := tx.Model(skill).Update("public_skill_id", publicSkill.ID).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to publish skill"})
+		return
+	}
+
+	// Reload both to get final state.
+	_ = h.db.First(&publicSkill, "id = ?", publicSkill.ID).Error
+	var publicVersion model.SkillVersion
+	var publicLatest *model.SkillVersion
+	if publicSkill.LatestVersionID != nil {
+		if err := h.db.First(&publicVersion, "id = ?", *publicSkill.LatestVersionID).Error; err == nil {
+			publicLatest = &publicVersion
+		}
+	}
+
+	writeJSON(w, http.StatusCreated, toSkillDetailResponse(publicSkill, publicLatest))
+}
+
+// Unpublish handles DELETE /v1/skills/{id}/publish.
+// @Summary Remove a skill from the public marketplace
+// @Description Archives the public clone and removes the reference from the original skill.
+// @Tags skills
+// @Produce json
+// @Param id path string true "Skill ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/skills/{id}/publish [delete]
+func (h *SkillHandler) Unpublish(w http.ResponseWriter, r *http.Request) {
+	org, ok := middleware.OrgFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
+		return
+	}
+
+	skill, err := h.loadOwnSkill(r.Context(), chi.URLParam(r, "id"), org.ID)
+	if err != nil {
+		writeSkillLookupError(w, err)
+		return
+	}
+
+	if skill.PublicSkillID == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "skill is not published publicly"})
+		return
+	}
+
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// Archive the public clone.
+		if err := tx.Model(&model.Skill{}).Where("id = ?", *skill.PublicSkillID).Update("status", model.SkillStatusArchived).Error; err != nil {
+			return err
+		}
+		// Clear the reference on the original.
+		if err := tx.Model(skill).Update("public_skill_id", nil).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to unpublish skill"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "unpublished"})
 }
 
 // ListVersions handles GET /v1/skills/{id}/versions.
@@ -786,7 +1004,7 @@ func toAgentSkillResponse(link model.AgentSkill, skill model.Skill) agentSkillRe
 	resp := agentSkillResponse{
 		SkillID:   link.SkillID.String(),
 		CreatedAt: link.CreatedAt,
-		Skill:     toSkillResponse(skill),
+		Skill:     toSkillResponse(skill, nil),
 	}
 	if link.PinnedVersionID != nil {
 		pid := link.PinnedVersionID.String()

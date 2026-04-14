@@ -65,7 +65,7 @@ type SandboxToolDefinition struct {
 
 // ValidSandboxTools is the canonical list of sandbox tools the platform supports.
 var ValidSandboxTools = []SandboxToolDefinition{
-	{ID: "chrome", Name: "Chrome browser", Description: "Headless Chrome for web scraping, testing, and browser automation via chrome-devtools-axi."},
+	{ID: "chrome", Name: "Chrome browser", Description: "Headless Chrome for web scraping, testing, and browser automation via agent-browser."},
 	{ID: "codedb", Name: "CodeDB", Description: "Code intelligence tools for searching, navigating, and understanding codebases."},
 	{ID: "codebase-memory", Name: "Codebase memory", Description: "MCP server that builds a structural code graph from ASTs for deep code understanding."},
 }

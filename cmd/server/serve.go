@@ -337,6 +337,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 					r.Delete("/{id}", skillHandler.Delete)
 					r.Post("/{id}/hydrate", skillHandler.Hydrate)
 					r.Get("/{id}/versions", skillHandler.ListVersions)
+					r.Post("/{id}/publish", skillHandler.Publish)
+					r.Delete("/{id}/publish", skillHandler.Unpublish)
 				})
 				r.Route("/subagents", func(r chi.Router) {
 					r.Post("/", subagentHandler.Create)

@@ -11,7 +11,6 @@ import {
   Add01Icon,
   Robot01Icon,
   Plug01Icon,
-  Route01Icon,
   Activity01Icon,
   Settings01Icon,
   Logout01Icon,
@@ -37,7 +36,6 @@ import { ImpersonateUserDialog } from "@/components/impersonate-user-dialog"
 const navItems = [
   { label: "Agents", href: "/w/agents", icon: Robot01Icon },
   { label: "Connections", href: "/w/connections", icon: Plug01Icon },
-  { label: "Router", href: "/w/router", icon: Route01Icon },
   { label: "Observe", href: "/w/observe", icon: Activity01Icon },
 ]
 

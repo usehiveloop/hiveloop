@@ -16,6 +16,8 @@ import (
 var subagentsFS embed.FS
 
 type subagentFile struct {
+	Name         string `yaml:"name"`
+	Description  string `yaml:"description"`
 	Model        string `yaml:"model"`
 	SystemPrompt string `yaml:"system_prompt"`
 }
@@ -74,14 +76,23 @@ func seedSubagent(db *gorm.DB, subagentType, providerGroup, path string) error {
 	}
 
 	name := fmt.Sprintf("%s-%s", subagentType, providerGroup)
+	if sf.Name != "" {
+		name = fmt.Sprintf("%s-%s", sf.Name, providerGroup)
+	}
 
 	now := time.Now()
+
+	var description *string
+	if sf.Description != "" {
+		description = &sf.Description
+	}
+
 	result := db.Exec(`
-		INSERT INTO agents (name, is_system, agent_type, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
-		VALUES (?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', '{}', '{}', '{}', '{}', ?, ?)
+		INSERT INTO agents (name, description, is_system, agent_type, provider_group, system_prompt, model, sandbox_type, status, tools, mcp_servers, skills, integrations, agent_config, permissions, created_at, updated_at)
+		VALUES (?, ?, true, 'subagent', ?, ?, ?, '', 'active', '{}', '{}', '{}', '{}', '{}', '{}', ?, ?)
 		ON CONFLICT (name) WHERE org_id IS NULL
-		DO UPDATE SET system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group, agent_type = 'subagent', updated_at = EXCLUDED.updated_at
-	`, name, providerGroup, sf.SystemPrompt, sf.Model, now, now)
+		DO UPDATE SET description = EXCLUDED.description, system_prompt = EXCLUDED.system_prompt, model = EXCLUDED.model, provider_group = EXCLUDED.provider_group, agent_type = 'subagent', updated_at = EXCLUDED.updated_at
+	`, name, description, providerGroup, sf.SystemPrompt, sf.Model, now, now)
 
 	if result.Error != nil {
 		return fmt.Errorf("seeding subagent %s: %w", name, result.Error)

@@ -1,0 +1,15 @@
+{
+  "name": "agent-browser-dogfood",
+  "description": "Exploratory testing and QA for web applications using agent-browser.",
+  "root": "./SKILL.md",
+  "files": [
+    {
+      "path": "references/issue-taxonomy.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skill-data/dogfood/references/issue-taxonomy.md"
+    },
+    {
+      "path": "templates/dogfood-report-template.md",
+      "url": "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skill-data/dogfood/templates/dogfood-report-template.md"
+    }
+  ]
+}

@@ -12283,6 +12283,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/skills/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a skill to the public marketplace
+         * @description Clones an org-owned skill into a public skill (OrgID=nil) with a reference back to the original. The original skill gets a reference to the public clone.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["skillDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Remove a skill from the public marketplace
+         * @description Archives the public clone and removes the reference from the original skill.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Skill ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/skills/{id}/versions": {
         parameters: {
             query?: never;
@@ -15332,11 +15438,14 @@ export interface components {
             description?: string;
             featured?: boolean;
             hydration_error?: string;
+            /** @description pending, ready, error */
+            hydration_status?: string;
             id?: string;
             install_count?: number;
             latest_version_id?: string;
             name?: string;
             org_id?: string;
+            public_skill_id?: string;
             repo_ref?: string;
             repo_subpath?: string;
             repo_url?: string;
@@ -15350,11 +15459,15 @@ export interface components {
             created_at?: string;
             description?: string;
             featured?: boolean;
+            hydration_error?: string;
+            /** @description pending, ready, error */
+            hydration_status?: string;
             id?: string;
             install_count?: number;
             latest_version_id?: string;
             name?: string;
             org_id?: string;
+            public_skill_id?: string;
             repo_ref?: string;
             repo_subpath?: string;
             repo_url?: string;

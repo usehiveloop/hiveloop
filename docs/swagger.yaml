@@ -3080,6 +3080,9 @@ definitions:
         type: boolean
       hydration_error:
         type: string
+      hydration_status:
+        description: pending, ready, error
+        type: string
       id:
         type: string
       install_count:
@@ -3089,6 +3092,8 @@ definitions:
       name:
         type: string
       org_id:
+        type: string
+      public_skill_id:
         type: string
       repo_ref:
         type: string
@@ -3117,6 +3122,11 @@ definitions:
         type: string
       featured:
         type: boolean
+      hydration_error:
+        type: string
+      hydration_status:
+        description: pending, ready, error
+        type: string
       id:
         type: string
       install_count:
@@ -3126,6 +3136,8 @@ definitions:
       name:
         type: string
       org_id:
+        type: string
+      public_skill_id:
         type: string
       repo_ref:
         type: string
@@ -10572,6 +10584,68 @@ paths:
       security:
       - BearerAuth: []
       summary: Re-hydrate a git-sourced skill
+      tags:
+      - skills
+  /v1/skills/{id}/publish:
+    delete:
+      description: Archives the public clone and removes the reference from the original
+        skill.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a skill from the public marketplace
+      tags:
+      - skills
+    post:
+      description: Clones an org-owned skill into a public skill (OrgID=nil) with
+        a reference back to the original. The original skill gets a reference to the
+        public clone.
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.skillDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish a skill to the public marketplace
       tags:
       - skills
   /v1/skills/{id}/versions:

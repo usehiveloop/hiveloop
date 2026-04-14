@@ -10809,6 +10809,99 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/skills/{id}/publish": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Clones an org-owned skill into a public skill (OrgID=nil) with a reference back to the original. The original skill gets a reference to the public clone.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "skills"
+                ],
+                "summary": "Publish a skill to the public marketplace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Skill ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.skillDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Archives the public clone and removes the reference from the original skill.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "skills"
+                ],
+                "summary": "Remove a skill from the public marketplace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Skill ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/skills/{id}/versions": {
             "get": {
                 "security": [
@@ -16748,6 +16841,10 @@ const docTemplate = `{
                 "hydration_error": {
                     "type": "string"
                 },
+                "hydration_status": {
+                    "description": "pending, ready, error",
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -16761,6 +16858,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "org_id": {
+                    "type": "string"
+                },
+                "public_skill_id": {
                     "type": "string"
                 },
                 "repo_ref": {
@@ -16804,6 +16904,13 @@ const docTemplate = `{
                 "featured": {
                     "type": "boolean"
                 },
+                "hydration_error": {
+                    "type": "string"
+                },
+                "hydration_status": {
+                    "description": "pending, ready, error",
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -16817,6 +16924,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "org_id": {
+                    "type": "string"
+                },
+                "public_skill_id": {
                     "type": "string"
                 },
                 "repo_ref": {

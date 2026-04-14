@@ -1,6 +1,6 @@
 // Command verify-devbox spins up a sandbox from a dev-box snapshot and runs
 // HTTP-based verification against the services that should be listening
-// inside it: Bridge on :8080 and the chrome-devtools-axi daemon on :9224.
+// inside it: Bridge on :8080.
 //
 // Verification uses Daytona preview URLs (sandbox.GetPreviewLink) instead of
 // the toolbox proxy, because this Daytona instance returns a toolbox proxy
@@ -140,7 +140,6 @@ func runVerify(snapshot string, keep bool) (retErr error) {
 	}
 	checks := []portCheck{
 		{name: "Bridge /health", port: 8080, path: "/health", required: true},
-		{name: "chrome-devtools-axi /health", port: 9224, path: "/health", required: true},
 		{name: "sentinel (definitely unbound)", port: 9999, path: "/", required: false},
 	}
 
@@ -160,8 +159,7 @@ func runVerify(snapshot string, keep bool) (retErr error) {
 
 		fullURL := strings.TrimRight(preview.URL, "/") + item.path
 
-		// Retry with backoff — chrome-devtools-axi's daemon takes a few seconds
-		// to bind after the entrypoint runs `chrome-devtools-axi start`.
+		// Retry with backoff — services may take a few seconds to bind.
 		var lastErr error
 		var lastStatus int
 		var lastBody string

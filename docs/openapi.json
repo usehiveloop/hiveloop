@@ -13012,6 +13012,121 @@
         }
       }
     },
+    "/v1/skills/{id}/publish": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Clones an org-owned skill into a public skill (OrgID=nil) with a reference back to the original. The original skill gets a reference to the public clone.",
+        "tags": [
+          "skills"
+        ],
+        "summary": "Publish a skill to the public marketplace",
+        "parameters": [
+          {
+            "description": "Skill ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/skillDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Archives the public clone and removes the reference from the original skill.",
+        "tags": [
+          "skills"
+        ],
+        "summary": "Remove a skill from the public marketplace",
+        "parameters": [
+          {
+            "description": "Skill ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/skills/{id}/versions": {
       "get": {
         "security": [
@@ -19286,6 +19401,10 @@
           "hydration_error": {
             "type": "string"
           },
+          "hydration_status": {
+            "description": "pending, ready, error",
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -19299,6 +19418,9 @@
             "type": "string"
           },
           "org_id": {
+            "type": "string"
+          },
+          "public_skill_id": {
             "type": "string"
           },
           "repo_ref": {
@@ -19342,6 +19464,13 @@
           "featured": {
             "type": "boolean"
           },
+          "hydration_error": {
+            "type": "string"
+          },
+          "hydration_status": {
+            "description": "pending, ready, error",
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -19355,6 +19484,9 @@
             "type": "string"
           },
           "org_id": {
+            "type": "string"
+          },
+          "public_skill_id": {
             "type": "string"
           },
           "repo_ref": {
