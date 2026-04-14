@@ -303,8 +303,13 @@ impl AgentSupervisor {
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
         // Build subagents from definition.subagents
-        let subagent_map =
-            build_subagents(&definition, &integration_tools, &self.mcp_manager).await?;
+        let subagent_map = build_subagents(
+            &definition,
+            &integration_tools,
+            &self.mcp_manager,
+            &self.resolve_working_dir(),
+        )
+        .await?;
 
         // Inject the parent agent as "__self__" for self-delegation
         subagent_map.insert(
@@ -1033,14 +1038,19 @@ impl AgentSupervisor {
                 {
                     let base_dir = self.resolve_working_dir();
                     let def = state.definition.read().await;
-                    let skill_ids: Vec<&str> = def.skills.iter().map(|s| s.id.as_str()).collect();
-                    tools::skill_files::cleanup_skill_files(&skill_ids, &base_dir).await;
 
+                    // Collect skill IDs from parent and all subagents for cleanup.
+                    let mut skill_ids: Vec<&str> =
+                        def.skills.iter().map(|s| s.id.as_str()).collect();
                     for subagent_def in &def.subagents {
+                        for skill in &subagent_def.skills {
+                            skill_ids.push(skill.id.as_str());
+                        }
                         let subagent_mcp_id =
                             format!("{}::subagent::{}", agent_id, subagent_def.name);
                         self.mcp_manager.disconnect_agent(&subagent_mcp_id).await;
                     }
+                    tools::skill_files::cleanup_skill_files(&skill_ids, &base_dir).await;
                 }
 
                 state.cancel.cancel();
@@ -1112,14 +1122,16 @@ impl AgentSupervisor {
             // Clean up old skill files and subagent MCP connections when updating an existing agent.
             if let Some(old_state) = self.agent_map.get(&agent_id) {
                 let old_def = old_state.definition.read().await;
-                let old_skill_ids: Vec<&str> =
+                let mut old_skill_ids: Vec<&str> =
                     old_def.skills.iter().map(|s| s.id.as_str()).collect();
-                tools::skill_files::cleanup_skill_files(&old_skill_ids, &base_dir).await;
-
                 for subagent_def in &old_def.subagents {
+                    for skill in &subagent_def.skills {
+                        old_skill_ids.push(skill.id.as_str());
+                    }
                     let subagent_mcp_id = format!("{}::subagent::{}", agent_id, subagent_def.name);
                     self.mcp_manager.disconnect_agent(&subagent_mcp_id).await;
                 }
+                tools::skill_files::cleanup_skill_files(&old_skill_ids, &base_dir).await;
             }
 
             tools::skill_files::write_skill_files(&all_skills, &base_dir).await;
@@ -1165,8 +1177,13 @@ impl AgentSupervisor {
         let rig_agent = build_agent(&definition, dynamic_tools)?;
 
         // Build subagents from definition.subagents
-        let subagent_map =
-            build_subagents(&definition, &integration_tools, &self.mcp_manager).await?;
+        let subagent_map = build_subagents(
+            &definition,
+            &integration_tools,
+            &self.mcp_manager,
+            &self.resolve_working_dir(),
+        )
+        .await?;
 
         // Inject the parent agent as "__self__" for self-delegation
         subagent_map.insert(
@@ -1604,7 +1621,9 @@ pub(crate) fn filter_conversation_tools(
 /// Build subagent entries from an agent definition's subagents list.
 ///
 /// Each subagent gets built-in tools, the parent's integration tools
-/// (with the same permissions), and its own MCP server tools (if defined).
+/// (with the same permissions), its own MCP server tools (if defined),
+/// and its own skills (if defined). Skill files are written to disk
+/// idempotently so shared skills between parent and subagents are safe.
 /// No agent tool to prevent unbounded recursion at the configuration level.
 async fn build_subagents(
     definition: &AgentDefinition,
@@ -1613,6 +1632,7 @@ async fn build_subagents(
         bridge_core::permission::ToolPermission,
     )],
     mcp_manager: &McpManager,
+    working_dir: &std::path::Path,
 ) -> Result<Arc<DashMap<String, SubAgentEntry>>, BridgeError> {
     let subagent_map = Arc::new(DashMap::new());
 
@@ -1641,6 +1661,15 @@ async fn build_subagents(
                     }
                 }
             }
+        }
+
+        // Register subagent's skills (if any)
+        if !subagent_def.skills.is_empty() {
+            tools::skill_files::write_skill_files(&subagent_def.skills, working_dir).await;
+            sub_registry.register(Arc::new(tools::skill_tools::SkillTool::with_base_dir(
+                subagent_def.skills.clone(),
+                working_dir.to_path_buf(),
+            )));
         }
 
         // Apply subagent's disabled_tools
