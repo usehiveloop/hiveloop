@@ -92,8 +92,8 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Resolve connection → integration → org.
-	var connection model.Connection
-	if err := h.db.Preload("Integration").
+	var connection model.InConnection
+	if err := h.db.Preload("InIntegration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
 		slog.Warn("incoming webhook: connection not found",
@@ -105,11 +105,11 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if connection.Integration.DeletedAt != nil {
+	if connection.InIntegration.DeletedAt != nil {
 		slog.Warn("incoming webhook: integration deleted",
 			"provider", provider,
 			"connection_id", connectionID,
-			"integration_id", connection.IntegrationID,
+			"integration_id", connection.InIntegrationID,
 		)
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "integration not found"})
 		return
@@ -142,7 +142,7 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		"provider", provider,
 		"connection_id", connectionID,
 		"org_id", connection.OrgID,
-		"integration_id", connection.IntegrationID,
+		"integration_id", connection.InIntegrationID,
 		"event_type", eventType,
 		"event_action", eventAction,
 		"body_size", len(body),
