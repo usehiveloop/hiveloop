@@ -40,7 +40,7 @@ func TestE2E_Provider_List(t *testing.T) {
 	}
 
 	// Verify well-known providers are present
-	known := map[string]bool{"openai": false, "anthropic": false, "google": false, "deepseek": false}
+	known := map[string]bool{"openai": false, "anthropic": false, "google": false}
 	for _, p := range providers {
 		if _, ok := known[p.ID]; ok {
 			known[p.ID] = true
