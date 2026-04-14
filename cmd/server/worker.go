@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/hibiken/asynq"
+	"github.com/hibiken/asynqmon"
 
 	"github.com/ziraloop/ziraloop/internal/bootstrap"
 	"github.com/ziraloop/ziraloop/internal/email"
@@ -172,6 +173,15 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		_, _ = w.Write([]byte(`{"status":"ok","service":"worker"}`))
 	})
 
+	// Asynq dashboard
+	dashboard := asynqmon.New(asynqmon.Options{
+		RootPath:     "/asynq",
+		RedisConnOpt: redisOpt,
+		ReadOnly:     true,
+	})
+	healthMux.Handle("/asynq/", dashboard)
+	slog.Info("asynq dashboard enabled at /asynq")
+
 	healthSrv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.WorkerHealthPort),
 		Handler: healthMux,
@@ -229,3 +239,4 @@ func (l *asynqLogger) Error(args ...any) {
 func (l *asynqLogger) Fatal(args ...any) {
 	slog.Error(fmt.Sprint(args...))
 }
+
