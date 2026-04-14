@@ -5,41 +5,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/hibiken/asynq"
 
 	"github.com/ziraloop/ziraloop/internal/trigger/dispatch"
 	"github.com/ziraloop/ziraloop/internal/trigger/enrichment"
 	"github.com/ziraloop/ziraloop/internal/trigger/executor"
-	"github.com/ziraloop/ziraloop/internal/trigger/zira"
 )
 
 // RouterDispatchHandler handles the TypeRouterDispatch Asynq task.
-// It runs the router dispatcher pipeline, optionally enriches context,
-// then runs the executor to create or continue Bridge conversations.
+// It runs the router dispatcher pipeline, enriches context via deterministic
+// API calls, then runs the executor to create or continue Bridge conversations.
 type RouterDispatchHandler struct {
-	dispatcher         *dispatch.RouterDispatcher
-	executor           *executor.Executor
-	enricher           *enrichment.EnrichmentAgent // nil = skip enrichment
-	credentialResolver EnrichmentCredentialResolver // nil = skip enrichment
+	dispatcher           *dispatch.RouterDispatcher
+	executor             *executor.Executor
+	deterministicEnricher *enrichment.DeterministicEnricher // nil = skip enrichment
 }
-
-// EnrichmentCredentialResolver resolves an LLM credential for enrichment.
-// Returns a CompletionClient, model ID, and provider group (e.g. "anthropic",
-// "openai", "gemini"). Passed as a function to avoid coupling the handler to
-// credential internals.
-type EnrichmentCredentialResolver func(ctx context.Context, orgID string) (client zira.CompletionClient, modelID string, providerGroup string, err error)
 
 // NewRouterDispatchHandler creates a task handler with the dispatcher and executor.
 func NewRouterDispatchHandler(dispatcher *dispatch.RouterDispatcher, execut *executor.Executor) *RouterDispatchHandler {
 	return &RouterDispatchHandler{dispatcher: dispatcher, executor: execut}
 }
 
-// SetEnrichment configures the enrichment agent and credential resolver.
-// When both are set, the handler gathers context before creating conversations.
-func (handler *RouterDispatchHandler) SetEnrichment(enricher *enrichment.EnrichmentAgent, resolver EnrichmentCredentialResolver) {
-	handler.enricher = enricher
-	handler.credentialResolver = resolver
+// SetDeterministicEnrichment configures the deterministic enrichment engine.
+func (handler *RouterDispatchHandler) SetDeterministicEnrichment(enricher *enrichment.DeterministicEnricher) {
+	handler.deterministicEnricher = enricher
 }
 
 // Handle processes a TypeRouterDispatch task.
@@ -106,26 +97,50 @@ func (handler *RouterDispatchHandler) Handle(ctx context.Context, task *asynq.Ta
 		)
 	}
 
-	// TODO: re-enable enrichment + executor after dispatch pipeline is verified.
-	// // Run enrichment for new conversations (best effort).
-	// handler.runEnrichment(ctx, logger, dispatches, input)
-	//
-	// // Execute: create or continue Bridge conversations.
+	// Run deterministic enrichment for new conversations (best effort).
+	handler.runDeterministicEnrichment(ctx, logger, dispatches, payload)
+
+	// Log the full enriched message and built instructions for each dispatch.
+	for dispatchIndex, agentDispatch := range dispatches {
+		if agentDispatch.EnrichedMessage != "" {
+			logger.Info("enriched message (full output)",
+				"dispatch_index", dispatchIndex,
+				"agent_id", agentDispatch.AgentID,
+				"message_bytes", len(agentDispatch.EnrichedMessage),
+				"message", agentDispatch.EnrichedMessage,
+			)
+		}
+
+		instructions := buildDispatchInstructions(agentDispatch)
+		logger.Info("built agent instructions",
+			"dispatch_index", dispatchIndex,
+			"agent_id", agentDispatch.AgentID,
+			"instruction_source", instructionSource(agentDispatch),
+			"instruction_bytes", len(instructions),
+			"instructions", instructions,
+		)
+	}
+
+	// TODO: re-enable executor after dedicated agent sandbox creation is implemented.
 	// logger.Info("executor starting", "dispatch_count", len(dispatches))
 	// if err := handler.executor.Execute(ctx, dispatches); err != nil {
 	// 	logger.Error("executor failed", "error", err)
 	// 	return fmt.Errorf("router execute: %w", err)
 	// }
 
-	logger.Info("pipeline complete (dry run — executor disabled)", "agents_dispatched", len(dispatches))
+	logger.Info("pipeline complete (executor disabled)",
+		"agents_dispatched", len(dispatches),
+		"enriched", len(dispatches) > 0 && dispatches[0].EnrichedMessage != "",
+	)
 	return nil
 }
 
-// runEnrichment gathers context for new conversations. Failures are logged but
-// never prevent the specialist from running.
-func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, logger *slog.Logger, dispatches []dispatch.AgentDispatch, input dispatch.RouterDispatchInput) {
-	if handler.enricher == nil {
-		logger.Debug("enrichment skipped: no enrichment agent configured")
+// runDeterministicEnrichment pre-fetches context from provider APIs using
+// the enrichment actions defined in the trigger catalog. Failures are logged
+// but never prevent the agent from running.
+func (handler *RouterDispatchHandler) runDeterministicEnrichment(ctx context.Context, logger *slog.Logger, dispatches []dispatch.AgentDispatch, payload TriggerDispatchPayload) {
+	if handler.deterministicEnricher == nil {
+		logger.Debug("enrichment skipped: no deterministic enricher configured")
 		return
 	}
 
@@ -142,58 +157,25 @@ func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, logger 
 		return
 	}
 
-	// Load all org connections for enrichment.
-	connections, err := handler.dispatcher.LoadConnections(ctx, input.OrgID)
-	if err != nil {
-		logger.Warn("enrichment skipped: failed to load connections", "error", err)
-		return
-	}
-	if len(connections) == 0 {
-		logger.Warn("enrichment skipped: no connections available")
-		return
-	}
-
-	logger.Info("enrichment starting",
-		"connections_available", len(connections),
-	)
-
 	// Use refs from the first dispatch (all dispatches share the same event).
 	refs := dispatches[0].Refs
 
-	enrichInput := enrichment.EnrichmentInput{
-		Provider:    input.Provider,
-		EventType:   input.EventType,
-		EventAction: input.EventAction,
-		OrgID:       input.OrgID,
-		Refs:        refs,
-		Connections: connections,
+	enrichInput := enrichment.DeterministicEnrichInput{
+		Provider:     payload.Provider,
+		EventType:    payload.EventType,
+		EventAction:  payload.EventAction,
+		OrgID:        payload.OrgID,
+		ConnectionID: payload.ConnectionID,
+		Refs:         refs,
 	}
 
-	if handler.credentialResolver == nil {
-		logger.Warn("enrichment skipped: no credential resolver configured")
+	composedMessage, err := handler.deterministicEnricher.Enrich(ctx, enrichInput, logger)
+	if err != nil {
+		logger.Warn("deterministic enrichment failed", "error", err)
 		return
 	}
-	client, modelID, providerGroup, resolveErr := handler.credentialResolver(ctx, input.OrgID.String())
-	if resolveErr != nil {
-		logger.Warn("enrichment skipped: credential resolution failed",
-			"error", resolveErr,
-		)
-		return
-	}
-
-	logger.Info("enrichment credential resolved",
-		"model", modelID,
-		"provider_group", providerGroup,
-	)
-
-	result, enrichErr := handler.enricher.Enrich(ctx, client, modelID, providerGroup, enrichInput, logger)
-	if enrichErr != nil {
-		logger.Warn("enrichment failed", "error", enrichErr)
-		return
-	}
-
-	if result.ComposedMessage == "" {
-		logger.Warn("enrichment produced empty message")
+	if composedMessage == "" {
+		logger.Info("deterministic enrichment produced no message")
 		return
 	}
 
@@ -201,16 +183,42 @@ func (handler *RouterDispatchHandler) runEnrichment(ctx context.Context, logger 
 	enrichedCount := 0
 	for index := range dispatches {
 		if dispatches[index].RunIntent == "normal" {
-			dispatches[index].EnrichedMessage = result.ComposedMessage
+			dispatches[index].EnrichedMessage = composedMessage
 			enrichedCount++
 		}
 	}
 
-	logger.Info("enrichment complete",
-		"fetch_count", result.FetchCount,
-		"turn_count", result.TurnCount,
-		"latency_ms", result.LatencyMs,
-		"composed_message_bytes", len(result.ComposedMessage),
+	logger.Info("deterministic enrichment applied",
 		"dispatches_enriched", enrichedCount,
+		"composed_message_bytes", len(composedMessage),
 	)
+}
+
+// buildDispatchInstructions mirrors the executor's buildInstructions logic
+// so we can log exactly what the agent would receive.
+func buildDispatchInstructions(agentDispatch dispatch.AgentDispatch) string {
+	var builder strings.Builder
+
+	if agentDispatch.RouterPersona != "" {
+		builder.WriteString(agentDispatch.RouterPersona)
+		builder.WriteString("\n\n---\n\n")
+	}
+
+	if agentDispatch.EnrichedMessage != "" {
+		builder.WriteString(agentDispatch.EnrichedMessage)
+		return builder.String()
+	}
+
+	for key, value := range agentDispatch.Refs {
+		builder.WriteString(fmt.Sprintf("%s: %s\n", key, value))
+	}
+
+	return builder.String()
+}
+
+func instructionSource(agentDispatch dispatch.AgentDispatch) string {
+	if agentDispatch.EnrichedMessage != "" {
+		return "enriched"
+	}
+	return "flat_refs"
 }
