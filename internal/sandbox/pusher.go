@@ -274,6 +274,15 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 	// Build the Bridge AgentDefinition
 	def := p.buildAgentDefinition(agent, &cred, proxyToken, jti)
 
+	// Load and attach subagents
+	subagentDefs, err := p.buildSubagentDefinitions(agent.ID, proxyToken, jti)
+	if err != nil {
+		return fmt.Errorf("building subagent definitions: %w", err)
+	}
+	if len(subagentDefs) > 0 {
+		def.Subagents = &subagentDefs
+	}
+
 	// Push to Bridge
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
@@ -523,6 +532,60 @@ func (p *Pusher) buildAgentDefinition(agent *model.Agent, cred *model.Credential
 	return def
 }
 
+// buildSubagentDefinitions loads all subagents attached to the parent agent
+// and builds a Bridge AgentDefinition for each one.
+func (p *Pusher) buildSubagentDefinitions(parentID uuid.UUID, proxyToken, jti string) ([]bridgepkg.AgentDefinition, error) {
+	var links []model.AgentSubagent
+	if err := p.db.Where("agent_id = ?", parentID).Find(&links).Error; err != nil {
+		return nil, fmt.Errorf("querying agent_subagents: %w", err)
+	}
+	if len(links) == 0 {
+		return nil, nil
+	}
+
+	subagentIDs := make([]uuid.UUID, len(links))
+	for index, link := range links {
+		subagentIDs[index] = link.SubagentID
+	}
+
+	var subagents []model.Agent
+	if err := p.db.Where("id IN ?", subagentIDs).Find(&subagents).Error; err != nil {
+		return nil, fmt.Errorf("loading subagents: %w", err)
+	}
+
+	// Load all credentials needed by subagents in one query
+	credIDs := make([]uuid.UUID, 0, len(subagents))
+	for _, sub := range subagents {
+		if sub.CredentialID != nil {
+			credIDs = append(credIDs, *sub.CredentialID)
+		}
+	}
+	var credentials []model.Credential
+	if len(credIDs) > 0 {
+		if err := p.db.Where("id IN ?", credIDs).Find(&credentials).Error; err != nil {
+			return nil, fmt.Errorf("loading subagent credentials: %w", err)
+		}
+	}
+	credByID := make(map[uuid.UUID]*model.Credential, len(credentials))
+	for index := range credentials {
+		credByID[credentials[index].ID] = &credentials[index]
+	}
+
+	defs := make([]bridgepkg.AgentDefinition, 0, len(subagents))
+	for _, sub := range subagents {
+		if sub.CredentialID == nil {
+			continue
+		}
+		cred, ok := credByID[*sub.CredentialID]
+		if !ok {
+			return nil, fmt.Errorf("credential %s not found for subagent %s", sub.CredentialID, sub.ID)
+		}
+		defs = append(defs, p.buildAgentDefinition(&sub, cred, proxyToken, jti))
+	}
+
+	return defs, nil
+}
+
 func buildHindsightMCPServer(mcpURL string) bridgepkg.McpServerDefinition {
 	var transport bridgepkg.McpTransport
 	httpTransport := bridgepkg.McpTransport1{
@@ -580,7 +643,7 @@ func decodeJSONAs[T any](j model.JSON) *T {
 
 // applyAgentConfigDefaults fills in sensible defaults for any AgentConfig fields
 // the user did not explicitly set. The providerID and model are used to pick
-// the best default temperature for the specific LLM.
+// the best defaults for the specific LLM.
 func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {
 	if cfg == nil {
 		cfg = &bridgepkg.AgentConfig{}
@@ -592,7 +655,7 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 		}
 	}
 
-	setDefault(&cfg.MaxTokens, 8192)
+	setDefault(&cfg.MaxTokens, defaultMaxTokens(providerID, modelName))
 	setDefault(&cfg.MaxTurns, 250)
 	setDefault(&cfg.MaxTasksPerConversation, 50)
 	setDefault(&cfg.MaxConcurrentConversations, 100)
@@ -603,6 +666,60 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 	}
 
 	return cfg
+}
+
+// defaultMaxTokens returns a sensible max_tokens default at ~80% of the model's
+// output limit. Model-specific overrides are checked first, then provider-level
+// defaults. Values are derived from internal/registry/models.json.
+func defaultMaxTokens(providerID, modelName string) int32 {
+	// Model-specific overrides — covers models whose output limits differ
+	// significantly from the provider median.
+	switch {
+	// OpenAI: gpt-5-pro has 272k output, gpt-5.x codex/pro have 128k,
+	// but chat models and older ones are 16k.
+	case strings.Contains(modelName, "gpt-5-pro"):
+		return 217600 // 80% of 272,000
+	case strings.Contains(modelName, "gpt-5") && !strings.Contains(modelName, "chat"):
+		return 102400 // 80% of 128,000
+	case strings.Contains(modelName, "o3") || strings.Contains(modelName, "o4") || strings.Contains(modelName, "o1"):
+		return 80000 // 80% of 100,000
+
+	// Kimi: k2.5/thinking models have 262k output, instruct models have 16k.
+	case strings.Contains(modelName, "kimi") && strings.Contains(modelName, "instruct"):
+		return 13107 // 80% of 16,384
+	case strings.Contains(modelName, "kimi"):
+		return 209715 // 80% of 262,144
+
+	// MiniMax: M2+ models have 131k output, M2 has 128k.
+	case strings.Contains(modelName, "minimax") || strings.Contains(modelName, "MiniMax"):
+		return 104857 // 80% of 131,072
+
+	// GLM: 4.7+ have 131k, 4.5 has 98k, older have 32k.
+	case strings.Contains(modelName, "glm-5") || strings.Contains(modelName, "glm-4.7") || strings.Contains(modelName, "glm-4.6"):
+		return 104857 // 80% of 131,072
+	case strings.Contains(modelName, "glm-4.5"):
+		return 78643 // 80% of 98,304
+	case strings.Contains(modelName, "glm"):
+		return 26214 // 80% of 32,768
+	}
+
+	// Provider-level defaults — 80% of the most common output limit.
+	switch providerID {
+	case "anthropic":
+		return 51200 // 80% of 64,000 (most models; opus-4-6 is 128k but is the exception)
+	case "openai":
+		return 102400 // 80% of 128,000
+	case "google":
+		return 52428 // 80% of 65,536
+	case "moonshotai":
+		return 209715 // 80% of 262,144
+	case "zai", "zhipuai":
+		return 104857 // 80% of 131,072
+	case "minimax":
+		return 104857 // 80% of 131,072
+	default:
+		return 13107 // 80% of 16,384 — safe fallback for unknown providers
+	}
 }
 
 // defaultTemperature returns the recommended default temperature for a given
