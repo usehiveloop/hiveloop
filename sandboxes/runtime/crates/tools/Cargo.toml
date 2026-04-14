@@ -35,7 +35,6 @@ similar = { workspace = true }
 dashmap = { workspace = true }
 base64 = { workspace = true }
 libc = { workspace = true }
-spider = { version = "2", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

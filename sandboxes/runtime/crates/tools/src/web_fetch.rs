@@ -54,16 +54,11 @@ pub struct WebFetchArgs {
     pub format: FetchFormat,
 }
 
-/// Minimum content length to consider a fetch successful.
-/// Below this, the content is likely a blocked page or error stub.
-const MIN_CONTENT_LENGTH: usize = 100;
-
 /// Web fetch tool that retrieves a URL and extracts readable content as Markdown.
 ///
-/// Uses a three-tier fetch strategy:
-/// 1. `spider` crate for HTTP-based crawling with bot evasion
-/// 2. External fallback service (configurable via `BRIDGE_WEB_FETCH_URL`)
-/// 3. `reqwest` + `dom_smoothie` Readability + `htmd` as last resort
+/// Uses a two-tier fetch strategy:
+/// 1. External fallback service (configurable via `BRIDGE_WEB_FETCH_URL`)
+/// 2. `reqwest` + `dom_smoothie` Readability + `htmd` as last resort
 pub struct WebFetchTool {
     client: reqwest::Client,
     fallback_url: Option<String>,
@@ -96,42 +91,16 @@ impl WebFetchTool {
         }
     }
 
-    /// Fetch a URL using the three-tier strategy:
-    /// 1. Spider crate (HTTP crawling with bot evasion)
-    /// 2. Fallback service (if configured)
-    /// 3. Reqwest + readability (last resort)
+    /// Fetch a URL using the two-tier strategy:
+    /// 1. Fallback service (if configured)
+    /// 2. Reqwest + readability (last resort)
     pub async fn fetch(
         &self,
         url: &str,
         max_length: usize,
         format: &FetchFormat,
     ) -> Result<FetchResult, String> {
-        // Tier 1: Spider crate with timeout
-        match tokio::time::timeout(
-            Duration::from_secs(15),
-            Self::fetch_with_spider(url, max_length),
-        )
-        .await
-        {
-            Ok(Ok(Some(result))) => {
-                tracing::info!(url = url, tier = "spider", "web_fetch succeeded");
-                return Ok(result);
-            }
-            Ok(Ok(None)) => {
-                tracing::debug!(url = url, "spider returned empty content, trying next tier");
-            }
-            Ok(Err(e)) => {
-                tracing::debug!(url = url, error = %e, "spider fetch failed, trying next tier");
-            }
-            Err(_) => {
-                tracing::debug!(
-                    url = url,
-                    "spider fetch timed out after 15s, trying next tier"
-                );
-            }
-        }
-
-        // Tier 2: Fallback service (if configured)
+        // Tier 1: Fallback service (if configured)
         if self.fallback_url.is_some() {
             match self.fetch_with_fallback(url, max_length, format).await {
                 Ok(Some(result)) => {
@@ -147,7 +116,7 @@ impl WebFetchTool {
             }
         }
 
-        // Tier 3: Reqwest + readability (last resort)
+        // Tier 2: Reqwest + readability (last resort)
         tracing::info!(
             url = url,
             tier = "reqwest",
@@ -156,66 +125,7 @@ impl WebFetchTool {
         self.fetch_with_reqwest(url, max_length, format).await
     }
 
-    /// Tier 1: Fetch using the spider crate for better bot evasion.
-    async fn fetch_with_spider(
-        url: &str,
-        max_length: usize,
-    ) -> Result<Option<FetchResult>, String> {
-        use spider::website::Website;
-
-        let mut website = Website::new(url);
-        website.with_limit(1);
-        website.crawl().await;
-
-        let pages = match website.get_pages() {
-            Some(p) => p,
-            None => return Ok(None),
-        };
-
-        let page = match pages.first() {
-            Some(p) => p,
-            None => return Ok(None),
-        };
-
-        let html = page.get_html();
-        if html.trim().is_empty() {
-            return Ok(None);
-        }
-
-        // Convert HTML to markdown and extract title in a single parse
-        let article = extract_article(&html, url);
-        let markdown = match &article {
-            Some(a) => {
-                let text = a.text_content.to_string();
-                if text.trim().is_empty() {
-                    fallback_convert(&html)
-                } else {
-                    text
-                }
-            }
-            None => fallback_convert(&html),
-        };
-
-        if markdown.trim().len() < MIN_CONTENT_LENGTH {
-            return Ok(None);
-        }
-
-        let title = article.and_then(|a| {
-            if a.title.is_empty() {
-                None
-            } else {
-                Some(a.title.to_string())
-            }
-        });
-
-        Ok(Some(FetchResult {
-            title,
-            content: truncate_to_char_limit(&markdown, max_length),
-            url: url.to_string(),
-        }))
-    }
-
-    /// Tier 2: Fetch using an external fallback service.
+    /// Fetch using an external fallback service.
     async fn fetch_with_fallback(
         &self,
         url: &str,
@@ -268,7 +178,7 @@ impl WebFetchTool {
         }))
     }
 
-    /// Tier 3: Fetch using reqwest + readability (existing pipeline).
+    /// Tier 2: Fetch using reqwest + readability (existing pipeline).
     /// Also used directly by unit tests that mock HTTP responses.
     pub async fn fetch_with_reqwest(
         &self,
@@ -1508,7 +1418,7 @@ mod tests {
         let long_paragraph = "word ".repeat(200);
         let html = format!(r#"<html><body><p>{long_paragraph}</p></body></html>"#);
 
-        // Allow multiple requests — spider tier may also hit this endpoint before reqwest
+        // Allow multiple requests
         Mock::given(method("GET"))
             .and(path("/truncate-exec"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
@@ -1538,7 +1448,7 @@ mod tests {
         let html =
             r#"<html><body><p>Simple content for default max length test.</p></body></html>"#;
 
-        // Allow multiple requests — spider tier may also hit this endpoint before reqwest
+        // Allow multiple requests
         Mock::given(method("GET"))
             .and(path("/default-exec"))
             .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html; charset=utf-8"))
@@ -1643,7 +1553,7 @@ mod tests {
         let output = tool.execute(args).await.expect("execute should succeed");
         let parsed: FetchResult = serde_json::from_str(&output).expect("parse");
 
-        // Content should contain the HTML — either directly from spider or from reqwest
+        // Content should contain the HTML from reqwest
         assert!(
             parsed.content.contains("Format test content"),
             "should contain page content"
