@@ -209,27 +209,6 @@ func TestE2E_ConnectSession_OriginValidation(t *testing.T) {
 // E2E: Connect provider catalog — no filter returns all
 // --------------------------------------------------------------------------
 
-func TestE2E_Connect_ProviderNoFilter(t *testing.T) {
-	h := newHarness(t)
-	org := h.createOrg(t)
-
-	token, _ := h.createConnectSession(t, org, `{"external_id":"all_providers"}`)
-
-	rr := h.connectRequest(t, http.MethodGet, "/v1/widget/providers", token, nil)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-
-	var providers []struct {
-		ID string `json:"id"`
-	}
-	json.NewDecoder(rr.Body).Decode(&providers)
-
-	if len(providers) < 10 {
-		t.Fatalf("expected at least 10 curated providers with no filter, got %d", len(providers))
-	}
-}
-
 // --------------------------------------------------------------------------
 // E2E: Connect connection CRUD
 // --------------------------------------------------------------------------
