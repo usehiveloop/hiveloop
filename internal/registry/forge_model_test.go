@@ -9,7 +9,7 @@ func TestBestModelForForge_KnownProviders(t *testing.T) {
 	reg := Global()
 
 	// Verify the algorithm picks something for major providers.
-	providers := []string{"anthropic", "openai", "google", "fireworks-ai", "togetherai", "deepseek", "openrouter"}
+	providers := []string{"anthropic", "openai", "google", "fireworks-ai", "openrouter", "groq", "moonshotai", "zai"}
 	for _, pid := range providers {
 		model, ok := reg.BestModelForForge(pid)
 		if !ok {
@@ -35,7 +35,7 @@ func TestBestModelForForge_PrefersOpenWeight(t *testing.T) {
 	reg := Global()
 
 	// Inference providers should pick open weight models.
-	inferenceProviders := []string{"fireworks-ai", "togetherai", "deepseek"}
+	inferenceProviders := []string{"fireworks-ai", "groq"}
 	for _, pid := range inferenceProviders {
 		model, ok := reg.BestModelForForge(pid)
 		if !ok {
@@ -97,8 +97,8 @@ func TestBestModelForForge_PrintAllPicks(t *testing.T) {
 	reg := Global()
 
 	providers := []string{
-		"anthropic", "openai", "google", "fireworks-ai", "togetherai",
-		"deepseek", "openrouter", "groq", "mistral", "cohere",
+		"anthropic", "openai", "google", "fireworks-ai",
+		"openrouter", "groq", "moonshotai", "zai", "zhipuai",
 	}
 	for _, pid := range providers {
 		model, ok := reg.BestModelForForge(pid)

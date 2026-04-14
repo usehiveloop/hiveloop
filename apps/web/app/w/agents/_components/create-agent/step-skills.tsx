@@ -222,7 +222,7 @@ export function StepSkills() {
       </div>
 
       <div className="pt-4 shrink-0">
-        <Button onClick={() => goTo("summary")} className="w-full">
+        <Button onClick={() => goTo("subagents")} className="w-full">
           {selectedCount > 0 ? `Continue with ${selectedCount} skill${selectedCount > 1 ? "s" : ""}` : "Skip for now"}
         </Button>
       </div>

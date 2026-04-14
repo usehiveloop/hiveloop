@@ -20,17 +20,17 @@ import (
 
 // providerTypeMap maps our credential provider IDs to Bridge ProviderType values.
 var providerTypeMap = map[string]bridgepkg.ProviderType{
-	"openai":    bridgepkg.OpenAi,
-	"anthropic": bridgepkg.Anthropic,
-	"google":    bridgepkg.Google,
-	"cohere":    bridgepkg.Cohere,
-	"groq":      bridgepkg.Groq,
-	"deepseek":  bridgepkg.DeepSeek,
-	"mistral":   bridgepkg.Mistral,
-	"fireworks": bridgepkg.Fireworks,
-	"together":  bridgepkg.Together,
-	"xai":       bridgepkg.XAi,
-	"ollama":    bridgepkg.Ollama,
+	"openai":      bridgepkg.OpenAi,
+	"anthropic":   bridgepkg.Anthropic,
+	"google":      bridgepkg.Google,
+	"groq":        bridgepkg.Groq,
+	"fireworks":   bridgepkg.Fireworks,
+	"openrouter":  bridgepkg.OpenAi, // OpenRouter uses OpenAI-compatible API
+	"moonshotai":  bridgepkg.OpenAi, // Kimi uses OpenAI-compatible API
+	"zai":         bridgepkg.OpenAi, // Z.AI uses OpenAI-compatible API
+	"zhipuai":     bridgepkg.OpenAi, // Zhipu AI uses OpenAI-compatible API
+	"fireworks-ai": bridgepkg.Fireworks,
+	"ollama":      bridgepkg.Ollama,
 }
 
 const (
