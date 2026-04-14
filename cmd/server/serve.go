@@ -197,6 +197,15 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		r.Post("/internal/webhooks/polar", polarWebhookHandler.Handle)
 	}
 
+	// Sandbox proxy endpoints (bearer-token auth, no middleware)
+	if nangoClient != nil && sandboxEncKey != nil {
+		gitCredsHandler := handler.NewGitCredentialsHandler(database, sandboxEncKey, nangoClient)
+		r.Post("/internal/git-credentials/{agentID}", gitCredsHandler.Handle)
+
+		railwayProxyHandler := handler.NewRailwayProxyHandler(database, sandboxEncKey, nangoClient)
+		r.Post("/internal/railway-proxy/{agentID}", railwayProxyHandler.Handle)
+	}
+
 	// Direct incoming webhooks for providers requiring manual webhook configuration
 	// (e.g. Railway). URL format: /incoming/webhooks/{provider}/{connectionID}
 	r.Post("/incoming/webhooks/{provider}/{connectionID}", incomingWebhookHandler.Handle)
@@ -619,6 +628,17 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			r.Get("/assets", driveHandler.List)
 			r.Get("/assets/{assetID}", driveHandler.Get)
 			r.Delete("/assets/{assetID}", driveHandler.Delete)
+		})
+	}
+
+	// Sandbox drive routes (authenticated with Bridge control plane API key)
+	if deps.S3Client != nil && sandboxEncKey != nil {
+		sandboxDriveHandler := handler.NewSandboxDriveHandler(database, deps.S3Client, sandboxEncKey)
+		r.Route("/internal/sandbox-drive/{sandboxID}", func(r chi.Router) {
+			r.Post("/assets", sandboxDriveHandler.Upload)
+			r.Get("/assets", sandboxDriveHandler.List)
+			r.Get("/assets/{assetID}", sandboxDriveHandler.Get)
+			r.Delete("/assets/{assetID}", sandboxDriveHandler.Delete)
 		})
 	}
 
