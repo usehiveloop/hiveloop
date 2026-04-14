@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 )
@@ -8,7 +9,39 @@ import (
 // ProviderPromptConfig holds a provider-specific system prompt and model override.
 type ProviderPromptConfig struct {
 	SystemPrompt string `json:"system_prompt"`
-	Model        string `json:"model"`
+	Model        string `json:"model,omitempty"`
+}
+
+// ProviderPromptsMap is a typed map stored as JSONB. It implements
+// driver.Valuer and sql.Scanner so GORM can read/write it directly.
+type ProviderPromptsMap map[string]ProviderPromptConfig
+
+func (m ProviderPromptsMap) Value() (driver.Value, error) {
+	if m == nil {
+		return "{}", nil
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling provider prompts: %w", err)
+	}
+	return string(b), nil
+}
+
+func (m *ProviderPromptsMap) Scan(value any) error {
+	if value == nil {
+		*m = ProviderPromptsMap{}
+		return nil
+	}
+	var bytes []byte
+	switch v := value.(type) {
+	case string:
+		bytes = []byte(v)
+	case []byte:
+		bytes = v
+	default:
+		return fmt.Errorf("unsupported type for ProviderPromptsMap: %T", value)
+	}
+	return json.Unmarshal(bytes, m)
 }
 
 // ResolveProviderConfig returns the system prompt and model for a given provider group.
@@ -22,21 +55,7 @@ func (agent *Agent) ResolveProviderConfig(providerGroup string) (systemPrompt st
 	systemPrompt = agent.SystemPrompt
 	modelName = agent.Model
 
-	if len(agent.ProviderPrompts) == 0 {
-		return
-	}
-
-	raw, err := json.Marshal(agent.ProviderPrompts)
-	if err != nil {
-		return
-	}
-
-	var prompts map[string]ProviderPromptConfig
-	if err := json.Unmarshal(raw, &prompts); err != nil {
-		return
-	}
-
-	config, ok := prompts[providerGroup]
+	config, ok := agent.ProviderPrompts[providerGroup]
 	if !ok {
 		return
 	}
@@ -62,40 +81,4 @@ func (agent *Agent) BridgeAgentID(providerGroup string) string {
 		return fmt.Sprintf("%s-%s", agent.ID.String(), providerGroup)
 	}
 	return agent.ID.String()
-}
-
-// ProviderPromptsMap parses the ProviderPrompts JSON field into a typed map.
-// Returns an empty map if the field is nil or cannot be parsed.
-func (agent *Agent) ProviderPromptsMap() map[string]ProviderPromptConfig {
-	if len(agent.ProviderPrompts) == 0 {
-		return nil
-	}
-
-	raw, err := json.Marshal(agent.ProviderPrompts)
-	if err != nil {
-		return nil
-	}
-
-	var prompts map[string]ProviderPromptConfig
-	if err := json.Unmarshal(raw, &prompts); err != nil {
-		return nil
-	}
-
-	return prompts
-}
-
-// SetProviderPrompts encodes a typed map into the ProviderPrompts JSON field.
-func (agent *Agent) SetProviderPrompts(prompts map[string]ProviderPromptConfig) error {
-	raw, err := json.Marshal(prompts)
-	if err != nil {
-		return fmt.Errorf("marshaling provider prompts: %w", err)
-	}
-
-	var result JSON
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return fmt.Errorf("converting provider prompts to JSON: %w", err)
-	}
-
-	agent.ProviderPrompts = result
-	return nil
 }

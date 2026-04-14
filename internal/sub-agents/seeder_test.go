@@ -57,13 +57,13 @@ func TestAllYAMLsParse(t *testing.T) {
 }
 
 func TestLoadGroupMergesProviders(t *testing.T) {
-	group, err := loadGroup("browser-tester-expert")
+	group, err := loadGroup("browser-expert")
 	if err != nil {
 		t.Fatalf("loadGroup: %v", err)
 	}
 
-	if group.name != "browser-tester-expert" {
-		t.Errorf("expected name browser-tester-expert, got %s", group.name)
+	if group.name != "browser-expert" {
+		t.Errorf("expected name browser-expert, got %s", group.name)
 	}
 
 	expectedProviders := []string{"anthropic", "gemini", "glm", "kimi", "minimax", "openai"}

@@ -80,6 +80,7 @@ var devToolPackages = []string{
 	"libxml2-utils",
 	"xmlstarlet",
 	"postgresql-16-pgvector",
+	"s3cmd",
 }
 
 // sizes re-exports model.TemplateSizes for local convenience.
@@ -155,14 +156,16 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	image = image.Run("bash -c '" + nvmInstall + "'")
 
 	// Install agent-browser and other global CLIs.
-	// dev-box uses gh-axi instead of the standard gh CLI: it sits on the
-	// same axi-sdk-js runtime, ships TOON output, and outperforms gh on
-	// the GitHub benchmark across cost, duration, and turn count.
-	//
 	// --prefix=/usr/local forces npm to drop the bin shims into /usr/local/bin
 	// instead of nvm's per-version prefix (/usr/local/nvm/versions/node/<v>/bin),
 	// which is NOT on the default PATH that the Bridge entrypoint sees.
-	image = image.Run("npm install -g --prefix=/usr/local agent-browser gh-axi vercel")
+	image = image.Run("npm install -g --prefix=/usr/local agent-browser")
+
+	// GitHub CLI (official apt repository).
+	image = image.Run(
+		"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && " +
+			"echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main' > /etc/apt/sources.list.d/github-cli.list && " +
+			"apt-get update && apt-get install -y gh")
 
 	// Download Chrome for Testing and install its Linux shared-library
 	// dependencies (libnss3, libatk, libgbm, fonts, etc.) in one step.
@@ -214,12 +217,13 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 			"chmod +x /usr/local/bin/tree-sitter",
 	)
 
-	// Railway CLI — infrastructure deployment and management.
-	// npm install is more reliable than the shell script in Docker builds.
-	image = image.Run("npm install -g --prefix=/usr/local @railway/cli")
-
-	// Render CLI — manage Render services from the command line.
-	image = image.Run("curl -fsSL https://raw.githubusercontent.com/render-oss/cli/refs/heads/main/bin/install.sh | sh")
+	// Git credential helper — fetches GitHub tokens from the control plane
+	// on demand. Token never touches disk; git calls this on every auth request.
+	image = image.Run(
+		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$ZIRALOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-ziraloop && ` +
+			`chmod +x /usr/local/bin/git-credential-ziraloop`,
+	)
+	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-ziraloop")
 
 	image = image.Workdir(daytonaHome)
 	// agent-browser's daemon starts lazily on the first CLI command, so

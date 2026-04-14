@@ -1,4 +1,4 @@
-name: browser-tester-expert
+name: browser-expert
 description: A browser testing expert that validates web application behavior through real browser interaction. Requires the codebase absolute path when testing local codebases.
 skills:
   - agent-browser

@@ -1,3 +1,8 @@
+---
+name: codebase-memory
+description: Code knowledge graph for structural queries via CLI. Use when you need to explore the codebase, understand architecture, find functions by name, trace call chains, find callers/callees, detect dead code, analyze impact of changes, find high fan-out functions, or run graph queries. Triggers on "who calls this function", "what does X call", "trace the call chain", "find callers of", "show dependencies", "impact analysis", "dead code", "unused functions", "explore the codebase", "understand the architecture", "what functions exist", "show me the structure".
+---
+
 # Codebase Memory — CLI Usage Guide
 
 Use `codebase-memory-mcp cli <tool> '<json>'` to query the code knowledge graph. Graph queries return precise structural results in ~500 tokens vs ~80K for grep. Always prefer graph tools for code discovery.

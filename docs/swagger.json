@@ -12545,6 +12545,23 @@
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig": {
+            "type": "object",
+            "properties": {
+                "model": {
+                    "type": "string"
+                },
+                "system_prompt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptConfig"
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_model.SandboxToolDefinition": {
             "type": "object",
             "properties": {
@@ -13806,6 +13823,9 @@
                 "provider_id": {
                     "type": "string"
                 },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                },
                 "sandbox_id": {
                     "type": "string"
                 },
@@ -14438,6 +14458,9 @@
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -17327,6 +17350,9 @@
                 },
                 "permissions": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
+                "provider_prompts": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
                 },
                 "sandbox_template_id": {
                     "type": "string"

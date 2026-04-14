@@ -15118,6 +15118,23 @@
           }
         }
       },
+      "ProviderPromptConfig": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "system_prompt": {
+            "type": "string"
+          }
+        }
+      },
+      "ProviderPromptsMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/ProviderPromptConfig"
+        }
+      },
       "SandboxToolDefinition": {
         "type": "object",
         "properties": {
@@ -16379,6 +16396,9 @@
           "provider_id": {
             "type": "string"
           },
+          "provider_prompts": {
+            "$ref": "#/components/schemas/ProviderPromptsMap"
+          },
           "sandbox_id": {
             "type": "string"
           },
@@ -17011,6 +17031,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "provider_prompts": {
+            "$ref": "#/components/schemas/ProviderPromptsMap"
           },
           "sandbox_template_id": {
             "type": "string"
@@ -19900,6 +19923,9 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/JSON"
+          },
+          "provider_prompts": {
+            "$ref": "#/components/schemas/ProviderPromptsMap"
           },
           "sandbox_template_id": {
             "type": "string"
