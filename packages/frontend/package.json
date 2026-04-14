@@ -2,6 +2,7 @@
   "name": "@ziraloop/frontend",
   "version": "1.0.6",
   "description": "Frontend SDK for embedding the ZiraLoop connect widget",
+  "license": "O'Saasy",
   "type": "module",
   "exports": {
     ".": {

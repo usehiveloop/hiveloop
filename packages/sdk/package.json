@@ -2,6 +2,7 @@
   "name": "@ziraloop/sdk",
   "version": "1.1.1",
   "description": "Server-side SDK for the ZiraLoop API",
+  "license": "O'Saasy",
   "type": "module",
   "exports": {
     ".": {
