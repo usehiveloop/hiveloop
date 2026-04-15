@@ -26,6 +26,7 @@ type MCPHandler struct {
 	catalog     *catalog.Catalog
 	nango       *nango.Client
 	counter     *counter.Counter
+	memoryTools mcpserver.MemoryToolsFunc
 	ServerCache *mcpserver.ServerCache
 }
 
@@ -39,6 +40,11 @@ func NewMCPHandler(db *gorm.DB, signingKey []byte, cat *catalog.Catalog, nangoCl
 		counter:     ctr,
 		ServerCache: mcpserver.NewServerCache(),
 	}
+}
+
+// SetMemoryTools sets the callback for registering memory tools on MCP servers.
+func (h *MCPHandler) SetMemoryTools(fn mcpserver.MemoryToolsFunc) {
+	h.memoryTools = fn
 }
 
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
@@ -76,7 +82,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 		}
 
 		// Build MCP server from scopes
-		srv, err := mcpserver.BuildServer(&token, scopes, h.catalog, h.nango, h.db, h.counter)
+		srv, err := mcpserver.BuildServer(&token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}

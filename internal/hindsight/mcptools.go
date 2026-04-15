@@ -6,25 +6,31 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"gorm.io/gorm"
 
 	"github.com/ziraloop/ziraloop/internal/model"
 )
 
-// BuildMemoryServer creates an MCP server with memory tools (recall, retain, reflect).
-// Memory is scoped per org. SharedMemory=true uses the org bank (agent sees all org
-// memories). SharedMemory=false uses the org bank with tag-based isolation (agent only
-// sees its own memories).
-func BuildMemoryServer(agent *model.Agent, client *Client) *mcp.Server {
-	if agent.OrgID == nil {
-		return nil
+// NewMemoryToolsFunc returns a callback compatible with mcpserver.MemoryToolsFunc.
+// Designed to be passed to mcpserver.BuildServer to avoid import cycles.
+func NewMemoryToolsFunc(client *Client) func(server *mcp.Server, agentID string, db *gorm.DB) {
+	return func(server *mcp.Server, agentID string, db *gorm.DB) {
+		var agent model.Agent
+		if err := db.Where("id = ?", agentID).First(&agent).Error; err != nil {
+			return
+		}
+		AddMemoryTools(server, &agent, client)
+	}
+}
+
+// AddMemoryTools registers memory tools (recall, retain, reflect) on an existing
+// MCP server. Memory is scoped per org with tag-based agent isolation.
+func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client) {
+	if agent.OrgID == nil || client == nil {
+		return
 	}
 	bankID := "org-" + agent.OrgID.String()
 	agentTag := "agent:" + agent.ID.String()
-
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "ziraloop-memory",
-		Version: "v1.0.0",
-	}, nil)
 
 	// Tag filter: SharedMemory=true sees everything, false sees only own memories
 	var tagGroups []any
@@ -203,9 +209,7 @@ Reflect is slower than recall (1-3 seconds) but produces deeper, more nuanced an
 		},
 	)
 
-	return server
 }
-
 
 func toolError(msg string) *mcp.CallToolResult {
 	return &mcp.CallToolResult{

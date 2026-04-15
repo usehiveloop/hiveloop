@@ -59,7 +59,11 @@ func (h *MemoryMCPHandler) serverFactory(r *http.Request) *mcpsdk.Server {
 			return nil, time.Time{}, err
 		}
 
-		server := BuildMemoryServer(&agent, h.client)
+		server := mcpsdk.NewServer(&mcpsdk.Implementation{
+			Name:    "ziraloop-memory",
+			Version: "v1.0.0",
+		}, nil)
+		AddMemoryTools(server, &agent, h.client)
 
 		// Cache for 1 hour (agent config rarely changes mid-conversation)
 		return server, time.Now().Add(1 * time.Hour), nil
