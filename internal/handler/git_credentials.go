@@ -106,30 +106,30 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	orgID := *sandbox.OrgID
 
-	var conn model.Connection
+	var conn model.InConnection
 	err = h.db.
-		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
-		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", orgID, "github-app").
-		Order("connections.created_at ASC").
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider LIKE ?", orgID, "github%").
+		Order("in_connections.created_at ASC").
 		First(&conn).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no github-app connection for org"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no github connection for org"})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up connection"})
 		return
 	}
 
-	var integration model.Integration
-	if err := h.db.Where("id = ?", conn.IntegrationID).First(&integration).Error; err != nil {
-		slog.Error("git-credentials: failed to load integration", "integration_id", conn.IntegrationID, "error", err)
+	var integration model.InIntegration
+	if err := h.db.Where("id = ?", conn.InIntegrationID).First(&integration).Error; err != nil {
+		slog.Error("git-credentials: failed to load integration", "integration_id", conn.InIntegrationID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load integration"})
 		return
 	}
 
 	// Fetch fresh token from Nango
-	providerConfigKey := fmt.Sprintf("%s_%s", orgID.String(), integration.UniqueKey)
+	providerConfigKey := "in_" + integration.UniqueKey
 	nangoConn, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, providerConfigKey)
 	if err != nil {
 		slog.Error("git-credentials: failed to fetch from nango",
