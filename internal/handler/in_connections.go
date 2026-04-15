@@ -169,7 +169,6 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 			ID: user.ID.String(),
 		},
 		AllowedIntegrations: []string{nk},
-		ConnectionID:        conn.NangoConnectionID,
 	}
 
 	sess, err := h.nango.CreateConnectSession(r.Context(), nangoReq)
