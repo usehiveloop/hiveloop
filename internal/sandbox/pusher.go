@@ -614,6 +614,10 @@ func buildZiraLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 		Type: bridgepkg.StreamableHttp,
 		Url:  url,
 	}
+	if token != "" {
+		headers := map[string]string{"Authorization": "Bearer " + token}
+		httpTransport.Headers = &headers
+	}
 	transport.FromMcpTransport1(httpTransport)
 
 	return bridgepkg.McpServerDefinition{

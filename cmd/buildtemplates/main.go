@@ -170,7 +170,9 @@ func buildDevBoxImage(bridgeVersion string) *daytona.DockerImage {
 	// Download Chrome for Testing and install its Linux shared-library
 	// dependencies (libnss3, libatk, libgbm, fonts, etc.) in one step.
 	// agent-browser auto-detects container environments and adds --no-sandbox.
-	image = image.Run("agent-browser install --with-deps")
+	// HOME must be set to /home/daytona so Chrome installs into the daytona
+	// user's home directory (the sandbox runs as daytona, not root).
+	image = image.Run("HOME=/home/daytona agent-browser install --with-deps")
 
 	// Dev tools: compilers, databases, media, terminal multiplexers,
 	// network diagnostics, archive utilities, editors.
