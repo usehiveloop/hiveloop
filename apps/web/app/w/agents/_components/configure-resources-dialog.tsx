@@ -5,9 +5,8 @@ import { AnimatePresence, motion } from "motion/react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft01Icon,
-  ArrowRight01Icon,
   Tick02Icon,
-  Loading03Icon,
+  Plug01Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Dialog,
@@ -18,14 +17,19 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { IntegrationLogo } from "@/components/integration-logo"
+import { ChoiceCard } from "./create-agent/choice-card"
 import { $api } from "@/lib/api/hooks"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 type Agent = components["schemas"]["agentResponse"]
+type InConnection = components["schemas"]["inConnectionResponse"]
 
 interface ResourceItem {
   id: string
@@ -34,11 +38,15 @@ interface ResourceItem {
 
 type AgentResources = Record<string, Record<string, ResourceItem[]>>
 
-interface ConfigureResourcesDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  agent: Agent
+interface ConfigurableResource {
+  key: string
+  display_name: string
+  description: string
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 const slideVariants = {
   enter: (direction: number) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),
@@ -64,11 +72,210 @@ function parseAgentResources(raw: unknown): AgentResources {
   return result
 }
 
-export function ConfigureResourcesDialog({
-  open,
-  onOpenChange,
-  agent,
-}: ConfigureResourcesDialogProps) {
+function getConfigurableResources(connection: InConnection): ConfigurableResource[] {
+  const raw = (connection as Record<string, unknown>).configurable_resources
+  if (!Array.isArray(raw)) return []
+  return raw as ConfigurableResource[]
+}
+
+// ---------------------------------------------------------------------------
+// Back button
+// ---------------------------------------------------------------------------
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-2"
+    >
+      <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
+      Back
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Step 1: Connection list
+// ---------------------------------------------------------------------------
+
+interface ConnectionListViewProps {
+  connections: InConnection[]
+  getSelectedCount: (connectionId: string) => number
+  onSelect: (connectionId: string) => void
+  onSave: () => void
+  saving: boolean
+}
+
+function ConnectionListView({ connections, getSelectedCount, onSelect, onSave, saving }: ConnectionListViewProps) {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Configure resources</DialogTitle>
+        <DialogDescription>Choose which resources each integration can access.</DialogDescription>
+      </DialogHeader>
+
+      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+        {connections.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex items-center justify-center size-12 rounded-full bg-muted">
+              <HugeiconsIcon icon={Plug01Icon} size={20} className="text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              No integrations with configurable resources.
+            </p>
+          </div>
+        ) : (
+          connections.map((connection) => {
+            const connectionId = connection.id!
+            const count = getSelectedCount(connectionId)
+            return (
+              <ChoiceCard
+                key={connectionId}
+                logoUrl={`/logos/${connection.provider ?? ""}.svg`}
+                title={connection.display_name ?? connection.provider ?? ""}
+                description={count > 0 ? `${count} resource${count !== 1 ? "s" : ""} selected` : "No resources configured"}
+                onClick={() => onSelect(connectionId)}
+                trailing={
+                  count > 0 ? (
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                      {count}
+                    </span>
+                  ) : undefined
+                }
+              />
+            )
+          })
+        )}
+      </div>
+
+      <div className="pt-4 mt-auto">
+        <Button className="w-full" onClick={onSave} loading={saving}>
+          Save resources
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Step 2: Resource type list
+// ---------------------------------------------------------------------------
+
+interface ResourceTypeListViewProps {
+  connection: InConnection
+  resourceTypes: ConfigurableResource[]
+  getTypeSelectedCount: (resourceType: string) => number
+  onSelect: (resourceType: string) => void
+  onBack: () => void
+}
+
+function ResourceTypeListView({ connection, resourceTypes, getTypeSelectedCount, onSelect, onBack }: ResourceTypeListViewProps) {
+  return (
+    <>
+      <DialogHeader>
+        <BackButton onClick={onBack} />
+        <DialogTitle>{connection.display_name ?? connection.provider}</DialogTitle>
+        <DialogDescription>Choose resource types to scope</DialogDescription>
+      </DialogHeader>
+
+      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+        {resourceTypes.map((resource) => {
+          const count = getTypeSelectedCount(resource.key)
+          return (
+            <ChoiceCard
+              key={resource.key}
+              title={resource.display_name}
+              description={resource.description}
+              onClick={() => onSelect(resource.key)}
+              trailing={
+                count > 0 ? (
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                    {count} selected
+                  </span>
+                ) : undefined
+              }
+            />
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: Resource instance multi-select
+// ---------------------------------------------------------------------------
+
+interface ResourceInstanceListViewProps {
+  connectionId: string
+  resourceType: string
+  isSelected: (resourceId: string) => boolean
+  onToggle: (item: ResourceItem) => void
+  onBack: () => void
+}
+
+function ResourceInstanceListView({ connectionId, resourceType, isSelected, onToggle, onBack }: ResourceInstanceListViewProps) {
+  const { data, isLoading } = $api.useQuery("get", "/v1/connections/{id}/resources/{type}", {
+    params: { path: { id: connectionId, type: resourceType } },
+  })
+
+  const items: ResourceItem[] = ((data as Record<string, unknown> | undefined)?.resources as ResourceItem[] | undefined) ?? []
+  const label = resourceType.replace(/_/g, " ")
+
+  return (
+    <>
+      <DialogHeader>
+        <BackButton onClick={onBack} />
+        <DialogTitle className="capitalize">{label}s</DialogTitle>
+        <DialogDescription>Select which {label}s this agent can access</DialogDescription>
+      </DialogHeader>
+
+      <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
+          ))
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            No {label}s found.
+          </p>
+        ) : (
+          items.map((item) => {
+            const selected = isSelected(item.id)
+            return (
+              <ChoiceCard
+                key={item.id}
+                title={item.name}
+                description={item.id !== item.name ? item.id : ""}
+                onClick={() => onToggle(item)}
+                trailing={
+                  selected ? (
+                    <HugeiconsIcon icon={Tick02Icon} size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  ) : (
+                    <span className="h-4 w-4 rounded-full border border-border shrink-0" />
+                  )
+                }
+              />
+            )
+          })
+        )}
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main dialog
+// ---------------------------------------------------------------------------
+
+interface ConfigureResourcesDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  agent: Agent
+}
+
+export function ConfigureResourcesDialog({ open, onOpenChange, agent }: ConfigureResourcesDialogProps) {
   const queryClient = useQueryClient()
   const updateAgent = $api.useMutation("put", "/v1/agents/{id}")
   const direction = useRef<1 | -1>(1)
@@ -77,6 +284,7 @@ export function ConfigureResourcesDialog({
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null)
   const [activeResourceType, setActiveResourceType] = useState<string | null>(null)
 
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setResources(parseAgentResources(agent.resources))
@@ -85,22 +293,25 @@ export function ConfigureResourcesDialog({
     }
   }, [open, agent.resources])
 
+  // Load connections
   const { data: connectionsData } = $api.useQuery("get", "/v1/in/connections")
-  const connections = connectionsData?.data ?? []
-  const connectionsById = new Map(connections.filter((c) => c.id).map((c) => [c.id as string, c]))
+  const allConnections = (connectionsData?.data ?? []) as InConnection[]
+  const connectionsById = new Map(allConnections.filter((c) => c.id).map((c) => [c.id!, c]))
 
+  // Only connections the agent uses AND that have configurable resources
   const agentConnectionIds = agent.integrations && typeof agent.integrations === "object"
     ? Object.keys(agent.integrations)
     : []
-  const agentConnections = agentConnectionIds
+  const configurableConnections = agentConnectionIds
     .map((id) => connectionsById.get(id))
-    .filter(Boolean) as NonNullable<(typeof connections)[number]>[]
+    .filter((connection): connection is InConnection =>
+      !!connection && getConfigurableResources(connection).length > 0,
+    )
 
-  const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) : null
-  const configurableResources = (activeConnection as Record<string, unknown> | undefined)?.configurable_resources as
-    | { key: string; display_name: string; description: string }[]
-    | undefined
+  const activeConnection = activeConnectionId ? connectionsById.get(activeConnectionId) ?? null : null
+  const activeResourceTypes = activeConnection ? getConfigurableResources(activeConnection) : []
 
+  // Navigation
   function openConnection(connectionId: string) {
     direction.current = 1
     setActiveConnectionId(connectionId)
@@ -123,6 +334,7 @@ export function ConfigureResourcesDialog({
     setActiveResourceType(null)
   }
 
+  // Selection
   const toggleResource = useCallback(
     (connectionId: string, resourceType: string, item: ResourceItem) => {
       setResources((prev) => {
@@ -134,10 +346,7 @@ export function ConfigureResourcesDialog({
           : [...items, item]
         return {
           ...prev,
-          [connectionId]: {
-            ...connResources,
-            [resourceType]: nextItems,
-          },
+          [connectionId]: { ...connResources, [resourceType]: nextItems },
         }
       })
     },
@@ -158,6 +367,7 @@ export function ConfigureResourcesDialog({
     return (resources[connectionId]?.[resourceType] ?? []).some((item) => item.id === resourceId)
   }
 
+  // Save
   function handleSave() {
     if (!agent.id) return
 
@@ -165,267 +375,68 @@ export function ConfigureResourcesDialog({
     for (const [connId, types] of Object.entries(resources)) {
       const cleanedTypes: Record<string, ResourceItem[]> = {}
       for (const [typeKey, items] of Object.entries(types)) {
-        if (items.length > 0) {
-          cleanedTypes[typeKey] = items
-        }
+        if (items.length > 0) cleanedTypes[typeKey] = items
       }
-      if (Object.keys(cleanedTypes).length > 0) {
-        cleanedResources[connId] = cleanedTypes
-      }
+      if (Object.keys(cleanedTypes).length > 0) cleanedResources[connId] = cleanedTypes
     }
 
     updateAgent.mutate(
-      {
-        params: { path: { id: agent.id } },
-        body: { resources: cleanedResources } as never,
-      },
+      { params: { path: { id: agent.id } }, body: { resources: cleanedResources } as never },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/agents"] })
           toast.success("Resources updated")
           onOpenChange(false)
         },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error, "Failed to save resources"))
-        },
+        onError: (error) => toast.error(extractErrorMessage(error, "Failed to save resources")),
       },
     )
   }
 
-  const currentStep = activeResourceType ? "resources" : activeConnectionId ? "types" : "connections"
+  const currentStep = activeResourceType ? "instances" : activeConnectionId ? "types" : "connections"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col h-[min(680px,85vh)] sm:max-w-lg p-6">
+      <DialogContent className="sm:max-w-md h-[780px] overflow-hidden flex flex-col">
         <AnimatePresence mode="wait" custom={direction.current}>
-          {currentStep === "resources" && activeConnectionId && activeResourceType ? (
-            <motion.div
-              key={`resources-${activeConnectionId}-${activeResourceType}`}
-              custom={direction.current}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.15, ease: "easeInOut" }}
-              className="flex flex-col h-full"
-            >
-              <ResourceInstancesView
+          <motion.div
+            key={currentStep === "instances" ? `inst-${activeConnectionId}-${activeResourceType}` : currentStep === "types" ? `types-${activeConnectionId}` : "connections"}
+            custom={direction.current}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="flex flex-col h-full"
+          >
+            {currentStep === "instances" && activeConnectionId && activeResourceType ? (
+              <ResourceInstanceListView
                 connectionId={activeConnectionId}
                 resourceType={activeResourceType}
-                selectedItems={resources[activeConnectionId]?.[activeResourceType] ?? []}
                 isSelected={(resourceId) => isResourceSelected(activeConnectionId, activeResourceType, resourceId)}
                 onToggle={(item) => toggleResource(activeConnectionId, activeResourceType, item)}
                 onBack={goBackToResourceTypes}
               />
-            </motion.div>
-          ) : currentStep === "types" && activeConnectionId && activeConnection ? (
-            <motion.div
-              key={`types-${activeConnectionId}`}
-              custom={direction.current}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.15, ease: "easeInOut" }}
-              className="flex flex-col h-full"
-            >
-              <DialogHeader>
-                <button
-                  type="button"
-                  onClick={goBackToConnections}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-2"
-                >
-                  <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
-                  Back
-                </button>
-                <div className="flex items-center gap-3">
-                  <IntegrationLogo provider={activeConnection.provider ?? ""} size={28} />
-                  <div>
-                    <DialogTitle>{activeConnection.display_name ?? activeConnection.provider}</DialogTitle>
-                    <DialogDescription>Select which resource types to configure</DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-                {!configurableResources || configurableResources.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    No configurable resources for this provider.
-                  </p>
-                ) : (
-                  configurableResources.map((resource) => {
-                    const count = getTypeSelectedCount(activeConnectionId, resource.key)
-                    return (
-                      <button
-                        key={resource.key}
-                        type="button"
-                        onClick={() => openResourceType(resource.key)}
-                        className="flex items-center justify-between rounded-xl border border-border px-4 py-3 text-left transition-colors hover:border-primary"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{resource.display_name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{resource.description}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {count > 0 && (
-                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                              {count} selected
-                            </span>
-                          )}
-                          <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="text-muted-foreground" />
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="connections"
-              custom={direction.current}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.15, ease: "easeInOut" }}
-              className="flex flex-col h-full"
-            >
-              <DialogHeader>
-                <DialogTitle>Configure resources</DialogTitle>
-                <DialogDescription>
-                  Choose which resources each integration can access.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-                {agentConnections.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    This agent has no integrations. Add integrations first.
-                  </p>
-                ) : (
-                  agentConnections.map((connection) => {
-                    const connectionId = connection.id as string
-                    const count = getSelectedCount(connectionId)
-                    return (
-                      <button
-                        key={connectionId}
-                        type="button"
-                        onClick={() => openConnection(connectionId)}
-                        className="flex items-center justify-between rounded-xl border border-border px-4 py-3 text-left transition-colors hover:border-primary"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <IntegrationLogo provider={connection.provider ?? ""} size={28} />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {connection.display_name ?? connection.provider}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {connection.provider}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {count > 0 && (
-                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                              {count} resources
-                            </span>
-                          )}
-                          <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="text-muted-foreground" />
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-
-              <div className="pt-4 mt-auto">
-                <Button className="w-full" onClick={handleSave} loading={updateAgent.isPending}>
-                  Save resources
-                </Button>
-              </div>
-            </motion.div>
-          )}
+            ) : currentStep === "types" && activeConnectionId && activeConnection ? (
+              <ResourceTypeListView
+                connection={activeConnection}
+                resourceTypes={activeResourceTypes}
+                getTypeSelectedCount={(resourceType) => getTypeSelectedCount(activeConnectionId, resourceType)}
+                onSelect={openResourceType}
+                onBack={goBackToConnections}
+              />
+            ) : (
+              <ConnectionListView
+                connections={configurableConnections}
+                getSelectedCount={getSelectedCount}
+                onSelect={openConnection}
+                onSave={handleSave}
+                saving={updateAgent.isPending}
+              />
+            )}
+          </motion.div>
         </AnimatePresence>
       </DialogContent>
     </Dialog>
-  )
-}
-
-interface ResourceInstancesViewProps {
-  connectionId: string
-  resourceType: string
-  selectedItems: ResourceItem[]
-  isSelected: (resourceId: string) => boolean
-  onToggle: (item: ResourceItem) => void
-  onBack: () => void
-}
-
-function ResourceInstancesView({
-  connectionId,
-  resourceType,
-  isSelected,
-  onToggle,
-  onBack,
-}: ResourceInstancesViewProps) {
-  const { data, isLoading } = $api.useQuery("get", "/v1/connections/{id}/resources/{type}", {
-    params: { path: { id: connectionId, type: resourceType } },
-  })
-
-  const resourceItems: ResourceItem[] = ((data as Record<string, unknown> | undefined)?.resources as ResourceItem[] | undefined) ?? []
-
-  return (
-    <>
-      <DialogHeader>
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-2"
-        >
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
-          Back
-        </button>
-        <DialogTitle className="capitalize">{resourceType.replace(/_/g, " ")}s</DialogTitle>
-        <DialogDescription>Select which {resourceType.replace(/_/g, " ")}s this agent can access</DialogDescription>
-      </DialogHeader>
-
-      <div className="flex flex-col gap-1.5 mt-4 flex-1 overflow-y-auto">
-        {isLoading ? (
-          Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-[44px] w-full rounded-xl" />
-          ))
-        ) : resourceItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            No {resourceType.replace(/_/g, " ")}s found.
-          </p>
-        ) : (
-          resourceItems.map((item) => {
-            const selected = isSelected(item.id)
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onToggle(item)}
-                className={`flex items-center justify-between rounded-xl border px-4 py-2.5 text-left transition-colors ${
-                  selected
-                    ? "border-emerald-500/30 bg-emerald-500/5"
-                    : "border-border hover:border-primary"
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                  {item.id !== item.name && (
-                    <p className="text-[11px] text-muted-foreground font-mono truncate">{item.id}</p>
-                  )}
-                </div>
-                {selected && (
-                  <HugeiconsIcon icon={Tick02Icon} size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 ml-2" />
-                )}
-              </button>
-            )
-          })
-        )}
-      </div>
-    </>
   )
 }
