@@ -32,11 +32,13 @@ interface EditAgentContextValue {
   agent: Agent | null
   integrations: AgentIntegrations
   triggers: TriggerConfig[]
+  skillIds: Set<string>
   isSubmitting: boolean
   setIntegrations: (integrations: AgentIntegrations) => void
   removeIntegration: (connectionId: string) => void
   addTrigger: (trigger: TriggerConfig) => void
   removeTrigger: (index: number) => void
+  toggleSkill: (skillId: string) => void
   handleSave: () => void
 }
 
@@ -101,6 +103,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
 
   const [integrations, setIntegrations] = useState<AgentIntegrations>({})
   const [triggers, setTriggers] = useState<TriggerConfig[]>([])
+  const [skillIds, setSkillIds] = useState<Set<string>>(new Set())
 
   // Reset form from agent data when panel opens
   useEffect(() => {
@@ -134,6 +137,12 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
     })
     setIntegrations(parseAgentIntegrations(agent.integrations))
     setTriggers(parseAgentTriggers(agent))
+    const attachedSkills = (agent as Record<string, unknown>).attached_skills
+    setSkillIds(new Set(
+      Array.isArray(attachedSkills)
+        ? attachedSkills.map((skill: Record<string, unknown>) => skill.id as string).filter(Boolean)
+        : [],
+    ))
   }, [open, agent, form])
 
   const addTrigger = useCallback((trigger: TriggerConfig) => {
@@ -142,6 +151,18 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
 
   const removeTrigger = useCallback((index: number) => {
     setTriggers((previous) => previous.filter((_, triggerIndex) => triggerIndex !== index))
+  }, [])
+
+  const toggleSkill = useCallback((skillId: string) => {
+    setSkillIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(skillId)) {
+        next.delete(skillId)
+      } else {
+        next.add(skillId)
+      }
+      return next
+    })
   }, [])
 
   const removeIntegration = useCallback((connectionId: string) => {
@@ -188,6 +209,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
       shared_memory: values.sharedMemory,
       team: values.team.trim() || undefined,
       permissions: values.permissions,
+      skill_ids: Array.from(skillIds),
     }
 
     updateAgent.mutate(
@@ -206,7 +228,7 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
         },
       },
     )
-  }, [agent, form, integrations, triggers, updateAgent, queryClient, onClose])
+  }, [agent, form, integrations, triggers, skillIds, updateAgent, queryClient, onClose])
 
   return (
     <EditAgentContext.Provider
@@ -215,11 +237,13 @@ export function EditAgentProvider({ children, agent, open, onClose }: EditAgentP
         agent,
         integrations,
         triggers,
+        skillIds,
         isSubmitting: updateAgent.isPending,
         setIntegrations,
         removeIntegration,
         addTrigger,
         removeTrigger,
+        toggleSkill,
         handleSave,
       }}
     >
