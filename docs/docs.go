@@ -4519,6 +4519,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/agents/built-in-tools": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the complete list of built-in tools that can be granted to agents via permissions. Each tool includes its category and whether it is locked (cannot be toggled off).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "agents"
+                ],
+                "summary": "List all built-in tools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/agents/sandbox-tools": {
             "get": {
                 "security": [
@@ -12332,6 +12360,27 @@ const docTemplate = `{
                 "webhook_url_required": {
                     "description": "WebhookURLRequired indicates the user must manually configure a webhook\nURL in the provider's dashboard for triggers to work.",
                     "type": "boolean"
+                }
+            }
+        },
+        "github_com_ziraloop_ziraloop_internal_model.BuiltInToolDefinition": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "locked": {
+                    "description": "true = cannot be toggled off by the user",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
