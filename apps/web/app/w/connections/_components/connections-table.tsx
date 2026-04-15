@@ -10,6 +10,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   MoreHorizontalIcon,
   RefreshIcon,
+  Loading03Icon,
   Delete02Icon,
   Settings01Icon,
   Alert02Icon,
@@ -34,12 +35,14 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
+import { useConnectIntegration } from "../_hooks/use-connect-integration"
 
 export interface InConnection {
   id?: string
   provider?: string
   display_name?: string
   webhook_configured?: boolean
+  in_integration_id?: string
   created_at?: string
 }
 
@@ -70,6 +73,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
   const [webhookConfiguring, setWebhookConfiguring] = useState<InConnection | null>(null)
   const deleteConnection = $api.useMutation("delete", "/v1/in/connections/{id}")
   const markWebhookConfigured = $api.useMutation("patch", "/v1/in/connections/{id}/webhook-configured")
+  const { connect, connectingId } = useConnectIntegration()
 
   function handleDisconnect() {
     if (!disconnecting?.id) return
@@ -132,7 +136,11 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
                 )}
               </div>
               <div className="w-8 shrink-0 flex justify-center">
-                <ConnectionActions onDisconnect={() => setDisconnecting(connection)} />
+                <ConnectionActions
+                  onDisconnect={() => setDisconnecting(connection)}
+                  onReconnect={() => connection.in_integration_id && connect(connection.in_integration_id)}
+                  reconnecting={connectingId === connection.in_integration_id}
+                />
               </div>
             </div>
 
@@ -155,7 +163,11 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
                   <span>0 agents</span>
                   <span>{connection.created_at ? formatDate(connection.created_at) : "—"}</span>
                 </div>
-                <ConnectionActions onDisconnect={() => setDisconnecting(connection)} />
+                <ConnectionActions
+                  onDisconnect={() => setDisconnecting(connection)}
+                  onReconnect={() => connection.in_integration_id && connect(connection.in_integration_id)}
+                  reconnecting={connectingId === connection.in_integration_id}
+                />
               </div>
             </div>
           </div>
@@ -201,9 +213,11 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
 
 interface ConnectionActionsProps {
   onDisconnect: () => void
+  onReconnect: () => void
+  reconnecting: boolean
 }
 
-function ConnectionActions({ onDisconnect }: ConnectionActionsProps) {
+function ConnectionActions({ onDisconnect, onReconnect, reconnecting }: ConnectionActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-muted outline-none">
@@ -215,8 +229,12 @@ function ConnectionActions({ onDisconnect }: ConnectionActionsProps) {
             <HugeiconsIcon icon={Settings01Icon} size={16} className="text-muted-foreground" />
             Settings
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <HugeiconsIcon icon={RefreshIcon} size={16} className="text-muted-foreground" />
+          <DropdownMenuItem onClick={onReconnect} disabled={reconnecting}>
+            <HugeiconsIcon
+              icon={reconnecting ? Loading03Icon : RefreshIcon}
+              size={16}
+              className={reconnecting ? "text-muted-foreground animate-spin" : "text-muted-foreground"}
+            />
             Reconnect
           </DropdownMenuItem>
         </DropdownMenuGroup>
