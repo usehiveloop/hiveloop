@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration test-e2e-llm test-e2e-observability test-e2e-approval test-e2e-integration-real test-e2e-codedb test-e2e-parallel setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-all test-unit test-e2e test-lsp test-lsp-integration test-e2e-llm test-e2e-observability test-e2e-approval test-e2e-integration-real test-e2e-parallel setup-lsp openapi tools tools-debug tools-readonly tools-readonly-debug clean
 
 # --- Build ---
 
@@ -80,11 +80,6 @@ test-e2e-integration-real: ## Run integration e2e tests with real LLM
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
 	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
 	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test integration_real_e2e_tests -- --ignored --test-threads=1 --nocapture
-
-test-e2e-codedb: ## Run codedb e2e tests (requires codedb binary)
-	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
-	if [ -z "$$FIREWORKS_API_KEY" ]; then echo "Error: FIREWORKS_API_KEY not set. Add it to .env or export it."; exit 1; fi; \
-	FIREWORKS_API_KEY="$$FIREWORKS_API_KEY" cargo test -p bridge-e2e --test codedb_e2e_tests -- --ignored --test-threads=1 --nocapture
 
 test-e2e-parallel: ## Run parallel subagent e2e tests
 	@if [ -z "$$FIREWORKS_API_KEY" ] && [ -f .env ]; then export $$(grep -v '^#' .env | grep FIREWORKS_API_KEY | xargs); fi; \
