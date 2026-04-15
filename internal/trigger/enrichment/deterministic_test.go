@@ -364,14 +364,14 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 
 	// Verify specific ref values appear in variables across all requests.
 	foundDeploymentId := false
-	foundServiceId := false
+	foundProjectId := false
 	foundEnvironmentId := false
 	for _, vars := range allVariables {
 		if vars["deploymentId"] == "deploy-0df056be" {
 			foundDeploymentId = true
 		}
-		if vars["id"] == "svc-b6c22e03" {
-			foundServiceId = true
+		if vars["id"] == "proj-55776e03" {
+			foundProjectId = true
 		}
 		if inputMap, ok := vars["input"].(map[string]any); ok {
 			if inputMap["serviceId"] == "svc-b6c22e03" && inputMap["environmentId"] == "env-3c177170" {
@@ -382,8 +382,8 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	if !foundDeploymentId {
 		t.Error("no request had variables.deploymentId = deploy-0df056be")
 	}
-	if !foundServiceId {
-		t.Error("no request had variables.id = svc-b6c22e03")
+	if !foundProjectId {
+		t.Error("no request had variables.id = proj-55776e03")
 	}
 	if !foundEnvironmentId {
 		t.Error("no request had variables.input.serviceId + environmentId")
@@ -410,7 +410,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	assertContains(t, composedMessage, "mock-result", "API result data")
 
 	// Verify all 4 sections are present.
-	for _, label := range []string{"build_logs", "runtime_logs", "service_details", "recent_deployments"} {
+	for _, label := range []string{"build_logs", "runtime_logs", "project_topology", "recent_deployments"} {
 		assertContains(t, composedMessage, "### "+label, label+" section")
 	}
 }
