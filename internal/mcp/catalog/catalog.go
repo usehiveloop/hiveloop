@@ -58,9 +58,16 @@ type ResourceDef struct {
 // ProviderActions describes a provider and its available actions.
 type ProviderActions struct {
 	DisplayName string                      `json:"display_name"`
+	PushToMCP   *bool                       `json:"push_to_mcp,omitempty"` // nil or true = expose via MCP; false = accessed via proxy instead
 	Resources   map[string]ResourceDef      `json:"resources"`
 	Actions     map[string]ActionDef        `json:"actions"`
 	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
+}
+
+// ShouldPushToMCP returns whether this provider's actions should be exposed
+// via the MCP server. Defaults to true when not explicitly set.
+func (pa *ProviderActions) ShouldPushToMCP() bool {
+	return pa.PushToMCP == nil || *pa.PushToMCP
 }
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.

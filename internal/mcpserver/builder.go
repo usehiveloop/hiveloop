@@ -44,6 +44,12 @@ func BuildServer(
 		providerCfgKey := fmt.Sprintf("%s_%s", token.OrgID.String(), conn.Integration.UniqueKey)
 		nangoConnID := conn.NangoConnectionID
 
+		// Skip providers that are accessed via proxy instead of MCP.
+		if providerDef, ok := cat.GetProvider(provider); ok && !providerDef.ShouldPushToMCP() {
+			slog.Debug("skipping provider (push_to_mcp=false)", "provider", provider)
+			continue
+		}
+
 		for _, actionKey := range scope.Actions {
 			action, ok := cat.GetAction(provider, actionKey)
 			if !ok {
