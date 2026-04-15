@@ -118,7 +118,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "buildLogs",
-        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: String, $endDate: String) { buildLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { buildLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
       },
       "response_schema": "log"
     },
@@ -295,7 +295,7 @@
         },
         "graphql_operation": "query",
         "graphql_field": "deploymentLogs",
-        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: String, $endDate: String) { deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
+        "graphql_query": "query($deploymentId: String!, $limit: Int, $filter: String, $startDate: DateTime, $endDate: DateTime) { deploymentLogs(deploymentId: $deploymentId, limit: $limit, filter: $filter, startDate: $startDate, endDate: $endDate) { timestamp message severity } }"
       },
       "response_schema": "log"
     },
