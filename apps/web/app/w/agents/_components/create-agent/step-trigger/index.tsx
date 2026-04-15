@@ -19,7 +19,7 @@ interface SelectedEvent {
 }
 
 export function StepTrigger() {
-  const { goTo, addTrigger } = useCreateAgent()
+  const { goTo, addTrigger, selectedIntegrations } = useCreateAgent()
   const [view, setView] = useState<TriggerView>("choice")
   const [selectedConnection, setSelectedConnection] = useState<{
     id: string
@@ -162,6 +162,7 @@ export function StepTrigger() {
               onSearchChange={setSearch}
               onPickConnection={handlePickConnection}
               onBack={() => navigateTo("choice")}
+              connectionIds={selectedIntegrations}
             />
           )}
           {view === "triggers" && selectedConnection && (
