@@ -165,12 +165,12 @@ func TestCreateConversationWithOptions_SerialisesMcpServers(t *testing.T) {
 
 	client := NewBridgeClient(srv.URL, "key")
 	resp, err := client.CreateConversationWithOptions(context.Background(), "agent-1", CreateConversationRequest{
-		Provider: &ConversationProviderOverride{
+		Provider: &ProviderConfig{
 			ProviderType: Anthropic,
 			Model:        "claude-sonnet-4-6",
 			ApiKey:       "sk-test",
 		},
-		McpServers: []McpServerDefinition{
+		McpServers: &[]McpServerDefinition{
 			{Name: "forge-context", Transport: transport},
 		},
 	})

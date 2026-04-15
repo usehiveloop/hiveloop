@@ -120,7 +120,7 @@ func (executor *Executor) createConversation(ctx context.Context, agentDispatch 
 	// 5. Create conversation with per-conv MCPs.
 	conv, err := client.CreateConversationWithOptions(ctx, agent.ID.String(), bridgepkg.CreateConversationRequest{
 		Provider:   provider,
-		McpServers: mcpServers,
+		McpServers: &mcpServers,
 	})
 	if err != nil {
 		return fmt.Errorf("creating conversation for %s: %w", agent.Name, err)
@@ -214,7 +214,7 @@ func buildMcpTransport(url, token string) bridgepkg.McpTransport {
 // Provider override builder
 // --------------------------------------------------------------------------
 
-func (executor *Executor) buildProvider(agent *model.Agent) *bridgepkg.ConversationProviderOverride {
+func (executor *Executor) buildProvider(agent *model.Agent) *bridgepkg.ProviderConfig {
 	if agent.CredentialID == nil {
 		return nil
 	}
