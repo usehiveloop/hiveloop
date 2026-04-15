@@ -53,6 +53,11 @@ type ResourceDef struct {
 	// resource exposes — if any $refs.x fails to resolve, the dispatcher treats
 	// the key as empty to avoid silently merging unrelated resources.
 	ResourceKeyTemplate string `json:"resource_key_template,omitempty"`
+
+	// Configurable marks this resource type as selectable for agent scoping.
+	// When true, users can pick specific instances (e.g., specific repos) to
+	// grant an agent access to.
+	Configurable bool `json:"configurable,omitempty"`
 }
 
 // ProviderActions describes a provider and its available actions.
@@ -331,13 +336,38 @@ func (c *Catalog) GetResourceDef(provider, resourceType string) (*ResourceDef, b
 	return &r, true
 }
 
-// HasConfigurableResources returns true if the provider has resource configuration.
+// HasConfigurableResources returns true if the provider has at least one
+// resource with configurable: true.
 func (c *Catalog) HasConfigurableResources(provider string) bool {
+	return len(c.GetConfigurableResources(provider)) > 0
+}
+
+// ConfigurableResourceSummary is a lightweight descriptor returned to frontends
+// so they know which resource types can be scoped on an agent.
+type ConfigurableResourceSummary struct {
+	Key         string `json:"key"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+}
+
+// GetConfigurableResources returns the resource types marked configurable: true
+// for a provider.
+func (c *Catalog) GetConfigurableResources(provider string) []ConfigurableResourceSummary {
 	p, ok := c.providers[provider]
 	if !ok {
-		return false
+		return nil
 	}
-	return len(p.Resources) > 0
+	var result []ConfigurableResourceSummary
+	for key, resDef := range p.Resources {
+		if resDef.Configurable {
+			result = append(result, ConfigurableResourceSummary{
+				Key:         key,
+				DisplayName: resDef.DisplayName,
+				Description: resDef.Description,
+			})
+		}
+	}
+	return result
 }
 
 // GetExecution returns the execution config for a specific provider action.

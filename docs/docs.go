@@ -6279,6 +6279,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/connections/{id}/resources/{type}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches available resources of a specific type from the provider API for a connection. For example, list all repositories for a GitHub connection.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "List available resources for a connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type (e.g., repository, project)",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_resources.DiscoveryResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/conversations/{convID}": {
             "get": {
                 "security": [
@@ -12302,6 +12367,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_ziraloop_ziraloop_internal_mcp_catalog.SchemaDefinition": {
             "type": "object",
             "properties": {
@@ -13924,6 +14003,9 @@ const docTemplate = `{
                 "provider_prompts": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
                 },
+                "resources": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
+                },
                 "sandbox_id": {
                     "type": "string"
                 },
@@ -14599,6 +14681,9 @@ const docTemplate = `{
                 },
                 "provider_prompts": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                },
+                "resources": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"
@@ -15593,6 +15678,12 @@ const docTemplate = `{
         "internal_handler.integConnResponse": {
             "type": "object",
             "properties": {
+                "configurable_resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_mcp_catalog.ConfigurableResourceSummary"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -17491,6 +17582,9 @@ const docTemplate = `{
                 },
                 "provider_prompts": {
                     "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.ProviderPromptsMap"
+                },
+                "resources": {
+                    "$ref": "#/definitions/github_com_ziraloop_ziraloop_internal_model.JSON"
                 },
                 "sandbox_template_id": {
                     "type": "string"

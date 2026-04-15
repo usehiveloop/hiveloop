@@ -99,6 +99,7 @@ type createAgentRequest struct {
 	Integrations      model.JSON                  `json:"integrations,omitempty"`
 	AgentConfig       model.JSON                  `json:"agent_config,omitempty"`
 	Permissions       model.JSON                  `json:"permissions,omitempty"`
+	Resources         model.JSON                  `json:"resources,omitempty"`
 	Team              string                      `json:"team,omitempty"`
 	SharedMemory      bool                        `json:"shared_memory,omitempty"`
 	SandboxTools      []string                    `json:"sandbox_tools,omitempty"`  // tools to enable in dedicated sandbox (e.g. "chrome", "codedb")
@@ -129,6 +130,7 @@ type updateAgentRequest struct {
 	Integrations      model.JSON `json:"integrations,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
+	Resources         model.JSON `json:"resources,omitempty"`
 	Team              *string    `json:"team,omitempty"`
 	SharedMemory      *bool      `json:"shared_memory,omitempty"`
 	SandboxTools      []string   `json:"sandbox_tools,omitempty"` // tools to enable in dedicated sandbox
@@ -171,6 +173,7 @@ type agentResponse struct {
 	Integrations      model.JSON                  `json:"integrations"`
 	AgentConfig       model.JSON                  `json:"agent_config"`
 	Permissions       model.JSON                  `json:"permissions"`
+	Resources         model.JSON                  `json:"resources"`
 	Team              string     `json:"team"`
 	SharedMemory      bool       `json:"shared_memory"`
 	SandboxTools      []string   `json:"sandbox_tools"`
@@ -201,6 +204,7 @@ func toAgentResponse(a model.Agent) agentResponse {
 		Integrations: a.Integrations,
 		AgentConfig:  a.AgentConfig,
 		Permissions:  a.Permissions,
+		Resources:    a.Resources,
 		Team:         a.Team,
 		SharedMemory: a.SharedMemory,
 		SandboxTools: ensureStringSlice(a.SandboxTools),
@@ -591,6 +595,7 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Integrations: defaultJSON(req.Integrations),
 		AgentConfig:  defaultJSON(req.AgentConfig),
 		Permissions:  defaultJSON(req.Permissions),
+		Resources:    defaultJSON(req.Resources),
 		Team:         req.Team,
 		SharedMemory: req.SharedMemory,
 		SandboxTools: pq.StringArray(req.SandboxTools),
@@ -1063,6 +1068,9 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		updates["permissions"] = req.Permissions
+	}
+	if req.Resources != nil {
+		updates["resources"] = req.Resources
 	}
 	if req.Team != nil {
 		updates["team"] = *req.Team

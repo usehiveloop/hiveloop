@@ -842,7 +842,7 @@ func (h *ConnectAPIHandler) CreateIntegrationConnection(w http.ResponseWriter, r
 		"has_resources", len(req.Resources) > 0,
 	)
 
-	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn))
+	writeJSON(w, http.StatusCreated, toIntegConnResponse(conn, h.catalog.GetConfigurableResources(integ.Provider)))
 }
 
 // PatchIntegrationConnection handles PATCH /v1/widget/integrations/{id}/connections/{connectionId}.
@@ -975,7 +975,7 @@ func (h *ConnectAPIHandler) PatchIntegrationConnection(w http.ResponseWriter, r 
 
 	logger.Info("connection resources updated successfully")
 
-	writeJSON(w, http.StatusOK, toIntegConnResponse(conn))
+	writeJSON(w, http.StatusOK, toIntegConnResponse(conn, h.catalog.GetConfigurableResources(integ.Provider)))
 }
 
 func getResourceTypes(resources map[string][]string) []string {
